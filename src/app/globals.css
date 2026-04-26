@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/* ────────────────────────────────────────────────────────────────────────
+ * Design tokens — see DESIGN-airbnb.md (project root) and src/lib/tokens.ts.
+ * Locked palette. Don't add new accent colors. Don't substitute fonts.
+ * Body weight is 500 — never 400. The Airbnb system has no 400-regular role.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Brand */
+  --color-rausch: #ff385c;
+  --color-rausch-deep: #e00b41;
+  --color-plus-magenta: #92174d;
+  --color-luxe-purple: #460479;
+
+  /* Surface */
+  --color-canvas: #ffffff;
+  --color-cloud: #f7f7f7;
+  --color-hairline: #dddddd;
+
+  /* Text */
+  --color-ink: #222222;
+  --color-charcoal: #3f3f3f;
+  --color-ash: #6a6a6a;
+  --color-mute: #929292;
+  --color-stone: #c1c1c1;
+
+  /* Semantic — Airbnb */
+  --color-error: #c13515;
+  --color-error-deep: #b32505;
+  --color-info-link: #428bff;
+
+  /* Semantic — project extension */
+  --color-success: #2d7a4e;
+  --color-success-deep: #1f5535;
+  --color-warning: #b7791f;
+  --color-warning-deep: #8c5a14;
+
+  /* Radius scale (Airbnb) */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 32px;
+  --radius-full: 9999px;
+
+  /* Shadow scale */
+  --shadow-pressed-icon: rgba(0, 0, 0, 0.08) 0 4px 12px;
+  --shadow-elevation:
+    rgba(0, 0, 0, 0.02) 0 0 0 1px,
+    rgba(0, 0, 0, 0.04) 0 2px 6px 0,
+    rgba(0, 0, 0, 0.1) 0 4px 8px 0;
+
+  /* Breakpoints (DESIGN-airbnb.md §8) */
+  --breakpoint-sm: 550px;
+  --breakpoint-md: 800px;
+  --breakpoint-lg: 1128px;
+  --breakpoint-xl: 1440px;
+  --breakpoint-2xl: 1760px;
+
+  /* Fonts (set by next/font in layout.tsx) */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * Base body styles. Ink Black on Canvas White. Inter at 500 (the Airbnb
+ * "regular"). Display sizes ≥ 20px should apply -0.01em tracking; we wire
+ * that via utility classes on the headings, not globally on body, so paragraph
+ * text reads at neutral spacing.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans), "Inter", "Circular", -apple-system, system-ui,
+    "Roboto", "Helvetica Neue", sans-serif;
+  font-weight: 500; /* DESIGN-airbnb.md §3 — body weight is 500, never 400 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display tracking compensation. Headings 20px+ get -0.01em tracking to
+ * mimic Cereal's chiseled display proportions in Inter. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.01em;
+}

@@ -1,0 +1,670 @@
+================================================================================
+PROJECT: Pawn — Multi-Tenant Pawn / Jewelry / Repair SaaS
+Operator: Rodriguez Multi Service LLC (Eddy Rodriguez)
+File:    Progress.txt
+================================================================================
+
+SEE ALSO (do not duplicate here):
+  - Architecture / conventions: CLAUDE.md
+  - Source of truth: the code itself
+
+────────────────────────────────────────────────────────────────────────────────
+│  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
+────────────────────────────────────────────────────────────────────────────────
+
+  Last session:   Session 1 (2026-04-26) — planning + skeleton docs +
+                  design system received + PHASE 0 SCAFFOLD ~70% COMPLETE
+  Context budget: substantial use this session (long planning + scaffold
+                  build); future session starts may need to re-read
+                  CLAUDE.md + DESIGN-airbnb.md + recent Progress entries
+  Last worked on: Decisions locked for the build:
+                  - Repo lives at c:\Users\rodri\OneDrive\Documents\Pawn
+                  - Repo name: pawn
+                  - Multi-store / chain support baked in from day 1
+                    (tenants.parent_tenant_id + tenant_type ENUM
+                     'chain_hq'|'shop'|'standalone')
+                  - Police-report format tenant-configurable; FL ships
+                    first (fl_leadsonline). Adding states = adding enum
+                    values + exporter modules under
+                    src/lib/compliance/police-report/formats/
+                  - Stripe Connect both card-present (Terminal, in-store)
+                    and online (Payment Links via customer portal)
+                  - Pawn module feature-gated per tenant
+                    (tenants.has_pawn, plus has_repair, has_retail)
+                  - Stone setting folded into the Repair module via a
+                    `service_type` ENUM (repair / stone_setting / sizing
+                     / restring / plating / engraving / custom).
+                    No separate stone-setting surface.
+                  - Tech stack: Next 16 + TS strict + Tailwind v4 +
+                    Supabase (Supavisor pooler) + @react-pdf + TanStack
+                    Table v8 + Phosphor + Plus Jakarta + JetBrains Mono +
+                    Twilio + Resend + Stripe Connect + Anthropic
+                    (Sonnet 4.6 / Haiku 4.5, server-only)
+                  - Dev port pinned to 3060 (3000=Luna Azul, 3030=Abacus)
+                  - dev-watchdog.mjs cloned from Abacus, retargeted
+                  - DESIGN SYSTEM RECEIVED: Airbnb-inspired (Rausch
+                    coral-pink #ff385c primary, Ink Black #222222 text,
+                    Canvas White surfaces, Hairline Gray #dddddd
+                    dividers, three-layer signature elevation, 14/20px
+                    radius, single-family typography). Saved to
+                    DESIGN-airbnb.md at project root. Inter (Google
+                    Fonts) substitutes the proprietary Airbnb Cereal VF.
+                    JetBrains Mono retained for tabular numerals.
+                    Tokens are LOCKED — no hex changes mid-build.
+
+  ACTIVE FILE(S):
+    — Planning docs —
+    - CLAUDE.md          (17 critical rules incl. cloud-isolation Rule 17)
+    - Progress.txt       (this file)
+    - DESIGN-airbnb.md   (visual identity SoT, palette extended with
+                          Success Green #2D7A4E / Warning Amber #B7791F)
+    - AGENTS.md          (Next 16 framework warning — scaffold stub)
+    - .env.local.example (env-var template with "DEDICATED Pawn project"
+                          warning on every section)
+
+    — Phase 0 scaffold (built this session) —
+    - package.json       (scripts: dev → watchdog, dev:raw, db:types)
+    - dev-watchdog.mjs   (cloned from Abacus, port 3060, Windows fixes:
+                          taskkill /T /F + waitForPortFree)
+    - next.config.ts     (turbopack.root pinned to __dirname; defeats
+                          the C:\Users\rodri\package-lock.json drift
+                          from the docx skill's install)
+    - src/lib/tokens.ts  (locked palette + radius + shadow + breakpoints
+                          + reportColors for printables)
+    - src/app/globals.css (Tailwind v4 @theme block, all color tokens
+                          exposed; Inter as body font at weight 500)
+    - src/app/layout.tsx (Inter + JetBrains Mono via next/font)
+    - src/app/page.tsx   (placeholder — proxy redirects by role)
+    - src/lib/supabase/{client,server,admin,middleware,ctx,guards}.ts
+                          (full role-aware ctx + requireSuperAdmin /
+                          requireRoleInTenant / requireStaff /
+                          requireOwner; chain_admin honored at parent
+                          tenant for child shop access)
+    - src/types/database.ts + database-aliases.ts (placeholder Database
+                          with shapes for tenants/profiles/user_tenants
+                          + RPC signatures for create_tenant_with_owner
+                          / delete_tenant_cascade /
+                          claim_tenant_with_license_key. db:types regen
+                          will replace this file; aliases re-exported
+                          to survive)
+    - src/proxy.ts       (PUBLIC_PATHS, role-based gating, /admin
+                          requires superadmin, /portal requires client,
+                          staff prefixes require staff role; / redirects
+                          by role)
+    - src/lib/i18n/{config,en,es,context,use-lang}.ts (EN+ES, body
+                          weight 500 wired in design system)
+    - src/app/(auth)/{layout,login/{page,form},forgot-password/{page,form}}.tsx
+    - src/app/auth/callback/{page,handler}.tsx (PKCE + implicit-flow
+                          hash-fragment handling)
+    - src/app/no-tenant/{page,content}.tsx
+    - src/app/api/profile/language/route.ts
+    - src/app/(admin)/layout.tsx
+    - src/app/(admin)/admin/tenants/{page,content}.tsx (list + flash
+                          banner showing onboarding URL after create)
+    - src/app/(admin)/admin/tenants/new/{page,form,actions}.tsx
+                          (full create form → create_tenant_with_owner
+                          RPC; type=shop unlocks parent picker)
+    - src/app/(staff)/layout.tsx + dashboard/{page,content}.tsx
+    - src/app/(portal)/layout.tsx + portal/{page,content}.tsx
+    - patches/0001-foundation.sql (~470 lines: 8 tables, 3 enums, 5
+                          RLS helpers, 3 RPCs, immutability triggers
+                          on compliance_log + audit_log, full RLS)
+    - scripts/db-types.mjs (safe wrapper: write→tmp→atomic rename)
+
+  RESUME POINT:
+    Phase 0 ~70% complete. The local skeleton is fully built and
+    `npm run build` is green at 11 routes + Proxy. Remaining work
+    requires user-side cloud setup before we can finish:
+
+    >>> USER ACTION ITEMS — do these in order, then ping back:
+    >>>
+    >>>   A. CREATE DEDICATED SUPABASE PROJECT (Pawn)
+    >>>      1. https://supabase.com/dashboard → New project
+    >>>      2. Name: pawn (or whatever — UI label only)
+    >>>      3. Region: us-east-1 (closest to Tampa)
+    >>>      4. Save the DB password to your password manager.
+    >>>      5. Copy these into a NEW .env.local file (use
+    >>>         .env.local.example as the template):
+    >>>           NEXT_PUBLIC_SUPABASE_URL
+    >>>           NEXT_PUBLIC_SUPABASE_ANON_KEY
+    >>>           SUPABASE_SERVICE_ROLE_KEY
+    >>>           DATABASE_URL  (Supavisor pooler URL — Settings →
+    >>>             Database → Connection pooling, NOT direct host)
+    >>>           SUPABASE_PROJECT_ID  (project ref from URL)
+    >>>           SUPABASE_ACCESS_TOKEN  (generate at
+    >>>             https://supabase.com/dashboard/account/tokens)
+    >>>      6. Set Auth Site URL to http://localhost:3060 in
+    >>>         Authentication → URL Configuration. Add
+    >>>         http://localhost:3060/auth/callback to redirect URLs.
+    >>>      7. Open SQL Editor → New query → paste the entire
+    >>>         contents of patches/0001-foundation.sql → Run.
+    >>>         Should print "Success. No rows returned."
+    >>>      8. Authentication → Users → Add user → create your
+    >>>         superadmin auth user (email + password, Auto Confirm).
+    >>>         Copy the new user's UUID.
+    >>>      9. SQL Editor → run:
+    >>>           INSERT INTO profiles (id, role, full_name, email,
+    >>>             language)
+    >>>           VALUES ('<paste UUID>', 'superadmin',
+    >>>             'Eddy Rodriguez', '<your email>', 'en');
+    >>>
+    >>>   B. CREATE DEDICATED VERCEL PROJECT (Pawn)
+    >>>      Wait until we have the GitHub repo created. We'll come
+    >>>      back to this together — don't rush it.
+    >>>
+    >>>   C. PING ME WHEN A IS DONE.
+
+    Then we (Claude) will:
+      - Run `npm run db:types` to replace the placeholder Database type
+        with the live schema's generated types.
+      - Smoke-test: `npm run dev` → http://localhost:3060/login →
+        sign in with the superadmin auth user → confirm we land at
+        /admin/tenants empty state → create a test tenant → confirm
+        flash banner shows the onboarding URL.
+      - Wire the (now-deferred) /onboard?token=<license_key> claim
+        page so a fresh user can claim a tenant via the URL.
+      - git init, set remote to the new Pawn GitHub repo, install
+        pre-push hooks (i18n drift + as-any drift watcher).
+      - Walk through Vercel project creation together (env import,
+        framework preset, root directory, GitHub identity match).
+      - First deploy green → Phase 0 closed → Phase 1 begins.
+
+  OPEN ISSUES / BLOCKERS:
+    - GitHub repo not created (DEDICATED Pawn repo, not a fork or
+      branch of LunaAzul / Abacus).
+    - Supabase project not created (DEDICATED Pawn project, separate
+      org URL + separate keys; do NOT reuse LunaAzul or Abacus).
+    - Vercel project not created (DEDICATED Pawn project; do NOT
+      add Pawn as another deployment under an existing project).
+
+  KEY DECISIONS LOCKED:
+    - Multi-store from day 1: tenants.parent_tenant_id + tenant_type
+      ENUM. Reasoning: Luna Azul deferred this, paid for it later
+      (unused tenant_type + parent_tenant_id columns sitting in prod
+      per Luna Azul Session 37 known-issues). We pay the design cost
+      now while the schema is empty.
+    - Pawn gated: tenants.has_pawn BOOLEAN (plus has_repair, has_retail
+      for symmetry). Sidebar entries, routes, server actions all check
+      the flag. Allows jewelry-only / repair-only shops to opt out.
+    - Repair = stone setting: same table, service_type ENUM. Avoids
+      duplicating the lifecycle / photo trail / time logs across two
+      modules that diverge only at the mounting-type field.
+    - Police-report format per-tenant: tenants.police_report_format
+      ENUM defaulting to 'fl_leadsonline'. Adding new states = adding
+      a new enum value + a new exporter file under src/lib/compliance/
+      police-report/formats/. The dispatcher at
+      src/lib/compliance/police-report/index.ts reads the enum and
+      routes — never a fork.
+    - Stripe Connect both surfaces: same per-tenant connected account
+      drives Terminal (card-present in POS) AND Payment Links
+      (customer portal payoff). One OAuth flow, one webhook endpoint,
+      both surfaces.
+    - compliance_log is its own table, write-once. Police-report
+      exporter reads compliance_log — NOT loans / sales — so reports
+      stay deterministic across edits / voids / corrections.
+    - Customer ID retention enforced at the customer-record DELETE
+      gate. FL = 2 years post-redemption / forfeiture (verify current
+      statute before going live in any state).
+    - Pawn ticket immutability after print: ticket print stamps a
+      printed_at timestamp; trigger rejects core-field UPDATE on
+      printed tickets. Corrections = void + re-issue.
+
+  IMPORTANT CONSTANTS / PATHS:
+    - Project root:   c:\Users\rodri\OneDrive\Documents\Pawn\
+    - Dev port:       3060
+    - Sister apps:    Luna Azul (:3000) — c:\...\LunaAzul Web Sass\
+                      Abacus     (:3030) — C:\...\Abacus\
+    - Memory dir:     C:\Users\rodri\.claude\projects\
+                      c--Users-rodri-OneDrive-Documents-Pawn\memory\
+    - Mailbox:        C:\ClaudeMemory\Sass Memory Coonection\
+                      (shared with Luna Azul + Abacus Claudes)
+    - Active-tenant cookie: pawn-active-tenant
+    - Skill we use to save state: /progress (this file)
+
+================================================================================
+PHASE OVERVIEW
+================================================================================
+
+  Phase   Description                                Status      Completed
+  ------  -----------------------------------------  ----------  ------------
+  0       Foundation skeleton                        IN PROGRESS  —
+          (Next 16 scaffold, dev-watchdog,
+          Supabase tenants + user_tenants +
+          profiles + settings + audit_log +
+          compliance_log + helper functions + RLS,
+          getCtx, guards, proxy, i18n EN+ES,
+          auth pages, three layouts, tenant
+          provisioning RPC + UI, Vercel deploy,
+          pre-push hooks)
+  1       Customers + Inventory                      PENDING     —
+          (customer CRUD with ID + signature
+          capture; inventory items + photos +
+          stones sub-records)
+  2       Pawn loans (gated on has_pawn)             PENDING     —
+          (intake → active → redeem/extend/
+          forfeit; printable bilingual ticket;
+          forfeit-to-inventory hook; customer-
+          portal loan view; pay-by-link)
+  3       Repair / stone setting                     PENDING     —
+          (service_type enum drives all variants;
+          intake → work order board → pickup;
+          photo trail; technician time logs;
+          parts-from-inventory wiring)
+  4       Retail / POS                               PENDING     —
+          (sale, return, layaway, register close,
+          Stripe Terminal binding, card-present
+          payment flow, daily cash count)
+  5       Customer portal (full)                     PENDING     —
+          (loans + payoff via Stripe Payment Link,
+          repair ticket status, layaway balance,
+          realtime updates)
+  6       Communications                             PENDING     —
+          (Twilio SMS + WhatsApp + Resend wired
+          per-tenant; maturity reminders, repair-
+          ready, layaway; bilingual EN+ES)
+  7       Reporting + compliance                     PENDING     —
+          (daily register, pawn aging, FL
+          LeadsOnline exporter from compliance_log,
+          inventory turn, chain rollup at HQ
+          tenants)
+  8       Polish                                     PENDING     —
+          (mobile responsive, audit viewer, real
+          Stripe smoke test, dark mode if design
+          palette includes one)
+
+================================================================================
+SESSION HISTORY LOG
+================================================================================
+
+--- Session 1 (2026-04-26) — Project planning + skeleton docs ---
+
+  1. ANALYZED LUNA AZUL + ABACUS PROGRESS LOGS to absorb the working
+     environment, tech stack patterns, and gotchas. Pulled forward:
+     multi-tenant architecture (tenants + user_tenants + profiles with
+     global role; per-tenant role on user_tenants); RLS helper functions
+     pattern (my_tenant_ids, my_role_in_tenant, my_is_staff); getCtx
+     cookie-first tenant resolution; requireSuperAdmin /
+     requireRoleInTenant guards; numeric(18,4) money; soft-delete via
+     deleted_at; immutability triggers on is_posted=true; Supavisor
+     pooler URL for DB; dev-watchdog with 25-min cycle and 4 GB heap
+     to defeat Turbopack memory leak; Next 16 proxy.ts (not
+     middleware.ts); Phosphor in client components only; <form
+     action={fn}> with no explicit encType; safe db:types wrapper;
+     pre-push hooks for i18n + as-any drift.
+
+  2. PROPOSED DOMAIN MODULES — 12 originally (customers, inventory,
+     pawn loans, loan ops, buy outright, repair tickets, stone setting,
+     retail/POS, customer portal, reporting, compliance,
+     communications). Folded stone setting into repair tickets per
+     user direction → 11 modules.
+
+  3. DECISIONS LOCKED (see RESUME HERE):
+     - Repo: c:\Users\rodri\OneDrive\Documents\Pawn (current dir)
+     - Name: pawn
+     - Multi-store from day 1
+     - FL police-report only in v1; format per-tenant
+     - Stripe both Terminal + Payment Links
+     - Pawn module gated per tenant
+     - Stone setting = service_type enum on repair tickets
+     - Dev port: 3060
+
+  4. WROTE INITIAL CLAUDE.md AT PROJECT ROOT.
+     17 critical rules (multi-tenant scoping, money type, soft-delete,
+     signed URLs, server-only AI, role-location rules, ID retention,
+     ticket immutability after print, compliance_log as source of
+     truth for police reports, pawn module gating). Tech stack table.
+     Multi-store model spec. User roles (added chain_admin for HQ-
+     level cross-shop access; pawn_clerk + repair_tech +
+     appraiser as new roles distinct from Abacus's owner/staff/cpa).
+     Domain module specs (10 modules — repair includes stone setting).
+     Database core tables outline. Folder structure target. I18n.
+     Stripe (both surfaces). Compliance / police-report architecture
+     (compliance_log + dispatcher + per-format files). Audit log.
+     Env vars. Build phases (0-8). Quick-ref commands.
+
+  5. WROTE INITIAL Progress.txt AT PROJECT ROOT (this file).
+
+  6. DESIGN SYSTEM RECEIVED. Airbnb-inspired identity dropped at
+     project root as DESIGN-airbnb.md. Brand: Rausch coral-pink
+     (#ff385c) as the single accent, Ink Black (#222222) for ~90%
+     of all text, Canvas White surfaces with Hairline Gray
+     (#dddddd) 1px dividers, three-layer signature elevation
+     (0.02 / 0.04 / 0.10 stacked shadows) on lifted cards, single-
+     family typography (Airbnb Cereal VF → Inter substitute),
+     14/20px radius scale, 50% radius for every circular icon
+     button + avatar.
+
+     Stack adjustments locked:
+       - Fonts: Inter + JetBrains Mono (replaced the originally-
+         scoped Plus Jakarta Sans + JetBrains Mono pairing).
+       - CLAUDE.md "DESIGN TOKENS — PLACEHOLDER" section replaced
+         with "DESIGN SYSTEM — LOCKED" pointing at DESIGN-airbnb.md
+         as source of truth + integration guidance + the open
+         semantic-color question.
+
+     Open question raised — Airbnb's palette has Error Red and
+     Info Blue but NO Success Green / Warning Amber (Airbnb
+     expresses "completed" via icon + Ink Black). That works for
+     consumer browse/detail surfaces but breaks in dense financial
+     tables (loan list, repair board, register). Two paths:
+       (a) Strict — status badges differ by label only.
+       (b) Extend — add muted Success Green + Warning Amber matched
+           to Error Red's #c13515 saturation, document the
+           extension in DESIGN-airbnb.md.
+     Recommendation: (b). Decision needed before Phase 1 status
+     badges.
+
+  7. UPDATED CLAUDE.md AND Progress.txt to reflect locked design.
+     Phase 0 now unblocked; awaiting green light to scaffold.
+
+  8. SEMANTIC-COLOR EXTENSION RESOLVED — path (b), extend palette.
+     Added Success Green #2D7A4E (deep #1F5535) and Warning Amber
+     #B7791F (deep #8C5A14) to DESIGN-airbnb.md §2 Semantic & Accent,
+     marked as project extensions. Saturation matched to Airbnb's
+     Error Red #c13515 dusty palette so they sit naturally next to
+     it. Use rules: strictly semantic, never decorative, never for
+     emphasis, never outside status communication. CLAUDE.md "Open
+     question" section replaced with "Semantic-color extension —
+     LOCKED" recording the choice.
+
+  9. PHOTOGRAPHY GUIDANCE LANDED. User flagged that Airbnb's
+     consumer-travel photo vocabulary needs adapting for our
+     domain. Added "Photography — adapt to our domain" to
+     CLAUDE.md DESIGN SYSTEM section: inventory items shot
+     top-light on neutral seamless backgrounds at 4:3 with the
+     14px listing-card radius; customer ID scans gated behind
+     admin-only signed URLs and never rendered at hero scale;
+     repair before/in-progress/after trail rendered as 1:1
+     thumbnails in a per-ticket carousel; no stock photography
+     anywhere — workhorse, not brochure.
+
+ 10. CLOUD-ISOLATION RULE LOCKED. User flagged that Pawn gets
+     dedicated Supabase + Vercel + GitHub projects — no reuse of
+     LunaAzul or Abacus infrastructure, not even "just to test."
+     The mailbox folder at C:\ClaudeMemory\Sass Memory Coonection\
+     stays shared across the three Claudes (only shared resource).
+     Added as Rule 17 in CLAUDE.md CRITICAL RULES.
+
+ 11. ALL OPEN PHASE-0 QUESTIONS ANSWERED. Skeleton-scaffold work
+     ready to start on next greenlight.
+
+ 12. SCAFFOLD — `npx create-next-app@latest .` rejected by npm
+     ("Pawn" capitalized — npm naming rule). Worked around by
+     scaffolding to a `pawn/` subdir then `shopt -s dotglob && mv
+     pawn/* . && rmdir pawn` to merge files up. package.json
+     name = 'pawn' (lowercase) preserved. Stack:
+     Next 16.2.4 + React 19.2.4 + Tailwind v4 + TypeScript strict.
+
+ 13. WATCHDOG CLONED to project root, retargeted to port 3060.
+     All 3 apps now have distinct ports: 3000 = Luna Azul, 3030 =
+     Abacus, 3060 = Pawn. Windows fixes (taskkill /T /F +
+     waitForPortFree) carried forward — no need to repeat Abacus's
+     EADDRINUSE debug loop.
+
+ 14. DESIGN TOKENS LOCKED into src/lib/tokens.ts (TS constants for
+     colors / brand gradient / radius / shadow / breakpoints /
+     reportColors). Globals.css `@theme` block exposes the same
+     palette as Tailwind v4 vars. Inter + JetBrains Mono wired via
+     next/font with weight 500 default. -0.01em letter-spacing on
+     h1/h2/h3 (display compensation per DESIGN-airbnb.md §3 note).
+
+ 15. NEXT.CONFIG.TS PINNED `turbopack.root` to __dirname. Without
+     this, Next walks up looking for a lockfile and finds
+     `C:\Users\rodri\package-lock.json` (the docx skill's install).
+     Same fix Abacus shipped in their Session 13.
+
+ 16. PATCHES/0001-FOUNDATION.SQL written (~470 lines):
+     - 3 enums (tenant_role with 7 roles incl. chain_admin;
+       tenant_type with chain_hq/shop/standalone; police_report_format
+       starting at fl_leadsonline only)
+     - 8 tables (tenants, profiles, user_tenants,
+       tenant_billing_settings, settings, user_settings, audit_log,
+       compliance_log)
+     - 5 RLS helper functions: my_tenant_ids(), my_chain_tenant_ids(),
+       my_accessible_tenant_ids(), my_role_in_tenant(),
+       my_is_staff(), my_is_owner() — chain admins automatically get
+       staff-level access at every child shop
+     - 3 RPCs: create_tenant_with_owner (atomic insert + auto-add
+       superadmin as owner to prevent lockout + license_key for
+       onboarding), delete_tenant_cascade, claim_tenant_with_license_key
+     - immutability triggers: compliance_log allows only export-
+       bookkeeping field updates; audit_log fully write-once
+     - RLS policies on all 8 tables; staff/owner gating
+
+ 17. SUPABASE CLIENT LIBRARY (6 files):
+     client.ts (browser, anon key) /
+     server.ts (SSR + server actions, async cookies()) /
+     admin.ts (service-role, NEVER without guard) /
+     middleware.ts (proxy session refresh + role extraction) /
+     ctx.ts (getCtx with cookie-first tenant resolution +
+            tenantRole lookup) /
+     guards.ts (requireSuperAdmin / requireRoleInTenant /
+            requireStaff / requireOwner — all chain-admin aware)
+
+ 18. PROXY.TS (Next 16 — NOT middleware.ts; export named `proxy`).
+     PUBLIC_PATHS = login, magic-link, set-password, forgot-password,
+     onboard, no-tenant, auth/callback. /admin gates on
+     globalRole=superadmin. /portal gates on tenantRole=client.
+     Staff prefixes (dashboard, customers, inventory, pawn, repair,
+     pos, reports, compliance, team, settings) gate on staff roles.
+     / redirects by role. Matcher excludes _next/static, api,
+     image extensions, fonts.
+
+ 19. I18N EN+ES skeleton — config/en/es/context/use-lang. Body
+     weight 500 enforced. en.ts is plain object (NOT `as const` —
+     would freeze literal types and break es.ts assignment to
+     Dictionary type). Sections: common, lang, nav, auth, dashboard
+     placeholder, noTenant, admin{tenants, newTenant}. More keys
+     land per phase via the pre-push i18n drift watcher (Phase 0
+     close).
+
+ 20. AUTH PAGES (Phase 0 essentials only):
+     /login (with `?error=` decoder + `?next=` post-login redirect
+            + Suspense for useSearchParams) /
+     /forgot-password (resetPasswordForEmail → /auth/callback) /
+     /auth/callback (PKCE ?code= AND implicit-flow #access_token
+            both supported — required because Supabase invite links
+            put tokens in the hash fragment which never reaches the
+            server, so the handler is necessarily a client component;
+            error path → /login?error=...) /
+     /no-tenant (parking page for authenticated-but-no-tenant) /
+     /api/profile/language (POST endpoint persisting lang to
+            profiles.language)
+     DEFERRED to Phase 1 backlog: /magic-link, /set-password,
+     /onboard. The /onboard claim page is the most important of the
+     three — needed before we can ship a working tenant invite link.
+
+ 21. THREE LAYOUTS:
+     (admin)/layout.tsx — defense-in-depth superadmin check + simple
+            admin shell (Pawn wordmark + ADMIN badge + email)
+     (staff)/layout.tsx — defense-in-depth staff role check + tenant
+            name display + I18nProvider seeded from profiles.language
+     (portal)/layout.tsx — defense-in-depth client role check +
+            I18nProvider
+     All three pull profiles.language for the I18nProvider initial
+     value.
+
+ 22. /ADMIN/TENANTS LIST + NEW FORM:
+     - List: server-fetches tenants ordered by created_at DESC,
+       renders type chips (Standalone/Chain HQ/Shop), module chips
+       (Pawn/Repair/Retail). Empty state for fresh install.
+     - Flash banner: when ?created=&license=&name= present in URL
+       (server reads searchParams), surfaces a green Success card
+       with the full /onboard?token=<license_key> URL ready to share.
+     - New tenant form: useActionState wraps createTenantAction.
+       tenant_type select (standalone | chain_hq | shop). When type=
+       shop, parent picker appears (pre-fetched from chain_hq rows).
+       3 module checkboxes (default all enabled). police-report
+       format select (fl_leadsonline only for v1).
+     - Server action: requireSuperAdmin → admin.rpc(
+       'create_tenant_with_owner', ...) → redirect to list with
+       flash query params. Auto-adds the calling superadmin as
+       owner of the new tenant (RPC handles this; prevents lockout).
+
+ 23. PLACEHOLDER DATABASE.TS reshaped to declare:
+     - Row shapes for tenants / profiles / user_tenants
+       (everything Phase 0 reads from)
+     - Function signatures for create_tenant_with_owner /
+       delete_tenant_cascade / claim_tenant_with_license_key
+     - Enum exports (tenant_role / tenant_type / police_report_format)
+     This unblocks TypeScript without forcing `as any` casts. Once
+     `npm run db:types` runs against the live project, scripts/
+     db-types.mjs replaces this file with real types and re-appends
+     `export * from './database-aliases'` so the hand-written
+     aliases survive every regen.
+
+ 24. SCRIPTS/DB-TYPES.MJS safe wrapper. Spawns `supabase gen types
+     typescript`, captures stdout to memory, validates (size ≥ 500
+     bytes, contains `export type Database`), writes to <target>.tmp,
+     atomically renames. Reads SUPABASE_PROJECT_ID + ACCESS_TOKEN
+     from .env.local. Never raw `>` redirect. Abacus Session 15 lost
+     their hand-written aliases that way.
+
+ 25. .ENV.LOCAL.EXAMPLE template at project root. Every section
+     repeats the "DEDICATED Pawn project — never reuse Luna Azul or
+     Abacus" warning so the user can't miss it.
+
+ 26. BUILD VERIFIED GREEN at 11 routes + Proxy:
+       /  /_not-found  /admin/tenants  /admin/tenants/new
+       /api/profile/language  /auth/callback  /dashboard
+       /forgot-password  /login  /no-tenant  /portal
+     TypeScript strict — every file compiled without `any` casts.
+     Two type errors caught and fixed in the build cycle:
+       (a) Empty Database.Tables made every Supabase query return
+           never. Fixed by declaring Row shapes for the 3 tables we
+           query.
+       (b) en.ts `as const` froze every string literal type, making
+           es.ts assignment to Dictionary type fail. Fixed by
+           dropping `as const` (we don't need string-literal
+           discrimination on translation keys).
+
+ 27. CLAUDE.MD CLOBBER + RESTORE. The scaffold's `mv pawn/* .`
+     overwrote our 9KB CLAUDE.md with a 11-byte `@AGENTS.md`
+     pointer (Next 16 scaffold's emerging convention). Restored
+     full CLAUDE.md from in-context content with one addition: a
+     >-prefixed pointer at the top of CLAUDE.md noting that
+     AGENTS.md exists with Next 16 framework-level warnings. We
+     keep our convention (CLAUDE.md as canonical, like LunaAzul +
+     Abacus) but acknowledge AGENTS.md alongside.
+
+ 28. PHASE 0 ~70% COMPLETE; HAND-OFF PREPARED for user-side cloud
+     setup (see RESUME POINT). Outstanding work that needs creds:
+     db:types regen, smoke-test, /onboard claim page, git init +
+     pre-push hooks, Vercel project + first deploy. None of this
+     can happen until the user creates the dedicated Supabase
+     project and pastes credentials into .env.local.
+
+================================================================================
+PENDING — NEXT UP
+================================================================================
+
+  IMMEDIATE (do this first next session, IF design has returned):
+    Phase 0 — Foundation skeleton. Steps 1-15 listed in RESUME POINT.
+
+  IF DESIGN HASN'T RETURNED YET:
+    - Read CLAUDE.md to confirm domain understanding before any code.
+    - Confirm GitHub repo name (suggested: `pawn` under our org).
+    - Confirm Vercel project name (suggested: `pawn` to match).
+    - Decide whether the first tenant is RMS internal or a paying
+      customer — affects whether we run any prod data through it.
+
+  BACKLOG (in priority order):
+    1. Phase 0 — Foundation skeleton.
+    2. Phase 1 — Customers + Inventory.
+    3. Phase 2 — Pawn loans (gated).
+    4. Phase 3 — Repair / stone setting.
+    5. Phase 4 — Retail / POS + Stripe Terminal.
+    6. Phase 5 — Customer portal + Stripe Payment Links.
+    7. Phase 6 — Communications.
+    8. Phase 7 — Reporting + compliance (FL LeadsOnline).
+    9. Phase 8 — Polish.
+
+  TOOLING / DEV-INFRA TO INSTALL DURING PHASE 0:
+    T1. dev-watchdog.mjs cloned + retargeted to :3060 with the
+        Windows EADDRINUSE fix (taskkill /T /F + waitForPortFree
+        before respawn) baked in from the start. Don't repeat
+        Abacus's debugging cycle.
+    T2. scripts/db-types.mjs safe wrapper from day 1 — write to
+        <target>.tmp, validate (>500 bytes, contains 'export type
+        Database'), atomic rename. Never raw `>` redirect (Abacus
+        Session 15 lost their hand-written aliases this way).
+    T3. Pre-push hook: i18n drift checker (en.ts vs es.ts key sets).
+    T4. Pre-push hook: as-any drift watcher (count `as any` +
+        `// @ts-ignore`, fail if grew vs main).
+    T5. Pre-push hook: secrets / size check (no new .env*, no file
+        > 500 KB, no hardcoded sk_live_ / whsec_).
+    T6. scripts/audit-data-integrity.py read-only diagnostic
+        (port from Luna Azul; adapt queries for pawn schema once
+        Phase 2 lands).
+    T7. Vercel cron schedule for /api/cron/maturity-reminders
+        (T-7, T-1, T+1, T+7) once Phase 6 lands.
+
+  KNOWN GOTCHAS TO AVOID FROM DAY 1 (carried from Luna Azul + Abacus):
+    - Next 16 file is `proxy.ts`, exported function named `proxy`.
+      NOT middleware.ts / middleware.
+    - Phosphor icons crash server components — only import in
+      'use client' files. Use HTML entities or unicode glyphs in
+      server-component pages.
+    - useSearchParams() must be wrapped in <Suspense> for static
+      gen — required by Next 16 build phase.
+    - <form action={fn}> never has explicit encType. React 19 +
+      Next 16 auto-generate it; explicit value causes hydration
+      mismatch.
+    - Storage uploads from server actions must use the admin
+      (service-role) client — buckets default to no RLS policies,
+      so the user-scoped client gets RLS-rejected.
+    - npm run db:types via the safe wrapper. Never raw `>` redirect.
+    - Service role key NEVER goes in NEXT_PUBLIC_*. Never in
+      client code. Anon key is fine to expose.
+    - DATABASE_URL via Supavisor pooler URL
+      (postgres.<ref>@aws-1-us-east-1.pooler.supabase.com:6543) —
+      NOT direct DB host (IPv6-only on standard tier).
+    - GitHub commits MUST be authored by the identity Vercel has
+      linked. Use `git -c user.name=... -c user.email=...` for
+      inline override if local repo identity diverges.
+    - Auth callback needs both PKCE (?code= in query) AND implicit
+      flow (#access_token= in hash) handling. Implicit fragment
+      can't be read server-side — needs a client-side handler at
+      /auth/callback.
+    - Portal invites: don't use Supabase built-in SMTP (rate-
+      limited / shared sender). Use admin.generateLink({type:
+      'invite'}) + email the action_link via the tenant's Resend.
+    - RLS-helper-function pattern: my_*() functions are
+      SECURITY DEFINER. Stable. Used by every policy.
+    - profiles.role is GLOBAL only ('superadmin' | NULL). Never
+      add per-tenant role to profiles. Never check
+      profiles.role === 'owner'.
+    - user_tenants has no FK to profiles — any embedded
+      profiles(...) select returns null. Do a separate profiles
+      lookup keyed by user_id.
+    - Never taskkill /F /IM node.exe — kills sibling apps. Use PIDs.
+    - Reset DB password = update DATABASE_URL in BOTH .env.local
+      AND Vercel env. Audit script's URL parser must rsplit on the
+      LAST '@' so passwords containing '@' don't break parsing.
+
+  KNOWN ISSUES TO REVISIT WHEN PHASES LAND:
+    - Phase 0 close: smoke-test tenant provisioning end-to-end
+      (create tenant → invite owner → owner accepts → owner sees
+      empty dashboard).
+    - Phase 1 close: ID-scan upload to Storage with signed-URL
+      gating; verify cross-tenant RLS isolation.
+    - Phase 2 close: pawn ticket bilingual print layout (FL
+      requires both EN and ES on the same page).
+    - Phase 4: Stripe Terminal hardware procurement is real money —
+      confirm reader model + cost before committing.
+    - Phase 7: confirm current FL LeadsOnline upload format
+      (the spec drifts; check vendor docs at go-live time).
+    - ID retention enforcement: read current FL statute right
+      before Phase 2 ships (not at planning time — laws drift).
+
+  OUT OF SCOPE (noted for later):
+    - Mobile native app.
+    - Cross-tenant customer matching (e.g. blacklist-share between
+      independent shops).
+    - Watch / fine-jewelry authentication services.
+    - eBay / Worthy listing integration.
+    - Bullion / coin spot-price feeds (could land in inventory
+      pricing later).
+    - Wholesale buy-side (gold-buying with melt-value calculator)
+      could become a sub-mode of buy-outright in v2.
+================================================================================
