@@ -46,3 +46,7 @@ next-env.d.ts
 
 # turbopack cache
 /.turbo/
+
+# supabase cli scratch (from `supabase gen types` runs)
+/supabase/.temp/
+/supabase/.branches/

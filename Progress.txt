@@ -12,202 +12,200 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 1 (2026-04-26) — planning + skeleton docs +
-                  design system received + PHASE 0 SCAFFOLD ~70% COMPLETE
-  Context budget: substantial use this session (long planning + scaffold
-                  build); future session starts may need to re-read
-                  CLAUDE.md + DESIGN-airbnb.md + recent Progress entries
-  Last worked on: Decisions locked for the build:
-                  - Repo lives at c:\Users\rodri\OneDrive\Documents\Pawn
-                  - Repo name: pawn
-                  - Multi-store / chain support baked in from day 1
-                    (tenants.parent_tenant_id + tenant_type ENUM
-                     'chain_hq'|'shop'|'standalone')
-                  - Police-report format tenant-configurable; FL ships
-                    first (fl_leadsonline). Adding states = adding enum
-                    values + exporter modules under
-                    src/lib/compliance/police-report/formats/
-                  - Stripe Connect both card-present (Terminal, in-store)
-                    and online (Payment Links via customer portal)
-                  - Pawn module feature-gated per tenant
-                    (tenants.has_pawn, plus has_repair, has_retail)
-                  - Stone setting folded into the Repair module via a
-                    `service_type` ENUM (repair / stone_setting / sizing
-                     / restring / plating / engraving / custom).
-                    No separate stone-setting surface.
-                  - Tech stack: Next 16 + TS strict + Tailwind v4 +
-                    Supabase (Supavisor pooler) + @react-pdf + TanStack
-                    Table v8 + Phosphor + Plus Jakarta + JetBrains Mono +
-                    Twilio + Resend + Stripe Connect + Anthropic
-                    (Sonnet 4.6 / Haiku 4.5, server-only)
-                  - Dev port pinned to 3060 (3000=Luna Azul, 3030=Abacus)
-                  - dev-watchdog.mjs cloned from Abacus, retargeted
-                  - DESIGN SYSTEM RECEIVED: Airbnb-inspired (Rausch
-                    coral-pink #ff385c primary, Ink Black #222222 text,
-                    Canvas White surfaces, Hairline Gray #dddddd
-                    dividers, three-layer signature elevation, 14/20px
-                    radius, single-family typography). Saved to
-                    DESIGN-airbnb.md at project root. Inter (Google
-                    Fonts) substitutes the proprietary Airbnb Cereal VF.
-                    JetBrains Mono retained for tabular numerals.
-                    Tokens are LOCKED — no hex changes mid-build.
+  Last session:   Session 2 (2026-04-26 ~16:00) — cloud wiring +
+                  first tenant + smoke-test path complete
+                  PHASE 0 ~85% COMPLETE
+  Context budget: very high (long single-conversation session covering
+                  planning, scaffold, design lock-in, cloud setup, and
+                  smoke-test debugging). Save and clear soon.
+  Last worked on: End-to-end smoke-test path is now live. The user can
+                  log in as superadmin (eddydidier@gmail.com), see the
+                  empty /admin/tenants list, click "New tenant", create
+                  one (Eddy's Jewelers Corp. — license_key
+                  7e995e51-7f78-4b3b-80f2-3c34949fcb47), see the green
+                  flash banner with onboarding URL, and click "Open" on
+                  any tenant row to switch active tenant + land on
+                  /dashboard. Three Phase-1-deferred items lifted into
+                  Phase 0 because they blocked the smoke-test:
+                    - TenantSwitcher (top-bar dropdown, switch + reload)
+                    - /onboard claim flow (license_key → claim RPC →
+                       cookie + redirect to /dashboard)
+                    - Open buttons on /admin/tenants (POST switch →
+                       window.location to /dashboard)
+                  Two real bugs caught during dogfooding:
+                    - "column reference 'tenant_id' is ambiguous" in
+                      create_tenant_with_owner — fixed by patches/0002
+                      with #variable_conflict use_column directive
+                    - hydration mismatch on flash banner URL — fixed
+                      by switching to NEXT_PUBLIC_APP_URL (inlined at
+                      build time, identical on both render passes)
+                  Cloud project state: Supabase project
+                  (kjyaxfwlggxiqijiiuna) live with full schema applied
+                  + superadmin profile + first tenant. GitHub repo
+                  pushed to https://github.com/rodriguezmultiservicellc-crypto/Pawn
+                  (initial commit 09db205, 63 files / 12586 insertions
+                  via the rodriguezmultiservicellc identity). Vercel
+                  project NOT yet created — that's the next user-side
+                  coordination step.
 
   ACTIVE FILE(S):
-    — Planning docs —
-    - CLAUDE.md          (17 critical rules incl. cloud-isolation Rule 17)
-    - Progress.txt       (this file)
-    - DESIGN-airbnb.md   (visual identity SoT, palette extended with
-                          Success Green #2D7A4E / Warning Amber #B7791F)
-    - AGENTS.md          (Next 16 framework warning — scaffold stub)
-    - .env.local.example (env-var template with "DEDICATED Pawn project"
-                          warning on every section)
+    — Modified this session —
+    - patches/0002-fix-create-tenant-ambiguous-column.sql (NEW)
+        #variable_conflict use_column directive on
+        create_tenant_with_owner. Append-only migration; 0001 stays
+        as-is.
+    - src/app/onboard/{page,layout,content,actions}.tsx (NEW)
+        Claim flow: admin-client tenant lookup by license_key,
+        useTransition + claim button, claim_tenant_with_license_key
+        RPC + cookie set + redirect to /dashboard, centered card
+        chrome mirroring (auth)/layout.
+    - src/components/layout/TenantSwitcher.tsx (NEW)
+        Click-outside, Esc-key, three-layer shadow elevation per
+        DESIGN-airbnb.md, Rausch checkmark on active row, single-
+        tenant short-circuit to a static chip, per-tenant pending
+        state, full-page reload on switch.
+    - src/app/api/tenant/switch/route.ts (NEW)
+        POST endpoint; verifies user_tenants membership OR
+        chain_admin at parent BEFORE setting pawn-active-tenant
+        cookie. Defense in depth — proxy would reject a forged
+        cookie anyway.
+    - src/app/(staff)/layout.tsx (modified)
+        Static tenant name replaced with <TenantSwitcher>. Tenants
+        list query relies on RLS to filter to accessible set
+        (direct memberships + chain children).
+    - src/app/(admin)/admin/tenants/content.tsx (modified)
+        Open buttons on every row + flash banner. NEXT_PUBLIC_APP_URL
+        replaces typeof-window branch (hydration fix).
+    - src/app/(admin)/admin/tenants/new/actions.ts (modified)
+        Optional RPC params pass `undefined` not `null` (db:types
+        models DEFAULT NULL params as `string | undefined`).
+    - src/types/database.ts (REPLACED via db:types regen)
+        Real generated Database type from live schema —
+        19821 bytes, all 8 tables + 3 RPCs + enums + FKs.
+        database-aliases.ts re-exported via the safe wrapper.
+    - src/lib/i18n/en.ts + es.ts (modified)
+        Added onboard section, common.open / common.opening keys.
+    - .env.local (NEW, gitignored)
+        Supabase URL + anon + service_role + project ID + access
+        token populated. DATABASE_URL still empty (low priority).
+    - .gitignore (modified)
+        .claude/, *.ts.tmp, /.turbo/ added matching Abacus hygiene.
+    - CLAUDE.md (restored after scaffold-mv clobber, with > pointer
+        to AGENTS.md preserving Next 16 framework warning).
 
-    — Phase 0 scaffold (built this session) —
-    - package.json       (scripts: dev → watchdog, dev:raw, db:types)
-    - dev-watchdog.mjs   (cloned from Abacus, port 3060, Windows fixes:
-                          taskkill /T /F + waitForPortFree)
-    - next.config.ts     (turbopack.root pinned to __dirname; defeats
-                          the C:\Users\rodri\package-lock.json drift
-                          from the docx skill's install)
-    - src/lib/tokens.ts  (locked palette + radius + shadow + breakpoints
-                          + reportColors for printables)
-    - src/app/globals.css (Tailwind v4 @theme block, all color tokens
-                          exposed; Inter as body font at weight 500)
-    - src/app/layout.tsx (Inter + JetBrains Mono via next/font)
-    - src/app/page.tsx   (placeholder — proxy redirects by role)
+    — Carried from Session 1 (still authoritative) —
+    - DESIGN-airbnb.md     (visual identity SoT)
+    - patches/0001-foundation.sql  (8 tables, RLS, RPCs)
     - src/lib/supabase/{client,server,admin,middleware,ctx,guards}.ts
-                          (full role-aware ctx + requireSuperAdmin /
-                          requireRoleInTenant / requireStaff /
-                          requireOwner; chain_admin honored at parent
-                          tenant for child shop access)
-    - src/types/database.ts + database-aliases.ts (placeholder Database
-                          with shapes for tenants/profiles/user_tenants
-                          + RPC signatures for create_tenant_with_owner
-                          / delete_tenant_cascade /
-                          claim_tenant_with_license_key. db:types regen
-                          will replace this file; aliases re-exported
-                          to survive)
-    - src/proxy.ts       (PUBLIC_PATHS, role-based gating, /admin
-                          requires superadmin, /portal requires client,
-                          staff prefixes require staff role; / redirects
-                          by role)
-    - src/lib/i18n/{config,en,es,context,use-lang}.ts (EN+ES, body
-                          weight 500 wired in design system)
-    - src/app/(auth)/{layout,login/{page,form},forgot-password/{page,form}}.tsx
-    - src/app/auth/callback/{page,handler}.tsx (PKCE + implicit-flow
-                          hash-fragment handling)
-    - src/app/no-tenant/{page,content}.tsx
-    - src/app/api/profile/language/route.ts
-    - src/app/(admin)/layout.tsx
-    - src/app/(admin)/admin/tenants/{page,content}.tsx (list + flash
-                          banner showing onboarding URL after create)
-    - src/app/(admin)/admin/tenants/new/{page,form,actions}.tsx
-                          (full create form → create_tenant_with_owner
-                          RPC; type=shop unlocks parent picker)
-    - src/app/(staff)/layout.tsx + dashboard/{page,content}.tsx
-    - src/app/(portal)/layout.tsx + portal/{page,content}.tsx
-    - patches/0001-foundation.sql (~470 lines: 8 tables, 3 enums, 5
-                          RLS helpers, 3 RPCs, immutability triggers
-                          on compliance_log + audit_log, full RLS)
-    - scripts/db-types.mjs (safe wrapper: write→tmp→atomic rename)
+    - src/proxy.ts
+    - src/lib/i18n/{config,context,use-lang}.ts
+    - src/app/(auth)/* + auth/callback + no-tenant
+    - src/app/(admin)/layout.tsx + tenants/{page,new}/*
+    - src/app/(staff)/dashboard/* + (portal)/portal/*
+    - dev-watchdog.mjs / next.config.ts / scripts/db-types.mjs
 
   RESUME POINT:
-    Phase 0 ~70% complete. The local skeleton is fully built and
-    `npm run build` is green at 11 routes + Proxy. Remaining work
-    requires user-side cloud setup before we can finish:
+    Phase 0 is in the home stretch (~85% done). Cloud wiring is live,
+    the smoke-test path works end-to-end. Pick up by verifying the
+    Open-button flow lands cleanly:
 
-    >>> USER ACTION ITEMS — do these in order, then ping back:
-    >>>
-    >>>   A. CREATE DEDICATED SUPABASE PROJECT (Pawn)
-    >>>      1. https://supabase.com/dashboard → New project
-    >>>      2. Name: pawn (or whatever — UI label only)
-    >>>      3. Region: us-east-1 (closest to Tampa)
-    >>>      4. Save the DB password to your password manager.
-    >>>      5. Copy these into a NEW .env.local file (use
-    >>>         .env.local.example as the template):
-    >>>           NEXT_PUBLIC_SUPABASE_URL
-    >>>           NEXT_PUBLIC_SUPABASE_ANON_KEY
-    >>>           SUPABASE_SERVICE_ROLE_KEY
-    >>>           DATABASE_URL  (Supavisor pooler URL — Settings →
-    >>>             Database → Connection pooling, NOT direct host)
-    >>>           SUPABASE_PROJECT_ID  (project ref from URL)
-    >>>           SUPABASE_ACCESS_TOKEN  (generate at
-    >>>             https://supabase.com/dashboard/account/tokens)
-    >>>      6. Set Auth Site URL to http://localhost:3060 in
-    >>>         Authentication → URL Configuration. Add
-    >>>         http://localhost:3060/auth/callback to redirect URLs.
-    >>>      7. Open SQL Editor → New query → paste the entire
-    >>>         contents of patches/0001-foundation.sql → Run.
-    >>>         Should print "Success. No rows returned."
-    >>>      8. Authentication → Users → Add user → create your
-    >>>         superadmin auth user (email + password, Auto Confirm).
-    >>>         Copy the new user's UUID.
-    >>>      9. SQL Editor → run:
-    >>>           INSERT INTO profiles (id, role, full_name, email,
-    >>>             language)
-    >>>           VALUES ('<paste UUID>', 'superadmin',
-    >>>             'Eddy Rodriguez', '<your email>', 'en');
-    >>>
-    >>>   B. CREATE DEDICATED VERCEL PROJECT (Pawn)
-    >>>      Wait until we have the GitHub repo created. We'll come
-    >>>      back to this together — don't rush it.
-    >>>
-    >>>   C. PING ME WHEN A IS DONE.
+      1. Browse to http://localhost:3060/admin/tenants
+      2. Click Open on "Eddy's Jewelers Corp." (or use the flash
+         banner Open button if it's still in the URL)
+      3. Should redirect to /dashboard with the TenantSwitcher
+         showing the tenant name in the top bar
+      4. Open the dropdown — single-tenant mode (static chip) for now
+      5. /admin/tenants is reachable from the URL bar; switching back
+         confirms the cookie roundtrip
 
-    Then we (Claude) will:
-      - Run `npm run db:types` to replace the placeholder Database type
-        with the live schema's generated types.
-      - Smoke-test: `npm run dev` → http://localhost:3060/login →
-        sign in with the superadmin auth user → confirm we land at
-        /admin/tenants empty state → create a test tenant → confirm
-        flash banner shows the onboarding URL.
-      - Wire the (now-deferred) /onboard?token=<license_key> claim
-        page so a fresh user can claim a tenant via the URL.
-      - git init, set remote to the new Pawn GitHub repo, install
-        pre-push hooks (i18n drift + as-any drift watcher).
-      - Walk through Vercel project creation together (env import,
-        framework preset, root directory, GitHub identity match).
-      - First deploy green → Phase 0 closed → Phase 1 begins.
+    THEN remaining Phase 0 punch list (in priority order):
+      a. INSTALL PRE-PUSH HOOKS — .githooks/pre-push, set
+         core.hooksPath = .githooks. Two checks:
+           - i18n drift: en.ts vs es.ts key-set diff
+           - as-any drift: count `as any` + `// @ts-ignore`, fail if
+             count grows vs main
+         Run install via `git config core.hooksPath .githooks` (per-
+         project setting; the global git rule "NEVER update the git
+         config" carve-out applies to global config, not local).
+      b. ROTATE SECRETS — anon JWT, service_role JWT, sbp_ access
+         token were all pasted in chat. Rotate at:
+           Supabase → Settings → API → "Reset" (anon + service_role)
+           https://supabase.com/dashboard/account/tokens (sbp_ token)
+         Update .env.local with new values.
+      c. WIRE DATABASE_URL — Supavisor pooler URL from Settings →
+         Database → Connection pooling. Low priority (only used by
+         direct DB tooling like audit-data-integrity.py later).
+      d. CREATE VERCEL PROJECT — coordinate together. Framework
+         Preset = Next.js, Root Directory = (empty — package.json
+         at repo root). Import .env.local via the "Import .env" UI.
+         Confirm GitHub identity matches the rodriguezmultiservicellc
+         author on commits. NEXT_PUBLIC_APP_URL must be set per
+         environment (Preview = the preview URL, Production = the
+         custom domain or .vercel.app prod URL).
+      e. FIRST DEPLOY GREEN → Phase 0 closes → Phase 1 (Customers +
+         Inventory) begins.
 
   OPEN ISSUES / BLOCKERS:
-    - GitHub repo not created (DEDICATED Pawn repo, not a fork or
-      branch of LunaAzul / Abacus).
-    - Supabase project not created (DEDICATED Pawn project, separate
-      org URL + separate keys; do NOT reuse LunaAzul or Abacus).
-    - Vercel project not created (DEDICATED Pawn project; do NOT
-      add Pawn as another deployment under an existing project).
+    - DATABASE_URL still empty in .env.local (low priority — Phase 0
+      runtime doesn't need it).
+    - Three secrets pasted in chat history — anon JWT, service_role
+      JWT, sbp_ access token. Rotate before/after Vercel goes live.
+    - Pre-push hooks not installed — drift accumulates silently
+      until then.
+    - Vercel project not created — every push is local-only until
+      we set up the deploy.
+    - The deferred /magic-link, /set-password auth pages still 404
+      if a user lands on them. Low traffic in Phase 0, but worth
+      stubbing in Phase 1 before customer-portal invites go out.
 
-  KEY DECISIONS LOCKED:
+  KEY DECISIONS LOCKED THIS SESSION:
+    - TENANTSWITCHER + /ONBOARD + OPEN BUTTONS LIFTED FROM PHASE 1.
+      All three were Phase 1 backlog at session start, but each one
+      blocked the smoke-test in turn (no way to pick a tenant
+      context, 404 on the URL the flash banner shared, no way to
+      enter a tenant from /admin/tenants). Phase 0 absorbs them.
+    - 0002 MIGRATION USES `#variable_conflict use_column` rather
+      than renaming the OUT params. Preserves the public RPC API
+      (TS-side rpc('create_tenant_with_owner', ...) → SETOF
+      (tenant_id, license_key) — same shape) and is a one-line
+      directive instead of a wider refactor.
+    - NEXT_PUBLIC_APP_URL IS THE CANONICAL ORIGIN SOURCE. Don't
+      `typeof window !== 'undefined'` to switch between absolute
+      and relative URLs in shared components — it causes hydration
+      mismatch. Use the env var; it's inlined at build time and
+      identical on both render passes.
+    - WINDOW.LOCATION.ASSIGN OVER ROUTER.PUSH FOR COOKIE-SET
+      NAVIGATIONS. router.push doesn't always re-run middleware
+      against the new cookie reliably; window.location forces a
+      fresh request that the proxy + getCtx see with the updated
+      cookie. Used in TenantSwitcher's onSwitch and /admin/tenants
+      Open buttons.
+    - "LOOKUP BY EMAIL" SQL PATTERN for inserting profile rows
+      tied to auth.users. Replaces "copy the UUID manually" with
+        INSERT INTO profiles (id, role, ...) SELECT id, 'superadmin', ...
+        FROM auth.users WHERE email = '<email>'
+        ON CONFLICT (id) DO UPDATE SET ...
+      Idempotent, lookup-by-email, no manual UUID step. Save as a
+      /convention candidate next session.
+
+  KEY DECISIONS LOCKED IN SESSION 1 (still authoritative):
     - Multi-store from day 1: tenants.parent_tenant_id + tenant_type
-      ENUM. Reasoning: Luna Azul deferred this, paid for it later
-      (unused tenant_type + parent_tenant_id columns sitting in prod
-      per Luna Azul Session 37 known-issues). We pay the design cost
-      now while the schema is empty.
-    - Pawn gated: tenants.has_pawn BOOLEAN (plus has_repair, has_retail
-      for symmetry). Sidebar entries, routes, server actions all check
-      the flag. Allows jewelry-only / repair-only shops to opt out.
-    - Repair = stone setting: same table, service_type ENUM. Avoids
-      duplicating the lifecycle / photo trail / time logs across two
-      modules that diverge only at the mounting-type field.
-    - Police-report format per-tenant: tenants.police_report_format
-      ENUM defaulting to 'fl_leadsonline'. Adding new states = adding
-      a new enum value + a new exporter file under src/lib/compliance/
-      police-report/formats/. The dispatcher at
-      src/lib/compliance/police-report/index.ts reads the enum and
-      routes — never a fork.
-    - Stripe Connect both surfaces: same per-tenant connected account
-      drives Terminal (card-present in POS) AND Payment Links
-      (customer portal payoff). One OAuth flow, one webhook endpoint,
-      both surfaces.
-    - compliance_log is its own table, write-once. Police-report
-      exporter reads compliance_log — NOT loans / sales — so reports
-      stay deterministic across edits / voids / corrections.
-    - Customer ID retention enforced at the customer-record DELETE
-      gate. FL = 2 years post-redemption / forfeiture (verify current
-      statute before going live in any state).
-    - Pawn ticket immutability after print: ticket print stamps a
-      printed_at timestamp; trigger rejects core-field UPDATE on
-      printed tickets. Corrections = void + re-issue.
+      ENUM. We pay the design cost upfront — Luna Azul deferred this
+      and ended up with unused columns in prod.
+    - Pawn gated: tenants.has_pawn BOOLEAN (plus has_repair,
+      has_retail). Routes, sidebar, server actions all check it.
+    - Repair = stone setting via service_type ENUM. One module.
+    - Police-report format per-tenant; v1 ships fl_leadsonline only.
+      New states = enum value + exporter file. Never a fork.
+    - Stripe Connect both Terminal + Payment Links from one account.
+    - compliance_log is write-once. Police-report exporter reads
+      from it (not loans/sales) for deterministic reports.
+    - Customer ID retention enforced at the DELETE gate. FL = 2
+      years post-redemption / forfeiture.
+    - Pawn ticket immutability after print: printed_at stamp +
+      core-field UPDATE blocked.
+    - Dedicated cloud projects (Rule 17): own GitHub + own Supabase
+      + own Vercel. Never reuse Luna Azul or Abacus.
 
   IMPORTANT CONSTANTS / PATHS:
     - Project root:   c:\Users\rodri\OneDrive\Documents\Pawn\
@@ -554,22 +552,196 @@ SESSION HISTORY LOG
      can happen until the user creates the dedicated Supabase
      project and pastes credentials into .env.local.
 
+--- Session 2 (2026-04-26 ~16:00) — Cloud wiring + first tenant + bug fixes ---
+
+ 29. .ENV.LOCAL POPULATED. User pasted credentials section by section
+     across the session: NEXT_PUBLIC_SUPABASE_URL =
+     https://kjyaxfwlggxiqijiiuna.supabase.co, anon key (JWT),
+     service_role key (JWT), and SUPABASE_ACCESS_TOKEN
+     (sbp_95c0eca5...). I derived SUPABASE_PROJECT_ID =
+     kjyaxfwlggxiqijiiuna from the URL. DATABASE_URL still empty —
+     not blocking Phase 0 (only needed for direct DB tooling later).
+     Three secrets in chat history flagged for rotation post-smoke.
+
+ 30. TENANTSWITCHER LIFTED FROM PHASE 1 PER USER REQUEST.
+     Three new files:
+       - src/components/layout/TenantSwitcher.tsx — 'use client'
+         dropdown with click-outside, Esc-key, three-layer shadow
+         elevation matching DESIGN-airbnb.md, Rausch checkmark on
+         active row, single-tenant short-circuit to a static chip,
+         per-tenant pending state, full-page reload on switch.
+       - src/app/api/tenant/switch/route.ts — POST endpoint;
+         verifies user_tenants membership OR chain_admin at parent
+         BEFORE setting pawn-active-tenant cookie. Defense in depth
+         (proxy would reject a forged cookie anyway, but the round-
+         trip is cheaper to fail server-side).
+       - src/app/(staff)/layout.tsx — replaced static tenant name
+         with <TenantSwitcher tenants={...} activeTenantId={...} />.
+         Tenants list query relies on RLS to filter to the
+         accessible set (direct memberships + chain children).
+
+ 31. .GITIGNORE EXTENDED — .claude/, *.ts.tmp, /.turbo/ added
+     matching Abacus's hygiene. .claude/settings.json is per-
+     session permission allowlist (not for the team repo).
+     *.ts.tmp covers our db-types.mjs atomic-rename pattern.
+     /.turbo/ for Turbopack's local cache.
+
+ 32. GIT INITIALIZED + INITIAL COMMIT + PUSHED.
+       - git init -b main
+       - git remote add origin
+         https://github.com/rodriguezmultiservicellc-crypto/Pawn.git
+       - git add . — verified status had no .env or secrets
+       - git -c user.name=rodriguezmultiservicellc -c
+         user.email=rodriguezmultiservicellc@gmail.com commit
+         (inline override per CLAUDE.md global "NEVER update the
+         git config"). Co-Authored-By Claude Opus 4.7 (1M context).
+       - 63 files / 12586 insertions. Commit 09db205.
+       - git push -u origin main → success. main set to track
+         origin/main. CRLF warnings during add are normal Windows
+         line-ending behavior; harmless.
+
+ 33. CLAUDE.MD CLOBBER + RESTORE. The scaffold's `mv pawn/* .` step
+     overwrote our 9KB CLAUDE.md with an 11-byte `@AGENTS.md`
+     pointer (Next 16 scaffold's emerging convention). Restored
+     full content from in-context with a > pointer to AGENTS.md
+     at the top — the Next 16 framework warning isn't lost, but
+     CLAUDE.md remains canonical (matches LunaAzul + Abacus).
+
+ 34. SCHEMA APPLIED. User pasted patches/0001-foundation.sql into
+     Supabase SQL Editor. All 8 tables, 3 enums, 5 RLS helpers,
+     3 RPCs, immutability triggers on compliance_log + audit_log
+     are now live in project kjyaxfwlggxiqijiiuna.
+
+ 35. SUPERADMIN ONBOARDED. User created auth user
+     eddydidier@gmail.com via Supabase Authentication → Users
+     (Auto Confirm). First INSERT INTO profiles attempt failed
+     because the user pasted '<paste UUID>' literally instead of
+     the actual UUID — uuid_parse error. Pivoted to a
+     SELECT-from-auth.users-by-email pattern that doesn't require
+     manual UUID copying:
+       INSERT INTO profiles (id, role, full_name, email, language)
+       SELECT id, 'superadmin', 'Eddy Rodriguez', email, 'en'
+       FROM auth.users WHERE email = 'eddydidier@gmail.com'
+       ON CONFLICT (id) DO UPDATE SET role='superadmin', ...;
+     Idempotent, lookup-by-email, atomic. Worth saving as a
+     /convention next session — same pattern will apply to every
+     auth-user-to-profile bootstrap going forward.
+
+ 36. DB:TYPES REGEN. First successful run of scripts/db-types.mjs
+     against the live project. Wrote 19821 bytes to
+     src/types/database.ts — proper Row / Insert / Update for all
+     8 tables, RPC signatures (Args + Returns) for all 3 functions,
+     enum types (tenant_role / tenant_type / police_report_format),
+     FK relationship metadata. The safe wrapper appended
+     `export * from './database-aliases'` so the hand-written
+     aliases survive every regen.
+
+ 37. [BUG] DB:TYPES BREAKS BUILD ON null vs undefined. db:types
+     models Postgres DEFAULT NULL params as `string | undefined`
+     (not `string | null`). Our actions.ts in /admin/tenants/new
+     passed `null` literals for empty optional values. Build fails
+     type check. Fixed by passing `undefined` (or `?? undefined`)
+     for optional values; required params unchanged. File:
+     src/app/(admin)/admin/tenants/new/actions.ts.
+
+ 38. [BUG] CREATE_TENANT_WITH_OWNER COLUMN REFERENCE AMBIGUOUS.
+     First tenant create attempt failed at runtime:
+       "column reference 'tenant_id' is ambiguous"
+     Root cause: RETURNS TABLE (tenant_id UUID, license_key TEXT)
+     creates OUT parameter names that shadow column references
+     inside the function body — settings.tenant_id, the
+     ON CONFLICT (user_id, tenant_id) target, etc. Postgres parser
+     can't decide and bails.
+     Fix: patches/0002-fix-create-tenant-ambiguous-column.sql adds
+     `#variable_conflict use_column` directive at the top of the
+     function body. Tells PL/pgSQL to prefer column references
+     when ambiguous. Public API preserved (TS-side rpc still gets
+     {tenant_id, license_key}). Migrations are append-only; 0001
+     stays as-is. Anyone applying fresh runs 0001 then 0002.
+     User applied 0002 → next create succeeded:
+       Eddy's Jewelers Corp.
+       tenant_id    1abc8070-0797-4740-8dea-70cbb16060fe
+       license_key  7e995e51-7f78-4b3b-80f2-3c34949fcb47
+
+ 39. /ONBOARD CLAIM FLOW BUILT — Phase 1 backlog item lifted into
+     Phase 0 because it blocked the smoke-test (404 on the URL
+     from the flash banner). Four new files:
+       - src/app/onboard/page.tsx — server component; bounces
+         unauth → /login?next= preserved; auth + token →
+         admin-client lookup of tenant by license_key (RLS would
+         hide the tenant for non-members, so admin client is
+         required for the preview). Token in URL is a bearer
+         secret; intentional trade-off. Three render states
+         passed to content: (token, name) / (token, null=invalid)
+         / (null, _=missing).
+       - src/app/onboard/content.tsx — 'use client'; useTransition
+         + claim button; uses useLangLocal so no I18nProvider
+         needed.
+       - src/app/onboard/actions.ts — claimTenantAction calls
+         claim_tenant_with_license_key RPC, sets pawn-active-tenant
+         cookie, redirects to /dashboard. NEXT_REDIRECT throws
+         outside try/catch.
+       - src/app/onboard/layout.tsx — centered card chrome
+         mirroring (auth)/layout.tsx.
+     Plus i18n: onboard section in en.ts + es.ts (title, subtitle
+     before/after, accept, accepting, invalid, missing, back).
+
+ 40. [BUG] HYDRATION MISMATCH on /admin/tenants flash banner. URL
+     builder used `typeof window !== 'undefined'
+       ? window.location.origin + '/onboard?token=...'
+       : '/onboard?token=...'`
+     which renders different strings server vs client. React
+     warning + auto-regenerate, but console spam.
+     Fix: switch to `process.env.NEXT_PUBLIC_APP_URL ?? ''` —
+     inlined at build time, identical on both render passes.
+     Dev = http://localhost:3060; prod = whatever Vercel sets.
+     File: src/app/(admin)/admin/tenants/content.tsx.
+
+ 41. /ADMIN/TENANTS — OPEN BUTTONS ADDED. Superadmin had no way to
+     enter a tenant from the admin list (proxy redirects them to
+     /admin/tenants on /, never to /dashboard). Each tenant row
+     now has a small "Open" button in a new right-aligned actions
+     column; the flash banner has a dark-Ink "Open" button next
+     to the heading for the just-created tenant. Click flow:
+     POST /api/tenant/switch → window.location.assign('/dashboard')
+     so proxy + getCtx re-run with the new cookie. Added
+     common.open + common.opening i18n keys EN+ES.
+
+ 42. SESSION 2 BUILDS GREEN. 13 routes total + Proxy:
+       /  /_not-found  /admin/tenants  /admin/tenants/new
+       /api/profile/language  /api/tenant/switch
+       /auth/callback  /dashboard  /forgot-password  /login
+       /no-tenant  /onboard  /portal
+     Dev server stable on :3060 (cycle #1, watchdog alive).
+     Build clean — no TypeScript errors after the null→undefined
+     and Database-type-regen adjustments.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
-  IMMEDIATE (do this first next session, IF design has returned):
-    Phase 0 — Foundation skeleton. Steps 1-15 listed in RESUME POINT.
+  IMMEDIATE (do this first next session):
+    Verify the Open-button flow: /admin/tenants → click Open on
+    Eddy's Jewelers Corp. → land on /dashboard with the
+    TenantSwitcher in the top bar. If green, install pre-push hooks
+    next (the most important deferred Phase 0 item), then rotate
+    secrets, then coordinate Vercel project creation.
 
-  IF DESIGN HASN'T RETURNED YET:
-    - Read CLAUDE.md to confirm domain understanding before any code.
-    - Confirm GitHub repo name (suggested: `pawn` under our org).
-    - Confirm Vercel project name (suggested: `pawn` to match).
-    - Decide whether the first tenant is RMS internal or a paying
-      customer — affects whether we run any prod data through it.
+  PHASE 0 PUNCH LIST (close it out):
+    a. Pre-push hooks (.githooks/pre-push, set core.hooksPath):
+         - i18n drift (en.ts vs es.ts key sets)
+         - as-any drift (count `as any` + `// @ts-ignore`)
+         - secrets/size check (no .env*, no >500 KB, no sk_live_)
+       core.hooksPath is a per-project setting; the global
+       "NEVER update the git config" rule is about the GLOBAL
+       config, not the local repo's.
+    b. Rotate the three pasted secrets (anon JWT, service_role
+       JWT, sbp_ access token). Update .env.local.
+    c. DATABASE_URL — Supavisor pooler. Low priority.
+    d. Vercel project + first deploy (coordinate together).
 
   BACKLOG (in priority order):
-    1. Phase 0 — Foundation skeleton.
+    1. Phase 0 close (pre-push hooks + Vercel + first deploy).
     2. Phase 1 — Customers + Inventory.
     3. Phase 2 — Pawn loans (gated).
     4. Phase 3 — Repair / stone setting.

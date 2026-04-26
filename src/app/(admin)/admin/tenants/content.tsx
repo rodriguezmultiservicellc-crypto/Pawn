@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantType } from '@/types/database-aliases'
@@ -32,12 +33,44 @@ export default function TenantsContent({
 }) {
   const { t } = useI18n()
 
-  const onboardUrl =
-    flash && typeof window !== 'undefined'
-      ? `${window.location.origin}/onboard?token=${encodeURIComponent(flash.licenseKey)}`
-      : flash
-      ? `/onboard?token=${flash.licenseKey}`
-      : null
+  const [pendingTenantId, setPendingTenantId] = useState<string | null>(null)
+  const [openError, setOpenError] = useState<string | null>(null)
+
+  // Build the onboard URL identically on server and client (no `typeof window`
+  // branch — that caused a hydration mismatch). NEXT_PUBLIC_APP_URL is
+  // inlined at build time, so this resolves to the same string in both
+  // render passes.
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const onboardUrl = flash
+    ? `${origin}/onboard?token=${encodeURIComponent(flash.licenseKey)}`
+    : null
+
+  // POST to /api/tenant/switch then full-page navigate to /dashboard so the
+  // new cookie is read by getCtx() on the next request. router.push() doesn't
+  // always re-run the proxy + server layout against the new cookie reliably.
+  async function openTenant(tenantId: string) {
+    setPendingTenantId(tenantId)
+    setOpenError(null)
+    try {
+      const res = await fetch('/api/tenant/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId }),
+      })
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as
+          | { error?: string }
+          | null
+        setOpenError(body?.error ?? 'switch_failed')
+        setPendingTenantId(null)
+        return
+      }
+      window.location.assign('/dashboard')
+    } catch {
+      setOpenError('network_error')
+      setPendingTenantId(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -53,15 +86,35 @@ export default function TenantsContent({
 
       {flash ? (
         <div className="rounded-lg border border-success/40 bg-success/5 p-4">
-          <div className="text-sm font-semibold text-success">
-            {t.admin.newTenant.successTitle} — {flash.tenantName}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-success">
+                {t.admin.newTenant.successTitle} — {flash.tenantName}
+              </div>
+              <p className="mt-1 text-sm text-ink/90">
+                {t.admin.newTenant.successBody}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => openTenant(flash.tenantId)}
+              disabled={pendingTenantId === flash.tenantId}
+              className="shrink-0 rounded-md bg-ink px-3 py-1.5 text-canvas text-sm font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              {pendingTenantId === flash.tenantId
+                ? t.common.opening
+                : t.common.open}
+            </button>
           </div>
-          <p className="mt-1 text-sm text-ink/90">
-            {t.admin.newTenant.successBody}
-          </p>
           <div className="mt-3 rounded-md bg-canvas border border-hairline p-3 font-mono text-xs break-all">
             {onboardUrl}
           </div>
+        </div>
+      ) : null}
+
+      {openError ? (
+        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          {openError}
         </div>
       ) : null}
 
@@ -84,6 +137,7 @@ export default function TenantsContent({
                 <th className="px-4 py-3 font-medium">
                   {t.admin.tenants.created}
                 </th>
+                <th className="px-4 py-3" aria-label="actions" />
               </tr>
             </thead>
             <tbody>
@@ -117,6 +171,18 @@ export default function TenantsContent({
                   </td>
                   <td className="px-4 py-3 text-ash">
                     {new Date(tn.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => openTenant(tn.id)}
+                      disabled={pendingTenantId === tn.id}
+                      className="rounded-md border border-hairline bg-canvas px-3 py-1 text-sm text-ink hover:border-ink disabled:opacity-50"
+                    >
+                      {pendingTenantId === tn.id
+                        ? t.common.opening
+                        : t.common.open}
+                    </button>
                   </td>
                 </tr>
               ))}

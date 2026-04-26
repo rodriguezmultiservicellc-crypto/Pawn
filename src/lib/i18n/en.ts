@@ -29,6 +29,8 @@ export const en = {
     close: 'Close',
     error: 'Something went wrong',
     requiredField: 'Required',
+    open: 'Open',
+    opening: 'Opening…',
   },
 
   lang: {
@@ -84,6 +86,22 @@ export const en = {
     title: 'No shop assigned',
     body: "You're signed in but you don't have access to a shop yet. Ask the owner to invite you, or sign in with a different account.",
     signOut: 'Sign out',
+  },
+
+  onboard: {
+    title: 'Claim your invite',
+    subtitleBefore: "You've been invited to ",
+    subtitleAfter: '. Click to accept and become an owner.',
+    subtitleNoName:
+      "You've been invited to a shop. Click to accept and become an owner.",
+    accept: 'Accept invite',
+    accepting: 'Accepting…',
+    invalidTitle: 'Invalid or used invite',
+    invalidBody:
+      'This onboarding link is invalid or has already been used. Ask the owner to resend a fresh link.',
+    missingToken:
+      'No invite token in the URL. Check the link and try again.',
+    backToLogin: 'Back to sign in',
   },
 
   admin: {

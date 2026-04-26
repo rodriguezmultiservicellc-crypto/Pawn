@@ -24,6 +24,8 @@ export const es: Dictionary = {
     close: 'Cerrar',
     error: 'Algo salió mal',
     requiredField: 'Obligatorio',
+    open: 'Abrir',
+    opening: 'Abriendo…',
   },
 
   lang: {
@@ -80,6 +82,22 @@ export const es: Dictionary = {
     title: 'Sin tienda asignada',
     body: 'Iniciaste sesión pero aún no tienes acceso a una tienda. Pídele al dueño que te invite o inicia sesión con otra cuenta.',
     signOut: 'Cerrar sesión',
+  },
+
+  onboard: {
+    title: 'Reclama tu invitación',
+    subtitleBefore: 'Has sido invitado a ',
+    subtitleAfter: '. Haz clic para aceptar y convertirte en dueño.',
+    subtitleNoName:
+      'Has sido invitado a una tienda. Haz clic para aceptar y convertirte en dueño.',
+    accept: 'Aceptar invitación',
+    accepting: 'Aceptando…',
+    invalidTitle: 'Invitación inválida o ya usada',
+    invalidBody:
+      'Este enlace de invitación es inválido o ya fue usado. Pídele al dueño que reenvíe uno nuevo.',
+    missingToken:
+      'No hay token de invitación en la URL. Revisa el enlace e inténtalo de nuevo.',
+    backToLogin: 'Volver a iniciar sesión',
   },
 
   admin: {
