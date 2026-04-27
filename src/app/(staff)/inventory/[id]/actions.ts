@@ -24,8 +24,6 @@ export type UpdateInventoryItemState = {
   ok?: boolean
 }
 
-export const updateInventoryItemInitialState: UpdateInventoryItemState = {}
-
 async function resolveItemTenant(itemId: string) {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')

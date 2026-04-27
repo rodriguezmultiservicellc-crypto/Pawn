@@ -9,7 +9,6 @@ import {
 } from '@/components/customers/CustomerFormFields'
 import {
   createCustomerAction,
-  createCustomerInitialState,
   type CreateCustomerState,
 } from './actions'
 
@@ -22,7 +21,7 @@ export default function NewCustomerForm({
   const [state, formAction, pending] = useActionState<
     CreateCustomerState,
     FormData
-  >(createCustomerAction, createCustomerInitialState)
+  >(createCustomerAction, {})
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 

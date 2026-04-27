@@ -22,7 +22,6 @@ import {
   deleteCustomerAction,
   deleteCustomerDocumentAction,
   updateCustomerAction,
-  updateCustomerInitialState,
   uploadCustomerDocumentAction,
   uploadCustomerPhotoAction,
   type UpdateCustomerState,
@@ -115,7 +114,7 @@ export default function CustomerDetail({
   const [state, formAction, pending] = useActionState<
     UpdateCustomerState,
     FormData
-  >(updateCustomerAction, updateCustomerInitialState)
+  >(updateCustomerAction, {})
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 

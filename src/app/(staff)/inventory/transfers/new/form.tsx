@@ -12,7 +12,6 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import {
   createTransferAction,
-  createTransferInitialState,
   type CreateTransferState,
 } from './actions'
 import type { InventoryCategory } from '@/types/database-aliases'
@@ -47,7 +46,7 @@ export default function NewTransferForm({
   const [state, formAction, pending] = useActionState<
     CreateTransferState,
     FormData
-  >(createTransferAction, createTransferInitialState)
+  >(createTransferAction, {})
 
   const [destination, setDestination] = useState<string>('')
   const [selected, setSelected] = useState<Set<string>>(new Set())

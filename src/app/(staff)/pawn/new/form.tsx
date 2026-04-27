@@ -8,7 +8,6 @@ import { addDaysIso, todayDateString } from '@/lib/pawn/math'
 import { CollateralItemsList } from '@/components/pawn/CollateralItemsList'
 import {
   createLoanAction,
-  createLoanInitialState,
   type CreateLoanState,
 } from './actions'
 
@@ -26,7 +25,7 @@ export default function NewPawnLoanForm({
   const [state, formAction, pending] = useActionState<
     CreateLoanState,
     FormData
-  >(createLoanAction, createLoanInitialState)
+  >(createLoanAction, {})
 
   const today = todayDateString()
   const [issueDate, setIssueDate] = useState<string>(today)

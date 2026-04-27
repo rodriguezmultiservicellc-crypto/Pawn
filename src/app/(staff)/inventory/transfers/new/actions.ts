@@ -13,8 +13,6 @@ export type CreateTransferState = {
   fieldErrors?: Record<string, string>
 }
 
-export const createTransferInitialState: CreateTransferState = {}
-
 const TRANSFER_ROLES = ['owner', 'chain_admin', 'manager', 'pawn_clerk'] as const
 
 /**

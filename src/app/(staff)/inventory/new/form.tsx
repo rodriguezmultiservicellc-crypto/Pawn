@@ -9,7 +9,6 @@ import {
 } from '@/components/inventory/InventoryFormFields'
 import {
   createInventoryItemAction,
-  createInventoryItemInitialState,
   type CreateInventoryItemState,
 } from './actions'
 
@@ -18,7 +17,7 @@ export default function NewInventoryItemForm() {
   const [state, formAction, pending] = useActionState<
     CreateInventoryItemState,
     FormData
-  >(createInventoryItemAction, createInventoryItemInitialState)
+  >(createInventoryItemAction, {})
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 

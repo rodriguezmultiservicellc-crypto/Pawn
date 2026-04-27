@@ -12,8 +12,6 @@ export type CreateInventoryItemState = {
   fieldErrors?: Record<string, string>
 }
 
-export const createInventoryItemInitialState: CreateInventoryItemState = {}
-
 export async function createInventoryItemAction(
   _prev: CreateInventoryItemState,
   formData: FormData,

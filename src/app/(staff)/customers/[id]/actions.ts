@@ -26,8 +26,6 @@ export type UpdateCustomerState = {
   ok?: boolean
 }
 
-export const updateCustomerInitialState: UpdateCustomerState = {}
-
 /**
  * Look up a customer's tenant via the user-scoped client (RLS gates the
  * read), then verify staff role at that tenant. Returns the resolved

@@ -25,7 +25,6 @@ import {
   deleteInventoryStoneAction,
   makePhotoPrimaryAction,
   updateInventoryItemAction,
-  updateInventoryItemInitialState,
   uploadInventoryPhotoAction,
   type UpdateInventoryItemState,
 } from './actions'
@@ -112,7 +111,7 @@ export default function InventoryDetail({
   const [state, formAction, pending] = useActionState<
     UpdateInventoryItemState,
     FormData
-  >(updateInventoryItemAction, updateInventoryItemInitialState)
+  >(updateInventoryItemAction, {})
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 

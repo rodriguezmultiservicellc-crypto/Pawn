@@ -12,8 +12,6 @@ export type CreateCustomerState = {
   fieldErrors?: Record<string, string>
 }
 
-const initial: CreateCustomerState = {}
-
 export async function createCustomerAction(
   _prev: CreateCustomerState,
   formData: FormData,
@@ -137,5 +135,3 @@ export async function createCustomerAction(
   revalidatePath('/customers')
   redirect(`/customers/${data.id}`)
 }
-
-export { initial as createCustomerInitialState }

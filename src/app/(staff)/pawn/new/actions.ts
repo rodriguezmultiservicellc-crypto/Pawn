@@ -27,7 +27,6 @@ export type CreateLoanState = {
   fieldErrors?: Record<string, string>
 }
 
-export const createLoanInitialState: CreateLoanState = {}
 
 type ComplianceInsertChanges =
   Database['public']['Tables']['compliance_log']['Insert']['customer_snapshot']
