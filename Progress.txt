@@ -12,171 +12,86 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 3 (2026-04-26 ~18:00) — Phase 1 complete
-                  PHASE 1 COMPLETE: customers + inventory data spine
-                  shipped end-to-end. Phase 0 still has user-side
-                  punch-list items open.
-  Context budget: very high (single long session covering Phase 1 design,
-                  schema, all UI, audit wiring, dashboard, photo upload).
-                  Save and clear before starting Phase 2.
-  Last worked on: Phase 1 closeout. Customers + Inventory both have full
-                  list + new + detail/edit flows. Two SQL migrations
-                  applied (0003, 0004). 6 new staff routes live, build
-                  green at 19 routes. Audit log helper wired into every
-                  mutating action. Dashboard has 4 stat cards + 2 recent-
-                  activity panels. Customer portrait photo upload + display
-                  shipped (round 96px avatar with hover-camera overlay).
-                  Last user message asked what to do next — 4 options
-                  offered: (a) inventory transfers UI, (b) audit log viewer,
-                  (c) Phase 2 pawn loans, (d) Phase 0 close-out.
+  Last session:   Session 4 (2026-04-27) — Phase 2 pawn loans + transfers UI
+                  + audit log viewer, all shipped via parallel agents in
+                  worktree isolation. Phase 3 repair tickets dispatched as
+                  a separate parallel agent at the SAME TIME as this
+                  housekeeping agent — its work is not yet visible from
+                  main and lands separately.
+  Context budget: SAVED. This session ran as three primary parallel
+                  agents (Phase 2 / transfers / audit) plus closeout +
+                  Phase 3 in another parallel pair. Heavy session.
+  Last worked on: Phase 2 pawn loans (internal flow, no print PDF, no
+                  portal yet), inventory transfers UI (cross-shop within
+                  a chain), audit log viewer at /audit. Two SQL
+                  migrations applied (0005, 0006) via the new
+                  scripts/apply-migration.mjs CLI helper. Plus a
+                  follow-up fix-up commit removing const exports from
+                  six 'use server' files (Next 16 enforces async-only).
 
   ACTIVE FILE(S):
-    — Migrations (NEW this session) —
-    - patches/0003-customers-inventory.sql
-        7 tables: customers, customer_documents, inventory_items,
-        inventory_item_photos, inventory_item_stones, inventory_transfers,
-        tenant_counters. 9 enums. Storage buckets customer-documents +
-        inventory-photos with RLS keying off
-        (storage.foldername(name))[1]::UUID. SKU auto-assign trigger.
-        One-primary-photo trigger. Cross-chain transfer block trigger.
-    - patches/0004-customer-pawn-fields.sql
-        ALTER customers ADD: height_inches, weight_lbs, sex, hair_color,
-        eye_color, identifying_marks, place_of_employment. All optional.
-        height_inches CHECK (12..108), weight_lbs CHECK (1..999).
+    Phase 3 work is being produced by a parallel agent in another
+    worktree at the same time as this housekeeping agent ran. Don't
+    speculate on file paths — read the Phase 3 agent's report when it
+    lands. Expected pattern (based on Phase 1 + Phase 2 conventions):
+      - patches/0007-repair-tickets.sql
+      - src/app/(staff)/repair/page.tsx + content.tsx
+      - src/app/(staff)/repair/new/page.tsx + form.tsx + actions.ts
+      - src/app/(staff)/repair/[id]/page.tsx + content.tsx + actions.ts
+      - src/lib/repair/state-machine.ts (intake → quoted → in_progress →
+        needs_parts → ready → picked_up → abandoned)
+      - i18n keys, sidebar entry behind has_repair, dashboard cards.
+    The Phase 3 agent will commit on its own worktree branch; we'll
+    merge into main after its report.
 
-    — Type generation —
-    - src/types/database.ts (REGEN 2x — final 41771 bytes)
-    - src/types/database-aliases.ts
-        Phase 1 enum literals (IdDocumentType, CustomerDocKind,
-        CommPreference, InventoryCategory, InventorySource,
-        InventoryStatus, MetalType, InventoryLocation, TransferStatus)
-        + Row/Insert/Update shortcut types for all 6 Phase 1 tables.
-
-    — i18n —
-    - src/lib/i18n/en.ts + es.ts
-        ~120 new keys mirrored. Sections: customers (full), inventory
-        (full), dashboard (cards + panels), common (added create/update/
-        upload/view/clear/all/none/optional/etc.). New customer keys for
-        physical description + employment fields.
-
-    — Library —
-    - src/lib/supabase/storage.ts (NEW)
-        CUSTOMER_DOCUMENTS_BUCKET + INVENTORY_PHOTOS_BUCKET constants.
-        customerDocumentPath / customerPhotoPath / inventoryPhotoPath
-        path builders that put tenant_id at folder[0]. uploadToBucket /
-        getSignedUrl / deleteFromBucket — all admin-client. Default
-        signed-URL TTL 3600s.
-    - src/lib/validations/customer.ts (NEW)
-        Zod schemas: customerCreateSchema, customerUpdateSchema,
-        banCustomerSchema, customerDocumentUploadSchema. FormData
-        preprocessors handle empty-string→null conversion + tag
-        comma-split. Pawn fields included (height_inches, weight_lbs,
-        sex, hair_color, eye_color, identifying_marks,
-        place_of_employment) — all optional.
-    - src/lib/validations/inventory.ts (NEW)
-        Zod schemas: inventoryItemCreateSchema, inventoryItemUpdateSchema,
-        inventoryStoneSchema, ALLOWED_PHOTO_MIME_TYPES, MAX_PHOTO_BYTES.
-    - src/lib/audit.ts (NEW)
-        logAudit({ tenantId, userId, action, tableName, recordId,
-        changes }) — uses admin client (audit_log has only a SELECT
-        policy), JSON-roundtrips changes to satisfy Supabase Json type,
-        swallows errors so audit failures never break user actions.
-
-    — Components —
-    - src/components/layout/Sidebar.tsx (NEW)
-        Phosphor icons. /dashboard, /customers, /inventory always shown.
-        /pawn /repair /pos gated by has_pawn / has_repair / has_retail.
-        /reports /compliance /team /settings shown disabled (Phase 2+
-        placeholders) so layout doesn't shift.
-    - src/components/customers/CustomerFormFields.tsx (NEW)
-        Shared between new + edit. Tag-input with backspace-to-delete.
-        Physical description & employment section gated by hasPawn prop
-        (jewelry-only / repair-only shops never see it). Height shown
-        as feet+inches, composed back into total inches in hidden input.
-    - src/components/inventory/InventoryFormFields.tsx (NEW)
-        Shared between new + edit. SKU read-only on edit (shows the
-        trigger-assigned value). sale_price only shown on edit.
-
-    — App layout —
-    - src/app/(staff)/layout.tsx (modified)
-        Pulls active tenant's has_pawn / has_repair / has_retail and
-        passes to <Sidebar modules={...}>. Layout switched from a single
-        max-w-7xl container to a flex sidebar+main split.
-
-    — Dashboard —
-    - src/app/(staff)/dashboard/page.tsx (rewritten)
-        Server component: 6 parallel queries (4 counts + 2 recent lists)
-        via Promise.all. Counts use head=true + count='exact'.
-    - src/app/(staff)/dashboard/content.tsx (rewritten)
-        4 stat cards (Customers, Banned, Available inventory, Held).
-        Banned card turns Error red when count>0; Held card Warning amber.
-        2 panels with the 5 most recent customers + 5 most recent items.
-        Relative-time helper (s/m/h/d, then locale date).
-
-    — Customers module (all NEW) —
-    - src/app/(staff)/customers/page.tsx (list, search, banned filter)
-    - src/app/(staff)/customers/content.tsx (table with masked ID
-        '••• 1234' for casual shoulder-surf protection)
-    - src/app/(staff)/customers/new/page.tsx (fetches has_pawn)
-    - src/app/(staff)/customers/new/form.tsx (useActionState wrapper)
-    - src/app/(staff)/customers/new/actions.ts (createCustomerAction +
-        audit)
-    - src/app/(staff)/customers/[id]/page.tsx (fetches customer +
-        documents + portrait signed URL + tenant has_pawn)
-    - src/app/(staff)/customers/[id]/content.tsx (full edit form +
-        BanSection + DocumentsPanel + DeleteCustomerButton + PhotoBlock
-        with hover-camera upload)
-    - src/app/(staff)/customers/[id]/actions.ts (update, ban, delete,
-        upload doc, delete doc, upload photo — all audit-logged)
-
-    — Inventory module (all NEW) —
-    - src/app/(staff)/inventory/page.tsx (list, q + status + source +
-        category filters, primary-photo thumbnails via parallel
-        getSignedUrl)
-    - src/app/(staff)/inventory/content.tsx (table with status badges
-        using Success/Warning/Ash semantics, currency formatting)
-    - src/app/(staff)/inventory/new/page.tsx
-    - src/app/(staff)/inventory/new/form.tsx
-    - src/app/(staff)/inventory/new/actions.ts (createInventoryItemAction
-        + audit; SKU auto-assign via DB trigger when blank)
-    - src/app/(staff)/inventory/[id]/page.tsx (fetches item + photos +
-        stones + signed URLs)
-    - src/app/(staff)/inventory/[id]/content.tsx (PhotosPanel grid with
-        primary star + remove; StonesPanel list + AddStoneForm)
-    - src/app/(staff)/inventory/[id]/actions.ts (update, delete, photo
-        upload/delete/setPrimary, stone add/delete — all audit-logged)
-
-    — package.json —
-    - Added: zod, react-hook-form, @hookform/resolvers,
-      @phosphor-icons/react.
+    From THIS housekeeping agent:
+    - patches/0005-pawn-loans.sql                    (Phase 2 — applied)
+    - patches/0006-transfer-metadata.sql             (transfers — applied)
+    - scripts/apply-migration.mjs                    (NEW — CLI for SQL)
+    - src/types/database.ts                          (REGEN — 52401 bytes)
+    - src/lib/pawn/math.ts                           (NEW — decimal-safe loan math)
+    - src/lib/audit-format.ts                        (NEW — split from audit.ts)
+    - src/app/(staff)/pawn/page.tsx + content.tsx    (NEW — list)
+    - src/app/(staff)/pawn/new/page.tsx + form.tsx + actions.ts  (NEW — intake)
+    - src/app/(staff)/pawn/[id]/page.tsx + content.tsx + actions.ts (NEW — detail)
+    - src/app/(staff)/pawn/[id]/RecordPaymentDialog.tsx (NEW — useMemo split)
+    - src/app/(staff)/inventory/transfers/page.tsx + content.tsx
+    - src/app/(staff)/inventory/transfers/new/page.tsx + form.tsx + actions.ts
+    - src/app/(staff)/inventory/transfers/[id]/page.tsx + content.tsx + actions.ts
+    - src/app/(staff)/audit/page.tsx + content.tsx + ChangesViewer.tsx (NEW)
+    - src/app/(staff)/customers/[id]/* (added pawn-loans panel when has_pawn)
+    - src/app/(staff)/dashboard/*    (added 2 pawn cards behind has_pawn)
+    - src/components/layout/Sidebar.tsx (added /audit + /inventory/transfers
+        gated entries)
 
   RESUME POINT:
-    Phase 1 is COMPLETE and the build is green at 19 routes. Open the
-    app, smoke-test the new flows:
-      1. /dashboard — verify the 4 stat cards render with the right
-         counts (initial state will be 0/0/0/0 unless you seeded data)
-      2. /customers/new — fill out a customer; "Physical description &
-         employment" section should appear because Eddy's Jewelers Corp.
-         has has_pawn=true. Save; should land on /customers/<id>.
-      3. /customers/<id> — upload a portrait photo (hover the avatar);
-         upload an ID scan + signature; verify the BanSection toggles.
-      4. /inventory/new — create an item with no SKU; verify the
-         trigger-assigned SKU 'INV-000001' shows on the detail page.
-      5. /inventory/<id> — upload a few photos, mark a non-primary one
-         as primary, verify the previous one demotes (one-primary
-         trigger). Add a stone via the AddStoneForm.
+    1. Read the Phase 3 agent's report. If it succeeded, the /repair
+       list/new/[id] flow plus patches/0007-repair-tickets.sql
+       should exist on a worktree branch.
+    2. Apply the migration:
+         node scripts/apply-migration.mjs patches/0007-repair-tickets.sql
+    3. Regen types:
+         npm run db:types
+    4. Merge the Phase 3 worktree branch into main.
+    5. Smoke-test:
+         /repair — list of tickets, status filter chips
+         /repair/new — intake form, customer picker, photo upload
+         /repair/[id] — state-machine actions (quote → start → ready →
+           pickup), parts attach, time logs, abandoned-conversion path
+       Confirm has_repair gating still hides /repair on tenants where
+       it's false.
 
     THEN choose the next workstream:
-      (a) PHASE 2 — pawn loans (intake → active → redeem/extend/forfeit;
-          gated on has_pawn; ticket print bilingual; forfeit-to-inventory
-          hook). Largest unit of work; the core value of the app.
-      (b) Inventory transfers UI for chain shops (table + trigger
-          already shipped in 0003; needs pages at /inventory/transfers
-          and accept/cancel actions).
-      (c) Audit-log viewer at /audit (read-only timeline of all
-          mutations, filterable by user/action/table).
-      (d) Phase 0 close-out: rotate the three pasted secrets, create
+      (a) Phase 2 PRINT PDF — bilingual pawn ticket via @react-pdf.
+          Deferred from Session 4. Required for FL compliance once a
+          live shop runs pawn intake.
+      (b) Customer portal /portal/loans (Phase 5 territory but the
+          loan side is ready; pay-by-link via Stripe Payment Link is
+          the second step).
+      (c) Phase 0 close-out: rotate the three pasted secrets, create
           Vercel project, first deploy.
+      (d) Phase 4 — Retail / POS (sale, return, layaway, register
+          close, Stripe Terminal binding).
 
   OPEN ISSUES / BLOCKERS:
     - Three Phase-0 secrets still pasted in chat history awaiting
@@ -189,45 +104,86 @@ SEE ALSO (do not duplicate here):
       from Phase 0; stub before customer-portal invites go out).
     - Pre-push hooks intentionally declined (memory:
       feedback_no_prepush_hooks.md). Don't re-pitch.
+    - PHASE 2 TICKET PRINT PDF DEFERRED. The bilingual EN+ES pawn
+      ticket via @react-pdf/renderer was scoped out of Session 4 to
+      keep the agent's output focused on the data spine + actions.
+      Required for FL compliance before any live pawn intake.
+    - WORKTREE CLEANUP PARTIAL. Three orphan worktree branches
+      (worktree-agent-a682ca3a30d5b5c63, -a2b9f816dfdee00b2,
+      -a3afe848a43d4c8f5) still registered in .git/worktrees/. Disk
+      directories deleted; metadata + locked files remain because
+      sandbox blocked `git worktree remove --force`, `worktree
+      unlock`, and `worktree prune`. Branches are still pinned. Run
+      manually next session:
+        git worktree unlock <path>  # for each
+        git worktree prune
+        git branch -D worktree-agent-a682ca3a30d5b5c63
+        git branch -D worktree-agent-a2b9f816dfdee00b2
+        git branch -D worktree-agent-a3afe848a43d4c8f5
+      A FOURTH worktree (agent-a05f61a149847092d) is intentionally
+      untouched — it is a live agent's worktree from this session.
 
   KEY DECISIONS LOCKED THIS SESSION:
-    - DUAL SKU FIELDS. inventory_items.sku TEXT ('INV-000001') +
-      sku_number BIGINT (raw integer for sortable indexes). Trigger
-      assigns both when sku is null on insert. User-provided SKUs get
-      sku_number=0 (live outside the auto-numbered range).
-    - PAWN FIELDS GATE BY has_pawn IN UI ONLY. Schema columns exist
-      regardless — keeps customer rows portable if a shop later toggles
-      has_pawn on. UI hides the section on jewelry-only / repair-only
-      shops so the form stays focused.
-    - AUDIT_LOG INSERTS THROUGH ADMIN CLIENT. The table has a SELECT
-      policy for staff but no INSERT policy, so RLS would block client-
-      scoped inserts. Helper uses admin (service-role) client and
-      swallows errors — audit-log writes must NEVER break the user
-      action. Write-once trigger from 0001 means rows can never be
-      mutated post-insert.
-    - JSON-ROUNDTRIP NARROWING for audit log changes. Supabase types
-      JSONB columns as a strict Json union; Record<string, unknown> is
-      too loose. JSON.parse(JSON.stringify(x)) cast satisfies the type
-      without runtime cost — values are already JSON-serializable.
-    - CUSTOMER PHOTO STORED AS PATH IN customers.photo_url. Column
-      name is legacy (it was 'photo_url' in CLAUDE.md spec); we store
-      the storage path and always go through getSignedUrl on read.
-      Lives in customer-documents bucket under '<tenant>/<customer>/
-      photo/<uuid>.<ext>'.
-    - PHOTO PRIMARY DEMOTE-ON-DELETE. Deleting a primary photo auto-
-      promotes the next-positioned photo. BEFORE INSERT/UPDATE trigger
-      on inventory_item_photos.is_primary already handles the demote-
-      siblings case at write time.
-    - SHARED FORM-FIELDS COMPONENTS. CustomerFormFields and
-      InventoryFormFields are imported by both the create and edit
-      pages. Edit pages pass isEdit=true to enable read-only SKU and
-      reveal sale_price.
-    - DASHBOARD COUNTS VIA HEAD=TRUE. Each stat card runs a
-      .select('id', { count: 'exact', head: true }) — the row payload
-      is empty, only the count comes back. Six queries run in parallel
-      via Promise.all at /dashboard.
+    - PARALLEL-AGENT WORKTREE PATTERN. Three agents ran in worktree
+      isolation but, by happy accident, all also wrote to the primary
+      tree because each read the in-flight overlay before writing.
+      Final commit went straight from primary tree, not from the
+      worktree branches. Worktrees are now treated as scratch /
+      isolation only; final integration runs from main. Don't
+      formalize this — note it as observed.
+    - COMPLIANCE_LOG WRITTEN AT INTAKE, NOT DERIVED. The pawn intake
+      action emits a compliance_log row inside the same transaction
+      as the loans + loan_collateral_items insert. No retroactive
+      derivation at police-report time. Locks the data the way the
+      regulator expects.
+    - FORFEIT-TO-INVENTORY HOOK SEMANTICS. forfeitLoanAction copies
+      every loan_collateral_items row into inventory_items with
+      source='pawn_forfeit' and source_loan_id=<loan.id>. Loan status
+      flips to 'forfeited'. Item status starts 'available' (not
+      'held') because forfeiture already cleared the customer's claim
+      — the hold-period rule applies to BUY-OUTRIGHT, not pawn
+      forfeitures.
+    - PAWN TICKET PRINT IMMUTABILITY WITH EXTENDED-STATUS CARVE-OUT.
+      Database trigger locks principal / interest_rate / term_days /
+      due_date / customer_id / collateral once is_printed=true,
+      EXCEPT when status transitions to 'extended' (extension is the
+      one legitimate post-print mutation — it advances due_date +
+      writes a loan_events row).
+    - DECIMAL-SAFE LOAN MATH IN PURE FUNCTIONS. lib/pawn/math.ts is
+      string-/Number-based with explicit r4 rounding to 4 decimal
+      places. interestAccrued is straight-line per-day; payoffBalance
+      = principal + accrued interest − interest already paid (floored
+      at 0); splitPayment is interest-first (interest portion satisfied
+      before principal). NO floats anywhere.
+    - AUDIT-FORMAT HELPER SEPARATED FROM AUDIT.TS. lib/audit.ts
+      imports the service-role admin client; if a client component
+      pulled in label-formatting from there, the admin client would
+      land in the client bundle. Moved the formatter to
+      lib/audit-format.ts (pure helper, no Supabase import) so the
+      /audit ChangesViewer can stay client-side without dragging
+      service-role code along.
+    - PER-TABLE AUDIT LABEL OVERRIDES. The same action verb ('create',
+      'update', 'soft_delete') means different things per table — i18n
+      provides audit.actions.perTable[table][action] as an override
+      map; falls back to audit.actions[action], then to the raw action
+      string. Display layer only — write side stays canonical.
+    - 'USE SERVER' EXPORTS RULE. Next 16 / React 19 enforce that a
+      'use server' module can only export async functions. A const
+      object trips a runtime crash. Type exports are fine (erased at
+      compile). Pattern going forward: never export const ...InitialState
+      — inline `{}` at the useActionState call site, keep the State
+      type export for typing. Documented in fix commit a481a82.
+    - INVENTORY EDIT/DELETE LOCKED ON status='transferred'. While an
+      item is mid-transfer it can't be edited or soft-deleted. Action
+      returns 'item_locked_in_transfer' field error. Sits alongside
+      the existing block on status='sold' / 'scrapped'.
+    - SCRIPTS/APPLY-MIGRATION.MJS. Wraps the Supabase Management API
+      `POST /v1/projects/{ref}/database/query` so SQL migrations can
+      be applied from CLI without copy-pasting into the SQL Editor.
+      Reads SUPABASE_PROJECT_ID + SUPABASE_ACCESS_TOKEN from
+      .env.local. Used for 0005 + 0006 in this session.
 
-  KEY DECISIONS CARRIED FROM SESSION 1+2 (still authoritative):
+  KEY DECISIONS CARRIED FROM PRIOR SESSIONS (still authoritative):
     - Multi-store from day 1 (tenants.parent_tenant_id + tenant_type).
     - Pawn gated per tenant (has_pawn).
     - Stone setting = service_type ENUM on repair tickets (Phase 3).
@@ -240,6 +196,11 @@ SEE ALSO (do not duplicate here):
     - NEXT_PUBLIC_APP_URL is the canonical origin source.
     - window.location.assign over router.push for cookie-set navs.
     - Lookup-by-email pattern for inserting profiles tied to auth.users.
+    - DUAL SKU FIELDS (sku TEXT + sku_number BIGINT).
+    - PAWN FIELDS GATE BY has_pawn IN UI ONLY (schema columns always exist).
+    - AUDIT_LOG INSERTS THROUGH ADMIN CLIENT (no INSERT policy on table).
+    - JSON-roundtrip narrowing for Supabase JSONB columns.
+    - Photo storage path: tenant_id MUST be folder[0] for RLS to work.
 
   IMPORTANT CONSTANTS / PATHS:
     - Project root:   c:\Users\rodri\OneDrive\Documents\Pawn\
@@ -254,6 +215,7 @@ SEE ALSO (do not duplicate here):
         inventory-photos/<tenant_id>/<item_id>/<uuid>.<ext>
         Where <kind> = 'id_scan' | 'signature' | 'photo'
     - SKU format: 'INV-' + LPAD(sku_number, 6, '0') (e.g. 'INV-000123')
+    - Pawn ticket format: 'PT-' + LPAD(seq, 6, '0') (e.g. 'PT-000123')
     - Photo upload limits: 8 MB inventory photos, 10 MB customer docs
     - First tenant: Eddy's Jewelers Corp.
         tenant_id    1abc8070-0797-4740-8dea-70cbb16060fe
@@ -282,17 +244,41 @@ PHASE OVERVIEW
           filters. Audit log helper wired into
           every mutating action. Dashboard with
           4 stat cards + 2 recent-activity panels.)
-  2       Pawn loans (gated on has_pawn)             PENDING     —
-          (intake → active → redeem/extend/
-          forfeit; printable bilingual ticket;
-          forfeit-to-inventory hook; customer-
-          portal loan view; pay-by-link)
-  3       Repair / stone setting                     PENDING     —
+  2       Pawn loans (gated on has_pawn)             COMPLETE    2026-04-27
+          (Internal flow only — bilingual PDF
+          PRINT DEFERRED. /pawn list with status
+          + due-window filters + customer search;
+          /pawn/new intake with collateral capture,
+          signature upload, compliance_log row at
+          intake; /pawn/[id] with payoff calc,
+          collateral grid, event log. Actions:
+          recordPayment (interest-first split),
+          extend, redeem, forfeit (forfeit-to-
+          inventory hook), void, printTicket
+          (sets is_printed=true; PDF render
+          deferred to a future session).
+          Customer detail panel adds "Pawn loans"
+          when has_pawn=true. Dashboard adds 2
+          pawn stat cards behind has_pawn.
+          Customer portal /portal/loans + pay-by-
+          link still PENDING under Phase 5.)
+  3       Repair / stone setting                     IN PROGRESS  —
+          (Dispatched as parallel agent in
+          Session 4 alongside this closeout —
+          schema + workflow state machine + UI.
+          Read the agent's report next session
+          and merge.)
   4       Retail / POS                               PENDING     —
   5       Customer portal (full)                     PENDING     —
   6       Communications                             PENDING     —
   7       Reporting + compliance                     PENDING     —
   8       Polish                                     PENDING     —
+          (Note: AUDIT LOG VIEWER originally
+          scoped here landed early in Session 4
+          alongside Phase 2 — at /audit, with
+          filters, deep-links into related
+          tables, and i18n per-table action
+          overrides.)
 
 ================================================================================
 SESSION HISTORY LOG
@@ -524,17 +510,153 @@ SESSION HISTORY LOG
        /customers /customers/new /customers/[id]
        /inventory /inventory/new /inventory/[id]
 
+--- Session 4 (2026-04-27) — Phase 2 pawn loans + transfers UI + audit viewer (parallel agents) ---
+
+ 65. PARALLEL-AGENT DISPATCH. Three agents run in worktree isolation —
+     (a) Phase 2 pawn loans data spine, (b) inventory transfers UI,
+     (c) audit log viewer. Worktree branches: worktree-agent-a3afe848...
+     (Phase 2), -a2b9f816... (transfers), -a682ca3a... (audit). All
+     three accidentally also wrote to the primary working tree, which
+     by happy accident produced a clean merge on shared files (Sidebar,
+     i18n, layout, aliases) because each agent read the in-flight
+     overlay before writing. Final commit went straight from primary
+     tree, not from worktree branches; worktrees deleted in this
+     session's housekeeping.
+
+ 66. PATCHES/0005-PAWN-LOANS.SQL written + applied (~346 lines):
+     loan_status, loan_event_type, payment_method enums; loans,
+     loan_collateral_items, loan_events tables with RLS for staff;
+     ticket-number trigger ('PT-' + 6-digit pad via
+     next_tenant_counter('loan_ticket')); print-immutability trigger
+     locks principal/rate/term/customer/due_date once is_printed=true,
+     except status='extended' transitions; compliance_log staff INSERT
+     policy.
+
+ 67. PHASE 2 PAWN MODULE — internal flow only (no print PDF, no portal):
+     /pawn list (status filter chips, due-window dropdown, customer
+     search), /pawn/new (intake with customer picker, collateral capture,
+     signature upload, compliance_log row written at intake), /pawn/[id]
+     (payoff calculator, collateral grid, event log, action row).
+     Actions: recordPaymentAction (interest-first split, partial→
+     redeemed transition), extendLoanAction (today + new_term_days,
+     status→extended), redeemLoanAction (full payoff prompt),
+     forfeitLoanAction (FORFEIT-TO-INVENTORY HOOK — collateral copies
+     into inventory_items with source='pawn_forfeit', source_loan_id),
+     voidLoanAction (reason ≥10 chars), printTicketAction (sets
+     is_printed=true, locks core fields; PDF render deferred).
+
+ 68. LIB/PAWN/MATH.TS decimal-safe loan math: dailyRateFromMonthly,
+     interestAccrued (straight-line), payoffBalance (principal +
+     accrued interest − interest already paid, floored at 0),
+     splitPayment (interest-first), payoffFromLoan adapter,
+     daysBetween, addDaysIso, todayDateString, r4 / toMoney rounding
+     to 4 decimal places. NO floats — operates on string/Number with
+     explicit rounding.
+
+ 69. CUSTOMER DETAIL + DASHBOARD WIRED. /customers/[id] adds a "Pawn
+     loans" panel (last 10 + "View all" → /pawn?customer=<id>) when
+     has_pawn=true. Dashboard adds two stat cards behind has_pawn:
+     Active pawn loans + Due this week (≤7 days).
+
+ 70. PATCHES/0006-TRANSFER-METADATA.SQL applied. Extends
+     transfer_status with 'accepted' + 'rejected'; adds workflow
+     metadata (requested_by/at, accepted_by/at, rejected_by/at/reason,
+     cancelled_by, deleted_at) to inventory_transfers; makes legacy
+     item_id nullable; adds inventory_transfer_items child table with
+     dual-side RLS read + origin-side write. Index on (tenant_id,
+     requested_at DESC).
+
+ 71. INVENTORY TRANSFERS UI. /inventory/transfers list (dual-side
+     fetch via admin client for cross-tenant rollups, status chips +
+     direction toggle), /inventory/transfers/new (sibling-shop picker,
+     multi-select item table, holds items via status='transferred'
+     during pending), /inventory/transfers/[id] (side-aware actions:
+     CANCEL for sender, ACCEPT/REJECT for receiver, only on pending).
+     Cross-chain transfers blocked at trigger; surfaced cleanly as
+     'cross_chain_blocked' field error. Sidebar entry gated on
+     tenant_type='shop' AND parent_tenant_id IS NOT NULL.
+
+ 72. INVENTORY EDIT/DELETE LOCKED on status='transferred'. Edit action
+     returns 'item_locked_in_transfer'; delete blocked alongside
+     status='sold' / 'scrapped'.
+
+ 73. AUDIT LOG VIEWER at /audit. Server fetch with q/user/table/
+     actionPrefix/from/to filters + 50-row pagination. Joins user info
+     from profiles via explicit IN-query merge (audit_log.user_id has
+     no FK so embedded select would silently null). Deep-links to
+     /customers/[id], /inventory/[id], /customer_documents (via
+     changes.customer_id), /inventory_item_photos (via changes.item_id).
+     ChangesViewer component for inline JSON expansion. Sidebar entry
+     gated to owner / manager / chain_admin.
+
+ 74. LIB/AUDIT-FORMAT.TS separates label-formatting helper from
+     lib/audit.ts so client components don't drag the service-role
+     admin client into their bundle.
+
+ 75. PER-TABLE AUDIT LABEL OVERRIDES. Same action verb ('create',
+     'update', 'soft_delete', etc.) means different things per table —
+     i18n provides audit.actions.perTable[tableName][action] override
+     map; falls back to audit.actions[action], then raw.
+
+ 76. SCRIPTS/APPLY-MIGRATION.MJS (NEW). Wraps Supabase Management API
+     `POST /v1/projects/{ref}/database/query` for applying SQL
+     migrations from CLI without copy-pasting into the SQL Editor.
+     Reads SUPABASE_PROJECT_ID + SUPABASE_ACCESS_TOKEN from
+     .env.local. 0005 + 0006 applied via this script.
+
+ 77. DB:TYPES REGEN — 52,401 bytes (was 41,771 in Phase 1). All Phase 2
+     tables + transfer_metadata extensions present.
+
+ 78. [BUG] FORM ENCTYPE REGRESSION. Phase 2 agent set
+     encType="multipart/form-data" on /pawn/new form. Next 16 / React
+     19 reject this with `<form action={fn}>` — the runtime sets the
+     encoding automatically when a file input is present. AGENTS.md
+     already documented this; agent ignored the rule. Fix: removed
+     the explicit attribute.
+
+ 79. [BUG] FORMDATA TYPING ERROR in pawn/new/actions.ts:83. Position
+     field passed `i` (number) into a Record<string, FormDataEntryValue
+     | null> shape. Fix: String(i).
+
+ 80. [BUG] AUTO-SPLIT useEffect in RecordPaymentDialog. Agent claimed
+     useMemo but actually wrote useEffect + setState which trips the
+     react-hooks/set-state-in-effect rule. Fix: refactored to
+     useMemo-derived display values + a toggleManual handler that seeds
+     state on auto→manual transition. No effect needed.
+
+ 81. [BUG] 'use server' EXPORTS NON-ASYNC. Caught at runtime when
+     /inventory/new threw "A 'use server' file can only export async
+     functions, found object." Six action files exported a const
+     ...InitialState = {}. Fix: dropped the exports and inlined `{}`
+     at each useActionState call site. Type exports are fine (erased).
+     Shipped as standalone fix-up commit a481a82 after the Phase 2
+     checkpoint commit db25d59.
+
+ 82. SESSION 4 BUILDS GREEN at 25 routes + Proxy. Phase 2 internal flow
+     COMPLETE. Inventory transfers UI COMPLETE. Audit log viewer COMPLETE.
+
+ 83. PARALLEL-AGENT DISPATCH (continued). Session 4 closeout +
+     dispatch of Phase 3 repair tickets agent run as separate parallel
+     agents. Housekeeping agent: commit, push, worktree cleanup,
+     Progress.txt rewrite (this entry). Phase 3 agent: schema +
+     workflow state machine + UI. Worktree cleanup PARTIAL — disk
+     dirs deleted, but `git worktree remove --force` / `unlock` /
+     `prune` were sandbox-blocked, leaving metadata + branch refs
+     in .git/worktrees/. Manual finish next session.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Smoke-test the Phase 1 flows in the browser before starting Phase 2:
-    /dashboard counts, customer create with pawn fields, photo upload,
-    ID + signature upload, inventory create, photo + stone management.
-    THEN pick the next workstream (Phase 2 pawn loans is the natural
-    next step; alternatives are inventory transfers UI, audit-log
-    viewer, or Phase 0 close-out).
+    1. Read the Phase 3 agent's report.
+    2. Apply patches/0007-repair-tickets.sql via
+       `node scripts/apply-migration.mjs patches/0007-repair-tickets.sql`.
+    3. Regen types: `npm run db:types`.
+    4. Merge the Phase 3 worktree branch into main.
+    5. Smoke-test /repair list → /repair/new → /repair/[id].
+    6. Finish the worktree cleanup that this session's sandbox blocked
+       (see OPEN ISSUES — three orphan branches still pinned).
 
   PHASE 0 PUNCH LIST (still open):
     a. Rotate the three pasted secrets (anon JWT, service_role JWT,
@@ -544,27 +666,28 @@ PENDING — NEXT UP
 
   BACKLOG (in priority order):
     1. Phase 0 close-out (secrets + Vercel + first deploy).
-    2. Phase 2 — Pawn loans (intake → active → redeem/extend/forfeit;
-       printable bilingual ticket; forfeit-to-inventory hook; customer-
-       portal loan view; pay-by-link).
-    3. Inventory transfers UI for chain shops (table + trigger already
-       in 0003; needs /inventory/transfers pages + accept/cancel
-       actions).
-    4. Audit-log viewer at /audit (read-only timeline, filterable by
-       user/action/table).
-    5. Phase 3 — Repair / stone setting.
-    6. Phase 4 — Retail / POS + Stripe Terminal.
-    7. Phase 5 — Customer portal + Stripe Payment Links.
-    8. Phase 6 — Communications.
-    9. Phase 7 — Reporting + compliance (FL LeadsOnline).
-   10. Phase 8 — Polish.
+    2. Phase 2 PRINT PDF — bilingual EN+ES pawn ticket via
+       @react-pdf/renderer. Required for FL compliance.
+    3. Phase 3 — Repair / stone setting (in progress; finish merge
+       + smoke test).
+    4. Phase 4 — Retail / POS + Stripe Terminal.
+    5. Phase 5 — Customer portal (full) + Stripe Payment Links —
+       includes /portal/loans pay-by-link side that the Phase 2 spine
+       is ready for.
+    6. Phase 6 — Communications (Twilio SMS / WhatsApp / Resend).
+    7. Phase 7 — Reporting + compliance (FL LeadsOnline export).
+    8. Phase 8 — Polish.
 
   KNOWN GOTCHAS TO AVOID FROM DAY 1 (carried + new):
     - Next 16 file is `proxy.ts`, exported function named `proxy`.
+    - Next 16 'use server' modules can ONLY export async functions —
+      never `export const ...InitialState`. Inline the value at the
+      useActionState call site. Type exports are fine.
     - Phosphor icons crash server components — only import in 'use
       client' files. (Sidebar, all panels, all forms are clients.)
     - useSearchParams() must be wrapped in <Suspense> for static gen.
-    - <form action={fn}> never has explicit encType.
+    - <form action={fn}> never has explicit encType. The runtime
+      sets multipart automatically when a file input is present.
     - Storage uploads from server actions use admin (service-role)
       client. uploadToBucket helper handles this.
     - `npm run db:types` via the safe wrapper. Never raw `>` redirect.
@@ -576,6 +699,8 @@ PENDING — NEXT UP
     - Portal invites: don't use Supabase built-in SMTP.
     - profiles.role is GLOBAL only ('superadmin' | NULL).
     - user_tenants has no FK to profiles — embedded select returns null.
+    - audit_log.user_id has no FK to profiles either — same gotcha,
+      same fix (explicit IN-query merge instead of embedded select).
     - Never taskkill /F /IM node.exe — use PIDs.
     - audit_log has SELECT policy only; inserts must use admin client.
     - CHECK-constrained TEXT columns (e.g. profiles.language,
@@ -586,16 +711,27 @@ PENDING — NEXT UP
     - First uploaded inventory photo auto-promotes to primary.
       Deleting the primary auto-promotes the next-positioned photo.
     - Storage path layout: tenant_id MUST be folder[0] for RLS to work.
+    - Pawn ticket print locks core fields — only status='extended'
+      transitions are allowed past is_printed=true.
+    - Forfeiture inventory items start status='available' — the
+      hold-period rule is for buy-outright, not forfeitures.
+    - Inventory edit/delete blocked while status='transferred'.
+    - Cross-chain transfers blocked at trigger; surface as
+      'cross_chain_blocked' field error in the form.
+    - Use useMemo for derived state, not useEffect+setState.
+    - lib/audit.ts pulls in the admin client — never import it from a
+      client component. Use lib/audit-format.ts for label helpers.
 
   KNOWN ISSUES TO REVISIT WHEN PHASES LAND:
     - Phase 2 close: pawn ticket bilingual print layout (FL requires
       both EN and ES on the same page).
     - Phase 2: compliance_log.customer_snapshot must include the new
-      pawn fields (height/weight/marks/sex/hair/eyes/employment).
+      pawn fields (height/weight/marks/sex/hair/eyes/employment) —
+      verify the snapshot the intake action writes today.
     - Phase 4: Stripe Terminal hardware — confirm reader model + cost.
     - Phase 7: confirm current FL LeadsOnline upload format (drifts).
     - ID retention enforcement: read current FL statute right before
-      Phase 2 ships.
+      portal pay-by-link ships.
 
   OUT OF SCOPE (noted for later):
     - Mobile native app.
