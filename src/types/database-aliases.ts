@@ -341,3 +341,57 @@ export type LayawayUpdate = Database['public']['Tables']['layaways']['Update']
 export type LayawayPaymentRow    = Database['public']['Tables']['layaway_payments']['Row']
 export type LayawayPaymentInsert = Database['public']['Tables']['layaway_payments']['Insert']
 export type LayawayPaymentUpdate = Database['public']['Tables']['layaway_payments']['Update']
+
+// ── Phase 5 (customer portal) — stripe_payment_links + customers.auth_user_id
+//
+// Until 0009 is applied + db-types regenerated, the new table doesn't appear
+// in Database['public']['Tables']. We hand-roll the row shape here so the
+// portal action / webhook code type-checks. The operator regenerates
+// database.ts at merge time and we can collapse these aliases to the
+// generated Database['public']['Tables']['stripe_payment_links'] form.
+
+export type StripePaymentLinkKind = 'loan_payoff' | 'layaway_payment'
+
+export type StripePaymentLinkStatus =
+  | 'pending'
+  | 'paid'
+  | 'expired'
+  | 'cancelled'
+
+export type StripePaymentLinkRow = {
+  id: string
+  tenant_id: string
+  source_kind: StripePaymentLinkKind
+  source_id: string
+  customer_id: string
+  stripe_session_id: string
+  checkout_url: string | null
+  stripe_account_id: string | null
+  stripe_payment_intent_id: string | null
+  amount: number | string
+  currency: string
+  status: StripePaymentLinkStatus
+  created_at: string
+  updated_at: string
+  paid_at: string | null
+}
+
+export type StripePaymentLinkInsert = {
+  id?: string
+  tenant_id: string
+  source_kind: StripePaymentLinkKind
+  source_id: string
+  customer_id: string
+  stripe_session_id: string
+  checkout_url?: string | null
+  stripe_account_id?: string | null
+  stripe_payment_intent_id?: string | null
+  amount: number | string
+  currency?: string
+  status?: StripePaymentLinkStatus
+  created_at?: string
+  updated_at?: string
+  paid_at?: string | null
+}
+
+export type StripePaymentLinkUpdate = Partial<StripePaymentLinkInsert>
