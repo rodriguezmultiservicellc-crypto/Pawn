@@ -1481,6 +1481,17 @@ export const en = {
         'Reader pairing UI ships in a follow-up agent when hardware is available. Until then, use the TEST shortcut to simulate a successful card payment.',
     },
   },
+  dlScanner: {
+    button: 'Scan ID',
+    modalTitle: 'Scan Driver License',
+    help: 'Click in the box below, then scan the back of the license with a USB PDF417 scanner. The form will be filled automatically.',
+    placeholder: 'Focus here and scan…',
+    parse: 'Parse',
+    errorNoData: 'No data received. Focus the box and scan again.',
+    errorBadRead: 'Could not read license data. Try scanning again.',
+    errorParse: 'Parse failed',
+    autoFilled: 'Auto-filled from license scan',
+  },
 }
 
 export type Dictionary = typeof en

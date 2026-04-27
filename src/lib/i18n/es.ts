@@ -1493,4 +1493,15 @@ export const es: Dictionary = {
         'La interfaz de emparejamiento del lector llegará en una iteración futura cuando haya hardware. Mientras, usa el atajo de PRUEBA para simular un pago exitoso.',
     },
   },
+  dlScanner: {
+    button: 'Escanear ID',
+    modalTitle: 'Escanear Licencia de Conducir',
+    help: 'Haz clic en el cuadro y escanea el reverso de la licencia con un lector PDF417 USB. El formulario se llenará automáticamente.',
+    placeholder: 'Enfoca aquí y escanea…',
+    parse: 'Procesar',
+    errorNoData: 'No se recibieron datos. Enfoca el cuadro y escanea de nuevo.',
+    errorBadRead: 'No se pudo leer la licencia. Intenta escanear de nuevo.',
+    errorParse: 'Error al procesar',
+    autoFilled: 'Datos completados desde la licencia',
+  },
 }
