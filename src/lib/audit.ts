@@ -62,6 +62,21 @@ export type AuditAction =
   | 'timer_start'
   | 'timer_stop'
   | 'abandoned_to_inventory'
+  // POS-specific
+  | 'sale_create'
+  | 'sale_complete'
+  | 'sale_void'
+  | 'sale_payment_add'
+  | 'return_create'
+  | 'return_void'
+  | 'layaway_create'
+  | 'layaway_payment_add'
+  | 'layaway_cancel'
+  | 'layaway_complete'
+  | 'register_open'
+  | 'register_close'
+  | 'register_reconcile'
+  | 'card_present_succeeded'
 
 export async function logAudit(args: {
   tenantId: string

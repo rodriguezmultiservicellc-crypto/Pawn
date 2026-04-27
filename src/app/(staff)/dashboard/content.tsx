@@ -11,6 +11,8 @@ import {
   Calendar,
   Wrench,
   CheckCircle,
+  CashRegister,
+  ShoppingBag,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { InventoryStatus } from '@/types/database-aliases'
@@ -45,6 +47,10 @@ export default function DashboardContent({
   hasRepair = false,
   activeRepairCount = 0,
   readyForPickupCount = 0,
+  hasRetail = false,
+  todaySalesCount = 0,
+  todayRevenue = 0,
+  activeLayawayCount = 0,
 }: {
   customerCount: number
   bannedCount: number
@@ -58,6 +64,10 @@ export default function DashboardContent({
   hasRepair?: boolean
   activeRepairCount?: number
   readyForPickupCount?: number
+  hasRetail?: boolean
+  todaySalesCount?: number
+  todayRevenue?: number
+  activeLayawayCount?: number
 }) {
   const { t } = useI18n()
 
@@ -134,6 +144,32 @@ export default function DashboardContent({
             icon={<CheckCircle size={20} weight="regular" />}
             href="/repair?status=ready"
             tone={readyForPickupCount > 0 ? 'warning' : 'neutral'}
+          />
+        </div>
+      ) : null}
+
+      {hasRetail ? (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard
+            label={t.pos.dashboardCards.todaySalesCard}
+            sub={t.pos.dashboardCards.todaySalesCardSub}
+            value={todaySalesCount}
+            icon={<CashRegister size={20} weight="regular" />}
+            href="/pos"
+          />
+          <RevenueCard
+            label={t.pos.dashboardCards.todayRevenueCard}
+            sub={t.pos.dashboardCards.todayRevenueCardSub}
+            value={todayRevenue}
+            icon={<CashRegister size={20} weight="regular" />}
+            href="/pos"
+          />
+          <StatCard
+            label={t.pos.dashboardCards.activeLayawaysCard}
+            sub={t.pos.dashboardCards.activeLayawaysCardSub}
+            value={activeLayawayCount}
+            icon={<ShoppingBag size={20} weight="regular" />}
+            href="/pos/layaways?status=active"
           />
         </div>
       ) : null}
@@ -251,6 +287,41 @@ function StatCard({
       </div>
       <div className={`font-mono text-3xl font-semibold ${valueColor}`}>
         {value}
+      </div>
+      <div className="text-xs text-ash">{sub}</div>
+    </Link>
+  )
+}
+
+function RevenueCard({
+  label,
+  sub,
+  value,
+  icon,
+  href,
+}: {
+  label: string
+  sub: string
+  value: number
+  icon: React.ReactNode
+  href: string
+}) {
+  const formatted = value.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  })
+  return (
+    <Link
+      href={href}
+      className="flex flex-col gap-1 rounded-lg border border-hairline bg-canvas p-4 transition-colors hover:border-ink"
+    >
+      <div className="flex items-center justify-between text-ash">
+        <span className="text-xs uppercase tracking-wide">{label}</span>
+        {icon}
+      </div>
+      <div className="font-mono text-2xl font-semibold text-ink">
+        {formatted}
       </div>
       <div className="text-xs text-ash">{sub}</div>
     </Link>

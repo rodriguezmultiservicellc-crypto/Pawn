@@ -31,12 +31,19 @@ import type {
   CustomerDocKind,
   IdDocumentType,
   Language,
+  LayawayStatus,
   LoanStatus,
   RepairStatus,
+  SaleKind,
+  SaleStatus,
   ServiceType,
 } from '@/types/database-aliases'
 import { ServiceTypeBadge } from '@/components/repair/ServiceTypeBadge'
 import { StatusBadge as RepairStatusBadge } from '@/components/repair/StatusBadge'
+import {
+  LayawayStatusBadge,
+  SaleStatusBadge,
+} from '@/components/pos/Badges'
 
 export type CustomerLoanRow = {
   id: string
@@ -55,6 +62,27 @@ export type CustomerRepairRow = {
   promised_date: string | null
   status: RepairStatus
   balance_due: number | null
+  created_at: string
+}
+
+export type CustomerSaleRow = {
+  id: string
+  sale_number: string
+  sale_kind: SaleKind
+  status: SaleStatus
+  total: number
+  completed_at: string | null
+  created_at: string
+}
+
+export type CustomerLayawayRow = {
+  id: string
+  layaway_number: string
+  status: LayawayStatus
+  total_due: number
+  paid_total: number
+  balance_remaining: number
+  first_payment_due: string | null
   created_at: string
 }
 
@@ -116,17 +144,23 @@ export default function CustomerDetail({
   documents,
   hasPawn = false,
   hasRepair = false,
+  hasRetail = false,
   photoSignedUrl,
   loans = [],
   repairs = [],
+  sales = [],
+  layaways = [],
 }: {
   customer: CustomerRecord
   documents: CustomerDocumentItem[]
   hasPawn?: boolean
   hasRepair?: boolean
+  hasRetail?: boolean
   photoSignedUrl?: string | null
   loans?: CustomerLoanRow[]
   repairs?: CustomerRepairRow[]
+  sales?: CustomerSaleRow[]
+  layaways?: CustomerLayawayRow[]
 }) {
   const { t } = useI18n()
 
@@ -263,7 +297,126 @@ export default function CustomerDetail({
       {hasRepair ? (
         <CustomerRepairsPanel customerId={customer.id} repairs={repairs} />
       ) : null}
+
+      {hasRetail ? (
+        <CustomerSalesPanel customerId={customer.id} sales={sales} />
+      ) : null}
+
+      {hasRetail ? (
+        <CustomerLayawaysPanel
+          customerId={customer.id}
+          layaways={layaways}
+        />
+      ) : null}
     </div>
+  )
+}
+
+function CustomerSalesPanel({
+  customerId,
+  sales,
+}: {
+  customerId: string
+  sales: CustomerSaleRow[]
+}) {
+  const { t } = useI18n()
+  return (
+    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+        <span>{t.pos.customerSales.title}</span>
+        <Link
+          href={`/pos/sales?customer=${customerId}`}
+          className="text-xs font-normal text-ash hover:text-ink"
+        >
+          {t.pos.customerSales.viewAll}
+        </Link>
+      </legend>
+      {sales.length === 0 ? (
+        <p className="mt-2 text-sm text-ash">
+          {t.pos.customerSales.empty}
+        </p>
+      ) : (
+        <ul className="mt-2 divide-y divide-hairline rounded-md border border-hairline">
+          {sales.map((s) => (
+            <li key={s.id}>
+              <Link
+                href={`/pos/sales/${s.id}`}
+                className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+              >
+                <div className="font-mono text-xs text-ink">
+                  {s.sale_number}
+                </div>
+                <div className="flex-1 px-3 font-mono text-xs text-ink">
+                  {s.total.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                  })}
+                </div>
+                <div className="font-mono text-xs text-ash">
+                  {(s.completed_at ?? s.created_at).slice(0, 10)}
+                </div>
+                <SaleStatusBadge status={s.status} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </fieldset>
+  )
+}
+
+function CustomerLayawaysPanel({
+  customerId,
+  layaways,
+}: {
+  customerId: string
+  layaways: CustomerLayawayRow[]
+}) {
+  const { t } = useI18n()
+  return (
+    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+        <span>{t.pos.customerLayaways.title}</span>
+        <Link
+          href={`/pos/layaways?customer=${customerId}`}
+          className="text-xs font-normal text-ash hover:text-ink"
+        >
+          {t.pos.customerLayaways.viewAll}
+        </Link>
+      </legend>
+      {layaways.length === 0 ? (
+        <p className="mt-2 text-sm text-ash">
+          {t.pos.customerLayaways.empty}
+        </p>
+      ) : (
+        <ul className="mt-2 divide-y divide-hairline rounded-md border border-hairline">
+          {layaways.map((l) => (
+            <li key={l.id}>
+              <Link
+                href={`/pos/layaways/${l.id}`}
+                className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+              >
+                <div className="font-mono text-xs text-ink">
+                  {l.layaway_number}
+                </div>
+                <div className="flex-1 px-3 font-mono text-xs text-ink">
+                  {l.balance_remaining.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                  })}
+                </div>
+                <div className="font-mono text-xs text-ash">
+                  {l.first_payment_due ?? '—'}
+                </div>
+                <LayawayStatusBadge status={l.status} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </fieldset>
   )
 }
 
