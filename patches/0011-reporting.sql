@@ -1,0 +1,44 @@
+-- ============================================================================
+-- PAWN — REPORTING + COMPLIANCE MIGRATION (Phase 7)
+-- File:    patches/0011-reporting.sql
+-- Date:    2026-04-27
+-- Status:  RESERVED — DO NOT APPLY without operator review.
+--
+-- Phase 7 (reporting + FL LeadsOnline compliance export) ships fully
+-- functional WITHOUT any new schema. All eight reports run as PostgREST
+-- queries against the existing tables (loans, loan_events, sales,
+-- repair_tickets, inventory_items, register_sessions, compliance_log).
+--
+-- This file is reserved for a future cleanup pass that may add:
+--   - v_loan_aging  : a SECURITY INVOKER view for the pawn-aging report
+--                     so the days-to-due bucketing happens server-side.
+--   - v_inventory_turn : a view that surfaces days_in_stock as a column.
+--   - v_compliance_log_export : a view exposing flattened compliance_log
+--                               rows (one row per item) for the police
+--                               exporter so we don't need to flatten in
+--                               app code on every export.
+--   - tenants.agency_store_id : the LeadsOnline-assigned store identifier
+--                               (currently we fall back to tenant.id UUID
+--                               in the exporter — works for a well-formed
+--                               file, fails the agency's lookup table).
+--
+-- None of the above is required for v1; the app code handles them. Land
+-- this migration when:
+--   1. We have a paying tenant with their LeadsOnline store_id and need
+--      to set tenants.agency_store_id.
+--   2. The pawn-aging or inventory-turn reports start hitting a perf
+--      ceiling (pgsql aggregation > app-side aggregation).
+--
+-- HOW TO APPLY: this is a no-op file at present. Bumping the schema
+-- version requires explicit edits below.
+-- ============================================================================
+
+-- (intentionally empty — Phase 7 ships against the existing schema)
+
+-- Tell PostgREST to reload the schema cache (no-op when the file is empty,
+-- but kept here so future edits remember the convention).
+-- NOTIFY pgrst, 'reload schema';
+
+-- ============================================================================
+-- END 0011-reporting.sql
+-- ============================================================================

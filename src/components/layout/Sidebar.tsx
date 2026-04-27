@@ -113,13 +113,11 @@ export function Sidebar({
       href: '/reports',
       label: t.nav.reports,
       icon: <ChartBar size={18} weight="regular" />,
-      disabled: true,
     },
     {
-      href: '/compliance',
+      href: '/reports/police-report',
       label: t.nav.compliance,
       icon: <Shield size={18} weight="regular" />,
-      disabled: true,
     },
     {
       href: '/audit',
