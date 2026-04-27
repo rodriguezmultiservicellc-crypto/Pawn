@@ -108,7 +108,23 @@ export type InventoryLocation =
   | 'offsite'
   | 'transfer'
 
-export type TransferStatus = 'pending' | 'in_transit' | 'received' | 'cancelled'
+/**
+ * Transfer status values used by the v1 transfer UI.
+ *
+ * The DB enum (`transfer_status`) ships with both the legacy
+ * 'in_transit' / 'received' values from 0003 and the new
+ * 'accepted' / 'rejected' values added in 0006. The workflow
+ * shipped at the UI layer is pending → accepted/rejected/cancelled;
+ * the legacy values stay here so SELECTs against historical data
+ * still type-check.
+ */
+export type TransferStatus =
+  | 'pending'
+  | 'accepted'
+  | 'rejected'
+  | 'cancelled'
+  | 'in_transit'
+  | 'received'
 
 // ── Phase 1 — Row / Insert / Update shortcuts
 
@@ -135,3 +151,47 @@ export type InventoryItemStoneUpdate = Database['public']['Tables']['inventory_i
 export type InventoryTransferRow    = Database['public']['Tables']['inventory_transfers']['Row']
 export type InventoryTransferInsert = Database['public']['Tables']['inventory_transfers']['Insert']
 export type InventoryTransferUpdate = Database['public']['Tables']['inventory_transfers']['Update']
+
+// ── Phase 2 (pawn loans) — enum literals
+
+export type LoanStatus =
+  | 'active'
+  | 'extended'
+  | 'partial_paid'
+  | 'redeemed'
+  | 'forfeited'
+  | 'voided'
+
+export type LoanEventType =
+  | 'issued'
+  | 'payment'
+  | 'extension'
+  | 'redemption'
+  | 'forfeiture'
+  | 'void'
+
+export type PaymentMethod = 'cash' | 'card' | 'check' | 'other'
+
+// ── Phase 2 — Row / Insert / Update shortcuts.
+//
+// These reference Database['public']['Tables']['loans'|'loan_collateral_items'|
+// 'loan_events']. They will compile only AFTER patches/0005-pawn-loans.sql has
+// been applied to the live Supabase project AND `npm run db:types` has been
+// run to regenerate src/types/database.ts. Until then, TS will surface "Property
+// 'loans' does not exist on type ..." here. That's expected.
+
+export type LoanRow    = Database['public']['Tables']['loans']['Row']
+export type LoanInsert = Database['public']['Tables']['loans']['Insert']
+export type LoanUpdate = Database['public']['Tables']['loans']['Update']
+
+export type LoanCollateralItemRow    = Database['public']['Tables']['loan_collateral_items']['Row']
+export type LoanCollateralItemInsert = Database['public']['Tables']['loan_collateral_items']['Insert']
+export type LoanCollateralItemUpdate = Database['public']['Tables']['loan_collateral_items']['Update']
+
+export type LoanEventRow    = Database['public']['Tables']['loan_events']['Row']
+export type LoanEventInsert = Database['public']['Tables']['loan_events']['Insert']
+export type LoanEventUpdate = Database['public']['Tables']['loan_events']['Update']
+
+export type ComplianceLogRow    = Database['public']['Tables']['compliance_log']['Row']
+export type ComplianceLogInsert = Database['public']['Tables']['compliance_log']['Insert']
+export type ComplianceLogUpdate = Database['public']['Tables']['compliance_log']['Update']

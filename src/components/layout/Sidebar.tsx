@@ -13,8 +13,11 @@ import {
   Shield,
   UsersThree,
   Gear,
+  ClockCounterClockwise,
+  ArrowsLeftRight,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import type { TenantRole, TenantType } from '@/types/database-aliases'
 
 /**
  * Staff sidebar. Module entries (Pawn / Repair / POS) render only when the
@@ -32,9 +35,30 @@ type Modules = {
   has_retail: boolean
 }
 
-export function Sidebar({ modules }: { modules: Modules }) {
+type Tenant = {
+  tenant_type: TenantType | null
+  parent_tenant_id: string | null
+}
+
+const AUDIT_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
+
+export function Sidebar({
+  modules,
+  tenantRole,
+  tenant,
+}: {
+  modules: Modules
+  tenantRole: TenantRole | null
+  tenant?: Tenant
+}) {
   const { t } = useI18n()
   const pathname = usePathname()
+  const canSeeAudit = !!tenantRole && AUDIT_ROLES.has(tenantRole)
+  // Inventory transfers: only visible to chain branches (a 'shop' with a
+  // parent_tenant_id). Standalone shops have no siblings; chain HQs don't
+  // hold inventory in v1.
+  const canSeeTransfers =
+    tenant?.tenant_type === 'shop' && !!tenant.parent_tenant_id
 
   const items: Array<{
     href: string
@@ -59,11 +83,16 @@ export function Sidebar({ modules }: { modules: Modules }) {
       icon: <Package size={18} weight="regular" />,
     },
     {
+      href: '/inventory/transfers',
+      label: t.nav.transfers,
+      icon: <ArrowsLeftRight size={18} weight="regular" />,
+      visible: canSeeTransfers,
+    },
+    {
       href: '/pawn',
       label: t.nav.pawn,
       icon: <Coins size={18} weight="regular" />,
       visible: modules.has_pawn,
-      disabled: true,
     },
     {
       href: '/repair',
@@ -90,6 +119,12 @@ export function Sidebar({ modules }: { modules: Modules }) {
       label: t.nav.compliance,
       icon: <Shield size={18} weight="regular" />,
       disabled: true,
+    },
+    {
+      href: '/audit',
+      label: t.nav.audit,
+      icon: <ClockCounterClockwise size={18} weight="regular" />,
+      visible: canSeeAudit,
     },
     {
       href: '/team',

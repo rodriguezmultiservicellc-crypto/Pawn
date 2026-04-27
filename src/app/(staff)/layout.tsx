@@ -41,7 +41,9 @@ export default async function StaffLayout({
   // for the sidebar.
   const { data: accessibleTenants } = await ctx.supabase
     .from('tenants')
-    .select('id, name, dba, tenant_type, has_pawn, has_repair, has_retail')
+    .select(
+      'id, name, dba, tenant_type, parent_tenant_id, has_pawn, has_repair, has_retail',
+    )
     .order('name')
 
   const tenantsList = accessibleTenants ?? []
@@ -56,6 +58,13 @@ export default async function StaffLayout({
     has_repair: activeTenant?.has_repair ?? false,
     has_retail: activeTenant?.has_retail ?? false,
   }
+
+  const sidebarTenant = activeTenant
+    ? {
+        tenant_type: activeTenant.tenant_type,
+        parent_tenant_id: activeTenant.parent_tenant_id,
+      }
+    : undefined
 
   const { data: profile } = await ctx.supabase
     .from('profiles')
@@ -96,7 +105,11 @@ export default async function StaffLayout({
           </div>
         </header>
         <div className="flex flex-1">
-          <Sidebar modules={modules} />
+          <Sidebar
+            modules={modules}
+            tenantRole={ctx.tenantRole}
+            tenant={sidebarTenant}
+          />
           <main className="flex-1 overflow-x-auto px-6 py-6">{children}</main>
         </div>
       </div>

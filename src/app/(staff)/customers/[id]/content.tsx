@@ -32,7 +32,17 @@ import type {
   CustomerDocKind,
   IdDocumentType,
   Language,
+  LoanStatus,
 } from '@/types/database-aliases'
+
+export type CustomerLoanRow = {
+  id: string
+  ticket_number: string
+  principal: number
+  due_date: string
+  status: LoanStatus
+  created_at: string
+}
 
 export type CustomerDocumentItem = {
   id: string
@@ -92,11 +102,13 @@ export default function CustomerDetail({
   documents,
   hasPawn = false,
   photoSignedUrl,
+  loans = [],
 }: {
   customer: CustomerRecord
   documents: CustomerDocumentItem[]
   hasPawn?: boolean
   photoSignedUrl?: string | null
+  loans?: CustomerLoanRow[]
 }) {
   const { t } = useI18n()
 
@@ -225,7 +237,87 @@ export default function CustomerDetail({
         defaultIdState={customer.id_state}
         defaultIdExpiry={customer.id_expiry}
       />
+
+      {hasPawn ? (
+        <CustomerLoansPanel customerId={customer.id} loans={loans} />
+      ) : null}
     </div>
+  )
+}
+
+function CustomerLoansPanel({
+  customerId,
+  loans,
+}: {
+  customerId: string
+  loans: CustomerLoanRow[]
+}) {
+  const { t } = useI18n()
+  const STATUS_BADGE: Record<LoanStatus, { bg: string; text: string }> = {
+    active: { bg: 'bg-success/10 border-success/30', text: 'text-success' },
+    extended: { bg: 'bg-success/10 border-success/30', text: 'text-success' },
+    partial_paid: {
+      bg: 'bg-warning/10 border-warning/30',
+      text: 'text-warning',
+    },
+    redeemed: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+    forfeited: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+    voided: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+  }
+  const STATUS_LABEL: Record<LoanStatus, string> = {
+    active: t.pawn.statusActive,
+    extended: t.pawn.statusExtended,
+    partial_paid: t.pawn.statusPartialPaid,
+    redeemed: t.pawn.statusRedeemed,
+    forfeited: t.pawn.statusForfeited,
+    voided: t.pawn.statusVoided,
+  }
+  return (
+    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+        <span>{t.pawn.customerLoans.title}</span>
+        <Link
+          href={`/pawn?customer=${customerId}`}
+          className="text-xs font-normal text-ash hover:text-ink"
+        >
+          {t.pawn.customerLoans.viewAll}
+        </Link>
+      </legend>
+      {loans.length === 0 ? (
+        <p className="mt-2 text-sm text-ash">{t.pawn.customerLoans.empty}</p>
+      ) : (
+        <ul className="mt-2 divide-y divide-hairline rounded-md border border-hairline">
+          {loans.map((l) => {
+            const badge = STATUS_BADGE[l.status]
+            return (
+              <li key={l.id}>
+                <Link
+                  href={`/pawn/${l.id}`}
+                  className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+                >
+                  <div className="font-mono text-xs text-ink">
+                    {l.ticket_number}
+                  </div>
+                  <div className="flex-1 px-3 font-mono text-xs text-ink">
+                    {l.principal.toLocaleString('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                      minimumFractionDigits: 2,
+                    })}
+                  </div>
+                  <div className="font-mono text-xs text-ash">{l.due_date}</div>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${badge.bg} ${badge.text}`}
+                  >
+                    {STATUS_LABEL[l.status]}
+                  </span>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </fieldset>
   )
 }
 

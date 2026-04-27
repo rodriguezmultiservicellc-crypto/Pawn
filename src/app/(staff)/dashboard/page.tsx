@@ -1,11 +1,22 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import DashboardContent, { type RecentCustomer, type RecentItem } from './content'
+import { addDaysIso, todayDateString } from '@/lib/pawn/math'
 
 export default async function DashboardPage() {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
+
+  // Module gate for pawn cards.
+  const { data: tenant } = await ctx.supabase
+    .from('tenants')
+    .select('has_pawn')
+    .eq('id', ctx.tenantId)
+    .maybeSingle()
+  const hasPawn = tenant?.has_pawn ?? false
+  const today = todayDateString()
+  const in7 = addDaysIso(today, 7)
 
   // Counts via head=true + count='exact' so no rows are returned, just totals.
   // RLS already gates each query to the tenant.
@@ -56,6 +67,29 @@ export default async function DashboardPage() {
       .limit(5),
   ])
 
+  let activeLoanCount = 0
+  let dueThisWeekCount = 0
+  if (hasPawn) {
+    const [{ count: a }, { count: d }] = await Promise.all([
+      ctx.supabase
+        .from('loans')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', ctx.tenantId)
+        .is('deleted_at', null)
+        .in('status', ['active', 'extended', 'partial_paid']),
+      ctx.supabase
+        .from('loans')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', ctx.tenantId)
+        .is('deleted_at', null)
+        .in('status', ['active', 'extended', 'partial_paid'])
+        .gte('due_date', today)
+        .lte('due_date', in7),
+    ])
+    activeLoanCount = a ?? 0
+    dueThisWeekCount = d ?? 0
+  }
+
   return (
     <DashboardContent
       customerCount={customerCount ?? 0}
@@ -64,6 +98,9 @@ export default async function DashboardPage() {
       heldCount={heldCount ?? 0}
       recentCustomers={(recentCustomers ?? []) as RecentCustomer[]}
       recentItems={(recentItems ?? []) as RecentItem[]}
+      hasPawn={hasPawn}
+      activeLoanCount={activeLoanCount}
+      dueThisWeekCount={dueThisWeekCount}
     />
   )
 }

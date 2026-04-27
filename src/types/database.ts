@@ -583,17 +583,81 @@ export type Database = {
           },
         ]
       }
+      inventory_transfer_items: {
+        Row: {
+          created_at: string
+          description_snapshot: string | null
+          est_value: number | null
+          id: string
+          inventory_item_id: string
+          sku_snapshot: string | null
+          tenant_id: string
+          transfer_id: string
+        }
+        Insert: {
+          created_at?: string
+          description_snapshot?: string | null
+          est_value?: number | null
+          id?: string
+          inventory_item_id: string
+          sku_snapshot?: string | null
+          tenant_id: string
+          transfer_id: string
+        }
+        Update: {
+          created_at?: string
+          description_snapshot?: string | null
+          est_value?: number | null
+          id?: string
+          inventory_item_id?: string
+          sku_snapshot?: string | null
+          tenant_id?: string
+          transfer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transfer_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_transfers: {
         Row: {
+          accepted_at: string | null
+          accepted_by: string | null
           cancelled_at: string | null
+          cancelled_by: string | null
           carrier: string | null
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           from_tenant_id: string
           id: string
-          item_id: string
+          item_id: string | null
           notes: string | null
           received_at: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requested_at: string
+          requested_by: string | null
           shipped_at: string | null
           status: Database["public"]["Enums"]["transfer_status"]
           tenant_id: string
@@ -603,15 +667,24 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           cancelled_at?: string | null
+          cancelled_by?: string | null
           carrier?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           from_tenant_id: string
           id?: string
-          item_id: string
+          item_id?: string | null
           notes?: string | null
           received_at?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requested_at?: string
+          requested_by?: string | null
           shipped_at?: string | null
           status?: Database["public"]["Enums"]["transfer_status"]
           tenant_id: string
@@ -621,15 +694,24 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           cancelled_at?: string | null
+          cancelled_by?: string | null
           carrier?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           from_tenant_id?: string
           id?: string
-          item_id?: string
+          item_id?: string | null
           notes?: string | null
           received_at?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requested_at?: string
+          requested_by?: string | null
           shipped_at?: string | null
           status?: Database["public"]["Enums"]["transfer_status"]
           tenant_id?: string
@@ -663,6 +745,223 @@ export type Database = {
           {
             foreignKeyName: "inventory_transfers_to_tenant_id_fkey"
             columns: ["to_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_collateral_items: {
+        Row: {
+          category: Database["public"]["Enums"]["inventory_category"]
+          created_at: string
+          deleted_at: string | null
+          description: string
+          est_value: number
+          id: string
+          karat: number | null
+          loan_id: string
+          metal_type: Database["public"]["Enums"]["metal_type"] | null
+          photo_path: string | null
+          position: number
+          tenant_id: string
+          weight_grams: number | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["inventory_category"]
+          created_at?: string
+          deleted_at?: string | null
+          description: string
+          est_value?: number
+          id?: string
+          karat?: number | null
+          loan_id: string
+          metal_type?: Database["public"]["Enums"]["metal_type"] | null
+          photo_path?: string | null
+          position?: number
+          tenant_id: string
+          weight_grams?: number | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["inventory_category"]
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          est_value?: number
+          id?: string
+          karat?: number | null
+          loan_id?: string
+          metal_type?: Database["public"]["Enums"]["metal_type"] | null
+          photo_path?: string | null
+          position?: number
+          tenant_id?: string
+          weight_grams?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_collateral_items_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_collateral_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_events: {
+        Row: {
+          amount: number | null
+          event_type: Database["public"]["Enums"]["loan_event_type"]
+          fees_paid: number
+          id: string
+          interest_paid: number
+          loan_id: string
+          new_due_date: string | null
+          notes: string | null
+          occurred_at: string
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          performed_by: string | null
+          principal_paid: number
+          tenant_id: string
+        }
+        Insert: {
+          amount?: number | null
+          event_type: Database["public"]["Enums"]["loan_event_type"]
+          fees_paid?: number
+          id?: string
+          interest_paid?: number
+          loan_id: string
+          new_due_date?: string | null
+          notes?: string | null
+          occurred_at?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          performed_by?: string | null
+          principal_paid?: number
+          tenant_id: string
+        }
+        Update: {
+          amount?: number | null
+          event_type?: Database["public"]["Enums"]["loan_event_type"]
+          fees_paid?: number
+          id?: string
+          interest_paid?: number
+          loan_id?: string
+          new_due_date?: string | null
+          notes?: string | null
+          occurred_at?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          performed_by?: string | null
+          principal_paid?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_events_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          deleted_at: string | null
+          due_date: string
+          id: string
+          interest_rate_monthly: number
+          is_printed: boolean
+          issue_date: string
+          notes: string | null
+          principal: number
+          printed_at: string | null
+          signature_path: string | null
+          source_loan_id: string | null
+          status: Database["public"]["Enums"]["loan_status"]
+          tenant_id: string
+          term_days: number
+          ticket_number: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          deleted_at?: string | null
+          due_date: string
+          id?: string
+          interest_rate_monthly: number
+          is_printed?: boolean
+          issue_date?: string
+          notes?: string | null
+          principal: number
+          printed_at?: string | null
+          signature_path?: string | null
+          source_loan_id?: string | null
+          status?: Database["public"]["Enums"]["loan_status"]
+          tenant_id: string
+          term_days: number
+          ticket_number?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          deleted_at?: string | null
+          due_date?: string
+          id?: string
+          interest_rate_monthly?: number
+          is_printed?: boolean
+          issue_date?: string
+          notes?: string | null
+          principal?: number
+          printed_at?: string | null
+          signature_path?: string | null
+          source_loan_id?: string | null
+          status?: Database["public"]["Enums"]["loan_status"]
+          tenant_id?: string
+          term_days?: number
+          ticket_number?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_source_loan_id_fkey"
+            columns: ["source_loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_tenant_id_fkey"
+            columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
@@ -1106,6 +1405,20 @@ export type Database = {
         | "scrapped"
         | "transferred"
         | "returned"
+      loan_event_type:
+        | "issued"
+        | "payment"
+        | "extension"
+        | "redemption"
+        | "forfeiture"
+        | "void"
+      loan_status:
+        | "active"
+        | "extended"
+        | "partial_paid"
+        | "redeemed"
+        | "forfeited"
+        | "voided"
       metal_type:
         | "gold"
         | "silver"
@@ -1119,6 +1432,7 @@ export type Database = {
         | "mixed"
         | "none"
         | "other"
+      payment_method: "cash" | "card" | "check" | "other"
       police_report_format: "fl_leadsonline"
       tenant_role:
         | "owner"
@@ -1129,7 +1443,13 @@ export type Database = {
         | "appraiser"
         | "client"
       tenant_type: "chain_hq" | "shop" | "standalone"
-      transfer_status: "pending" | "in_transit" | "received" | "cancelled"
+      transfer_status:
+        | "pending"
+        | "in_transit"
+        | "received"
+        | "cancelled"
+        | "accepted"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1308,6 +1628,22 @@ export const Constants = {
         "transferred",
         "returned",
       ],
+      loan_event_type: [
+        "issued",
+        "payment",
+        "extension",
+        "redemption",
+        "forfeiture",
+        "void",
+      ],
+      loan_status: [
+        "active",
+        "extended",
+        "partial_paid",
+        "redeemed",
+        "forfeited",
+        "voided",
+      ],
       metal_type: [
         "gold",
         "silver",
@@ -1322,6 +1658,7 @@ export const Constants = {
         "none",
         "other",
       ],
+      payment_method: ["cash", "card", "check", "other"],
       police_report_format: ["fl_leadsonline"],
       tenant_role: [
         "owner",
@@ -1333,7 +1670,14 @@ export const Constants = {
         "client",
       ],
       tenant_type: ["chain_hq", "shop", "standalone"],
-      transfer_status: ["pending", "in_transit", "received", "cancelled"],
+      transfer_status: [
+        "pending",
+        "in_transit",
+        "received",
+        "cancelled",
+        "accepted",
+        "rejected",
+      ],
     },
   },
 } as const

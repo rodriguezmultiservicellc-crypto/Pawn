@@ -40,6 +40,20 @@ export default async function CustomerDetailPage(props: { params: Params }) {
     .maybeSingle()
   const hasPawn = tenant?.has_pawn ?? false
 
+  // Pull the customer's recent pawn loans (Phase 2). Only when has_pawn —
+  // jewelry-only / repair-only shops never see this section.
+  const { data: loanRows } = hasPawn
+    ? await ctx.supabase
+        .from('loans')
+        .select(
+          'id, ticket_number, principal, due_date, status, created_at',
+        )
+        .eq('customer_id', id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(10)
+    : { data: null }
+
   const { data: docs } = await ctx.supabase
     .from('customer_documents')
     .select('id, kind, storage_path, mime_type, id_type, id_number, id_state, id_expiry, created_at')
@@ -78,6 +92,20 @@ export default async function CustomerDetailPage(props: { params: Params }) {
       documents={documents}
       hasPawn={hasPawn}
       photoSignedUrl={photoSignedUrl}
+      loans={(loanRows ?? []).map((l) => ({
+        id: l.id,
+        ticket_number: l.ticket_number ?? '',
+        principal: Number(l.principal),
+        due_date: l.due_date,
+        status: l.status as
+          | 'active'
+          | 'extended'
+          | 'partial_paid'
+          | 'redeemed'
+          | 'forfeited'
+          | 'voided',
+        created_at: l.created_at,
+      }))}
     />
   )
 }

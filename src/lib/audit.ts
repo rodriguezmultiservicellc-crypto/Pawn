@@ -34,6 +34,11 @@ export type AuditAction =
   | 'photo_set_primary'
   | 'stone_add'
   | 'stone_delete'
+  // Transfer-specific
+  | 'transfer_request'
+  | 'transfer_accept'
+  | 'transfer_reject'
+  | 'transfer_cancel'
 
 export async function logAudit(args: {
   tenantId: string
@@ -71,3 +76,4 @@ export async function logAudit(args: {
     console.error('[audit] unexpected error', err)
   }
 }
+

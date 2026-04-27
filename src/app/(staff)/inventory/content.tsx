@@ -33,7 +33,10 @@ const STATUS_BADGE: Record<InventoryStatus, { bg: string; text: string }> = {
   held: { bg: 'bg-warning/10 border-warning/30', text: 'text-warning' },
   sold: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
   scrapped: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
-  transferred: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+  // 'transferred' rows are mid-transfer (held by a pending request).
+  // Use warning amber to make the lock obvious; the row links to its
+  // related transfer rather than the item detail.
+  transferred: { bg: 'bg-warning/10 border-warning/30', text: 'text-warning' },
   returned: { bg: 'bg-warning/10 border-warning/30', text: 'text-warning' },
 }
 
@@ -338,7 +341,10 @@ function labelForStatus(
     case 'held': return t.inventory.statusHeld
     case 'sold': return t.inventory.statusSold
     case 'scrapped': return t.inventory.statusScrapped
-    case 'transferred': return t.inventory.statusTransferred
+    // Use the active "Transferring" label for items currently held by a
+    // pending transfer — distinct from "Transferred" which historically
+    // could mean the lifecycle had already completed in v0 schemas.
+    case 'transferred': return t.inventory.transferringBadge
     case 'returned': return t.inventory.statusReturned
   }
 }

@@ -93,6 +93,21 @@ export async function updateInventoryItemAction(
 
   const v = parsed.data
 
+  // Block in-place edits while an item is actively part of a transfer.
+  // The transfer accept/reject/cancel flow is the only legitimate way to
+  // change ownership/status while status='transferred'. This guard is
+  // defense-in-depth — the UI also disables editing.
+  const { data: lockCheck } = await supabase
+    .from('inventory_items')
+    .select('status')
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (lockCheck?.status === 'transferred') {
+    return { error: 'item_locked_in_transfer' }
+  }
+
   const { error } = await supabase
     .from('inventory_items')
     .update({
@@ -161,7 +176,7 @@ export async function deleteInventoryItemAction(
   const { tenantId, supabase, userId } = await resolveItemTenant(id)
 
   // Block delete on sold items — sale references will land in Phase 4.
-  // For now we only check status, not FKs.
+  // Also block deletes on items currently part of an open transfer.
   const { data: item } = await supabase
     .from('inventory_items')
     .select('status')
@@ -170,7 +185,7 @@ export async function deleteInventoryItemAction(
     .is('deleted_at', null)
     .maybeSingle()
 
-  if (item?.status === 'sold') return
+  if (item?.status === 'sold' || item?.status === 'transferred') return
 
   await supabase
     .from('inventory_items')

@@ -7,6 +7,8 @@ import {
   Prohibit,
   Lock,
   ArrowRight,
+  Coins,
+  Calendar,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { InventoryStatus } from '@/types/database-aliases'
@@ -35,6 +37,9 @@ export default function DashboardContent({
   heldCount,
   recentCustomers,
   recentItems,
+  hasPawn = false,
+  activeLoanCount = 0,
+  dueThisWeekCount = 0,
 }: {
   customerCount: number
   bannedCount: number
@@ -42,6 +47,9 @@ export default function DashboardContent({
   heldCount: number
   recentCustomers: RecentCustomer[]
   recentItems: RecentItem[]
+  hasPawn?: boolean
+  activeLoanCount?: number
+  dueThisWeekCount?: number
 }) {
   const { t } = useI18n()
 
@@ -81,6 +89,26 @@ export default function DashboardContent({
           tone={heldCount > 0 ? 'warning' : 'neutral'}
         />
       </div>
+
+      {hasPawn ? (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard
+            label={t.pawn.dashboardCards.activeLoansCard}
+            sub={t.pawn.dashboardCards.activeLoansCardSub}
+            value={activeLoanCount}
+            icon={<Coins size={20} weight="regular" />}
+            href="/pawn?status=active"
+          />
+          <StatCard
+            label={t.pawn.dashboardCards.dueThisWeekCard}
+            sub={t.pawn.dashboardCards.dueThisWeekCardSub}
+            value={dueThisWeekCount}
+            icon={<Calendar size={20} weight="regular" />}
+            href="/pawn?status=active&due=dueSoon7"
+            tone={dueThisWeekCount > 0 ? 'warning' : 'neutral'}
+          />
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel
