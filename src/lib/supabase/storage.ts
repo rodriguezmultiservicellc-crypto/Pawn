@@ -27,6 +27,7 @@ import { createAdminClient } from './admin'
 
 export const CUSTOMER_DOCUMENTS_BUCKET = 'customer-documents' as const
 export const INVENTORY_PHOTOS_BUCKET = 'inventory-photos' as const
+export const REPAIR_PHOTOS_BUCKET = 'repair-photos' as const
 
 const DEFAULT_SIGNED_URL_TTL_SECONDS = 3600
 
@@ -107,12 +108,45 @@ export function inventoryPhotoPath(args: {
 }
 
 /**
+ * Build a storage path for a repair-ticket photo. tenant_id MUST be folder[0]
+ * for RLS keying.
+ */
+export function repairPhotoPath(args: {
+  tenantId: string
+  ticketId: string
+  kind: 'intake' | 'in_progress' | 'final' | 'reference'
+  mimeType?: string | null
+  filename?: string
+}): string {
+  const ext = pickExtension(args.mimeType, args.filename)
+  return `${args.tenantId}/${args.ticketId}/${args.kind}/${newUuid()}.${ext}`
+}
+
+/**
+ * Build a storage path for a repair-ticket pickup signature. Lives in the
+ * repair-photos bucket under '<tenantId>/<ticketId>/pickup/signature_<uuid>.<ext>'.
+ * Treated as regulated retention (FL = 2 years post-pickup).
+ */
+export function repairPickupSignaturePath(args: {
+  tenantId: string
+  ticketId: string
+  mimeType?: string | null
+  filename?: string
+}): string {
+  const ext = pickExtension(args.mimeType, args.filename)
+  return `${args.tenantId}/${args.ticketId}/pickup/signature_${newUuid()}.${ext}`
+}
+
+/**
  * Upload a file/blob to a private bucket. Uses the admin client so we
  * don't have to set up cookie-bound storage policies on the user-scoped
  * client every time. The path's tenant segment is enforced by callers.
  */
 export async function uploadToBucket(args: {
-  bucket: typeof CUSTOMER_DOCUMENTS_BUCKET | typeof INVENTORY_PHOTOS_BUCKET
+  bucket:
+    | typeof CUSTOMER_DOCUMENTS_BUCKET
+    | typeof INVENTORY_PHOTOS_BUCKET
+    | typeof REPAIR_PHOTOS_BUCKET
   path: string
   body: Blob | ArrayBuffer | Uint8Array
   contentType?: string
@@ -134,7 +168,10 @@ export async function uploadToBucket(args: {
  * never call this on a path you didn't validate the caller has access to.
  */
 export async function getSignedUrl(args: {
-  bucket: typeof CUSTOMER_DOCUMENTS_BUCKET | typeof INVENTORY_PHOTOS_BUCKET
+  bucket:
+    | typeof CUSTOMER_DOCUMENTS_BUCKET
+    | typeof INVENTORY_PHOTOS_BUCKET
+    | typeof REPAIR_PHOTOS_BUCKET
   path: string
   ttlSeconds?: number
 }): Promise<string | null> {
@@ -153,7 +190,10 @@ export async function getSignedUrl(args: {
  * inconsistency to debug.
  */
 export async function deleteFromBucket(args: {
-  bucket: typeof CUSTOMER_DOCUMENTS_BUCKET | typeof INVENTORY_PHOTOS_BUCKET
+  bucket:
+    | typeof CUSTOMER_DOCUMENTS_BUCKET
+    | typeof INVENTORY_PHOTOS_BUCKET
+    | typeof REPAIR_PHOTOS_BUCKET
   path: string
 }): Promise<{ ok: boolean; error?: string }> {
   const admin = createAdminClient()

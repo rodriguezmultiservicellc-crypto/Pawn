@@ -99,7 +99,6 @@ export function Sidebar({
       label: t.nav.repair,
       icon: <Wrench size={18} weight="regular" />,
       visible: modules.has_repair,
-      disabled: true,
     },
     {
       href: '/pos',

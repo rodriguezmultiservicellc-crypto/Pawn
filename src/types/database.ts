@@ -1012,6 +1012,429 @@ export type Database = {
           },
         ]
       }
+      repair_ticket_events: {
+        Row: {
+          amount: number | null
+          event_type: Database["public"]["Enums"]["repair_event_type"]
+          id: string
+          new_status: Database["public"]["Enums"]["repair_status"] | null
+          notes: string | null
+          occurred_at: string
+          performed_by: string | null
+          tenant_id: string
+          ticket_id: string
+        }
+        Insert: {
+          amount?: number | null
+          event_type: Database["public"]["Enums"]["repair_event_type"]
+          id?: string
+          new_status?: Database["public"]["Enums"]["repair_status"] | null
+          notes?: string | null
+          occurred_at?: string
+          performed_by?: string | null
+          tenant_id: string
+          ticket_id: string
+        }
+        Update: {
+          amount?: number | null
+          event_type?: Database["public"]["Enums"]["repair_event_type"]
+          id?: string
+          new_status?: Database["public"]["Enums"]["repair_status"] | null
+          notes?: string | null
+          occurred_at?: string
+          performed_by?: string | null
+          tenant_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_ticket_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_ticket_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "repair_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repair_ticket_items: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string
+          id: string
+          inventory_item_id: string | null
+          notes: string | null
+          quantity: number
+          tenant_id: string
+          ticket_id: string
+          total_cost: number
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description: string
+          id?: string
+          inventory_item_id?: string | null
+          notes?: string | null
+          quantity?: number
+          tenant_id: string
+          ticket_id: string
+          total_cost?: number
+          unit_cost?: number
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          id?: string
+          inventory_item_id?: string | null
+          notes?: string | null
+          quantity?: number
+          tenant_id?: string
+          ticket_id?: string
+          total_cost?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_ticket_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_ticket_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_ticket_items_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "repair_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repair_ticket_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["repair_photo_kind"]
+          position: number
+          storage_path: string
+          tenant_id: string
+          ticket_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["repair_photo_kind"]
+          position?: number
+          storage_path: string
+          tenant_id: string
+          ticket_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["repair_photo_kind"]
+          position?: number
+          storage_path?: string
+          tenant_id?: string
+          ticket_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_ticket_photos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_ticket_photos_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "repair_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repair_ticket_stones: {
+        Row: {
+          clarity: string | null
+          color: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          mounting_position: string | null
+          mounting_type: string | null
+          notes: string | null
+          shape: string | null
+          shop_inventory_item_id: string | null
+          size_mm: number | null
+          source: string
+          stone_index: number
+          stone_type: string
+          tenant_id: string
+          ticket_id: string
+          weight_carats: number | null
+        }
+        Insert: {
+          clarity?: string | null
+          color?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          mounting_position?: string | null
+          mounting_type?: string | null
+          notes?: string | null
+          shape?: string | null
+          shop_inventory_item_id?: string | null
+          size_mm?: number | null
+          source: string
+          stone_index: number
+          stone_type: string
+          tenant_id: string
+          ticket_id: string
+          weight_carats?: number | null
+        }
+        Update: {
+          clarity?: string | null
+          color?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          mounting_position?: string | null
+          mounting_type?: string | null
+          notes?: string | null
+          shape?: string | null
+          shop_inventory_item_id?: string | null
+          size_mm?: number | null
+          source?: string
+          stone_index?: number
+          stone_type?: string
+          tenant_id?: string
+          ticket_id?: string
+          weight_carats?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_ticket_stones_shop_inventory_item_id_fkey"
+            columns: ["shop_inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_ticket_stones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_ticket_stones_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "repair_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repair_tickets: {
+        Row: {
+          assigned_to: string | null
+          balance_due: number | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          deleted_at: string | null
+          deposit_amount: number
+          deposit_collected_at: string | null
+          description: string | null
+          id: string
+          is_locked: boolean
+          item_description: string
+          notes_internal: string | null
+          paid_amount: number
+          picked_up_at: string | null
+          pickup_by_name: string | null
+          pickup_id_check: string | null
+          pickup_signature_path: string | null
+          promised_date: string | null
+          quote_amount: number | null
+          quote_approved_at: string | null
+          quote_set_at: string | null
+          service_type: Database["public"]["Enums"]["service_type"]
+          source_inventory_item_id: string | null
+          status: Database["public"]["Enums"]["repair_status"]
+          tenant_id: string
+          ticket_number: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          balance_due?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          deleted_at?: string | null
+          deposit_amount?: number
+          deposit_collected_at?: string | null
+          description?: string | null
+          id?: string
+          is_locked?: boolean
+          item_description: string
+          notes_internal?: string | null
+          paid_amount?: number
+          picked_up_at?: string | null
+          pickup_by_name?: string | null
+          pickup_id_check?: string | null
+          pickup_signature_path?: string | null
+          promised_date?: string | null
+          quote_amount?: number | null
+          quote_approved_at?: string | null
+          quote_set_at?: string | null
+          service_type: Database["public"]["Enums"]["service_type"]
+          source_inventory_item_id?: string | null
+          status?: Database["public"]["Enums"]["repair_status"]
+          tenant_id: string
+          ticket_number?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          balance_due?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          deleted_at?: string | null
+          deposit_amount?: number
+          deposit_collected_at?: string | null
+          description?: string | null
+          id?: string
+          is_locked?: boolean
+          item_description?: string
+          notes_internal?: string | null
+          paid_amount?: number
+          picked_up_at?: string | null
+          pickup_by_name?: string | null
+          pickup_id_check?: string | null
+          pickup_signature_path?: string | null
+          promised_date?: string | null
+          quote_amount?: number | null
+          quote_approved_at?: string | null
+          quote_set_at?: string | null
+          service_type?: Database["public"]["Enums"]["service_type"]
+          source_inventory_item_id?: string | null
+          status?: Database["public"]["Enums"]["repair_status"]
+          tenant_id?: string
+          ticket_number?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_tickets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_tickets_source_inventory_item_id_fkey"
+            columns: ["source_inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_tickets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repair_time_logs: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          started_at: string
+          stopped_at: string | null
+          technician_id: string
+          tenant_id: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          started_at: string
+          stopped_at?: string | null
+          technician_id: string
+          tenant_id: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          started_at?: string
+          stopped_at?: string | null
+          technician_id?: string
+          tenant_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_time_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_time_logs_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "repair_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings: {
         Row: {
           abandoned_repair_days: number
@@ -1434,6 +1857,40 @@ export type Database = {
         | "other"
       payment_method: "cash" | "card" | "check" | "other"
       police_report_format: "fl_leadsonline"
+      repair_event_type:
+        | "intake"
+        | "quote_set"
+        | "approved"
+        | "started"
+        | "paused"
+        | "resumed"
+        | "parts_needed"
+        | "parts_received"
+        | "completed"
+        | "pickup"
+        | "abandoned_conversion"
+        | "void"
+        | "note"
+        | "photo_added"
+      repair_photo_kind: "intake" | "in_progress" | "final" | "reference"
+      repair_status:
+        | "intake"
+        | "quoted"
+        | "awaiting_approval"
+        | "in_progress"
+        | "needs_parts"
+        | "ready"
+        | "picked_up"
+        | "abandoned"
+        | "voided"
+      service_type:
+        | "repair"
+        | "stone_setting"
+        | "sizing"
+        | "restring"
+        | "plating"
+        | "engraving"
+        | "custom"
       tenant_role:
         | "owner"
         | "chain_admin"
@@ -1660,6 +2117,43 @@ export const Constants = {
       ],
       payment_method: ["cash", "card", "check", "other"],
       police_report_format: ["fl_leadsonline"],
+      repair_event_type: [
+        "intake",
+        "quote_set",
+        "approved",
+        "started",
+        "paused",
+        "resumed",
+        "parts_needed",
+        "parts_received",
+        "completed",
+        "pickup",
+        "abandoned_conversion",
+        "void",
+        "note",
+        "photo_added",
+      ],
+      repair_photo_kind: ["intake", "in_progress", "final", "reference"],
+      repair_status: [
+        "intake",
+        "quoted",
+        "awaiting_approval",
+        "in_progress",
+        "needs_parts",
+        "ready",
+        "picked_up",
+        "abandoned",
+        "voided",
+      ],
+      service_type: [
+        "repair",
+        "stone_setting",
+        "sizing",
+        "restring",
+        "plating",
+        "engraving",
+        "custom",
+      ],
       tenant_role: [
         "owner",
         "chain_admin",

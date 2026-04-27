@@ -8,13 +8,14 @@ export default async function DashboardPage() {
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
 
-  // Module gate for pawn cards.
+  // Module gate for pawn / repair cards.
   const { data: tenant } = await ctx.supabase
     .from('tenants')
-    .select('has_pawn')
+    .select('has_pawn, has_repair')
     .eq('id', ctx.tenantId)
     .maybeSingle()
   const hasPawn = tenant?.has_pawn ?? false
+  const hasRepair = tenant?.has_repair ?? false
   const today = todayDateString()
   const in7 = addDaysIso(today, 7)
 
@@ -67,6 +68,27 @@ export default async function DashboardPage() {
       .limit(5),
   ])
 
+  let activeRepairCount = 0
+  let readyForPickupCount = 0
+  if (hasRepair) {
+    const [{ count: a }, { count: r }] = await Promise.all([
+      ctx.supabase
+        .from('repair_tickets')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', ctx.tenantId)
+        .is('deleted_at', null)
+        .in('status', ['in_progress', 'needs_parts']),
+      ctx.supabase
+        .from('repair_tickets')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', ctx.tenantId)
+        .is('deleted_at', null)
+        .eq('status', 'ready'),
+    ])
+    activeRepairCount = a ?? 0
+    readyForPickupCount = r ?? 0
+  }
+
   let activeLoanCount = 0
   let dueThisWeekCount = 0
   if (hasPawn) {
@@ -101,6 +123,9 @@ export default async function DashboardPage() {
       hasPawn={hasPawn}
       activeLoanCount={activeLoanCount}
       dueThisWeekCount={dueThisWeekCount}
+      hasRepair={hasRepair}
+      activeRepairCount={activeRepairCount}
+      readyForPickupCount={readyForPickupCount}
     />
   )
 }

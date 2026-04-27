@@ -195,3 +195,75 @@ export type LoanEventUpdate = Database['public']['Tables']['loan_events']['Updat
 export type ComplianceLogRow    = Database['public']['Tables']['compliance_log']['Row']
 export type ComplianceLogInsert = Database['public']['Tables']['compliance_log']['Insert']
 export type ComplianceLogUpdate = Database['public']['Tables']['compliance_log']['Update']
+
+// ── Phase 3 (repair tickets) — enum literals
+
+export type ServiceType =
+  | 'repair'
+  | 'stone_setting'
+  | 'sizing'
+  | 'restring'
+  | 'plating'
+  | 'engraving'
+  | 'custom'
+
+export type RepairStatus =
+  | 'intake'
+  | 'quoted'
+  | 'awaiting_approval'
+  | 'in_progress'
+  | 'needs_parts'
+  | 'ready'
+  | 'picked_up'
+  | 'abandoned'
+  | 'voided'
+
+export type RepairEventType =
+  | 'intake'
+  | 'quote_set'
+  | 'approved'
+  | 'started'
+  | 'paused'
+  | 'resumed'
+  | 'parts_needed'
+  | 'parts_received'
+  | 'completed'
+  | 'pickup'
+  | 'abandoned_conversion'
+  | 'void'
+  | 'note'
+  | 'photo_added'
+
+export type RepairPhotoKind = 'intake' | 'in_progress' | 'final' | 'reference'
+
+// ── Phase 3 — Row / Insert / Update shortcuts.
+//
+// These reference Database['public']['Tables']['repair_*']. They will compile
+// only AFTER patches/0007-repair-tickets.sql has been applied to the live
+// Supabase project AND `npm run db:types` has been run to regenerate
+// src/types/database.ts. Until then, TS will surface "Property 'repair_tickets'
+// does not exist on type ..." here. That's expected.
+
+export type RepairTicketRow    = Database['public']['Tables']['repair_tickets']['Row']
+export type RepairTicketInsert = Database['public']['Tables']['repair_tickets']['Insert']
+export type RepairTicketUpdate = Database['public']['Tables']['repair_tickets']['Update']
+
+export type RepairTicketStoneRow    = Database['public']['Tables']['repair_ticket_stones']['Row']
+export type RepairTicketStoneInsert = Database['public']['Tables']['repair_ticket_stones']['Insert']
+export type RepairTicketStoneUpdate = Database['public']['Tables']['repair_ticket_stones']['Update']
+
+export type RepairTicketItemRow    = Database['public']['Tables']['repair_ticket_items']['Row']
+export type RepairTicketItemInsert = Database['public']['Tables']['repair_ticket_items']['Insert']
+export type RepairTicketItemUpdate = Database['public']['Tables']['repair_ticket_items']['Update']
+
+export type RepairTicketEventRow    = Database['public']['Tables']['repair_ticket_events']['Row']
+export type RepairTicketEventInsert = Database['public']['Tables']['repair_ticket_events']['Insert']
+export type RepairTicketEventUpdate = Database['public']['Tables']['repair_ticket_events']['Update']
+
+export type RepairTicketPhotoRow    = Database['public']['Tables']['repair_ticket_photos']['Row']
+export type RepairTicketPhotoInsert = Database['public']['Tables']['repair_ticket_photos']['Insert']
+export type RepairTicketPhotoUpdate = Database['public']['Tables']['repair_ticket_photos']['Update']
+
+export type RepairTimeLogRow    = Database['public']['Tables']['repair_time_logs']['Row']
+export type RepairTimeLogInsert = Database['public']['Tables']['repair_time_logs']['Insert']
+export type RepairTimeLogUpdate = Database['public']['Tables']['repair_time_logs']['Update']

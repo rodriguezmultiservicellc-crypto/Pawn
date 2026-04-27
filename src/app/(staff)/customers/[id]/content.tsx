@@ -32,7 +32,11 @@ import type {
   IdDocumentType,
   Language,
   LoanStatus,
+  RepairStatus,
+  ServiceType,
 } from '@/types/database-aliases'
+import { ServiceTypeBadge } from '@/components/repair/ServiceTypeBadge'
+import { StatusBadge as RepairStatusBadge } from '@/components/repair/StatusBadge'
 
 export type CustomerLoanRow = {
   id: string
@@ -40,6 +44,17 @@ export type CustomerLoanRow = {
   principal: number
   due_date: string
   status: LoanStatus
+  created_at: string
+}
+
+export type CustomerRepairRow = {
+  id: string
+  ticket_number: string
+  service_type: ServiceType
+  title: string
+  promised_date: string | null
+  status: RepairStatus
+  balance_due: number | null
   created_at: string
 }
 
@@ -100,14 +115,18 @@ export default function CustomerDetail({
   customer,
   documents,
   hasPawn = false,
+  hasRepair = false,
   photoSignedUrl,
   loans = [],
+  repairs = [],
 }: {
   customer: CustomerRecord
   documents: CustomerDocumentItem[]
   hasPawn?: boolean
+  hasRepair?: boolean
   photoSignedUrl?: string | null
   loans?: CustomerLoanRow[]
+  repairs?: CustomerRepairRow[]
 }) {
   const { t } = useI18n()
 
@@ -240,7 +259,69 @@ export default function CustomerDetail({
       {hasPawn ? (
         <CustomerLoansPanel customerId={customer.id} loans={loans} />
       ) : null}
+
+      {hasRepair ? (
+        <CustomerRepairsPanel customerId={customer.id} repairs={repairs} />
+      ) : null}
     </div>
+  )
+}
+
+function CustomerRepairsPanel({
+  customerId,
+  repairs,
+}: {
+  customerId: string
+  repairs: CustomerRepairRow[]
+}) {
+  const { t } = useI18n()
+  return (
+    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+        <span>{t.repair.customerTickets.title}</span>
+        <Link
+          href={`/repair?customer=${customerId}`}
+          className="text-xs font-normal text-ash hover:text-ink"
+        >
+          {t.repair.customerTickets.viewAll}
+        </Link>
+      </legend>
+      {repairs.length === 0 ? (
+        <p className="mt-2 text-sm text-ash">{t.repair.customerTickets.empty}</p>
+      ) : (
+        <ul className="mt-2 divide-y divide-hairline rounded-md border border-hairline">
+          {repairs.map((r) => (
+            <li key={r.id}>
+              <Link
+                href={`/repair/${r.id}`}
+                className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+              >
+                <div className="font-mono text-xs text-ink">
+                  {r.ticket_number}
+                </div>
+                <ServiceTypeBadge type={r.service_type} />
+                <div className="flex-1 px-2 text-xs text-ink line-clamp-1">
+                  {r.title}
+                </div>
+                <div className="font-mono text-xs text-ash">
+                  {r.promised_date ?? '—'}
+                </div>
+                <div className="font-mono text-xs text-ink">
+                  {r.balance_due == null
+                    ? '—'
+                    : r.balance_due.toLocaleString('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 2,
+                      })}
+                </div>
+                <RepairStatusBadge status={r.status} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </fieldset>
   )
 }
 

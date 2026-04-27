@@ -5,7 +5,11 @@ import {
   getSignedUrl,
 } from '@/lib/supabase/storage'
 import CustomerDetail, { type CustomerDocumentItem } from './content'
-import type { Language } from '@/types/database-aliases'
+import type {
+  Language,
+  RepairStatus,
+  ServiceType,
+} from '@/types/database-aliases'
 
 type Params = Promise<{ id: string }>
 
@@ -35,10 +39,11 @@ export default async function CustomerDetailPage(props: { params: Params }) {
 
   const { data: tenant } = await ctx.supabase
     .from('tenants')
-    .select('has_pawn')
+    .select('has_pawn, has_repair')
     .eq('id', customer.tenant_id)
     .maybeSingle()
   const hasPawn = tenant?.has_pawn ?? false
+  const hasRepair = tenant?.has_repair ?? false
 
   // Pull the customer's recent pawn loans (Phase 2). Only when has_pawn —
   // jewelry-only / repair-only shops never see this section.
@@ -47,6 +52,19 @@ export default async function CustomerDetailPage(props: { params: Params }) {
         .from('loans')
         .select(
           'id, ticket_number, principal, due_date, status, created_at',
+        )
+        .eq('customer_id', id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(10)
+    : { data: null }
+
+  // Pull the customer's recent repair tickets (Phase 3). Only when has_repair.
+  const { data: repairRows } = hasRepair
+    ? await ctx.supabase
+        .from('repair_tickets')
+        .select(
+          'id, ticket_number, service_type, title, promised_date, status, balance_due, created_at',
         )
         .eq('customer_id', id)
         .is('deleted_at', null)
@@ -91,6 +109,7 @@ export default async function CustomerDetailPage(props: { params: Params }) {
       customer={customerNarrowed}
       documents={documents}
       hasPawn={hasPawn}
+      hasRepair={hasRepair}
       photoSignedUrl={photoSignedUrl}
       loans={(loanRows ?? []).map((l) => ({
         id: l.id,
@@ -105,6 +124,16 @@ export default async function CustomerDetailPage(props: { params: Params }) {
           | 'forfeited'
           | 'voided',
         created_at: l.created_at,
+      }))}
+      repairs={(repairRows ?? []).map((r) => ({
+        id: r.id,
+        ticket_number: r.ticket_number ?? '',
+        service_type: r.service_type as ServiceType,
+        title: r.title,
+        promised_date: r.promised_date,
+        status: r.status as RepairStatus,
+        balance_due: r.balance_due == null ? null : Number(r.balance_due),
+        created_at: r.created_at,
       }))}
     />
   )

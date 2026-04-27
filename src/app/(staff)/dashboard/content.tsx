@@ -9,6 +9,8 @@ import {
   ArrowRight,
   Coins,
   Calendar,
+  Wrench,
+  CheckCircle,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { InventoryStatus } from '@/types/database-aliases'
@@ -40,6 +42,9 @@ export default function DashboardContent({
   hasPawn = false,
   activeLoanCount = 0,
   dueThisWeekCount = 0,
+  hasRepair = false,
+  activeRepairCount = 0,
+  readyForPickupCount = 0,
 }: {
   customerCount: number
   bannedCount: number
@@ -50,6 +55,9 @@ export default function DashboardContent({
   hasPawn?: boolean
   activeLoanCount?: number
   dueThisWeekCount?: number
+  hasRepair?: boolean
+  activeRepairCount?: number
+  readyForPickupCount?: number
 }) {
   const { t } = useI18n()
 
@@ -106,6 +114,26 @@ export default function DashboardContent({
             icon={<Calendar size={20} weight="regular" />}
             href="/pawn?status=active&due=dueSoon7"
             tone={dueThisWeekCount > 0 ? 'warning' : 'neutral'}
+          />
+        </div>
+      ) : null}
+
+      {hasRepair ? (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard
+            label={t.repair.dashboardCards.activeRepairsCard}
+            sub={t.repair.dashboardCards.activeRepairsCardSub}
+            value={activeRepairCount}
+            icon={<Wrench size={20} weight="regular" />}
+            href="/repair?status=active"
+          />
+          <StatCard
+            label={t.repair.dashboardCards.readyForPickupCard}
+            sub={t.repair.dashboardCards.readyForPickupCardSub}
+            value={readyForPickupCount}
+            icon={<CheckCircle size={20} weight="regular" />}
+            href="/repair?status=ready"
+            tone={readyForPickupCount > 0 ? 'warning' : 'neutral'}
           />
         </div>
       ) : null}
