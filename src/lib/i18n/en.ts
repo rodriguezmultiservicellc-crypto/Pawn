@@ -562,6 +562,7 @@ export const en = {
       register_close: 'Closed register',
       register_reconcile: 'Reconciled register',
       card_present_succeeded: 'Card payment succeeded',
+      export: 'Exported report',
       // Per-table overrides for richer phrasing.
       perTable: {
         customers: {
@@ -1491,6 +1492,233 @@ export const en = {
     errorBadRead: 'Could not read license data. Try scanning again.',
     errorParse: 'Parse failed',
     autoFilled: 'Auto-filled from license scan',
+  },
+
+  reports: {
+    title: 'Reports',
+    subtitle: 'Operational reports and compliance exports.',
+    runReport: 'Run report',
+    empty: 'No rows in the selected range.',
+    truncated: 'Showing first {shown} of {total} rows. Export PDF or CSV for the full set.',
+    range: {
+      from: 'From',
+      to: 'To',
+      apply: 'Apply',
+      today: 'Today',
+      yesterday: 'Yesterday',
+      last7: 'Last 7 days',
+      last30: 'Last 30 days',
+      mtd: 'Month to date',
+    },
+    actions: {
+      exportPdf: 'Export PDF',
+      exportCsv: 'Export CSV',
+      preview: 'Preview',
+      download: 'Download',
+    },
+    landing: {
+      dailyRegister: {
+        title: 'Daily Register',
+        description: 'Cash, card, totals, variance per register session.',
+      },
+      pawnAging: {
+        title: 'Pawn Aging',
+        description: 'Active loans bucketed by days-to-due / overdue.',
+      },
+      loanActivity: {
+        title: 'Redemptions / Forfeitures / Interest',
+        description: 'Loan events in the date range with interest income.',
+      },
+      inventoryTurn: {
+        title: 'Inventory Turn',
+        description: 'Days from acquisition to sale, by source.',
+      },
+      salesSummary: {
+        title: 'Sales Summary',
+        description: 'Completed sales with subtotals, returns, and net.',
+      },
+      repairSummary: {
+        title: 'Repair Tickets',
+        description: 'Tickets created in the date range with status counts.',
+      },
+      policeReport: {
+        title: 'Police Report Export',
+        description: 'FL LeadsOnline upload format. Compliance log only.',
+      },
+      crossShop: {
+        title: 'Cross-Shop Rollup',
+        description: 'High-level KPIs across child shops (chain HQ only).',
+      },
+    },
+    dailyRegister: {
+      columns: {
+        opened: 'Opened',
+        closed: 'Closed',
+        status: 'Status',
+        openingCash: 'Opening cash',
+        cashSales: 'Cash sales',
+        cashRefunds: 'Cash refunds',
+        cardSales: 'Card sales',
+        cardRefunds: 'Card refunds',
+        expectedCash: 'Expected cash',
+        countedCash: 'Counted cash',
+        variance: 'Variance',
+        cardBatch: 'Card batch',
+      },
+      totals: {
+        openingCash: 'Opening cash',
+        cashSales: 'Cash sales',
+        cardSales: 'Card sales',
+      },
+    },
+    pawnAging: {
+      columns: {
+        ticket: 'Ticket',
+        customer: 'Customer',
+        principal: 'Principal',
+        dueDate: 'Due date',
+        daysToDue: 'Days',
+        status: 'Status',
+        bucket: 'Bucket',
+      },
+      buckets: {
+        overdue: 'Overdue',
+        due_0_7: 'Due 0–7d',
+        due_8_14: 'Due 8–14d',
+        due_15_30: 'Due 15–30d',
+        due_31_60: 'Due 31–60d',
+        due_61_90: 'Due 61–90d',
+        due_90_plus: 'Due 90d+',
+      },
+      totals: {
+        principal: 'Total principal',
+      },
+    },
+    loanActivity: {
+      columns: {
+        when: 'When',
+        ticket: 'Ticket',
+        customer: 'Customer',
+        eventType: 'Event',
+        amount: 'Amount',
+        principalPaid: 'Principal',
+        interestPaid: 'Interest',
+        feesPaid: 'Fees',
+      },
+      totals: {
+        redemptions: 'Redemptions',
+        forfeitures: 'Forfeitures',
+        interestIncome: 'Interest income',
+        principalCollected: 'Principal collected',
+      },
+    },
+    inventoryTurn: {
+      columns: {
+        sku: 'SKU',
+        description: 'Description',
+        category: 'Category',
+        source: 'Source',
+        cost: 'Cost',
+        sale: 'Sale',
+        margin: 'Margin',
+        days: 'Days held',
+        soldAt: 'Sold',
+      },
+      totals: {
+        units: 'Units sold',
+        revenue: 'Revenue',
+        margin: 'Margin',
+        avgDays: 'Avg days held',
+      },
+    },
+    salesSummary: {
+      columns: {
+        completedAt: 'When',
+        saleNumber: 'Sale #',
+        customer: 'Customer',
+        kind: 'Kind',
+        status: 'Status',
+        subtotal: 'Subtotal',
+        tax: 'Tax',
+        discount: 'Discount',
+        total: 'Total',
+        returned: 'Returned',
+        net: 'Net',
+      },
+      totals: {
+        units: 'Sales',
+        total: 'Gross total',
+        returned: 'Returns',
+        net: 'Net total',
+      },
+    },
+    repairSummary: {
+      columns: {
+        createdAt: 'When',
+        ticket: 'Ticket',
+        customer: 'Customer',
+        serviceType: 'Service',
+        title: 'Title',
+        status: 'Status',
+        quote: 'Quote',
+        deposit: 'Deposit',
+        paid: 'Paid',
+        promised: 'Promised',
+      },
+      totals: {
+        tickets: 'Tickets',
+        deposits: 'Deposits',
+        collected: 'Collected',
+      },
+    },
+    crossShop: {
+      columns: {
+        shop: 'Shop',
+        activeLoans: 'Active loans',
+        principalOutstanding: 'Principal out',
+        redemptions: 'Redemptions',
+        forfeitures: 'Forfeitures',
+        interestIncome: 'Interest income',
+        salesCount: 'Sales',
+        salesTotal: 'Net sales',
+        repairTickets: 'Repairs',
+        unitsSold: 'Units sold',
+        inventoryRevenue: 'Inventory $',
+      },
+      totals: {
+        activeLoans: 'Active loans',
+        principalOutstanding: 'Principal outstanding',
+        salesTotal: 'Net sales',
+        interestIncome: 'Interest income',
+      },
+    },
+  },
+
+  compliance: {
+    title: 'Police Report Export',
+    subtitle:
+      'Compliance log is the source of truth — every pawn intake and buy-outright transaction is captured at write-time. This export reads from that log, not from loans or sales.',
+    formatLabel: 'Format',
+    storeIdLabel: 'Store ID',
+    storeIdHelp:
+      "Agency-assigned store identifier. If your tenant doesn't have one yet, we use the tenant UUID as a fallback so the file is still well-formed.",
+    formats: {
+      fl_leadsonline: 'Florida — LeadsOnline',
+    },
+    formatDraftWarning:
+      'FORMAT DRAFT — confirm with the agency before submitting in production.',
+    preview: {
+      title: 'Preview (first 50 flattened rows)',
+      rowCount: '{rows} compliance row(s) in range. Items expand to {flattened} CSV row(s).',
+    },
+    downloadCsv: 'Download CSV',
+    eventTypes: {
+      pawn_intake: 'Pawn intake',
+      buy_outright: 'Buy outright',
+      pawn_redemption: 'Pawn redemption',
+      pawn_forfeiture: 'Pawn forfeiture',
+      buy_release: 'Buy release',
+    },
   },
 }
 

@@ -564,6 +564,7 @@ export const es: Dictionary = {
       register_close: 'Caja cerrada',
       register_reconcile: 'Caja conciliada',
       card_present_succeeded: 'Pago con tarjeta exitoso',
+      export: 'Reporte exportado',
       // Per-table overrides for richer phrasing.
       perTable: {
         customers: {
@@ -1503,5 +1504,234 @@ export const es: Dictionary = {
     errorBadRead: 'No se pudo leer la licencia. Intenta escanear de nuevo.',
     errorParse: 'Error al procesar',
     autoFilled: 'Datos completados desde la licencia',
+  },
+
+  reports: {
+    title: 'Reportes',
+    subtitle: 'Reportes operativos y exportaciones de cumplimiento.',
+    runReport: 'Ejecutar reporte',
+    empty: 'Sin filas en el rango seleccionado.',
+    truncated:
+      'Mostrando las primeras {shown} de {total} filas. Exporta PDF o CSV para el conjunto completo.',
+    range: {
+      from: 'Desde',
+      to: 'Hasta',
+      apply: 'Aplicar',
+      today: 'Hoy',
+      yesterday: 'Ayer',
+      last7: 'Últimos 7 días',
+      last30: 'Últimos 30 días',
+      mtd: 'Mes en curso',
+    },
+    actions: {
+      exportPdf: 'Exportar PDF',
+      exportCsv: 'Exportar CSV',
+      preview: 'Vista previa',
+      download: 'Descargar',
+    },
+    landing: {
+      dailyRegister: {
+        title: 'Caja Diaria',
+        description: 'Efectivo, tarjeta, totales y varianza por sesión de caja.',
+      },
+      pawnAging: {
+        title: 'Antigüedad de Empeños',
+        description: 'Préstamos activos por días al vencimiento / vencidos.',
+      },
+      loanActivity: {
+        title: 'Redenciones / Decomisos / Intereses',
+        description: 'Eventos de préstamo en el rango con ingreso por intereses.',
+      },
+      inventoryTurn: {
+        title: 'Rotación de Inventario',
+        description: 'Días desde adquisición hasta venta, por origen.',
+      },
+      salesSummary: {
+        title: 'Resumen de Ventas',
+        description: 'Ventas completadas con subtotales, devoluciones y neto.',
+      },
+      repairSummary: {
+        title: 'Tickets de Reparación',
+        description: 'Tickets creados en el rango con conteos por estado.',
+      },
+      policeReport: {
+        title: 'Reporte Policiaco',
+        description: 'Formato de carga FL LeadsOnline. Solo registro de cumplimiento.',
+      },
+      crossShop: {
+        title: 'Resumen Multi-Tienda',
+        description: 'KPIs de las tiendas hijas (solo HQ de cadena).',
+      },
+    },
+    dailyRegister: {
+      columns: {
+        opened: 'Abierta',
+        closed: 'Cerrada',
+        status: 'Estado',
+        openingCash: 'Efectivo inicial',
+        cashSales: 'Ventas efectivo',
+        cashRefunds: 'Reembolsos efectivo',
+        cardSales: 'Ventas tarjeta',
+        cardRefunds: 'Reembolsos tarjeta',
+        expectedCash: 'Efectivo esperado',
+        countedCash: 'Efectivo contado',
+        variance: 'Varianza',
+        cardBatch: 'Lote tarjeta',
+      },
+      totals: {
+        openingCash: 'Efectivo inicial',
+        cashSales: 'Ventas efectivo',
+        cardSales: 'Ventas tarjeta',
+      },
+    },
+    pawnAging: {
+      columns: {
+        ticket: 'Boleto',
+        customer: 'Cliente',
+        principal: 'Principal',
+        dueDate: 'Vence',
+        daysToDue: 'Días',
+        status: 'Estado',
+        bucket: 'Rango',
+      },
+      buckets: {
+        overdue: 'Vencido',
+        due_0_7: 'Vence 0–7d',
+        due_8_14: 'Vence 8–14d',
+        due_15_30: 'Vence 15–30d',
+        due_31_60: 'Vence 31–60d',
+        due_61_90: 'Vence 61–90d',
+        due_90_plus: 'Vence 90d+',
+      },
+      totals: {
+        principal: 'Total principal',
+      },
+    },
+    loanActivity: {
+      columns: {
+        when: 'Cuándo',
+        ticket: 'Boleto',
+        customer: 'Cliente',
+        eventType: 'Evento',
+        amount: 'Monto',
+        principalPaid: 'Principal',
+        interestPaid: 'Interés',
+        feesPaid: 'Cargos',
+      },
+      totals: {
+        redemptions: 'Redenciones',
+        forfeitures: 'Decomisos',
+        interestIncome: 'Ingreso por interés',
+        principalCollected: 'Principal cobrado',
+      },
+    },
+    inventoryTurn: {
+      columns: {
+        sku: 'SKU',
+        description: 'Descripción',
+        category: 'Categoría',
+        source: 'Origen',
+        cost: 'Costo',
+        sale: 'Venta',
+        margin: 'Margen',
+        days: 'Días',
+        soldAt: 'Vendido',
+      },
+      totals: {
+        units: 'Unidades vendidas',
+        revenue: 'Ingreso',
+        margin: 'Margen',
+        avgDays: 'Días promedio',
+      },
+    },
+    salesSummary: {
+      columns: {
+        completedAt: 'Cuándo',
+        saleNumber: 'Venta #',
+        customer: 'Cliente',
+        kind: 'Tipo',
+        status: 'Estado',
+        subtotal: 'Subtotal',
+        tax: 'Impuesto',
+        discount: 'Descuento',
+        total: 'Total',
+        returned: 'Devuelto',
+        net: 'Neto',
+      },
+      totals: {
+        units: 'Ventas',
+        total: 'Total bruto',
+        returned: 'Devoluciones',
+        net: 'Total neto',
+      },
+    },
+    repairSummary: {
+      columns: {
+        createdAt: 'Cuándo',
+        ticket: 'Boleto',
+        customer: 'Cliente',
+        serviceType: 'Servicio',
+        title: 'Título',
+        status: 'Estado',
+        quote: 'Cotización',
+        deposit: 'Depósito',
+        paid: 'Pagado',
+        promised: 'Prometido',
+      },
+      totals: {
+        tickets: 'Tickets',
+        deposits: 'Depósitos',
+        collected: 'Cobrado',
+      },
+    },
+    crossShop: {
+      columns: {
+        shop: 'Tienda',
+        activeLoans: 'Préstamos activos',
+        principalOutstanding: 'Principal pendiente',
+        redemptions: 'Redenciones',
+        forfeitures: 'Decomisos',
+        interestIncome: 'Ingreso interés',
+        salesCount: 'Ventas',
+        salesTotal: 'Ventas netas',
+        repairTickets: 'Reparaciones',
+        unitsSold: 'Unidades',
+        inventoryRevenue: 'Ingreso inv.',
+      },
+      totals: {
+        activeLoans: 'Préstamos activos',
+        principalOutstanding: 'Principal pendiente',
+        salesTotal: 'Ventas netas',
+        interestIncome: 'Ingreso por interés',
+      },
+    },
+  },
+
+  compliance: {
+    title: 'Reporte Policiaco',
+    subtitle:
+      'El registro de cumplimiento es la fuente de verdad — cada empeño y compra directa se captura al momento. Esta exportación lee de ese registro, no de préstamos ni ventas.',
+    formatLabel: 'Formato',
+    storeIdLabel: 'ID de Tienda',
+    storeIdHelp:
+      'Identificador de tienda asignado por la agencia. Si aún no tienes uno, usamos el UUID del tenant como respaldo para que el archivo siga siendo válido.',
+    formats: {
+      fl_leadsonline: 'Florida — LeadsOnline',
+    },
+    formatDraftWarning:
+      'BORRADOR DE FORMATO — confirma con la agencia antes de enviar en producción.',
+    preview: {
+      title: 'Vista previa (primeras 50 filas)',
+      rowCount:
+        '{rows} fila(s) de cumplimiento en el rango. Los artículos se expanden a {flattened} fila(s) CSV.',
+    },
+    downloadCsv: 'Descargar CSV',
+    eventTypes: {
+      pawn_intake: 'Empeño',
+      buy_outright: 'Compra directa',
+      pawn_redemption: 'Redención',
+      pawn_forfeiture: 'Decomiso',
+      buy_release: 'Liberación de compra',
+    },
   },
 }

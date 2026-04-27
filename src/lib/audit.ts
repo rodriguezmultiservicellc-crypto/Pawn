@@ -77,6 +77,8 @@ export type AuditAction =
   | 'register_close'
   | 'register_reconcile'
   | 'card_present_succeeded'
+  // Reports / compliance
+  | 'export'
 
 export async function logAudit(args: {
   tenantId: string
