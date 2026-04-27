@@ -1,15 +1,6 @@
-'use client'
-
-import { useI18n } from '@/lib/i18n/context'
-
+// Phase 5: /portal/page.tsx now redirects to /portal/loans, so this client
+// content component is no longer used. Kept as a no-op export so the file
+// path doesn't disappear on rename — safe to delete in a future cleanup.
 export default function PortalContent() {
-  const { t } = useI18n()
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{t.nav.portal}</h1>
-      <p className="text-ash">
-        {t.dashboard.placeholder}
-      </p>
-    </div>
-  )
+  return null
 }

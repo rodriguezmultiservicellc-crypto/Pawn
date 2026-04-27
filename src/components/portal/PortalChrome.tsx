@@ -1,0 +1,181 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import {
+  Coins,
+  Wrench,
+  Tag,
+  SignOut,
+  Translate,
+} from '@phosphor-icons/react'
+import { useI18n } from '@/lib/i18n/context'
+import { createClient } from '@/lib/supabase/client'
+
+/**
+ * Portal chrome — top bar (tenant name + lang toggle + sign-out) and a
+ * mobile bottom nav (Loans / Repairs / Layaways). Renders inside the
+ * (portal)/layout.tsx server component, between I18nProvider and {children}.
+ */
+export function PortalChrome({
+  tenantName,
+  customerName,
+}: {
+  tenantName: string
+  customerName: string | null
+}) {
+  const { t, lang, setLang } = useI18n()
+  const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    // Hard nav so the proxy sees the cleared cookie.
+    window.location.assign('/login')
+  }
+
+  return (
+    <>
+      <header className="sticky top-0 z-30 border-b border-hairline bg-canvas">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3">
+          <Link href="/portal/loans" className="flex flex-col leading-tight">
+            <span
+              className="bg-clip-text text-base font-bold text-transparent"
+              style={{
+                backgroundImage:
+                  'linear-gradient(90deg, #ff385c 0%, #e00b41 50%, #92174d 100%)',
+              }}
+            >
+              {tenantName}
+            </span>
+            {customerName ? (
+              <span className="truncate text-xs text-ash">{customerName}</span>
+            ) : null}
+          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-ash hover:bg-cloud hover:text-ink"
+              aria-label={t.lang.toggle}
+            >
+              <Translate size={16} weight="regular" />
+              <span>{lang === 'en' ? 'ES' : 'EN'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void handleSignOut()
+                router.refresh()
+              }}
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-ash hover:bg-cloud hover:text-ink"
+            >
+              <SignOut size={16} weight="regular" />
+              <span className="hidden sm:inline">
+                {t.portal.common.signOut}
+              </span>
+            </button>
+          </div>
+        </div>
+        {/* Tablet/desktop secondary nav */}
+        <nav className="hidden border-t border-hairline bg-canvas sm:block">
+          <div className="mx-auto flex max-w-4xl items-center gap-2 px-4">
+            <PortalTopLink
+              href="/portal/loans"
+              label={t.portal.nav.loans}
+              icon={<Coins size={16} weight="regular" />}
+              active={pathname.startsWith('/portal/loans')}
+            />
+            <PortalTopLink
+              href="/portal/repairs"
+              label={t.portal.nav.repairs}
+              icon={<Wrench size={16} weight="regular" />}
+              active={pathname.startsWith('/portal/repairs')}
+            />
+            <PortalTopLink
+              href="/portal/layaways"
+              label={t.portal.nav.layaways}
+              icon={<Tag size={16} weight="regular" />}
+              active={pathname.startsWith('/portal/layaways')}
+            />
+          </div>
+        </nav>
+      </header>
+
+      {/* Mobile bottom nav */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-canvas sm:hidden">
+        <div className="mx-auto flex max-w-4xl items-stretch">
+          <PortalBottomLink
+            href="/portal/loans"
+            label={t.portal.nav.loans}
+            icon={<Coins size={20} weight="regular" />}
+            active={pathname.startsWith('/portal/loans')}
+          />
+          <PortalBottomLink
+            href="/portal/repairs"
+            label={t.portal.nav.repairs}
+            icon={<Wrench size={20} weight="regular" />}
+            active={pathname.startsWith('/portal/repairs')}
+          />
+          <PortalBottomLink
+            href="/portal/layaways"
+            label={t.portal.nav.layaways}
+            icon={<Tag size={20} weight="regular" />}
+            active={pathname.startsWith('/portal/layaways')}
+          />
+        </div>
+      </nav>
+    </>
+  )
+}
+
+function PortalTopLink({
+  href,
+  label,
+  icon,
+  active,
+}: {
+  href: string
+  label: string
+  icon: React.ReactNode
+  active: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors ${
+        active
+          ? 'border-rausch font-medium text-ink'
+          : 'border-transparent text-ash hover:text-ink'
+      }`}
+    >
+      <span className={active ? 'text-rausch' : 'text-ash'}>{icon}</span>
+      <span>{label}</span>
+    </Link>
+  )
+}
+
+function PortalBottomLink({
+  href,
+  label,
+  icon,
+  active,
+}: {
+  href: string
+  label: string
+  icon: React.ReactNode
+  active: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex flex-1 flex-col items-center gap-0.5 px-1 py-2 text-xs transition-colors ${
+        active ? 'text-rausch' : 'text-ash hover:text-ink'
+      }`}
+    >
+      <span>{icon}</span>
+      <span className="truncate">{label}</span>
+    </Link>
+  )
+}

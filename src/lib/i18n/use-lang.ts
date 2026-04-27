@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   DEFAULT_LANGUAGE,
   getDictionary,
@@ -20,17 +20,17 @@ const LOCAL_STORAGE_KEY = 'pawn-lang'
  * /no-tenant — anywhere the user might not be authenticated yet.
  */
 export function useLangLocal() {
-  const [lang, setLangState] = useState<Language>(DEFAULT_LANGUAGE)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
+  // Lazy initial state runs once on mount (client) so we read localStorage
+  // without a follow-up effect that would trigger a cascading render.
+  const [lang, setLangState] = useState<Language>(() => {
+    if (typeof window === 'undefined') return DEFAULT_LANGUAGE
     try {
       const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY)
-      if (isLanguage(stored)) setLangState(stored)
+      return isLanguage(stored) ? stored : DEFAULT_LANGUAGE
     } catch {
-      // localStorage disabled — stick with default.
+      return DEFAULT_LANGUAGE
     }
-  }, [])
+  })
 
   const setLang = (next: Language) => {
     setLangState(next)
