@@ -8,16 +8,18 @@ export default async function DashboardPage() {
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
 
-  // Module gate for pawn / repair cards.
+  // Module gate for pawn / repair / retail cards.
   const { data: tenant } = await ctx.supabase
     .from('tenants')
-    .select('has_pawn, has_repair')
+    .select('has_pawn, has_repair, has_retail')
     .eq('id', ctx.tenantId)
     .maybeSingle()
   const hasPawn = tenant?.has_pawn ?? false
   const hasRepair = tenant?.has_repair ?? false
+  const hasRetail = tenant?.has_retail ?? false
   const today = todayDateString()
   const in7 = addDaysIso(today, 7)
+  const todayStartIso = `${today}T00:00:00.000Z`
 
   // Counts via head=true + count='exact' so no rows are returned, just totals.
   // RLS already gates each query to the tenant.
@@ -89,6 +91,40 @@ export default async function DashboardPage() {
     readyForPickupCount = r ?? 0
   }
 
+  let todaySalesCount = 0
+  let todayRevenue = 0
+  let activeLayawayCount = 0
+  if (hasRetail) {
+    const [{ count: a }, { data: revRows }, { count: lc }] = await Promise.all([
+      ctx.supabase
+        .from('sales')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', ctx.tenantId)
+        .is('deleted_at', null)
+        .eq('status', 'completed')
+        .gte('completed_at', todayStartIso),
+      ctx.supabase
+        .from('sales')
+        .select('total')
+        .eq('tenant_id', ctx.tenantId)
+        .is('deleted_at', null)
+        .eq('status', 'completed')
+        .gte('completed_at', todayStartIso),
+      ctx.supabase
+        .from('layaways')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', ctx.tenantId)
+        .is('deleted_at', null)
+        .eq('status', 'active'),
+    ])
+    todaySalesCount = a ?? 0
+    todayRevenue = (revRows ?? []).reduce(
+      (sum, r) => sum + Number(r.total ?? 0),
+      0,
+    )
+    activeLayawayCount = lc ?? 0
+  }
+
   let activeLoanCount = 0
   let dueThisWeekCount = 0
   if (hasPawn) {
@@ -126,6 +162,10 @@ export default async function DashboardPage() {
       hasRepair={hasRepair}
       activeRepairCount={activeRepairCount}
       readyForPickupCount={readyForPickupCount}
+      hasRetail={hasRetail}
+      todaySalesCount={todaySalesCount}
+      todayRevenue={todayRevenue}
+      activeLayawayCount={activeLayawayCount}
     />
   )
 }

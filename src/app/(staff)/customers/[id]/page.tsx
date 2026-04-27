@@ -6,8 +6,11 @@ import {
 } from '@/lib/supabase/storage'
 import CustomerDetail, { type CustomerDocumentItem } from './content'
 import type {
+  LayawayStatus,
   Language,
   RepairStatus,
+  SaleKind,
+  SaleStatus,
   ServiceType,
 } from '@/types/database-aliases'
 
@@ -39,11 +42,12 @@ export default async function CustomerDetailPage(props: { params: Params }) {
 
   const { data: tenant } = await ctx.supabase
     .from('tenants')
-    .select('has_pawn, has_repair')
+    .select('has_pawn, has_repair, has_retail')
     .eq('id', customer.tenant_id)
     .maybeSingle()
   const hasPawn = tenant?.has_pawn ?? false
   const hasRepair = tenant?.has_repair ?? false
+  const hasRetail = tenant?.has_retail ?? false
 
   // Pull the customer's recent pawn loans (Phase 2). Only when has_pawn —
   // jewelry-only / repair-only shops never see this section.
@@ -65,6 +69,33 @@ export default async function CustomerDetailPage(props: { params: Params }) {
         .from('repair_tickets')
         .select(
           'id, ticket_number, service_type, title, promised_date, status, balance_due, created_at',
+        )
+        .eq('customer_id', id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(10)
+    : { data: null }
+
+  // Pull the customer's recent sales (Phase 4). Only when has_retail. Excludes
+  // voided sales — completed + open + return states only.
+  const { data: saleRows } = hasRetail
+    ? await ctx.supabase
+        .from('sales')
+        .select(
+          'id, sale_number, sale_kind, status, total, completed_at, created_at',
+        )
+        .eq('customer_id', id)
+        .is('deleted_at', null)
+        .neq('status', 'voided')
+        .order('created_at', { ascending: false })
+        .limit(10)
+    : { data: null }
+
+  const { data: layawayRows } = hasRetail
+    ? await ctx.supabase
+        .from('layaways')
+        .select(
+          'id, layaway_number, status, total_due, paid_total, balance_remaining, first_payment_due, created_at',
         )
         .eq('customer_id', id)
         .is('deleted_at', null)
@@ -110,6 +141,7 @@ export default async function CustomerDetailPage(props: { params: Params }) {
       documents={documents}
       hasPawn={hasPawn}
       hasRepair={hasRepair}
+      hasRetail={hasRetail}
       photoSignedUrl={photoSignedUrl}
       loans={(loanRows ?? []).map((l) => ({
         id: l.id,
@@ -134,6 +166,25 @@ export default async function CustomerDetailPage(props: { params: Params }) {
         status: r.status as RepairStatus,
         balance_due: r.balance_due == null ? null : Number(r.balance_due),
         created_at: r.created_at,
+      }))}
+      sales={(saleRows ?? []).map((s) => ({
+        id: s.id,
+        sale_number: s.sale_number ?? '',
+        sale_kind: s.sale_kind as SaleKind,
+        status: s.status as SaleStatus,
+        total: Number(s.total),
+        completed_at: s.completed_at,
+        created_at: s.created_at,
+      }))}
+      layaways={(layawayRows ?? []).map((l) => ({
+        id: l.id,
+        layaway_number: l.layaway_number ?? '',
+        status: l.status as LayawayStatus,
+        total_due: Number(l.total_due),
+        paid_total: Number(l.paid_total),
+        balance_remaining: Number(l.balance_remaining),
+        first_payment_due: l.first_payment_due,
+        created_at: l.created_at,
       }))}
     />
   )

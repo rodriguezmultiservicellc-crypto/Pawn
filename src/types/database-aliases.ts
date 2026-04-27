@@ -267,3 +267,77 @@ export type RepairTicketPhotoUpdate = Database['public']['Tables']['repair_ticke
 export type RepairTimeLogRow    = Database['public']['Tables']['repair_time_logs']['Row']
 export type RepairTimeLogInsert = Database['public']['Tables']['repair_time_logs']['Insert']
 export type RepairTimeLogUpdate = Database['public']['Tables']['repair_time_logs']['Update']
+
+// ── Phase 4 (retail / POS) — enum literals
+
+export type SaleStatus =
+  | 'open'
+  | 'completed'
+  | 'voided'
+  | 'partial_returned'
+  | 'fully_returned'
+
+export type SaleKind = 'retail' | 'layaway'
+
+export type ReturnStatus = 'issued' | 'voided'
+
+export type LayawayStatus =
+  | 'active'
+  | 'completed'
+  | 'cancelled'
+  | 'defaulted'
+
+export type RegisterSessionStatus = 'open' | 'closed' | 'reconciled'
+
+export type CardPresentStatus =
+  | 'not_used'
+  | 'pending'
+  | 'succeeded'
+  | 'failed'
+  | 'refunded'
+
+export type LayawayScheduleKind =
+  | 'weekly'
+  | 'biweekly'
+  | 'monthly'
+  | 'custom'
+
+// ── Phase 4 — Row / Insert / Update shortcuts.
+//
+// These reference Database['public']['Tables']['sales'|'sale_items'|...]. They
+// will compile only AFTER patches/0008-retail-pos.sql has been applied to the
+// live Supabase project AND `npm run db:types` has been run to regenerate
+// src/types/database.ts. Until then, TS will surface "Property 'sales' does
+// not exist on type ..." here. That's expected.
+
+export type RegisterSessionRow    = Database['public']['Tables']['register_sessions']['Row']
+export type RegisterSessionInsert = Database['public']['Tables']['register_sessions']['Insert']
+export type RegisterSessionUpdate = Database['public']['Tables']['register_sessions']['Update']
+
+export type SaleRow    = Database['public']['Tables']['sales']['Row']
+export type SaleInsert = Database['public']['Tables']['sales']['Insert']
+export type SaleUpdate = Database['public']['Tables']['sales']['Update']
+
+export type SaleItemRow    = Database['public']['Tables']['sale_items']['Row']
+export type SaleItemInsert = Database['public']['Tables']['sale_items']['Insert']
+export type SaleItemUpdate = Database['public']['Tables']['sale_items']['Update']
+
+export type SalePaymentRow    = Database['public']['Tables']['sale_payments']['Row']
+export type SalePaymentInsert = Database['public']['Tables']['sale_payments']['Insert']
+export type SalePaymentUpdate = Database['public']['Tables']['sale_payments']['Update']
+
+export type ReturnRow    = Database['public']['Tables']['returns']['Row']
+export type ReturnInsert = Database['public']['Tables']['returns']['Insert']
+export type ReturnUpdate = Database['public']['Tables']['returns']['Update']
+
+export type ReturnItemRow    = Database['public']['Tables']['return_items']['Row']
+export type ReturnItemInsert = Database['public']['Tables']['return_items']['Insert']
+export type ReturnItemUpdate = Database['public']['Tables']['return_items']['Update']
+
+export type LayawayRow    = Database['public']['Tables']['layaways']['Row']
+export type LayawayInsert = Database['public']['Tables']['layaways']['Insert']
+export type LayawayUpdate = Database['public']['Tables']['layaways']['Update']
+
+export type LayawayPaymentRow    = Database['public']['Tables']['layaway_payments']['Row']
+export type LayawayPaymentInsert = Database['public']['Tables']['layaway_payments']['Insert']
+export type LayawayPaymentUpdate = Database['public']['Tables']['layaway_payments']['Update']

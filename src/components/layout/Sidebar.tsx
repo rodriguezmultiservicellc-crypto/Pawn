@@ -105,7 +105,6 @@ export function Sidebar({
       label: t.nav.pos,
       icon: <CashRegister size={18} weight="regular" />,
       visible: modules.has_retail,
-      disabled: true,
     },
     {
       href: '/reports',
