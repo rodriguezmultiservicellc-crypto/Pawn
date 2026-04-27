@@ -692,8 +692,67 @@ export const en = {
       forfeit: 'Forfeit',
       void: 'Void',
       printTicket: 'Print ticket',
-      printComingSoon:
-        'Bilingual PDF print is coming next session — the ticket is now locked.',
+      reprintTicket: 'Reprint',
+      lockedNotice: 'Ticket printed — core fields locked.',
+    },
+    print: {
+      header: 'Pawn Ticket',
+      sections: {
+        customer: 'Customer',
+        terms: 'Loan terms',
+        collateral: 'Collateral',
+        legal: 'Legal disclosure',
+      },
+      customer: {
+        name: 'Name',
+        dob: 'Date of birth',
+        address: 'Address',
+        phone: 'Phone',
+        email: 'Email',
+        idType: 'ID type',
+        idNumber: 'ID number',
+        idState: 'Issuing state',
+        idExpiry: 'ID expiration',
+      },
+      terms: {
+        principal: 'Principal',
+        interestRateMonthly: 'Monthly rate',
+        dailyRateNote: 'Daily rate (eq.)',
+        termDays: 'Term (days)',
+        issueDate: 'Issue date',
+        dueDate: 'Due date',
+        totalInterestAtTerm: 'Total interest at term',
+        totalPayoffAtTerm: 'Total payoff at term',
+      },
+      collateral: {
+        title: 'Collateral items',
+        photosOnFile: 'Photos on file with the shop.',
+        columns: {
+          index: '#',
+          description: 'Description',
+          category: 'Category',
+          metal: 'Metal',
+          karat: 'Karat',
+          weightGrams: 'Weight (g)',
+          estValue: 'Est. value',
+        },
+      },
+      legal: {
+        placeholder:
+          '[PLACEHOLDER — replace with state-required pawn-loan disclosure language vetted by counsel before going live in any jurisdiction. Florida pawnbrokers must satisfy Ch. 539 F.S. notice requirements.]',
+        terms:
+          'Customer redeems this loan by paying the principal plus all accrued interest on or before the due date shown above. If unpaid by the due date plus any state-mandated grace period, the pledged property may be forfeited and become the property of the shop, subject to applicable state law and any required customer notice. Customer affirms they are the lawful owner of the pledged property and that all information given is true and complete.',
+      },
+      signatures: {
+        customerSignature: 'Customer signature',
+        staffSignature: 'Staff signature',
+        date: 'Date',
+      },
+      footer: {
+        pageOf: 'Page {n} of {total}',
+        ticketLabel: 'Ticket',
+      },
+      notes: 'Notes',
     },
     payment: {
       title: 'Record payment',

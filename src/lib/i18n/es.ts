@@ -694,8 +694,67 @@ export const es: Dictionary = {
       forfeit: 'No rescatar',
       void: 'Anular',
       printTicket: 'Imprimir boleto',
-      printComingSoon:
-        'La impresión bilingüe llega en la siguiente sesión — el boleto ya está bloqueado.',
+      reprintTicket: 'Reimprimir',
+      lockedNotice: 'Boleto impreso — campos clave bloqueados.',
+    },
+    print: {
+      header: 'Boleto de Empeño',
+      sections: {
+        customer: 'Cliente',
+        terms: 'Términos del empeño',
+        collateral: 'Prenda',
+        legal: 'Aviso legal',
+      },
+      customer: {
+        name: 'Nombre',
+        dob: 'Fecha de nacimiento',
+        address: 'Dirección',
+        phone: 'Teléfono',
+        email: 'Correo electrónico',
+        idType: 'Tipo de identificación',
+        idNumber: 'Número de identificación',
+        idState: 'Estado emisor',
+        idExpiry: 'Vencimiento de identificación',
+      },
+      terms: {
+        principal: 'Principal',
+        interestRateMonthly: 'Tasa mensual',
+        dailyRateNote: 'Tasa diaria (eq.)',
+        termDays: 'Plazo (días)',
+        issueDate: 'Fecha de emisión',
+        dueDate: 'Fecha de vencimiento',
+        totalInterestAtTerm: 'Interés total al vencimiento',
+        totalPayoffAtTerm: 'Total a pagar al vencimiento',
+      },
+      collateral: {
+        title: 'Artículos en garantía',
+        photosOnFile: 'Fotos en archivo de la tienda.',
+        columns: {
+          index: 'No.',
+          description: 'Descripción',
+          category: 'Categoría',
+          metal: 'Metal',
+          karat: 'Quilates',
+          weightGrams: 'Peso (g)',
+          estValue: 'Valor estimado',
+        },
+      },
+      legal: {
+        placeholder:
+          '[MARCADOR — reemplazar con el lenguaje de divulgación de empeño exigido por la jurisdicción aplicable, revisado por un abogado antes de operar. Los corredores de empeños en Florida deben cumplir con los requisitos de aviso del Cap. 539 F.S.]',
+        terms:
+          'El cliente rescata este préstamo pagando el principal más todos los intereses acumulados en o antes de la fecha de vencimiento indicada arriba. Si no se paga al vencimiento más el periodo de gracia exigido por el estado, la prenda dada en garantía podrá pasar a ser propiedad de la tienda, conforme a la ley estatal aplicable y cualquier notificación requerida al cliente. El cliente declara ser el dueño legítimo de la prenda y que toda la información proporcionada es verdadera y completa.',
+      },
+      signatures: {
+        customerSignature: 'Firma del cliente',
+        staffSignature: 'Firma del personal',
+        date: 'Fecha',
+      },
+      footer: {
+        pageOf: 'Página {n} de {total}',
+        ticketLabel: 'Boleto',
+      },
+      notes: 'Notas',
     },
     payment: {
       title: 'Registrar pago',

@@ -125,10 +125,23 @@ export default function PawnLoanDetail({
 
   function onPrint() {
     setPrintToast(null)
+    const open = () => {
+      // Open the PDF in a new tab so the user can preview, save, or print.
+      window.open(`/api/print/loan/${loan.id}`, '_blank', 'noopener,noreferrer')
+    }
+    if (loan.is_printed) {
+      // Already locked — just re-render the PDF without firing the action.
+      open()
+      return
+    }
     startPrintTransition(async () => {
       const res = await printTicketAction(loan.id)
-      if (res.error) setPrintToast(res.error)
-      else setPrintToast(t.pawn.actions.printComingSoon)
+      if (res.error) {
+        setPrintToast(res.error)
+        return
+      }
+      setPrintToast(t.pawn.actions.lockedNotice)
+      open()
     })
   }
 
@@ -350,7 +363,7 @@ function ActionRow({
         <ActionButton
           label={
             isPrinted
-              ? `${t.pawn.actions.printTicket} ✓`
+              ? t.pawn.actions.reprintTicket
               : t.pawn.actions.printTicket
           }
           icon={<Printer size={14} weight="bold" />}
