@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CashRegister, CreditCard, FlaskConical } from '@phosphor-icons/react'
+import { CashRegister, CreditCard, Flask } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { PaymentMethod } from '@/types/database-aliases'
 import { Modal, Footer } from './Modal'
@@ -87,7 +87,7 @@ export function AddPaymentDialog({
         {isCard ? (
           <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-ink">
             <div className="mb-1 flex items-center gap-1 font-semibold text-warning">
-              <FlaskConical size={12} weight="bold" />
+              <Flask size={12} weight="bold" />
               {t.pos.terminal.stubBannerTitle}
             </div>
             <p className="text-ash">{t.pos.terminal.stubBannerBody}</p>

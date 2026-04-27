@@ -80,7 +80,8 @@ export async function createReturnAction(
     .in('id', itemIds)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
-  const liveById = new Map<string, typeof liveItems extends Array<infer R> ? R : never>()
+  type LiveItem = NonNullable<typeof liveItems>[number]
+  const liveById = new Map<string, LiveItem>()
   for (const r of liveItems ?? []) {
     if (r.sale_id !== sale.id) {
       return { error: 'wrong_sale' }

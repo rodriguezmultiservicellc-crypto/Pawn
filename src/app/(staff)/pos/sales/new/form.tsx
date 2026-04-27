@@ -154,8 +154,8 @@ export default function NewSaleForm({
             line_discount: l.line_discount,
           })),
         ),
-        discount: layawayDraft.discount,
-        tax_rate: layawayDraft.taxRate,
+        discount: parseFloat(layawayDraft.discount || '0') || 0,
+        tax_rate: parseFloat(layawayDraft.taxRate || '0') || 0,
       }).total
     : 0
 

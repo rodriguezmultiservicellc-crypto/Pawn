@@ -751,6 +751,169 @@ export type Database = {
           },
         ]
       }
+      layaway_payments: {
+        Row: {
+          amount: number
+          card_present_status: Database["public"]["Enums"]["card_present_status"]
+          created_at: string
+          deleted_at: string | null
+          id: string
+          layaway_id: string
+          notes: string | null
+          occurred_at: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          performed_by: string | null
+          reader_id: string | null
+          stripe_payment_intent_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          card_present_status?: Database["public"]["Enums"]["card_present_status"]
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          layaway_id: string
+          notes?: string | null
+          occurred_at?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          performed_by?: string | null
+          reader_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          card_present_status?: Database["public"]["Enums"]["card_present_status"]
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          layaway_id?: string
+          notes?: string | null
+          occurred_at?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          performed_by?: string | null
+          reader_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layaway_payments_layaway_id_fkey"
+            columns: ["layaway_id"]
+            isOneToOne: false
+            referencedRelation: "layaways"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layaway_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      layaways: {
+        Row: {
+          balance_remaining: number
+          cancellation_fee_pct: number
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          deleted_at: string | null
+          down_payment: number
+          final_due_date: string | null
+          first_payment_due: string | null
+          id: string
+          layaway_number: string | null
+          notes: string | null
+          paid_total: number
+          sale_id: string
+          schedule_kind: string
+          status: Database["public"]["Enums"]["layaway_status"]
+          tenant_id: string
+          total_due: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          balance_remaining: number
+          cancellation_fee_pct?: number
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          deleted_at?: string | null
+          down_payment?: number
+          final_due_date?: string | null
+          first_payment_due?: string | null
+          id?: string
+          layaway_number?: string | null
+          notes?: string | null
+          paid_total?: number
+          sale_id: string
+          schedule_kind: string
+          status?: Database["public"]["Enums"]["layaway_status"]
+          tenant_id: string
+          total_due: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          balance_remaining?: number
+          cancellation_fee_pct?: number
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          deleted_at?: string | null
+          down_payment?: number
+          final_due_date?: string | null
+          first_payment_due?: string | null
+          id?: string
+          layaway_number?: string | null
+          notes?: string | null
+          paid_total?: number
+          sale_id?: string
+          schedule_kind?: string
+          status?: Database["public"]["Enums"]["layaway_status"]
+          tenant_id?: string
+          total_due?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layaways_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layaways_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layaways_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_collateral_items: {
         Row: {
           category: Database["public"]["Enums"]["inventory_category"]
@@ -1005,6 +1168,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      register_sessions: {
+        Row: {
+          card_batch_total: number | null
+          cash_variance: number | null
+          closed_at: string | null
+          closed_by: string | null
+          closing_cash_counted: number | null
+          created_at: string
+          deleted_at: string | null
+          expected_cash: number | null
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          opening_cash: number
+          status: Database["public"]["Enums"]["register_session_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          card_batch_total?: number | null
+          cash_variance?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_cash_counted?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          expected_cash?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_cash?: number
+          status?: Database["public"]["Enums"]["register_session_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          card_batch_total?: number | null
+          cash_variance?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_cash_counted?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          expected_cash?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_cash?: number
+          status?: Database["public"]["Enums"]["register_session_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "register_sessions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1435,6 +1663,378 @@ export type Database = {
           },
         ]
       }
+      return_items: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          line_total: number
+          quantity: number
+          restock: boolean
+          return_id: string
+          sale_item_id: string
+          tenant_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          line_total: number
+          quantity: number
+          restock?: boolean
+          return_id: string
+          sale_item_id: string
+          tenant_id: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          line_total?: number
+          quantity?: number
+          restock?: boolean
+          return_id?: string
+          sale_item_id?: string
+          tenant_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_items_sale_item_id_fkey"
+            columns: ["sale_item_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      returns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          performed_by: string | null
+          reason: string | null
+          refund_method: Database["public"]["Enums"]["payment_method"]
+          refunded_at: string | null
+          refunded_total: number
+          return_number: string | null
+          sale_id: string
+          status: Database["public"]["Enums"]["return_status"]
+          subtotal: number
+          tax_amount: number
+          tenant_id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          performed_by?: string | null
+          reason?: string | null
+          refund_method?: Database["public"]["Enums"]["payment_method"]
+          refunded_at?: string | null
+          refunded_total?: number
+          return_number?: string | null
+          sale_id: string
+          status?: Database["public"]["Enums"]["return_status"]
+          subtotal?: number
+          tax_amount?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          performed_by?: string | null
+          reason?: string | null
+          refund_method?: Database["public"]["Enums"]["payment_method"]
+          refunded_at?: string | null
+          refunded_total?: number
+          return_number?: string | null
+          sale_id?: string
+          status?: Database["public"]["Enums"]["return_status"]
+          subtotal?: number
+          tax_amount?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_items: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string
+          id: string
+          inventory_item_id: string | null
+          line_discount: number
+          line_total: number
+          position: number
+          quantity: number
+          returned_qty: number
+          sale_id: string
+          tenant_id: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description: string
+          id?: string
+          inventory_item_id?: string | null
+          line_discount?: number
+          line_total?: number
+          position?: number
+          quantity?: number
+          returned_qty?: number
+          sale_id: string
+          tenant_id: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          id?: string
+          inventory_item_id?: string | null
+          line_discount?: number
+          line_total?: number
+          position?: number
+          quantity?: number
+          returned_qty?: number
+          sale_id?: string
+          tenant_id?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_payments: {
+        Row: {
+          amount: number
+          card_present_status: Database["public"]["Enums"]["card_present_status"]
+          created_at: string
+          deleted_at: string | null
+          id: string
+          notes: string | null
+          occurred_at: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          performed_by: string | null
+          reader_id: string | null
+          sale_id: string
+          stripe_payment_intent_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          card_present_status?: Database["public"]["Enums"]["card_present_status"]
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          performed_by?: string | null
+          reader_id?: string | null
+          sale_id: string
+          stripe_payment_intent_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          card_present_status?: Database["public"]["Enums"]["card_present_status"]
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          performed_by?: string | null
+          reader_id?: string | null
+          sale_id?: string
+          stripe_payment_intent_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          deleted_at: string | null
+          discount_amount: number
+          id: string
+          is_locked: boolean
+          notes: string | null
+          paid_total: number
+          register_session_id: string | null
+          returned_total: number
+          sale_kind: Database["public"]["Enums"]["sale_kind"]
+          sale_number: string | null
+          status: Database["public"]["Enums"]["sale_status"]
+          subtotal: number
+          tax_amount: number
+          tax_rate: number
+          tenant_id: string
+          total: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          discount_amount?: number
+          id?: string
+          is_locked?: boolean
+          notes?: string | null
+          paid_total?: number
+          register_session_id?: string | null
+          returned_total?: number
+          sale_kind?: Database["public"]["Enums"]["sale_kind"]
+          sale_number?: string | null
+          status?: Database["public"]["Enums"]["sale_status"]
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          discount_amount?: number
+          id?: string
+          is_locked?: boolean
+          notes?: string | null
+          paid_total?: number
+          register_session_id?: string | null
+          returned_total?: number
+          sale_kind?: Database["public"]["Enums"]["sale_kind"]
+          sale_number?: string | null
+          status?: Database["public"]["Enums"]["sale_status"]
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_register_session_id_fkey"
+            columns: ["register_session_id"]
+            isOneToOne: false
+            referencedRelation: "register_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings: {
         Row: {
           abandoned_repair_days: number
@@ -1782,6 +2382,12 @@ export type Database = {
       }
     }
     Enums: {
+      card_present_status:
+        | "not_used"
+        | "pending"
+        | "succeeded"
+        | "failed"
+        | "refunded"
       comm_preference: "email" | "sms" | "whatsapp" | "none"
       customer_doc_kind: "id_scan" | "signature"
       id_document_type:
@@ -1828,6 +2434,7 @@ export type Database = {
         | "scrapped"
         | "transferred"
         | "returned"
+      layaway_status: "active" | "completed" | "cancelled" | "defaulted"
       loan_event_type:
         | "issued"
         | "payment"
@@ -1857,6 +2464,7 @@ export type Database = {
         | "other"
       payment_method: "cash" | "card" | "check" | "other"
       police_report_format: "fl_leadsonline"
+      register_session_status: "open" | "closed" | "reconciled"
       repair_event_type:
         | "intake"
         | "quote_set"
@@ -1883,6 +2491,14 @@ export type Database = {
         | "picked_up"
         | "abandoned"
         | "voided"
+      return_status: "issued" | "voided"
+      sale_kind: "retail" | "layaway"
+      sale_status:
+        | "open"
+        | "completed"
+        | "voided"
+        | "partial_returned"
+        | "fully_returned"
       service_type:
         | "repair"
         | "stone_setting"
@@ -2034,6 +2650,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      card_present_status: [
+        "not_used",
+        "pending",
+        "succeeded",
+        "failed",
+        "refunded",
+      ],
       comm_preference: ["email", "sms", "whatsapp", "none"],
       customer_doc_kind: ["id_scan", "signature"],
       id_document_type: [
@@ -2085,6 +2708,7 @@ export const Constants = {
         "transferred",
         "returned",
       ],
+      layaway_status: ["active", "completed", "cancelled", "defaulted"],
       loan_event_type: [
         "issued",
         "payment",
@@ -2117,6 +2741,7 @@ export const Constants = {
       ],
       payment_method: ["cash", "card", "check", "other"],
       police_report_format: ["fl_leadsonline"],
+      register_session_status: ["open", "closed", "reconciled"],
       repair_event_type: [
         "intake",
         "quote_set",
@@ -2144,6 +2769,15 @@ export const Constants = {
         "picked_up",
         "abandoned",
         "voided",
+      ],
+      return_status: ["issued", "voided"],
+      sale_kind: ["retail", "layaway"],
+      sale_status: [
+        "open",
+        "completed",
+        "voided",
+        "partial_returned",
+        "fully_returned",
       ],
       service_type: [
         "repair",

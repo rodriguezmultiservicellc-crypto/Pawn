@@ -84,7 +84,12 @@ export function Cart({
     [lines],
   )
   const totals = useMemo(
-    () => computeTotal({ subtotal, discount, tax_rate: taxRate }),
+    () =>
+      computeTotal({
+        subtotal,
+        discount: parseFloat(discount || '0') || 0,
+        tax_rate: parseFloat(taxRate || '0') || 0,
+      }),
     [subtotal, discount, taxRate],
   )
 
