@@ -22,6 +22,8 @@ import { ExtendLoanDialog } from '@/components/pawn/ExtendLoanDialog'
 import { ForfeitConfirmDialog } from '@/components/pawn/ForfeitConfirmDialog'
 import { VoidLoanDialog } from '@/components/pawn/VoidLoanDialog'
 import { RedeemConfirmDialog } from '@/components/pawn/RedeemConfirmDialog'
+import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
+import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
 import {
   extendLoanAction,
   forfeitLoanAction,
@@ -115,6 +117,7 @@ export default function PawnLoanDetail({
   const [dialog, setDialog] = useState<DialogKind>(null)
   const [printPending, startPrintTransition] = useTransition()
   const [printToast, setPrintToast] = useState<string | null>(null)
+  const [showReminder, setShowReminder] = useState(false)
 
   const isTerminal =
     loan.status === 'redeemed' ||
@@ -156,6 +159,13 @@ export default function PawnLoanDetail({
           {t.pawn.backToList}
         </Link>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowReminder(true)}
+            className="rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+          >
+            {t.comms.sendReminderButton}
+          </button>
           {loan.is_printed ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs font-medium text-ink">
               <Lock size={12} weight="bold" />
@@ -174,6 +184,24 @@ export default function PawnLoanDetail({
           </span>
         </div>
       </div>
+      {showReminder ? (
+        <SendReminderDialog
+          customerId={loan.customer_id}
+          customerName={loan.customer_name}
+          allowedKinds={[
+            'loan_maturity_t7',
+            'loan_maturity_t1',
+            'loan_due_today',
+            'loan_overdue_t1',
+            'loan_overdue_t7',
+            'custom',
+          ]}
+          defaultKind="loan_maturity_t1"
+          related={{ loanId: loan.id }}
+          onClose={() => setShowReminder(false)}
+          action={manualSendAction}
+        />
+      ) : null}
 
       {/* Header */}
       <div className="rounded-lg border border-hairline bg-canvas p-4">

@@ -18,6 +18,8 @@ import {
   Wrench,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
+import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
 import { ServiceTypeBadge } from '@/components/repair/ServiceTypeBadge'
 import { StatusBadge } from '@/components/repair/StatusBadge'
 import { StonesPanel, type RepairStoneItem } from '@/components/repair/StonesPanel'
@@ -199,6 +201,7 @@ export default function RepairTicketDetail({
   const [dialog, setDialog] = useState<DialogKind>(null)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [showReminder, setShowReminder] = useState(false)
 
   function runSimple(
     action: (fd: FormData) => Promise<ActionResult>,
@@ -275,6 +278,13 @@ export default function RepairTicketDetail({
           {t.repair.backToList}
         </Link>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowReminder(true)}
+            className="rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+          >
+            {t.comms.sendReminderButton}
+          </button>
           {ticket.is_locked ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs font-medium text-ink">
               <Lock size={12} weight="bold" />
@@ -290,6 +300,19 @@ export default function RepairTicketDetail({
           <StatusBadge status={status} />
         </div>
       </div>
+      {showReminder ? (
+        <SendReminderDialog
+          customerId={ticket.customer_id}
+          customerName={ticket.customer_name}
+          allowedKinds={['repair_ready', 'repair_pickup_reminder', 'custom']}
+          defaultKind={
+            ticket.status === 'ready' ? 'repair_ready' : 'repair_pickup_reminder'
+          }
+          related={{ repairTicketId: ticket.id }}
+          onClose={() => setShowReminder(false)}
+          action={manualSendAction}
+        />
+      ) : null}
 
       {/* Header */}
       <div className="rounded-lg border border-hairline bg-canvas p-4">
