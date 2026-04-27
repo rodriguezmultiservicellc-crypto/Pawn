@@ -1,0 +1,615 @@
+'use client'
+
+import { useActionState, useRef, useState, useTransition } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import {
+  ArrowLeft,
+  Camera,
+  Eye,
+  Trash,
+  Upload,
+  Prohibit,
+  User,
+} from '@phosphor-icons/react'
+import { useI18n } from '@/lib/i18n/context'
+import {
+  CustomerFormFields,
+  type CustomerFieldValues,
+} from '@/components/customers/CustomerFormFields'
+import {
+  banCustomerAction,
+  deleteCustomerAction,
+  deleteCustomerDocumentAction,
+  updateCustomerAction,
+  updateCustomerInitialState,
+  uploadCustomerDocumentAction,
+  uploadCustomerPhotoAction,
+  type UpdateCustomerState,
+} from './actions'
+import type {
+  CommPreference,
+  CustomerDocKind,
+  IdDocumentType,
+  Language,
+} from '@/types/database-aliases'
+
+export type CustomerDocumentItem = {
+  id: string
+  kind: CustomerDocKind
+  mime_type: string | null
+  id_type: IdDocumentType | null
+  id_number: string | null
+  id_state: string | null
+  id_expiry: string | null
+  created_at: string
+  signed_url: string | null
+}
+
+type CustomerRecord = {
+  id: string
+  tenant_id: string
+  first_name: string
+  last_name: string
+  middle_name: string | null
+  date_of_birth: string | null
+  phone: string | null
+  phone_alt: string | null
+  email: string | null
+  address1: string | null
+  address2: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  country: string | null
+  id_type: IdDocumentType | null
+  id_number: string | null
+  id_state: string | null
+  id_country: string | null
+  id_expiry: string | null
+  comm_preference: CommPreference
+  language: Language
+  marketing_opt_in: boolean
+  height_inches: number | null
+  weight_lbs: number | null
+  sex: string | null
+  hair_color: string | null
+  eye_color: string | null
+  identifying_marks: string | null
+  place_of_employment: string | null
+  notes: string | null
+  tags: string[] | null
+  is_banned: boolean
+  banned_reason: string | null
+  banned_at: string | null
+  banned_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export default function CustomerDetail({
+  customer,
+  documents,
+  hasPawn = false,
+  photoSignedUrl,
+}: {
+  customer: CustomerRecord
+  documents: CustomerDocumentItem[]
+  hasPawn?: boolean
+  photoSignedUrl?: string | null
+}) {
+  const { t } = useI18n()
+
+  const [state, formAction, pending] = useActionState<
+    UpdateCustomerState,
+    FormData
+  >(updateCustomerAction, updateCustomerInitialState)
+
+  const fieldError = (key: string) => state.fieldErrors?.[key]
+
+  const initial: CustomerFieldValues = {
+    first_name: customer.first_name,
+    last_name: customer.last_name,
+    middle_name: customer.middle_name,
+    date_of_birth: customer.date_of_birth,
+    phone: customer.phone,
+    phone_alt: customer.phone_alt,
+    email: customer.email,
+    address1: customer.address1,
+    address2: customer.address2,
+    city: customer.city,
+    state: customer.state,
+    zip: customer.zip,
+    country: customer.country ?? 'US',
+    id_type: customer.id_type,
+    id_number: customer.id_number,
+    id_state: customer.id_state,
+    id_country: customer.id_country ?? 'US',
+    id_expiry: customer.id_expiry,
+    comm_preference: customer.comm_preference,
+    language: customer.language,
+    marketing_opt_in: customer.marketing_opt_in,
+    height_inches: customer.height_inches,
+    weight_lbs: customer.weight_lbs,
+    sex: customer.sex,
+    hair_color: customer.hair_color,
+    eye_color: customer.eye_color,
+    identifying_marks: customer.identifying_marks,
+    place_of_employment: customer.place_of_employment,
+    notes: customer.notes,
+    tags: customer.tags ?? [],
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/customers"
+            className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          >
+            <ArrowLeft size={14} weight="bold" />
+            {t.customers.backToList}
+          </Link>
+        </div>
+        <div className="flex items-center gap-2">
+          {customer.is_banned ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-error/30 bg-error/5 px-2 py-1 text-xs font-medium text-error">
+              <Prohibit size={12} weight="bold" />
+              {t.customers.bannedBadge}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex items-start gap-4">
+        <PhotoBlock
+          customerId={customer.id}
+          signedUrl={photoSignedUrl ?? null}
+        />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-bold">
+            {customer.last_name}, {customer.first_name}
+            {customer.middle_name ? ` ${customer.middle_name}` : ''}
+          </h1>
+          {customer.phone || customer.email ? (
+            <div className="mt-1 text-sm text-ash">
+              {[customer.phone, customer.email].filter(Boolean).join(' · ')}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {state.error ? (
+        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          {state.error}
+        </div>
+      ) : null}
+      {state.ok ? (
+        <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
+          {t.common.save} ✓
+        </div>
+      ) : null}
+
+      <form action={formAction} className="space-y-6">
+        <input type="hidden" name="id" value={customer.id} />
+        <CustomerFormFields
+          initial={initial}
+          fieldError={fieldError}
+          hasPawn={hasPawn}
+        />
+
+        <BanSection
+          customerId={customer.id}
+          isBanned={customer.is_banned}
+          bannedReason={customer.banned_reason}
+        />
+
+        <div className="flex items-center justify-end gap-3">
+          <DeleteCustomerButton customerId={customer.id} />
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+          >
+            {pending ? t.common.saving : t.customers.submitUpdate}
+          </button>
+        </div>
+      </form>
+
+      <DocumentsPanel
+        customerId={customer.id}
+        documents={documents}
+        defaultIdType={customer.id_type}
+        defaultIdNumber={customer.id_number}
+        defaultIdState={customer.id_state}
+        defaultIdExpiry={customer.id_expiry}
+      />
+    </div>
+  )
+}
+
+function PhotoBlock({
+  customerId,
+  signedUrl,
+}: {
+  customerId: string
+  signedUrl: string | null
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  function onPick() {
+    setError(null)
+    ref.current?.click()
+  }
+
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const fd = new FormData()
+    fd.set('customer_id', customerId)
+    fd.set('file', file)
+    startTransition(async () => {
+      const res = await uploadCustomerPhotoAction(fd)
+      if (res.error) setError(res.error)
+      if (ref.current) ref.current.value = ''
+    })
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onPick}
+        disabled={pending}
+        className="group relative h-24 w-24 overflow-hidden rounded-full border border-hairline bg-cloud disabled:opacity-50"
+        title="Upload photo"
+      >
+        {signedUrl ? (
+          <Image
+            src={signedUrl}
+            alt=""
+            fill
+            sizes="96px"
+            unoptimized
+            className="object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-ash">
+            <User size={36} weight="light" />
+          </div>
+        )}
+        <div className="absolute inset-0 flex items-center justify-center bg-ink/40 opacity-0 transition-opacity group-hover:opacity-100">
+          <Camera size={20} weight="bold" className="text-canvas" />
+        </div>
+      </button>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic"
+        onChange={onChange}
+        className="sr-only"
+      />
+      {error ? <div className="mt-1 text-xs text-error">{error}</div> : null}
+    </div>
+  )
+}
+
+function BanSection({
+  customerId,
+  isBanned,
+  bannedReason,
+}: {
+  customerId: string
+  isBanned: boolean
+  bannedReason: string | null
+}) {
+  const { t } = useI18n()
+  const [pending, startTransition] = useTransition()
+  const [reason, setReason] = useState(bannedReason ?? '')
+
+  function toggleBan() {
+    const fd = new FormData()
+    fd.set('customer_id', customerId)
+    fd.set('is_banned', !isBanned ? 'on' : '')
+    if (!isBanned) fd.set('reason', reason)
+    startTransition(() => {
+      banCustomerAction(fd)
+    })
+  }
+
+  return (
+    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+      <legend className="px-1 text-sm font-semibold text-ink">
+        {t.customers.sectionBan}
+      </legend>
+      <div className="mt-2 space-y-3">
+        {isBanned ? (
+          <div className="rounded-md border border-error/30 bg-error/5 p-3 text-sm text-ink">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-medium text-error">
+                  {t.customers.isBanned}
+                </div>
+                {bannedReason ? (
+                  <div className="mt-1 text-ink">{bannedReason}</div>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={toggleBan}
+                disabled={pending}
+                className="shrink-0 rounded-md border border-hairline bg-canvas px-3 py-1 text-sm text-ink hover:border-ink disabled:opacity-50"
+              >
+                {pending ? t.common.saving : t.common.remove}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-ink">
+                {t.customers.bannedReason}
+              </span>
+              <input
+                type="text"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={toggleBan}
+              disabled={pending}
+              className="rounded-md border border-error/30 bg-error/5 px-3 py-1.5 text-sm font-medium text-error hover:bg-error/10 disabled:opacity-50"
+            >
+              {pending ? t.common.saving : t.customers.isBanned}
+            </button>
+          </div>
+        )}
+      </div>
+    </fieldset>
+  )
+}
+
+function DeleteCustomerButton({ customerId }: { customerId: string }) {
+  const { t } = useI18n()
+  const [pending, startTransition] = useTransition()
+
+  function onClick() {
+    if (!confirm(t.customers.confirmDelete)) return
+    const fd = new FormData()
+    fd.set('id', customerId)
+    startTransition(() => {
+      deleteCustomerAction(fd)
+    })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={pending}
+      className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm font-medium text-error hover:bg-error/10 disabled:opacity-50"
+    >
+      <Trash size={14} weight="bold" />
+      {pending ? t.common.saving : t.common.delete}
+    </button>
+  )
+}
+
+function DocumentsPanel({
+  customerId,
+  documents,
+  defaultIdType,
+  defaultIdNumber,
+  defaultIdState,
+  defaultIdExpiry,
+}: {
+  customerId: string
+  documents: CustomerDocumentItem[]
+  defaultIdType: IdDocumentType | null
+  defaultIdNumber: string | null
+  defaultIdState: string | null
+  defaultIdExpiry: string | null
+}) {
+  const { t } = useI18n()
+
+  return (
+    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+      <legend className="px-1 text-sm font-semibold text-ink">
+        {t.customers.sectionDocuments}
+      </legend>
+      <div className="mt-2 space-y-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <UploadButton
+            customerId={customerId}
+            kind="id_scan"
+            label={t.customers.uploadIdScan}
+            defaultIdType={defaultIdType}
+            defaultIdNumber={defaultIdNumber}
+            defaultIdState={defaultIdState}
+            defaultIdExpiry={defaultIdExpiry}
+          />
+          <UploadButton
+            customerId={customerId}
+            kind="signature"
+            label={t.customers.uploadSignature}
+          />
+        </div>
+
+        {documents.length === 0 ? (
+          <p className="text-sm text-ash">{t.customers.documentNone}</p>
+        ) : (
+          <ul className="divide-y divide-hairline rounded-md border border-hairline">
+            {documents.map((doc) => (
+              <li
+                key={doc.id}
+                className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium text-ink">
+                    {doc.kind === 'id_scan'
+                      ? t.customers.documentIdScan
+                      : t.customers.documentSignature}
+                    {doc.id_type ? (
+                      <span className="ml-2 text-xs text-ash">
+                        {labelForIdType(doc.id_type, t)}
+                        {doc.id_state ? ` · ${doc.id_state}` : ''}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="text-xs text-ash">
+                    {t.customers.capturedOn}{' '}
+                    {new Date(doc.created_at).toLocaleString()}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {doc.signed_url ? (
+                    <a
+                      href={doc.signed_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+                    >
+                      <Eye size={12} weight="bold" />
+                      {t.customers.viewDocument}
+                    </a>
+                  ) : null}
+                  <DeleteDocumentButton
+                    documentId={doc.id}
+                    customerId={customerId}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </fieldset>
+  )
+}
+
+function labelForIdType(
+  type: IdDocumentType,
+  t: ReturnType<typeof useI18n>['t'],
+): string {
+  switch (type) {
+    case 'drivers_license':
+      return t.customers.idTypeDriversLicense
+    case 'state_id':
+      return t.customers.idTypeStateId
+    case 'passport':
+      return t.customers.idTypePassport
+    case 'military_id':
+      return t.customers.idTypeMilitary
+    case 'permanent_resident_card':
+      return t.customers.idTypePermanentResident
+    case 'other':
+      return t.customers.idTypeOther
+  }
+}
+
+function UploadButton({
+  customerId,
+  kind,
+  label,
+  defaultIdType,
+  defaultIdNumber,
+  defaultIdState,
+  defaultIdExpiry,
+}: {
+  customerId: string
+  kind: CustomerDocKind
+  label: string
+  defaultIdType?: IdDocumentType | null
+  defaultIdNumber?: string | null
+  defaultIdState?: string | null
+  defaultIdExpiry?: string | null
+}) {
+  const { t } = useI18n()
+  const ref = useRef<HTMLInputElement>(null)
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  function onClick() {
+    setError(null)
+    ref.current?.click()
+  }
+
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const fd = new FormData()
+    fd.set('customer_id', customerId)
+    fd.set('kind', kind)
+    fd.set('file', file)
+    if (kind === 'id_scan') {
+      if (defaultIdType) fd.set('id_type', defaultIdType)
+      if (defaultIdNumber) fd.set('id_number', defaultIdNumber)
+      if (defaultIdState) fd.set('id_state', defaultIdState)
+      if (defaultIdExpiry) fd.set('id_expiry', defaultIdExpiry)
+    }
+    startTransition(async () => {
+      const res = await uploadCustomerDocumentAction(fd)
+      if (res.error) setError(res.error)
+      if (ref.current) ref.current.value = ''
+    })
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={pending}
+        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-3 text-sm font-medium text-ink hover:border-ink disabled:opacity-50"
+      >
+        <Upload size={14} weight="bold" />
+        {pending ? t.common.uploading : label}
+      </button>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+        onChange={onChange}
+        className="sr-only"
+      />
+      {error ? (
+        <div className="mt-1 text-xs text-error">{error}</div>
+      ) : null}
+    </div>
+  )
+}
+
+function DeleteDocumentButton({
+  documentId,
+  customerId,
+}: {
+  documentId: string
+  customerId: string
+}) {
+  const [pending, startTransition] = useTransition()
+  function onClick() {
+    const fd = new FormData()
+    fd.set('document_id', documentId)
+    fd.set('customer_id', customerId)
+    startTransition(() => {
+      deleteCustomerDocumentAction(fd)
+    })
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={pending}
+      className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ash hover:text-error disabled:opacity-50"
+      aria-label="delete"
+    >
+      <Trash size={12} weight="bold" />
+    </button>
+  )
+}

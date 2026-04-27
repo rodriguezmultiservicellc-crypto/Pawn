@@ -1,0 +1,173 @@
+import { z } from 'zod'
+
+/**
+ * Customer Zod schemas. Every form, server action, and API endpoint that
+ * touches a customer record validates input through these schemas.
+ *
+ * Convention: empty strings come in from FormData and we convert to null
+ * via .transform/.preprocess. Required text fields stay strings.
+ */
+
+const optionalTrimmedString = z
+  .preprocess(
+    (v) => (typeof v === 'string' ? v.trim() : v),
+    z.string().min(1).max(500).optional().nullable(),
+  )
+  .transform((v) => (v === '' || v == null ? null : v))
+
+const optionalDate = z
+  .preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'invalid_date')
+      .nullable()
+      .optional(),
+  )
+  .transform((v) => (v === '' || v == null ? null : v))
+
+export const idDocumentTypeSchema = z.enum([
+  'drivers_license',
+  'state_id',
+  'passport',
+  'military_id',
+  'permanent_resident_card',
+  'other',
+])
+
+export const commPreferenceSchema = z.enum(['email', 'sms', 'whatsapp', 'none'])
+
+export const languageSchema = z.enum(['en', 'es'])
+
+const tagsSchema = z
+  .preprocess(
+    (v) => {
+      if (Array.isArray(v)) return v
+      if (typeof v === 'string') {
+        return v
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+      }
+      return []
+    },
+    z.array(z.string().min(1).max(40)).max(20),
+  )
+  .default([])
+
+export const customerCreateSchema = z.object({
+  first_name: z.string().trim().min(1, 'required').max(80),
+  last_name: z.string().trim().min(1, 'required').max(80),
+  middle_name: optionalTrimmedString,
+  date_of_birth: optionalDate,
+
+  phone: optionalTrimmedString,
+  phone_alt: optionalTrimmedString,
+  email: z
+    .preprocess(
+      (v) => (typeof v === 'string' ? v.trim() : v),
+      z.string().email().max(254).optional().nullable(),
+    )
+    .transform((v) => (v === '' || v == null ? null : v)),
+
+  address1: optionalTrimmedString,
+  address2: optionalTrimmedString,
+  city: optionalTrimmedString,
+  state: optionalTrimmedString,
+  zip: optionalTrimmedString,
+  country: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? 'US' : v),
+      z.string().trim().min(2).max(2).default('US'),
+    ),
+
+  id_type: idDocumentTypeSchema.optional().nullable(),
+  id_number: optionalTrimmedString,
+  id_state: optionalTrimmedString,
+  id_country: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? 'US' : v),
+      z.string().trim().min(2).max(2).default('US'),
+    ),
+  id_expiry: optionalDate,
+
+  comm_preference: commPreferenceSchema.default('sms'),
+  language: languageSchema.default('en'),
+  marketing_opt_in: z.coerce.boolean().default(false),
+
+  // Pawn-only physical description + employment. Optional; ignored on
+  // tenants where has_pawn = false (UI hides the section).
+  height_inches: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      z.coerce
+        .number()
+        .int()
+        .min(12)
+        .max(108)
+        .nullable()
+        .optional(),
+    )
+    .transform((v) => (v == null ? null : v)),
+  weight_lbs: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(999)
+        .nullable()
+        .optional(),
+    )
+    .transform((v) => (v == null ? null : v)),
+  sex: optionalTrimmedString,
+  hair_color: optionalTrimmedString,
+  eye_color: optionalTrimmedString,
+  identifying_marks: optionalTrimmedString,
+  place_of_employment: optionalTrimmedString,
+
+  notes: optionalTrimmedString,
+  tags: tagsSchema,
+})
+
+export const customerUpdateSchema = customerCreateSchema.extend({
+  id: z.string().uuid(),
+  is_banned: z.coerce.boolean().default(false),
+  banned_reason: optionalTrimmedString,
+})
+
+export type CustomerCreateInput = z.infer<typeof customerCreateSchema>
+export type CustomerUpdateInput = z.infer<typeof customerUpdateSchema>
+
+export const banCustomerSchema = z.object({
+  customer_id: z.string().uuid(),
+  is_banned: z.coerce.boolean(),
+  reason: optionalTrimmedString,
+})
+
+export type BanCustomerInput = z.infer<typeof banCustomerSchema>
+
+export const ALLOWED_DOCUMENT_MIME_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'application/pdf',
+] as const
+
+export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024 // 10 MB
+
+export const customerDocumentUploadSchema = z.object({
+  customer_id: z.string().uuid(),
+  kind: z.enum(['id_scan', 'signature']),
+  id_type: idDocumentTypeSchema.optional().nullable(),
+  id_number: optionalTrimmedString,
+  id_state: optionalTrimmedString,
+  id_expiry: optionalDate,
+})
+
+export type CustomerDocumentUploadInput = z.infer<
+  typeof customerDocumentUploadSchema
+>

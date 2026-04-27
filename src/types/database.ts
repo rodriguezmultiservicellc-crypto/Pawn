@@ -120,6 +120,555 @@ export type Database = {
           },
         ]
       }
+      customer_documents: {
+        Row: {
+          byte_size: number | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          deleted_at: string | null
+          id: string
+          id_expiry: string | null
+          id_number: string | null
+          id_state: string | null
+          id_type: Database["public"]["Enums"]["id_document_type"] | null
+          kind: Database["public"]["Enums"]["customer_doc_kind"]
+          mime_type: string | null
+          notes: string | null
+          storage_path: string
+          tenant_id: string
+        }
+        Insert: {
+          byte_size?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          deleted_at?: string | null
+          id?: string
+          id_expiry?: string | null
+          id_number?: string | null
+          id_state?: string | null
+          id_type?: Database["public"]["Enums"]["id_document_type"] | null
+          kind: Database["public"]["Enums"]["customer_doc_kind"]
+          mime_type?: string | null
+          notes?: string | null
+          storage_path: string
+          tenant_id: string
+        }
+        Update: {
+          byte_size?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          deleted_at?: string | null
+          id?: string
+          id_expiry?: string | null
+          id_number?: string | null
+          id_state?: string | null
+          id_type?: Database["public"]["Enums"]["id_document_type"] | null
+          kind?: Database["public"]["Enums"]["customer_doc_kind"]
+          mime_type?: string | null
+          notes?: string | null
+          storage_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_documents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address1: string | null
+          address2: string | null
+          banned_at: string | null
+          banned_by: string | null
+          banned_reason: string | null
+          city: string | null
+          comm_preference: Database["public"]["Enums"]["comm_preference"]
+          country: string | null
+          created_at: string
+          created_by: string | null
+          date_of_birth: string | null
+          deleted_at: string | null
+          email: string | null
+          eye_color: string | null
+          first_name: string
+          hair_color: string | null
+          height_inches: number | null
+          id: string
+          id_country: string | null
+          id_expiry: string | null
+          id_number: string | null
+          id_state: string | null
+          id_type: Database["public"]["Enums"]["id_document_type"] | null
+          identifying_marks: string | null
+          is_banned: boolean
+          language: string
+          last_name: string
+          marketing_opt_in: boolean
+          middle_name: string | null
+          notes: string | null
+          phone: string | null
+          phone_alt: string | null
+          photo_url: string | null
+          place_of_employment: string | null
+          sex: string | null
+          state: string | null
+          tags: string[] | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          weight_lbs: number | null
+          zip: string | null
+        }
+        Insert: {
+          address1?: string | null
+          address2?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
+          banned_reason?: string | null
+          city?: string | null
+          comm_preference?: Database["public"]["Enums"]["comm_preference"]
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          eye_color?: string | null
+          first_name: string
+          hair_color?: string | null
+          height_inches?: number | null
+          id?: string
+          id_country?: string | null
+          id_expiry?: string | null
+          id_number?: string | null
+          id_state?: string | null
+          id_type?: Database["public"]["Enums"]["id_document_type"] | null
+          identifying_marks?: string | null
+          is_banned?: boolean
+          language?: string
+          last_name: string
+          marketing_opt_in?: boolean
+          middle_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          phone_alt?: string | null
+          photo_url?: string | null
+          place_of_employment?: string | null
+          sex?: string | null
+          state?: string | null
+          tags?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          weight_lbs?: number | null
+          zip?: string | null
+        }
+        Update: {
+          address1?: string | null
+          address2?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
+          banned_reason?: string | null
+          city?: string | null
+          comm_preference?: Database["public"]["Enums"]["comm_preference"]
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          eye_color?: string | null
+          first_name?: string
+          hair_color?: string | null
+          height_inches?: number | null
+          id?: string
+          id_country?: string | null
+          id_expiry?: string | null
+          id_number?: string | null
+          id_state?: string | null
+          id_type?: Database["public"]["Enums"]["id_document_type"] | null
+          identifying_marks?: string | null
+          is_banned?: boolean
+          language?: string
+          last_name?: string
+          marketing_opt_in?: boolean
+          middle_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          phone_alt?: string | null
+          photo_url?: string | null
+          place_of_employment?: string | null
+          sex?: string | null
+          state?: string | null
+          tags?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          weight_lbs?: number | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_item_photos: {
+        Row: {
+          byte_size: number | null
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          is_primary: boolean
+          item_id: string
+          mime_type: string | null
+          position: number
+          storage_path: string
+          tenant_id: string
+        }
+        Insert: {
+          byte_size?: number | null
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_primary?: boolean
+          item_id: string
+          mime_type?: string | null
+          position?: number
+          storage_path: string
+          tenant_id: string
+        }
+        Update: {
+          byte_size?: number | null
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_primary?: boolean
+          item_id?: string
+          mime_type?: string | null
+          position?: number
+          storage_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_item_photos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_item_photos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_item_stones: {
+        Row: {
+          carat: number | null
+          certificate: string | null
+          clarity: string | null
+          color: string | null
+          count: number
+          created_at: string
+          cut: string | null
+          deleted_at: string | null
+          id: string
+          is_total_carat: boolean
+          item_id: string
+          notes: string | null
+          position: number
+          stone_type: string | null
+          tenant_id: string
+        }
+        Insert: {
+          carat?: number | null
+          certificate?: string | null
+          clarity?: string | null
+          color?: string | null
+          count?: number
+          created_at?: string
+          cut?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_total_carat?: boolean
+          item_id: string
+          notes?: string | null
+          position?: number
+          stone_type?: string | null
+          tenant_id: string
+        }
+        Update: {
+          carat?: number | null
+          certificate?: string | null
+          clarity?: string | null
+          color?: string | null
+          count?: number
+          created_at?: string
+          cut?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_total_carat?: boolean
+          item_id?: string
+          notes?: string | null
+          position?: number
+          stone_type?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_item_stones_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_item_stones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          acquired_at: string
+          acquired_cost: number | null
+          brand: string | null
+          category: Database["public"]["Enums"]["inventory_category"]
+          cost_basis: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description: string
+          hold_until: string | null
+          id: string
+          karat: string | null
+          list_price: number | null
+          location: Database["public"]["Enums"]["inventory_location"]
+          metal: Database["public"]["Enums"]["metal_type"] | null
+          model: string | null
+          notes: string | null
+          released_from_hold_at: string | null
+          sale_price: number | null
+          serial_number: string | null
+          sku: string
+          sku_number: number
+          sold_at: string | null
+          source: Database["public"]["Enums"]["inventory_source"]
+          source_loan_id: string | null
+          source_repair_id: string | null
+          source_vendor: string | null
+          staff_memo: string | null
+          status: Database["public"]["Enums"]["inventory_status"]
+          tags: string[] | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          weight_dwt: number | null
+          weight_grams: number | null
+        }
+        Insert: {
+          acquired_at?: string
+          acquired_cost?: number | null
+          brand?: string | null
+          category?: Database["public"]["Enums"]["inventory_category"]
+          cost_basis?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description: string
+          hold_until?: string | null
+          id?: string
+          karat?: string | null
+          list_price?: number | null
+          location?: Database["public"]["Enums"]["inventory_location"]
+          metal?: Database["public"]["Enums"]["metal_type"] | null
+          model?: string | null
+          notes?: string | null
+          released_from_hold_at?: string | null
+          sale_price?: number | null
+          serial_number?: string | null
+          sku: string
+          sku_number: number
+          sold_at?: string | null
+          source: Database["public"]["Enums"]["inventory_source"]
+          source_loan_id?: string | null
+          source_repair_id?: string | null
+          source_vendor?: string | null
+          staff_memo?: string | null
+          status?: Database["public"]["Enums"]["inventory_status"]
+          tags?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          weight_dwt?: number | null
+          weight_grams?: number | null
+        }
+        Update: {
+          acquired_at?: string
+          acquired_cost?: number | null
+          brand?: string | null
+          category?: Database["public"]["Enums"]["inventory_category"]
+          cost_basis?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string
+          hold_until?: string | null
+          id?: string
+          karat?: string | null
+          list_price?: number | null
+          location?: Database["public"]["Enums"]["inventory_location"]
+          metal?: Database["public"]["Enums"]["metal_type"] | null
+          model?: string | null
+          notes?: string | null
+          released_from_hold_at?: string | null
+          sale_price?: number | null
+          serial_number?: string | null
+          sku?: string
+          sku_number?: number
+          sold_at?: string | null
+          source?: Database["public"]["Enums"]["inventory_source"]
+          source_loan_id?: string | null
+          source_repair_id?: string | null
+          source_vendor?: string | null
+          staff_memo?: string | null
+          status?: Database["public"]["Enums"]["inventory_status"]
+          tags?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          weight_dwt?: number | null
+          weight_grams?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transfers: {
+        Row: {
+          cancelled_at: string | null
+          carrier: string | null
+          created_at: string
+          created_by: string | null
+          from_tenant_id: string
+          id: string
+          item_id: string
+          notes: string | null
+          received_at: string | null
+          shipped_at: string | null
+          status: Database["public"]["Enums"]["transfer_status"]
+          tenant_id: string
+          to_tenant_id: string
+          tracking_number: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          carrier?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_tenant_id: string
+          id?: string
+          item_id: string
+          notes?: string | null
+          received_at?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["transfer_status"]
+          tenant_id: string
+          to_tenant_id: string
+          tracking_number?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          carrier?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_tenant_id?: string
+          id?: string
+          item_id?: string
+          notes?: string | null
+          received_at?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["transfer_status"]
+          tenant_id?: string
+          to_tenant_id?: string
+          tracking_number?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transfers_from_tenant_id_fkey"
+            columns: ["from_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_to_tenant_id_fkey"
+            columns: ["to_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -268,6 +817,35 @@ export type Database = {
             foreignKeyName: "tenant_billing_settings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_counters: {
+        Row: {
+          counter_name: string
+          last_value: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          counter_name: string
+          last_value?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          counter_name?: string
+          last_value?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_counters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -476,8 +1054,71 @@ export type Database = {
         Returns: Database["public"]["Enums"]["tenant_role"]
       }
       my_tenant_ids: { Args: never; Returns: string[] }
+      next_tenant_counter: {
+        Args: { p_counter_name: string; p_tenant_id: string }
+        Returns: number
+      }
     }
     Enums: {
+      comm_preference: "email" | "sms" | "whatsapp" | "none"
+      customer_doc_kind: "id_scan" | "signature"
+      id_document_type:
+        | "drivers_license"
+        | "state_id"
+        | "passport"
+        | "military_id"
+        | "permanent_resident_card"
+        | "other"
+      inventory_category:
+        | "ring"
+        | "necklace"
+        | "bracelet"
+        | "earrings"
+        | "pendant"
+        | "chain"
+        | "watch"
+        | "coin"
+        | "bullion"
+        | "loose_stone"
+        | "electronics"
+        | "tool"
+        | "instrument"
+        | "other"
+      inventory_location:
+        | "case"
+        | "safe"
+        | "vault"
+        | "display"
+        | "workshop"
+        | "offsite"
+        | "transfer"
+      inventory_source:
+        | "pawn_forfeit"
+        | "bought"
+        | "consigned"
+        | "new_stock"
+        | "repair_excess"
+        | "abandoned_repair"
+      inventory_status:
+        | "available"
+        | "held"
+        | "sold"
+        | "scrapped"
+        | "transferred"
+        | "returned"
+      metal_type:
+        | "gold"
+        | "silver"
+        | "platinum"
+        | "palladium"
+        | "rose_gold"
+        | "white_gold"
+        | "tungsten"
+        | "titanium"
+        | "stainless_steel"
+        | "mixed"
+        | "none"
+        | "other"
       police_report_format: "fl_leadsonline"
       tenant_role:
         | "owner"
@@ -488,6 +1129,7 @@ export type Database = {
         | "appraiser"
         | "client"
       tenant_type: "chain_hq" | "shop" | "standalone"
+      transfer_status: "pending" | "in_transit" | "received" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -615,6 +1257,71 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      comm_preference: ["email", "sms", "whatsapp", "none"],
+      customer_doc_kind: ["id_scan", "signature"],
+      id_document_type: [
+        "drivers_license",
+        "state_id",
+        "passport",
+        "military_id",
+        "permanent_resident_card",
+        "other",
+      ],
+      inventory_category: [
+        "ring",
+        "necklace",
+        "bracelet",
+        "earrings",
+        "pendant",
+        "chain",
+        "watch",
+        "coin",
+        "bullion",
+        "loose_stone",
+        "electronics",
+        "tool",
+        "instrument",
+        "other",
+      ],
+      inventory_location: [
+        "case",
+        "safe",
+        "vault",
+        "display",
+        "workshop",
+        "offsite",
+        "transfer",
+      ],
+      inventory_source: [
+        "pawn_forfeit",
+        "bought",
+        "consigned",
+        "new_stock",
+        "repair_excess",
+        "abandoned_repair",
+      ],
+      inventory_status: [
+        "available",
+        "held",
+        "sold",
+        "scrapped",
+        "transferred",
+        "returned",
+      ],
+      metal_type: [
+        "gold",
+        "silver",
+        "platinum",
+        "palladium",
+        "rose_gold",
+        "white_gold",
+        "tungsten",
+        "titanium",
+        "stainless_steel",
+        "mixed",
+        "none",
+        "other",
+      ],
       police_report_format: ["fl_leadsonline"],
       tenant_role: [
         "owner",
@@ -626,6 +1333,7 @@ export const Constants = {
         "client",
       ],
       tenant_type: ["chain_hq", "shop", "standalone"],
+      transfer_status: ["pending", "in_transit", "received", "cancelled"],
     },
   },
 } as const

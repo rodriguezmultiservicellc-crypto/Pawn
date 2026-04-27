@@ -8,6 +8,7 @@ import {
   TenantSwitcher,
   type SwitcherTenant,
 } from '@/components/layout/TenantSwitcher'
+import { Sidebar } from '@/components/layout/Sidebar'
 
 const STAFF_ROLES = new Set([
   'owner',
@@ -20,9 +21,9 @@ const STAFF_ROLES = new Set([
 
 /**
  * Staff route group. Defense-in-depth role check (proxy already gated).
- * Wraps in I18nProvider seeded from profiles.language. Renders a tenant
- * switcher in the top bar — RLS on `tenants` filters the list to the
- * accessible set (direct memberships + chain admin children).
+ * Wraps in I18nProvider seeded from profiles.language. Renders a sidebar
+ * gated by the active tenant's module flags, and a top bar with the
+ * tenant switcher.
  */
 export default async function StaffLayout({
   children,
@@ -35,15 +36,26 @@ export default async function StaffLayout({
     redirect('/no-tenant')
   }
 
-  // Accessible tenants for the switcher. RLS handles the filtering — we
-  // get back direct memberships AND children of any chain HQ where the
-  // user is chain_admin.
+  // Accessible tenants for the switcher. RLS filters to direct memberships
+  // + chain-admin children. We also need the active tenant's module flags
+  // for the sidebar.
   const { data: accessibleTenants } = await ctx.supabase
     .from('tenants')
-    .select('id, name, dba, tenant_type')
+    .select('id, name, dba, tenant_type, has_pawn, has_repair, has_retail')
     .order('name')
 
-  const switcherTenants = (accessibleTenants ?? []) as SwitcherTenant[]
+  const tenantsList = accessibleTenants ?? []
+  const switcherTenants = tenantsList as SwitcherTenant[]
+
+  const activeTenant = ctx.tenantId
+    ? tenantsList.find((t) => t.id === ctx.tenantId) ?? null
+    : null
+
+  const modules = {
+    has_pawn: activeTenant?.has_pawn ?? false,
+    has_repair: activeTenant?.has_repair ?? false,
+    has_retail: activeTenant?.has_retail ?? false,
+  }
 
   const { data: profile } = await ctx.supabase
     .from('profiles')
@@ -57,7 +69,7 @@ export default async function StaffLayout({
     <I18nProvider initialLang={initialLang}>
       <div className="flex min-h-screen flex-col bg-cloud">
         <header className="border-b border-hairline bg-canvas">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-6 py-3">
             <div className="flex items-center gap-3">
               <Link href="/dashboard" className="flex items-center gap-2">
                 <span
@@ -83,9 +95,10 @@ export default async function StaffLayout({
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
-          {children}
-        </main>
+        <div className="flex flex-1">
+          <Sidebar modules={modules} />
+          <main className="flex-1 overflow-x-auto px-6 py-6">{children}</main>
+        </div>
       </div>
     </I18nProvider>
   )
