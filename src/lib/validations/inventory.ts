@@ -4,12 +4,18 @@ import { z } from 'zod'
  * Inventory Zod schemas — items, photos, stones.
  */
 
+// Empty-after-trim must become null BEFORE the inner schema, otherwise
+// .min(1) rejects untouched optional fields.
 const optionalTrimmedString = z
   .preprocess(
-    (v) => (typeof v === 'string' ? v.trim() : v),
-    z.string().min(1).max(500).optional().nullable(),
+    (v) => {
+      if (typeof v !== 'string') return v
+      const trimmed = v.trim()
+      return trimmed === '' ? null : trimmed
+    },
+    z.string().min(1).max(500).nullable().optional(),
   )
-  .transform((v) => (v === '' || v == null ? null : v))
+  .transform((v) => v ?? null)
 
 const optionalDate = z
   .preprocess(

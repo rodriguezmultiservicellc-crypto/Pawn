@@ -104,6 +104,10 @@ export default function NewCustomerForm({
         <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
           {state.error}
         </div>
+      ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
+        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          {t.common.fixErrorsBelow}
+        </div>
       ) : null}
 
       {autoFilledFlash ? (

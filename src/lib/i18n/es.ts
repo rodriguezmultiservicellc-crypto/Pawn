@@ -42,6 +42,7 @@ export const es: Dictionary = {
     all: 'Todos',
     none: 'Ninguno',
     optional: 'opcional',
+    fixErrorsBelow: 'Por favor corrija los campos resaltados abajo.',
   },
 
   lang: {

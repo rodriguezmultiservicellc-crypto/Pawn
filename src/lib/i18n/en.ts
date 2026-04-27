@@ -47,6 +47,7 @@ export const en = {
     all: 'All',
     none: 'None',
     optional: 'optional',
+    fixErrorsBelow: 'Please fix the highlighted fields below.',
   },
 
   lang: {

@@ -8,12 +8,20 @@ import { z } from 'zod'
  * via .transform/.preprocess. Required text fields stay strings.
  */
 
+// Empty / whitespace-only strings come from FormData on every untouched
+// optional input. Convert to null in preprocess BEFORE the inner schema
+// runs — otherwise `.min(1)` rejects empty strings and the form fails
+// validation on fields the user never typed in.
 const optionalTrimmedString = z
   .preprocess(
-    (v) => (typeof v === 'string' ? v.trim() : v),
-    z.string().min(1).max(500).optional().nullable(),
+    (v) => {
+      if (typeof v !== 'string') return v
+      const trimmed = v.trim()
+      return trimmed === '' ? null : trimmed
+    },
+    z.string().min(1).max(500).nullable().optional(),
   )
-  .transform((v) => (v === '' || v == null ? null : v))
+  .transform((v) => v ?? null)
 
 const optionalDate = z
   .preprocess(
@@ -65,10 +73,14 @@ export const customerCreateSchema = z.object({
   phone_alt: optionalTrimmedString,
   email: z
     .preprocess(
-      (v) => (typeof v === 'string' ? v.trim() : v),
-      z.string().email().max(254).optional().nullable(),
+      (v) => {
+        if (typeof v !== 'string') return v
+        const trimmed = v.trim()
+        return trimmed === '' ? null : trimmed
+      },
+      z.string().email().max(254).nullable().optional(),
     )
-    .transform((v) => (v === '' || v == null ? null : v)),
+    .transform((v) => v ?? null),
 
   address1: optionalTrimmedString,
   address2: optionalTrimmedString,
