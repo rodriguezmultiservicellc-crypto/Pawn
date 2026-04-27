@@ -12,6 +12,8 @@ import { useI18n } from '@/lib/i18n/context'
 import { LayawayStatusBadge } from '@/components/pos/Badges'
 import { LayawayPaymentDialog } from '@/components/pos/LayawayPaymentDialog'
 import { CancelLayawayDialog } from '@/components/pos/CancelLayawayDialog'
+import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
+import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
 import { addLayawayPaymentAction, cancelLayawayAction } from './actions'
 import type {
   LayawayScheduleKind,
@@ -71,6 +73,7 @@ export default function LayawayDetailContent({
   const { t } = useI18n()
   const [showPay, setShowPay] = useState(false)
   const [showCancel, setShowCancel] = useState(false)
+  const [showReminder, setShowReminder] = useState(false)
 
   const isActive = layaway.status === 'active'
 
@@ -141,6 +144,13 @@ export default function LayawayDetailContent({
             {t.pos.layaway.addPayment}
           </button>
         ) : null}
+        <button
+          type="button"
+          onClick={() => setShowReminder(true)}
+          className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+        >
+          {t.comms.sendReminderButton}
+        </button>
         {isActive ? (
           <button
             type="button"
@@ -152,6 +162,26 @@ export default function LayawayDetailContent({
           </button>
         ) : null}
       </div>
+      {showReminder ? (
+        <SendReminderDialog
+          customerId={layaway.customer_id}
+          customerName={layaway.customer_name}
+          allowedKinds={[
+            'layaway_payment_due',
+            'layaway_overdue',
+            'layaway_completed',
+            'custom',
+          ]}
+          defaultKind={
+            layaway.status === 'completed'
+              ? 'layaway_completed'
+              : 'layaway_payment_due'
+          }
+          related={{ layawayId: layaway.id }}
+          onClose={() => setShowReminder(false)}
+          action={manualSendAction}
+        />
+      ) : null}
 
       {/* Totals */}
       <div className="grid grid-cols-2 gap-3 rounded-lg border border-hairline bg-canvas p-4 lg:grid-cols-4">

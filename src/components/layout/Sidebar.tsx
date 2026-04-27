@@ -15,6 +15,7 @@ import {
   Gear,
   ClockCounterClockwise,
   ArrowsLeftRight,
+  ChatCircleText,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -41,6 +42,7 @@ type Tenant = {
 }
 
 const AUDIT_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
+const SETTINGS_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
 
 export function Sidebar({
   modules,
@@ -54,6 +56,7 @@ export function Sidebar({
   const { t } = useI18n()
   const pathname = usePathname()
   const canSeeAudit = !!tenantRole && AUDIT_ROLES.has(tenantRole)
+  const canSeeSettings = !!tenantRole && SETTINGS_ROLES.has(tenantRole)
   // Inventory transfers: only visible to chain branches (a 'shop' with a
   // parent_tenant_id). Standalone shops have no siblings; chain HQs don't
   // hold inventory in v1.
@@ -129,6 +132,12 @@ export function Sidebar({
       label: t.nav.team,
       icon: <UsersThree size={18} weight="regular" />,
       disabled: true,
+    },
+    {
+      href: '/settings/communications',
+      label: t.nav.communications,
+      icon: <ChatCircleText size={18} weight="regular" />,
+      visible: canSeeSettings,
     },
     {
       href: '/settings',
