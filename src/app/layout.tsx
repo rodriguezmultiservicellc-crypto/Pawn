@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
+import VersionFooter from '@/components/version-footer'
 import './globals.css'
 
 /**
@@ -39,6 +40,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-canvas text-ink">
         {children}
+        <VersionFooter />
       </body>
     </html>
   )
