@@ -21,6 +21,7 @@ import {
   Certificate,
   CaretDoubleLeft,
   CaretDoubleRight,
+  Storefront,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -131,6 +132,15 @@ export function Sidebar({
       label: t.nav.transfers,
       icon: <ArrowsLeftRight size={18} weight="regular" />,
       visible: canSeeTransfers,
+    },
+    // eBay listings — under Inventory because the listings ARE inventory
+    // items being published. Settings/integrations entry is owner-only and
+    // users will navigate there from the per-listing UI.
+    {
+      href: '/inventory/listings/ebay',
+      label: t.nav.ebayListings,
+      icon: <Storefront size={18} weight="regular" />,
+      visible: modules.has_retail,
     },
     {
       href: '/inventory/spot-prices',

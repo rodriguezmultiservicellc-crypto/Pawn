@@ -606,3 +606,116 @@ export type SpotPriceOverrideInsert = {
 }
 
 export type SpotPriceOverrideUpdate = Partial<SpotPriceOverrideInsert>
+
+// ── Phase 10 (Path B) — eBay listing publisher
+//
+// SCAFFOLD ONLY — patches/0015-ebay-listings.sql defines the underlying
+// tables but is NOT applied to the live Supabase project yet (operator will
+// apply at merge time after onboarding the eBay developer account). Until
+// then the generated `Database` type does not contain these tables, so we
+// hand-roll narrow Row / Insert / Update shapes here. When 0015 lands and
+// `npm run db:types` is run these aliases should be replaced with proper
+// references into Database['public']['Tables'][...] / Enums.
+
+export type EbayEnvironment = 'sandbox' | 'production'
+
+export type EbayListingStatus =
+  | 'draft'
+  | 'submitting'
+  | 'active'
+  | 'ended'
+  | 'sold'
+  | 'error'
+
+export type EbayListingFormat = 'FIXED_PRICE' | 'AUCTION'
+
+export type EbayListingEventKind =
+  | 'create_offer'
+  | 'publish'
+  | 'update'
+  | 'end'
+  | 'sync'
+  | 'webhook_received'
+
+/** Hand-written shape for tenant_ebay_credentials.Row until db:types regen. */
+export type TenantEbayCredentialsRow = {
+  tenant_id: string
+  ebay_user_id: string | null
+  refresh_token: string | null
+  refresh_token_expires_at: string | null
+  access_token: string | null
+  access_token_expires_at: string | null
+  environment: EbayEnvironment
+  site_id: string
+  merchant_location_key: string | null
+  fulfillment_policy_id: string | null
+  payment_policy_id: string | null
+  return_policy_id: string | null
+  connected_at: string | null
+  disconnected_at: string | null
+  created_at: string
+  updated_at: string
+}
+export type TenantEbayCredentialsInsert = Partial<TenantEbayCredentialsRow> & {
+  tenant_id: string
+}
+export type TenantEbayCredentialsUpdate = Partial<TenantEbayCredentialsRow>
+
+/** Hand-written shape for ebay_listings.Row until db:types regen. */
+export type EbayListingRow = {
+  id: string
+  tenant_id: string
+  inventory_item_id: string
+  ebay_offer_id: string | null
+  ebay_listing_id: string | null
+  ebay_sku: string | null
+  title: string
+  condition_id: string
+  category_id: string
+  format: EbayListingFormat
+  list_price: number | string
+  currency: string
+  quantity: number
+  description: string
+  marketing_message: string | null
+  photo_urls: string[] | null
+  status: EbayListingStatus
+  error_text: string | null
+  last_synced_at: string | null
+  view_count: number | null
+  watcher_count: number | null
+  sold_at: string | null
+  sale_id: string | null
+  created_by: string | null
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+export type EbayListingInsert = Partial<EbayListingRow> & {
+  tenant_id: string
+  inventory_item_id: string
+  title: string
+  condition_id: string
+  category_id: string
+  list_price: number | string
+  description: string
+}
+export type EbayListingUpdate = Partial<EbayListingRow>
+
+/** Hand-written shape for ebay_listing_events.Row until db:types regen. */
+export type EbayListingEventRow = {
+  id: string
+  tenant_id: string
+  listing_id: string | null
+  kind: EbayListingEventKind
+  request_payload: unknown
+  response_payload: unknown
+  http_status: number | null
+  error_text: string | null
+  created_at: string
+}
+export type EbayListingEventInsert = Partial<EbayListingEventRow> & {
+  tenant_id: string
+  kind: EbayListingEventKind
+}

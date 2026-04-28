@@ -9,11 +9,17 @@ import {
   meltMetalFromItem,
   purityFromItem,
 } from '@/lib/spot-prices/melt'
+import { createAdminClient } from '@/lib/supabase/admin'
 import InventoryDetail, {
   type InventoryMeltSummary,
   type InventoryPhotoItem,
   type InventoryStoneItem,
 } from './content'
+import type {
+  EbayListingRow,
+  TenantEbayCredentialsRow,
+} from '@/types/database-aliases'
+import type { EbayPanelListing } from '@/components/ebay/InventoryEbayPanel'
 
 type Params = Promise<{ id: string }>
 
@@ -97,12 +103,73 @@ export default async function InventoryItemPage(props: { params: Params }) {
     weightGrams: item.weight_grams,
   })
 
+  // ── eBay panel data ─────────────────────────────────────────────────────
+  // Load tenant credentials + most-recent draft/active listing so the
+  // detail page can render the eBay publishing panel inline.
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any
+
+  const { data: credRow } = (await adminAny
+    .from('tenant_ebay_credentials')
+    .select('refresh_token, disconnected_at')
+    .eq('tenant_id', item.tenant_id)
+    .maybeSingle()) as {
+    data: Pick<
+      TenantEbayCredentialsRow,
+      'refresh_token' | 'disconnected_at'
+    > | null
+  }
+  const ebayConnected =
+    !!credRow?.refresh_token && !credRow.disconnected_at
+
+  const { data: listingRow } = (await adminAny
+    .from('ebay_listings')
+    .select(
+      'id, status, ebay_listing_id, ebay_offer_id, ebay_sku, title, condition_id, category_id, format, list_price, currency, quantity, description, marketing_message, photo_urls, view_count, watcher_count, last_synced_at, error_text',
+    )
+    .eq('tenant_id', item.tenant_id)
+    .eq('inventory_item_id', id)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()) as { data: EbayListingRow | null }
+
+  const ebayListing: EbayPanelListing | null = listingRow
+    ? {
+        id: listingRow.id,
+        status: listingRow.status,
+        ebay_listing_id: listingRow.ebay_listing_id,
+        ebay_offer_id: listingRow.ebay_offer_id,
+        ebay_sku: listingRow.ebay_sku,
+        title: listingRow.title,
+        condition_id: listingRow.condition_id,
+        category_id: listingRow.category_id,
+        format: listingRow.format,
+        list_price:
+          typeof listingRow.list_price === 'string'
+            ? listingRow.list_price
+            : String(listingRow.list_price ?? ''),
+        currency: listingRow.currency,
+        quantity: listingRow.quantity,
+        description: listingRow.description,
+        marketing_message: listingRow.marketing_message,
+        photo_urls: listingRow.photo_urls ?? [],
+        view_count: listingRow.view_count,
+        watcher_count: listingRow.watcher_count,
+        last_synced_at: listingRow.last_synced_at,
+        error_text: listingRow.error_text,
+      }
+    : null
+
   return (
     <InventoryDetail
       item={item}
       photos={photos}
       stones={stones}
       melt={melt}
+      ebayConnected={ebayConnected}
+      ebayListing={ebayListing}
     />
   )
 }
