@@ -1,0 +1,100 @@
+import { redirect } from 'next/navigation'
+import { getCtx } from '@/lib/supabase/ctx'
+import { createAdminClient } from '@/lib/supabase/admin'
+import IntegrationsContent, { type IntegrationsView } from './content'
+
+const SETTINGS_ROLES = new Set(['owner', 'chain_admin', 'manager'])
+
+/**
+ * Integrations index. One card per connectable service with its current
+ * connection status. Each card links to its dedicated settings surface.
+ *
+ * Connection state is read live from:
+ *   stripe_connect    -> tenant_billing_settings.stripe_account_id +
+ *                        stripe_connected_at
+ *   twilio            -> settings.twilio_account_sid + twilio_auth_token
+ *   resend            -> settings.resend_api_key
+ *   ebay              -> tenant_ebay_credentials.refresh_token +
+ *                        !disconnected_at
+ *   spot_prices       -> always 'available' (system-wide); per-tenant
+ *                        override controls live at /inventory/spot-prices
+ */
+export default async function IntegrationsPage() {
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
+  if (!ctx.tenantRole || !SETTINGS_ROLES.has(ctx.tenantRole)) {
+    redirect('/dashboard')
+  }
+
+  const admin = createAdminClient()
+
+  const [billingRes, settingsRes, ebayRes, tenantRes] = await Promise.all([
+    admin
+      .from('tenant_billing_settings')
+      .select(
+        'stripe_account_id, stripe_connected_at, stripe_terminal_location_id, billing_enabled',
+      )
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle(),
+    admin
+      .from('settings')
+      .select(
+        'twilio_account_sid, twilio_auth_token, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_api_key, resend_from_email',
+      )
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle(),
+    admin
+      .from('tenant_ebay_credentials')
+      .select(
+        'refresh_token, disconnected_at, environment, ebay_user_id, connected_at',
+      )
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle(),
+    admin
+      .from('tenants')
+      .select('id, has_retail')
+      .eq('id', ctx.tenantId)
+      .maybeSingle(),
+  ])
+
+  const billing = billingRes.data
+  const settings = settingsRes.data
+  const ebay = ebayRes.data
+  const tenant = tenantRes.data
+
+  if (!tenant) redirect('/no-tenant')
+
+  const view: IntegrationsView = {
+    tenantId: ctx.tenantId,
+    role: ctx.tenantRole,
+    hasRetail: tenant.has_retail,
+    stripeConnect: {
+      connected: !!(billing?.stripe_account_id && billing.stripe_connected_at),
+      stripeAccountId: billing?.stripe_account_id ?? null,
+      connectedAt: billing?.stripe_connected_at ?? null,
+      terminalLocationId: billing?.stripe_terminal_location_id ?? null,
+      billingEnabled: billing?.billing_enabled ?? false,
+    },
+    twilio: {
+      connected: !!(settings?.twilio_account_sid && settings.twilio_auth_token),
+      accountSid: settings?.twilio_account_sid ?? null,
+      smsFrom: settings?.twilio_sms_from ?? null,
+      whatsappFrom: settings?.twilio_whatsapp_from ?? null,
+      messagingServiceSid: settings?.twilio_messaging_service_sid ?? null,
+    },
+    resend: {
+      connected: !!settings?.resend_api_key,
+      fromEmail: settings?.resend_from_email ?? null,
+    },
+    ebay: {
+      connected: !!(ebay?.refresh_token && !ebay.disconnected_at),
+      ebayUserId: ebay?.ebay_user_id ?? null,
+      environment: (ebay?.environment as 'sandbox' | 'production' | null) ?? null,
+      connectedAt: ebay?.connected_at ?? null,
+      disconnectedAt: ebay?.disconnected_at ?? null,
+    },
+  }
+
+  return <IntegrationsContent view={view} />
+}

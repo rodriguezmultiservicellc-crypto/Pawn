@@ -215,7 +215,7 @@ export function Sidebar({
       href: '/settings',
       label: t.nav.settings,
       icon: <Gear size={18} weight="regular" />,
-      disabled: true,
+      visible: canSeeSettings,
     },
   ]
 
