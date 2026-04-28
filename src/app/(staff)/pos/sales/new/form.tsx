@@ -31,6 +31,9 @@ export default function NewSaleForm({
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string> | null>(
+    null,
+  )
   const [layawayDraft, setLayawayDraft] = useState<{
     customerId: string | null
     lines: CartLineState[]
@@ -83,6 +86,7 @@ export default function NewSaleForm({
     notes: string,
   ) {
     setError(null)
+    setFieldErrors(null)
     if (lines.length === 0) {
       setError(t.pos.errors.cartEmpty)
       return
@@ -99,6 +103,13 @@ export default function NewSaleForm({
       const res = await createSaleAction(fd)
       if (res.error) {
         setError(translateError(res.error, t))
+        if (res.fieldErrors && Object.keys(res.fieldErrors).length > 0) {
+          setFieldErrors(res.fieldErrors)
+        }
+        return
+      }
+      if (res.fieldErrors && Object.keys(res.fieldErrors).length > 0) {
+        setFieldErrors(res.fieldErrors)
         return
       }
       if (res.redirectTo) router.push(res.redirectTo)
@@ -113,6 +124,7 @@ export default function NewSaleForm({
     notes: string,
   ) {
     setError(null)
+    setFieldErrors(null)
     if (!customerId) {
       setError(t.pos.errors.customerRequiredForLayaway)
       return
@@ -139,7 +151,14 @@ export default function NewSaleForm({
     )
     const res = await createSaleAction(fd)
     if (res.error) {
+      if (res.fieldErrors && Object.keys(res.fieldErrors).length > 0) {
+        setFieldErrors(res.fieldErrors)
+      }
       return { error: translateError(res.error, t) }
+    }
+    if (res.fieldErrors && Object.keys(res.fieldErrors).length > 0) {
+      setFieldErrors(res.fieldErrors)
+      return { error: t.common.fixErrorsBelow }
     }
     if (res.redirectTo) router.push(res.redirectTo)
     return { ok: true }
@@ -173,6 +192,12 @@ export default function NewSaleForm({
           {t.pos.sale.new}
         </h1>
       </div>
+
+      {!error && fieldErrors && Object.keys(fieldErrors).length > 0 ? (
+        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          {t.common.fixErrorsBelow}
+        </div>
+      ) : null}
 
       <Cart
         customers={customers}
