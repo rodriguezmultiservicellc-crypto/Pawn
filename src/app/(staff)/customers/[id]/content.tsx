@@ -205,6 +205,7 @@ export type PortalInfo = {
     consumedAt: string | null
   } | null
   canManage: boolean
+  portalLoginUrl: string
 }
 
 export default function CustomerDetail({
@@ -385,6 +386,7 @@ export default function CustomerDetail({
         hasPortalAccess={portal.hasPortalAccess}
         lastInvite={portal.lastInvite}
         canManage={portal.canManage}
+        portalLoginUrl={portal.portalLoginUrl}
       />
 
       {hasPawn ? (

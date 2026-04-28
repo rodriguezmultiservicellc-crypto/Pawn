@@ -300,6 +300,20 @@ export const es: Dictionary = {
       errInsertFailed: 'No se pudo guardar la invitación. Inténtalo de nuevo.',
       errAppUrlMissing:
         'NEXT_PUBLIC_APP_URL no está configurado en el servidor. Pídele a un administrador que lo configure.',
+      errNotYetClaimed:
+        'Este cliente aún no ha activado su portal — envía primero una invitación normal.',
+      signInUrlLabel: 'URL de inicio de sesión del portal',
+      signInUrlHelp:
+        'Los clientes visitan esta página para pedir un enlace de acceso de un solo uso por correo. Compártela en una tarjeta o por mensaje.',
+      tempSignInTitle: 'Acceso asistido en tienda',
+      tempSignInHelp:
+        'Genera un enlace mágico de una hora para el cliente cuando está en el mostrador y olvidó su correo o el dispositivo donde tiene el portal.',
+      tempSignInButton: 'Generar enlace de acceso',
+      tempSignInDeliveredBoth:
+        'Enlace de acceso generado y enviado por correo al cliente.',
+      tempSignInDeliveredManualOnly:
+        'Enlace de acceso generado. El correo no se envió (Resend no está configurado) — copia el enlace y entrégalo manualmente.',
+      tempSignInExpires: 'Este enlace caduca en 1 hora.',
     },
   },
 

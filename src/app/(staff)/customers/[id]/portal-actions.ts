@@ -6,6 +6,9 @@ import { headers } from 'next/headers'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createPortalInvite } from '@/lib/portal/invite'
+import { renderPortalInviteEmail } from '@/lib/portal/invite-email'
+import { sendEmail } from '@/lib/email/send'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/audit'
 
 /**
@@ -130,6 +133,178 @@ export async function revokePortalInvitesAction(
 
   revalidatePath(`/customers/${customerId}`)
   return { ok: true }
+}
+
+export type GenerateSignInLinkState = {
+  ok?: boolean
+  error?: string
+  details?: string | null
+  /** The fresh magic-link URL — owner copies + sends to the customer
+   *  (in-store assist when they forgot their email or the original
+   *  invite expired). Always returned alongside email-delivery
+   *  attempt; the operator chooses whichever channel works. */
+  magicLink?: string | null
+  /** Whether sendEmail succeeded — UI shows "emailed too" when true. */
+  emailed?: boolean
+}
+
+/**
+ * Mint a fresh sign-in magic link for an ALREADY-CLAIMED portal
+ * customer. Use case: customer is at the counter, forgot which email
+ * the portal is on, or the original invite expired and a friction-
+ * free re-link is faster than walking them through /portal/login.
+ *
+ * Owner / chain_admin / manager only — same gating as send/revoke
+ * invites. Always returns the link to the operator AND attempts to
+ * email it via per-tenant Resend; the operator picks whichever channel
+ * works for the customer in front of them.
+ */
+export async function generatePortalSignInLinkAction(
+  _prev: GenerateSignInLinkState,
+  formData: FormData,
+): Promise<GenerateSignInLinkState> {
+  const customerId = String(formData.get('customer_id') ?? '')
+  if (!customerId) return { error: 'customer_id_missing' }
+
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) return { error: 'no_tenant' }
+
+  const { userId } = await requireRoleInTenant(ctx.tenantId, [
+    'owner',
+    'chain_admin',
+    'manager',
+  ])
+
+  const admin = createAdminClient()
+
+  type CustomerRow = {
+    id: string
+    tenant_id: string
+    first_name: string
+    last_name: string
+    email: string | null
+    language: 'en' | 'es' | null
+    auth_user_id: string | null
+    deleted_at: string | null
+  }
+  const { data: customer } = await admin
+    .from('customers')
+    .select(
+      'id, tenant_id, first_name, last_name, email, language, auth_user_id, deleted_at',
+    )
+    .eq('id', customerId)
+    .eq('tenant_id', ctx.tenantId)
+    .maybeSingle<CustomerRow>()
+
+  if (!customer || customer.deleted_at) {
+    return { error: 'customer_not_found' }
+  }
+  if (!customer.email) {
+    return { error: 'no_email' }
+  }
+  if (!customer.auth_user_id) {
+    // They've never claimed — the operator should send a regular invite,
+    // not a sign-in link. Surface the right next step.
+    return { error: 'not_yet_claimed' }
+  }
+
+  const appUrl = await resolveAppUrl()
+  if (!appUrl) return { error: 'app_url_not_configured' }
+  const next = '/api/portal/sign-in-bridge'
+  const redirectTo = `${appUrl}/magic-link?next=${encodeURIComponent(next)}`
+
+  type GenLinkResp = {
+    data?: { properties?: { action_link?: string } }
+    error?: { message?: string } | null
+  }
+  let actionLink: string
+  try {
+    const resp = (await admin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: customer.email,
+      options: { redirectTo },
+    })) as unknown as GenLinkResp
+    if (resp.error) {
+      console.error(
+        '[portal.signin-link] generateLink error',
+        resp.error.message,
+      )
+      return {
+        error: 'auth_link_failed',
+        details: resp.error.message ?? null,
+      }
+    }
+    const link = resp.data?.properties?.action_link
+    if (!link) {
+      return {
+        error: 'auth_link_failed',
+        details: 'generateLink returned no action_link',
+      }
+    }
+    actionLink = link
+  } catch (err) {
+    console.error('[portal.signin-link] generateLink threw', err)
+    return {
+      error: 'auth_link_failed',
+      details: err instanceof Error ? err.message : 'generateLink threw',
+    }
+  }
+
+  // Best-effort email through per-tenant Resend. Whether or not it
+  // succeeds, we hand the link back to the operator so they can SMS /
+  // text / read it to the customer in front of them.
+  const { data: tenant } = await admin
+    .from('tenants')
+    .select('name, dba')
+    .eq('id', customer.tenant_id)
+    .maybeSingle<{ name: string; dba: string | null }>()
+  const shopName = tenant?.dba || tenant?.name || 'your shop'
+  const customerName = [customer.first_name, customer.last_name]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+  const language: 'en' | 'es' = customer.language === 'es' ? 'es' : 'en'
+
+  const rendered = renderPortalInviteEmail({
+    language,
+    shopName,
+    customerName,
+    magicLink: actionLink,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    signInUrl: `${appUrl}/portal/login`,
+  })
+
+  const emailRes = await sendEmail({
+    tenantId: customer.tenant_id,
+    to: customer.email,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+    kind: 'portal_invite',
+    customerId: customer.id,
+  })
+
+  await logAudit({
+    tenantId: ctx.tenantId,
+    userId,
+    action: 'portal_invite_sent',
+    tableName: 'customers',
+    recordId: customer.id,
+    changes: {
+      kind: 'sign_in_link',
+      emailed: emailRes.ok,
+      message_log_id: emailRes.ok ? emailRes.messageLogId : null,
+    },
+  })
+
+  revalidatePath(`/customers/${customerId}`)
+
+  return {
+    ok: true,
+    magicLink: actionLink,
+    emailed: emailRes.ok,
+  }
 }
 
 /**

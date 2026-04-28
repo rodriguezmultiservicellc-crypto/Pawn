@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -68,6 +69,22 @@ export default async function CustomerDetailPage(props: { params: Params }) {
 
   const canManagePortal =
     !!ctx.tenantRole && PORTAL_MANAGE_ROLES.has(ctx.tenantRole)
+
+  // Portal-login URL: prefer NEXT_PUBLIC_APP_URL when it doesn't point at
+  // localhost, otherwise derive from the request headers (Vercel auto-
+  // injects x-forwarded-*). Same heuristic the portal-invite action uses.
+  const envUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+  let baseUrl = envUrl && !envUrl.includes('localhost') ? envUrl : ''
+  if (!baseUrl) {
+    const h = await headers()
+    const host = h.get('x-forwarded-host') ?? h.get('host') ?? ''
+    const proto =
+      h.get('x-forwarded-proto') ??
+      (host.includes('localhost') ? 'http' : 'https')
+    if (host) baseUrl = `${proto}://${host}`.replace(/\/$/, '')
+  }
+  if (!baseUrl) baseUrl = envUrl
+  const portalLoginUrl = `${baseUrl}/portal/login`
 
   const photoSignedUrl = customer.photo_url
     ? await getSignedUrl({
@@ -190,6 +207,7 @@ export default async function CustomerDetailPage(props: { params: Params }) {
             }
           : null,
         canManage: canManagePortal,
+        portalLoginUrl,
       }}
       loans={(loanRows ?? []).map((l) => ({
         id: l.id,

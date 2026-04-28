@@ -309,6 +309,20 @@ export const en = {
       errInsertFailed: 'Could not save the invite. Please try again.',
       errAppUrlMissing:
         'NEXT_PUBLIC_APP_URL is not set on the server. Ask an admin to configure it.',
+      errNotYetClaimed:
+        'This customer has not activated their portal yet — send a regular invite first.',
+      signInUrlLabel: 'Portal sign-in URL',
+      signInUrlHelp:
+        'Customers visit this page to request a one-time sign-in link by email. Share it on a business card or text.',
+      tempSignInTitle: 'In-store sign-in assist',
+      tempSignInHelp:
+        'Generate a one-hour magic link for the customer when they\'re standing at the counter and forgot their email or which device the portal is on.',
+      tempSignInButton: 'Generate sign-in link',
+      tempSignInDeliveredBoth:
+        'Sign-in link generated and emailed to the customer.',
+      tempSignInDeliveredManualOnly:
+        'Sign-in link generated. Email did not send (Resend not configured) — copy the link below and deliver it manually.',
+      tempSignInExpires: 'This link expires in 1 hour.',
     },
   },
 

@@ -1,12 +1,20 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import { CheckCircle, EnvelopeSimple, Link as LinkIcon, Warning } from '@phosphor-icons/react'
+import {
+  CheckCircle,
+  EnvelopeSimple,
+  Key,
+  Link as LinkIcon,
+  Warning,
+} from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import {
   sendPortalInviteAction,
   revokePortalInvitesAction,
+  generatePortalSignInLinkAction,
   type SendPortalInviteState,
+  type GenerateSignInLinkState,
 } from '@/app/(staff)/customers/[id]/portal-actions'
 
 export type PortalInvitePanelProps = {
@@ -20,6 +28,10 @@ export type PortalInvitePanelProps = {
     consumedAt: string | null
   } | null
   canManage: boolean
+  /** Portal sign-in URL — operator can copy + share with the customer.
+   *  Resolved server-side so we don't need window.location.origin in
+   *  this client component. */
+  portalLoginUrl: string
 }
 
 export function PortalInvitePanel(props: PortalInvitePanelProps) {
@@ -32,12 +44,18 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
     { ok?: boolean; error?: string },
     FormData
   >(revokePortalInvitesAction, {})
-  const [copied, setCopied] = useState(false)
+  const [signInState, signInAction, signInPending] = useActionState<
+    GenerateSignInLinkState,
+    FormData
+  >(generatePortalSignInLinkAction, {})
+  const [copied, setCopied] = useState<'manual' | 'signin' | 'portal' | null>(
+    null,
+  )
 
   // Auto-clear the "copied" affordance after 2s.
   useEffect(() => {
     if (!copied) return
-    const id = setTimeout(() => setCopied(false), 2000)
+    const id = setTimeout(() => setCopied(null), 2000)
     return () => clearTimeout(id)
   }, [copied])
 
@@ -48,10 +66,10 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
   const [nowMs] = useState<number>(() => Date.now())
   const status = resolveStatus(props, nowMs)
 
-  const onCopy = (link: string) => {
+  const onCopy = (link: string, which: 'manual' | 'signin' | 'portal') => {
     if (typeof navigator === 'undefined' || !navigator.clipboard) return
     navigator.clipboard.writeText(link).then(
-      () => setCopied(true),
+      () => setCopied(which),
       () => undefined,
     )
   }
@@ -157,15 +175,122 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
                 />
                 <button
                   type="button"
-                  onClick={() => onCopy(sendState.manualLink!)}
+                  onClick={() => onCopy(sendState.manualLink!, 'manual')}
                   className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs font-medium text-ink hover:border-ink"
                 >
                   <LinkIcon size={12} weight="bold" />
-                  {copied
+                  {copied === 'manual'
                     ? t.customers.portalInvite.copied
                     : t.customers.portalInvite.copy}
                 </button>
               </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Always-visible: portal sign-in URL — operator can copy + share. */}
+      <div className="mt-3 border-t border-hairline pt-3">
+        <div className="text-xs font-medium text-ink">
+          {t.customers.portalInvite.signInUrlLabel}
+        </div>
+        <div className="mt-1 flex items-stretch gap-2">
+          <input
+            type="text"
+            readOnly
+            value={props.portalLoginUrl}
+            onFocus={(e) => e.currentTarget.select()}
+            className="block w-full min-w-0 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs text-ink"
+          />
+          <button
+            type="button"
+            onClick={() => onCopy(props.portalLoginUrl, 'portal')}
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs font-medium text-ink hover:border-ink"
+          >
+            <LinkIcon size={12} weight="bold" />
+            {copied === 'portal'
+              ? t.customers.portalInvite.copied
+              : t.customers.portalInvite.copy}
+          </button>
+        </div>
+        <p className="mt-1 text-[11px] text-ash">
+          {t.customers.portalInvite.signInUrlHelp}
+        </p>
+      </div>
+
+      {/* When the customer has already claimed: let the operator mint a
+          fresh one-time sign-in link for in-store assists. */}
+      {props.canManage && status === 'active' ? (
+        <div className="mt-3 border-t border-hairline pt-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs font-medium text-ink">
+                {t.customers.portalInvite.tempSignInTitle}
+              </div>
+              <p className="mt-0.5 text-[11px] text-ash">
+                {t.customers.portalInvite.tempSignInHelp}
+              </p>
+            </div>
+            <form action={signInAction} className="shrink-0">
+              <input
+                type="hidden"
+                name="customer_id"
+                value={props.customerId}
+              />
+              <button
+                type="submit"
+                disabled={signInPending || !props.customerEmail}
+                className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-xs font-medium text-ink hover:border-ink disabled:opacity-50"
+              >
+                <Key size={12} weight="bold" />
+                {signInPending
+                  ? t.common.saving
+                  : t.customers.portalInvite.tempSignInButton}
+              </button>
+            </form>
+          </div>
+          {signInState.error ? (
+            <div className="mt-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs text-error">
+              <div className="flex items-start gap-2">
+                <Warning size={12} weight="bold" />
+                <span>{translateError(signInState.error, t)}</span>
+              </div>
+              {signInState.details ? (
+                <div className="mt-1 ml-4 font-mono text-[10px] text-error/80">
+                  {signInState.details}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {signInState.ok && signInState.magicLink ? (
+            <div className="mt-2 rounded-md border border-success/30 bg-success/5 p-3">
+              <div className="text-xs font-medium text-success">
+                {signInState.emailed
+                  ? t.customers.portalInvite.tempSignInDeliveredBoth
+                  : t.customers.portalInvite.tempSignInDeliveredManualOnly}
+              </div>
+              <div className="mt-2 flex items-stretch gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={signInState.magicLink}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="block w-full min-w-0 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs text-ink"
+                />
+                <button
+                  type="button"
+                  onClick={() => onCopy(signInState.magicLink!, 'signin')}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs font-medium text-ink hover:border-ink"
+                >
+                  <LinkIcon size={12} weight="bold" />
+                  {copied === 'signin'
+                    ? t.customers.portalInvite.copied
+                    : t.customers.portalInvite.copy}
+                </button>
+              </div>
+              <p className="mt-1 text-[10px] text-ash">
+                {t.customers.portalInvite.tempSignInExpires}
+              </p>
             </div>
           ) : null}
         </div>
@@ -256,8 +381,11 @@ function translateError(
     no_email: t.customers.portalInvite.errNoEmail,
     already_linked: t.customers.portalInvite.errAlreadyLinked,
     auth_invite_failed: t.customers.portalInvite.errAuthFailed,
+    auth_link_failed: t.customers.portalInvite.errAuthFailed,
     invite_insert_failed: t.customers.portalInvite.errInsertFailed,
     app_url_not_configured: t.customers.portalInvite.errAppUrlMissing,
+    not_yet_claimed: t.customers.portalInvite.errNotYetClaimed,
+    customer_not_found: t.common.error,
   }
   return map[reason] ?? reason
 }
