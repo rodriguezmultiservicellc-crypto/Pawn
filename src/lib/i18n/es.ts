@@ -67,6 +67,7 @@ export const es: Dictionary = {
     pos: 'Caja',
     appraisals: 'Tasaciones',
     reports: 'Reportes',
+    form1099: 'Reporte 1099',
     compliance: 'Cumplimiento',
     audit: 'Auditoría',
     team: 'Equipo',
@@ -1849,6 +1850,11 @@ export const es: Dictionary = {
         title: 'Resumen Multi-Tienda',
         description: 'KPIs de las tiendas hijas (solo HQ de cadena).',
       },
+      form1099: {
+        title: 'Cierre Fiscal 1099-MISC',
+        description:
+          'Clientes que superaron el umbral del IRS en pagos por compra directa.',
+      },
     },
     dailyRegister: {
       columns: {
@@ -1991,6 +1997,35 @@ export const es: Dictionary = {
         salesTotal: 'Ventas netas',
         interestIncome: 'Ingreso por interés',
       },
+    },
+    form1099: {
+      title: 'Asistente Fiscal 1099-MISC',
+      subtitle:
+        'Clientes que superaron el umbral del IRS en pagos por compra directa durante el año calendario. Entrega este conjunto de datos a tu contador — ellos presentan los formularios 1099-MISC oficiales.',
+      taxYear: 'Año fiscal',
+      threshold: 'Umbral',
+      customer: 'Cliente',
+      totalPaid: 'Total pagado',
+      transactionCount: 'Transacciones',
+      firstDate: 'Primer pago',
+      lastDate: 'Último pago',
+      idNumber: 'ID #',
+      address: 'Dirección',
+      downloadCsv: 'Descargar CSV',
+      emptyState:
+        'Sin transacciones de compra directa este año. Registra una compra para ver candidatos.',
+      viewBuy: 'Registrar compra',
+      candidatesAbove:
+        '{count} cliente(s) superaron el umbral de {threshold} en {year}.',
+      candidatesAboveTile: 'Clientes sobre el umbral',
+      totalReportable: 'Suma de pagos a clientes que califican.',
+      totalReportableTile: 'Total reportable',
+      totalAllPayouts:
+        'Total de pagos por compra directa (todos los clientes, incluyendo bajo umbral): {amount}.',
+      customerDeleted: 'Registro de cliente eliminado',
+      tinReminderTitle: 'Recolecta un W-9 antes de presentar',
+      tinReminderBody:
+        'El IRS requiere el TIN/SSN del receptor en cada 1099-MISC. No almacenamos TINs en este sistema — tu contador recolectará un Formulario W-9 de cada candidato y agregará el TIN antes de presentar.',
     },
   },
 
