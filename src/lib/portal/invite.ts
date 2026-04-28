@@ -101,24 +101,60 @@ export async function createPortalInvite(args: {
     claimPath,
   )}`
 
-  // 2. Ask Supabase Auth to mint a magic link. type='invite' creates the
-  //    auth.users row when missing — perfect for first-time portal users.
+  // 2. Ask Supabase Auth to mint a magic link. We try `type: 'invite'`
+  //    first (creates the auth.users row when missing — perfect for
+  //    first-time portal users). If that fails because the user already
+  //    exists in auth.users (e.g. operator is testing with their own
+  //    email, or the customer was previously invited under a different
+  //    customer record), fall back to `type: 'magiclink'` which works
+  //    for existing users.
+  type GenerateLinkResp = {
+    properties?: { action_link?: string }
+    data?: { properties?: { action_link?: string } }
+  }
+  type GenerateLinkResult = {
+    data: GenerateLinkResp
+    error: { message: string; status?: number } | null
+  }
+
+  const isAlreadyRegistered = (msg: string): boolean => {
+    const lower = msg.toLowerCase()
+    return (
+      lower.includes('already') ||
+      lower.includes('registered') ||
+      lower.includes('exists')
+    )
+  }
+
+  const tryGenerate = async (
+    type: 'invite' | 'magiclink',
+  ): Promise<GenerateLinkResult> => {
+    return (await admin.auth.admin.generateLink({
+      type,
+      email: customer.email!,
+      options: { redirectTo },
+    })) as unknown as GenerateLinkResult
+  }
+
   let magicLink: string
   try {
-    // The supabase-js admin client surfaces generateLink under
-    // admin.auth.admin. The shape of params is documented but the return
-    // type for generateLink isn't exported; cast minimally.
-    type GenerateLinkResp = {
-      properties?: { action_link?: string }
-      data?: { properties?: { action_link?: string } }
+    let resp = await tryGenerate('invite')
+
+    if (resp.error && isAlreadyRegistered(resp.error.message)) {
+      console.warn(
+        '[portal.invite] invite said user exists, retrying as magiclink',
+        { email: customer.email, originalError: resp.error.message },
+      )
+      resp = await tryGenerate('magiclink')
     }
-    const resp = (await admin.auth.admin.generateLink({
-      type: 'invite',
-      email: customer.email,
-      options: { redirectTo },
-    })) as unknown as { data: GenerateLinkResp; error: { message: string } | null }
 
     if (resp.error) {
+      console.error('[portal.invite] generateLink error', {
+        message: resp.error.message,
+        status: resp.error.status,
+        email: customer.email,
+        redirectTo,
+      })
       return {
         ok: false,
         reason: 'auth_invite_failed',
@@ -129,6 +165,9 @@ export async function createPortalInvite(args: {
       resp.data?.properties?.action_link ??
       resp.data?.data?.properties?.action_link
     if (!link) {
+      console.error('[portal.invite] generateLink missing action_link', {
+        respKeys: resp.data ? Object.keys(resp.data) : null,
+      })
       return {
         ok: false,
         reason: 'auth_invite_failed',
@@ -137,6 +176,7 @@ export async function createPortalInvite(args: {
     }
     magicLink = link
   } catch (err) {
+    console.error('[portal.invite] generateLink threw', err)
     return {
       ok: false,
       reason: 'auth_invite_failed',

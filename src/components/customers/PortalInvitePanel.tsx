@@ -119,9 +119,16 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
       </div>
 
       {sendState.error ? (
-        <div className="mt-3 flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
-          <Warning size={14} weight="bold" />
-          <span>{translateError(sendState.error, t)}</span>
+        <div className="mt-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          <div className="flex items-start gap-2">
+            <Warning size={14} weight="bold" />
+            <span>{translateError(sendState.error, t)}</span>
+          </div>
+          {sendState.details ? (
+            <div className="mt-1 ml-5 font-mono text-[11px] text-error/80">
+              {sendState.details}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

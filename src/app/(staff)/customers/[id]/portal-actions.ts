@@ -17,6 +17,8 @@ import { logAudit } from '@/lib/audit'
 export type SendPortalInviteState = {
   ok?: boolean
   error?: string
+  /** Underlying provider/error message for owner-facing diagnostics. */
+  details?: string | null
   manualLink?: string | null
   delivered?: 'email' | 'manual'
 }
@@ -51,7 +53,7 @@ export async function sendPortalInviteAction(
   })
 
   if (!result.ok) {
-    return { error: result.reason }
+    return { error: result.reason, details: result.error ?? null }
   }
 
   await logAudit({
