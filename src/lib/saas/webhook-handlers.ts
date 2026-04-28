@@ -2,6 +2,7 @@ import 'server-only'
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/audit'
+import { sendDunningEmail } from './dunning'
 import type { Database } from '@/types/database'
 
 type SubscriptionStatus = Database['public']['Enums']['subscription_status']
@@ -236,6 +237,14 @@ export async function handleSubscriptionDeleted(
     },
   })
 
+  void sendDunningEmail({
+    tenantId,
+    kind: 'saas_subscription_cancelled',
+    vars: {},
+  }).catch((err) => {
+    console.error('[saas-webhook] dunning_cancelled_failed', err)
+  })
+
   return { ok: true, tenantId }
 }
 
@@ -256,6 +265,18 @@ export async function handleInvoicePaid(
   const paidAtIso =
     isoFromUnix(invoice.status_transitions?.paid_at ?? null) ??
     new Date().toISOString()
+
+  // Capture the subscription's pre-update status so we can detect recovery
+  // (past_due / unpaid -> active) AFTER the subscription.updated event
+  // sets it back to active. We fire the recovery email here on invoice
+  // paid since that's the actionable signal (money landed).
+  const { data: preStatus } = await admin
+    .from('tenant_subscriptions')
+    .select('status')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  const wasFailing =
+    preStatus?.status === 'past_due' || preStatus?.status === 'unpaid'
 
   // Cache row in billing_invoices.
   const { error: invErr } = await admin.from('billing_invoices').upsert(
@@ -301,8 +322,20 @@ export async function handleInvoicePaid(
       flow: 'webhook_invoice_paid',
       amount_cents: invoice.total,
       currency: invoice.currency,
+      was_failing: wasFailing,
     },
   })
+
+  if (wasFailing) {
+    // Best-effort recovery email — never blocks webhook ack on send result.
+    void sendDunningEmail({
+      tenantId,
+      kind: 'saas_payment_recovered',
+      vars: { amount_cents: invoice.total },
+    }).catch((err) => {
+      console.error('[saas-webhook] dunning_recovered_failed', err)
+    })
+  }
 
   return { ok: true, tenantId }
 }
@@ -352,8 +385,14 @@ export async function handleInvoicePaymentFailed(
     },
   })
 
-  // Dunning email is wired in chunk 5. For now, the audit row is the
-  // signal — operator can grep the audit log for failed invoices.
+  void sendDunningEmail({
+    tenantId,
+    kind: 'saas_payment_failed',
+    vars: { amount_cents: invoice.total },
+  }).catch((err) => {
+    console.error('[saas-webhook] dunning_payment_failed_failed', err)
+  })
+
   return { ok: true, tenantId }
 }
 
@@ -366,6 +405,15 @@ export async function handleTrialWillEnd(
   })
   if (!tenantId) return { ok: false, tenantId: null }
 
+  // Compute days remaining from trial_end so the email body can be
+  // specific.
+  const trialDays = (() => {
+    if (!sub.trial_end) return null
+    const ms = sub.trial_end * 1000 - Date.now()
+    if (ms <= 0) return 0
+    return Math.max(0, Math.ceil(ms / 86_400_000))
+  })()
+
   await logAudit({
     tenantId,
     userId: null,
@@ -375,10 +423,18 @@ export async function handleTrialWillEnd(
     changes: {
       flow: 'webhook_trial_will_end',
       trial_end: isoFromUnix(sub.trial_end),
+      trial_days_remaining: trialDays,
       stripe_subscription_id: sub.id,
     },
   })
 
-  // Dunning-style "your trial ends in 3 days" email lands in chunk 5.
+  void sendDunningEmail({
+    tenantId,
+    kind: 'saas_trial_ending',
+    vars: trialDays != null ? { trial_days: trialDays } : {},
+  }).catch((err) => {
+    console.error('[saas-webhook] dunning_trial_ending_failed', err)
+  })
+
   return { ok: true, tenantId }
 }
