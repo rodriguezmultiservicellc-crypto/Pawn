@@ -98,6 +98,17 @@ export default async function StaffLayout({
               />
             </div>
             <div className="flex items-center gap-4 text-sm">
+              {ctx.globalRole === 'superadmin' ? (
+                <Link
+                  href="/admin/tenants"
+                  className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 font-medium text-ink hover:border-ink"
+                >
+                  <span className="rounded-full bg-ink px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-canvas">
+                    Admin
+                  </span>
+                  <span>Console</span>
+                </Link>
+              ) : null}
               <span className="text-ash">
                 {profile?.full_name ?? ctx.email}
               </span>

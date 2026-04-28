@@ -71,7 +71,16 @@ export const paymentMethodSchema = z.enum(['cash', 'card', 'check', 'other'])
 export const collateralItemSchema = z.object({
   description: z.string().trim().min(2, 'too_short').max(500),
   category: inventoryCategorySchema.default('other'),
-  metal_type: metalTypeSchema.optional().nullable(),
+  // Select placeholder option ("—") sends "". Empty must become null
+  // BEFORE the enum runs, otherwise z.enum().optional().nullable()
+  // rejects "" and the row never validates. Same pattern as
+  // inventory.metal.
+  metal_type: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      metalTypeSchema.nullable().optional(),
+    )
+    .transform((v) => v ?? null),
   karat: optionalKarat,
   weight_grams: optionalDecimal,
   est_value: requiredDecimalNonNeg.default(0),
