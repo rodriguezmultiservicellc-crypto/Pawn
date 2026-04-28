@@ -98,21 +98,7 @@ async function checkPriorSend(args: {
   kind: MessageKind
 }): Promise<boolean> {
   const admin = createAdminClient()
-  const { data } = await (admin as unknown as {
-    from: (t: 'message_log') => {
-      select: (s: string) => {
-        eq: (k: string, v: string) => {
-          eq: (k: string, v: string) => {
-            eq: (k: string, v: string) => {
-              eq: (k: string, v: string) => {
-                limit: (n: number) => Promise<{ data: { id: string }[] | null }>
-              }
-            }
-          }
-        }
-      }
-    }
-  })
+  const { data } = await admin
     .from('message_log')
     .select('id')
     .eq('tenant_id', args.tenantId)
@@ -130,21 +116,7 @@ async function checkRecentSendAny(args: {
   sinceIso: string
 }): Promise<boolean> {
   const admin = createAdminClient()
-  const { data } = await (admin as unknown as {
-    from: (t: 'message_log') => {
-      select: (s: string) => {
-        eq: (k: string, v: string) => {
-          eq: (k: string, v: string) => {
-            eq: (k: string, v: string) => {
-              gte: (k: string, v: string) => {
-                limit: (n: number) => Promise<{ data: { id: string }[] | null }>
-              }
-            }
-          }
-        }
-      }
-    }
-  })
+  const { data } = await admin
     .from('message_log')
     .select('id')
     .eq('tenant_id', args.tenantId)

@@ -67,18 +67,7 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
     body_rendered: `Subject: ${args.subject}\n\n${args.text}`,
   }
 
-  const { data: logRow, error: logErr } = await (admin as unknown as {
-    from: (t: 'message_log') => {
-      insert: (v: MessageLogInsert) => {
-        select: (s: string) => {
-          single: () => Promise<{
-            data: { id: string } | null
-            error: { message: string } | null
-          }>
-        }
-      }
-    }
-  })
+  const { data: logRow, error: logErr } = await admin
     .from('message_log')
     .insert(queueInsert)
     .select('id')
@@ -203,13 +192,7 @@ export async function resolveResendCreds(tenantId: string): Promise<{
 
 async function markSent(logId: string, providerId: string) {
   const admin = createAdminClient()
-  const { error } = await (admin as unknown as {
-    from: (t: 'message_log') => {
-      update: (v: Record<string, unknown>) => {
-        eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>
-      }
-    }
-  })
+  const { error } = await admin
     .from('message_log')
     .update({
       status: 'sent',
@@ -222,13 +205,7 @@ async function markSent(logId: string, providerId: string) {
 
 async function markFailed(logId: string, _reason: string, errorText: string | null) {
   const admin = createAdminClient()
-  const { error } = await (admin as unknown as {
-    from: (t: 'message_log') => {
-      update: (v: Record<string, unknown>) => {
-        eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>
-      }
-    }
-  })
+  const { error } = await admin
     .from('message_log')
     .update({
       status: 'failed',

@@ -101,7 +101,7 @@ export async function createLayawayPaymentSession(args: {
     customer_id: portal.customerId,
     stripe_session_id: session.id,
     checkout_url: session.url,
-    amount: capped.toFixed(4),
+    amount: capped,
     status: 'pending',
   }
 

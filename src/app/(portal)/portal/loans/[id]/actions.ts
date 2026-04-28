@@ -127,7 +127,7 @@ export async function createLoanPayoffSession(args: {
     stripe_session_id: session.id,
     checkout_url: session.url,
     stripe_account_id: session.metadata?.stripe_account_id ?? null,
-    amount: payoff.payoff.toFixed(4),
+    amount: payoff.payoff,
     status: 'pending',
   }
 

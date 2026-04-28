@@ -245,25 +245,7 @@ async function loadTemplate(
 ): Promise<MessageTemplateRow | null> {
   const admin = createAdminClient()
   const fetchOne = async (lang: Language): Promise<MessageTemplateRow | null> => {
-    const { data } = await (admin as unknown as {
-      from: (t: 'message_templates') => {
-        select: (s: string) => {
-          eq: (k: string, v: string) => {
-            eq: (k: string, v: string) => {
-              eq: (k: string, v: string) => {
-                eq: (k: string, v: string) => {
-                  is: (k: string, v: null) => {
-                    maybeSingle: () => Promise<{
-                      data: MessageTemplateRow | null
-                    }>
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    })
+    const { data } = await admin
       .from('message_templates')
       .select(
         'id, tenant_id, kind, language, channel, subject, body, whatsapp_content_sid, is_enabled, created_at, updated_at, deleted_at, created_by, updated_by',

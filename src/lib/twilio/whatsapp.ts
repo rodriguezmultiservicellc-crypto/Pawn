@@ -79,20 +79,7 @@ export async function sendWhatsApp(
     body_rendered: args.body,
   }
 
-  const { data: logRow, error: logErr } = await (admin as unknown as {
-    from: (
-      t: 'message_log',
-    ) => {
-      insert: (v: MessageLogInsert) => {
-        select: (s: string) => {
-          single: () => Promise<{
-            data: { id: string } | null
-            error: { message: string } | null
-          }>
-        }
-      }
-    }
-  })
+  const { data: logRow, error: logErr } = await admin
     .from('message_log')
     .insert(queueInsert)
     .select('id')
@@ -207,13 +194,7 @@ export async function sendWhatsApp(
 
 async function markSent(logId: string, providerId: string) {
   const admin = createAdminClient()
-  const { error } = await (admin as unknown as {
-    from: (t: 'message_log') => {
-      update: (v: Record<string, unknown>) => {
-        eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>
-      }
-    }
-  })
+  const { error } = await admin
     .from('message_log')
     .update({
       status: 'sent',
@@ -226,13 +207,7 @@ async function markSent(logId: string, providerId: string) {
 
 async function markFailed(logId: string, reason: string, errorText: string | null) {
   const admin = createAdminClient()
-  const { error } = await (admin as unknown as {
-    from: (t: 'message_log') => {
-      update: (v: Record<string, unknown>) => {
-        eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>
-      }
-    }
-  })
+  const { error } = await admin
     .from('message_log')
     .update({
       status: reason === 'opted_out' ? 'opted_out' : 'failed',

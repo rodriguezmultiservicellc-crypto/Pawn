@@ -70,19 +70,7 @@ export async function sendSms(args: SendSmsArgs): Promise<SendSmsResult> {
     body_rendered: args.body,
   }
 
-  // The generated Database type for message_log doesn't exist yet (operator
-  // applies 0010 then regenerates types). Cast through unknown to bridge.
-  const { data: logRow, error: logErr } = await (admin as unknown as {
-    from: (
-      t: 'message_log',
-    ) => {
-      insert: (v: MessageLogInsert) => {
-        select: (s: string) => {
-          single: () => Promise<{ data: { id: string } | null; error: { message: string } | null }>
-        }
-      }
-    }
-  })
+  const { data: logRow, error: logErr } = await admin
     .from('message_log')
     .insert(queueInsert)
     .select('id')
@@ -224,13 +212,7 @@ export async function resolveTwilioCreds(tenantId: string): Promise<{
 
 async function markSent(logId: string, providerId: string) {
   const admin = createAdminClient()
-  const { error } = await (admin as unknown as {
-    from: (t: 'message_log') => {
-      update: (v: Record<string, unknown>) => {
-        eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>
-      }
-    }
-  })
+  const { error } = await admin
     .from('message_log')
     .update({
       status: 'sent',
@@ -243,13 +225,7 @@ async function markSent(logId: string, providerId: string) {
 
 async function markFailed(logId: string, reason: string, errorText: string | null) {
   const admin = createAdminClient()
-  const { error } = await (admin as unknown as {
-    from: (t: 'message_log') => {
-      update: (v: Record<string, unknown>) => {
-        eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>
-      }
-    }
-  })
+  const { error } = await admin
     .from('message_log')
     .update({
       status: reason === 'opted_out' ? 'opted_out' : 'failed',

@@ -193,6 +193,7 @@ export type Database = {
         Row: {
           address1: string | null
           address2: string | null
+          auth_user_id: string | null
           banned_at: string | null
           banned_by: string | null
           banned_reason: string | null
@@ -237,6 +238,7 @@ export type Database = {
         Insert: {
           address1?: string | null
           address2?: string | null
+          auth_user_id?: string | null
           banned_at?: string | null
           banned_by?: string | null
           banned_reason?: string | null
@@ -281,6 +283,7 @@ export type Database = {
         Update: {
           address1?: string | null
           address2?: string | null
+          auth_user_id?: string | null
           banned_at?: string | null
           banned_by?: string | null
           banned_reason?: string | null
@@ -1124,6 +1127,158 @@ export type Database = {
           },
           {
             foreignKeyName: "loans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_log: {
+        Row: {
+          body_rendered: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          created_at: string
+          customer_id: string | null
+          delivered_at: string | null
+          error_text: string | null
+          id: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          provider_id: string | null
+          related_layaway_id: string | null
+          related_loan_id: string | null
+          related_repair_ticket_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["message_status"]
+          tenant_id: string
+          to_address: string
+        }
+        Insert: {
+          body_rendered: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          created_at?: string
+          customer_id?: string | null
+          delivered_at?: string | null
+          error_text?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          provider_id?: string | null
+          related_layaway_id?: string | null
+          related_loan_id?: string | null
+          related_repair_ticket_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+          tenant_id: string
+          to_address: string
+        }
+        Update: {
+          body_rendered?: string
+          channel?: Database["public"]["Enums"]["message_channel"]
+          created_at?: string
+          customer_id?: string | null
+          delivered_at?: string | null
+          error_text?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["message_kind"]
+          provider_id?: string | null
+          related_layaway_id?: string | null
+          related_loan_id?: string | null
+          related_repair_ticket_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+          tenant_id?: string
+          to_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_related_layaway_id_fkey"
+            columns: ["related_layaway_id"]
+            isOneToOne: false
+            referencedRelation: "layaways"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_related_loan_id_fkey"
+            columns: ["related_loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_related_repair_ticket_id_fkey"
+            columns: ["related_repair_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "repair_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          body: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          is_enabled: boolean
+          kind: Database["public"]["Enums"]["message_kind"]
+          language: string
+          subject: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          whatsapp_content_sid: string | null
+        }
+        Insert: {
+          body: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          kind: Database["public"]["Enums"]["message_kind"]
+          language: string
+          subject?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_content_sid?: string | null
+        }
+        Update: {
+          body?: string
+          channel?: Database["public"]["Enums"]["message_channel"]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          kind?: Database["public"]["Enums"]["message_kind"]
+          language?: string
+          subject?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_content_sid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_templates_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2045,10 +2200,15 @@ export type Database = {
           default_loan_term_days: number
           email_from: string | null
           resend_api_key: string | null
+          resend_from_email: string | null
+          resend_from_name: string | null
           tenant_id: string
           twilio_account_sid: string | null
           twilio_auth_token: string | null
+          twilio_messaging_service_sid: string | null
           twilio_phone_number: string | null
+          twilio_sms_from: string | null
+          twilio_whatsapp_from: string | null
           twilio_whatsapp_number: string | null
           updated_at: string
         }
@@ -2061,10 +2221,15 @@ export type Database = {
           default_loan_term_days?: number
           email_from?: string | null
           resend_api_key?: string | null
+          resend_from_email?: string | null
+          resend_from_name?: string | null
           tenant_id: string
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
+          twilio_messaging_service_sid?: string | null
           twilio_phone_number?: string | null
+          twilio_sms_from?: string | null
+          twilio_whatsapp_from?: string | null
           twilio_whatsapp_number?: string | null
           updated_at?: string
         }
@@ -2077,10 +2242,15 @@ export type Database = {
           default_loan_term_days?: number
           email_from?: string | null
           resend_api_key?: string | null
+          resend_from_email?: string | null
+          resend_from_name?: string | null
           tenant_id?: string
           twilio_account_sid?: string | null
           twilio_auth_token?: string | null
+          twilio_messaging_service_sid?: string | null
           twilio_phone_number?: string | null
+          twilio_sms_from?: string | null
+          twilio_whatsapp_from?: string | null
           twilio_whatsapp_number?: string | null
           updated_at?: string
         }
@@ -2089,6 +2259,75 @@ export type Database = {
             foreignKeyName: "settings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_payment_links: {
+        Row: {
+          amount: number
+          checkout_url: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          id: string
+          paid_at: string | null
+          source_id: string
+          source_kind: string
+          status: string
+          stripe_account_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          checkout_url?: string | null
+          created_at?: string
+          currency?: string
+          customer_id: string
+          id?: string
+          paid_at?: string | null
+          source_id: string
+          source_kind: string
+          status?: string
+          stripe_account_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          checkout_url?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          id?: string
+          paid_at?: string | null
+          source_id?: string
+          source_kind?: string
+          status?: string
+          stripe_account_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_payment_links_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stripe_payment_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -2367,6 +2606,7 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: undefined
       }
+      get_my_customer_id: { Args: never; Returns: string }
       my_accessible_tenant_ids: { Args: never; Returns: string[] }
       my_chain_tenant_ids: { Args: never; Returns: string[] }
       my_is_owner: { Args: { p_tenant_id: string }; Returns: boolean }
@@ -2449,6 +2689,20 @@ export type Database = {
         | "redeemed"
         | "forfeited"
         | "voided"
+      message_channel: "sms" | "whatsapp" | "email"
+      message_kind:
+        | "loan_maturity_t7"
+        | "loan_maturity_t1"
+        | "loan_due_today"
+        | "loan_overdue_t1"
+        | "loan_overdue_t7"
+        | "repair_ready"
+        | "repair_pickup_reminder"
+        | "layaway_payment_due"
+        | "layaway_overdue"
+        | "layaway_completed"
+        | "custom"
+      message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
       metal_type:
         | "gold"
         | "silver"
@@ -2725,6 +2979,21 @@ export const Constants = {
         "forfeited",
         "voided",
       ],
+      message_channel: ["sms", "whatsapp", "email"],
+      message_kind: [
+        "loan_maturity_t7",
+        "loan_maturity_t1",
+        "loan_due_today",
+        "loan_overdue_t1",
+        "loan_overdue_t7",
+        "repair_ready",
+        "repair_pickup_reminder",
+        "layaway_payment_due",
+        "layaway_overdue",
+        "layaway_completed",
+        "custom",
+      ],
+      message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
       metal_type: [
         "gold",
         "silver",

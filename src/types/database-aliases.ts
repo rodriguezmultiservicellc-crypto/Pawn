@@ -342,192 +342,49 @@ export type LayawayPaymentRow    = Database['public']['Tables']['layaway_payment
 export type LayawayPaymentInsert = Database['public']['Tables']['layaway_payments']['Insert']
 export type LayawayPaymentUpdate = Database['public']['Tables']['layaway_payments']['Update']
 
-// ── Phase 5 (customer portal) — stripe_payment_links + customers.auth_user_id
-//
-// Until 0009 is applied + db-types regenerated, the new table doesn't appear
-// in Database['public']['Tables']. We hand-roll the row shape here so the
-// portal action / webhook code type-checks. The operator regenerates
-// database.ts at merge time and we can collapse these aliases to the
-// generated Database['public']['Tables']['stripe_payment_links'] form.
+// ── Phase 5 (customer portal) — stripe_payment_links
+// Generated types pulled directly from Database['public']['Tables'].
+// Kind/Status remain as authoring narrowings since they're TEXT+CHECK
+// columns (no PG enum); the table Row exposes them as plain `string`.
 
 export type StripePaymentLinkKind = 'loan_payoff' | 'layaway_payment'
-
 export type StripePaymentLinkStatus =
   | 'pending'
   | 'paid'
   | 'expired'
   | 'cancelled'
 
-export type StripePaymentLinkRow = {
-  id: string
-  tenant_id: string
-  source_kind: StripePaymentLinkKind
-  source_id: string
-  customer_id: string
-  stripe_session_id: string
-  checkout_url: string | null
-  stripe_account_id: string | null
-  stripe_payment_intent_id: string | null
-  amount: number | string
-  currency: string
-  status: StripePaymentLinkStatus
-  created_at: string
-  updated_at: string
-  paid_at: string | null
-}
+export type StripePaymentLinkRow    = Database['public']['Tables']['stripe_payment_links']['Row']
+export type StripePaymentLinkInsert = Database['public']['Tables']['stripe_payment_links']['Insert']
+export type StripePaymentLinkUpdate = Database['public']['Tables']['stripe_payment_links']['Update']
 
-export type StripePaymentLinkInsert = {
-  id?: string
-  tenant_id: string
-  source_kind: StripePaymentLinkKind
-  source_id: string
-  customer_id: string
-  stripe_session_id: string
-  checkout_url?: string | null
-  stripe_account_id?: string | null
-  stripe_payment_intent_id?: string | null
-  amount: number | string
-  currency?: string
-  status?: StripePaymentLinkStatus
-  created_at?: string
-  updated_at?: string
-  paid_at?: string | null
-}
+// ── Phase 6 (communications) — message_templates + message_log + settings comms
+// All collapsed to generated types. Enums route through Database['public']['Enums'].
 
-export type StripePaymentLinkUpdate = Partial<StripePaymentLinkInsert>
+export type MessageKind    = Database['public']['Enums']['message_kind']
+export type MessageChannel = Database['public']['Enums']['message_channel']
+export type MessageStatus  = Database['public']['Enums']['message_status']
 
-// ── Phase 6 (communications) — enum literals + row shapes.
-//
-// 0010-communications.sql adds two tables (message_templates, message_log)
-// + extends settings with five comms-specific columns + creates three
-// enums (message_kind, message_channel, message_status). Until the migration
-// is applied AND `npm run db:types` regenerates database.ts, the types
-// referenced via Database['public']['Tables']['message_*'] won't resolve —
-// we define narrow row shapes here instead so phase-6 code can compile
-// against the worktree alone. Operator: when the migration is applied and
-// db:types is run, these manual shapes can be removed in favor of the
-// generated ones (the field names are deliberately identical).
+export type MessageTemplateRow    = Database['public']['Tables']['message_templates']['Row']
+export type MessageTemplateInsert = Database['public']['Tables']['message_templates']['Insert']
+export type MessageTemplateUpdate = Database['public']['Tables']['message_templates']['Update']
 
-export type MessageKind =
-  | 'loan_maturity_t7'
-  | 'loan_maturity_t1'
-  | 'loan_due_today'
-  | 'loan_overdue_t1'
-  | 'loan_overdue_t7'
-  | 'repair_ready'
-  | 'repair_pickup_reminder'
-  | 'layaway_payment_due'
-  | 'layaway_overdue'
-  | 'layaway_completed'
-  | 'custom'
+export type MessageLogRow    = Database['public']['Tables']['message_log']['Row']
+export type MessageLogInsert = Database['public']['Tables']['message_log']['Insert']
+export type MessageLogUpdate = Database['public']['Tables']['message_log']['Update']
 
-export type MessageChannel = 'sms' | 'whatsapp' | 'email'
-
-export type MessageStatus =
-  | 'queued'
-  | 'sent'
-  | 'delivered'
-  | 'failed'
-  | 'opted_out'
-
-/** Shape of message_templates rows. Mirrors the table from 0010. */
-export type MessageTemplateRow = {
-  id: string
-  tenant_id: string
-  kind: MessageKind
-  language: 'en' | 'es'
-  channel: MessageChannel
-  subject: string | null
-  body: string
-  whatsapp_content_sid: string | null
-  is_enabled: boolean
-  created_at: string
-  updated_at: string
-  deleted_at: string | null
-  created_by: string | null
-  updated_by: string | null
-}
-
-/** Insert shape for message_templates. */
-export type MessageTemplateInsert = {
-  id?: string
-  tenant_id: string
-  kind: MessageKind
-  language: 'en' | 'es'
-  channel: MessageChannel
-  subject?: string | null
-  body: string
-  whatsapp_content_sid?: string | null
-  is_enabled?: boolean
-  created_by?: string | null
-  updated_by?: string | null
-}
-
-/** Update shape for message_templates. */
-export type MessageTemplateUpdate = Partial<MessageTemplateInsert> & {
-  deleted_at?: string | null
-}
-
-/** Shape of message_log rows. Mirrors the table from 0010. */
-export type MessageLogRow = {
-  id: string
-  tenant_id: string
-  customer_id: string | null
-  related_loan_id: string | null
-  related_repair_ticket_id: string | null
-  related_layaway_id: string | null
-  channel: MessageChannel
-  kind: MessageKind
-  status: MessageStatus
-  to_address: string
-  body_rendered: string
-  provider_id: string | null
-  error_text: string | null
-  sent_at: string | null
-  delivered_at: string | null
-  created_at: string
-}
-
-/** Insert shape for message_log. */
-export type MessageLogInsert = {
-  id?: string
-  tenant_id: string
-  customer_id?: string | null
-  related_loan_id?: string | null
-  related_repair_ticket_id?: string | null
-  related_layaway_id?: string | null
-  channel: MessageChannel
-  kind: MessageKind
-  status?: MessageStatus
-  to_address: string
-  body_rendered: string
-  provider_id?: string | null
-  error_text?: string | null
-  sent_at?: string | null
-  delivered_at?: string | null
-}
-
-/** Update shape for message_log (status / provider_id / timestamps only). */
-export type MessageLogUpdate = {
-  status?: MessageStatus
-  provider_id?: string | null
-  error_text?: string | null
-  sent_at?: string | null
-  delivered_at?: string | null
-}
-
-/** Comms-specific columns added to settings by 0010. The base settings row
- *  type comes from the generated Database; reads merge the two via a cast. */
-export type SettingsCommsColumns = {
-  twilio_account_sid: string | null
-  twilio_auth_token: string | null
-  twilio_phone_number: string | null
-  twilio_whatsapp_number: string | null
-  twilio_messaging_service_sid: string | null
-  twilio_sms_from: string | null
-  twilio_whatsapp_from: string | null
-  resend_api_key: string | null
-  email_from: string | null
-  resend_from_email: string | null
-  resend_from_name: string | null
-}
+/** Narrow projection over the comms-relevant settings columns. */
+export type SettingsCommsColumns = Pick<
+  Database['public']['Tables']['settings']['Row'],
+  | 'twilio_account_sid'
+  | 'twilio_auth_token'
+  | 'twilio_phone_number'
+  | 'twilio_whatsapp_number'
+  | 'twilio_messaging_service_sid'
+  | 'twilio_sms_from'
+  | 'twilio_whatsapp_from'
+  | 'resend_api_key'
+  | 'email_from'
+  | 'resend_from_email'
+  | 'resend_from_name'
+>

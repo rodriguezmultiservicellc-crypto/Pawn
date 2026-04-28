@@ -20,7 +20,7 @@
 
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Language, MessageKind, MessageTemplateRow } from '@/types/database-aliases'
+import type { Language, MessageKind } from '@/types/database-aliases'
 
 /**
  * Resolve the WhatsApp Content SID for a given tenant + kind + language.
@@ -33,25 +33,7 @@ export async function resolveWhatsAppContentSid(args: {
   language: Language
 }): Promise<string | null> {
   const admin = createAdminClient()
-  const { data } = await (admin as unknown as {
-    from: (t: 'message_templates') => {
-      select: (s: string) => {
-        eq: (k: string, v: string) => {
-          eq: (k: string, v: string) => {
-            eq: (k: string, v: string) => {
-              eq: (k: string, v: string) => {
-                is: (k: string, v: null) => {
-                  maybeSingle: () => Promise<{
-                    data: Pick<MessageTemplateRow, 'whatsapp_content_sid'> | null
-                  }>
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  })
+  const { data } = await admin
     .from('message_templates')
     .select('whatsapp_content_sid')
     .eq('tenant_id', args.tenantId)
