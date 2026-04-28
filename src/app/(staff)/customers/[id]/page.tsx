@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
+import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CUSTOMER_DOCUMENTS_BUCKET,
   getSignedUrl,
@@ -14,6 +15,8 @@ import type {
   ServiceType,
 } from '@/types/database-aliases'
 
+const PORTAL_MANAGE_ROLES = new Set(['owner', 'chain_admin', 'manager'])
+
 type Params = Promise<{ id: string }>
 
 export default async function CustomerDetailPage(props: { params: Params }) {
@@ -24,13 +27,47 @@ export default async function CustomerDetailPage(props: { params: Params }) {
   const { data: customer } = await ctx.supabase
     .from('customers')
     .select(
-      'id, tenant_id, first_name, last_name, middle_name, date_of_birth, photo_url, phone, phone_alt, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_country, id_expiry, comm_preference, language, marketing_opt_in, height_inches, weight_lbs, sex, hair_color, eye_color, identifying_marks, place_of_employment, notes, tags, is_banned, banned_reason, banned_at, banned_by, created_at, updated_at',
+      'id, tenant_id, first_name, last_name, middle_name, date_of_birth, photo_url, phone, phone_alt, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_country, id_expiry, comm_preference, language, marketing_opt_in, height_inches, weight_lbs, sex, hair_color, eye_color, identifying_marks, place_of_employment, notes, tags, is_banned, banned_reason, banned_at, banned_by, auth_user_id, created_at, updated_at',
     )
     .eq('id', id)
     .is('deleted_at', null)
     .maybeSingle()
 
   if (!customer) redirect('/customers')
+
+  // Portal-invite status: most-recent invite + whether the customer has
+  // a live client membership at this tenant. Both queries via admin
+  // client because user_tenants/customer_portal_invites RLS would hide
+  // the auth.users-linked rows from a non-member context for the
+  // portal user.
+  const admin = createAdminClient()
+  const { data: lastInviteRow } = await admin
+    .from('customer_portal_invites')
+    .select('created_at, expires_at, consumed_at')
+    .eq('customer_id', id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{
+      created_at: string
+      expires_at: string
+      consumed_at: string | null
+    }>()
+
+  let hasPortalAccess = false
+  if (customer.auth_user_id) {
+    const { data: membership } = await admin
+      .from('user_tenants')
+      .select('role, is_active')
+      .eq('user_id', customer.auth_user_id)
+      .eq('tenant_id', customer.tenant_id)
+      .eq('role', 'client')
+      .eq('is_active', true)
+      .maybeSingle()
+    hasPortalAccess = !!membership
+  }
+
+  const canManagePortal =
+    !!ctx.tenantRole && PORTAL_MANAGE_ROLES.has(ctx.tenantRole)
 
   const photoSignedUrl = customer.photo_url
     ? await getSignedUrl({
@@ -143,6 +180,17 @@ export default async function CustomerDetailPage(props: { params: Params }) {
       hasRepair={hasRepair}
       hasRetail={hasRetail}
       photoSignedUrl={photoSignedUrl}
+      portal={{
+        hasPortalAccess,
+        lastInvite: lastInviteRow
+          ? {
+              sentAt: lastInviteRow.created_at,
+              expiresAt: lastInviteRow.expires_at,
+              consumedAt: lastInviteRow.consumed_at,
+            }
+          : null,
+        canManage: canManagePortal,
+      }}
       loans={(loanRows ?? []).map((l) => ({
         id: l.id,
         ticket_number: l.ticket_number ?? '',

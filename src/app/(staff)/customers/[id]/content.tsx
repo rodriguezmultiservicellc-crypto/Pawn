@@ -17,6 +17,7 @@ import {
   CustomerFormFields,
   type CustomerFieldValues,
 } from '@/components/customers/CustomerFormFields'
+import { PortalInvitePanel } from '@/components/customers/PortalInvitePanel'
 import {
   banCustomerAction,
   deleteCustomerAction,
@@ -196,6 +197,16 @@ type CustomerRecord = {
   updated_at: string
 }
 
+export type PortalInfo = {
+  hasPortalAccess: boolean
+  lastInvite: {
+    sentAt: string
+    expiresAt: string
+    consumedAt: string | null
+  } | null
+  canManage: boolean
+}
+
 export default function CustomerDetail({
   customer,
   documents,
@@ -207,6 +218,7 @@ export default function CustomerDetail({
   repairs = [],
   sales = [],
   layaways = [],
+  portal,
 }: {
   customer: CustomerRecord
   documents: CustomerDocumentItem[]
@@ -218,6 +230,7 @@ export default function CustomerDetail({
   repairs?: CustomerRepairRow[]
   sales?: CustomerSaleRow[]
   layaways?: CustomerLayawayRow[]
+  portal: PortalInfo
 }) {
   const { t } = useI18n()
 
@@ -364,6 +377,14 @@ export default function CustomerDetail({
         defaultIdNumber={customer.id_number}
         defaultIdState={customer.id_state}
         defaultIdExpiry={customer.id_expiry}
+      />
+
+      <PortalInvitePanel
+        customerId={customer.id}
+        customerEmail={customer.email}
+        hasPortalAccess={portal.hasPortalAccess}
+        lastInvite={portal.lastInvite}
+        canManage={portal.canManage}
       />
 
       {hasPawn ? (

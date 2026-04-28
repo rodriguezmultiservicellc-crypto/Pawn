@@ -274,6 +274,33 @@ export const es: Dictionary = {
     confirmDelete: '¿Eliminar este cliente? No se puede deshacer.',
     deleteBlockedActiveLoans:
       'No se puede eliminar: este cliente tiene registros activos que lo impiden. Resuélvelos primero.',
+    portalInvite: {
+      title: 'Acceso al portal del cliente',
+      statusActive: 'Portal activo',
+      statusPending: 'Invitación pendiente',
+      statusExpired: 'Invitación caducada',
+      statusNever: 'Sin acceso al portal',
+      noEmailOnFile: 'No hay correo en archivo — agrega uno para invitar a este cliente.',
+      send: 'Enviar invitación al portal',
+      resend: 'Reenviar invitación',
+      lastInviteSent: 'Invitación enviada',
+      lastInviteExpired: 'La última invitación caducó — enviada',
+      claimedOn: 'El cliente inició sesión',
+      deliveredEmail: 'Invitación enviada por correo.',
+      deliveredManual:
+        'Invitación creada — pero Resend aún no está configurado para esta tienda, así que el correo no se envió. Copia el enlace de abajo y entrégalo manualmente.',
+      manualLinkHelp: 'Copia y envía este enlace al cliente.',
+      copy: 'Copiar enlace',
+      copied: '¡Copiado!',
+      revoke: 'Revocar invitaciones pendientes',
+      revoked: 'Invitaciones pendientes revocadas.',
+      errNoEmail: 'El cliente no tiene correo en archivo.',
+      errAlreadyLinked: 'Este cliente ya tiene acceso al portal.',
+      errAuthFailed: 'No se pudo generar el enlace mágico. Inténtalo de nuevo.',
+      errInsertFailed: 'No se pudo guardar la invitación. Inténtalo de nuevo.',
+      errAppUrlMissing:
+        'NEXT_PUBLIC_APP_URL no está configurado en el servidor. Pídele a un administrador que lo configure.',
+    },
   },
 
   inventory: {
@@ -1677,6 +1704,33 @@ export const es: Dictionary = {
       forbidden: 'No tienes permiso para ver eso.',
       amountInvalid: 'Ingresa un monto válido mayor que cero.',
     },
+    claim: {
+      title: 'Activa tu acceso al portal',
+      greeting: 'Hola',
+      greetingNoName: 'Hola,',
+      intro1: 'Estás a punto de activar tu acceso a',
+      intro2: '— tu portal de cliente.',
+      bullet1: 'Consulta tus saldos y fechas de vencimiento de préstamos',
+      bullet2: 'Verifica el estado de tus reparaciones',
+      bullet3: 'Consulta tus saldos de apartado (layaway)',
+      confirm: 'Activar mi acceso',
+      backToLogin: 'Volver al inicio de sesión',
+      signedInAs: 'sesión iniciada como',
+      wrongUserHint: 'Esta invitación se envió a:',
+      errInvalid: 'Este enlace de invitación no es válido.',
+      errExpired:
+        'Esta invitación caducó. Pide a la tienda que envíe una nueva.',
+      errAlreadyUsed:
+        'Esta invitación ya se usó. Inicia sesión en tu portal en la página de enlace mágico.',
+      errAlreadyLinkedOther:
+        'Este registro de cliente ya está vinculado a otro inicio de sesión. Comunícate con la tienda para resolverlo.',
+      errWrongUser:
+        'Iniciaste sesión con un correo diferente al que se envió la invitación.',
+      errUnauthenticated:
+        'Tu sesión expiró. Solicita un nuevo enlace mágico.',
+      errLinkFailed:
+        'No se pudo terminar de activar tu portal. Inténtalo de nuevo.',
+    },
   },
 
   dlScanner: {
@@ -1746,6 +1800,7 @@ export const es: Dictionary = {
       saas_payment_failed: 'Pago fallido (plataforma)',
       saas_payment_recovered: 'Pago recuperado (plataforma)',
       saas_subscription_cancelled: 'Suscripción cancelada (plataforma)',
+      portal_invite: 'Invitación al portal del cliente',
     },
     kindDescriptions: {
       loan_maturity_t7: 'Se envía automáticamente 7 días antes del vencimiento.',
@@ -1769,6 +1824,8 @@ export const es: Dictionary = {
         'Enviado por la plataforma: Pawn (RMS) confirma que un pago previamente fallido se procesó correctamente.',
       saas_subscription_cancelled:
         'Enviado por la plataforma: Pawn (RMS) confirma que la suscripción del inquilino fue cancelada.',
+      portal_invite:
+        'Se envía cuando el personal invita a un cliente al portal. No es configurable por inquilino — usa una plantilla bilingüe integrada.',
     },
     editorHelp:
       'Usa marcadores {{variable}}. Disponibles: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, portal_link.',

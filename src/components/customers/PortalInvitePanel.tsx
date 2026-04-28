@@ -1,0 +1,256 @@
+'use client'
+
+import { useActionState, useEffect, useState } from 'react'
+import { CheckCircle, EnvelopeSimple, Link as LinkIcon, Warning } from '@phosphor-icons/react'
+import { useI18n } from '@/lib/i18n/context'
+import {
+  sendPortalInviteAction,
+  revokePortalInvitesAction,
+  type SendPortalInviteState,
+} from '@/app/(staff)/customers/[id]/portal-actions'
+
+export type PortalInvitePanelProps = {
+  customerId: string
+  customerEmail: string | null
+  hasPortalAccess: boolean
+  /** Most recent invite for this customer, regardless of status. */
+  lastInvite: {
+    sentAt: string
+    expiresAt: string
+    consumedAt: string | null
+  } | null
+  canManage: boolean
+}
+
+export function PortalInvitePanel(props: PortalInvitePanelProps) {
+  const { t } = useI18n()
+  const [sendState, sendAction, sendPending] = useActionState<
+    SendPortalInviteState,
+    FormData
+  >(sendPortalInviteAction, {})
+  const [revokeState, revokeAction, revokePending] = useActionState<
+    { ok?: boolean; error?: string },
+    FormData
+  >(revokePortalInvitesAction, {})
+  const [copied, setCopied] = useState(false)
+
+  // Auto-clear the "copied" affordance after 2s.
+  useEffect(() => {
+    if (!copied) return
+    const id = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(id)
+  }, [copied])
+
+  // Capture "now" once per mount via a lazy state initializer — the only
+  // pattern that satisfies react-hooks/purity for Date.now() (per the
+  // Session 8 CLAUDE.md gotcha). Stable across re-renders is fine here:
+  // the panel just decides expired-vs-pending against load time.
+  const [nowMs] = useState<number>(() => Date.now())
+  const status = resolveStatus(props, nowMs)
+
+  const onCopy = (link: string) => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) return
+    navigator.clipboard.writeText(link).then(
+      () => setCopied(true),
+      () => undefined,
+    )
+  }
+
+  return (
+    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+      <legend className="px-1 text-sm font-semibold text-ink">
+        {t.customers.portalInvite.title}
+      </legend>
+
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <StatusPill status={status} />
+          <div className="mt-2 text-sm text-ink">
+            {props.customerEmail ?? (
+              <span className="italic text-ash">
+                {t.customers.portalInvite.noEmailOnFile}
+              </span>
+            )}
+          </div>
+          {props.lastInvite ? (
+            <div className="mt-1 text-xs text-ash">
+              {props.lastInvite.consumedAt ? (
+                <>
+                  {t.customers.portalInvite.claimedOn}{' '}
+                  {new Date(props.lastInvite.consumedAt).toLocaleString()}
+                </>
+              ) : new Date(props.lastInvite.expiresAt).getTime() < nowMs ? (
+                <>
+                  {t.customers.portalInvite.lastInviteExpired}{' '}
+                  {new Date(props.lastInvite.sentAt).toLocaleString()}
+                </>
+              ) : (
+                <>
+                  {t.customers.portalInvite.lastInviteSent}{' '}
+                  {new Date(props.lastInvite.sentAt).toLocaleString()}
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {props.canManage && status !== 'active' ? (
+          <form action={sendAction} className="shrink-0">
+            <input type="hidden" name="customer_id" value={props.customerId} />
+            <button
+              type="submit"
+              disabled={sendPending || !props.customerEmail}
+              className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+              title={
+                props.customerEmail
+                  ? undefined
+                  : t.customers.portalInvite.noEmailOnFile
+              }
+            >
+              <EnvelopeSimple size={14} weight="bold" />
+              {sendPending
+                ? t.common.saving
+                : status === 'pending'
+                  ? t.customers.portalInvite.resend
+                  : t.customers.portalInvite.send}
+            </button>
+          </form>
+        ) : null}
+      </div>
+
+      {sendState.error ? (
+        <div className="mt-3 flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          <Warning size={14} weight="bold" />
+          <span>{translateError(sendState.error, t)}</span>
+        </div>
+      ) : null}
+
+      {sendState.ok ? (
+        <div className="mt-3 space-y-2">
+          <div className="flex items-start gap-2 rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
+            <CheckCircle size={14} weight="bold" />
+            <span>
+              {sendState.delivered === 'email'
+                ? t.customers.portalInvite.deliveredEmail
+                : t.customers.portalInvite.deliveredManual}
+            </span>
+          </div>
+          {sendState.delivered === 'manual' && sendState.manualLink ? (
+            <div className="rounded-md border border-warning/30 bg-warning/5 p-3">
+              <div className="text-xs font-medium text-warning">
+                {t.customers.portalInvite.manualLinkHelp}
+              </div>
+              <div className="mt-2 flex items-stretch gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={sendState.manualLink}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="block w-full min-w-0 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs text-ink"
+                />
+                <button
+                  type="button"
+                  onClick={() => onCopy(sendState.manualLink!)}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs font-medium text-ink hover:border-ink"
+                >
+                  <LinkIcon size={12} weight="bold" />
+                  {copied
+                    ? t.customers.portalInvite.copied
+                    : t.customers.portalInvite.copy}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {props.canManage && status === 'pending' ? (
+        <div className="mt-3 border-t border-hairline pt-3">
+          <form action={revokeAction}>
+            <input type="hidden" name="customer_id" value={props.customerId} />
+            <button
+              type="submit"
+              disabled={revokePending}
+              className="text-xs text-ash hover:text-error disabled:opacity-50"
+            >
+              {revokePending
+                ? t.common.saving
+                : t.customers.portalInvite.revoke}
+            </button>
+          </form>
+          {revokeState.error ? (
+            <div className="mt-1 text-xs text-error">
+              {translateError(revokeState.error, t)}
+            </div>
+          ) : null}
+          {revokeState.ok ? (
+            <div className="mt-1 text-xs text-success">
+              {t.customers.portalInvite.revoked}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </fieldset>
+  )
+}
+
+type Status = 'active' | 'pending' | 'expired' | 'never'
+
+function resolveStatus(props: PortalInvitePanelProps, nowMs: number): Status {
+  if (props.hasPortalAccess) return 'active'
+  if (!props.lastInvite) return 'never'
+  if (props.lastInvite.consumedAt) return 'active' // shouldn't happen, but safe
+  if (new Date(props.lastInvite.expiresAt).getTime() < nowMs) return 'expired'
+  return 'pending'
+}
+
+function StatusPill({ status }: { status: Status }) {
+  const { t } = useI18n()
+  const map: Record<
+    Status,
+    { label: string; bg: string; text: string }
+  > = {
+    active: {
+      label: t.customers.portalInvite.statusActive,
+      bg: 'bg-success/10 border-success/30',
+      text: 'text-success',
+    },
+    pending: {
+      label: t.customers.portalInvite.statusPending,
+      bg: 'bg-warning/10 border-warning/30',
+      text: 'text-warning',
+    },
+    expired: {
+      label: t.customers.portalInvite.statusExpired,
+      bg: 'bg-cloud border-hairline',
+      text: 'text-ash',
+    },
+    never: {
+      label: t.customers.portalInvite.statusNever,
+      bg: 'bg-cloud border-hairline',
+      text: 'text-ash',
+    },
+  }
+  const { label, bg, text } = map[status]
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${bg} ${text}`}
+    >
+      {label}
+    </span>
+  )
+}
+
+function translateError(
+  reason: string,
+  t: ReturnType<typeof useI18n>['t'],
+): string {
+  const map: Record<string, string> = {
+    no_email: t.customers.portalInvite.errNoEmail,
+    already_linked: t.customers.portalInvite.errAlreadyLinked,
+    auth_invite_failed: t.customers.portalInvite.errAuthFailed,
+    invite_insert_failed: t.customers.portalInvite.errInsertFailed,
+    app_url_not_configured: t.customers.portalInvite.errAppUrlMissing,
+  }
+  return map[reason] ?? reason
+}

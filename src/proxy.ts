@@ -64,6 +64,11 @@ function isAdminPath(pathname: string): boolean {
 }
 
 function isPortalPath(pathname: string): boolean {
+  // /portal/claim/* is the post-magic-link landing where the user
+  // signs in BEFORE the user_tenants(role='client') row exists. Gating
+  // it on tenantRole='client' would deadlock the onboarding flow. The
+  // claim page enforces its own auth + token validation.
+  if (pathname.startsWith('/portal/claim')) return false
   return pathname.startsWith('/portal')
 }
 

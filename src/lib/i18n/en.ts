@@ -283,6 +283,33 @@ export const en = {
     confirmDelete: 'Delete this customer? This cannot be undone.',
     deleteBlockedActiveLoans:
       'Cannot delete: this customer has active records that block deletion. Resolve them first.',
+    portalInvite: {
+      title: 'Customer portal access',
+      statusActive: 'Portal active',
+      statusPending: 'Invite pending',
+      statusExpired: 'Invite expired',
+      statusNever: 'No portal access',
+      noEmailOnFile: 'No email on file — add one to invite this customer.',
+      send: 'Send portal invite',
+      resend: 'Resend invite',
+      lastInviteSent: 'Invite sent',
+      lastInviteExpired: 'Last invite expired — sent',
+      claimedOn: 'Customer signed in',
+      deliveredEmail: 'Invite emailed.',
+      deliveredManual:
+        'Invite created — but Resend isn’t configured for this shop yet, so the email did not send. Copy the link below and deliver it manually.',
+      manualLinkHelp: 'Copy and send this link to the customer.',
+      copy: 'Copy link',
+      copied: 'Copied!',
+      revoke: 'Revoke pending invites',
+      revoked: 'Pending invites revoked.',
+      errNoEmail: 'Customer has no email on file.',
+      errAlreadyLinked: 'This customer already has portal access.',
+      errAuthFailed: 'Could not generate the magic link. Please try again.',
+      errInsertFailed: 'Could not save the invite. Please try again.',
+      errAppUrlMissing:
+        'NEXT_PUBLIC_APP_URL is not set on the server. Ask an admin to configure it.',
+    },
   },
 
   inventory: {
@@ -1670,6 +1697,33 @@ export const en = {
       forbidden: 'You do not have permission to view that.',
       amountInvalid: 'Enter a valid amount greater than zero.',
     },
+    claim: {
+      title: 'Activate your portal access',
+      greeting: 'Hi',
+      greetingNoName: 'Hi,',
+      intro1: 'You are about to activate access to',
+      intro2: '— your customer portal.',
+      bullet1: 'See your loan balances and due dates',
+      bullet2: 'Check the status of your repairs',
+      bullet3: 'View your layaway balances',
+      confirm: 'Activate my access',
+      backToLogin: 'Back to sign in',
+      signedInAs: 'signed in as',
+      wrongUserHint: 'This invite was issued to:',
+      errInvalid: 'This invite link is not valid.',
+      errExpired:
+        'This invite has expired. Ask the shop to send a new one.',
+      errAlreadyUsed:
+        'This invite has already been used. Sign in to your portal at the magic-link page.',
+      errAlreadyLinkedOther:
+        'This customer record is already linked to a different sign-in. Contact the shop to resolve.',
+      errWrongUser:
+        'You are signed in with a different email than the invite was sent to.',
+      errUnauthenticated:
+        'Your sign-in session expired. Please request a new magic link.',
+      errLinkFailed:
+        'Could not finish activating your portal. Please try again.',
+    },
   },
 
   dlScanner: {
@@ -1739,6 +1793,7 @@ export const en = {
       saas_payment_failed: 'Payment failed (platform)',
       saas_payment_recovered: 'Payment recovered (platform)',
       saas_subscription_cancelled: 'Subscription cancelled (platform)',
+      portal_invite: 'Customer portal invite',
     },
     kindDescriptions: {
       loan_maturity_t7: 'Sent automatically 7 days before a loan due date.',
@@ -1761,6 +1816,8 @@ export const en = {
         'Platform-sent: Pawn (RMS) confirms a previously-failed payment has cleared.',
       saas_subscription_cancelled:
         'Platform-sent: Pawn (RMS) confirms the tenant subscription has been cancelled.',
+      portal_invite:
+        'Sent when staff invites a customer to the customer portal. Not configurable per tenant — uses a built-in bilingual template.',
     },
     editorHelp:
       'Use {{variable}} placeholders. Available variables: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, portal_link.',

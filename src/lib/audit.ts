@@ -104,6 +104,10 @@ export type AuditAction =
   | 'ebay_listing_update'
   | 'ebay_listing_end'
   | 'ebay_listing_sync'
+  // Customer portal invites (Phase 5 onboarding self-link flow)
+  | 'portal_invite_sent'
+  | 'portal_invites_revoked'
+  | 'portal_invite_consumed'
 
 export async function logAudit(args: {
   tenantId: string

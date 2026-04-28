@@ -501,6 +501,60 @@ export type Database = {
           },
         ]
       }
+      customer_portal_invites: {
+        Row: {
+          consumed_at: string | null
+          consumed_by: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          email: string
+          expires_at: string
+          id: string
+          tenant_id: string
+          token: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          consumed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          email: string
+          expires_at: string
+          id?: string
+          tenant_id: string
+          token?: string
+        }
+        Update: {
+          consumed_at?: string | null
+          consumed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          tenant_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_invites_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_invites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address1: string | null
@@ -3502,6 +3556,7 @@ export type Database = {
         | "saas_payment_failed"
         | "saas_payment_recovered"
         | "saas_subscription_cancelled"
+        | "portal_invite"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
       metal_purity:
         | "pure_24k"
@@ -3850,6 +3905,7 @@ export const Constants = {
         "saas_payment_failed",
         "saas_payment_recovered",
         "saas_subscription_cancelled",
+        "portal_invite",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
       metal_purity: [
