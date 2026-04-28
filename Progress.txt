@@ -12,248 +12,248 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 6 (2026-04-27 evening) — Phases 5 + 6 + 7 all
-                  merged + customer-save bug fix + dashboard port.
-                  Build green at 50+ routes.
+  Last session:   Session 7 (2026-04-28 morning) — Migration cleanup
+                  (Phase 5/6 alias collapse + cast strip), sidebar
+                  collapse, Phase 9 Path A SaaS billing, three Path B
+                  agents (bullion + appraisals + eBay) all merged.
+                  Build green at 60+ routes.
   Context budget: HEAVY. Save and clear before next session.
-  Last worked on: Three-phase parallel agent dispatch (5/6/7) with
-                  worktree isolation + sequential merges. Customer-save
-                  bug FIXED. Vibrant-dark dashboard ported into
-                  /staff/dashboard. All four pushes live on Vercel.
+  Last worked on: Merging the three Path B agent branches into main in
+                  sequence (appraisals → bullion → eBay). All conflict
+                  resolutions followed the locked union pattern.
+                  Worktrees cleaned. Pushed to Vercel.
 
   ACTIVE FILE(S) — last touched this session:
-    --- Customer-save fix ---
-    - src/lib/validations/{customer,inventory,loan,pos,repair,transfer}.ts
-      (preprocess returns null on empty-trim BEFORE inner schema)
-    - src/app/(staff)/customers/new/form.tsx (top banner on fieldErrors)
-    - src/lib/i18n/{en,es}.ts (common.fixErrorsBelow)
+    --- Phase 5/6 cleanup (post-migration) ---
+    - src/types/database.ts (regenerated; 104k after 0012 applied;
+      another regen due after 0013/0014/0015 land)
+    - src/types/database-aliases.ts (Phase 5 + 6 hand-rolls collapsed
+      to Database['public']['Tables']['…']['Row|Insert|Update'];
+      Phase 9 Path B + Phase 10 Path B blocks ADDED as new hand-rolls
+      pending 0013/0014/0015)
+    - src/lib/twilio/{sms,whatsapp,templates}.ts
+    - src/lib/email/send.ts
+    - src/lib/comms/dispatch.ts
+    - src/app/api/cron/{layaway-reminders,maturity-reminders,
+      repair-ready-reminders}/route.ts
+      (15 (admin as unknown as) casts stripped via brace-aware Node
+      script)
+    - src/app/(portal)/portal/{loans,layaways}/[id]/actions.ts
+      (.toFixed(4) → numeric direct on stripe_payment_links.amount)
 
-    --- Dashboard port ---
-    - src/app/(staff)/dashboard/dashboard.css (NEW — scoped under
-      .dashboard so dark vars don't bleed into Airbnb-light surfaces)
-    - src/app/(staff)/dashboard/content.tsx (full rewrite — 5 tabs,
-      autocomplete search, recent chips, DlScanner, charts, kbd shortcuts)
-    - src/app/(staff)/dashboard/actions.ts (NEW — searchAcrossModule
-      server action against loans/sales/layaways/repair_tickets)
+    --- Sidebar collapse ---
+    - src/components/layout/Sidebar.tsx (lazy-init + matchMedia
+      auto-collapse ≤800px + localStorage persistence under
+      pawn.sidebar.collapsed; toggle button at top with caret icon)
+    - src/lib/i18n/{en,es}.ts (common.{collapseSidebar,expandSidebar})
 
-    --- Phase 5 merged (worktree-agent-a0c62 → main a9b4995) ---
-    - patches/0009-customer-portal.sql (NOT APPLIED)
-    - src/app/(auth)/{magic-link,set-password}/* (NEW)
-    - src/app/(portal)/portal/{loans,layaways,repairs}/* (NEW)
-    - src/app/api/stripe/webhook/route.ts (NEW)
-    - src/lib/stripe/payment-link.ts (NEW)
-    - src/lib/portal/* (NEW)
-    - src/components/portal/PortalChrome.tsx (NEW)
-    - src/types/database-aliases.ts (Stripe payment link types added)
+    --- Phase 9 Path A — SaaS billing ---
+    - patches/0012-saas-billing.sql (APPLIED)
+    - src/lib/saas/{types,plans,subscriptions}.ts
+      (split: types.ts pure for client-bundle hygiene; plans.ts +
+      subscriptions.ts server-only)
+    - src/app/(admin)/admin/billing/{page,content,actions}.tsx
+    - src/app/(admin)/layout.tsx (Billing link added to admin header)
 
-    --- Phase 6 merged (worktree-agent-a325 → main 0519b51) ---
-    - patches/0010-communications.sql (NOT APPLIED — extends settings
-      table + adds message_templates + message_log + 66 seed templates)
-    - src/lib/twilio/{sms,whatsapp,templates}.ts (NEW)
-    - src/lib/email/send.ts (NEW)
-    - src/lib/comms/{render,dispatch}.ts (NEW)
-    - src/app/api/cron/{maturity,repair-ready,layaway}-reminders/route.ts
-    - src/app/(staff)/settings/communications/* (NEW)
-    - src/components/comms/{CredsForm,TemplateEditor,TestSendDialog,
-      SendReminderDialog}.tsx (NEW)
-    - SendReminderDialog wired into pawn/repair/layaway detail pages
+    --- Phase 9 Path B — bullion spot prices ---
+    - patches/0013-spot-prices.sql (NOT APPLIED)
+    - src/lib/spot-prices/{sources/metals-live,refresh,lookup,melt}.ts
+    - src/app/api/cron/refresh-spot-prices/route.ts
+    - src/app/(staff)/inventory/spot-prices/{page,content,actions}.tsx
+    - src/app/(staff)/inventory/[id]/{page,content}.tsx (melt panel)
 
-    --- Phase 7 merged (worktree-agent-a24d → main fd39163) ---
-    - patches/0011-reporting.sql (NO-OP HEADER — apply or skip)
-    - src/lib/reports/* (8 query helpers)
-    - src/lib/compliance/{police-report/index.ts, retention.ts,
-      formats/fl-leadsonline.ts} (NEW)
-    - src/lib/pdf/reports/ReportPDF.tsx (NEW)
-    - src/app/(staff)/reports/* (8 report pages + landing)
-    - src/app/api/reports/* (15 PDF + CSV streamers)
-    - src/components/reports/{DateRangePicker,ExportButtons,
-      ReportPageShell,ReportTable}.tsx (NEW)
-    - src/lib/format/money.ts (NEW)
-    - src/lib/audit.ts (added 'export' AuditAction)
+    --- Phase 9 Path B — appraisals ---
+    - patches/0014-appraisals.sql (NOT APPLIED)
+    - src/lib/appraisals/{workflow,format,db}.ts
+    - src/lib/pdf/{AppraisalPDF,render-appraisal}.tsx
+    - src/app/api/appraisals/[id]/pdf/route.ts
+    - src/app/(staff)/appraisals/{page,content}.tsx + new + [id]
+    - src/components/appraisals/StoneEditor.tsx
+    - src/lib/validations/appraisal.ts
+    - src/lib/supabase/storage.ts (APPRAISAL_PHOTOS_BUCKET +
+      APPRAISAL_SIGNATURES_BUCKET path builders)
+
+    --- Phase 10 Path B — eBay scaffold (STUBBED) ---
+    - patches/0015-ebay-listings.sql (NOT APPLIED)
+    - src/lib/ebay/{auth,client,listings,types}.ts (STUBBED)
+    - src/app/api/ebay/oauth/{start,callback}/route.ts
+    - src/app/api/cron/ebay-sync/route.ts
+    - src/app/(staff)/settings/integrations/ebay/{page,content,actions}.tsx
+    - src/app/(staff)/inventory/listings/ebay/{page,content}.tsx
+    - src/components/ebay/{ListingDraftForm,StatusPill,InventoryEbayPanel}.tsx
+
+    --- Cross-cutting ---
+    - src/lib/audit.ts (AuditAction extended w/ tenant_plan_change,
+      appraisal_*, spot_price_*, ebay_* literals)
 
   RESUME POINT:
-    Apply the three phase migrations against Supabase IN ORDER, then
-    regenerate types and collapse the manual hand-rolled aliases.
+    Apply Path B migrations against Supabase IN ORDER, then regen
+    types and collapse the new hand-rolled aliases.
 
-      1. patches/0009-customer-portal.sql
-         (customers.auth_user_id, stripe_payment_links table,
-          client-role RLS, get_my_customer_id() helper)
-      2. patches/0010-communications.sql
-         (extends settings with 5 comms cols + message_templates +
-          message_log + 66 seed templates for first tenant)
-      3. patches/0011-reporting.sql
-         (NO-OP — header only; apply for completeness or skip)
+      1. patches/0013-spot-prices.sql
+         (metal_purity enum, spot_prices append-only history,
+          spot_price_overrides per-tenant multipliers, RLS, seed rows)
+      2. patches/0014-appraisals.sql
+         (3 enums: appraisal_status / purpose / photo_kind; 3 tables:
+          appraisals + appraisal_stones + appraisal_photos;
+          'AP-' counter; immutability trigger on finalized+printed;
+          2 new private storage buckets: appraisal-photos +
+          appraisal-signatures)
+      3. patches/0015-ebay-listings.sql
+         (4 enums: ebay_environment/listing_status/listing_format/
+          listing_event_kind; 3 tables: tenant_ebay_credentials +
+          ebay_listings + ebay_listing_events with write-once trigger
+          on the events table)
 
-    Use scripts/apply-migration.mjs OR Supabase SQL Editor. Then:
+    Use scripts/apply-migration.mjs. Then:
       - npm run db:types  (regen src/types/database.ts)
       - Collapse hand-rolled types in src/types/database-aliases.ts:
-          StripePaymentLinkRow/Insert/Update + StripePaymentLinkKind/Status
-          MessageTemplateRow/Insert/Update + MessageKind/Channel/Status
-          MessageLogRow/Insert/Update
-          SettingsCommsColumns
-        These can collapse to Database['public']['Tables']['…']['Row']
-        forms (field names deliberately identical).
-      - Drop the `as unknown as { from: ... }` casts in src/lib/twilio/*,
-        src/lib/email/send.ts, src/lib/comms/dispatch.ts, the cron routes,
-        and the settings/communications page (Phase 6 agent flagged these).
+          MetalPurity + SpotPrice* (Phase 9 Path B — bullion)
+          AppraisalStatus/Purpose/PhotoKind + Appraisal* (Phase 9 Path B)
+          EbayEnvironment + EbayListingStatus/Format/EventKind +
+            TenantEbayCredentials* + EbayListing* + EbayListingEvent*
+            (Phase 10 Path B)
+        These collapse to Database['public']['Tables']['…']['Row|Insert|
+        Update'] forms (field names deliberately identical).
+      - Strip the (admin as any).from(...) casts in:
+          - 4 spot-prices lib files
+          - src/lib/appraisals/db.ts wrappers (delete db.ts entirely
+            once typed admin client resolves)
+          - src/lib/ebay/{auth,client,listings}.ts
+          - src/app/api/cron/ebay-sync/route.ts
+          - src/app/(staff)/inventory/[id]/page.tsx (eBay panel loaders)
+      - Verify npm run build green.
 
-    Verify npm run build green. Then pick next workstream.
+    Then choose the next workstream — see Backlog.
 
   OPEN ISSUES / BLOCKERS:
-    - 3 phase migrations (0009 / 0010 / 0011) NOT YET APPLIED. Operator
-      action required before any of the merged code talks to the DB.
+    - 3 Phase 9/10 Path B migrations (0013 / 0014 / 0015) NOT YET APPLIED.
+    - Phase 9/10 Path B hand-rolled aliases + (admin as any) casts in
+      bullion + appraisals + eBay code paths are temporary; collapse
+      after migrations land.
+    - Phase 9 Path A SaaS billing — schema + lib + admin UI shipped.
+      Real Stripe platform-account integration (Checkout sessions for
+      plan selection, SaaS webhook for subscription lifecycle, dunning
+      via Phase 6 comms) NOT yet wired.
+    - eBay code paths are STUBBED — actual API calls log + mock instead
+      of hitting api.ebay.com. 12-step real-wire-up checklist documented
+      in commit 9b93e235's report.
     - Three pasted secrets STILL pending rotation (anon JWT, service-role
       JWT, sbp_ access token). Phase 0 leftover.
     - NEXT_PUBLIC_APP_URL still localhost:3060 in env (Vercel + .env.local).
-    - Stripe Connect not yet onboarded — portal payoff + comm cron silently
-      no-op until tenant_billing_settings.stripe_account_id is populated.
-    - DATABASE_URL still empty in .env.local (low priority).
-    - Pawn print PDF legal disclosure placeholder — counsel vetting needed
-      before live FL pawn intake.
-    - WhatsApp Content SIDs are NULL placeholders — needs Twilio + Meta
-      approval per template per tenant.
-    - pgsodium at-rest encryption deferred for Twilio/Resend creds.
-    - FL LeadsOnline CSV format is DRAFT — confirm with agency before
-      go-live (header has a "FORMAT DRAFT — confirm" comment).
-    - tenants.agency_store_id column missing — police-report falls back
-      to tenant UUID. Single ADD COLUMN migration when convenient.
+    - Per-tenant Stripe Connect not yet onboarded for first tenant —
+      portal payoff (Phase 5) + comm cron (Phase 6) silently no-op.
+    - Stripe PLATFORM account (RMS) for SaaS billing also not yet
+      onboarded. Plans seeded but charging is simulation until then.
     - Pre-existing use-lang.ts:29 lint error from Phase 0 still unresolved.
-    - Repo-local git config (user.name/email) decision pending — keep or
-      revert. CLAUDE.md global rule says no `git config` writes.
-    - DL scanner upgrades deferred: dl_raw_payload column, expired-license
-      block, webcam capture.
-    - Old t.dashboard.* i18n keys (customersCard, inventoryCard, etc.)
-      now unused — cleanup later.
-    - Dashboard hero "Pawn today" / "Repairs today" stats show '—'
-      placeholders; need page.tsx extensions to compute.
-    - Dashboard chart series run on deterministic demo PRNG data — wire
-      to Phase 7 queries when types collapse.
-    - Dashboard customer-name search not yet joined into autocomplete
-      (only ticket numbers match today).
-    - "Banner-on-fieldErrors" pattern only on /customers/new so far —
-      candidates for rollout: /inventory/new, /pawn/new, /repair/new,
-      /pos/sales/new, /inventory/transfers/new.
+    - WhatsApp Content SIDs are NULL placeholders pending Twilio + Meta
+      approval per template per tenant.
+    - FL LeadsOnline CSV format is DRAFT — confirm with agency.
+    - tenants.agency_store_id column missing — police-report falls back
+      to UUID.
+    - Repo-local git config (user.name/email) decision pending.
+    - Old t.dashboard.* i18n keys (customersCard, etc.) still unused.
+    - Dashboard hero "Pawn today" / "Repairs today" stats still '—'.
+    - Dashboard charts still on demo PRNG data.
+    - "Banner-on-fieldErrors" pattern still only on /customers/new.
+    - metals.live API contract is brittle; goldapi.io / metals-api.com
+      are documented fallback adapters if it breaks.
+    - eBay photo public-mirror question is a real product decision
+      before live publish (signed-URL TTL caps vs CDN mirror).
 
   KEY DECISIONS LOCKED THIS SESSION:
-    - DASHBOARD AS A SECOND VISUAL SURFACE. Airbnb-light remains
-      canonical for the rest of the app per DESIGN-airbnb.md, but
-      /staff/dashboard ships as a vibrant-dark second surface
-      (per-module signature gradients: violet/cyan/indigo/amber/emerald,
-      JetBrains Mono numerics, inline SVG charts). Style scoping
-      discipline: ALL dashboard CSS lives under .dashboard parent
-      selector so dark tokens never bleed. :root vars + global body/*
-      resets from the original kit explicitly hoisted into .dashboard
-      to prevent leak. Future second-surface contenders (e.g. POS
-      register screens) follow the same scoping pattern.
-    - DASHBOARD localStorage CONVENTION. Prefix `dash.*` for state
-      (activeTab, activeRange, recent.{module}). Lazy initializers with
-      typeof window guards in useState() keep SSR safe AND dodge
-      react-hooks/set-state-in-effect — same pattern Session 5 locked
-      for Date.now() / random / location and the DL scanner mount
-      detection.
-    - DASHBOARD SEARCH SHIPS WITHOUT CUSTOMER-NAME MATCH. v1 searches
-      by ticket_number / sale_number / layaway_number only via
-      Supabase ILIKE. Customer-name search needs a join + de-dup;
-      deferred. Status pills are tone-coded (success/warning/error/
-      muted) with module-specific status enums.
-    - AGENTS COMMIT-PER-WORKTREE; OPERATOR MERGES. Pattern confirmed
-      AGAIN: dispatch agents with Agent tool isolation: 'worktree',
-      agent commits inside its worktree, primary tree merges with
-      `git merge --no-ff <branch>`, conflicts resolved at merge time,
-      `git worktree remove -f -f` + `git branch -D` cleans up after.
-      Three Session 6 agents followed this. The first Phase 7 agent
-      crashed mid-work (system kernel crash) — re-dispatch went
-      cleanly. Lesson: even on crash, the worktree branch survives
-      with whatever was committed; only uncommitted work is lost.
-    - 3-WAY MERGE OF ADDITIVE TOP-LEVEL OBJECTS = ALWAYS UNION. Pattern
-      seen at every Session 6 merge:
-        Phase 6 merge → src/types/database-aliases.ts: HEAD added
-          StripePaymentLink* shapes; branch added Message* + Settings
-          CommsColumns. Both at end of file. Union = both blocks.
-        Phase 7 merge → src/lib/i18n/{en,es}.ts: HEAD's last namespace
-          was `comms`; branch's last namespaces were `reports` and
-          `compliance`. Conflict region encompassed both sides' contents
-          (without their closing `},`). Union = comms + reports +
-          compliance, all properly closed.
-      Never pick one side; always union the additions.
-    - VALIDATION HELPER FIX SHAPE LOCKED. optionalTrimmedString and
-      similar (email, optionalShortString) must convert empty-after-trim
-      to null in PREPROCESS, BEFORE the inner z.string().min(1) check.
-      Trailing `.transform((v) => v ?? null)` keeps the output type
-      `string | null` so Supabase Insert types still match. Applied
-      across customer/inventory/loan/pos/repair/transfer schemas. The
-      bug had been silently failing /customers/new in Session 5; root
-      cause: empty optional FormData strings hit min(1) before the
-      transform could null them.
-    - BUG-FIX BANNER PATTERN. When a server action returns
-      { fieldErrors } without a top-level state.error, surface a
-      generic "Please fix the highlighted fields below" banner at the
-      top of the form so silent inline-only validation failures can't
-      be missed. New i18n key common.fixErrorsBelow EN+ES. Pattern
-      candidates for rollout: /inventory/new, /pawn/new, /repair/new,
-      /pos/sales/new, /inventory/transfers/new.
-    - PHASE 5 — STRIPE PAYMENT LINK + AUTH FLOW SHIPPED. Customer
-      portal at /portal/{loans,layaways,repairs} gates on
-      tenantRole='client'. Magic-link + set-password auth pages now
-      stubbed (Phase 0 blocker resolved). Customers.auth_user_id links
-      portal users to their customer row. Stripe webhook handler at
-      /api/stripe/webhook handles checkout.session.completed for both
-      kinds (loan_payoff, layaway_payment) idempotently. Payment link
-      helpers at lib/stripe/payment-link.ts (per-tenant Connect
-      account, Stripe-Account header).
-    - PHASE 6 — EXTENDED SETTINGS TABLE (NOT NEW TABLE) for Twilio +
-      Resend creds. Settings already had Twilio/Resend cols from
-      0001-foundation; 0010 adds 5 new canonical cols
-      (twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid,
-      resend_from_email, resend_from_name) and keeps legacy cols for
-      fallback. message_log has a write-once trigger — only status /
-      provider_id / sent_at / delivered_at / error_text are updatable.
-      66 seed templates for first tenant (11 kinds × 2 langs × 3 channels).
-      sendXxx provider helpers silently no-op + log when creds missing
-      OR NODE_ENV='test'.
-    - PHASE 7 — POLICE REPORT READS compliance_log ONLY (Rule 15
-      enforced). FL LeadsOnline CSV exporter marks rows
-      exported_at / exported_format / exported_batch_id per batch.
-      No idempotency check on re-export; acceptable for v1.
-      lib/compliance/retention.ts ships RETENTION_RULES (FL: 2y pawn /
-      30d buy-hold) + canDeleteCustomer() helper (block reasons
-      structured for the future customer DELETE guard). v1 ships
-      against existing schema only — patches/0011-reporting.sql is a
-      reserved no-op header.
-    - DASHBOARD STORAGE PATH FOR RECENTS. localStorage key shape:
-      dash.recent.{sales|layaways|pawn|repairs}, JSON array of
-      {id, label, href}, max 5, deduped on add. SSR-safe via
-      typeof window guard inside readStoredJson() helper.
+    - PROFILES PK COLUMN IS `id` NOT `user_id`. Bit Phase 9 Path A's
+      0012 migration on first apply attempt — RLS policies referenced
+      `profiles.user_id` (which doesn't exist; profiles.id IS the FK to
+      auth.users.id). Reverted, fixed to `profiles.id = auth.uid()`,
+      re-applied successfully. user_tenants HAS user_id (separate table,
+      different schema). Note for future RLS work that gates on
+      profiles.role.
+    - SAAS LIB SPLIT — types.ts vs server-only. src/lib/saas/types.ts
+      is pure (no 'server-only' import) so client components can import
+      Row shapes + pure helpers (formatCents, statusTone, isTrialing,
+      trialDaysRemaining, planFeatures, planHasFeature, planLimit).
+      src/lib/saas/{plans,subscriptions}.ts are server-only with the
+      DB-touching helpers. Pattern locked: any module that exports types
+      or pure helpers consumed by client components must NOT have
+      'server-only' — Turbopack refuses the entire dependency graph
+      otherwise. Mirrors the lib/audit / lib/audit-format split from
+      Session 4.
+    - SIDEBAR LAZY-INIT + matchMedia AUTO-COLLAPSE PATTERN. Persist
+      under pawn.sidebar.collapsed in localStorage. Lazy-init reads
+      localStorage with typeof window guard for SSR safety. matchMedia
+      subscription auto-collapses ≤800px and restores user preference
+      when crossing back to desktop. Pattern applies to any client-
+      component state seeded from localStorage that should ALSO respond
+      to viewport class changes.
+    - SAAS BILLING SCHEMA SHAPE LOCKED. subscription_plans (platform-
+      wide; price_monthly_cents + price_yearly_cents in INTEGER cents
+      mirroring Stripe convention; Stripe product+price ids when
+      onboarded; JSONB features array + JSONB feature_limits object
+      with NULL = unlimited). tenant_subscriptions (1:1 with tenants;
+      subscription_status enum mirrors Stripe's; billing_cycle enum
+      monthly|yearly; trial + period bounds + cached invoice info).
+      billing_invoices (denormalized cache; Stripe is source of truth
+      for everything; this table is just for fast admin-UI rendering).
+      3 seed plans — basic $99/mo, pro $199/mo, chain $499/mo with
+      sample feature_limits (max_locations / max_users /
+      max_active_loans).
+    - .toFixed(4) IS THE WRONG SAFETY NET FOR NUMERIC(18,4). Generated
+      types expose NUMERIC columns as `number`, not string. The old
+      pattern (.toFixed(4) for "precision safety") returned string and
+      broke type checking once aliases collapsed to generated forms.
+      The r4() decimal-safe rounding in lib/pawn/math.ts already handles
+      4dp precision; pass the number directly to Supabase Insert types.
+      Bit two portal action files this session — both fixed.
+    - 3-WAY MERGE OF ADDITIVE NESTED OBJECTS = ALWAYS UNION. Pattern
+      re-applied across i18n EN/ES top-level namespaces, type alias
+      blocks (database-aliases.ts), audit.ts AuditAction union, and
+      inventory/[id]/{page,content}.tsx (bullion's melt panel coexists
+      with eBay's listing panel — both prop sets pass to
+      InventoryDetail). Conflict region typically encompasses contents
+      without their closing brace+comma; resolution closes HEAD's last
+      block properly, then opens branch's, ending naturally with the
+      file's existing trailing structure.
+    - PATH A vs PATH B PARALLELIZATION WORKED. Operator built Path A
+      Phase 9 SaaS billing in primary tree alongside three Path B
+      agents in worktree isolation. All four landed cleanly with
+      expected merge conflicts (i18n + sidebar + audit + database-
+      aliases + inventory/[id]). Pattern: dispatch agents on independent
+      vertical features; work the dependent or sensitive feature
+      yourself. Agents that touch shared files (i18n, sidebar, audit)
+      are fine — union resolution at merge handles them.
+    - SAAS BILLING ROLE GATING. /admin/billing requires
+      ctx.globalRole === 'superadmin' (mirrors /admin/tenants). Tenant
+      owners can read their own subscription via the
+      tenant_subs_owner_read RLS policy (no UI for that yet; future
+      tenant-side billing portal will surface it). billing_invoices
+      likewise.
 
   KEY DECISIONS CARRIED FROM PRIOR SESSIONS (still authoritative):
     - Multi-store from day 1 (tenants.parent_tenant_id + tenant_type).
     - Per-tenant module gates: has_pawn / has_repair / has_retail.
     - Stone setting = service_type ENUM on repair tickets.
     - FL LeadsOnline only for v1.
-    - Stripe: Connect + Terminal + Payment Links from one account.
-    - compliance_log is write-once. Police-report exporter reads from
+    - Stripe: per-tenant Connect (Terminal + Payment Links) AND
+      platform account (SaaS billing — added Session 7).
+    - compliance_log is write-once; police-report exporter reads from
       it (not loans/sales).
-    - Pawn ticket immutability after print (status='extended' is the
-      one allowed post-print mutation).
+    - Pawn ticket immutability after print.
     - Dedicated cloud projects (Rule 17): own GitHub + Supabase + Vercel.
-    - NEXT_PUBLIC_APP_URL is the canonical origin source.
-    - window.location.assign over router.push for cookie-set navs.
-    - Lookup-by-email pattern for inserting profiles tied to auth.users.
-    - DUAL SKU FIELDS (sku TEXT + sku_number BIGINT).
-    - PAWN FIELDS GATE BY has_pawn IN UI ONLY (schema columns always exist).
-    - AUDIT_LOG INSERTS THROUGH ADMIN CLIENT (no INSERT policy on table).
-    - JSON-roundtrip narrowing for Supabase JSONB columns.
-    - Photo storage path: tenant_id MUST be folder[0] for RLS to work.
-    - 'use server' modules export async functions ONLY — never const
-      objects. Inline `{}` at the useActionState call site.
-    - Forfeit-to-inventory hook (loans → inventory_items source=
-      'pawn_forfeit'); abandoned-to-inventory hook (repair_tickets →
-      inventory_items source='abandoned_repair').
-    - Decimal-safe math (r4 to 4dp) in lib/pawn/math.ts +
-      lib/pos/cart.ts + lib/repair/billing.ts. NO floats.
-    - Parallel-agent worktree pattern — agent commits on its branch;
-      operator merges via `git merge --no-ff` from primary tree;
-      cleanup via `git worktree remove -f -f` + `git branch -D`.
+    - Money is numeric(18,4) — never floats; r4() in lib/pawn/math.ts.
+    - Audit-log every mutation through admin client.
+    - Phosphor icons in client components only (no FlaskConical).
+    - 'use server' modules export async functions ONLY.
+    - Storage paths: tenant_id MUST be folder[0] for RLS.
+    - Parallel-agent worktree pattern: dispatch with isolation, agent
+      commits on its branch, primary tree merges with --no-ff,
+      conflicts resolved at merge time, cleanup via -f -f remove +
+      branch -D.
+    - 3-way merge of additive nested objects = always union.
+    - Validation Zod helpers: preprocess null-on-empty BEFORE inner
+      schema; trailing .transform(v => v ?? null) keeps `string | null`.
+    - Lazy state initializers with typeof window guards — SSR-safe AND
+      dodges react-hooks/set-state-in-effect.
 
   IMPORTANT CONSTANTS / PATHS:
     - Project root:   c:\Users\rodri\OneDrive\Documents\Pawn\
@@ -263,10 +263,21 @@ SEE ALSO (do not duplicate here):
     - Memory dir:     C:\Users\rodri\.claude\projects\
                       c--Users-rodri-OneDrive-Documents-Pawn\memory\
     - Active-tenant cookie: pawn-active-tenant
+    - Sidebar collapse key: pawn.sidebar.collapsed
+    - Dashboard storage keys: dash.activeTab, dash.activeRange,
+      dash.recent.{sales|layaways|pawn|repairs}
+    - First tenant: Eddy's Jewelers Corp.
+        tenant_id    1abc8070-0797-4740-8dea-70cbb16060fe
+    - SaaS plans (seeded; codes UNIQUE on subscription_plans.code):
+        basic   $99/mo   $999/yr
+        pro     $199/mo  $1999/yr
+        chain   $499/mo  $4999/yr
     - Storage layout:
         customer-documents/<tenant_id>/<customer_id>/<kind>/<uuid>.<ext>
         inventory-photos/<tenant_id>/<item_id>/<uuid>.<ext>
         repair-photos/<tenant_id>/<ticket_id>/<kind>/<uuid>.<ext>
+        appraisal-photos/<tenant_id>/<appraisal_id>/<kind>/<uuid>.<ext>
+        appraisal-signatures/<tenant_id>/<appraisal_id>/<who>/<uuid>.<ext>
     - Number formats:
         SKU                 'INV-'  + LPAD(seq,6,'0')   (INV-000123)
         Pawn ticket         'PT-'   + LPAD(seq,6,'0')   (PT-000123)
@@ -274,14 +285,10 @@ SEE ALSO (do not duplicate here):
         Sale                'S-'    + LPAD(seq,6,'0')   (S-000123)
         Return              'R-'    + LPAD(seq,6,'0')   (R-000123)
         Layaway             'L-'    + LPAD(seq,6,'0')   (L-000123)
-    - First tenant: Eddy's Jewelers Corp.
-        tenant_id    1abc8070-0797-4740-8dea-70cbb16060fe
+        Appraisal           'AP-'   + LPAD(seq,6,'0')   (AP-000123)
     - DL scanner kit source:
         C:\Users\rodri\OneDrive\Documents\Claude\code\dl-scanner\
-    - Dashboard kit source: uploaded inline Session 6 (CSS + JS + HTML
-      + HANDOFF.md). Ported into /staff/dashboard.
-    - Dashboard storage keys: dash.activeTab, dash.activeRange,
-      dash.recent.{sales|layaways|pawn|repairs}.
+    - Dashboard kit source: uploaded inline Session 6.
 
 ================================================================================
 PHASE OVERVIEW
@@ -290,43 +297,54 @@ PHASE OVERVIEW
   Phase   Description                                Status      Completed
   ------  -----------------------------------------  ----------  ------------
   0       Foundation skeleton                        IN PROGRESS  —
-          (~92% complete: scaffold, schema, RLS,
-          three layouts, auth pages, tenant
-          provisioning, sidebar, Vercel project +
-          env imported. Magic-link + set-password
-          auth pages SHIPPED in Phase 5. Outstanding:
-          deploy URL update, secret rotation.
-          Pre-push hooks DECLINED.)
+          (~92%; deploy URL update + secret rotation
+          still open. Pre-push hooks declined.)
   1       Customers + Inventory                      COMPLETE    2026-04-26
   2       Pawn loans (gated on has_pawn)             COMPLETE    2026-04-27
-          (Bilingual EN+ES print PDF Session 5.)
   3       Repair / stone setting                     COMPLETE    2026-04-27
   4       Retail / POS                               COMPLETE    2026-04-27
   5       Customer portal (full)                     COMPLETE    2026-04-27
-          (Session 6: /portal/loans + /portal/layaways
-          + /portal/repairs + Stripe Payment Link
-          payoff + magic-link/set-password auth +
-          customers.auth_user_id link + client-role
-          RLS. patches/0009 NOT YET APPLIED.)
+          (0009 applied Session 7. Webhook + payoff
+          flow live — pending real Stripe Connect
+          onboarding for the first tenant.)
   6       Communications                             COMPLETE    2026-04-27
-          (Session 6: per-tenant Twilio SMS+WhatsApp
-          + Resend, message_templates + message_log,
-          3 cron routes, settings UI, SendReminder
-          Dialog wired into 3 detail pages. patches/
-          0010 NOT YET APPLIED. WhatsApp content SIDs
-          pending Twilio+Meta approval.)
+          (0010 applied Session 7. Twilio + Resend
+          + cron routes live — pending real creds in
+          settings table.)
   7       Reporting + compliance                     COMPLETE    2026-04-27
-          (Session 6: 8 reports w/ CSV+PDF, FL Leads
-          Online exporter draft, retention helper.
-          patches/0011 is a no-op header — apply or
-          skip. Format DRAFT — confirm w/ agency.)
+          (0011 applied Session 7 — no-op. v1 ships
+          against existing schema only. FL Leads
+          Online format DRAFT pending agency
+          confirmation.)
   8       Polish                                     PENDING     —
-          (Mobile audits, real Stripe smoke test,
-          dashboard real-data wire-up after types
-          regen, banner pattern rollout to other
-          forms, customer-name search in autocomplete,
-          old t.dashboard.* keys cleanup, hero stats
-          pawn-today/repairs-today computation.)
+          (Banner pattern rollout, dashboard real-
+          data wire-up, customer-name search,
+          mobile audits, t.dashboard.* cleanup, hero
+          stats computation.)
+  9 (A)   SaaS GA infrastructure                     IN PROGRESS  —
+          (Schema + admin /admin/billing console
+          shipped Session 7. Pending: Stripe platform
+          account + Checkout sessions + SaaS webhook
+          for subscription lifecycle + dunning emails
+          via Phase 6 comms + self-service signup
+          flow + plan-tier feature gates throughout
+          the app.)
+  9 (B)   Pricing intelligence                       IN PROGRESS  —
+          (Bullion spot-price feed shipped Session 7,
+          0013 NOT applied. Appraised valuation
+          module shipped Session 7, 0014 NOT applied.
+          Watch model lookup, diamond cert lookup,
+          and suggested pawn-loan calculator NOT yet
+          started.)
+  10 (A)  Marketing & customer growth                PENDING     —
+          (Per-tenant landing pages on subdomain,
+          public catalog, loyalty/referrals, Google
+          Reviews ingestion, email campaign engine
+          on top of Phase 6.)
+  10 (B)  Channel sales                              IN PROGRESS  —
+          (eBay listing scaffold shipped Session 7
+          STUBBED, 0015 NOT applied. Worthy /
+          Sotheby's, Reverb, Mercari NOT yet started.)
 
 ================================================================================
 SESSION HISTORY LOG
@@ -334,337 +352,205 @@ SESSION HISTORY LOG
 
 --- Session 1 (2026-04-26) — Project planning + skeleton docs ---
 
-  1. ANALYZED LUNA AZUL + ABACUS PROGRESS LOGS. Pulled forward multi-tenant
-     architecture, RLS helper pattern, getCtx, guards, dev-watchdog,
-     Next 16 proxy.ts, db:types safe wrapper, etc.
-
-  2. PROPOSED 11 DOMAIN MODULES (folded stone setting into repair).
-
-  3. DECISIONS LOCKED — multi-store from day 1, FL police-report only v1,
-     Stripe Terminal + Payment Links, pawn module gated, dev port 3060.
-
-  4-7. WROTE INITIAL CLAUDE.md + Progress.txt + DESIGN-airbnb.md, locked
-     design tokens, semantic-color extension (Success Green / Warning
-     Amber matched to Airbnb's #c13515 saturation), photography guidance
-     adapted for pawn/jewelry domain, Cloud-isolation Rule 17.
-
-  8-11. SEMANTIC-COLOR + PHOTOGRAPHY + CLOUD-ISOLATION decisions resolved.
-
-  12-15. SCAFFOLD via npx create-next-app to subdir + mv merge. Watchdog
-     cloned to :3060. Design tokens locked in tokens.ts. next.config.ts
-     turbopack.root pinned to __dirname.
-
-  16. PATCHES/0001-FOUNDATION.SQL written (~470 lines): 3 enums, 8 tables,
-     5 RLS helpers, 3 RPCs, immutability triggers.
-
-  17-23. SUPABASE CLIENT LIBRARY, PROXY.TS, I18N skeleton, AUTH PAGES,
-     THREE LAYOUTS, /admin/tenants list+new, placeholder database.ts.
-
-  24-26. SCRIPTS/DB-TYPES.MJS safe wrapper, .env.local.example, BUILD
-     VERIFIED GREEN at 11 routes.
-
-  27. CLAUDE.MD CLOBBER + RESTORE.
-
-  28. PHASE 0 ~70% COMPLETE; HAND-OFF for cloud setup.
+  1-28. Skeleton + 0001-foundation + design tokens + scaffold + cloud-
+     isolation Rule 17 + initial CLAUDE.md/Progress.txt/DESIGN-airbnb.md.
+     Build green at 11 routes.
 
 --- Session 2 (2026-04-26 ~16:00) — Cloud wiring + first tenant + bug fixes ---
 
-  29-42. .ENV.LOCAL POPULATED. TenantSwitcher built. .gitignore extended.
-     Git initialized + initial commit. Schema applied. Superadmin
-     onboarded. db:types regen. Bugs fixed (db:types null vs undefined,
-     create_tenant_with_owner column ambiguity, hydration mismatch on
-     flash-banner URL). /onboard claim flow built. Open buttons added.
-     Session 2 builds green at 13 routes.
+  29-42. .env.local wiring + TenantSwitcher + git + initial commit + 0001
+     applied + superadmin onboarded + 3 bug fixes + /onboard claim flow.
+     Build green at 13 routes.
 
 --- Session 3 (2026-04-26 ~18:00) — Phase 1 complete: Customers + Inventory ---
 
-  43-64. Phase 1 planning (dual SKU fields + customer tags). Patches/
-     0003-customers-inventory.sql written + applied. Phase 1 deps
-     installed. Storage helper. Zod schemas. i18n keys EN+ES. Sidebar
-     with Phosphor icons. CustomerFormFields + InventoryFormFields.
-     Customers + Inventory modules. 3 bug fixes. Patches/0004-customer-
-     pawn-fields.sql. Audit log helper + wired everywhere. Dashboard
-     widgets. Customer portrait photo. Audit JSONB type fix. Builds
-     green at 19 routes.
+  43-64. Phase 1 planning, 0003 written + applied, 0004 customer pawn
+     fields, audit log helper + wired everywhere, dashboard widgets,
+     customer portrait photo, 4 bug fixes. Build green at 19 routes.
 
 --- Session 4 (2026-04-27) — Phase 2 pawn loans + transfers UI + audit viewer ---
 
-  65-83. Parallel-agent dispatch (3 agents). Patches/0005 + 0006
-     applied. Phase 2 pawn module — internal flow. lib/pawn/math.ts.
-     Customer detail + dashboard wired. Inventory transfers UI.
-     Inventory edit/delete locked on transferred. Audit log viewer
-     at /audit. lib/audit-format.ts split. Per-table audit label
-     overrides. Apply-migration.mjs. db:types regen. 4 bug fixes.
-     Builds green at 25 routes. Phase 3 dispatched alongside closeout.
+  65-83. 3-agent parallel dispatch. 0005 + 0006 applied. Phase 2 pawn
+     internal flow. Lib/pawn/math.ts. Inventory transfers UI. Audit log
+     viewer at /audit. apply-migration.mjs. 4 bug fixes. Build green at
+     25 routes.
 
 --- Session 5 (2026-04-27 ~late) — Phase 3 merge, Phase 2 PRINT PDF, Phase 4 RETAIL/POS, DL scanner ---
 
-  84-101. Phase 3 merge + 0007 applied. Worktree cleanup completed
-     (double -f). Phase 3 pushed at 6e8e799. Parallel-agent dispatch
-     B+C (print PDF + POS). Phase 2 print PDF shipped (bilingual
-     EN+ES, Florida statute placeholder). Phase 4 retail/POS shipped
-     (0008 + full module). POS UI: register / sales / returns /
-     layaways. Stripe Terminal stub. POS layaway lifecycle.
-     Sale+layaway 1:1. 0008 applied + db:types regen (87,736 bytes).
-     Post-merge type fixes (4). Phase 4 pushed at 7902805. Vercel
-     project imported (12 runtime keys, 2 dev-only excluded). DL
-     scanner port-kit integrated on /customers/new (key-bump remount,
-     AAMVA → field map, scoped Phosphor icons + project palette).
-     Builds green at 34 routes. [BUG OPEN] /customers/new save fails
+  84-101. Phase 3 merge + 0007. Worktree cleanup completed (-f -f).
+     Print PDF (bilingual). Phase 4 retail/POS (0008). Stripe Terminal
+     stub. POS layaway lifecycle. db:types regen 87,736 bytes. 4 type
+     fixes. Vercel project imported. DL scanner port-kit integrated.
+     Build green at 34 routes. [BUG OPEN] /customers/new save fails
      silently — diagnose first thing next session.
 
 --- Session 6 (2026-04-27 evening) — Phases 5+6+7 merged + customer-save fix + dashboard port ---
 
- 102. CUSTOMER-SAVE SILENT FAIL — DIAGNOSED + FIXED + ROLLED OUT.
-     Hypothesis from Session 5 confirmed. Root cause:
-     optionalTrimmedString in src/lib/validations/customer.ts ran
-     z.string().min(1) AFTER the trim preprocess, so empty-after-trim
-     strings failed validation BEFORE the trailing .transform could
-     null them. Inline-only fieldErrors landed on fields deep in the
-     pawn section (height_inches, weight_lbs) — easy to miss, looked
-     silent. Fix: preprocess returns null when trimmed === '', BEFORE
-     the inner schema. Trailing .transform((v) => v ?? null) keeps
-     the output type `string | null` so Supabase Insert types match.
-     Same pattern existed in 5 sibling validation files (inventory /
-     loan / pos / repair / transfer) — all 6 patched together. Same
-     fix applied to the email schema in customer.ts. Banner fix in
-     /customers/new form: when fieldErrors is non-empty but
-     state.error is null, surface "Please fix the highlighted fields
-     below" at the top so silent inline-only failures can't slip
-     past. New i18n key common.fixErrorsBelow EN+ES. Commit 56d054b.
+  102-110. Customer-save bug FIXED across 6 validation files + banner
+     fix on /customers/new. 3-agent dispatch (Phase 5/6/7). First
+     Phase 7 agent crashed; re-dispatched cleanly. Phase 5 customer
+     portal. Phase 6 per-tenant communications. Phase 7 reporting +
+     FL LeadsOnline draft. Vibrant-dark dashboard ported into
+     /staff/dashboard (scoped under .dashboard so Airbnb-light stays
+     canonical for the rest of the app). 4 deploys via merge sequence.
+     Conflict-merge pattern locked: 3-way merges of additive top-level
+     objects = ALWAYS UNION.
 
- 103. PARALLEL-AGENT DISPATCH SESSION 6. Three agents in worktree
-     isolation: Phase 5 (portal), Phase 6 (comms), Phase 7 (reports
-     + FL LeadsOnline). Phase 5 + 6 completed cleanly. First Phase
-     7 agent CRASHED mid-work (system kernel crash, not a code
-     issue) — partial work was 1500 lines of report query helpers
-     in src/lib/reports/, fully untracked. Eddy chose option (b):
-     discard partial. Worktree removed via double-force; fresh
-     re-dispatch landed cleanly at 4d95aeb.
+--- Session 7 (2026-04-28 morning) — Migration cleanup, sidebar collapse, Path A start, 3 Path B agents ---
 
- 104. PHASE 5 SHIPPED + MERGED. Branch worktree-agent-a0c62 →
-     main a9b4995. 33 files, ~4250 lines. Adds:
-       - patches/0009-customer-portal.sql (NOT APPLIED).
-         customers.auth_user_id NULL FK to auth.users, stripe_payment_
-         links table, get_my_customer_id() helper, client-role RLS
-         policies on loans / loan_payments / repair_tickets / layaways /
-         layaway_payments / sales / sale_payments scoped via
-         customers.auth_user_id = auth.uid().
-       - /portal layout (gates on tenantRole='client', simple top bar +
-         lang switcher + sign-out, mobile bottom-fixed nav).
-       - /portal/loans + /portal/loans/[id] (active loans, payoff
-         balance, Pay-payoff CTA → Stripe Checkout via Payment Link
-         on per-tenant Connect account; client_reference_id=loan_id,
-         metadata={tenant_id, loan_id, kind='loan_payoff'}).
-       - /portal/layaways + /portal/layaways/[id] (same pay-by-link
-         pattern, kind='layaway_payment').
-       - /portal/repairs (read-only status, photos when ready, signed
-         URLs only).
-       - /api/stripe/webhook (handles checkout.session.completed for
-         both kinds idempotently — checks stripe_session_id before
-         insert).
-       - Auth blockers RESOLVED: /magic-link + /set-password pages +
-         actions stubbed (Phase 0 blocker for portal invites).
-       - lib/stripe/payment-link.ts (per-tenant Connect, Stripe-Account
-         header). lib/portal/* helpers. PortalChrome component.
-       - Hand-rolled types in database-aliases.ts (StripePaymentLink*)
-         until 0009 applies + db:types regenerates.
+ 111. APPLIED 0009 + 0010 + 0011 MIGRATIONS. The three Phase 5/6/7
+     migrations from Session 6's merges finally hit the Supabase
+     project via apply-migration.mjs. 0009 (customer-portal) added
+     customers.auth_user_id + stripe_payment_links table + client-role
+     RLS + get_my_customer_id() helper. 0010 (communications) extended
+     settings + added message_templates + message_log + 66 seed
+     templates. 0011 (reporting) was a no-op header — applied for
+     completeness. db:types regenerated to 96,814 bytes.
 
- 105. PHASE 6 SHIPPED + MERGED. Branch worktree-agent-a325 → main
-     0519b51 (with 1 conflict resolution in database-aliases.ts).
-     Adds:
-       - patches/0010-communications.sql (NOT APPLIED).
-         Schema choice: extended existing settings table (5 new
-         canonical comms cols: twilio_sms_from, twilio_whatsapp_from,
-         twilio_messaging_service_sid, resend_from_email,
-         resend_from_name) rather than parallel
-         tenant_communication_settings table — settings already had
-         Twilio/Resend cols + owner-write RLS. Legacy cols
-         (twilio_phone_number, twilio_whatsapp_number, email_from)
-         retained for read-fallback so existing tenants don't lose
-         data. message_kind / message_channel / message_status enums.
-         message_templates table UNIQUE(tenant_id, kind, language,
-         channel). message_log table with write-once trigger (only
-         status / provider_id / sent_at / delivered_at / error_text
-         updatable). Seed: 66 default templates for first tenant
-         (11 kinds × 2 langs × 3 channels). WhatsApp content_sid =
-         NULL placeholders pending Twilio+Meta per-template approval;
-         body marked "[REPLACE WITH APPROVED TEMPLATE BODY]".
-       - lib/twilio/{sms,whatsapp,templates}.ts. Provider helpers use
-         fetch directly (no SDK). Resolve creds from settings via
-         admin client. Insert message_log row 'queued' first, update
-         to 'sent' or 'failed'. Silent no-op + log when creds missing
-         OR NODE_ENV='test'.
-       - lib/email/send.ts (Resend via fetch).
-       - lib/comms/{render,dispatch}.ts. renderTemplate is mustache-
-         style {{var}}, escapes HTML for email. dispatchMessage
-         resolves customer.language + comm_preference, loads enabled
-         template, renders, calls correct provider, writes log.
-       - 3 cron routes (/api/cron/{maturity,repair-ready,layaway}-
-         reminders/route.ts) gated on x-vercel-cron OR
-         Bearer ${CRON_SECRET}. Idempotency via 24h dedup against
-         message_log.
-       - /staff/settings/communications (creds form masked once
-         saved; templates grouped by kind with enable/disable toggles
-         and inline editor with sample-variable preview; Send-test
-         button on each).
-       - SendReminderDialog wired into /staff/pawn/[id], /staff/repair/
-         [id], /staff/pos/layaways/[id] detail pages (single button
-         + dialog import).
-       - 'export' added to AuditAction (Phase 6 used it for sends; Phase
-         7 reused for report exports — audit reads share the verb).
-       - Hand-rolled types in database-aliases.ts (Message* +
-         SettingsCommsColumns) until 0010 applies + db:types regens.
-       - Conflict resolution at merge: database-aliases.ts (Phase 5
-         StripePaymentLink* vs Phase 6 Message* — both at end of
-         file, disjoint additions). Union accepted.
+ 112. COLLAPSED PHASE 5 + PHASE 6 ALIASES. src/types/database-aliases.ts
+     replaced ~190 lines of hand-rolled Stripe Payment Link + Message
+     Template + Message Log + SettingsCommsColumns row shapes with ~30
+     lines of Database['public']['Tables']['…']['Row|Insert|Update']
+     aliases. Kept StripePaymentLinkKind/Status as authoring narrowings
+     (TEXT + CHECK columns expose as plain string in the generated
+     types). MessageKind/Channel/Status routed through
+     Database['public']['Enums']. SettingsCommsColumns narrowed via
+     Pick<>. Commit 71d5d73.
 
- 106. PHASE 7 SHIPPED + MERGED. Branch worktree-agent-a24d → main
-     fd39163 (with 2 conflict resolutions in i18n EN/ES). Adds:
-       - patches/0011-reporting.sql (NO-OP HEADER ONLY — agent
-         decided no schema changes were needed for v1; aggregation is
-         app-side. Header documents future cleanup: tenants.agency_
-         store_id, v_loan_aging, v_inventory_turn, v_compliance_log_
-         export. Apply or skip — idempotent).
-       - 8 reports each with query helper + page + CSV + PDF where
-         applicable: Daily Register, Pawn Aging, Loan Activity
-         (Redemptions / Forfeitures / Interest), Inventory Turn,
-         Sales Summary, Repair Summary, Police Report (FL Leads
-         Online — CSV only), Cross-Shop Rollup (chain_hq tenants
-         only via my_chain_tenant_ids() RLS helper).
-       - lib/compliance/police-report/index.ts — format dispatcher
-         (throws on unknown).
-       - lib/compliance/police-report/formats/fl-leadsonline.ts —
-         FL CSV builder. Header marked "FORMAT DRAFT — confirm with
-         FL LeadsOnline before go-live". 23 CSV columns. Reads
-         compliance_log ONLY (Rule 15). Marks rows
-         exported_at / exported_format / exported_batch_id per batch.
-         No idempotency on re-export — acceptable v1.
-         store_id falls back to tenant UUID until tenants.agency_
-         store_id ships.
-       - lib/compliance/retention.ts — RETENTION_RULES (FL = 2y pawn /
-         30d buy-hold) + canDeleteCustomer({...}) helper returning
-         structured block reasons. Will hook into customer DELETE
-         guard later.
-       - lib/pdf/reports/ReportPDF.tsx + render-report.tsx (reuses
-         existing fonts pattern).
-       - components/reports/{DateRangePicker,ExportButtons,
-         ReportPageShell,ReportTable}.tsx.
-       - lib/format/money.ts (formatMoney/formatPercent/formatNumber/
-         shortDate/shortDateTime).
-       - lib/reports/{tenant-scope,api-guard,http,types}.ts shared
-         infrastructure (HQ → children resolver, API guard, CSV
-         writer with RFC-4180 escaping + UTF-8 BOM).
-       - audit.AuditAction extended with 'export'. Every report
-         download writes an audit row.
-       - Reports + Compliance sidebar entries enabled (no longer
-         disabled placeholders).
-       - Plain HTML tables (TanStack Table v8 was specified in brief
-         but agent followed existing pattern; MAX_DISPLAY=500 in DOM,
-         CSV/PDF cover full set). Add tanstack-table later if you
-         want virtual scroll.
-       - Default eventTypes for police-report = [pawn_intake,
-         buy_outright]. One-line config flip in getPoliceReportRows
-         to add redemption/forfeiture if the agency requires.
-       - Conflict resolutions at merge:
-         * src/lib/i18n/en.ts: HEAD's last namespace was `comms`
-           (added by Phase 6 merge); branch added `reports` and
-           `compliance`. Conflict region encompassed both sides'
-           interior of the LAST top-level namespace. Resolution:
-           proper closure of comms `},` + new `reports: {...},` +
-           new `compliance: {...},`. Same shape on es.ts.
-         * Pattern locked: 3-way merge of additive top-level objects
-           = ALWAYS UNION. Never pick one side.
+ 113. STRIPPED 15 (admin as unknown as) CASTS. Across 8 Phase 6 files
+     (twilio sms+templates+whatsapp, email send, comms dispatch, 3 cron
+     routes), the temporary type-bridge casts were stripped via a
+     brace-aware Node script (counts braces inside the cast block to
+     find its end deterministically). Generated types now resolve
+     message_log / message_templates directly. One leftover stale
+     "Cast through unknown" comment cleaned up.
 
- 107. DASHBOARD VIBRANT-DARK PORTED INTO /staff/dashboard. Eddy
-     uploaded a standalone dashboard kit (CSS + vanilla JS + HTML +
-     HANDOFF.md) inline. Ported into Next 16 React: full rewrite
-     of src/app/(staff)/dashboard/content.tsx; new
-     src/app/(staff)/dashboard/dashboard.css (the kit's CSS scoped
-     under .dashboard parent selector, :root vars hoisted to
-     .dashboard, global body/* resets dropped — no leak into
-     Airbnb-light surfaces); new src/app/(staff)/dashboard/actions.ts
-     (searchAcrossModule server action against loans / sales /
-     layaways / repair_tickets via Supabase ILIKE on ticket/sale/
-     layaway numbers, tone-coded status pills per module).
-     content.tsx ports the kit's vanilla-JS controller to React:
-       - 5 tabs (Overview, Sales, Layaways, Pawn, Repairs).
-       - Per-module signature gradients (violet/cyan/indigo/amber/
-         emerald) on tabs, KPI bars, hero, action buttons.
-       - Tab + range persisted to localStorage via lazy initializers
-         with typeof window guards — SSR-safe AND dodges
-         react-hooks/set-state-in-effect.
-       - Autocomplete dropdown with ↑/↓/Enter/Escape, click-outside
-         close, debounced server action invoked from onChange (NOT
-         from useEffect — same lint-rule reason).
-       - Recent-search chips per module persisted to localStorage
-         (key shape dash.recent.{module}, max 5, deduped).
-       - Existing PDF417 DlScanner reused on "Scan license"; on
-         result, navigates to /customers/new (TODO: look-up-existing-
-         customer-by-license branch).
-       - Drill-down KPIs route via next/navigation.
-       - Keyboard shortcuts: '/' focuses active search, '1'-'5'
-         switch tabs.
-       - Inline SVG charts (Bars / Lines / Sparkline). Demo data is
-         deterministic PRNG — wire to real reports queries later.
-     Visual system intentionally separate from rest of app
-     (Airbnb-light remains canonical per DESIGN-airbnb.md). Strings
-     hardcoded English for v1 (kit was English-only); old
-     t.dashboard.* keys (customersCard, etc.) now unused but left
-     in place. page.tsx unchanged — its existing real-data fetches
-     (customer counts, inventory, loan/repair/sale/layaway counts,
-     todayRevenue) flow into the new dashboard; KPIs needing report
-     queries show '—' until Phase 7 types collapse. Commit c0dcca4.
+ 114. [BUG] AMOUNT.toFixed(4) → number TYPE MISMATCH. Phase 5 portal
+     code stored stripe_payment_links.amount as `.toFixed(4)` string
+     for "precision safety". Generated types collapse exposed the
+     column as `number`, breaking type checking. Fix: drop .toFixed —
+     pass the r4()-rounded number directly. Two sites:
+     /portal/loans/[id]/actions.ts:130, /portal/layaways/[id]/actions.ts:104.
+     Decision logged: r4() already handles 4dp; .toFixed(4) is the
+     wrong safety net for NUMERIC(18,4) columns.
 
- 108. STALE PRIMARY-TREE WORK CLEANUP. Pre-session-start untracked
-     dirs from a previous crashed Phase 7 attempt (?? src/app/
-     (staff)/reports/, src/app/api/reports/, src/components/reports/,
-     src/lib/compliance/, src/lib/pdf/reports/, src/lib/reports/)
-     and their stale modifications (M Sidebar.tsx, M audit.ts,
-     M en.ts/es.ts adding stale reports.* keys) were rm -rf'd /
-     git checkout'd before merging the fresh Phase 7 branch. .next
-     build cache cleared. Without this cleanup, git merge would
-     have refused to overwrite untracked files. Lesson: when
-     re-dispatching after a crash, scrub the primary tree of
-     leftovers FIRST.
+ 115. SIDEBAR COLLAPSE WITH PHONE AUTO-COLLAPSE. src/components/layout/
+     Sidebar.tsx now has a caret toggle button at the top that
+     collapses to icon-only mode (w-14) and expands back (w-56). User
+     choice persists in localStorage under pawn.sidebar.collapsed.
+     matchMedia subscription auto-collapses ≤800px viewports and
+     restores the user's preference when crossing back to desktop.
+     Lazy-init reads localStorage with typeof window guard for SSR
+     safety + dodges react-hooks/set-state-in-effect. Collapsed mode
+     centers icons, hides labels (still surfaced via title +
+     aria-label for tooltips and screen readers). New i18n keys
+     common.{collapseSidebar,expandSidebar} EN+ES. Commit 493675a.
 
- 109. SESSION 6 MERGE SEQUENCE. Pushed in 4 deploys:
-       1. c0dcca4 — primary-tree work (bug fix + dashboard).
-       2. a9b4995 — Phase 5 merge (clean, no conflicts).
-       3. 0519b51 — Phase 6 merge (1 conflict in
-          database-aliases.ts; union resolution).
-       4. fd39163 — Phase 7 merge (2 conflicts in i18n EN+ES;
-          union resolution).
-     Each push triggered a Vercel deploy. Build green at 50+
-     routes after final merge. tsc --noEmit clean. Lint clean
-     except pre-existing use-lang.ts:29 from Phase 0. Worktrees
-     and branches removed via git worktree remove -f -f +
-     git branch -D after merges.
+ 116. PHASE 9 PATH A — SaaS BILLING SCHEMA + ADMIN UI. patches/0012-
+     saas-billing.sql APPLIED. Three new tables: subscription_plans
+     (platform-wide; codes basic/pro/chain seeded $99/$199/$499 per
+     month with feature flags + feature_limits JSONB),
+     tenant_subscriptions (1:1; subscription_status + billing_cycle
+     enums; trial + period bounds; cached invoice info),
+     billing_invoices (denormalized cache — Stripe is source of truth).
+     RLS: plans read-public; subs + invoices superadmin-all OR
+     tenant-owner-read-own. /admin/billing UI renders per-tenant table
+     with plan + status pill + cycle + period + last invoice; inline
+     "Set plan" form per row (plan / status / cycle / trial days)
+     calls setTenantPlanAction → upsert + audit-log. lib/saas split
+     into types.ts (pure, client-importable) + plans.ts +
+     subscriptions.ts (server-only). [BUG] First apply attempt failed
+     because RLS policies referenced profiles.user_id (column doesn't
+     exist; PK is profiles.id, FK to auth.users.id). Reverted +
+     fixed. Commit 6dcca3c.
 
- 110. CONFLICT-MERGE PATTERN LOCKED. 3-way merges of additive
-     top-level objects (database-aliases.ts type aliases added at
-     end of file; i18n EN/ES top-level namespaces added at end of
-     object literal) ALWAYS resolve as union — keep both sides'
-     additions. Conflict region typically encompasses both sides'
-     contents (without their closing brace+comma); resolution =
-     close the HEAD side's last block, then paste the branch
-     side's blocks, close the final block. Pattern applies to
-     i18n namespaces, alias type blocks, and any append-only
-     structure.
+ 117. PARALLEL-AGENT DISPATCH SESSION 7. Three Path B agents in
+     worktree isolation: bullion spot-prices, appraisals module,
+     eBay listing scaffold (stubbed). All three completed without
+     crash this time (Session 6 had the system-kernel-crash mid-flight
+     on Phase 7's first attempt). Path A Phase 9 SaaS billing was kept
+     in primary tree because it touched admin layout + audit +
+     sidebar + database-aliases — independent of Path B agents'
+     shared-file impact.
+
+ 118. PHASE 9 PATH B — BULLION SPOT-PRICE FEED. Branch worktree-agent-
+     ac71d4ff → main 09e51fc. patches/0013-spot-prices.sql (NOT
+     APPLIED): metal_purity enum, spot_prices append-only history
+     (UNIQUE on (metal, purity, fetched_at) makes cron idempotent),
+     spot_price_overrides (per-tenant 0..2 multiplier for shops paying
+     below market). RLS: spot_prices SELECT-public + service-role
+     writes; overrides via my_is_staff. 4 lib files (sources/metals-
+     live, refresh, lookup, melt) — metals.live API contract is
+     brittle; agent flagged goldapi.io and metals-api.com as fallback
+     adapters. Cron route /api/cron/refresh-spot-prices (Vercel-cron /
+     CRON_SECRET). /staff/inventory/spot-prices admin UI: card grid +
+     sparkline + override controls + Refresh-now button. Inventory
+     item detail surfaces an "Estimated melt value" panel when
+     metal+karat+weight present.
+
+ 119. PHASE 9 PATH B — APPRAISED VALUATION MODULE. Branch worktree-
+     agent-a8020b69 → main a1d00ce. patches/0014-appraisals.sql (NOT
+     APPLIED): 3 new enums (appraisal_status / purpose / photo_kind),
+     3 new tables (appraisals + appraisal_stones + appraisal_photos),
+     'AP-' counter via next_tenant_counter, immutability trigger on
+     finalized + printed records, 2 new private storage buckets
+     (appraisal-photos + appraisal-signatures). Workflow: draft →
+     finalized → voided. Bilingual EN+ES PDF download at /api/
+     appraisals/[id]/pdf streams via render-appraisal helper. Subject
+     relationship is dual-nullable: customer_id + inventory_item_id
+     both optional, supports walk-in / shop-stock / linked appraisals.
+     /staff/appraisals list + new + [id] routes. Stone editor.
+     AP-numbered tickets for high-value items. Operator note: agent
+     had to set local-repo git config user.name/email because sandbox
+     blocked the inline `-c` form.
+
+ 120. PHASE 10 PATH B — eBay LISTING SCAFFOLD (STUBBED). Branch
+     worktree-agent-a74b17fe → main 9c6471e. patches/0015-ebay-
+     listings.sql (NOT APPLIED): tenant_ebay_credentials (1:1, OAuth
+     tokens + policy ids), ebay_listings (draft/active/sold/ended/
+     error + sale_id FK back to sales), ebay_listing_events (write-
+     once API audit). All eBay API calls STUBBED — agent built data
+     model + UI flow + OAuth handlers but actual fetches mock-and-log
+     instead of hitting api.ebay.com. Sell Inventory API surface
+     chosen over legacy Trading API (JSON+OAuth vs XML/SOAP+token).
+     12-step real-wire-up checklist documented (developer signup,
+     sandbox keys, RuName, env vars, replace stubs in
+     auth.ts/client.ts/listings.ts, photo public-mirror helper, prod
+     approval ~1-2 wk). Cron at /api/cron/ebay-sync. Sidebar entry
+     under Inventory gated on has_retail.
+
+ 121. PATH B 3-BRANCH MERGE SEQUENCE. Merged in order appraisals →
+     bullion → eBay. Conflict-resolution union pattern from Session 6
+     re-applied across:
+       audit.ts AuditAction (4-way union: tenant_plan_change +
+         appraisal_* + spot_price_* + ebay_*)
+       i18n EN/ES (nav.* additions + top-level appraisal/spotPrices/
+         ebay namespaces — appended after each other rather than
+         picking a winner)
+       database-aliases.ts (Phase 9 Path B + Phase 10 Path B alias
+         blocks all unioned at end of file)
+       inventory/[id]/page.tsx + content.tsx (bullion's melt panel
+         coexists with eBay's listing panel — both prop sets pass
+         to InventoryDetail).
+     Each merge → tsc + push individually. Worktrees + branches
+     cleaned via git worktree remove -f -f + git branch -D after each.
+     Commits: a1d00ce, 09e51fc, 9c6471e.
 
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Apply patches/0009-customer-portal.sql against Supabase. Then 0010,
-    then 0011 (or skip 0011). Run npm run db:types. Collapse the manual
-    hand-rolled aliases in src/types/database-aliases.ts (StripePayment
-    Link* + Message* + SettingsCommsColumns) to generated forms. Drop
-    the `as unknown as { from: ... }` casts the Phase 6 agent flagged
-    in src/lib/twilio/*, src/lib/email/send.ts, src/lib/comms/dispatch
-    .ts, the cron routes, and /staff/settings/communications. Verify
-    npm run build green.
+    Apply patches/0013 + 0014 + 0015 against Supabase via
+    apply-migration.mjs IN ORDER. Run npm run db:types. Collapse the
+    hand-rolled aliases in src/types/database-aliases.ts for
+    MetalPurity/SpotPrice* + AppraisalStatus/Purpose/PhotoKind/
+    Appraisal* + EbayEnvironment/EbayListingStatus/Format/EventKind/
+    TenantEbayCredentials*/EbayListing*/EbayListingEvent* to generated
+    forms. Strip the (admin as any).from(...) casts in 4 spot-prices
+    files + src/lib/appraisals/db.ts (delete entirely after) +
+    3 eBay lib files + cron + inventory/[id]/page.tsx. Verify build
+    green.
 
   PHASE 0 PUNCH LIST (still open):
     a. Confirm Vercel deploy status + production URL.
@@ -676,35 +562,54 @@ PENDING — NEXT UP
        (CLAUDE.md violation — use inline `-c` overrides going forward).
 
   BACKLOG (in priority order):
-    1. Apply 3 phase migrations + regen types + collapse aliases (above).
+    1. Apply 0013 + 0014 + 0015 + regen + collapse aliases (above).
     2. Phase 0 close-out (deploy verify + URL update + secret rotation).
-    3. Stripe Connect onboarding for first tenant. Unblocks portal
-       payoff (Phase 5) AND comm cron (Phase 6) silently no-op'ing.
-    4. Phase 8 — Polish:
-         - Mobile audits across portal + dashboard.
-         - Real Stripe smoke test once Connect onboarded.
-         - Dashboard real-data wire-up (customer-name search, real KPIs
-           from Phase 7 queries, real chart series, hero pawn-today /
-           repairs-today computation).
-         - Banner pattern rollout to /inventory/new, /pawn/new, /repair/
-           new, /pos/sales/new, /inventory/transfers/new.
-         - Old t.dashboard.* unused keys cleanup.
-         - Dashboard string i18n migration (t.dashboard.*).
-    5. WhatsApp Business per-template approval (unblocks WhatsApp
+    3. Per-tenant Stripe Connect onboarding for first tenant. Unblocks
+       portal payoff (Phase 5) + comm cron (Phase 6) silently no-op'ing.
+    4. Phase 9 Path A continuation — Stripe platform-account
+       integration:
+         - Create Stripe products + prices for the 3 seed plans
+         - Checkout session flow at /api/stripe/saas/checkout for
+           tenant owners to upgrade / change cycle
+         - SaaS webhook at /api/stripe/saas-webhook (separate from the
+           per-tenant Connect webhook) handling
+           customer.subscription.created/updated/deleted +
+           invoice.paid + customer.subscription.trial_will_end
+         - Dunning emails via Phase 6 comms (past_due / unpaid status)
+         - Self-service plan-change UI at /admin/billing/[tenantId]
+         - Plan-tier feature gates via planHasFeature throughout app
+    5. Phase 8 — Polish:
+         - Banner pattern rollout to /inventory/new, /pawn/new,
+           /repair/new, /pos/sales/new, /inventory/transfers/new
+         - Dashboard real-data wire-up (customer-name search, real
+           KPIs from Phase 7 queries, real chart series, hero pawn-
+           today / repairs-today computation)
+         - Old t.dashboard.* unused keys cleanup
+         - Dashboard string i18n migration
+         - Mobile audits across portal + dashboard
+    6. Real eBay wire-up — 12-step checklist in commit 9b93e235's
+       report header. Developer signup, sandbox keys, RuName, env
+       vars, replace stubs. Production approval ~1-2 wk.
+    7. WhatsApp Business per-template approval (unblocks WhatsApp
        channel — Phase 6 comms otherwise sandboxed).
-    6. FL LeadsOnline format reconciliation with agency before go-live.
-    7. tenants.agency_store_id ADD COLUMN migration (single column;
-       police-report falls back to tenant UUID until then).
-    8. DL scanner upgrades (dl_raw_payload audit column, expired-license
-       guard inside createCustomerAction, front-of-license webcam).
-    9. POS receipt PDF (mirrors /api/print/loan pattern).
-   10. Stripe Terminal hardware reader pairing UI when readers arrive.
-   11. pgsodium at-rest encryption rollout for Twilio/Resend/Stripe creds.
-   12. Pre-existing use-lang.ts:29 lint error from Phase 0 — finally fix.
-   13. Audit log enhancements scoped to Phase 8.
-   14. Real activity feed for /dashboard (currently shows
-       recentCustomers + recentItems as placeholder — wire to a true
-       audit-style stream).
+    8. FL LeadsOnline format reconciliation with agency before go-live.
+    9. tenants.agency_store_id ADD COLUMN migration.
+   10. POS receipt PDF (mirrors /api/print/loan pattern).
+   11. DL scanner upgrades (dl_raw_payload audit column,
+       expired-license guard, front-of-license webcam).
+   12. Phase 9 Path B continuation — diamond cert lookup (GIA),
+       watch model lookup (Watchcharts), suggested pawn-loan
+       calculator combining spot + appraisals + condition.
+   13. Phase 10 Path A — public per-tenant landing pages on
+       NEXT_PUBLIC_BASE_DOMAIN, public catalog, loyalty/referrals,
+       Google Reviews ingestion, email campaign engine.
+   14. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
+       Mercari listing publishers (after eBay flow is stable).
+   15. Stripe Terminal hardware reader pairing UI when readers arrive.
+   16. pgsodium at-rest encryption rollout for Twilio/Resend/Stripe
+       creds + eBay tokens.
+   17. Pre-existing use-lang.ts:29 lint error from Phase 0 — finally fix.
+   18. Real activity feed for /dashboard (currently placeholder).
 
   KNOWN GOTCHAS TO AVOID FROM DAY 1 (carried + new):
     - Next 16 file is `proxy.ts`, exported function named `proxy`.
@@ -715,15 +620,18 @@ PENDING — NEXT UP
     - useSearchParams() must be wrapped in <Suspense> for static gen.
     - <form action={fn}> never has explicit encType.
     - Storage uploads from server actions use admin (service-role) client.
-    - `npm run db:types` via the safe wrapper. Never raw `>` redirect.
+    - `npm run db:types` via the safe wrapper.
     - Service role key NEVER goes in NEXT_PUBLIC_*.
-    - DATABASE_URL via Supavisor pooler (not direct DB host).
+    - DATABASE_URL via Supavisor pooler.
     - GitHub commits MUST be authored by the identity Vercel has linked.
     - git worktree cleanup uses `-f -f` (DOUBLE-force).
     - Auth callback needs both PKCE AND implicit-flow handling.
     - Portal invites: don't use Supabase built-in SMTP.
     - profiles.role is GLOBAL only ('superadmin' | NULL).
-    - user_tenants has no FK to profiles — embedded select returns null.
+    - profiles PK column is `id` (FK to auth.users.id), NOT `user_id`.
+      RLS predicates that gate on profiles.role: use
+      `(SELECT role FROM profiles WHERE id = auth.uid()) = 'superadmin'`.
+    - user_tenants HAS user_id (separate table; no FK to profiles).
     - audit_log has SELECT policy only; inserts must use admin client.
     - CHECK-constrained TEXT columns come back as plain string from
       db:types — narrow at the page boundary.
@@ -731,60 +639,75 @@ PENDING — NEXT UP
     - Supabase update(patch) types reject Record<string, unknown> —
       type the patch as the table's Update alias instead.
     - First uploaded inventory photo auto-promotes to primary.
-    - Storage path layout: tenant_id MUST be folder[0] for RLS to work.
+    - Storage path layout: tenant_id MUST be folder[0] for RLS.
     - Pawn ticket print locks core fields.
     - Forfeiture / abandonment inventory items start status='available'.
     - Cross-chain transfers blocked at trigger.
     - Use useMemo for derived state, not useEffect+setState.
-    - Date.now() / random / location / etc. inside useState() trip
-      the react-hooks/purity rule. Wrap in lazy initializer.
-    - lib/audit.ts pulls in the admin client — never import it from a
+    - Date.now() / random / location inside useState() trip the
+      react-hooks/purity rule. Wrap in lazy initializer.
+    - lib/audit.ts pulls in the admin client — never import from a
       client component. Use lib/audit-format.ts for label helpers.
     - layaway_payments.amount allows NEGATIVE values. CHECK is `<> 0`.
-    - Stripe Connect: every per-tenant call needs Stripe-Account header.
+    - Stripe Connect: every per-tenant call needs Stripe-Account
+      header.
     - @fontsource fonts in @react-pdf/renderer must be loaded via
       fs.readFileSync + base64 dataURL — not require()/import.
     - SESSION 6: Setting state inside useEffect on mount triggers
       react-hooks/set-state-in-effect. Use lazy state initializers
-      with typeof window guards instead. Same pattern handles SSR.
+      with typeof window guards instead.
     - SESSION 6: Debounced search MUST live in onChange handler, not
       useEffect — moving setState out of effect bodies.
-    - SESSION 6: When merging additive top-level objects (i18n
-      namespaces, type alias blocks), ALWAYS union both sides. Never
-      pick one.
-    - SESSION 6: When re-dispatching an agent after a crash, scrub
-      the primary tree of leftover untracked files FIRST. `git merge`
-      will refuse to overwrite them otherwise.
-    - SESSION 6: Validation Zod helpers — preprocess MUST handle the
-      empty-string-after-trim case BEFORE the inner schema runs.
-      Pattern: `(v) => typeof v === 'string' && v.trim() === '' ? null : v`.
-      Trailing `.transform((v) => v ?? null)` keeps output type stable.
+    - SESSION 6: When merging additive top-level objects, ALWAYS union.
+    - SESSION 6: When re-dispatching an agent after a crash, scrub the
+      primary tree of leftover untracked files FIRST.
+    - SESSION 6: Validation Zod helpers — preprocess MUST handle
+      empty-string-after-trim BEFORE the inner schema.
+    - SESSION 7: NUMERIC(18,4) columns are typed as `number` in
+      generated DB types. Don't .toFixed() values before passing to
+      Insert types — use the r4()-rounded number directly. Trust the
+      DB to preserve precision on storage.
+    - SESSION 7: lib modules with 'server-only' cannot be imported by
+      client components. If a module exports types or pure helpers
+      that client components need, split it: pure types/helpers go in
+      a .ts file WITHOUT 'server-only'; server-DB-touching code goes
+      in a separate .ts file WITH 'server-only'.
+    - SESSION 7: .toFixed(4) is the wrong safety net. r4() already
+      4dp-rounds; passing through .toFixed produces strings that break
+      type checking against generated NUMERIC column types.
 
   KNOWN ISSUES TO REVISIT WHEN PHASES LAND:
     - Phase 5 portal: pawn ticket print PDF legal disclosure — vet
       with counsel before any live FL pawn intake.
     - Phase 5: compliance_log.customer_snapshot must include the new
-      pawn fields. Verify the snapshot the intake action writes today
-      still captures height/weight/marks/sex/hair/eyes/employment.
+      pawn fields. Verify the snapshot the intake action writes today.
     - Phase 6: WhatsApp Content SIDs need Twilio + Meta approval per
       template per tenant before WhatsApp delivery works outside
       sandbox.
     - Phase 7: confirm current FL LeadsOnline upload format (drifts).
-    - Phase 7: idempotency for compliance_log re-export (currently
-      bookkeeping fields update on each export). Flag if agency
-      requires strict batch-once semantics.
+    - Phase 7: idempotency for compliance_log re-export.
+    - Phase 9 Path A: dunning emails via Phase 6 comms — wire when
+      Stripe platform webhook lands.
+    - Phase 9 Path B (bullion): metals.live brittle; documented
+      fallbacks goldapi.io / metals-api.com.
+    - Phase 9 Path B (appraisals): legal disclaimer copy in i18n
+      placeholders — counsel vetting before go-live.
+    - Phase 10 Path B (eBay): photo public-mirror question (signed-URL
+      TTL caps vs CDN mirror) — decide before live publish.
+    - Phase 10 Path B (eBay): real wire-up needs eBay developer-
+      account approval, ~1-2 week prod review.
     - ID retention enforcement: read current FL statute right before
       portal pay-by-link ships.
-    - DL scanner: dl_raw_payload TEXT column (form already POSTs the
-      value; server ignores until column lands).
+    - DL scanner: dl_raw_payload TEXT column.
     - DL scanner: block-expired-licenses guard.
     - DL scanner: front-of-license photo capture.
 
   OUT OF SCOPE (noted for later):
     - Mobile native app.
     - Cross-tenant customer matching (blacklist-share).
-    - Watch / fine-jewelry authentication services.
-    - eBay / Worthy listing integration.
-    - Bullion / coin spot-price feeds.
-    - Wholesale buy-side (gold-buying with melt-value calculator).
+    - Watch / fine-jewelry authentication services beyond model lookup.
+    - Bullion / coin spot-price feeds beyond the free-tier adapter.
+    - Wholesale buy-side (gold-buying with melt-value calculator)
+      beyond what spot-prices already enables.
+    - Tax filing helpers (1099-MISC, year-end).
 ================================================================================
