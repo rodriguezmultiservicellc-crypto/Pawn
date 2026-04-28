@@ -63,6 +63,7 @@ export const en = {
     customers: 'Customers',
     inventory: 'Inventory',
     transfers: 'Transfers',
+    ebayListings: 'eBay listings',
     pawn: 'Pawn',
     repair: 'Repair',
     pos: 'POS',
@@ -1998,6 +1999,109 @@ export const en = {
       pawn_redemption: 'Pawn redemption',
       pawn_forfeiture: 'Pawn forfeiture',
       buy_release: 'Buy release',
+    },
+  },
+
+  ebay: {
+    // Settings page
+    settingsTitle: 'eBay integration',
+    settingsSubtitle:
+      'Connect this shop to an eBay seller account so inventory items can be published as listings, and sales sync back into the local POS.',
+    scaffoldNotice:
+      'Scaffold mode — the eBay developer account is not wired yet. Connect / publish / sync calls log to the events table but do not hit eBay servers. Stub responses are shown so the UI flows are exercisable end-to-end.',
+    connectionTitle: 'Connection',
+    connected: 'Connected',
+    connectedToast: 'eBay connected.',
+    connectSandbox: 'Connect — sandbox',
+    connectProduction: 'Connect — production',
+    notConnectedHelp:
+      'Click connect to start the eBay OAuth consent flow. You will be redirected to eBay, asked to grant the requested scopes, then returned here.',
+    disconnect: 'Disconnect',
+    confirmDisconnect:
+      'Disconnect this shop from eBay? Live listings will continue to display on eBay until they expire, but we will no longer sync counts or detect sales.',
+    disconnectedToast: 'eBay disconnected.',
+    runSyncNow: 'Run sync now',
+    syncRanToast: 'Synced {synced} listing(s); {failed} failed.',
+    ebayUserId: 'eBay user',
+    environment: 'Environment',
+    accessTokenExpires: 'Access token expires',
+    refreshTokenExpires: 'Refresh token expires',
+    connectedAt: 'Connected at',
+    errorPrefix: 'Error',
+    openListingsLink: 'Open eBay listings',
+    openSettingsLink: 'eBay settings',
+    // Config card
+    configTitle: 'eBay merchant configuration',
+    configHelp:
+      'Required before you can publish — eBay rejects publish calls without merchant location + the three policy IDs. Look these up in eBay Seller Hub.',
+    siteId: 'Marketplace (site id)',
+    siteIdHelp: 'Default EBAY_US. Set EBAY_GB / EBAY_CA / etc. for other markets.',
+    merchantLocationKey: 'Merchant location key',
+    merchantLocationKeyHelp:
+      'You set this in eBay Seller Hub > Inventory > Locations. One key per shop.',
+    fulfillmentPolicyId: 'Fulfillment policy ID',
+    paymentPolicyId: 'Payment policy ID',
+    returnPolicyId: 'Return policy ID',
+
+    // Inventory panel
+    panelTitle: 'eBay listing',
+    notConnected:
+      'eBay is not connected for this shop yet. Connect from settings to enable publishing.',
+    connectCta: 'Connect eBay',
+    noDraft: 'No eBay listing yet for this item.',
+    createDraft: 'Create eBay listing',
+
+    // Form fields
+    formTitle: 'Listing details',
+    formHelp:
+      'Fill the catalog fields, save the draft, then click Publish to push to eBay (stubbed).',
+    title: 'Title',
+    conditionId: 'Condition ID',
+    conditionIdHelp: 'eBay condition code — 1000 = New, 3000 = Used, etc.',
+    categoryId: 'Category ID',
+    categoryIdHelp: 'eBay leaf category id — required.',
+    format: 'Format',
+    formatFixed: 'Fixed price',
+    formatAuction: 'Auction',
+    listPrice: 'List price',
+    currency: 'Currency',
+    quantity: 'Quantity',
+    description: 'Description',
+    marketingMessage: 'Marketing message',
+    photos: 'Photos to publish',
+    photosHelp:
+      'Pick from the inventory item photos above. eBay needs publicly reachable URLs — for now we ship signed Storage URLs with a long TTL; the production wire-up will mirror to a public CDN.',
+    photosEmpty: 'Add photos to the inventory item first.',
+    publish: 'Publish to eBay',
+    publishedToast: 'Submitted to eBay.',
+    endListing: 'End listing',
+    confirmEnd: 'End this listing on eBay? It will be withdrawn.',
+    endedToast: 'Listing ended.',
+    syncNow: 'Sync now',
+    syncedToast: 'Sync queued.',
+    viewOnEbay: 'View on eBay',
+
+    // Listings list page
+    listingsTitle: 'eBay listings',
+    listingsSubtitle:
+      'Every item published to eBay from this shop. Tap a row to jump back to the inventory detail.',
+    listingsEmpty: 'No listings in this status.',
+    sku: 'SKU',
+    titleColumn: 'Title',
+    priceColumn: 'Price',
+    status: 'Status',
+    views: 'views',
+    watchers: 'watchers',
+    lastSynced: 'Last synced',
+    lastSyncedAt: 'Last synced',
+
+    statuses: {
+      draft: 'Draft',
+      submitting: 'Submitting',
+      active: 'Active',
+      ended: 'Ended',
+      sold: 'Sold',
+      error: 'Error',
     },
   },
 }

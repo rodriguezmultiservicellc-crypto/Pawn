@@ -28,6 +28,16 @@ import {
   uploadInventoryPhotoAction,
   type UpdateInventoryItemState,
 } from './actions'
+import {
+  createEbayDraftAction,
+  endEbayListingAction,
+  publishEbayListingAction,
+  syncEbayListingAction,
+  updateEbayDraftAction,
+} from './ebay-actions'
+import InventoryEbayPanel, {
+  type EbayPanelListing,
+} from '@/components/ebay/InventoryEbayPanel'
 import type {
   InventoryCategory,
   InventoryLocation,
@@ -101,10 +111,14 @@ export default function InventoryDetail({
   item,
   photos,
   stones,
+  ebayConnected,
+  ebayListing,
 }: {
   item: ItemRecord
   photos: InventoryPhotoItem[]
   stones: InventoryStoneItem[]
+  ebayConnected: boolean
+  ebayListing: EbayPanelListing | null
 }) {
   const { t } = useI18n()
 
@@ -197,6 +211,43 @@ export default function InventoryDetail({
       </form>
 
       <StonesPanel itemId={item.id} stones={stones} />
+
+      <div id="ebay">
+        <InventoryEbayPanel
+          inventoryItemId={item.id}
+          ebayConnected={ebayConnected}
+          listing={ebayListing}
+          photoChoices={photos
+            .filter((p): p is InventoryPhotoItem & { signed_url: string } =>
+              !!p.signed_url,
+            )
+            .map((p) => ({
+              id: p.id,
+              url: p.signed_url,
+              is_primary: p.is_primary,
+            }))}
+          defaultDraft={{
+            title: item.description.slice(0, 80),
+            condition_id: '3000', // 'Used' — operator overrides per item
+            category_id: '',
+            format: 'FIXED_PRICE',
+            list_price:
+              item.list_price != null ? String(item.list_price) : '0',
+            currency: 'USD',
+            quantity: '1',
+            description: item.description,
+            marketing_message: null,
+            photo_urls: photos
+              .filter((p) => !!p.signed_url)
+              .map((p) => p.signed_url as string),
+          }}
+          createDraftAction={createEbayDraftAction}
+          updateListingAction={updateEbayDraftAction}
+          publishListingAction={publishEbayListingAction}
+          endListingAction={endEbayListingAction}
+          syncListingAction={syncEbayListingAction}
+        />
+      </div>
     </div>
   )
 }

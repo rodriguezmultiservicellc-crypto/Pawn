@@ -79,6 +79,14 @@ export type AuditAction =
   | 'card_present_succeeded'
   // Reports / compliance
   | 'export'
+  // eBay listing publisher (Phase 10, Path B)
+  | 'ebay_oauth_connected'
+  | 'ebay_oauth_disconnected'
+  | 'ebay_listing_create'
+  | 'ebay_listing_publish'
+  | 'ebay_listing_update'
+  | 'ebay_listing_end'
+  | 'ebay_listing_sync'
 
 export async function logAudit(args: {
   tenantId: string
