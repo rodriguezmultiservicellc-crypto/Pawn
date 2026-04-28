@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { CheckCircle, Warning } from '@phosphor-icons/react'
-import { useI18n } from '@/lib/i18n/context'
+import { useLangLocal } from '@/lib/i18n/use-lang'
 import { claimPortalAction, type ClaimState } from './actions'
 
 export type ClaimPageState =
@@ -25,7 +25,7 @@ export default function ClaimContent({
   state: ClaimPageState
   token: string
 }) {
-  const { t } = useI18n()
+  const { t } = useLangLocal()
   const [actionState, formAction, pending] = useActionState<
     ClaimState,
     FormData
@@ -117,7 +117,7 @@ function BadStateBlock({
 }: {
   state: Exclude<ClaimPageState, { kind: 'ready' }>
 }) {
-  const { t } = useI18n()
+  const { t } = useLangLocal()
   const map: Record<typeof state.kind, string> = {
     invalid: t.portal.claim.errInvalid,
     expired: t.portal.claim.errExpired,
@@ -159,7 +159,7 @@ function BadStateBlock({
 
 function translateError(
   reason: string,
-  t: ReturnType<typeof useI18n>['t'],
+  t: ReturnType<typeof useLangLocal>['t'],
 ): string {
   const map: Record<string, string> = {
     token_missing: t.portal.claim.errInvalid,
