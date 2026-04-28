@@ -1748,6 +1748,10 @@ export const es: Dictionary = {
       layaway_overdue: 'Apartado vencido',
       layaway_completed: 'Apartado pagado',
       custom: 'Mensaje personalizado',
+      saas_trial_ending: 'Fin de prueba (plataforma)',
+      saas_payment_failed: 'Pago fallido (plataforma)',
+      saas_payment_recovered: 'Pago recuperado (plataforma)',
+      saas_subscription_cancelled: 'Suscripción cancelada (plataforma)',
     },
     kindDescriptions: {
       loan_maturity_t7: 'Se envía automáticamente 7 días antes del vencimiento.',
@@ -1763,6 +1767,14 @@ export const es: Dictionary = {
       layaway_completed: 'Se envía cuando un apartado queda totalmente pagado.',
       custom:
         'Mensaje manual — el personal escribe el cuerpo al momento de enviar.',
+      saas_trial_ending:
+        'Enviado por la plataforma: Pawn (RMS) avisa al dueño que el período de prueba de su suscripción termina pronto. No es configurable por inquilino.',
+      saas_payment_failed:
+        'Enviado por la plataforma: Pawn (RMS) avisa al dueño que el pago de su suscripción falló.',
+      saas_payment_recovered:
+        'Enviado por la plataforma: Pawn (RMS) confirma que un pago previamente fallido se procesó correctamente.',
+      saas_subscription_cancelled:
+        'Enviado por la plataforma: Pawn (RMS) confirma que la suscripción del inquilino fue cancelada.',
     },
     editorHelp:
       'Usa marcadores {{variable}}. Disponibles: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, portal_link.',

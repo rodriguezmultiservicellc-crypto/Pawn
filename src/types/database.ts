@@ -3498,6 +3498,10 @@ export type Database = {
         | "layaway_overdue"
         | "layaway_completed"
         | "custom"
+        | "saas_trial_ending"
+        | "saas_payment_failed"
+        | "saas_payment_recovered"
+        | "saas_subscription_cancelled"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
       metal_purity:
         | "pure_24k"
@@ -3842,6 +3846,10 @@ export const Constants = {
         "layaway_overdue",
         "layaway_completed",
         "custom",
+        "saas_trial_ending",
+        "saas_payment_failed",
+        "saas_payment_recovered",
+        "saas_subscription_cancelled",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
       metal_purity: [

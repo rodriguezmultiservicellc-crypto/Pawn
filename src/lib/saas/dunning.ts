@@ -3,15 +3,12 @@ import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPlatformEmail } from '@/lib/email/platform'
 import { formatCents } from './types'
-import type { MessageKind } from '@/types/database-aliases'
 
 /**
- * Dunning kinds. Wired into the message_kind enum by patches/0016. Until
- * that migration is applied, the cast at the sendPlatformEmail boundary
- * lets TS compile; the actual INSERT against message_log will fail at
- * runtime with an enum-value error, which sendPlatformEmail surfaces as
- * { ok: false, reason: 'provider_error' } — webhook handlers ignore that
- * and continue, so the system degrades gracefully until 0016 lands.
+ * Dunning kinds. These are the four message_kind enum values added by
+ * patches/0016-saas-dunning-message-kinds.sql for platform→tenant-owner
+ * messaging (RMS reaching out about subscription state, not tenant→
+ * customer comms).
  */
 export type DunningKind =
   | 'saas_trial_ending'
@@ -91,8 +88,7 @@ export async function sendDunningEmail(args: {
       subject: body.subject,
       html: body.html,
       text: body.text,
-      // Cast pending patches/0016 enum extension. See DunningKind doc.
-      kind: args.kind as unknown as MessageKind,
+      kind: args.kind,
     })
     results.push({
       authUserId: r.authUserId,

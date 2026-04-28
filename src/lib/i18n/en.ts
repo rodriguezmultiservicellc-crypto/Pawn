@@ -1736,6 +1736,10 @@ export const en = {
       layaway_overdue: 'Layaway overdue',
       layaway_completed: 'Layaway paid in full',
       custom: 'Custom message',
+      saas_trial_ending: 'Trial ending (platform)',
+      saas_payment_failed: 'Payment failed (platform)',
+      saas_payment_recovered: 'Payment recovered (platform)',
+      saas_subscription_cancelled: 'Subscription cancelled (platform)',
     },
     kindDescriptions: {
       loan_maturity_t7: 'Sent automatically 7 days before a loan due date.',
@@ -1750,6 +1754,14 @@ export const en = {
       layaway_overdue: 'Sent when a layaway payment is past due.',
       layaway_completed: 'Sent when a layaway is paid in full.',
       custom: 'Manual one-off message — staff fills in the body at send time.',
+      saas_trial_ending:
+        'Platform-sent: Pawn (RMS) notifies the tenant owner that their subscription trial ends soon. Not configurable per tenant.',
+      saas_payment_failed:
+        'Platform-sent: Pawn (RMS) notifies the tenant owner that a subscription payment failed.',
+      saas_payment_recovered:
+        'Platform-sent: Pawn (RMS) confirms a previously-failed payment has cleared.',
+      saas_subscription_cancelled:
+        'Platform-sent: Pawn (RMS) confirms the tenant subscription has been cancelled.',
     },
     editorHelp:
       'Use {{variable}} placeholders. Available variables: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, portal_link.',
