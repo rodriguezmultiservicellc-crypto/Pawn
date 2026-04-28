@@ -20,7 +20,7 @@ export default async function PortalLayout({
   children: ReactNode
 }) {
   const ctx = await getCtx()
-  if (!ctx) redirect('/login')
+  if (!ctx) redirect('/portal/login')
   if (ctx.tenantRole !== 'client') redirect('/no-tenant')
 
   const admin = createAdminClient()

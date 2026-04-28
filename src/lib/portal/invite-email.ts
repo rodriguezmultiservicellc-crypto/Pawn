@@ -17,6 +17,10 @@ export type RenderArgs = {
   customerName: string
   magicLink: string
   expiresAt: Date
+  /** Optional — if provided, the email tells the customer where to
+   *  sign in next time (after the magic-link expires). Defaults to
+   *  omitting the line entirely. */
+  signInUrl?: string | null
 }
 
 export function renderPortalInviteEmail(args: RenderArgs): {
@@ -42,6 +46,13 @@ export function renderPortalInviteEmail(args: RenderArgs): {
       ? `Acceso al portal de clientes — ${args.shopName}`
       : `Customer portal access — ${args.shopName}`
 
+  const signInLineEs = args.signInUrl
+    ? `\n\nLa próxima vez, inicie sesión aquí: ${args.signInUrl}`
+    : ''
+  const signInLineEn = args.signInUrl
+    ? `\n\nNext time, sign in here: ${args.signInUrl}`
+    : ''
+
   const bodyEs = `${greeting}
 
 ${args.shopName} le ha invitado a acceder al portal de clientes. En el portal podrá:
@@ -54,7 +65,7 @@ Para acceder, haga clic en el siguiente enlace:
 
 ${args.magicLink}
 
-Este enlace caduca el ${expiresLabel}. Si no solicitó este acceso, puede ignorar este correo.
+Este enlace caduca el ${expiresLabel}. Si no solicitó este acceso, puede ignorar este correo.${signInLineEs}
 
 — ${args.shopName}`
 
@@ -70,7 +81,7 @@ To get started, click the link below:
 
 ${args.magicLink}
 
-This link expires on ${expiresLabel}. If you didn't request this access, you can ignore this email.
+This link expires on ${expiresLabel}. If you didn't request this access, you can ignore this email.${signInLineEn}
 
 — ${args.shopName}`
 
@@ -107,10 +118,17 @@ This link expires on ${expiresLabel}. If you didn't request this access, you can
       ? `Este enlace caduca el ${escExpires}. Si no solicitó este acceso, puede ignorar este correo.`
       : `This link expires on ${escExpires}. If you didn't request this access, you can ignore this email.`
 
+  const escSignIn = args.signInUrl ? escapeHtml(args.signInUrl) : ''
+  const signInHtml = args.signInUrl
+    ? args.language === 'es'
+      ? `<p style="margin:0 0 16px 0;font-size:12px;color:#717171;">La próxima vez, inicie sesión aquí: <a href="${escSignIn}" style="color:#222222;">${escSignIn}</a></p>`
+      : `<p style="margin:0 0 16px 0;font-size:12px;color:#717171;">Next time, sign in here: <a href="${escSignIn}" style="color:#222222;">${escSignIn}</a></p>`
+    : ''
+
   const inner = `<p style="margin:0 0 16px 0;">${greetingHtml}</p>
 <p style="margin:0 0 16px 0;">${introHtml}</p>
 <p style="margin:0 0 24px 0;"><a href="${escLink}" style="${buttonStyle}">${buttonLabel}</a></p>
-<p style="margin:0 0 16px 0;font-size:12px;color:#717171;">${fineprintHtml}</p>
+<p style="margin:0 0 16px 0;font-size:12px;color:#717171;">${fineprintHtml}</p>${signInHtml}
 <p style="margin:24px 0 0 0;font-size:12px;color:#717171;">— ${escShop}</p>`
 
   // Wrap in the same outer container textToSimpleHtml uses, so the email

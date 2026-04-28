@@ -25,6 +25,7 @@ const PUBLIC_PATHS = [
   '/onboard',
   '/no-tenant',
   '/auth/callback',
+  '/portal/login',
 ]
 
 const STAFF_PATH_PREFIXES = [
@@ -68,7 +69,11 @@ function isPortalPath(pathname: string): boolean {
   // signs in BEFORE the user_tenants(role='client') row exists. Gating
   // it on tenantRole='client' would deadlock the onboarding flow. The
   // claim page enforces its own auth + token validation.
+  // /portal/login is the customer-facing magic-link request page —
+  // explicit public path so unauthenticated customers can reach it.
   if (pathname.startsWith('/portal/claim')) return false
+  if (pathname === '/portal/login' || pathname.startsWith('/portal/login/'))
+    return false
   return pathname.startsWith('/portal')
 }
 
@@ -84,11 +89,12 @@ export async function proxy(request: NextRequest) {
   const { response, userId, globalRole, tenantRole, activeTenantId } =
     await updateSession(request)
 
-  // Unauthenticated → /login (preserve the original destination for
-  // post-login redirect). Skip for public paths handled above.
+  // Unauthenticated → sign-in page (preserve the original destination
+  // for post-login redirect). Portal URLs go to the customer-facing
+  // /portal/login; everything else goes to staff /login.
   if (!userId) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = pathname.startsWith('/portal') ? '/portal/login' : '/login'
     url.searchParams.set('next', pathname)
     return NextResponse.redirect(url)
   }

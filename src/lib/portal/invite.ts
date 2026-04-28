@@ -198,6 +198,7 @@ export async function createPortalInvite(args: {
     customerName,
     magicLink,
     expiresAt: expires,
+    signInUrl: `${args.appUrl}/portal/login`,
   })
 
   const sendResult = await sendEmail({

@@ -31,8 +31,9 @@ export function PortalChrome({
   async function handleSignOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    // Hard nav so the proxy sees the cleared cookie.
-    window.location.assign('/login')
+    // Hard nav so the proxy sees the cleared cookie. Customers land
+    // back on the portal sign-in page, not the staff /login.
+    window.location.assign('/portal/login')
   }
 
   return (

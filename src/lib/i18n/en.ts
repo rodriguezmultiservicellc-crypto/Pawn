@@ -1697,6 +1697,20 @@ export const en = {
       forbidden: 'You do not have permission to view that.',
       amountInvalid: 'Enter a valid amount greater than zero.',
     },
+    login: {
+      title: 'Sign in to your portal',
+      help: 'We will email you a one-time link. No password needed.',
+      sendLink: 'Email me a sign-in link',
+      checkEmailTitle: 'Check your email',
+      checkEmailBody:
+        'If we have a portal account for that address, a sign-in link is on its way.',
+      checkSpamHint:
+        'Check your spam or promotions folder if you don\'t see it within a minute.',
+      notACustomer: 'New to the portal? Ask the shop to send you an invite.',
+      errInvalidEmail: 'Enter a valid email address.',
+      errAppUrlMissing:
+        'The portal is misconfigured on the server. Please contact the shop.',
+    },
     claim: {
       title: 'Activate your portal access',
       greeting: 'Hi',

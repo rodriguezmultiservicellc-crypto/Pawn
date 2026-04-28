@@ -1704,6 +1704,21 @@ export const es: Dictionary = {
       forbidden: 'No tienes permiso para ver eso.',
       amountInvalid: 'Ingresa un monto válido mayor que cero.',
     },
+    login: {
+      title: 'Inicia sesión en tu portal',
+      help: 'Te enviaremos un enlace de un solo uso por correo. No necesitas contraseña.',
+      sendLink: 'Enviarme un enlace de acceso',
+      checkEmailTitle: 'Revisa tu correo',
+      checkEmailBody:
+        'Si tenemos una cuenta de portal asociada a ese correo, te enviaremos un enlace de acceso.',
+      checkSpamHint:
+        'Revisa tu carpeta de spam o promociones si no lo ves en uno o dos minutos.',
+      notACustomer:
+        '¿Eres nuevo en el portal? Pide a la tienda que te envíe una invitación.',
+      errInvalidEmail: 'Ingresa un correo válido.',
+      errAppUrlMissing:
+        'El portal no está configurado en el servidor. Contacta a la tienda.',
+    },
     claim: {
       title: 'Activa tu acceso al portal',
       greeting: 'Hola',
