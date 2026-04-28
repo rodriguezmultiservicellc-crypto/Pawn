@@ -122,19 +122,7 @@ export const es: Dictionary = {
   },
 
   dashboard: {
-    title: 'Panel',
-    welcome: 'Bienvenido',
-    placeholder:
-      'Esqueleto de Fase 0 — el panel completo llega en la Fase 1.',
-    customersCard: 'Clientes',
-    customersCardSub: 'Registros activos',
-    inventoryCard: 'Inventario',
-    inventoryCardSub: 'En piso',
-    bannedCard: 'Clientes bloqueados',
-    heldCard: 'Artículos retenidos',
-    recentCustomers: 'Clientes agregados recientemente',
-    recentInventory: 'Inventario agregado recientemente',
-    seeAll: 'Ver todos',
+    // EN parity — see en.ts. Only `none` survives.
     none: 'Aún nada.',
   },
 

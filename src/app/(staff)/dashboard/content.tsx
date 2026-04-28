@@ -65,13 +65,23 @@ type Props = {
   hasPawn?: boolean
   activeLoanCount?: number
   dueThisWeekCount?: number
+  /** Loans created today in the active tenant. */
+  pawnTodayCount?: number
   hasRepair?: boolean
   activeRepairCount?: number
   readyForPickupCount?: number
+  /** Repair tickets created today in the active tenant. */
+  repairsTodayCount?: number
   hasRetail?: boolean
   todaySalesCount?: number
   todayRevenue?: number
   activeLayawayCount?: number
+  /**
+   * Sum of `sales.total` per day for the trailing 14 days, oldest →
+   * newest. Used by the Sales · last 14 days bar chart in the Sales
+   * panel. Last entry equals `todayRevenue`.
+   */
+  dailyRevenue14d?: number[]
 }
 
 export default function DashboardContent(props: Props) {
@@ -144,6 +154,7 @@ export default function DashboardContent(props: Props) {
           revenueToday={props.todayRevenue ?? 0}
           txCount={props.todaySalesCount ?? 0}
           inventoryAvailable={props.inventoryCount}
+          dailyRevenue14d={props.dailyRevenue14d}
         />
       </Panel>
 
@@ -277,11 +288,15 @@ function OverviewPanel(props: Props) {
           </div>
           <div className="hero-stat">
             <p>Pawn</p>
-            <p style={{ color: '#FCD34D' }}>—</p>
+            <p style={{ color: '#FCD34D' }}>
+              {props.hasPawn ? (props.pawnTodayCount ?? 0) : '—'}
+            </p>
           </div>
           <div className="hero-stat">
             <p>Repairs</p>
-            <p style={{ color: '#6EE7B7' }}>—</p>
+            <p style={{ color: '#6EE7B7' }}>
+              {props.hasRepair ? (props.repairsTodayCount ?? 0) : '—'}
+            </p>
           </div>
           <div className="hero-stat" style={{ marginLeft: 'auto' }}>
             <p>Transactions</p>
@@ -450,12 +465,24 @@ function SalesPanel({
   revenueToday,
   txCount,
   inventoryAvailable,
+  dailyRevenue14d,
 }: {
   router: ReturnType<typeof useRouter>
   revenueToday: number
   txCount: number
   inventoryAvailable: number
+  dailyRevenue14d?: number[]
 }) {
+  // Real series from page.tsx; fall back to a zero-filled 14-slot array
+  // so the chart's max-scale math stays sane when the tenant has no
+  // sales yet. We intentionally do NOT generate fake data for empty
+  // tenants — a flat zero baseline is more truthful than placeholder
+  // bumps.
+  const revenueSeries: number[] =
+    dailyRevenue14d && dailyRevenue14d.length === 14
+      ? dailyRevenue14d
+      : Array<number>(14).fill(0)
+  const seriesMax = revenueSeries.reduce((m, v) => (v > m ? v : m), 0)
   return (
     <>
       <Lookup
@@ -497,15 +524,14 @@ function SalesPanel({
       <div className="split">
         <ChartPanel
           title="Sales · last 14 days"
-          legend={[
-            { color: 'bg-cyan', label: 'Cash' },
-            { color: 'bg-violet', label: 'Card' },
-          ]}
+          legend={[{ color: 'bg-cyan', label: 'Revenue' }]}
         >
           <Bars
             tone="cyan"
-            max={Math.max(1500, revenueToday * 1.5)}
-            data={demoBars(14, 32)}
+            // Keep the chart axis stable: never go below $1.50 even on a
+            // zeroed series, so the empty state still renders an axis.
+            max={Math.max(1.5, seriesMax * 1.1)}
+            data={revenueSeries}
           />
         </ChartPanel>
         <div className="side-stack">
