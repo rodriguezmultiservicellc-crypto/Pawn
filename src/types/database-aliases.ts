@@ -388,3 +388,149 @@ export type SettingsCommsColumns = Pick<
   | 'resend_from_email'
   | 'resend_from_name'
 >
+
+// ── Phase 9 (Path B — appraised valuation) — enum literals
+//
+// These reference patches/0014-appraisals.sql. They will compile only AFTER
+// 0014 is applied to the live Supabase project AND `npm run db:types` has been
+// run to regenerate src/types/database.ts. Until then, TS will surface
+// "Property 'appraisals' does not exist on type ..." here. That's expected.
+
+export type AppraisalStatus = 'draft' | 'finalized' | 'voided'
+
+export type AppraisalPurpose =
+  | 'insurance'
+  | 'estate'
+  | 'sale'
+  | 'pawn_intake'
+  | 'collateral_review'
+  | 'customer_request'
+
+export type AppraisalPhotoKind =
+  | 'front'
+  | 'back'
+  | 'detail'
+  | 'serial'
+  | 'cert'
+  | 'reference'
+
+// Row / Insert / Update shortcuts — depend on 0014 + db:types regen.
+// Until then we publish a hand-rolled placeholder so action/page code can
+// import `AppraisalUpdate` etc. without forcing a brittle cast everywhere.
+// On db:types regen, swap these to the auto-generated table types:
+//   export type AppraisalRow = Database['public']['Tables']['appraisals']['Row']
+//   …etc.
+
+type _AppraisalsAvailable = Database['public']['Tables'] extends { appraisals: infer A }
+  ? A
+  : null
+
+export type AppraisalRow = _AppraisalsAvailable extends { Row: infer R }
+  ? R
+  : {
+      id: string
+      tenant_id: string
+      appraisal_number: string | null
+      customer_id: string | null
+      inventory_item_id: string | null
+      item_description: string
+      metal_type: string | null
+      karat: number | null
+      weight_grams: number | null
+      purpose: string
+      appraised_value: number | string
+      replacement_value: number | string | null
+      valuation_method: string | null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      comparable_data: any
+      notes: string | null
+      appraiser_user_id: string
+      appraiser_signature_storage_path: string | null
+      customer_signature_storage_path: string | null
+      valid_from: string
+      valid_until: string | null
+      status: AppraisalStatus
+      finalized_at: string | null
+      finalized_by: string | null
+      voided_at: string | null
+      voided_by: string | null
+      void_reason: string | null
+      is_printed: boolean
+      printed_at: string | null
+      created_at: string
+      updated_at: string
+      deleted_at: string | null
+      created_by: string | null
+      updated_by: string | null
+    }
+
+export type AppraisalInsert = Partial<AppraisalRow> & {
+  tenant_id: string
+  item_description: string
+  purpose: AppraisalPurpose
+  appraised_value: number | string
+  appraiser_user_id: string
+  valid_from: string
+}
+
+export type AppraisalUpdate = Partial<AppraisalRow>
+
+type _AppraisalStonesAvailable = Database['public']['Tables'] extends { appraisal_stones: infer A }
+  ? A
+  : null
+
+export type AppraisalStoneRow = _AppraisalStonesAvailable extends { Row: infer R }
+  ? R
+  : {
+      id: string
+      appraisal_id: string
+      tenant_id: string
+      position: number
+      count: number
+      type: string | null
+      cut: string | null
+      est_carat: number | null
+      color: string | null
+      clarity: string | null
+      certified: boolean
+      cert_lab: string | null
+      cert_number: string | null
+      notes: string | null
+      created_at: string
+      deleted_at: string | null
+    }
+
+export type AppraisalStoneInsert = Partial<AppraisalStoneRow> & {
+  appraisal_id: string
+  tenant_id: string
+}
+
+export type AppraisalStoneUpdate = Partial<AppraisalStoneRow>
+
+type _AppraisalPhotosAvailable = Database['public']['Tables'] extends { appraisal_photos: infer A }
+  ? A
+  : null
+
+export type AppraisalPhotoRow = _AppraisalPhotosAvailable extends { Row: infer R }
+  ? R
+  : {
+      id: string
+      appraisal_id: string
+      tenant_id: string
+      storage_path: string
+      kind: AppraisalPhotoKind
+      caption: string | null
+      position: number
+      created_by: string | null
+      created_at: string
+      deleted_at: string | null
+    }
+
+export type AppraisalPhotoInsert = Partial<AppraisalPhotoRow> & {
+  appraisal_id: string
+  tenant_id: string
+  storage_path: string
+  kind: AppraisalPhotoKind
+}
+
+export type AppraisalPhotoUpdate = Partial<AppraisalPhotoRow>
