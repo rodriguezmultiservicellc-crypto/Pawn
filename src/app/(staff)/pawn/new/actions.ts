@@ -20,6 +20,7 @@ import {
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
 import { addDaysIso, todayDateString } from '@/lib/pawn/math'
+import { checkPlanLimit, countActiveLoans } from '@/lib/saas/gates'
 import type { Database } from '@/types/database'
 
 export type CreateLoanState = {
@@ -111,6 +112,20 @@ export async function createLoanAction(
   ])
 
   const tenantId = ctx.tenantId
+
+  // Plan-tier gate: enforce max_active_loans BEFORE validation so the
+  // operator sees an upgrade prompt instead of a generic field error.
+  const activeLoanCount = await countActiveLoans(tenantId)
+  const limitCheck = await checkPlanLimit(
+    tenantId,
+    'max_active_loans',
+    activeLoanCount,
+  )
+  if (!limitCheck.allowed) {
+    return {
+      error: `plan_limit_reached:max_active_loans:${limitCheck.current}/${limitCheck.limit ?? 0}:${limitCheck.planCode ?? '—'}`,
+    }
+  }
 
   // Auto-compute due_date if not provided.
   const issueDateRaw = String(formData.get('issue_date') ?? '').trim()

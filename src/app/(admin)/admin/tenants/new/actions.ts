@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireSuperAdmin } from '@/lib/supabase/guards'
+import { checkPlanFeature, countChildTenants, checkPlanLimit } from '@/lib/saas/gates'
 import type {
   PoliceReportFormat,
   TenantType,
@@ -66,6 +67,32 @@ export async function createTenantAction(
     return { fieldErrors: { police_report_format: 'invalid' } }
   }
   const policeFormat = policeFormatRaw as PoliceReportFormat
+
+  // Plan-tier gates for chain creation. Only fires when adding a new
+  // `shop` under an existing chain_hq parent — single standalone tenants
+  // and the chain_hq tenants themselves don't need the multi_shop feature.
+  // Bypass for the override flag so superadmin support flows can ignore
+  // the limit when needed.
+  const overrideGate = getBool(formData, 'override_plan_gate')
+  if (tenantType === 'shop' && parentTenantId && !overrideGate) {
+    const featureCheck = await checkPlanFeature(parentTenantId, 'multi_shop')
+    if (!featureCheck.allowed) {
+      return {
+        error: `plan_gate:multi_shop_unavailable:${featureCheck.planCode ?? '—'}`,
+      }
+    }
+    const childCount = await countChildTenants(parentTenantId)
+    const limitCheck = await checkPlanLimit(
+      parentTenantId,
+      'max_locations',
+      childCount + 1, // pass the post-create count so we error at the limit
+    )
+    if (!limitCheck.allowed) {
+      return {
+        error: `plan_limit_reached:max_locations:${limitCheck.current}/${limitCheck.limit ?? 0}:${limitCheck.planCode ?? '—'}`,
+      }
+    }
+  }
 
   const { data, error } = await admin.rpc('create_tenant_with_owner', {
     p_name: name,
