@@ -70,6 +70,7 @@ export const es: Dictionary = {
     team: 'Equipo',
     settings: 'Ajustes',
     communications: 'Comunicaciones',
+    billing: 'Facturación',
     logOut: 'Cerrar sesión',
     portal: 'Mi cuenta',
     portalLoans: 'Mis empeños',

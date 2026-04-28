@@ -75,6 +75,7 @@ export const en = {
     team: 'Team',
     settings: 'Settings',
     communications: 'Communications',
+    billing: 'Billing',
     logOut: 'Log out',
     portal: 'My Account',
     portalLoans: 'My loans',

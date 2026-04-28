@@ -22,6 +22,7 @@ import {
   CaretDoubleLeft,
   CaretDoubleRight,
   Storefront,
+  CreditCard,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -52,6 +53,7 @@ type Tenant = {
 
 const AUDIT_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
 const SETTINGS_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
+const BILLING_ROLES = new Set<TenantRole>(['owner', 'chain_admin'])
 
 const MOBILE_QUERY = '(max-width: 800px)'
 const STORAGE_KEY = 'pawn.sidebar.collapsed'
@@ -114,6 +116,7 @@ export function Sidebar({
 
   const canSeeAudit = !!tenantRole && AUDIT_ROLES.has(tenantRole)
   const canSeeSettings = !!tenantRole && SETTINGS_ROLES.has(tenantRole)
+  const canSeeBilling = !!tenantRole && BILLING_ROLES.has(tenantRole)
   const canSeeTransfers =
     tenant?.tenant_type === 'shop' && !!tenant.parent_tenant_id
 
@@ -194,6 +197,12 @@ export function Sidebar({
       label: t.nav.communications,
       icon: <ChatCircleText size={18} weight="regular" />,
       visible: canSeeSettings,
+    },
+    {
+      href: '/billing',
+      label: t.nav.billing,
+      icon: <CreditCard size={18} weight="regular" />,
+      visible: canSeeBilling,
     },
     {
       href: '/settings',
