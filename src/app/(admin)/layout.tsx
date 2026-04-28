@@ -54,6 +54,12 @@ export default async function AdminLayout({
               >
                 Tenants
               </Link>
+              <Link
+                href="/admin/billing"
+                className="text-ink hover:text-rausch"
+              >
+                Billing
+              </Link>
               <span className="text-ash">{ctx.email}</span>
             </div>
           </div>

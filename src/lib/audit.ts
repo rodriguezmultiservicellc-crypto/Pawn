@@ -79,6 +79,8 @@ export type AuditAction =
   | 'card_present_succeeded'
   // Reports / compliance
   | 'export'
+  // SaaS billing (platform-side)
+  | 'tenant_plan_change'
 
 export async function logAudit(args: {
   tenantId: string

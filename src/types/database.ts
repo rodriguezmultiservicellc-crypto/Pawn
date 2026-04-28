@@ -58,6 +58,62 @@ export type Database = {
           },
         ]
       }
+      billing_invoices: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          due_date: string | null
+          hosted_invoice_url: string | null
+          id: string
+          invoice_pdf_url: string | null
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          status: string
+          stripe_invoice_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          hosted_invoice_url?: string | null
+          id?: string
+          invoice_pdf_url?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status: string
+          stripe_invoice_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          hosted_invoice_url?: string | null
+          id?: string
+          invoice_pdf_url?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_log: {
         Row: {
           amount: number | null
@@ -2333,6 +2389,63 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          feature_limits: Json
+          features: Json
+          id: string
+          is_active: boolean
+          is_public: boolean
+          name: string
+          price_monthly_cents: number
+          price_yearly_cents: number | null
+          sort_order: number
+          stripe_price_monthly_id: string | null
+          stripe_price_yearly_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          feature_limits?: Json
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          name: string
+          price_monthly_cents: number
+          price_yearly_cents?: number | null
+          sort_order?: number
+          stripe_price_monthly_id?: string | null
+          stripe_price_yearly_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          feature_limits?: Json
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          name?: string
+          price_monthly_cents?: number
+          price_yearly_cents?: number | null
+          sort_order?: number
+          stripe_price_monthly_id?: string | null
+          stripe_price_yearly_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tenant_billing_settings: {
         Row: {
           billing_enabled: boolean
@@ -2407,6 +2520,90 @@ export type Database = {
             foreignKeyName: "tenant_counters_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_subscriptions: {
+        Row: {
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"]
+          cancel_at_period_end: boolean
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          internal_notes: string | null
+          last_invoice_amount_cents: number | null
+          last_invoice_id: string | null
+          last_invoice_paid_at: string | null
+          next_invoice_amount_cents: number | null
+          next_invoice_due_at: string | null
+          plan_id: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tenant_id: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          cancel_at_period_end?: boolean
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          internal_notes?: string | null
+          last_invoice_amount_cents?: number | null
+          last_invoice_id?: string | null
+          last_invoice_paid_at?: string | null
+          next_invoice_amount_cents?: number | null
+          next_invoice_due_at?: string | null
+          plan_id: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          cancel_at_period_end?: boolean
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          internal_notes?: string | null
+          last_invoice_amount_cents?: number | null
+          last_invoice_id?: string | null
+          last_invoice_paid_at?: string | null
+          next_invoice_amount_cents?: number | null
+          next_invoice_due_at?: string | null
+          plan_id?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -2622,6 +2819,7 @@ export type Database = {
       }
     }
     Enums: {
+      billing_cycle: "monthly" | "yearly"
       card_present_status:
         | "not_used"
         | "pending"
@@ -2761,6 +2959,14 @@ export type Database = {
         | "plating"
         | "engraving"
         | "custom"
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "cancelled"
+        | "unpaid"
+        | "incomplete"
+        | "incomplete_expired"
       tenant_role:
         | "owner"
         | "chain_admin"
@@ -2904,6 +3110,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      billing_cycle: ["monthly", "yearly"],
       card_present_status: [
         "not_used",
         "pending",
@@ -3056,6 +3263,15 @@ export const Constants = {
         "plating",
         "engraving",
         "custom",
+      ],
+      subscription_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "cancelled",
+        "unpaid",
+        "incomplete",
+        "incomplete_expired",
       ],
       tenant_role: [
         "owner",
