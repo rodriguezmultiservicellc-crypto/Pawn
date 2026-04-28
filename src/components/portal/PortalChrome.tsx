@@ -8,6 +8,7 @@ import {
   Tag,
   SignOut,
   Translate,
+  User,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { createClient } from '@/lib/supabase/client'
@@ -100,6 +101,12 @@ export function PortalChrome({
               icon={<Tag size={16} weight="regular" />}
               active={pathname.startsWith('/portal/layaways')}
             />
+            <PortalTopLink
+              href="/portal/account"
+              label={t.portal.nav.account}
+              icon={<User size={16} weight="regular" />}
+              active={pathname.startsWith('/portal/account')}
+            />
           </div>
         </nav>
       </header>
@@ -124,6 +131,12 @@ export function PortalChrome({
             label={t.portal.nav.layaways}
             icon={<Tag size={20} weight="regular" />}
             active={pathname.startsWith('/portal/layaways')}
+          />
+          <PortalBottomLink
+            href="/portal/account"
+            label={t.portal.nav.account}
+            icon={<User size={20} weight="regular" />}
+            active={pathname.startsWith('/portal/account')}
           />
         </div>
       </nav>

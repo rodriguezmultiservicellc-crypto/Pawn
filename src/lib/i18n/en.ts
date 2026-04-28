@@ -1554,6 +1554,7 @@ export const en = {
       loans: 'My loans',
       repairs: 'My repairs',
       layaways: 'My layaways',
+      account: 'Account',
     },
     common: {
       signOut: 'Sign out',
@@ -1713,8 +1714,14 @@ export const en = {
     },
     login: {
       title: 'Sign in to your portal',
-      help: 'We will email you a one-time link. No password needed.',
+      help: 'Sign in with your password, or leave it blank and we will email you a one-time link.',
       sendLink: 'Email me a sign-in link',
+      signIn: 'Sign in',
+      passwordLabel: 'Password',
+      show: 'Show',
+      hide: 'Hide',
+      noPasswordHint:
+        'No password yet? Just enter your email and we will send you a one-time sign-in link.',
       checkEmailTitle: 'Check your email',
       checkEmailBody:
         'If we have a portal account for that address, a sign-in link is on its way.',
@@ -1722,8 +1729,30 @@ export const en = {
         'Check your spam or promotions folder if you don\'t see it within a minute.',
       notACustomer: 'New to the portal? Ask the shop to send you an invite.',
       errInvalidEmail: 'Enter a valid email address.',
+      errBadCredentials:
+        'Email or password is incorrect. Try again — or leave the password blank to get a magic link.',
       errAppUrlMissing:
         'The portal is misconfigured on the server. Please contact the shop.',
+    },
+    account: {
+      title: 'Your account',
+      subtitle: 'Manage how you sign in to the portal.',
+      identity: 'Profile',
+      name: 'Name',
+      email: 'Email',
+      noNameOnFile: 'No name on file',
+      emailReadOnlyHelp:
+        'Your email is the address the shop uses to invite you. To change it, contact the shop.',
+      passwordTitle: 'Set or change password',
+      passwordHelp:
+        'Optional. With a password set, you can sign in instantly instead of waiting for a magic-link email each time.',
+      newPassword: 'New password',
+      confirmPassword: 'Confirm new password',
+      savePassword: 'Save password',
+      savedConfirmation:
+        'Password saved. Next time you can sign in with email + password.',
+      errTooShort: 'Password must be at least 8 characters.',
+      errMismatch: 'The two password fields do not match.',
     },
     claim: {
       title: 'Activate your portal access',

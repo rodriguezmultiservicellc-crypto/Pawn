@@ -1561,6 +1561,7 @@ export const es: Dictionary = {
       loans: 'Mis empeños',
       repairs: 'Mis reparaciones',
       layaways: 'Mis apartados',
+      account: 'Cuenta',
     },
     common: {
       signOut: 'Cerrar sesión',
@@ -1720,8 +1721,14 @@ export const es: Dictionary = {
     },
     login: {
       title: 'Inicia sesión en tu portal',
-      help: 'Te enviaremos un enlace de un solo uso por correo. No necesitas contraseña.',
+      help: 'Inicia sesión con tu contraseña, o déjala en blanco y te enviaremos un enlace de un solo uso.',
       sendLink: 'Enviarme un enlace de acceso',
+      signIn: 'Iniciar sesión',
+      passwordLabel: 'Contraseña',
+      show: 'Mostrar',
+      hide: 'Ocultar',
+      noPasswordHint:
+        '¿Aún no tienes contraseña? Solo escribe tu correo y te enviaremos un enlace de un solo uso.',
       checkEmailTitle: 'Revisa tu correo',
       checkEmailBody:
         'Si tenemos una cuenta de portal asociada a ese correo, te enviaremos un enlace de acceso.',
@@ -1730,8 +1737,30 @@ export const es: Dictionary = {
       notACustomer:
         '¿Eres nuevo en el portal? Pide a la tienda que te envíe una invitación.',
       errInvalidEmail: 'Ingresa un correo válido.',
+      errBadCredentials:
+        'Correo o contraseña incorrectos. Inténtalo otra vez — o deja la contraseña en blanco para recibir un enlace mágico.',
       errAppUrlMissing:
         'El portal no está configurado en el servidor. Contacta a la tienda.',
+    },
+    account: {
+      title: 'Tu cuenta',
+      subtitle: 'Administra cómo inicias sesión en el portal.',
+      identity: 'Perfil',
+      name: 'Nombre',
+      email: 'Correo',
+      noNameOnFile: 'Sin nombre en archivo',
+      emailReadOnlyHelp:
+        'Tu correo es la dirección que la tienda usa para invitarte. Para cambiarlo, comunícate con la tienda.',
+      passwordTitle: 'Establecer o cambiar contraseña',
+      passwordHelp:
+        'Opcional. Con una contraseña configurada, puedes iniciar sesión al instante en lugar de esperar un enlace mágico cada vez.',
+      newPassword: 'Nueva contraseña',
+      confirmPassword: 'Confirmar nueva contraseña',
+      savePassword: 'Guardar contraseña',
+      savedConfirmation:
+        'Contraseña guardada. La próxima vez puedes iniciar sesión con correo y contraseña.',
+      errTooShort: 'La contraseña debe tener al menos 8 caracteres.',
+      errMismatch: 'Las dos contraseñas no coinciden.',
     },
     claim: {
       title: 'Activa tu acceso al portal',
