@@ -1,16 +1,71 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import {
   InventoryFormFields,
   emptyInventoryItem,
+  type InventoryFieldValues,
 } from '@/components/inventory/InventoryFormFields'
+import type {
+  InventoryCategory,
+  InventoryLocation,
+  InventorySource,
+  InventoryStatus,
+  MetalType,
+} from '@/types/database-aliases'
 import {
   createInventoryItemAction,
   type CreateInventoryItemState,
 } from './actions'
+
+/**
+ * Map a flat string-only echo from a server-action error response back
+ * into InventoryFieldValues so the form's uncontrolled inputs can be
+ * repopulated after React 19's auto-form-reset.
+ */
+function echoToFieldValues(
+  echo: Record<string, string>,
+  fallback: InventoryFieldValues,
+): InventoryFieldValues {
+  const s = (k: string): string | null => {
+    const v = echo[k]
+    return v == null || v === '' ? null : v
+  }
+  return {
+    ...fallback,
+    sku: s('sku'),
+    description: echo.description ?? '',
+    category: ((echo.category || 'other') as InventoryCategory),
+    brand: s('brand'),
+    model: s('model'),
+    serial_number: s('serial_number'),
+    metal: (s('metal') as MetalType | null) ?? null,
+    karat: s('karat'),
+    weight_grams: s('weight_grams'),
+    weight_dwt: s('weight_dwt'),
+    cost_basis: echo.cost_basis ?? '0',
+    list_price: s('list_price'),
+    sale_price: fallback.sale_price,
+    source: ((echo.source || 'bought') as InventorySource),
+    source_vendor: s('source_vendor'),
+    acquired_at:
+      echo.acquired_at && echo.acquired_at.trim() !== ''
+        ? echo.acquired_at
+        : fallback.acquired_at,
+    acquired_cost: s('acquired_cost'),
+    hold_until: s('hold_until'),
+    location: ((echo.location || 'case') as InventoryLocation),
+    status: ((echo.status || 'available') as InventoryStatus),
+    notes: s('notes'),
+    staff_memo: s('staff_memo'),
+    tags:
+      typeof echo.tags === 'string' && echo.tags.trim() !== ''
+        ? echo.tags.split(',').map((t) => t.trim()).filter(Boolean)
+        : [],
+  }
+}
 
 export default function NewInventoryItemForm() {
   const { t } = useI18n()
@@ -18,6 +73,23 @@ export default function NewInventoryItemForm() {
     CreateInventoryItemState,
     FormData
   >(createInventoryItemAction, {})
+
+  const [initial, setInitial] = useState<InventoryFieldValues>(() =>
+    emptyInventoryItem(),
+  )
+  const [formGen, setFormGen] = useState(0)
+
+  // On each new server-action response carrying echoed values,
+  // repopulate `initial` and bump the key so InventoryFormFields
+  // remounts with the echoed values as new defaults. (React 19 auto-
+  // resets <form action={fn}> after submission, which would otherwise
+  // wipe the user's typed values on a validation error.)
+  useEffect(() => {
+    if (state.values) {
+      setInitial((cur) => echoToFieldValues(state.values!, cur))
+      setFormGen((g) => g + 1)
+    }
+  }, [state])
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 
@@ -37,11 +109,16 @@ export default function NewInventoryItemForm() {
         <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
           {state.error}
         </div>
+      ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
+        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          {t.common.fixErrorsBelow}
+        </div>
       ) : null}
 
       <form action={formAction} className="space-y-6">
         <InventoryFormFields
-          initial={emptyInventoryItem()}
+          key={formGen}
+          initial={initial}
           fieldError={fieldError}
         />
 

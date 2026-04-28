@@ -10,6 +10,12 @@ import { logAudit } from '@/lib/audit'
 export type CreateInventoryItemState = {
   error?: string
   fieldErrors?: Record<string, string>
+  /**
+   * Echo of the most recent submission. Repopulates the form on
+   * validation/insert error so React 19's auto-form-reset doesn't wipe
+   * the operator's typed values. Only set when an error is returned.
+   */
+  values?: Record<string, string>
 }
 
 export async function createInventoryItemAction(
@@ -22,8 +28,7 @@ export async function createInventoryItemAction(
 
   const { supabase, userId } = await requireStaff(ctx.tenantId)
 
-  const raw: Record<string, FormDataEntryValue | null> = {}
-  for (const key of [
+  const FIELDS = [
     'sku',
     'description',
     'category',
@@ -46,8 +51,14 @@ export async function createInventoryItemAction(
     'notes',
     'staff_memo',
     'tags',
-  ]) {
-    raw[key] = formData.get(key)
+  ] as const
+
+  const raw: Record<string, FormDataEntryValue | null> = {}
+  const echo: Record<string, string> = {}
+  for (const key of FIELDS) {
+    const v = formData.get(key)
+    raw[key] = v
+    echo[key] = typeof v === 'string' ? v : ''
   }
 
   const parsed = inventoryItemCreateSchema.safeParse(raw)
@@ -57,7 +68,7 @@ export async function createInventoryItemAction(
       const path = issue.path.join('.')
       if (path) fieldErrors[path] = issue.message
     }
-    return { fieldErrors }
+    return { fieldErrors, values: echo }
   }
 
   const v = parsed.data
@@ -99,8 +110,8 @@ export async function createInventoryItemAction(
     .select('id')
     .single()
 
-  if (error) return { error: error.message }
-  if (!data?.id) return { error: 'insert returned no id' }
+  if (error) return { error: error.message, values: echo }
+  if (!data?.id) return { error: 'insert returned no id', values: echo }
 
   await logAudit({
     tenantId: ctx.tenantId,

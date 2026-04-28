@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useRef, useState, useTransition } from 'react'
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -125,6 +125,53 @@ function asFieldStr(v: number | string | null | undefined): string | null {
   return typeof v === 'string' ? v : String(v)
 }
 
+/**
+ * Map a flat string-only echo from the server-action error response back
+ * into InventoryFieldValues so uncontrolled inputs can be repopulated
+ * after React 19's auto-form-reset.
+ */
+function echoToInventoryFieldValues(
+  echo: Record<string, string>,
+  fallback: InventoryFieldValues,
+): InventoryFieldValues {
+  const s = (k: string): string | null => {
+    const v = echo[k]
+    return v == null || v === '' ? null : v
+  }
+  return {
+    ...fallback,
+    sku: s('sku') ?? fallback.sku,
+    description: echo.description ?? fallback.description,
+    category: ((echo.category || fallback.category) as InventoryCategory),
+    brand: s('brand'),
+    model: s('model'),
+    serial_number: s('serial_number'),
+    metal: (s('metal') as MetalType | null) ?? null,
+    karat: s('karat'),
+    weight_grams: s('weight_grams'),
+    weight_dwt: s('weight_dwt'),
+    cost_basis: echo.cost_basis ?? fallback.cost_basis,
+    list_price: s('list_price'),
+    sale_price: s('sale_price'),
+    source: ((echo.source || fallback.source) as InventorySource),
+    source_vendor: s('source_vendor'),
+    acquired_at:
+      echo.acquired_at && echo.acquired_at.trim() !== ''
+        ? echo.acquired_at
+        : fallback.acquired_at,
+    acquired_cost: s('acquired_cost'),
+    hold_until: s('hold_until'),
+    location: ((echo.location || fallback.location) as InventoryLocation),
+    status: ((echo.status || fallback.status) as InventoryStatus),
+    notes: s('notes'),
+    staff_memo: s('staff_memo'),
+    tags:
+      typeof echo.tags === 'string' && echo.tags.trim() !== ''
+        ? echo.tags.split(',').map((t) => t.trim()).filter(Boolean)
+        : [],
+  }
+}
+
 export default function InventoryDetail({
   item,
   photos,
@@ -149,7 +196,7 @@ export default function InventoryDetail({
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 
-  const initial: InventoryFieldValues = {
+  const recordInitial: InventoryFieldValues = {
     sku: item.sku,
     description: item.description,
     category: item.category,
@@ -174,6 +221,20 @@ export default function InventoryDetail({
     staff_memo: item.staff_memo,
     tags: item.tags ?? [],
   }
+
+  // The form uses uncontrolled defaultValue inputs. React 19 auto-resets
+  // <form action={fn}> after submission, so on a validation error we need
+  // to bump a key + repopulate from the echoed FormData so the operator's
+  // edits aren't lost.
+  const [initial, setInitial] = useState<InventoryFieldValues>(recordInitial)
+  const [formGen, setFormGen] = useState(0)
+
+  useEffect(() => {
+    if (state.values) {
+      setInitial((cur) => echoToInventoryFieldValues(state.values!, cur))
+      setFormGen((g) => g + 1)
+    }
+  }, [state])
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -200,6 +261,10 @@ export default function InventoryDetail({
         <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
           {state.error}
         </div>
+      ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
+        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          {t.common.fixErrorsBelow}
+        </div>
       ) : null}
       {state.ok ? (
         <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
@@ -215,6 +280,7 @@ export default function InventoryDetail({
           value={item.sold_at ?? ''}
         />
         <InventoryFormFields
+          key={formGen}
           initial={initial}
           fieldError={fieldError}
           isEdit

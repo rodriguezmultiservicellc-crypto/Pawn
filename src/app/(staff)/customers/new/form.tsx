@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import {
@@ -10,10 +10,69 @@ import {
 } from '@/components/customers/CustomerFormFields'
 import DlScanner from '@/components/customers/DlScanner'
 import { parseHeightInches, type DLInfo } from '@/lib/dl-parser'
+import type { CommPreference, IdDocumentType, Language } from '@/types/database-aliases'
 import {
   createCustomerAction,
   type CreateCustomerState,
 } from './actions'
+
+/**
+ * Map a flat string-only echo from a server-action error response back
+ * into CustomerFieldValues. The action echoes whatever the user typed
+ * (raw FormData strings) so we can repopulate uncontrolled inputs after
+ * React 19's auto-form-reset.
+ */
+function echoToFieldValues(
+  echo: Record<string, string>,
+  fallback: CustomerFieldValues,
+): CustomerFieldValues {
+  const s = (k: string): string | null => {
+    const v = echo[k]
+    return v == null || v === '' ? null : v
+  }
+  const num = (k: string): number | null => {
+    const v = echo[k]
+    if (v == null || v === '') return null
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  return {
+    ...fallback,
+    first_name: echo.first_name ?? '',
+    last_name: echo.last_name ?? '',
+    middle_name: s('middle_name'),
+    date_of_birth: s('date_of_birth'),
+    phone: s('phone'),
+    phone_alt: s('phone_alt'),
+    email: s('email'),
+    address1: s('address1'),
+    address2: s('address2'),
+    city: s('city'),
+    state: s('state'),
+    zip: s('zip'),
+    country: echo.country || 'US',
+    id_type: (s('id_type') as IdDocumentType | null) ?? null,
+    id_number: s('id_number'),
+    id_state: s('id_state'),
+    id_country: echo.id_country || 'US',
+    id_expiry: s('id_expiry'),
+    comm_preference: (echo.comm_preference || 'sms') as CommPreference,
+    language: (echo.language || 'en') as Language,
+    marketing_opt_in: echo.marketing_opt_in === 'on',
+    height_inches: num('height_inches'),
+    weight_lbs: num('weight_lbs'),
+    sex: s('sex'),
+    hair_color: s('hair_color'),
+    eye_color: s('eye_color'),
+    identifying_marks: s('identifying_marks'),
+    place_of_employment: s('place_of_employment'),
+    notes: s('notes'),
+    tags:
+      typeof echo.tags === 'string' && echo.tags.trim() !== ''
+        ? echo.tags.split(',').map((t) => t.trim()).filter(Boolean)
+        : [],
+  }
+}
 
 /**
  * Map a parsed AAMVA payload into our customer field shape. The PDF417
@@ -62,13 +121,16 @@ export default function NewCustomerForm({
     FormData
   >(createCustomerAction, {})
 
-  // Defaults reload via key-bump when a scan completes; CustomerFormFields
-  // uses uncontrolled defaultValue inputs, so a remount is the simplest way
-  // to push the parsed values into the DOM.
+  // Defaults reload via key-bump when a scan completes OR when the
+  // server action returns an error — CustomerFormFields uses uncontrolled
+  // defaultValue inputs, so a remount is the simplest way to push new
+  // values into the DOM. (React 19 auto-resets <form action={fn}> after
+  // submission, which would otherwise wipe the user's typed values on a
+  // validation error.)
   const [initial, setInitial] = useState<CustomerFieldValues>(() =>
     emptyCustomer(),
   )
-  const [scanCount, setScanCount] = useState(0)
+  const [formGen, setFormGen] = useState(0)
   const [autoFilledFlash, setAutoFilledFlash] = useState(false)
   // Raw AAMVA payload from the most recent scan. Carried in a hidden field
   // so a future schema upgrade (customers.dl_raw_payload TEXT) can capture
@@ -76,10 +138,20 @@ export default function NewCustomerForm({
   // now — wire it in when the column lands.
   const [rawPayload, setRawPayload] = useState('')
 
+  // On each new server-action response carrying echoed values,
+  // repopulate `initial` and bump the key so CustomerFormFields
+  // remounts with the echoed values as new defaults.
+  useEffect(() => {
+    if (state.values) {
+      setInitial((cur) => echoToFieldValues(state.values!, cur))
+      setFormGen((g) => g + 1)
+    }
+  }, [state])
+
   function handleScanResult(info: DLInfo, raw: string) {
     setInitial((cur) => mergeScanIntoCustomer(cur, info))
     setRawPayload(raw)
-    setScanCount((c) => c + 1)
+    setFormGen((g) => g + 1)
     setAutoFilledFlash(true)
   }
 
@@ -118,7 +190,7 @@ export default function NewCustomerForm({
 
       <form action={formAction} className="space-y-6">
         <CustomerFormFields
-          key={scanCount}
+          key={formGen}
           initial={initial}
           fieldError={fieldError}
           hasPawn={hasPawn}

@@ -14,6 +14,262 @@ export type Database = {
   }
   public: {
     Tables: {
+      appraisal_photos: {
+        Row: {
+          appraisal_id: string
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["appraisal_photo_kind"]
+          position: number
+          storage_path: string
+          tenant_id: string
+        }
+        Insert: {
+          appraisal_id: string
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["appraisal_photo_kind"]
+          position?: number
+          storage_path: string
+          tenant_id: string
+        }
+        Update: {
+          appraisal_id?: string
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["appraisal_photo_kind"]
+          position?: number
+          storage_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisal_photos_appraisal_id_fkey"
+            columns: ["appraisal_id"]
+            isOneToOne: false
+            referencedRelation: "appraisals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisal_photos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appraisal_stones: {
+        Row: {
+          appraisal_id: string
+          cert_lab: string | null
+          cert_number: string | null
+          certified: boolean
+          clarity: string | null
+          color: string | null
+          count: number
+          created_at: string
+          cut: string | null
+          deleted_at: string | null
+          est_carat: number | null
+          id: string
+          notes: string | null
+          position: number
+          tenant_id: string
+          type: string | null
+        }
+        Insert: {
+          appraisal_id: string
+          cert_lab?: string | null
+          cert_number?: string | null
+          certified?: boolean
+          clarity?: string | null
+          color?: string | null
+          count?: number
+          created_at?: string
+          cut?: string | null
+          deleted_at?: string | null
+          est_carat?: number | null
+          id?: string
+          notes?: string | null
+          position?: number
+          tenant_id: string
+          type?: string | null
+        }
+        Update: {
+          appraisal_id?: string
+          cert_lab?: string | null
+          cert_number?: string | null
+          certified?: boolean
+          clarity?: string | null
+          color?: string | null
+          count?: number
+          created_at?: string
+          cut?: string | null
+          deleted_at?: string | null
+          est_carat?: number | null
+          id?: string
+          notes?: string | null
+          position?: number
+          tenant_id?: string
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisal_stones_appraisal_id_fkey"
+            columns: ["appraisal_id"]
+            isOneToOne: false
+            referencedRelation: "appraisals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisal_stones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appraisals: {
+        Row: {
+          appraisal_number: string | null
+          appraised_value: number
+          appraiser_signature_storage_path: string | null
+          appraiser_user_id: string
+          comparable_data: Json | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          customer_signature_storage_path: string | null
+          deleted_at: string | null
+          finalized_at: string | null
+          finalized_by: string | null
+          id: string
+          inventory_item_id: string | null
+          is_printed: boolean
+          item_description: string
+          karat: number | null
+          metal_type: Database["public"]["Enums"]["metal_type"] | null
+          notes: string | null
+          printed_at: string | null
+          purpose: Database["public"]["Enums"]["appraisal_purpose"]
+          replacement_value: number | null
+          status: Database["public"]["Enums"]["appraisal_status"]
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          valid_from: string
+          valid_until: string | null
+          valuation_method: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+          weight_grams: number | null
+        }
+        Insert: {
+          appraisal_number?: string | null
+          appraised_value: number
+          appraiser_signature_storage_path?: string | null
+          appraiser_user_id: string
+          comparable_data?: Json | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_signature_storage_path?: string | null
+          deleted_at?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          is_printed?: boolean
+          item_description: string
+          karat?: number | null
+          metal_type?: Database["public"]["Enums"]["metal_type"] | null
+          notes?: string | null
+          printed_at?: string | null
+          purpose: Database["public"]["Enums"]["appraisal_purpose"]
+          replacement_value?: number | null
+          status?: Database["public"]["Enums"]["appraisal_status"]
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from: string
+          valid_until?: string | null
+          valuation_method?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          weight_grams?: number | null
+        }
+        Update: {
+          appraisal_number?: string | null
+          appraised_value?: number
+          appraiser_signature_storage_path?: string | null
+          appraiser_user_id?: string
+          comparable_data?: Json | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_signature_storage_path?: string | null
+          deleted_at?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          is_printed?: boolean
+          item_description?: string
+          karat?: number | null
+          metal_type?: Database["public"]["Enums"]["metal_type"] | null
+          notes?: string | null
+          printed_at?: string | null
+          purpose?: Database["public"]["Enums"]["appraisal_purpose"]
+          replacement_value?: number | null
+          status?: Database["public"]["Enums"]["appraisal_status"]
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string
+          valid_until?: string | null
+          valuation_method?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          weight_grams?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisals_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisals_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appraisals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -384,6 +640,172 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ebay_listing_events: {
+        Row: {
+          created_at: string
+          error_text: string | null
+          http_status: number | null
+          id: string
+          kind: Database["public"]["Enums"]["ebay_listing_event_kind"]
+          listing_id: string | null
+          request_payload: Json | null
+          response_payload: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_text?: string | null
+          http_status?: number | null
+          id?: string
+          kind: Database["public"]["Enums"]["ebay_listing_event_kind"]
+          listing_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          error_text?: string | null
+          http_status?: number | null
+          id?: string
+          kind?: Database["public"]["Enums"]["ebay_listing_event_kind"]
+          listing_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebay_listing_events_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "ebay_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebay_listing_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ebay_listings: {
+        Row: {
+          category_id: string
+          condition_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          deleted_at: string | null
+          description: string
+          ebay_listing_id: string | null
+          ebay_offer_id: string | null
+          ebay_sku: string | null
+          error_text: string | null
+          format: Database["public"]["Enums"]["ebay_listing_format"]
+          id: string
+          inventory_item_id: string
+          last_synced_at: string | null
+          list_price: number
+          marketing_message: string | null
+          photo_urls: Json
+          quantity: number
+          sale_id: string | null
+          sold_at: string | null
+          status: Database["public"]["Enums"]["ebay_listing_status"]
+          tenant_id: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+          view_count: number | null
+          watcher_count: number | null
+        }
+        Insert: {
+          category_id: string
+          condition_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          description: string
+          ebay_listing_id?: string | null
+          ebay_offer_id?: string | null
+          ebay_sku?: string | null
+          error_text?: string | null
+          format?: Database["public"]["Enums"]["ebay_listing_format"]
+          id?: string
+          inventory_item_id: string
+          last_synced_at?: string | null
+          list_price: number
+          marketing_message?: string | null
+          photo_urls?: Json
+          quantity?: number
+          sale_id?: string | null
+          sold_at?: string | null
+          status?: Database["public"]["Enums"]["ebay_listing_status"]
+          tenant_id: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          view_count?: number | null
+          watcher_count?: number | null
+        }
+        Update: {
+          category_id?: string
+          condition_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          description?: string
+          ebay_listing_id?: string | null
+          ebay_offer_id?: string | null
+          ebay_sku?: string | null
+          error_text?: string | null
+          format?: Database["public"]["Enums"]["ebay_listing_format"]
+          id?: string
+          inventory_item_id?: string
+          last_synced_at?: string | null
+          list_price?: number
+          marketing_message?: string | null
+          photo_urls?: Json
+          quantity?: number
+          sale_id?: string | null
+          sold_at?: string | null
+          status?: Database["public"]["Enums"]["ebay_listing_status"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          view_count?: number | null
+          watcher_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebay_listings_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebay_listings_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebay_listings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2320,6 +2742,86 @@ export type Database = {
           },
         ]
       }
+      spot_price_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          metal_type: Database["public"]["Enums"]["metal_type"]
+          multiplier: number
+          purity: Database["public"]["Enums"]["metal_purity"]
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metal_type: Database["public"]["Enums"]["metal_type"]
+          multiplier?: number
+          purity: Database["public"]["Enums"]["metal_purity"]
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metal_type?: Database["public"]["Enums"]["metal_type"]
+          multiplier?: number
+          purity?: Database["public"]["Enums"]["metal_purity"]
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spot_price_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spot_prices: {
+        Row: {
+          created_at: string
+          currency: string
+          fetched_at: string
+          id: string
+          metal_type: Database["public"]["Enums"]["metal_type"]
+          price_per_gram: number
+          price_per_troy_oz: number
+          purity: Database["public"]["Enums"]["metal_purity"]
+          source: string
+          source_request_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          fetched_at: string
+          id?: string
+          metal_type: Database["public"]["Enums"]["metal_type"]
+          price_per_gram: number
+          price_per_troy_oz: number
+          purity: Database["public"]["Enums"]["metal_purity"]
+          source: string
+          source_request_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          fetched_at?: string
+          id?: string
+          metal_type?: Database["public"]["Enums"]["metal_type"]
+          price_per_gram?: number
+          price_per_troy_oz?: number
+          purity?: Database["public"]["Enums"]["metal_purity"]
+          source?: string
+          source_request_id?: string | null
+        }
+        Relationships: []
+      }
       stripe_payment_links: {
         Row: {
           amount: number
@@ -2520,6 +3022,71 @@ export type Database = {
             foreignKeyName: "tenant_counters_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_ebay_credentials: {
+        Row: {
+          access_token: string | null
+          access_token_expires_at: string | null
+          connected_at: string | null
+          created_at: string
+          disconnected_at: string | null
+          ebay_user_id: string | null
+          environment: Database["public"]["Enums"]["ebay_environment"]
+          fulfillment_policy_id: string | null
+          merchant_location_key: string | null
+          payment_policy_id: string | null
+          refresh_token: string | null
+          refresh_token_expires_at: string | null
+          return_policy_id: string | null
+          site_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          access_token_expires_at?: string | null
+          connected_at?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          ebay_user_id?: string | null
+          environment?: Database["public"]["Enums"]["ebay_environment"]
+          fulfillment_policy_id?: string | null
+          merchant_location_key?: string | null
+          payment_policy_id?: string | null
+          refresh_token?: string | null
+          refresh_token_expires_at?: string | null
+          return_policy_id?: string | null
+          site_id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          access_token_expires_at?: string | null
+          connected_at?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          ebay_user_id?: string | null
+          environment?: Database["public"]["Enums"]["ebay_environment"]
+          fulfillment_policy_id?: string | null
+          merchant_location_key?: string | null
+          payment_policy_id?: string | null
+          refresh_token?: string | null
+          refresh_token_expires_at?: string | null
+          return_policy_id?: string | null
+          site_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_ebay_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -2819,6 +3386,21 @@ export type Database = {
       }
     }
     Enums: {
+      appraisal_photo_kind:
+        | "front"
+        | "back"
+        | "detail"
+        | "serial"
+        | "cert"
+        | "reference"
+      appraisal_purpose:
+        | "insurance"
+        | "estate"
+        | "sale"
+        | "pawn_intake"
+        | "collateral_review"
+        | "customer_request"
+      appraisal_status: "draft" | "finalized" | "voided"
       billing_cycle: "monthly" | "yearly"
       card_present_status:
         | "not_used"
@@ -2828,6 +3410,22 @@ export type Database = {
         | "refunded"
       comm_preference: "email" | "sms" | "whatsapp" | "none"
       customer_doc_kind: "id_scan" | "signature"
+      ebay_environment: "sandbox" | "production"
+      ebay_listing_event_kind:
+        | "create_offer"
+        | "publish"
+        | "update"
+        | "end"
+        | "sync"
+        | "webhook_received"
+      ebay_listing_format: "FIXED_PRICE" | "AUCTION"
+      ebay_listing_status:
+        | "draft"
+        | "submitting"
+        | "active"
+        | "ended"
+        | "sold"
+        | "error"
       id_document_type:
         | "drivers_license"
         | "state_id"
@@ -2901,6 +3499,16 @@ export type Database = {
         | "layaway_completed"
         | "custom"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
+      metal_purity:
+        | "pure_24k"
+        | "22k"
+        | "18k"
+        | "14k"
+        | "10k"
+        | "sterling_925"
+        | "platinum_950"
+        | "palladium_950"
+        | "fine"
       metal_type:
         | "gold"
         | "silver"
@@ -3110,6 +3718,23 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      appraisal_photo_kind: [
+        "front",
+        "back",
+        "detail",
+        "serial",
+        "cert",
+        "reference",
+      ],
+      appraisal_purpose: [
+        "insurance",
+        "estate",
+        "sale",
+        "pawn_intake",
+        "collateral_review",
+        "customer_request",
+      ],
+      appraisal_status: ["draft", "finalized", "voided"],
       billing_cycle: ["monthly", "yearly"],
       card_present_status: [
         "not_used",
@@ -3120,6 +3745,24 @@ export const Constants = {
       ],
       comm_preference: ["email", "sms", "whatsapp", "none"],
       customer_doc_kind: ["id_scan", "signature"],
+      ebay_environment: ["sandbox", "production"],
+      ebay_listing_event_kind: [
+        "create_offer",
+        "publish",
+        "update",
+        "end",
+        "sync",
+        "webhook_received",
+      ],
+      ebay_listing_format: ["FIXED_PRICE", "AUCTION"],
+      ebay_listing_status: [
+        "draft",
+        "submitting",
+        "active",
+        "ended",
+        "sold",
+        "error",
+      ],
       id_document_type: [
         "drivers_license",
         "state_id",
@@ -3201,6 +3844,17 @@ export const Constants = {
         "custom",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
+      metal_purity: [
+        "pure_24k",
+        "22k",
+        "18k",
+        "14k",
+        "10k",
+        "sterling_925",
+        "platinum_950",
+        "palladium_950",
+        "fine",
+      ],
       metal_type: [
         "gold",
         "silver",

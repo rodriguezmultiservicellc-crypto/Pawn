@@ -133,7 +133,12 @@ export const inventoryItemCreateSchema = z.object({
   model: optionalTrimmedString,
   serial_number: optionalTrimmedString,
 
-  metal: metalTypeSchema.optional().nullable(),
+  metal: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      metalTypeSchema.nullable().optional(),
+    )
+    .transform((v) => v ?? null),
   karat: optionalTrimmedString,
   weight_grams: optionalDecimal,
   weight_dwt: optionalDecimal,

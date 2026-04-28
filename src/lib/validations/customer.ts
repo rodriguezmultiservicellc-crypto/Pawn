@@ -93,7 +93,12 @@ export const customerCreateSchema = z.object({
       z.string().trim().min(2).max(2).default('US'),
     ),
 
-  id_type: idDocumentTypeSchema.optional().nullable(),
+  id_type: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      idDocumentTypeSchema.nullable().optional(),
+    )
+    .transform((v) => v ?? null),
   id_number: optionalTrimmedString,
   id_state: optionalTrimmedString,
   id_country: z
@@ -174,7 +179,12 @@ export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024 // 10 MB
 export const customerDocumentUploadSchema = z.object({
   customer_id: z.string().uuid(),
   kind: z.enum(['id_scan', 'signature']),
-  id_type: idDocumentTypeSchema.optional().nullable(),
+  id_type: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      idDocumentTypeSchema.nullable().optional(),
+    )
+    .transform((v) => v ?? null),
   id_number: optionalTrimmedString,
   id_state: optionalTrimmedString,
   id_expiry: optionalDate,

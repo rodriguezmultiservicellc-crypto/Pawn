@@ -244,6 +244,7 @@ export function CustomerFormFields({
             label={t.customers.idType}
             name="id_type"
             defaultValue={initial.id_type ?? ''}
+            error={fieldError?.('id_type')}
             options={[
               { value: '', label: '—' },
               {
@@ -368,6 +369,7 @@ export function CustomerFormFields({
             label={t.customers.commPreference}
             name="comm_preference"
             defaultValue={initial.comm_preference}
+            error={fieldError?.('comm_preference')}
             options={[
               { value: 'sms', label: t.customers.commPrefSms },
               { value: 'email', label: t.customers.commPrefEmail },
@@ -379,6 +381,7 @@ export function CustomerFormFields({
             label={t.customers.language}
             name="language"
             defaultValue={initial.language}
+            error={fieldError?.('language')}
             options={[
               { value: 'en', label: t.lang.en },
               { value: 'es', label: t.lang.es },
@@ -517,12 +520,14 @@ function Select({
   name,
   defaultValue,
   options,
+  error,
   className,
 }: {
   label: string
   name: string
   defaultValue?: string
   options: ReadonlyArray<{ value: string; label: string }>
+  error?: string
   className?: string
 }) {
   return (
@@ -531,7 +536,11 @@ function Select({
       <select
         name={name}
         defaultValue={defaultValue}
-        className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className={`block w-full rounded-md border bg-canvas px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+          error
+            ? 'border-error focus:border-error'
+            : 'border-hairline focus:border-ink'
+        }`}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -539,6 +548,7 @@ function Select({
           </option>
         ))}
       </select>
+      {error ? <span className="text-xs text-error">{error}</span> : null}
     </label>
   )
 }

@@ -110,6 +110,7 @@ export function InventoryFormFields({
             label={t.inventory.category}
             name="category"
             defaultValue={v.category}
+            error={fieldError?.('category')}
             options={[
               { value: 'ring', label: t.inventory.catRing },
               { value: 'necklace', label: t.inventory.catNecklace },
@@ -160,6 +161,7 @@ export function InventoryFormFields({
             label={t.inventory.metal}
             name="metal"
             defaultValue={v.metal ?? ''}
+            error={fieldError?.('metal')}
             options={[
               { value: '', label: '—' },
               { value: 'gold', label: t.inventory.metalGold },
@@ -237,6 +239,7 @@ export function InventoryFormFields({
             label={t.inventory.source}
             name="source"
             defaultValue={v.source}
+            error={fieldError?.('source')}
             options={[
               { value: 'bought', label: t.inventory.sourceBought },
               { value: 'pawn_forfeit', label: t.inventory.sourcePawnForfeit },
@@ -288,6 +291,7 @@ export function InventoryFormFields({
             label={t.inventory.location}
             name="location"
             defaultValue={v.location}
+            error={fieldError?.('location')}
             options={[
               { value: 'case', label: t.inventory.locCase },
               { value: 'safe', label: t.inventory.locSafe },
@@ -302,6 +306,7 @@ export function InventoryFormFields({
             label={t.inventory.status}
             name="status"
             defaultValue={v.status}
+            error={fieldError?.('status')}
             options={[
               { value: 'available', label: t.inventory.statusAvailable },
               { value: 'held', label: t.inventory.statusHeld },
@@ -445,12 +450,14 @@ function Select({
   name,
   defaultValue,
   options,
+  error,
   className,
 }: {
   label: string
   name: string
   defaultValue?: string
   options: ReadonlyArray<{ value: string; label: string }>
+  error?: string
   className?: string
 }) {
   return (
@@ -459,7 +466,11 @@ function Select({
       <select
         name={name}
         defaultValue={defaultValue}
-        className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className={`block w-full rounded-md border bg-canvas px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+          error
+            ? 'border-error focus:border-error'
+            : 'border-hairline focus:border-ink'
+        }`}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -467,6 +478,7 @@ function Select({
           </option>
         ))}
       </select>
+      {error ? <span className="text-xs text-error">{error}</span> : null}
     </label>
   )
 }

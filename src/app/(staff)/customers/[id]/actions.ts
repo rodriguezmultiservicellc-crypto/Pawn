@@ -24,6 +24,12 @@ export type UpdateCustomerState = {
   error?: string
   fieldErrors?: Record<string, string>
   ok?: boolean
+  /**
+   * Echo of the most recent submission. Repopulates the form on
+   * validation/insert error so React 19's auto-form-reset doesn't wipe
+   * the operator's typed values. Only set when an error is returned.
+   */
+  values?: Record<string, string>
 }
 
 /**
@@ -58,8 +64,7 @@ export async function updateCustomerAction(
 
   const { tenantId, supabase, userId } = await resolveCustomerTenant(id)
 
-  const raw: Record<string, FormDataEntryValue | null> = {}
-  for (const key of [
+  const FIELDS = [
     'first_name',
     'last_name',
     'middle_name',
@@ -90,8 +95,14 @@ export async function updateCustomerAction(
     'place_of_employment',
     'notes',
     'tags',
-  ]) {
-    raw[key] = formData.get(key)
+  ] as const
+
+  const raw: Record<string, FormDataEntryValue | null> = {}
+  const echo: Record<string, string> = {}
+  for (const key of FIELDS) {
+    const v = formData.get(key)
+    raw[key] = v
+    echo[key] = typeof v === 'string' ? v : ''
   }
 
   // Banned-list fields are NOT in the update schema — they're managed
@@ -104,7 +115,7 @@ export async function updateCustomerAction(
       const path = issue.path.join('.')
       if (path) fieldErrors[path] = issue.message
     }
-    return { fieldErrors }
+    return { fieldErrors, values: echo }
   }
 
   const v = parsed.data
@@ -147,7 +158,7 @@ export async function updateCustomerAction(
     .eq('id', id)
     .eq('tenant_id', tenantId)
 
-  if (error) return { error: error.message }
+  if (error) return { error: error.message, values: echo }
 
   await logAudit({
     tenantId,

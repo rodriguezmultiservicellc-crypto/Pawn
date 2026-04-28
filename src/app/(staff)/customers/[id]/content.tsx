@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useRef, useState, useTransition } from 'react'
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -44,6 +44,63 @@ import {
   LayawayStatusBadge,
   SaleStatusBadge,
 } from '@/components/pos/Badges'
+
+/**
+ * Map a flat string-only echo from the server-action error response back
+ * into CustomerFieldValues so uncontrolled inputs can be repopulated
+ * after React 19's auto-form-reset.
+ */
+function echoToCustomerFieldValues(
+  echo: Record<string, string>,
+  fallback: CustomerFieldValues,
+): CustomerFieldValues {
+  const s = (k: string): string | null => {
+    const v = echo[k]
+    return v == null || v === '' ? null : v
+  }
+  const num = (k: string): number | null => {
+    const v = echo[k]
+    if (v == null || v === '') return null
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  return {
+    ...fallback,
+    first_name: echo.first_name ?? '',
+    last_name: echo.last_name ?? '',
+    middle_name: s('middle_name'),
+    date_of_birth: s('date_of_birth'),
+    phone: s('phone'),
+    phone_alt: s('phone_alt'),
+    email: s('email'),
+    address1: s('address1'),
+    address2: s('address2'),
+    city: s('city'),
+    state: s('state'),
+    zip: s('zip'),
+    country: echo.country || 'US',
+    id_type: (s('id_type') as IdDocumentType | null) ?? null,
+    id_number: s('id_number'),
+    id_state: s('id_state'),
+    id_country: echo.id_country || 'US',
+    id_expiry: s('id_expiry'),
+    comm_preference: (echo.comm_preference || 'sms') as CommPreference,
+    language: (echo.language || 'en') as Language,
+    marketing_opt_in: echo.marketing_opt_in === 'on',
+    height_inches: num('height_inches'),
+    weight_lbs: num('weight_lbs'),
+    sex: s('sex'),
+    hair_color: s('hair_color'),
+    eye_color: s('eye_color'),
+    identifying_marks: s('identifying_marks'),
+    place_of_employment: s('place_of_employment'),
+    notes: s('notes'),
+    tags:
+      typeof echo.tags === 'string' && echo.tags.trim() !== ''
+        ? echo.tags.split(',').map((t) => t.trim()).filter(Boolean)
+        : [],
+  }
+}
 
 export type CustomerLoanRow = {
   id: string
@@ -171,7 +228,7 @@ export default function CustomerDetail({
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 
-  const initial: CustomerFieldValues = {
+  const recordInitial: CustomerFieldValues = {
     first_name: customer.first_name,
     last_name: customer.last_name,
     middle_name: customer.middle_name,
@@ -203,6 +260,20 @@ export default function CustomerDetail({
     notes: customer.notes,
     tags: customer.tags ?? [],
   }
+
+  // The form uses uncontrolled defaultValue inputs. React 19 auto-resets
+  // <form action={fn}> after submission, so on a validation error we need
+  // to bump a key + repopulate from the echoed FormData so the operator's
+  // edits aren't lost.
+  const [initial, setInitial] = useState<CustomerFieldValues>(recordInitial)
+  const [formGen, setFormGen] = useState(0)
+
+  useEffect(() => {
+    if (state.values) {
+      setInitial((cur) => echoToCustomerFieldValues(state.values!, cur))
+      setFormGen((g) => g + 1)
+    }
+  }, [state])
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -248,6 +319,10 @@ export default function CustomerDetail({
         <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
           {state.error}
         </div>
+      ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
+        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          {t.common.fixErrorsBelow}
+        </div>
       ) : null}
       {state.ok ? (
         <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
@@ -258,6 +333,7 @@ export default function CustomerDetail({
       <form action={formAction} className="space-y-6">
         <input type="hidden" name="id" value={customer.id} />
         <CustomerFormFields
+          key={formGen}
           initial={initial}
           fieldError={fieldError}
           hasPawn={hasPawn}

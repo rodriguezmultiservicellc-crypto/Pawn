@@ -22,6 +22,12 @@ export type UpdateInventoryItemState = {
   error?: string
   fieldErrors?: Record<string, string>
   ok?: boolean
+  /**
+   * Echo of the most recent submission. Repopulates the form on
+   * validation/insert error so React 19's auto-form-reset doesn't wipe
+   * the operator's typed values. Only set when an error is returned.
+   */
+  values?: Record<string, string>
 }
 
 async function resolveItemTenant(itemId: string) {
@@ -50,8 +56,7 @@ export async function updateInventoryItemAction(
 
   const { tenantId, supabase, userId } = await resolveItemTenant(id)
 
-  const raw: Record<string, FormDataEntryValue | null> = { id }
-  for (const key of [
+  const FIELDS = [
     'sku',
     'description',
     'category',
@@ -75,8 +80,14 @@ export async function updateInventoryItemAction(
     'notes',
     'staff_memo',
     'tags',
-  ]) {
-    raw[key] = formData.get(key)
+  ] as const
+
+  const raw: Record<string, FormDataEntryValue | null> = { id }
+  const echo: Record<string, string> = {}
+  for (const key of FIELDS) {
+    const v = formData.get(key)
+    raw[key] = v
+    echo[key] = typeof v === 'string' ? v : ''
   }
 
   const parsed = inventoryItemUpdateSchema.safeParse(raw)
@@ -86,7 +97,7 @@ export async function updateInventoryItemAction(
       const path = issue.path.join('.')
       if (path) fieldErrors[path] = issue.message
     }
-    return { fieldErrors }
+    return { fieldErrors, values: echo }
   }
 
   const v = parsed.data
@@ -103,7 +114,7 @@ export async function updateInventoryItemAction(
     .is('deleted_at', null)
     .maybeSingle()
   if (lockCheck?.status === 'transferred') {
-    return { error: 'item_locked_in_transfer' }
+    return { error: 'item_locked_in_transfer', values: echo }
   }
 
   const { error } = await supabase
@@ -143,7 +154,7 @@ export async function updateInventoryItemAction(
     .eq('id', id)
     .eq('tenant_id', tenantId)
 
-  if (error) return { error: error.message }
+  if (error) return { error: error.message, values: echo }
 
   await logAudit({
     tenantId,
