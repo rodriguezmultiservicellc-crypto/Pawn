@@ -1,8 +1,13 @@
 'use client'
 
-import { useActionState, useMemo, useState } from 'react'
+import { useActionState, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowClockwise, ArrowLeft } from '@phosphor-icons/react'
+import {
+  ArrowClockwise,
+  ArrowLeft,
+  Eye,
+  EyeSlash,
+} from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { formatMoney, shortDateTime } from '@/lib/format/money'
 import {
@@ -12,6 +17,24 @@ import {
   type SaveOverrideState,
 } from './actions'
 import type { MetalPurity, MetalType } from '@/types/database-aliases'
+
+const HIDDEN_KEY = 'pawn.spot-prices.hidden'
+
+function cardKey(metal: MetalType, purity: MetalPurity): string {
+  return `${metal}::${purity}`
+}
+
+function readPersistedHidden(): string[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = window.localStorage.getItem(HIDDEN_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as string[]) : []
+  } catch {
+    return []
+  }
+}
 
 export type SpotPriceCard = {
   metal_type: MetalType
@@ -52,6 +75,46 @@ export default function SpotPricesContent({
 }) {
   const { t } = useI18n()
 
+  // Hidden card list, persisted in localStorage so each operator can
+  // tailor what they want to see without it being stored server-side.
+  const [hidden, setHidden] = useState<Set<string>>(
+    () => new Set(readPersistedHidden()),
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(HIDDEN_KEY, JSON.stringify(Array.from(hidden)))
+    } catch {
+      // ignore — quota / private mode etc.
+    }
+  }, [hidden])
+
+  const toggleHidden = (key: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const showAll = () => setHidden(new Set())
+
+  // Featured "headline" — 24K pure gold per oz. Always rendered if we have
+  // a row for it, regardless of the hidden set (it's the anchor price).
+  const headline =
+    cards.find(
+      (c) => c.metal_type === 'gold' && c.purity === 'pure_24k',
+    ) ?? null
+
+  const visibleCards = cards.filter(
+    (c) => !hidden.has(cardKey(c.metal_type, c.purity)),
+  )
+  const hiddenCards = cards.filter((c) =>
+    hidden.has(cardKey(c.metal_type, c.purity)),
+  )
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex items-center justify-between">
@@ -70,9 +133,128 @@ export default function SpotPricesContent({
         <p className="mt-1 text-sm text-ash">{t.spotPrices.subtitle}</p>
       </div>
 
-      <SpotGrid cards={cards} history={history} />
+      {headline ? <HeadlinePanel card={headline} /> : null}
+
+      <SpotGrid
+        cards={visibleCards}
+        history={history}
+        hidden={hidden}
+        onToggleHidden={toggleHidden}
+      />
+
+      {hiddenCards.length > 0 ? (
+        <HiddenPanel
+          cards={hiddenCards}
+          onUnhide={toggleHidden}
+          onShowAll={showAll}
+        />
+      ) : null}
 
       <OverridesPanel overrides={overrides} />
+    </div>
+  )
+}
+
+/**
+ * Featured 24K-gold-per-oz panel rendered above the per-purity grid.
+ * The "anchor price" most operators glance at first thing in the
+ * morning to decide pawn buy rates. Always visible — not part of the
+ * hidden-cards toggle.
+ */
+function HeadlinePanel({ card }: { card: SpotPriceCard }) {
+  const { t } = useI18n()
+  const perOz = card.price_per_troy_oz ? Number(card.price_per_troy_oz) : null
+  const perGram = card.price_per_gram ? Number(card.price_per_gram) : null
+  const multiplier = Number(card.multiplier)
+  const overrideActive = isFinite(multiplier) && multiplier !== 1
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-hairline bg-gradient-to-br from-canvas to-cloud/40 p-6">
+      <div className="flex flex-col items-center text-center">
+        <div className="text-xs font-bold uppercase tracking-widest text-ash">
+          {t.spotPrices.metals.gold ?? 'Gold'}
+          {' · '}
+          {t.spotPrices.purities.pure_24k ?? '24K'}
+        </div>
+        <div className="mt-2 font-mono text-5xl font-bold tabular-nums text-ink md:text-6xl">
+          {perOz == null ? '—' : formatMoney(perOz)}
+        </div>
+        <div className="mt-1 text-sm text-ash">
+          {t.spotPrices.perOz}
+          {perGram != null ? (
+            <span className="ml-3 font-mono text-xs">
+              ({formatMoney(perGram)} {t.spotPrices.perGram})
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-2 flex items-center gap-2 text-[11px] text-ash">
+          {card.fetched_at ? (
+            <span>
+              {t.spotPrices.lastFetched}: {shortDateTime(card.fetched_at)}
+            </span>
+          ) : (
+            <span>{t.spotPrices.neverFetched}</span>
+          )}
+          {card.source ? (
+            <span className="font-mono text-ash/80">({card.source})</span>
+          ) : null}
+          {overrideActive ? (
+            <span className="rounded-md bg-warning/10 px-2 py-0.5 font-mono text-warning">
+              ×{multiplier.toFixed(4)} override
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HiddenPanel({
+  cards,
+  onUnhide,
+  onShowAll,
+}: {
+  cards: SpotPriceCard[]
+  onUnhide: (key: string) => void
+  onShowAll: () => void
+}) {
+  const { t } = useI18n()
+  return (
+    <div className="rounded-lg border border-dashed border-hairline bg-canvas/60 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs text-ash">
+          {cards.length} hidden{' '}
+          <span className="text-ash/60">
+            (click to show)
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onShowAll}
+          className="text-xs font-medium text-rausch hover:underline"
+        >
+          Show all
+        </button>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {cards.map((c) => {
+          const key = cardKey(c.metal_type, c.purity)
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onUnhide(key)}
+              className="inline-flex items-center gap-1 rounded-full border border-hairline bg-canvas px-2 py-0.5 text-[11px] text-ink hover:bg-cloud"
+              title="Show this card"
+            >
+              <Eye size={10} weight="bold" className="text-ash" />
+              {t.spotPrices.metals[c.metal_type] ?? c.metal_type}
+              {' · '}
+              {t.spotPrices.purities[c.purity] ?? c.purity}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -109,9 +291,13 @@ function RefreshNowButton() {
 function SpotGrid({
   cards,
   history,
+  hidden,
+  onToggleHidden,
 }: {
   cards: SpotPriceCard[]
   history: SpotPriceHistoryPoint[]
+  hidden: Set<string>
+  onToggleHidden: (key: string) => void
 }) {
   const { t } = useI18n()
   return (
@@ -121,6 +307,10 @@ function SpotGrid({
           key={`${card.metal_type}::${card.purity}`}
           card={card}
           history={history}
+          isHidden={hidden.has(cardKey(card.metal_type, card.purity))}
+          onToggleHidden={() =>
+            onToggleHidden(cardKey(card.metal_type, card.purity))
+          }
         />
       ))}
       {cards.length === 0 ? (
@@ -135,9 +325,13 @@ function SpotGrid({
 function SpotCard({
   card,
   history,
+  isHidden,
+  onToggleHidden,
 }: {
   card: SpotPriceCard
   history: SpotPriceHistoryPoint[]
+  isHidden: boolean
+  onToggleHidden: () => void
 }) {
   const { t } = useI18n()
   const points = useMemo(
@@ -152,8 +346,22 @@ function SpotCard({
   const perOz = card.price_per_troy_oz ? Number(card.price_per_troy_oz) : null
 
   return (
-    <div className="rounded-lg border border-hairline bg-canvas p-4">
-      <div className="flex items-baseline justify-between">
+    <div className="group relative rounded-lg border border-hairline bg-canvas p-4">
+      <button
+        type="button"
+        onClick={onToggleHidden}
+        className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-ash/50 opacity-0 transition hover:bg-cloud hover:text-ink focus:opacity-100 group-hover:opacity-100"
+        title={isHidden ? 'Show this card' : 'Hide this card'}
+        aria-label={isHidden ? 'Show this card' : 'Hide this card'}
+      >
+        {isHidden ? (
+          <Eye size={12} weight="bold" />
+        ) : (
+          <EyeSlash size={12} weight="bold" />
+        )}
+      </button>
+
+      <div className="flex items-baseline justify-between pr-6">
         <div>
           <div className="text-xs uppercase tracking-wide text-ash">
             {t.spotPrices.metals[card.metal_type] ?? card.metal_type}
