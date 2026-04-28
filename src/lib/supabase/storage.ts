@@ -28,6 +28,8 @@ import { createAdminClient } from './admin'
 export const CUSTOMER_DOCUMENTS_BUCKET = 'customer-documents' as const
 export const INVENTORY_PHOTOS_BUCKET = 'inventory-photos' as const
 export const REPAIR_PHOTOS_BUCKET = 'repair-photos' as const
+export const APPRAISAL_PHOTOS_BUCKET = 'appraisal-photos' as const
+export const APPRAISAL_SIGNATURES_BUCKET = 'appraisal-signatures' as const
 
 const DEFAULT_SIGNED_URL_TTL_SECONDS = 3600
 
@@ -138,6 +140,35 @@ export function repairPickupSignaturePath(args: {
 }
 
 /**
+ * Build a storage path for an appraisal photo. tenant_id MUST be folder[0]
+ * for RLS keying.
+ */
+export function appraisalPhotoPath(args: {
+  tenantId: string
+  appraisalId: string
+  kind: 'front' | 'back' | 'detail' | 'serial' | 'cert' | 'reference'
+  mimeType?: string | null
+  filename?: string
+}): string {
+  const ext = pickExtension(args.mimeType, args.filename)
+  return `${args.tenantId}/${args.appraisalId}/${args.kind}/${newUuid()}.${ext}`
+}
+
+/**
+ * Build a storage path for an appraisal signature. role ∈ {appraiser, customer}.
+ */
+export function appraisalSignaturePath(args: {
+  tenantId: string
+  appraisalId: string
+  role: 'appraiser' | 'customer'
+  mimeType?: string | null
+  filename?: string
+}): string {
+  const ext = pickExtension(args.mimeType, args.filename)
+  return `${args.tenantId}/${args.appraisalId}/${args.role}/${newUuid()}.${ext}`
+}
+
+/**
  * Upload a file/blob to a private bucket. Uses the admin client so we
  * don't have to set up cookie-bound storage policies on the user-scoped
  * client every time. The path's tenant segment is enforced by callers.
@@ -147,6 +178,8 @@ export async function uploadToBucket(args: {
     | typeof CUSTOMER_DOCUMENTS_BUCKET
     | typeof INVENTORY_PHOTOS_BUCKET
     | typeof REPAIR_PHOTOS_BUCKET
+    | typeof APPRAISAL_PHOTOS_BUCKET
+    | typeof APPRAISAL_SIGNATURES_BUCKET
   path: string
   body: Blob | ArrayBuffer | Uint8Array
   contentType?: string
@@ -172,6 +205,8 @@ export async function getSignedUrl(args: {
     | typeof CUSTOMER_DOCUMENTS_BUCKET
     | typeof INVENTORY_PHOTOS_BUCKET
     | typeof REPAIR_PHOTOS_BUCKET
+    | typeof APPRAISAL_PHOTOS_BUCKET
+    | typeof APPRAISAL_SIGNATURES_BUCKET
   path: string
   ttlSeconds?: number
 }): Promise<string | null> {
@@ -194,6 +229,8 @@ export async function deleteFromBucket(args: {
     | typeof CUSTOMER_DOCUMENTS_BUCKET
     | typeof INVENTORY_PHOTOS_BUCKET
     | typeof REPAIR_PHOTOS_BUCKET
+    | typeof APPRAISAL_PHOTOS_BUCKET
+    | typeof APPRAISAL_SIGNATURES_BUCKET
   path: string
 }): Promise<{ ok: boolean; error?: string }> {
   const admin = createAdminClient()

@@ -17,6 +17,7 @@ import {
   ClockCounterClockwise,
   ArrowsLeftRight,
   ChatCircleText,
+  Certificate,
   CaretDoubleLeft,
   CaretDoubleRight,
 } from '@phosphor-icons/react'
@@ -147,6 +148,11 @@ export function Sidebar({
       label: t.nav.pos,
       icon: <CashRegister size={18} weight="regular" />,
       visible: modules.has_retail,
+    },
+    {
+      href: '/appraisals',
+      label: t.nav.appraisals,
+      icon: <Certificate size={18} weight="regular" />,
     },
     { href: '/reports', label: t.nav.reports, icon: <ChartBar size={18} weight="regular" /> },
     {

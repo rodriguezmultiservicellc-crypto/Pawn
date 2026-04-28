@@ -79,6 +79,16 @@ export type AuditAction =
   | 'card_present_succeeded'
   // Reports / compliance
   | 'export'
+  // Appraisal-specific
+  | 'appraisal_create'
+  | 'appraisal_update'
+  | 'appraisal_finalize'
+  | 'appraisal_void'
+  | 'appraisal_print'
+  | 'appraisal_photo_upload'
+  | 'appraisal_photo_delete'
+  | 'appraisal_stone_upsert'
+  | 'appraisal_stone_delete'
 
 export async function logAudit(args: {
   tenantId: string
