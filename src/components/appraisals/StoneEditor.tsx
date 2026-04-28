@@ -1,7 +1,8 @@
 'use client'
 
-import { Trash } from '@phosphor-icons/react'
+import { ArrowSquareOut, Trash } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { buildCertVerifyUrl } from '@/lib/appraisals/verify-links'
 
 export type StoneRow = {
   uid: string
@@ -131,12 +132,12 @@ export default function StoneEditor({
           value={row.cert_lab}
           onChange={(v) => onChange({ cert_lab: v })}
         />
-        <Input
-          name={`stone_${index}_cert_number`}
+        <CertNumberWithVerify
+          index={index}
           label={t.appraisal.new_.stoneCertNumber}
-          value={row.cert_number}
+          number={row.cert_number}
+          lab={row.cert_lab}
           onChange={(v) => onChange({ cert_number: v })}
-          span={2}
         />
         <label className="md:col-span-6 block space-y-1">
           <span className="text-xs font-medium text-ink">
@@ -152,6 +153,48 @@ export default function StoneEditor({
         </label>
       </div>
     </div>
+  )
+}
+
+function CertNumberWithVerify({
+  index,
+  label,
+  number,
+  lab,
+  onChange,
+}: {
+  index: number
+  label: string
+  number: string
+  lab: string
+  onChange: (v: string) => void
+}) {
+  const verify = buildCertVerifyUrl({ lab, number })
+  return (
+    <label className="block space-y-1 md:col-span-2">
+      <span className="flex items-center justify-between">
+        <span className="text-xs font-medium text-ink">{label}</span>
+        {verify ? (
+          <a
+            href={verify.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-rausch hover:underline"
+            title="Opens the lab's report-check page in a new tab"
+          >
+            {verify.label}
+            <ArrowSquareOut size={10} weight="bold" />
+          </a>
+        ) : null}
+      </span>
+      <input
+        type="text"
+        name={`stone_${index}_cert_number`}
+        value={number}
+        onChange={(e) => onChange(e.target.value)}
+        className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+      />
+    </label>
   )
 }
 

@@ -182,8 +182,23 @@ export default function NewAppraisalForm({
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
             <label className="block space-y-1 md:col-span-3">
-              <span className="text-sm font-medium text-ink">
-                {t.appraisal.new_.itemDescription} *
+              <span className="flex items-center justify-between">
+                <span className="text-sm font-medium text-ink">
+                  {t.appraisal.new_.itemDescription} *
+                </span>
+                {itemDescription.trim().length >= 3 ? (
+                  <a
+                    href={`https://www.chrono24.com/search/index.htm?query=${encodeURIComponent(
+                      itemDescription.trim(),
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-medium text-rausch hover:underline"
+                    title="Open Chrono24 search in a new tab — useful for watches"
+                  >
+                    Search Chrono24 ↗
+                  </a>
+                ) : null}
               </span>
               <textarea
                 name="item_description"
