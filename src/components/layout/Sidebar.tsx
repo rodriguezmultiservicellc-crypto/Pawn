@@ -8,6 +8,7 @@ import {
   Users,
   Package,
   Coins,
+  Scales,
   Wrench,
   CashRegister,
   ChartBar,
@@ -130,6 +131,12 @@ export function Sidebar({
       label: t.nav.transfers,
       icon: <ArrowsLeftRight size={18} weight="regular" />,
       visible: canSeeTransfers,
+    },
+    {
+      href: '/inventory/spot-prices',
+      label: t.nav.spotPrices,
+      icon: <Scales size={18} weight="regular" />,
+      visible: canSeeSettings || modules.has_pawn || modules.has_retail,
     },
     {
       href: '/pawn',

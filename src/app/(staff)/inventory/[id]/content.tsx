@@ -33,6 +33,7 @@ import type {
   InventoryLocation,
   InventorySource,
   InventoryStatus,
+  MetalPurity,
   MetalType,
 } from '@/types/database-aliases'
 
@@ -44,6 +45,23 @@ export type InventoryPhotoItem = {
   caption: string | null
   created_at: string
   signed_url: string | null
+}
+
+export type InventoryMeltSummary = {
+  /** Final melt value (USD, 4dp) including any tenant override multiplier. */
+  value: number
+  /** Effective per-gram price after multiplier. */
+  effective_per_gram: number
+  /** Raw spot per-gram before multiplier. */
+  spot_per_gram: number
+  /** Tenant pay-rate override applied (1.0 when none configured). */
+  multiplier: number
+  /** Spot-row source label ('metals.live' / 'manual' / 'seed'). */
+  source: string
+  /** Spot-row fetched_at ISO timestamp. */
+  fetched_at: string
+  /** Resolved purity bucket used for the lookup. */
+  purity: MetalPurity
 }
 
 export type InventoryStoneItem = {
@@ -101,10 +119,12 @@ export default function InventoryDetail({
   item,
   photos,
   stones,
+  melt,
 }: {
   item: ItemRecord
   photos: InventoryPhotoItem[]
   stones: InventoryStoneItem[]
+  melt: InventoryMeltSummary | null
 }) {
   const { t } = useI18n()
 
@@ -159,6 +179,8 @@ export default function InventoryDetail({
       </div>
 
       <PhotosPanel itemId={item.id} photos={photos} />
+
+      {melt ? <MeltPanel melt={melt} /> : null}
 
       {state.error ? (
         <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
@@ -579,5 +601,53 @@ function DeleteItemButton({
       <Trash size={14} weight="bold" />
       {pending ? t.common.saving : t.common.delete}
     </button>
+  )
+}
+
+function MeltPanel({ melt }: { melt: InventoryMeltSummary }) {
+  const { t } = useI18n()
+  const formatUsd = (n: number) =>
+    n.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  return (
+    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+      <legend className="px-1 text-sm font-semibold text-ink">
+        {t.spotPrices.meltPanelTitle}
+      </legend>
+      <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div>
+          <div className="text-xs text-ash">{t.spotPrices.estimatedMelt}</div>
+          <div className="font-mono text-lg font-semibold text-ink">
+            {formatUsd(melt.value)}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-ash">{t.spotPrices.spotPerGramLabel}</div>
+          <div className="font-mono text-sm text-ink">
+            {formatUsd(melt.spot_per_gram)}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-ash">{t.spotPrices.payRateMultiplier}</div>
+          <div className="font-mono text-sm text-ink">
+            {(melt.multiplier * 100).toFixed(2)}%
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-ash">{t.spotPrices.purityResolved}</div>
+          <div className="font-mono text-sm text-ink">
+            {t.spotPrices.purities[melt.purity] ?? melt.purity}
+          </div>
+        </div>
+      </div>
+      <div className="mt-2 text-xs text-ash">
+        {t.spotPrices.lastFetched}: {new Date(melt.fetched_at).toLocaleString()}
+        <span className="ml-2 font-mono text-ash/80">({melt.source})</span>
+      </div>
+    </fieldset>
   )
 }

@@ -534,3 +534,75 @@ export type AppraisalPhotoInsert = Partial<AppraisalPhotoRow> & {
 }
 
 export type AppraisalPhotoUpdate = Partial<AppraisalPhotoRow>
+
+// ── Phase 9 (Path B) — bullion spot-price feed.
+//
+// patches/0013-spot-prices.sql introduces the metal_purity enum and the
+// spot_prices + spot_price_overrides tables. The DB types regen happens at
+// merge time; until then we maintain hand-rolled Row/Insert/Update shapes
+// here so the rest of the spot-price code base type-checks.
+
+export type MetalPurity =
+  | 'pure_24k'
+  | '22k'
+  | '18k'
+  | '14k'
+  | '10k'
+  | 'sterling_925'
+  | 'platinum_950'
+  | 'palladium_950'
+  | 'fine'
+
+/** spot_prices row shape (matches patches/0013-spot-prices.sql). */
+export type SpotPriceRow = {
+  id: string
+  metal_type: MetalType
+  purity: MetalPurity
+  /** numeric(18,4) — comes back as string from supabase-js. */
+  price_per_gram: string
+  /** numeric(18,4) — comes back as string from supabase-js. */
+  price_per_troy_oz: string
+  currency: string
+  source: string
+  source_request_id: string | null
+  fetched_at: string
+  created_at: string
+}
+
+export type SpotPriceInsert = {
+  id?: string
+  metal_type: MetalType
+  purity: MetalPurity
+  price_per_gram: string | number
+  price_per_troy_oz: string | number
+  currency?: string
+  source: string
+  source_request_id?: string | null
+  fetched_at: string
+  created_at?: string
+}
+
+export type SpotPriceOverrideRow = {
+  id: string
+  tenant_id: string
+  metal_type: MetalType
+  purity: MetalPurity
+  /** numeric(6,4) — comes back as string from supabase-js. */
+  multiplier: string
+  updated_by: string | null
+  updated_at: string
+  created_at: string
+}
+
+export type SpotPriceOverrideInsert = {
+  id?: string
+  tenant_id: string
+  metal_type: MetalType
+  purity: MetalPurity
+  multiplier: string | number
+  updated_by?: string | null
+  updated_at?: string
+  created_at?: string
+}
+
+export type SpotPriceOverrideUpdate = Partial<SpotPriceOverrideInsert>
