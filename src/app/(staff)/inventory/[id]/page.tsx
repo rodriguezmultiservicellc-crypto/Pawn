@@ -4,7 +4,13 @@ import {
   INVENTORY_PHOTOS_BUCKET,
   getSignedUrl,
 } from '@/lib/supabase/storage'
+import {
+  computeMeltValue,
+  meltMetalFromItem,
+  purityFromItem,
+} from '@/lib/spot-prices/melt'
 import InventoryDetail, {
+  type InventoryMeltSummary,
   type InventoryPhotoItem,
   type InventoryStoneItem,
 } from './content'
@@ -81,7 +87,54 @@ export default async function InventoryItemPage(props: { params: Params }) {
     notes: s.notes,
   }))
 
+  // Compute the estimated melt value server-side so it's never stale
+  // beyond the 5-minute spot-lookup cache. Returns null when the item
+  // isn't a precious-metal item OR weight/karat is missing.
+  const melt = await resolveMelt({
+    tenantId: item.tenant_id,
+    metal: item.metal,
+    karat: item.karat,
+    weightGrams: item.weight_grams,
+  })
+
   return (
-    <InventoryDetail item={item} photos={photos} stones={stones} />
+    <InventoryDetail
+      item={item}
+      photos={photos}
+      stones={stones}
+      melt={melt}
+    />
   )
+}
+
+async function resolveMelt(args: {
+  tenantId: string
+  metal: string | null
+  karat: number | string | null
+  weightGrams: number | string | null
+}): Promise<InventoryMeltSummary | null> {
+  const metalType = meltMetalFromItem(args.metal as never)
+  const purity = purityFromItem({
+    metal: args.metal as never,
+    karat: args.karat,
+  })
+  if (!metalType || !purity) return null
+
+  const result = await computeMeltValue({
+    metalType,
+    purity,
+    weightGrams: args.weightGrams,
+    tenantId: args.tenantId,
+  })
+  if (!result) return null
+
+  return {
+    value: result.value,
+    effective_per_gram: result.effectivePerGram,
+    spot_per_gram: result.spotPerGram,
+    multiplier: result.multiplier,
+    source: result.source,
+    fetched_at: result.fetchedAt,
+    purity,
+  }
 }

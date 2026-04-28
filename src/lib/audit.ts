@@ -79,6 +79,9 @@ export type AuditAction =
   | 'card_present_succeeded'
   // Reports / compliance
   | 'export'
+  // Spot prices
+  | 'spot_price_refresh'
+  | 'spot_price_override_change'
 
 export async function logAudit(args: {
   tenantId: string
