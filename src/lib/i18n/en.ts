@@ -67,6 +67,7 @@ export const en = {
     ebayListings: 'eBay listings',
     pawn: 'Pawn',
     loanCalculator: 'Loan calculator',
+    buyOutright: 'Buy outright',
     repair: 'Repair',
     pos: 'POS',
     appraisals: 'Appraisals',

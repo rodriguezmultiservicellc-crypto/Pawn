@@ -24,6 +24,7 @@ import {
   Storefront,
   CreditCard,
   Calculator,
+  HandCoins,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -162,6 +163,12 @@ export function Sidebar({
       href: '/pawn/calculator',
       label: t.nav.loanCalculator,
       icon: <Calculator size={18} weight="regular" />,
+      visible: modules.has_pawn,
+    },
+    {
+      href: '/buy/new',
+      label: t.nav.buyOutright,
+      icon: <HandCoins size={18} weight="regular" />,
       visible: modules.has_pawn,
     },
     {

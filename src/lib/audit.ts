@@ -79,6 +79,8 @@ export type AuditAction =
   | 'card_present_succeeded'
   // Reports / compliance
   | 'export'
+  // Buy-outright (gold-buying / wholesale buy-side)
+  | 'buy_outright'
   // SaaS billing (platform-side)
   | 'tenant_plan_change'
   // Appraisal-specific

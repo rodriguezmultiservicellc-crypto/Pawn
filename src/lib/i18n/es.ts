@@ -62,6 +62,7 @@ export const es: Dictionary = {
     ebayListings: 'Anuncios eBay',
     pawn: 'Empeños',
     loanCalculator: 'Calculadora',
+    buyOutright: 'Compra directa',
     repair: 'Reparación',
     pos: 'Caja',
     appraisals: 'Tasaciones',
