@@ -66,6 +66,7 @@ export const en = {
     spotPrices: 'Spot prices',
     ebayListings: 'eBay listings',
     pawn: 'Pawn',
+    loanCalculator: 'Loan calculator',
     repair: 'Repair',
     pos: 'POS',
     appraisals: 'Appraisals',

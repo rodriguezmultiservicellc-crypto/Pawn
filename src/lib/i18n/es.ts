@@ -61,6 +61,7 @@ export const es: Dictionary = {
     spotPrices: 'Precios spot',
     ebayListings: 'Anuncios eBay',
     pawn: 'Empeños',
+    loanCalculator: 'Calculadora',
     repair: 'Reparación',
     pos: 'Caja',
     appraisals: 'Tasaciones',

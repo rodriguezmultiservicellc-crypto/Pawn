@@ -23,6 +23,7 @@ import {
   CaretDoubleRight,
   Storefront,
   CreditCard,
+  Calculator,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -155,6 +156,12 @@ export function Sidebar({
       href: '/pawn',
       label: t.nav.pawn,
       icon: <Coins size={18} weight="regular" />,
+      visible: modules.has_pawn,
+    },
+    {
+      href: '/pawn/calculator',
+      label: t.nav.loanCalculator,
+      icon: <Calculator size={18} weight="regular" />,
       visible: modules.has_pawn,
     },
     {
