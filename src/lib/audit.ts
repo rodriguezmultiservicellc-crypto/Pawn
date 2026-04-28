@@ -105,7 +105,10 @@ export type AuditAction =
 
 export async function logAudit(args: {
   tenantId: string
-  userId: string
+  /** null is allowed for system-initiated events (Stripe webhooks, cron
+   *  jobs, etc.) where no human user is acting. The audit_log column
+   *  itself is nullable. */
+  userId: string | null
   action: AuditAction
   tableName: string
   recordId: string
