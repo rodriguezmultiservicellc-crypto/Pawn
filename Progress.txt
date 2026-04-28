@@ -12,222 +12,245 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 7 (2026-04-28 morning) — Migration cleanup
-                  (Phase 5/6 alias collapse + cast strip), sidebar
-                  collapse, Phase 9 Path A SaaS billing, three Path B
-                  agents (bullion + appraisals + eBay) all merged.
-                  Build green at 60+ routes.
-  Context budget: HEAVY. Save and clear before next session.
-  Last worked on: Merging the three Path B agent branches into main in
-                  sequence (appraisals → bullion → eBay). All conflict
-                  resolutions followed the locked union pattern.
-                  Worktrees cleaned. Pushed to Vercel.
+  Last session:   Session 8 (2026-04-28 evening) — Phase 9 GA infra
+                  complete, two out-of-scope items shipped (buy-outright
+                  + 1099-MISC helper), Phase 8 polish merge, save bug
+                  fixed, version-footer + settings hub + Stripe-optional
+                  portal. 16 new commits on main; tree clean.
+  Context budget: HEAVY. /progress clear after this save.
+  Last worked on: Merging the 1099-MISC parallel-worktree agent +
+                  pushing. Session ended cleanly — no in-progress work.
 
   ACTIVE FILE(S) — last touched this session:
-    --- Phase 5/6 cleanup (post-migration) ---
-    - src/types/database.ts (regenerated; 104k after 0012 applied;
-      another regen due after 0013/0014/0015 land)
-    - src/types/database-aliases.ts (Phase 5 + 6 hand-rolls collapsed
-      to Database['public']['Tables']['…']['Row|Insert|Update'];
-      Phase 9 Path B + Phase 10 Path B blocks ADDED as new hand-rolls
-      pending 0013/0014/0015)
-    - src/lib/twilio/{sms,whatsapp,templates}.ts
-    - src/lib/email/send.ts
-    - src/lib/comms/dispatch.ts
-    - src/app/api/cron/{layaway-reminders,maturity-reminders,
-      repair-ready-reminders}/route.ts
-      (15 (admin as unknown as) casts stripped via brace-aware Node
-      script)
-    - src/app/(portal)/portal/{loans,layaways}/[id]/actions.ts
-      (.toFixed(4) → numeric direct on stripe_payment_links.amount)
+    --- Save bug (customer + inventory new + edit) ---
+    - src/lib/validations/{customer,inventory}.ts (id_type + metal:
+      preprocess "" → null before enum)
+    - src/app/(staff)/customers/{new,[id]}/{actions.ts,content.tsx,form.tsx}
+    - src/app/(staff)/inventory/{new,[id]}/{actions.ts,content.tsx,form.tsx}
+    - src/components/{customers,inventory}/*FormFields.tsx (echo values
+      on error + bump key for remount; Select error highlighting)
 
-    --- Sidebar collapse ---
-    - src/components/layout/Sidebar.tsx (lazy-init + matchMedia
-      auto-collapse ≤800px + localStorage persistence under
-      pawn.sidebar.collapsed; toggle button at top with caret icon)
-    - src/lib/i18n/{en,es}.ts (common.{collapseSidebar,expandSidebar})
+    --- Phase 9 (A) SaaS billing — GA complete ---
+    - patches/0016-saas-dunning-message-kinds.sql (APPLIED)
+    - src/types/database.ts (regen 125,244 bytes; saas_* MessageKinds)
+    - src/lib/stripe/saas.ts (platform-account REST, no Connect header,
+      Edge-safe HMAC-SHA256 webhook verify)
+    - src/lib/saas/sync.ts (fetch-or-create products+prices, write IDs
+      back; deactivates stale prices on amount change)
+    - src/lib/saas/customer.ts (idempotent stripe_customer_id mint)
+    - src/lib/saas/webhook-handlers.ts (subscription.{created/updated/
+      deleted/trial_will_end} + invoice.{paid,payment_failed} → DB)
+    - src/lib/saas/gates.ts (requirePlanFeature / requirePlanLimit;
+      countActiveLoans / countChildTenants / countActiveUserTenants)
+    - src/lib/email/platform.ts (RESEND_API_KEY env, distinct from
+      per-tenant; logs to message_log with customer_id=null)
+    - src/lib/saas/dunning.ts (resolves owner / chain_admin emails via
+      auth.admin.getUserById; bilingual EN/ES bodies)
+    - src/app/api/stripe/saas/checkout/route.ts (owner+chain_admin OR
+      superadmin; validates plan_code+cycle; creates Checkout)
+    - src/app/api/stripe/saas/webhook/route.ts (HMAC verify against
+      STRIPE_SAAS_WEBHOOK_SECRET; routes 5 event types)
+    - src/app/(staff)/billing/{page,content}.tsx (tenant-owner self-
+      service plan picker + invoice history; useSearchParams in
+      Suspense per CLAUDE.md gotcha)
+    - src/app/(admin)/admin/billing/{actions.ts,content.tsx}
+      (syncStripePlansAction + "Sync Stripe products" button + plan
+      cards now show stripe_product_id / price IDs status pills)
 
-    --- Phase 9 Path A — SaaS billing ---
-    - patches/0012-saas-billing.sql (APPLIED)
-    - src/lib/saas/{types,plans,subscriptions}.ts
-      (split: types.ts pure for client-bundle hygiene; plans.ts +
-      subscriptions.ts server-only)
-    - src/app/(admin)/admin/billing/{page,content,actions}.tsx
-    - src/app/(admin)/layout.tsx (Billing link added to admin header)
+    --- Phase 9 (A) plan gates applied ---
+    - src/app/(staff)/pawn/new/actions.ts (max_active_loans gate
+      BEFORE Zod validation so the operator sees a clean upgrade
+      message)
+    - src/app/(admin)/admin/tenants/new/actions.ts (multi_shop +
+      max_locations on shop-under-chain creation; override flag
+      reserved for superadmin support)
 
-    --- Phase 9 Path B — bullion spot prices ---
-    - patches/0013-spot-prices.sql (NOT APPLIED)
-    - src/lib/spot-prices/{sources/metals-live,refresh,lookup,melt}.ts
-    - src/app/api/cron/refresh-spot-prices/route.ts
-    - src/app/(staff)/inventory/spot-prices/{page,content,actions}.tsx
-    - src/app/(staff)/inventory/[id]/{page,content}.tsx (melt panel)
+    --- Phase 9 (B) — pricing intelligence ---
+    - src/lib/pawn/suggested-loan.ts (computeSuggestedLoan combining
+      melt + appraised + estimated; default LTV 50%; pure server)
+    - src/app/(staff)/pawn/calculator/{page,content,actions}.tsx
+      (standalone calculator; up to 20 rows; pawn-staff role gate)
+    - src/lib/appraisals/verify-links.ts (GIA / IGI / AGS report-check
+      deep-link builder; Chrono24 search URL builder; pure)
+    - src/components/appraisals/StoneEditor.tsx (Verify-on-LAB link
+      next to cert_number when cert_lab matches)
+    - src/app/(staff)/appraisals/new/form.tsx (Search Chrono24 ↗ link
+      next to item description when ≥3 chars)
 
-    --- Phase 9 Path B — appraisals ---
-    - patches/0014-appraisals.sql (NOT APPLIED)
-    - src/lib/appraisals/{workflow,format,db}.ts
-    - src/lib/pdf/{AppraisalPDF,render-appraisal}.tsx
-    - src/app/api/appraisals/[id]/pdf/route.ts
-    - src/app/(staff)/appraisals/{page,content}.tsx + new + [id]
-    - src/components/appraisals/StoneEditor.tsx
-    - src/lib/validations/appraisal.ts
-    - src/lib/supabase/storage.ts (APPRAISAL_PHOTOS_BUCKET +
-      APPRAISAL_SIGNATURES_BUCKET path builders)
+    --- Buy-outright (gold-buying) — out-of-scope item shipped ---
+    - patches/ (none — buy_outright event_type was already in the FL
+      LeadsOnline exporter; just had no UI writing it before)
+    - src/lib/validations/buy-outright.ts (Zod schema; per-item payout
+      required > 0)
+    - src/app/(staff)/buy/new/{page,form,actions}.tsx (live melt
+      preview, auto-syncing payout, multi-item, photo upload, ONE
+      compliance_log row per transaction)
+    - src/app/(staff)/buy/[id]/{page,content}.tsx (printable receipt
+      with customer + items + total + signature lines)
+    - src/lib/audit.ts (added 'buy_outright' AuditAction)
 
-    --- Phase 10 Path B — eBay scaffold (STUBBED) ---
-    - patches/0015-ebay-listings.sql (NOT APPLIED)
-    - src/lib/ebay/{auth,client,listings,types}.ts (STUBBED)
-    - src/app/api/ebay/oauth/{start,callback}/route.ts
-    - src/app/api/cron/ebay-sync/route.ts
-    - src/app/(staff)/settings/integrations/ebay/{page,content,actions}.tsx
-    - src/app/(staff)/inventory/listings/ebay/{page,content}.tsx
-    - src/components/ebay/{ListingDraftForm,StatusPill,InventoryEbayPanel}.tsx
+    --- 1099-MISC year-end helper — out-of-scope item shipped ---
+    - src/lib/reports/form-1099.ts (buildForm1099Report; reads
+      compliance_log filtered to event_type='buy_outright' + tax year;
+      groups by customer_snapshot.id with phone/name fallback)
+    - src/app/(staff)/reports/1099/{page,content}.tsx (year selector +
+      headline tiles + W-9 reminder + table; owner/manager/chain_admin
+      gate)
+    - src/app/api/reports/1099/[year]/csv/route.ts (RFC-4180 CSV; 14
+      columns including labeled recipient_tin "(collect via W-9)"
+      slot)
 
-    --- Cross-cutting ---
-    - src/lib/audit.ts (AuditAction extended w/ tenant_plan_change,
-      appraisal_*, spot_price_*, ebay_* literals)
+    --- Settings hub + Integrations index ---
+    - src/app/(staff)/settings/{page,content}.tsx (cards for Comms /
+      Integrations / Billing / Bullion / Tenant info / Pawn defaults
+      / Modules with configured/needs-setup status pills)
+    - src/app/(staff)/settings/integrations/{page,content}.tsx (rows
+      for Stripe Connect / Twilio / Resend / eBay / Bullion with
+      connection status pills + Manage links)
+    - Sidebar Settings entry flipped from disabled → visible
+
+    --- Spot-prices enhancements ---
+    - src/app/(staff)/inventory/spot-prices/content.tsx (24K gold-per-
+      oz HEADLINE PANEL above the grid + per-card hide button +
+      "N hidden" pill row + localStorage persistence under
+      pawn.spot-prices.hidden)
+
+    --- Phase 8 polish (parallel-agent merge) ---
+    - src/app/(staff)/dashboard/{page,content}.tsx (real Pawn-today /
+      Repairs-today counts + 14-day Sales chart from real
+      sale_payments — no more demo PRNG)
+    - banner-on-fieldErrors rolled out to /inventory/transfers/new,
+      /pawn/new, /repair/new, /pos/sales/new (POS Cart-owns-error
+      pattern: fieldErrors threaded through local state)
+    - removed 12 unused t.dashboard.* keys EN+ES
+
+    --- Portal Stripe-optional ---
+    - src/lib/stripe/payment-link.ts (isTenantStripeConnected non-
+      throwing variant)
+    - src/app/(portal)/portal/loans/[id]/{page,content}.tsx (button
+      hidden when Stripe not connected; "pay in store" notice
+      replaces it)
+    - src/app/(portal)/portal/layaways/[id]/{page,content}.tsx (same)
+
+    --- Version footer ---
+    - src/components/version-footer.tsx (Phosphor swap from lucide;
+      mounted in src/app/layout.tsx; reads VERCEL_GIT_COMMIT_*
+      forwarded via next.config.ts)
+    - src/lib/app-version.ts (APP_NAME + VERSIONS history seeded)
 
   RESUME POINT:
-    Apply Path B migrations against Supabase IN ORDER, then regen
-    types and collapse the new hand-rolled aliases.
+    Phase 9 is GA-complete in code. The actual finish line for v1.0 is
+    operator-side: (1) populate STRIPE_SAAS_WEBHOOK_SECRET +
+    RESEND_PLATFORM_FROM_EMAIL + RESEND_PLATFORM_FROM_NAME in Vercel +
+    .env.local; (2) configure Stripe webhook endpoint pointing at
+    /api/stripe/saas/webhook in dashboard.stripe.com (subscribe to
+    customer.subscription.{created,updated,deleted,trial_will_end},
+    invoice.{paid,payment_failed}); (3) click "Sync Stripe products"
+    on /admin/billing to provision the 3 plans into the platform
+    Stripe account. After those 3 steps, real SaaS billing is live.
 
-      1. patches/0013-spot-prices.sql
-         (metal_purity enum, spot_prices append-only history,
-          spot_price_overrides per-tenant multipliers, RLS, seed rows)
-      2. patches/0014-appraisals.sql
-         (3 enums: appraisal_status / purpose / photo_kind; 3 tables:
-          appraisals + appraisal_stones + appraisal_photos;
-          'AP-' counter; immutability trigger on finalized+printed;
-          2 new private storage buckets: appraisal-photos +
-          appraisal-signatures)
-      3. patches/0015-ebay-listings.sql
-         (4 enums: ebay_environment/listing_status/listing_format/
-          listing_event_kind; 3 tables: tenant_ebay_credentials +
-          ebay_listings + ebay_listing_events with write-once trigger
-          on the events table)
-
-    Use scripts/apply-migration.mjs. Then:
-      - npm run db:types  (regen src/types/database.ts)
-      - Collapse hand-rolled types in src/types/database-aliases.ts:
-          MetalPurity + SpotPrice* (Phase 9 Path B — bullion)
-          AppraisalStatus/Purpose/PhotoKind + Appraisal* (Phase 9 Path B)
-          EbayEnvironment + EbayListingStatus/Format/EventKind +
-            TenantEbayCredentials* + EbayListing* + EbayListingEvent*
-            (Phase 10 Path B)
-        These collapse to Database['public']['Tables']['…']['Row|Insert|
-        Update'] forms (field names deliberately identical).
-      - Strip the (admin as any).from(...) casts in:
-          - 4 spot-prices lib files
-          - src/lib/appraisals/db.ts wrappers (delete db.ts entirely
-            once typed admin client resolves)
-          - src/lib/ebay/{auth,client,listings}.ts
-          - src/app/api/cron/ebay-sync/route.ts
-          - src/app/(staff)/inventory/[id]/page.tsx (eBay panel loaders)
-      - Verify npm run build green.
-
-    Then choose the next workstream — see Backlog.
+    Coding-side, pick from:
+      • /admin/settings — paused mid-build earlier this session (just
+        the page.tsx skeleton in head; no commit)
+      • /settings/general editable form — the placeholder card on the
+        tenant settings hub becomes a real edit surface
+      • Alias-collapse + cast-strip cleanup — Path B hand-rolled types
+        in src/types/database-aliases.ts (MetalPurity / SpotPrice* /
+        Appraisal* / Ebay*) collapse to Database['public']['Tables']
+        forms; (admin as any).from(...) casts strip out of 4 spot-
+        prices files + lib/appraisals/db.ts (delete) + 3 eBay lib
+        files + eBay sync cron + inventory/[id]/page.tsx (~1h)
+      • Cross-tenant blacklist sharing (out-of-scope candidate)
+      • Customer portal onboarding self-link flow
+      • Phase 8 remaining: pawn-vs-redemptions / layaway-payments /
+        repairs-completed charts still on demoBars; mobile audits
 
   OPEN ISSUES / BLOCKERS:
-    - 3 Phase 9/10 Path B migrations (0013 / 0014 / 0015) NOT YET APPLIED.
-    - Phase 9/10 Path B hand-rolled aliases + (admin as any) casts in
-      bullion + appraisals + eBay code paths are temporary; collapse
-      after migrations land.
-    - Phase 9 Path A SaaS billing — schema + lib + admin UI shipped.
-      Real Stripe platform-account integration (Checkout sessions for
-      plan selection, SaaS webhook for subscription lifecycle, dunning
-      via Phase 6 comms) NOT yet wired.
-    - eBay code paths are STUBBED — actual API calls log + mock instead
-      of hitting api.ebay.com. 12-step real-wire-up checklist documented
-      in commit 9b93e235's report.
-    - Three pasted secrets STILL pending rotation (anon JWT, service-role
-      JWT, sbp_ access token). Phase 0 leftover.
-    - NEXT_PUBLIC_APP_URL still localhost:3060 in env (Vercel + .env.local).
-    - Per-tenant Stripe Connect not yet onboarded for first tenant —
-      portal payoff (Phase 5) + comm cron (Phase 6) silently no-op.
-    - Stripe PLATFORM account (RMS) for SaaS billing also not yet
-      onboarded. Plans seeded but charging is simulation until then.
-    - Pre-existing use-lang.ts:29 lint error from Phase 0 still unresolved.
-    - WhatsApp Content SIDs are NULL placeholders pending Twilio + Meta
-      approval per template per tenant.
-    - FL LeadsOnline CSV format is DRAFT — confirm with agency.
-    - tenants.agency_store_id column missing — police-report falls back
-      to UUID.
-    - Repo-local git config (user.name/email) decision pending.
-    - Old t.dashboard.* i18n keys (customersCard, etc.) still unused.
-    - Dashboard hero "Pawn today" / "Repairs today" stats still '—'.
-    - Dashboard charts still on demo PRNG data.
-    - "Banner-on-fieldErrors" pattern still only on /customers/new.
-    - metals.live API contract is brittle; goldapi.io / metals-api.com
-      are documented fallback adapters if it breaks.
-    - eBay photo public-mirror question is a real product decision
-      before live publish (signed-URL TTL caps vs CDN mirror).
+    - 3 Phase 0 punch-list items still open: NEXT_PUBLIC_APP_URL
+      update + 3 pasted secrets rotation (anon JWT, service-role JWT,
+      sbp_ token) + repo-local git config revert
+    - SaaS billing real-money flow gates on operator setup tasks
+      (above) — code is complete; env + dashboard config blocks live
+    - Per-tenant Stripe Connect not yet onboarded for the first
+      tenant — portal payoff (Phase 5) + comm cron (Phase 6) silently
+      no-op until then. Portal RENDER side now degrades gracefully
+      (this session — c6bb277).
+    - eBay code paths still STUBBED (Phase 10 Path B). 12-step real-
+      wire-up checklist documented in commit 9b93e235.
+    - WhatsApp Content SIDs NULL until Twilio + Meta approval per
+      template per tenant
+    - FL LeadsOnline CSV format still DRAFT; confirm with agency
+    - tenants.agency_store_id column missing — police-report uses
+      UUID fallback
+    - Pre-existing react-hooks/set-state-in-effect lint errors in
+      inventory/new/form.tsx + inventory/[id]/content.tsx (Phase 8
+      agent flagged as pre-existing, NOT from any of this session's
+      work)
+    - Phase 8 dashboard chart wire-up only covered daily-revenue;
+      pawn-vs-redemptions / layaway-payments / repairs-completed
+      charts still on PRNG
+    - Pre-existing use-lang.ts:29 lint error from Phase 0 still
+      unresolved
 
   KEY DECISIONS LOCKED THIS SESSION:
-    - PROFILES PK COLUMN IS `id` NOT `user_id`. Bit Phase 9 Path A's
-      0012 migration on first apply attempt — RLS policies referenced
-      `profiles.user_id` (which doesn't exist; profiles.id IS the FK to
-      auth.users.id). Reverted, fixed to `profiles.id = auth.uid()`,
-      re-applied successfully. user_tenants HAS user_id (separate table,
-      different schema). Note for future RLS work that gates on
-      profiles.role.
-    - SAAS LIB SPLIT — types.ts vs server-only. src/lib/saas/types.ts
-      is pure (no 'server-only' import) so client components can import
-      Row shapes + pure helpers (formatCents, statusTone, isTrialing,
-      trialDaysRemaining, planFeatures, planHasFeature, planLimit).
-      src/lib/saas/{plans,subscriptions}.ts are server-only with the
-      DB-touching helpers. Pattern locked: any module that exports types
-      or pure helpers consumed by client components must NOT have
-      'server-only' — Turbopack refuses the entire dependency graph
-      otherwise. Mirrors the lib/audit / lib/audit-format split from
-      Session 4.
-    - SIDEBAR LAZY-INIT + matchMedia AUTO-COLLAPSE PATTERN. Persist
-      under pawn.sidebar.collapsed in localStorage. Lazy-init reads
-      localStorage with typeof window guard for SSR safety. matchMedia
-      subscription auto-collapses ≤800px and restores user preference
-      when crossing back to desktop. Pattern applies to any client-
-      component state seeded from localStorage that should ALSO respond
-      to viewport class changes.
-    - SAAS BILLING SCHEMA SHAPE LOCKED. subscription_plans (platform-
-      wide; price_monthly_cents + price_yearly_cents in INTEGER cents
-      mirroring Stripe convention; Stripe product+price ids when
-      onboarded; JSONB features array + JSONB feature_limits object
-      with NULL = unlimited). tenant_subscriptions (1:1 with tenants;
-      subscription_status enum mirrors Stripe's; billing_cycle enum
-      monthly|yearly; trial + period bounds + cached invoice info).
-      billing_invoices (denormalized cache; Stripe is source of truth
-      for everything; this table is just for fast admin-UI rendering).
-      3 seed plans — basic $99/mo, pro $199/mo, chain $499/mo with
-      sample feature_limits (max_locations / max_users /
-      max_active_loans).
-    - .toFixed(4) IS THE WRONG SAFETY NET FOR NUMERIC(18,4). Generated
-      types expose NUMERIC columns as `number`, not string. The old
-      pattern (.toFixed(4) for "precision safety") returned string and
-      broke type checking once aliases collapsed to generated forms.
-      The r4() decimal-safe rounding in lib/pawn/math.ts already handles
-      4dp precision; pass the number directly to Supabase Insert types.
-      Bit two portal action files this session — both fixed.
-    - 3-WAY MERGE OF ADDITIVE NESTED OBJECTS = ALWAYS UNION. Pattern
-      re-applied across i18n EN/ES top-level namespaces, type alias
-      blocks (database-aliases.ts), audit.ts AuditAction union, and
-      inventory/[id]/{page,content}.tsx (bullion's melt panel coexists
-      with eBay's listing panel — both prop sets pass to
-      InventoryDetail). Conflict region typically encompasses contents
-      without their closing brace+comma; resolution closes HEAD's last
-      block properly, then opens branch's, ending naturally with the
-      file's existing trailing structure.
-    - PATH A vs PATH B PARALLELIZATION WORKED. Operator built Path A
-      Phase 9 SaaS billing in primary tree alongside three Path B
-      agents in worktree isolation. All four landed cleanly with
-      expected merge conflicts (i18n + sidebar + audit + database-
-      aliases + inventory/[id]). Pattern: dispatch agents on independent
-      vertical features; work the dependent or sensitive feature
-      yourself. Agents that touch shared files (i18n, sidebar, audit)
-      are fine — union resolution at merge handles them.
-    - SAAS BILLING ROLE GATING. /admin/billing requires
-      ctx.globalRole === 'superadmin' (mirrors /admin/tenants). Tenant
-      owners can read their own subscription via the
-      tenant_subs_owner_read RLS policy (no UI for that yet; future
-      tenant-side billing portal will surface it). billing_invoices
-      likewise.
+    - SAVE BUG ROOT CAUSE was TWO BUGS COMPOUNDING. (a) React 19
+      auto-resets <form action={fn}> after submission — even on a
+      fieldErrors return — wiping uncontrolled input values. Fix
+      pattern: action echoes submitted values back in state.values;
+      form re-renders via a formGen key bump so the echoed values
+      become the new defaultValue at remount. (b) z.enum().optional()
+      .nullable() rejects "" (empty string) but the <select> with an
+      empty placeholder option always sends "". Fix pattern: wrap the
+      enum in a preprocess that maps "" → null first.
+    - SELECT ERROR HIGHLIGHTING was missing on tenant forms — the
+      Field component supported it but the Select component didn't.
+      Added error prop + red-border treatment + per-key error wiring
+      in CustomerFormFields + InventoryFormFields. The "fix the
+      highlighted fields" banner without a highlighted field was the
+      symptom that exposed both bugs.
+    - STRIPE REST PATTERN LOCKED. Every Stripe call (Connect from
+      Phase 5, SaaS from Phase 9 A) uses raw fetch + URLSearchParams
+      against api.stripe.com — no SDK dependency, Edge-safe, identical
+      idempotency-key behavior. Webhook signature verify uses Web
+      Crypto HMAC-SHA256 with 5-min tolerance.
+    - PLAN-TIER FEATURE GATES resolution: tenant_subscriptions.plan_id
+      wins; falls back to lowest-priced active plan (sort_order ASC).
+      Status is intentionally NOT considered — past_due / unpaid
+      degradation is dunning's job (chunk 5), not the gate's, so a
+      temporary card decline doesn't shut off paid features mid-shift.
+    - SAAS DUNNING uses platform Resend (RESEND_API_KEY env), NOT
+      per-tenant creds. message_log row attaches to the recipient
+      tenant; customer_id=null since the recipient is a staff user
+      (the tenant owner), not a customer record. Patches/0016 added
+      4 saas_* MessageKinds for this.
+    - BUY-OUTRIGHT compliance pattern: ONE compliance_log row per
+      buy transaction, items_snapshot lists every item, source_table
+      ='inventory_items', source_id=first inventory item's id.
+      Mirrors pawn_intake's items_snapshot shape; FL LeadsOnline
+      exporter already flattens 1 row → N police-report rows.
+    - 1099-MISC reads EXCLUSIVELY from compliance_log (Rule 15 — the
+      same table the police report reads from). Single source of
+      truth means the IRS picture and the police picture can never
+      drift. v1 has no SSN/TIN field; CSV emits a labeled
+      "(collect via W-9)" placeholder so the accountant has a slot.
+    - PORTAL STRIPE-OPTIONAL: render path is now fully decoupled from
+      Stripe Connect status. isTenantStripeConnected() is a non-
+      throwing companion to getStripeAccountIdForTenant(). The "Pay
+      online" button hides + a "pay in store" notice replaces it
+      when Connect isn't onboarded. Customers can see balances + due
+      dates either way.
+    - 24K GOLD HEADLINE on /inventory/spot-prices is the operator's
+      morning anchor price. Big tabular numerals at the top of the
+      page; always renders when the spot row exists, regardless of
+      the per-card hide list.
+    - PER-CARD HIDE persists in localStorage under pawn.spot-prices.
+      hidden — same per-device pattern as the sidebar collapse.
+    - PARALLEL-AGENT WORKTREE pattern continues to work but has a
+      gotcha — agents that write before realizing they're in a
+      worktree can leak files to the main filesystem. The 1099 agent
+      hit this and recovered via `git show main:<path> > <main-path>`
+      to restore + rm to clean. Lesson: agents should `pwd` before
+      first Write to confirm they're in the worktree path.
 
   KEY DECISIONS CARRIED FROM PRIOR SESSIONS (still authoritative):
     - Multi-store from day 1 (tenants.parent_tenant_id + tenant_type).
@@ -235,7 +258,7 @@ SEE ALSO (do not duplicate here):
     - Stone setting = service_type ENUM on repair tickets.
     - FL LeadsOnline only for v1.
     - Stripe: per-tenant Connect (Terminal + Payment Links) AND
-      platform account (SaaS billing — added Session 7).
+      platform account (SaaS billing).
     - compliance_log is write-once; police-report exporter reads from
       it (not loans/sales).
     - Pawn ticket immutability after print.
@@ -254,16 +277,18 @@ SEE ALSO (do not duplicate here):
       schema; trailing .transform(v => v ?? null) keeps `string | null`.
     - Lazy state initializers with typeof window guards — SSR-safe AND
       dodges react-hooks/set-state-in-effect.
+    - .toFixed(N) is the wrong safety net for NUMERIC(18,4) Insert
+      types; r4() returns number, generated types want number.
 
   IMPORTANT CONSTANTS / PATHS:
     - Project root:   c:\Users\rodri\OneDrive\Documents\Pawn\
     - Dev port:       3060
-    - Sister apps:    Luna Azul (:3000) — c:\...\LunaAzul Web Sass\
-                      Abacus     (:3030) — C:\...\Abacus\
+    - Sister apps:    Luna Azul (:3000), Abacus (:3030)
     - Memory dir:     C:\Users\rodri\.claude\projects\
                       c--Users-rodri-OneDrive-Documents-Pawn\memory\
     - Active-tenant cookie: pawn-active-tenant
     - Sidebar collapse key: pawn.sidebar.collapsed
+    - Spot-prices hide key: pawn.spot-prices.hidden
     - Dashboard storage keys: dash.activeTab, dash.activeRange,
       dash.recent.{sales|layaways|pawn|repairs}
     - First tenant: Eddy's Jewelers Corp.
@@ -279,16 +304,22 @@ SEE ALSO (do not duplicate here):
         appraisal-photos/<tenant_id>/<appraisal_id>/<kind>/<uuid>.<ext>
         appraisal-signatures/<tenant_id>/<appraisal_id>/<who>/<uuid>.<ext>
     - Number formats:
-        SKU                 'INV-'  + LPAD(seq,6,'0')   (INV-000123)
-        Pawn ticket         'PT-'   + LPAD(seq,6,'0')   (PT-000123)
-        Repair ticket       'RT-'   + LPAD(seq,6,'0')   (RT-000123)
-        Sale                'S-'    + LPAD(seq,6,'0')   (S-000123)
-        Return              'R-'    + LPAD(seq,6,'0')   (R-000123)
-        Layaway             'L-'    + LPAD(seq,6,'0')   (L-000123)
-        Appraisal           'AP-'   + LPAD(seq,6,'0')   (AP-000123)
-    - DL scanner kit source:
-        C:\Users\rodri\OneDrive\Documents\Claude\code\dl-scanner\
-    - Dashboard kit source: uploaded inline Session 6.
+        SKU            'INV-' + LPAD(seq,6,'0')   (INV-000123)
+        Pawn ticket    'PT-'  + LPAD(seq,6,'0')   (PT-000123)
+        Repair ticket  'RT-'  + LPAD(seq,6,'0')   (RT-000123)
+        Sale           'S-'   + LPAD(seq,6,'0')   (S-000123)
+        Return         'R-'   + LPAD(seq,6,'0')   (R-000123)
+        Layaway        'L-'   + LPAD(seq,6,'0')   (L-000123)
+        Appraisal      'AP-'  + LPAD(seq,6,'0')   (AP-000123)
+    - Env vars added this session (must be set in Vercel for live
+      SaaS billing): STRIPE_SAAS_WEBHOOK_SECRET,
+      RESEND_PLATFORM_FROM_EMAIL, RESEND_PLATFORM_FROM_NAME (default
+      'Pawn').
+    - SaaS Stripe webhook endpoint: /api/stripe/saas/webhook
+    - Per-tenant Connect webhook endpoint: /api/stripe/webhook
+    - Default LTV for /pawn/calculator: 50% (overridable per call)
+    - Default buy-outright hold period: 30 days (FL); per-tenant via
+      settings.buy_hold_period_days.
 
 ================================================================================
 PHASE OVERVIEW
@@ -304,47 +335,41 @@ PHASE OVERVIEW
   3       Repair / stone setting                     COMPLETE    2026-04-27
   4       Retail / POS                               COMPLETE    2026-04-27
   5       Customer portal (full)                     COMPLETE    2026-04-27
-          (0009 applied Session 7. Webhook + payoff
-          flow live — pending real Stripe Connect
-          onboarding for the first tenant.)
+          (0009 applied Session 7. Stripe-optional
+          render path added Session 8 — customers
+          can see balances + due dates without
+          Stripe Connect.)
   6       Communications                             COMPLETE    2026-04-27
-          (0010 applied Session 7. Twilio + Resend
-          + cron routes live — pending real creds in
-          settings table.)
+          (0010 applied Session 7.)
   7       Reporting + compliance                     COMPLETE    2026-04-27
-          (0011 applied Session 7 — no-op. v1 ships
-          against existing schema only. FL Leads
-          Online format DRAFT pending agency
-          confirmation.)
-  8       Polish                                     PENDING     —
-          (Banner pattern rollout, dashboard real-
-          data wire-up, customer-name search,
-          mobile audits, t.dashboard.* cleanup, hero
-          stats computation.)
-  9 (A)   SaaS GA infrastructure                     IN PROGRESS  —
-          (Schema + admin /admin/billing console
-          shipped Session 7. Pending: Stripe platform
-          account + Checkout sessions + SaaS webhook
-          for subscription lifecycle + dunning emails
-          via Phase 6 comms + self-service signup
-          flow + plan-tier feature gates throughout
-          the app.)
+          (0011 applied Session 7. FL LeadsOnline
+          format still DRAFT.)
+  8       Polish                                     IN PROGRESS  —
+          (Banner pattern rolled out + dashboard
+          real-data wire-up + i18n cleanup shipped
+          Session 8. Remaining: pawn-vs-redemptions
+          / layaway-payments / repairs-completed
+          charts + mobile audits.)
+  9 (A)   SaaS GA infrastructure                     COMPLETE    2026-04-28
+          (Schema + admin /admin/billing console +
+          Stripe sync + checkout endpoint + webhook
+          + tenant-side /staff/billing + plan gates
+          + dunning emails. 0016 applied. Real-money
+          flow gates on operator setup: env vars +
+          Stripe webhook config + Sync Stripe button.)
   9 (B)   Pricing intelligence                       IN PROGRESS  —
-          (Bullion spot-price feed shipped Session 7,
-          0013 NOT applied. Appraised valuation
-          module shipped Session 7, 0014 NOT applied.
-          Watch model lookup, diamond cert lookup,
-          and suggested pawn-loan calculator NOT yet
-          started.)
+          (Bullion spot prices + appraisals + watch/
+          cert search deep-links + suggested-loan
+          calculator shipped. Diamond cert API +
+          watch model DB still pending.)
   10 (A)  Marketing & customer growth                PENDING     —
           (Per-tenant landing pages on subdomain,
           public catalog, loyalty/referrals, Google
-          Reviews ingestion, email campaign engine
-          on top of Phase 6.)
+          Reviews ingestion, email campaign engine.)
   10 (B)  Channel sales                              IN PROGRESS  —
-          (eBay listing scaffold shipped Session 7
-          STUBBED, 0015 NOT applied. Worthy /
-          Sotheby's, Reverb, Mercari NOT yet started.)
+          (eBay scaffold STUBBED Session 7.
+          Worthy / Sotheby's / Reverb / Mercari NOT
+          yet started.)
 
 ================================================================================
 SESSION HISTORY LOG
@@ -377,180 +402,212 @@ SESSION HISTORY LOG
 
 --- Session 5 (2026-04-27 ~late) — Phase 3 merge, Phase 2 PRINT PDF, Phase 4 RETAIL/POS, DL scanner ---
 
-  84-101. Phase 3 merge + 0007. Worktree cleanup completed (-f -f).
-     Print PDF (bilingual). Phase 4 retail/POS (0008). Stripe Terminal
-     stub. POS layaway lifecycle. db:types regen 87,736 bytes. 4 type
-     fixes. Vercel project imported. DL scanner port-kit integrated.
-     Build green at 34 routes. [BUG OPEN] /customers/new save fails
-     silently — diagnose first thing next session.
+  84-101. Phase 3 merge + 0007. Worktree cleanup. Print PDF (bilingual).
+     Phase 4 retail/POS (0008). Stripe Terminal stub. POS layaway
+     lifecycle. db:types regen 87,736 bytes. 4 type fixes. Vercel project
+     imported. DL scanner port-kit integrated. Build green at 34 routes.
 
 --- Session 6 (2026-04-27 evening) — Phases 5+6+7 merged + customer-save fix + dashboard port ---
 
   102-110. Customer-save bug FIXED across 6 validation files + banner
-     fix on /customers/new. 3-agent dispatch (Phase 5/6/7). First
-     Phase 7 agent crashed; re-dispatched cleanly. Phase 5 customer
-     portal. Phase 6 per-tenant communications. Phase 7 reporting +
-     FL LeadsOnline draft. Vibrant-dark dashboard ported into
-     /staff/dashboard (scoped under .dashboard so Airbnb-light stays
-     canonical for the rest of the app). 4 deploys via merge sequence.
-     Conflict-merge pattern locked: 3-way merges of additive top-level
-     objects = ALWAYS UNION.
+     fix on /customers/new. 3-agent dispatch (Phase 5/6/7). Phase 5
+     customer portal. Phase 6 per-tenant communications. Phase 7
+     reporting + FL LeadsOnline draft. Vibrant-dark dashboard ported
+     into /staff/dashboard. 4 deploys via merge sequence.
 
 --- Session 7 (2026-04-28 morning) — Migration cleanup, sidebar collapse, Path A start, 3 Path B agents ---
 
- 111. APPLIED 0009 + 0010 + 0011 MIGRATIONS. The three Phase 5/6/7
-     migrations from Session 6's merges finally hit the Supabase
-     project via apply-migration.mjs. 0009 (customer-portal) added
-     customers.auth_user_id + stripe_payment_links table + client-role
-     RLS + get_my_customer_id() helper. 0010 (communications) extended
-     settings + added message_templates + message_log + 66 seed
-     templates. 0011 (reporting) was a no-op header — applied for
-     completeness. db:types regenerated to 96,814 bytes.
+  111-121. APPLIED 0009 + 0010 + 0011. Collapsed Phase 5+6 aliases.
+     Stripped 15 (admin as unknown as) casts. Sidebar collapse with
+     phone auto-collapse + localStorage. Phase 9 Path A SaaS billing
+     schema + admin UI. 3 Path B agents in worktrees: bullion spot
+     prices, appraisals module, eBay listing scaffold. All 3 merged
+     cleanly. Build green at 60+ routes.
 
- 112. COLLAPSED PHASE 5 + PHASE 6 ALIASES. src/types/database-aliases.ts
-     replaced ~190 lines of hand-rolled Stripe Payment Link + Message
-     Template + Message Log + SettingsCommsColumns row shapes with ~30
-     lines of Database['public']['Tables']['…']['Row|Insert|Update']
-     aliases. Kept StripePaymentLinkKind/Status as authoring narrowings
-     (TEXT + CHECK columns expose as plain string in the generated
-     types). MessageKind/Channel/Status routed through
-     Database['public']['Enums']. SettingsCommsColumns narrowed via
-     Pick<>. Commit 71d5d73.
+--- Session 8 (2026-04-28 evening) — Save bug, Phase 9 GA, two out-of-scope items, Phase 8 polish ---
 
- 113. STRIPPED 15 (admin as unknown as) CASTS. Across 8 Phase 6 files
-     (twilio sms+templates+whatsapp, email send, comms dispatch, 3 cron
-     routes), the temporary type-bridge casts were stripped via a
-     brace-aware Node script (counts braces inside the cast block to
-     find its end deterministically). Generated types now resolve
-     message_log / message_templates directly. One leftover stale
-     "Cast through unknown" comment cleaned up.
+ 122. SAVE BUG FIX (CUSTOMERS + INVENTORY) — root causes were TWO bugs
+     compounding. (a) React 19 auto-resets <form action={fn}> after
+     submission, wiping uncontrolled input values even on fieldErrors
+     return. Fix: action echoes values; form bumps a formGen key on
+     each error response so echoed values become new defaultValues
+     at remount. (b) z.enum().optional().nullable() rejects ""
+     (empty string) but the <select> "—" placeholder option sends
+     "". Fix: wrap enum in preprocess "" → null FIRST. Plus the
+     Select component didn't have an error prop, so the validation
+     fired but no field highlighted (the symptom that exposed both
+     bugs). Applied to /customers/{new,[id]} + /inventory/{new,[id]}.
+     Commit ceca59c.
 
- 114. [BUG] AMOUNT.toFixed(4) → number TYPE MISMATCH. Phase 5 portal
-     code stored stripe_payment_links.amount as `.toFixed(4)` string
-     for "precision safety". Generated types collapse exposed the
-     column as `number`, breaking type checking. Fix: drop .toFixed —
-     pass the r4()-rounded number directly. Two sites:
-     /portal/loans/[id]/actions.ts:130, /portal/layaways/[id]/actions.ts:104.
-     Decision logged: r4() already handles 4dp; .toFixed(4) is the
-     wrong safety net for NUMERIC(18,4) columns.
+ 123. VERSION-FOOTER KIT installed. lucide → Phosphor swap, mounted
+     in src/app/layout.tsx, next.config.ts forwards
+     VERCEL_GIT_COMMIT_{MESSAGE,AUTHOR_NAME,REF} + a wall-clock
+     NEXT_PUBLIC_BUILD_TIME so the footer shows commit / branch /
+     environment / age. APP_NAME='Pawn' + VERSIONS history seeded
+     7 entries. Commit 2d611f4.
 
- 115. SIDEBAR COLLAPSE WITH PHONE AUTO-COLLAPSE. src/components/layout/
-     Sidebar.tsx now has a caret toggle button at the top that
-     collapses to icon-only mode (w-14) and expands back (w-56). User
-     choice persists in localStorage under pawn.sidebar.collapsed.
-     matchMedia subscription auto-collapses ≤800px viewports and
-     restores the user's preference when crossing back to desktop.
-     Lazy-init reads localStorage with typeof window guard for SSR
-     safety + dodges react-hooks/set-state-in-effect. Collapsed mode
-     centers icons, hides labels (still surfaced via title +
-     aria-label for tooltips and screen readers). New i18n keys
-     common.{collapseSidebar,expandSidebar} EN+ES. Commit 493675a.
+ 124. PHASE 9 (A) CHUNK 1 — STRIPE PLATFORM SYNC. Idempotent
+     fetch-or-create of Stripe Products + Prices for the 3 seed
+     plans. lib/stripe/saas.ts (no Stripe-Account header — platform
+     calls), lib/saas/sync.ts (orchestrator; deactivates stale
+     prices on amount change). "Sync Stripe products" button on
+     /admin/billing surfaces stripe_product_id + stripe_price_*_id
+     state per plan. Commit 8964bd9.
 
- 116. PHASE 9 PATH A — SaaS BILLING SCHEMA + ADMIN UI. patches/0012-
-     saas-billing.sql APPLIED. Three new tables: subscription_plans
-     (platform-wide; codes basic/pro/chain seeded $99/$199/$499 per
-     month with feature flags + feature_limits JSONB),
-     tenant_subscriptions (1:1; subscription_status + billing_cycle
-     enums; trial + period bounds; cached invoice info),
-     billing_invoices (denormalized cache — Stripe is source of truth).
-     RLS: plans read-public; subs + invoices superadmin-all OR
-     tenant-owner-read-own. /admin/billing UI renders per-tenant table
-     with plan + status pill + cycle + period + last invoice; inline
-     "Set plan" form per row (plan / status / cycle / trial days)
-     calls setTenantPlanAction → upsert + audit-log. lib/saas split
-     into types.ts (pure, client-importable) + plans.ts +
-     subscriptions.ts (server-only). [BUG] First apply attempt failed
-     because RLS policies referenced profiles.user_id (column doesn't
-     exist; PK is profiles.id, FK to auth.users.id). Reverted +
-     fixed. Commit 6dcca3c.
+ 125. PHASE 9 (A) CHUNK 2 — SAAS CHECKOUT + WEBHOOK. POST
+     /api/stripe/saas/checkout (owner / chain_admin / superadmin
+     gate; ensure-or-creates Stripe Customer; returns hosted
+     subscription Checkout URL). POST /api/stripe/saas/webhook
+     (HMAC-SHA256 verify against STRIPE_SAAS_WEBHOOK_SECRET; Edge-
+     safe Web Crypto; routes 5 event types). Tenant resolution
+     prefers metadata.tenant_id; falls back to stripe_customer_id
+     lookup. Idempotent on tenant_id (subscription) and
+     stripe_invoice_id (billing_invoices). Commit 3ec73b5.
 
- 117. PARALLEL-AGENT DISPATCH SESSION 7. Three Path B agents in
-     worktree isolation: bullion spot-prices, appraisals module,
-     eBay listing scaffold (stubbed). All three completed without
-     crash this time (Session 6 had the system-kernel-crash mid-flight
-     on Phase 7's first attempt). Path A Phase 9 SaaS billing was kept
-     in primary tree because it touched admin layout + audit +
-     sidebar + database-aliases — independent of Path B agents'
-     shared-file impact.
+ 126. PHASE 9 (A) CHUNK 3 — SELF-SERVICE BILLING UI. /staff/billing
+     for tenant owners. Current-plan card with status pill + cycle
+     + trial days + period end + last invoice. Plan picker grid
+     (basic/pro/chain) with monthly/yearly toggle; clicking "Choose"
+     POSTs to /api/stripe/saas/checkout and window.location.hrefs
+     to the Stripe URL. Recent invoices table with hosted_invoice_url
+     links. Sidebar entry "Billing" gated to owner / chain_admin.
+     Success / cancel banners off ?session_id= and ?cancelled=1.
+     Commit d7e3728.
 
- 118. PHASE 9 PATH B — BULLION SPOT-PRICE FEED. Branch worktree-agent-
-     ac71d4ff → main 09e51fc. patches/0013-spot-prices.sql (NOT
-     APPLIED): metal_purity enum, spot_prices append-only history
-     (UNIQUE on (metal, purity, fetched_at) makes cron idempotent),
-     spot_price_overrides (per-tenant 0..2 multiplier for shops paying
-     below market). RLS: spot_prices SELECT-public + service-role
-     writes; overrides via my_is_staff. 4 lib files (sources/metals-
-     live, refresh, lookup, melt) — metals.live API contract is
-     brittle; agent flagged goldapi.io and metals-api.com as fallback
-     adapters. Cron route /api/cron/refresh-spot-prices (Vercel-cron /
-     CRON_SECRET). /staff/inventory/spot-prices admin UI: card grid +
-     sparkline + override controls + Refresh-now button. Inventory
-     item detail surfaces an "Estimated melt value" panel when
-     metal+karat+weight present.
+ 127. PHASE 9 (A) CHUNK 4 — PLAN GATES. lib/saas/gates.ts with
+     check/require versions for features + limits, plus
+     PlanGateError carrying planCode/limit/current/feature.
+     Resolution: tenant_subscriptions.plan_id wins; falls back to
+     lowest-priced active plan. Status NOT considered (dunning's
+     job). Applied to /pawn/new (max_active_loans BEFORE Zod) and
+     /admin/tenants/new (multi_shop + max_locations on shop-under-
+     chain creation; override flag reserved for support). Commit
+     8c6808f.
 
- 119. PHASE 9 PATH B — APPRAISED VALUATION MODULE. Branch worktree-
-     agent-a8020b69 → main a1d00ce. patches/0014-appraisals.sql (NOT
-     APPLIED): 3 new enums (appraisal_status / purpose / photo_kind),
-     3 new tables (appraisals + appraisal_stones + appraisal_photos),
-     'AP-' counter via next_tenant_counter, immutability trigger on
-     finalized + printed records, 2 new private storage buckets
-     (appraisal-photos + appraisal-signatures). Workflow: draft →
-     finalized → voided. Bilingual EN+ES PDF download at /api/
-     appraisals/[id]/pdf streams via render-appraisal helper. Subject
-     relationship is dual-nullable: customer_id + inventory_item_id
-     both optional, supports walk-in / shop-stock / linked appraisals.
-     /staff/appraisals list + new + [id] routes. Stone editor.
-     AP-numbered tickets for high-value items. Operator note: agent
-     had to set local-repo git config user.name/email because sandbox
-     blocked the inline `-c` form.
+ 128. PHASE 9 (A) CHUNK 5 — DUNNING EMAILS. lib/email/platform.ts
+     using RESEND_API_KEY env (distinct from per-tenant), logs to
+     message_log with customer_id=null. lib/saas/dunning.ts resolves
+     active owner / chain_admin members → auth.admin.getUserById
+     for email + profiles.language for locale → bilingual EN/ES
+     bodies → one email per recipient. Wired fire-and-forget into
+     webhook handlers: invoice.payment_failed → saas_payment_failed,
+     invoice.paid (when prev was past_due) → saas_payment_recovered,
+     trial_will_end → saas_trial_ending, subscription.deleted →
+     saas_subscription_cancelled. patches/0016 extends message_kind
+     enum. Commit c74b349.
 
- 120. PHASE 10 PATH B — eBay LISTING SCAFFOLD (STUBBED). Branch
-     worktree-agent-a74b17fe → main 9c6471e. patches/0015-ebay-
-     listings.sql (NOT APPLIED): tenant_ebay_credentials (1:1, OAuth
-     tokens + policy ids), ebay_listings (draft/active/sold/ended/
-     error + sale_id FK back to sales), ebay_listing_events (write-
-     once API audit). All eBay API calls STUBBED — agent built data
-     model + UI flow + OAuth handlers but actual fetches mock-and-log
-     instead of hitting api.ebay.com. Sell Inventory API surface
-     chosen over legacy Trading API (JSON+OAuth vs XML/SOAP+token).
-     12-step real-wire-up checklist documented (developer signup,
-     sandbox keys, RuName, env vars, replace stubs in
-     auth.ts/client.ts/listings.ts, photo public-mirror helper, prod
-     approval ~1-2 wk). Cron at /api/cron/ebay-sync. Sidebar entry
-     under Inventory gated on has_retail.
+ 129. PHASE 9 (B) CHUNK 6 — SUGGESTED-LOAN CALCULATOR.
+     lib/pawn/suggested-loan.ts. computeSuggestedLoan picks HIGHEST
+     of melt / appraised / estimated as the value basis (pawn shops
+     can resell forfeited collateral so the floor is wholesale; we
+     don't clamp the operator's estimate down). Default LTV 50% (FL
+     standard); overridable per call. Per-row warnings surface why
+     a row didn't compute. /staff/pawn/calculator standalone surface
+     with up to 20 rows, sidebar entry under Pawn. Commit 3f44e17.
 
- 121. PATH B 3-BRANCH MERGE SEQUENCE. Merged in order appraisals →
-     bullion → eBay. Conflict-resolution union pattern from Session 6
-     re-applied across:
-       audit.ts AuditAction (4-way union: tenant_plan_change +
-         appraisal_* + spot_price_* + ebay_*)
-       i18n EN/ES (nav.* additions + top-level appraisal/spotPrices/
-         ebay namespaces — appended after each other rather than
-         picking a winner)
-       database-aliases.ts (Phase 9 Path B + Phase 10 Path B alias
-         blocks all unioned at end of file)
-       inventory/[id]/page.tsx + content.tsx (bullion's melt panel
-         coexists with eBay's listing panel — both prop sets pass
-         to InventoryDetail).
-     Each merge → tsc + push individually. Worktrees + branches
-     cleaned via git worktree remove -f -f + git branch -D after each.
-     Commits: a1d00ce, 09e51fc, 9c6471e.
+ 130. PHASE 9 (B) CHUNKS 7+8 — CERT VERIFY + WATCH SEARCH DEEP-LINKS.
+     lib/appraisals/verify-links.ts builds GIA / IGI / AGS report-
+     check URLs (deep-link, no scraping, no paid API). buildWatch
+     SearchUrl for Chrono24. StoneEditor shows "Verify on LAB" link
+     next to cert_number when cert_lab matches. Appraisal new form
+     shows "Search Chrono24 ↗" next to item_description when ≥3
+     chars. Commit a9ea27f.
+
+ 131. MIGRATION 0016 APPLIED + CAST REMOVAL. 0016 added 4 saas_*
+     values to message_kind enum (saas_trial_ending /
+     saas_payment_failed / saas_payment_recovered /
+     saas_subscription_cancelled). db:types regen → 125,244 bytes.
+     Removed `as unknown as MessageKind` cast in dunning.ts. Added
+     EN+ES kindLabels + kindDescriptions for the new values.
+     Tenant-side comms templates UI uses an explicit KIND_ORDER
+     allowlist that doesn't include SaaS kinds, so they remain
+     invisible to tenant operators (correct — these are platform→
+     tenant messages, not tenant→customer messages). Commit
+     4c91155.
+
+ 132. SETTINGS HUB + INTEGRATIONS INDEX. /settings is the cards-with-
+     status-pills hub (Communications / Integrations / Subscription &
+     Billing / Bullion / Tenant info / Pawn defaults / Modules), all
+     driven by live data. /settings/integrations is one row per
+     connectable service (Stripe Connect / Twilio / Resend / eBay /
+     Bullion) with Connected/Sandbox/Disconnected/Available status
+     pills + Manage links. Sidebar Settings flipped from disabled →
+     visible (gated to canSeeSettings = owner / chain_admin /
+     manager). Commit b177330.
+
+ 133. SPOT-PRICES 24K HEADLINE + HIDE CARDS. /inventory/spot-prices
+     gets a big tabular-numerals headline panel at the top showing
+     gold pure_24k per troy oz (the operator's morning anchor). Each
+     card has a hover-revealed eye-slash hide button; hidden cards
+     collapse to a "N hidden" pill row with per-card unhide chips +
+     "Show all". Persistence: localStorage pawn.spot-prices.hidden
+     (per-device, same pattern as sidebar collapse). Commit 9875184.
+
+ 134. BUY-OUTRIGHT (GOLD-BUYING) WORKFLOW. /staff/buy/new with live
+     melt-value preview per item (preloaded spot prices + tenant
+     override multipliers; client-side compute), auto-syncing payout
+     until operator overrides, multi-item form (max 20), photo
+     uploads, customer ID required (FL pawn law). On submit: insert
+     N inventory_items source='bought' status='held' with
+     hold_until=acquired_at + buy_hold_period_days; ONE compliance_
+     log row per transaction (event_type='buy_outright',
+     items_snapshot lists every item with payout + melt_at_buy +
+     serial); audit_log entry. /staff/buy/[id] printable receipt
+     page. Sidebar entry under Pawn. event_type='buy_outright' was
+     already a valid value in the FL LeadsOnline exporter — just
+     had no UI writing it before. Commit dd33b78.
+
+ 135. PHASE 8 POLISH (PARALLEL-AGENT MERGE). 3 agent commits:
+     bf909b0 banner-on-fieldErrors rolled out to /inventory/transfers
+     /new, /pawn/new, /repair/new, /pos/sales/new (POS Cart-owns-
+     error pattern: fieldErrors threaded through local state for
+     both retail and layaway flows). 3f7b779 dashboard wire-up:
+     pawnTodayCount + repairsTodayCount queries (tenant-scoped,
+     gated on module flags), 14-day Sales chart from real
+     sale_payments, today's revenue is the last bucket of the
+     same series for consistency. dda0403 i18n cleanup: removed 12
+     unused t.dashboard.* keys from EN+ES. Merge commit e035509.
+     Out-of-scope skipped: pawn-vs-redemptions / layaway-payments /
+     repairs-completed charts still on demoBars; mobile audits.
+
+ 136. PORTAL STRIPE-OPTIONAL. Customers can now access the portal
+     and see loan/layaway balances + due dates regardless of whether
+     the shop has onboarded Stripe Connect. lib/stripe/payment-link.
+     ts gets isTenantStripeConnected non-throwing variant.
+     /portal/loans/[id] + /portal/layaways/[id] page.tsx threads an
+     onlinePaymentsAvailable flag through; content.tsx hides the
+     "Pay payoff balance" / "Make a payment" UI when not available
+     and shows a bilingual "pay in store" notice instead. Commit
+     c6bb277.
+
+ 137. 1099-MISC YEAR-END HELPER (PARALLEL-AGENT MERGE). 3 agent
+     commits: 50a262c lib + i18n (buildForm1099Report walks
+     compliance_log filtered to event_type='buy_outright' + tax
+     year, groups by customer_snapshot.id with phone/name fallback,
+     filters >= $600 default, joins back to customers for live
+     contact). c52e5fe /staff/reports/1099 page + sidebar entry
+     (year selector + 2 headline tiles + W-9 reminder + table).
+     465006b /api/reports/1099/[year]/csv (RFC-4180; 14 columns
+     including labeled recipient_tin "(collect via W-9)" slot;
+     audit_log emits a row per export). Merge commit c28004c.
+     Agent recovered from accidentally writing initial files into
+     main's filesystem before realizing it was in a worktree —
+     used `git show main:<path>` + rm to clean up.
 
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Apply patches/0013 + 0014 + 0015 against Supabase via
-    apply-migration.mjs IN ORDER. Run npm run db:types. Collapse the
-    hand-rolled aliases in src/types/database-aliases.ts for
-    MetalPurity/SpotPrice* + AppraisalStatus/Purpose/PhotoKind/
-    Appraisal* + EbayEnvironment/EbayListingStatus/Format/EventKind/
-    TenantEbayCredentials*/EbayListing*/EbayListingEvent* to generated
-    forms. Strip the (admin as any).from(...) casts in 4 spot-prices
-    files + src/lib/appraisals/db.ts (delete entirely after) +
-    3 eBay lib files + cron + inventory/[id]/page.tsx. Verify build
-    green.
+    Phase 0 close-out: (1) populate STRIPE_SAAS_WEBHOOK_SECRET +
+    RESEND_PLATFORM_FROM_EMAIL + RESEND_PLATFORM_FROM_NAME in Vercel
+    + .env.local; (2) configure the Stripe webhook endpoint at
+    /api/stripe/saas/webhook in dashboard.stripe.com (events:
+    customer.subscription.{created,updated,deleted,trial_will_end},
+    invoice.{paid,payment_failed}); (3) click "Sync Stripe products"
+    on /admin/billing to provision the 3 seed plans into the
+    platform Stripe account. After those 3 steps, real SaaS billing
+    is live.
 
   PHASE 0 PUNCH LIST (still open):
     a. Confirm Vercel deploy status + production URL.
@@ -562,54 +619,73 @@ PENDING — NEXT UP
        (CLAUDE.md violation — use inline `-c` overrides going forward).
 
   BACKLOG (in priority order):
-    1. Apply 0013 + 0014 + 0015 + regen + collapse aliases (above).
-    2. Phase 0 close-out (deploy verify + URL update + secret rotation).
-    3. Per-tenant Stripe Connect onboarding for first tenant. Unblocks
-       portal payoff (Phase 5) + comm cron (Phase 6) silently no-op'ing.
-    4. Phase 9 Path A continuation — Stripe platform-account
-       integration:
-         - Create Stripe products + prices for the 3 seed plans
-         - Checkout session flow at /api/stripe/saas/checkout for
-           tenant owners to upgrade / change cycle
-         - SaaS webhook at /api/stripe/saas-webhook (separate from the
-           per-tenant Connect webhook) handling
-           customer.subscription.created/updated/deleted +
-           invoice.paid + customer.subscription.trial_will_end
-         - Dunning emails via Phase 6 comms (past_due / unpaid status)
-         - Self-service plan-change UI at /admin/billing/[tenantId]
-         - Plan-tier feature gates via planHasFeature throughout app
-    5. Phase 8 — Polish:
-         - Banner pattern rollout to /inventory/new, /pawn/new,
-           /repair/new, /pos/sales/new, /inventory/transfers/new
-         - Dashboard real-data wire-up (customer-name search, real
-           KPIs from Phase 7 queries, real chart series, hero pawn-
-           today / repairs-today computation)
-         - Old t.dashboard.* unused keys cleanup
-         - Dashboard string i18n migration
+    1. Phase 0 close-out + SaaS billing operator setup (above).
+    2. Per-tenant Stripe Connect onboarding for the first tenant.
+       Unblocks portal payoff (Phase 5) + comm cron (Phase 6) silently
+       no-op'ing.
+    3. /admin/settings hub — paused mid-build this session (no commit).
+       Platform-health view (env vars detected, recent activity) +
+       subscription-plans editor + links to existing /admin/tenants
+       and /admin/billing. Update (admin)/layout.tsx header to add
+       Settings link.
+    4. /settings/general editable form — placeholder card on the
+       tenant settings hub becomes a real edit surface. Tenant name,
+       dba, address, phone, email, modules toggle (gated), police-
+       report format, default currency.
+    5. Alias-collapse + cast-strip cleanup (~1h):
+         Path B hand-rolled types in src/types/database-aliases.ts
+         (MetalPurity / SpotPrice* / Appraisal* / Ebay*) collapse to
+         Database['public']['Tables']['…']['Row|Insert|Update'] forms.
+         (admin as any).from(...) casts strip from 4 spot-prices lib
+         files, src/lib/appraisals/db.ts (delete entirely after),
+         3 eBay lib files, eBay sync cron route, inventory/[id]
+         /page.tsx (eBay panel loaders).
+    6. Customer portal onboarding self-link flow — shop hands
+       customer a magic-link to claim portal access without operator
+       intervention.
+    7. Phase 8 — remaining polish:
+         - pawn-vs-redemptions / layaway-payments / repairs-completed
+           dashboard charts (still on demoBars/demoSeries PRNG)
          - Mobile audits across portal + dashboard
-    6. Real eBay wire-up — 12-step checklist in commit 9b93e235's
+         - Banner pattern for any forms still missing it
+         - Pre-existing react-hooks/set-state-in-effect lint errors
+           in inventory/new/form.tsx + inventory/[id]/content.tsx
+    8. Phase 9 (A) follow-ups:
+         - Self-service plan-CHANGE flow for existing subscribers
+           (not just initial signup — currently the Choose button
+           starts a fresh checkout)
+         - SaaS webhook → admin-notification email when a new
+           tenant signs up
+    9. Phase 9 (A) — Stripe SaaS GA real-money smoke test (after
+       operator setup completes — kick a test buy through a
+       sandboxed Stripe account, verify webhook fires, plan flips,
+       dunning email arrives).
+   10. Phase 9 (B) continuation — diamond cert API integration
+       (Rapaport / IDEX); watch model database (curated table or
+       paid API like ALPS); inline /pawn/new calculator panel.
+   11. Real eBay wire-up — 12-step checklist in commit 9b93e235's
        report header. Developer signup, sandbox keys, RuName, env
        vars, replace stubs. Production approval ~1-2 wk.
-    7. WhatsApp Business per-template approval (unblocks WhatsApp
+   12. WhatsApp Business per-template approval (unblocks WhatsApp
        channel — Phase 6 comms otherwise sandboxed).
-    8. FL LeadsOnline format reconciliation with agency before go-live.
-    9. tenants.agency_store_id ADD COLUMN migration.
-   10. POS receipt PDF (mirrors /api/print/loan pattern).
-   11. DL scanner upgrades (dl_raw_payload audit column,
+   13. FL LeadsOnline format reconciliation with agency before go-live.
+   14. tenants.agency_store_id ADD COLUMN migration.
+   15. POS receipt PDF (mirrors /api/print/loan pattern).
+   16. Buy-outright bilingual PDF receipt (browser print works for v1).
+   17. DL scanner upgrades (dl_raw_payload audit column,
        expired-license guard, front-of-license webcam).
-   12. Phase 9 Path B continuation — diamond cert lookup (GIA),
-       watch model lookup (Watchcharts), suggested pawn-loan
-       calculator combining spot + appraisals + condition.
-   13. Phase 10 Path A — public per-tenant landing pages on
+   18. Phase 10 Path A — public per-tenant landing pages on
        NEXT_PUBLIC_BASE_DOMAIN, public catalog, loyalty/referrals,
        Google Reviews ingestion, email campaign engine.
-   14. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
+   19. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
        Mercari listing publishers (after eBay flow is stable).
-   15. Stripe Terminal hardware reader pairing UI when readers arrive.
-   16. pgsodium at-rest encryption rollout for Twilio/Resend/Stripe
+   20. Stripe Terminal hardware reader pairing UI when readers arrive.
+   21. pgsodium at-rest encryption rollout for Twilio/Resend/Stripe
        creds + eBay tokens.
-   17. Pre-existing use-lang.ts:29 lint error from Phase 0 — finally fix.
-   18. Real activity feed for /dashboard (currently placeholder).
+   22. Pre-existing use-lang.ts:29 lint error from Phase 0 — finally fix.
+   23. Real activity feed for /dashboard (currently placeholder).
+   24. Cron: held → available status flip when buy-outright hold_until
+       <= today.
 
   KNOWN GOTCHAS TO AVOID FROM DAY 1 (carried + new):
     - Next 16 file is `proxy.ts`, exported function named `proxy`.
@@ -633,6 +709,8 @@ PENDING — NEXT UP
       `(SELECT role FROM profiles WHERE id = auth.uid()) = 'superadmin'`.
     - user_tenants HAS user_id (separate table; no FK to profiles).
     - audit_log has SELECT policy only; inserts must use admin client.
+    - audit_log.user_id IS NULLABLE — webhook events / cron jobs pass
+      null. logAudit() signature accepts `string | null`.
     - CHECK-constrained TEXT columns come back as plain string from
       db:types — narrow at the page boundary.
     - Supabase JSONB columns need JSON-roundtrip narrowing.
@@ -650,31 +728,57 @@ PENDING — NEXT UP
       client component. Use lib/audit-format.ts for label helpers.
     - layaway_payments.amount allows NEGATIVE values. CHECK is `<> 0`.
     - Stripe Connect: every per-tenant call needs Stripe-Account
-      header.
+      header. SaaS-platform calls (lib/stripe/saas.ts) must NOT set
+      that header.
     - @fontsource fonts in @react-pdf/renderer must be loaded via
       fs.readFileSync + base64 dataURL — not require()/import.
-    - SESSION 6: Setting state inside useEffect on mount triggers
+    - Setting state inside useEffect on mount triggers
       react-hooks/set-state-in-effect. Use lazy state initializers
       with typeof window guards instead.
-    - SESSION 6: Debounced search MUST live in onChange handler, not
-      useEffect — moving setState out of effect bodies.
-    - SESSION 6: When merging additive top-level objects, ALWAYS union.
-    - SESSION 6: When re-dispatching an agent after a crash, scrub the
-      primary tree of leftover untracked files FIRST.
-    - SESSION 6: Validation Zod helpers — preprocess MUST handle
-      empty-string-after-trim BEFORE the inner schema.
-    - SESSION 7: NUMERIC(18,4) columns are typed as `number` in
-      generated DB types. Don't .toFixed() values before passing to
-      Insert types — use the r4()-rounded number directly. Trust the
-      DB to preserve precision on storage.
-    - SESSION 7: lib modules with 'server-only' cannot be imported by
-      client components. If a module exports types or pure helpers
-      that client components need, split it: pure types/helpers go in
-      a .ts file WITHOUT 'server-only'; server-DB-touching code goes
-      in a separate .ts file WITH 'server-only'.
-    - SESSION 7: .toFixed(4) is the wrong safety net. r4() already
-      4dp-rounds; passing through .toFixed produces strings that break
-      type checking against generated NUMERIC column types.
+    - Debounced search MUST live in onChange handler, not useEffect.
+    - 3-way merge of additive top-level objects: ALWAYS UNION.
+    - When re-dispatching an agent after a crash, scrub the primary
+      tree of leftover untracked files FIRST.
+    - Validation Zod helpers — preprocess MUST handle empty-string-
+      after-trim BEFORE the inner schema.
+    - NUMERIC(18,4) columns are typed as `number` in generated DB
+      types. Don't .toFixed() values before passing to Insert types
+      — use the r4()-rounded number directly.
+    - lib modules with 'server-only' cannot be imported by client
+      components. Split: pure types/helpers in a .ts WITHOUT 'server-
+      only'; server-DB-touching code in a separate file WITH it.
+    - .toFixed(4) is the wrong safety net. r4() already 4dp-rounds;
+      .toFixed produces strings that break type checking against
+      generated NUMERIC column types.
+    - SESSION 8: <form action={fn}> in React 19 auto-resets the form
+      after submission. Pattern when you want to preserve typed
+      values on validation error: action returns { values: echoMap,
+      fieldErrors }; client useEffect on state bumps a formGen key;
+      form remounts with echoed values as new defaultValue.
+    - SESSION 8: z.enum().optional().nullable() rejects "" (empty
+      string). The <select> "—" placeholder option always sends "".
+      Wrap the enum in a preprocess that maps "" → null FIRST.
+    - SESSION 8: When building a Select component, always include an
+      `error` prop + red-border treatment from the start. A
+      validation failure on a field with no visible highlight is
+      worse than a hard crash.
+    - SESSION 8: Stripe REST pattern for both Connect (per-tenant)
+      and SaaS (platform) — raw fetch + URLSearchParams. Webhook
+      verify uses Web Crypto HMAC-SHA256 (Edge-safe).
+    - SESSION 8: Plan-tier feature gates via lib/saas/gates.ts. Don't
+      gate on subscription status (past_due/unpaid) — that's
+      dunning's job. Status-based degradation belongs in the
+      webhook handler, not the gate.
+    - SESSION 8: Parallel-agent worktree gotcha — agents that Write
+      before realizing they're in a worktree leak files to main's
+      filesystem. Recovery: `git show main:<path> > <main-path>`
+      to restore main's content + rm to delete the agent's strays.
+      Lesson: agents should `pwd` before first Write to confirm
+      they're in the worktree path.
+    - SESSION 8: compliance_log.source_id is polymorphic — for
+      pawn_intake it points to loans.id; for buy_outright it points
+      to the FIRST inventory_item.id (items_snapshot lists the
+      rest). source_table='inventory_items' in the buy case.
 
   KNOWN ISSUES TO REVISIT WHEN PHASES LAND:
     - Phase 5 portal: pawn ticket print PDF legal disclosure — vet
@@ -686,14 +790,14 @@ PENDING — NEXT UP
       sandbox.
     - Phase 7: confirm current FL LeadsOnline upload format (drifts).
     - Phase 7: idempotency for compliance_log re-export.
-    - Phase 9 Path A: dunning emails via Phase 6 comms — wire when
-      Stripe platform webhook lands.
-    - Phase 9 Path B (bullion): metals.live brittle; documented
-      fallbacks goldapi.io / metals-api.com.
-    - Phase 9 Path B (appraisals): legal disclaimer copy in i18n
+    - Phase 9 (A): self-service plan-CHANGE flow (not just initial).
+    - Phase 9 (A): admin notification when a new tenant subscribes.
+    - Phase 9 (B): metals.live brittle; documented fallbacks
+      goldapi.io / metals-api.com.
+    - Phase 9 (B): legal disclaimer copy in appraisals i18n
       placeholders — counsel vetting before go-live.
-    - Phase 10 Path B (eBay): photo public-mirror question (signed-URL
-      TTL caps vs CDN mirror) — decide before live publish.
+    - Phase 10 Path B (eBay): photo public-mirror question
+      (signed-URL TTL caps vs CDN mirror) before live publish.
     - Phase 10 Path B (eBay): real wire-up needs eBay developer-
       account approval, ~1-2 week prod review.
     - ID retention enforcement: read current FL statute right before
@@ -701,13 +805,23 @@ PENDING — NEXT UP
     - DL scanner: dl_raw_payload TEXT column.
     - DL scanner: block-expired-licenses guard.
     - DL scanner: front-of-license photo capture.
+    - Buy-outright: bilingual PDF receipt (browser print is v1).
+    - Buy-outright: customer signature capture (signature panel
+      reserved on the receipt page).
+    - Buy-outright: cron job to flip status='held' → 'available'
+      when hold_until <= today.
+    - 1099-MISC: SSN/TIN field on customers (separate W-9 workflow).
+    - 1099-MISC: chain rollup across multi-shop tenants.
 
   OUT OF SCOPE (noted for later):
     - Mobile native app.
-    - Cross-tenant customer matching (blacklist-share).
-    - Watch / fine-jewelry authentication services beyond model lookup.
+    - Cross-tenant customer matching (blacklist-share). [Candidate]
+    - Watch / fine-jewelry authentication services beyond model
+      lookup. [Needs paid partner — Entrupy / ALPS]
     - Bullion / coin spot-price feeds beyond the free-tier adapter.
-    - Wholesale buy-side (gold-buying with melt-value calculator)
-      beyond what spot-prices already enables.
-    - Tax filing helpers (1099-MISC, year-end).
+      [goldapi.io / metals-api.com paid tiers as fallback adapters]
+    - Tax filing helpers (1099-MISC year-end). [SHIPPED 2026-04-28
+      Session 8 item 137]
+    - Wholesale buy-side (gold-buying with melt-value calculator).
+      [SHIPPED 2026-04-28 Session 8 item 134]
 ================================================================================
