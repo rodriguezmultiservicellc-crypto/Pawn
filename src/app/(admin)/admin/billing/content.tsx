@@ -1,8 +1,12 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CaretDown, Check } from '@phosphor-icons/react'
-import { setTenantPlanAction } from './actions'
+import { ArrowsClockwise, CaretDown, Check } from '@phosphor-icons/react'
+import {
+  setTenantPlanAction,
+  syncStripePlansAction,
+  type SyncStripePlansState,
+} from './actions'
 import {
   formatCents,
   statusTone,
@@ -25,10 +29,12 @@ export default function BillingContent({
         <div>
           <h1 className="text-2xl font-bold text-ink">Billing</h1>
           <p className="text-sm text-ash">
-            Per-tenant subscription state. Stripe integration is pending —
-            until the platform webhook lands, plans are set manually here.
+            Per-tenant subscription state. The webhook keeps these rows in
+            sync with Stripe; the manual "Set plan" controls below are an
+            override for support cases.
           </p>
         </div>
+        <SyncStripeButton plans={plans} />
       </header>
 
       <PlanSummary plans={plans} />
@@ -98,9 +104,104 @@ function PlanSummary({ plans }: { plans: SubscriptionPlan[] }) {
               {formatCents(p.price_yearly_cents)} / yr
             </p>
           ) : null}
+          <dl className="mt-3 space-y-0.5 font-mono text-[10px] text-ash">
+            <div className="flex justify-between">
+              <dt>product</dt>
+              <dd className={p.stripe_product_id ? 'text-ink' : 'text-warning'}>
+                {p.stripe_product_id ?? 'not synced'}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>price/mo</dt>
+              <dd
+                className={
+                  p.stripe_price_monthly_id ? 'text-ink' : 'text-warning'
+                }
+              >
+                {p.stripe_price_monthly_id ?? 'not synced'}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>price/yr</dt>
+              <dd
+                className={
+                  p.stripe_price_yearly_id ? 'text-ink' : 'text-warning'
+                }
+              >
+                {p.stripe_price_yearly_id ?? 'not synced'}
+              </dd>
+            </div>
+          </dl>
         </article>
       ))}
     </section>
+  )
+}
+
+function SyncStripeButton({ plans }: { plans: SubscriptionPlan[] }) {
+  const [pending, startTransition] = useTransition()
+  const [state, setState] = useState<SyncStripePlansState>({})
+
+  const allSynced =
+    plans.length > 0 &&
+    plans.every(
+      (p) =>
+        p.stripe_product_id &&
+        p.stripe_price_monthly_id &&
+        p.stripe_price_yearly_id,
+    )
+
+  const onClick = () => {
+    setState({})
+    startTransition(async () => {
+      const res = await syncStripePlansAction({}, new FormData())
+      setState(res)
+    })
+  }
+
+  return (
+    <div className="flex items-start gap-3">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={pending}
+        className="inline-flex items-center gap-2 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:bg-cloud disabled:opacity-50"
+        title="Idempotent fetch-or-create of Stripe products + prices for every plan."
+      >
+        <ArrowsClockwise
+          size={14}
+          weight="bold"
+          className={pending ? 'animate-spin' : ''}
+        />
+        {pending
+          ? 'Syncing…'
+          : allSynced
+            ? 'Re-sync Stripe'
+            : 'Sync Stripe products'}
+      </button>
+      {state.error ? (
+        <span className="rounded-md border border-error/30 bg-error/5 px-2 py-1 text-xs text-error">
+          {state.error}
+        </span>
+      ) : null}
+      {state.report ? (
+        <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-xs text-success">
+          <div className="font-semibold">
+            Synced {state.report.plans.length} plan
+            {state.report.plans.length === 1 ? '' : 's'}
+          </div>
+          <ul className="mt-1 space-y-0.5 font-mono text-[10px]">
+            {state.report.plans.map((p) => (
+              <li key={p.code}>
+                <span className="font-bold">{p.code}</span>: product{' '}
+                {p.productAction} · monthly {p.monthlyAction} · yearly{' '}
+                {p.yearlyAction}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   )
 }
 

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
 import { setTenantPlan } from '@/lib/saas/subscriptions'
+import { syncStripePlans, type SyncReport } from '@/lib/saas/sync'
 import { logAudit } from '@/lib/audit'
 import type { Database } from '@/types/database'
 
@@ -91,4 +92,32 @@ export async function setTenantPlanAction(
 
   revalidatePath('/admin/billing')
   return { ok: true }
+}
+
+export type SyncStripePlansState = {
+  error?: string
+  report?: SyncReport
+}
+
+/**
+ * Mirror our subscription_plans into Stripe (idempotent fetch-or-create).
+ * Returns a per-plan summary so the UI can show what changed. Superadmin
+ * only — Stripe platform credentials are RMS-level.
+ */
+export async function syncStripePlansAction(
+  _prev: SyncStripePlansState,
+  _formData: FormData,
+): Promise<SyncStripePlansState> {
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (ctx.globalRole !== 'superadmin') return { error: 'forbidden' }
+
+  try {
+    const report = await syncStripePlans()
+    revalidatePath('/admin/billing')
+    return { report }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown'
+    return { error: msg }
+  }
 }
