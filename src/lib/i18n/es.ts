@@ -43,6 +43,8 @@ export const es: Dictionary = {
     none: 'Ninguno',
     optional: 'opcional',
     fixErrorsBelow: 'Por favor corrija los campos resaltados abajo.',
+    collapseSidebar: 'Contraer menú',
+    expandSidebar: 'Expandir menú',
   },
 
   lang: {

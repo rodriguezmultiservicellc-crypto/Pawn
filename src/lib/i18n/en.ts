@@ -48,6 +48,8 @@ export const en = {
     none: 'None',
     optional: 'optional',
     fixErrorsBelow: 'Please fix the highlighted fields below.',
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
   },
 
   lang: {
