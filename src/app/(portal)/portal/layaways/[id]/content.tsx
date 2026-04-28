@@ -42,11 +42,13 @@ export default function PortalLayawayDetail({
   payments,
   banner,
   payEnabled,
+  onlinePaymentsAvailable,
 }: {
   layaway: PortalLayawayDetailView
   payments: PortalLayawayPaymentView[]
   banner: 'success' | 'cancelled' | 'processing' | null
   payEnabled: boolean
+  onlinePaymentsAvailable: boolean
 }) {
   const { t } = useI18n()
   const [pending, startTransition] = useTransition()
@@ -194,6 +196,10 @@ export default function PortalLayawayDetail({
                 {error}
               </div>
             ) : null}
+          </div>
+        ) : !onlinePaymentsAvailable && layaway.balanceRemaining > 0 ? (
+          <div className="mt-3 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
+            {t.portal.layaways.payInStoreNotice}
           </div>
         ) : null}
       </section>

@@ -72,6 +72,7 @@ export const en = {
     pos: 'POS',
     appraisals: 'Appraisals',
     reports: 'Reports',
+    form1099: '1099 report',
     compliance: 'Compliance',
     audit: 'Audit log',
     team: 'Team',
@@ -1545,6 +1546,8 @@ export const en = {
       payoffPanelTitle: 'Pay payoff balance',
       payoffPanelHelp:
         'Pay your full balance online with a credit or debit card. Once you complete payment your loan will be marked redeemed automatically.',
+      payInStoreNotice:
+        'Online payments are not available right now. Please visit the store to make a payment — your balance and due date are shown above.',
       payNow: 'Pay payoff balance',
       paying: 'Opening checkout…',
       payoffAmount: 'Payoff today',
@@ -1638,6 +1641,8 @@ export const en = {
       payAmountLabel: 'Amount',
       payAmountHelp:
         'You can pay any amount up to your remaining balance. Card payments only.',
+      payInStoreNotice:
+        'Online payments are not available right now. Please visit the store to make a payment — your balance and next due date are shown above.',
       paying: 'Opening checkout…',
       cantExceed: 'Amount cannot exceed remaining balance.',
       atLeast: 'Amount must be at least $1.',
@@ -1840,6 +1845,11 @@ export const en = {
         title: 'Cross-Shop Rollup',
         description: 'High-level KPIs across child shops (chain HQ only).',
       },
+      form1099: {
+        title: '1099-MISC Year-End',
+        description:
+          'Customers who hit the IRS reporting threshold on buy-outright payouts.',
+      },
     },
     dailyRegister: {
       columns: {
@@ -1982,6 +1992,35 @@ export const en = {
         salesTotal: 'Net sales',
         interestIncome: 'Interest income',
       },
+    },
+    form1099: {
+      title: '1099-MISC Year-End Helper',
+      subtitle:
+        'Customers who hit the IRS reporting threshold on buy-outright payouts in a calendar year. Hand this dataset to your accountant — they file the actual 1099-MISC forms.',
+      taxYear: 'Tax year',
+      threshold: 'Threshold',
+      customer: 'Customer',
+      totalPaid: 'Total paid',
+      transactionCount: 'Transactions',
+      firstDate: 'First payment',
+      lastDate: 'Last payment',
+      idNumber: 'ID #',
+      address: 'Address',
+      downloadCsv: 'Download CSV',
+      emptyState:
+        'No buy-outright transactions in this year. Record a buy to see candidates.',
+      viewBuy: 'Record a buy',
+      candidatesAbove:
+        '{count} customer(s) crossed the {threshold} threshold in {year}.',
+      candidatesAboveTile: 'Customers above threshold',
+      totalReportable: 'Sum of payouts to qualifying customers.',
+      totalReportableTile: 'Total reportable',
+      totalAllPayouts:
+        'Total buy-outright payouts (all customers, including below threshold): {amount}.',
+      customerDeleted: 'Customer record deleted',
+      tinReminderTitle: 'Collect a W-9 before filing',
+      tinReminderBody:
+        "The IRS requires the recipient's TIN/SSN on each 1099-MISC. We don't store TINs in this system — your accountant will collect a Form W-9 from each candidate and add the TIN before filing.",
     },
   },
 

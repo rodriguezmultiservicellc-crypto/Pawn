@@ -69,6 +69,24 @@ export async function getStripeAccountIdForTenant(
   return data.stripe_account_id
 }
 
+/**
+ * Non-throwing variant. Used by portal pages that should still RENDER
+ * loan / layaway detail (with due dates + balances) even when the
+ * tenant hasn't onboarded Stripe Connect yet — they just hide the
+ * "Pay online" button and show a "pay in store" notice instead.
+ */
+export async function isTenantStripeConnected(
+  tenantId: string,
+): Promise<boolean> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('tenant_billing_settings')
+    .select('stripe_account_id, billing_enabled')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  return !!(data?.stripe_account_id && data.billing_enabled !== false)
+}
+
 function encodeForm(body: Record<string, string | number>): string {
   const params = new URLSearchParams()
   for (const [k, v] of Object.entries(body)) {

@@ -46,11 +46,13 @@ export default function PortalLoanDetail({
   events,
   banner,
   payoffEnabled,
+  onlinePaymentsAvailable,
 }: {
   loan: PortalLoanDetailView
   events: PortalLoanEventView[]
   banner: 'success' | 'cancelled' | 'processing' | null
   payoffEnabled: boolean
+  onlinePaymentsAvailable: boolean
 }) {
   const { t } = useI18n()
   const [pending, startTransition] = useTransition()
@@ -147,6 +149,10 @@ export default function PortalLoanDetail({
               </div>
             ) : null}
           </>
+        ) : !onlinePaymentsAvailable && loan.payoff > 0 ? (
+          <div className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
+            {t.portal.loans.payInStoreNotice}
+          </div>
         ) : null}
       </section>
 

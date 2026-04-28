@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { resolvePortalCustomer } from '@/lib/portal/customer'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripeLinkStatusBySessionId } from '@/lib/portal/stripe-payment-links'
+import { isTenantStripeConnected } from '@/lib/stripe/payment-link'
 import {
   daysBetween,
   payoffFromLoan,
@@ -157,12 +158,21 @@ export default async function PortalLoanDetailPage(props: {
     view.status === 'forfeited' ||
     view.status === 'voided'
 
+  // Don't gate the page on Stripe — customers should see their loan,
+  // due date, and payoff balance regardless of whether the shop has
+  // onboarded Stripe Connect. The "Pay online" button is hidden when
+  // Stripe isn't ready; the customer can still pay in store.
+  const onlinePaymentsAvailable = await isTenantStripeConnected(tenantId)
+
   return (
     <LoanDetail
       loan={view}
       events={eventsView}
       banner={banner}
-      payoffEnabled={!isClosed && view.payoff > 0}
+      payoffEnabled={
+        !isClosed && view.payoff > 0 && onlinePaymentsAvailable
+      }
+      onlinePaymentsAvailable={onlinePaymentsAvailable}
     />
   )
 }

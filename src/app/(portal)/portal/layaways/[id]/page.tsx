@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { resolvePortalCustomer } from '@/lib/portal/customer'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripeLinkStatusBySessionId } from '@/lib/portal/stripe-payment-links'
+import { isTenantStripeConnected } from '@/lib/stripe/payment-link'
 import LayawayDetail, {
   type PortalLayawayDetailView,
   type PortalLayawayPaymentView,
@@ -97,12 +98,21 @@ export default async function PortalLayawayDetailPage(props: {
   const isClosed =
     view.status === 'completed' || view.status === 'cancelled'
 
+  // Don't gate the page on Stripe Connect — customers should see their
+  // layaway, balance, and schedule regardless. The "Pay online" panel
+  // is hidden when Stripe isn't ready; the customer can still pay in
+  // store.
+  const onlinePaymentsAvailable = await isTenantStripeConnected(tenantId)
+
   return (
     <LayawayDetail
       layaway={view}
       payments={payments}
       banner={banner}
-      payEnabled={!isClosed && view.balanceRemaining > 0}
+      payEnabled={
+        !isClosed && view.balanceRemaining > 0 && onlinePaymentsAvailable
+      }
+      onlinePaymentsAvailable={onlinePaymentsAvailable}
     />
   )
 }
