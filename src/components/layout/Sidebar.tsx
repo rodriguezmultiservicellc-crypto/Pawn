@@ -25,6 +25,7 @@ import {
   CreditCard,
   Calculator,
   HandCoins,
+  Receipt,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -193,6 +194,14 @@ export function Sidebar({
       href: '/reports/police-report',
       label: t.nav.compliance,
       icon: <Shield size={18} weight="regular" />,
+    },
+    {
+      href: '/reports/1099',
+      label: t.nav.form1099,
+      icon: <Receipt size={18} weight="regular" />,
+      // Owner / manager / chain_admin only — pawn_clerks and repair_techs
+      // shouldn't see year-end totals. Same membership as audit log.
+      visible: canSeeAudit,
     },
     {
       href: '/audit',
