@@ -83,7 +83,9 @@ export async function GET(req: NextRequest) {
 }
 
 function authorizeCron(req: NextRequest): boolean {
-  if (req.headers.get('x-vercel-cron') === '1') return true
+  // Authorization: Bearer ${CRON_SECRET} only. Vercel Cron sets this header
+  // when CRON_SECRET is configured at the project level. The `x-vercel-cron`
+  // header is NOT a security check — any external HTTP caller can set it.
   const auth = req.headers.get('authorization')
   if (!auth) return false
   const expected = process.env.CRON_SECRET

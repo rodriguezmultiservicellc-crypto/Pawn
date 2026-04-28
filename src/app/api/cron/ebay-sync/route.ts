@@ -13,8 +13,10 @@
  *      last_synced_at across that tenant's listings — STUBBED, returns
  *      empty for now.
  *
- * Auth: `x-vercel-cron: 1` header (Vercel sets this) OR
- *       `Authorization: Bearer ${CRON_SECRET}` for manual triggers.
+ * Auth: `Authorization: Bearer ${CRON_SECRET}` only. Vercel Cron sets this
+ *       header when CRON_SECRET is configured at the project level. The
+ *       `x-vercel-cron` header is NOT a security check — any external HTTP
+ *       caller can set it.
  *
  * STUB STAGE — every actual eBay round-trip is mocked. The control flow,
  * iteration shape, and DB updates are real.
@@ -118,7 +120,6 @@ export async function GET(req: NextRequest) {
 }
 
 function authorizeCron(req: NextRequest): boolean {
-  if (req.headers.get('x-vercel-cron') === '1') return true
   const auth = req.headers.get('authorization')
   if (!auth) return false
   const expected = process.env.CRON_SECRET

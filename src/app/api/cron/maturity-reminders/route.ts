@@ -6,8 +6,10 @@
  * loan, dispatch a single reminder per (customer_id, kind, related_loan_id)
  * within a 24h idempotency window — re-running the cron the same day is safe.
  *
- * Auth: `x-vercel-cron: 1` header (Vercel sets this) OR
- * `Authorization: Bearer ${CRON_SECRET}` for manual / external schedulers.
+ * Auth: `Authorization: Bearer ${CRON_SECRET}` only. Vercel Cron sets the
+ * Authorization header when CRON_SECRET is configured at the project level.
+ * The `x-vercel-cron` header is NOT a security check — any external HTTP
+ * caller can set it — so this route never trusts it.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -105,7 +107,6 @@ export async function GET(req: NextRequest) {
 }
 
 function authorizeCron(req: NextRequest): boolean {
-  if (req.headers.get('x-vercel-cron') === '1') return true
   const auth = req.headers.get('authorization')
   if (!auth) return false
   const expected = process.env.CRON_SECRET

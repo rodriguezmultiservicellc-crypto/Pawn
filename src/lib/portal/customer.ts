@@ -47,11 +47,23 @@ export async function resolvePortalCustomer(): Promise<{
   const customer = (lookup.data ?? null) as CustomerRow | null
 
   if (!customer) redirect('/no-tenant')
-  if (ctx.tenantId && customer.tenant_id !== ctx.tenantId) {
-    // Ctx tenant disagrees with customer's tenant — prefer the customer's.
-    // The proxy bases its decisions on tenantRole, which we already
-    // verified above.
-  }
+
+  // Defense in depth: confirm the user holds an active client membership at
+  // the customer's tenant. Without this, a stale customers row could expose
+  // tenant A's data to a user whose only current client membership is at
+  // tenant B (e.g. former customer relinked to a new shop). The proxy
+  // verified `tenantRole === 'client'` against the active-tenant cookie,
+  // not against customer.tenant_id.
+  const { data: membership } = await admin
+    .from('user_tenants')
+    .select('role')
+    .eq('user_id', ctx.userId)
+    .eq('tenant_id', customer.tenant_id)
+    .eq('role', 'client')
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (!membership) redirect('/no-tenant')
 
   const fullName =
     customer.first_name || customer.last_name

@@ -1,21 +1,25 @@
 /**
  * Common guard + scope resolver for the report API routes.
  *
- * Returns 401 if unauthenticated, 403 if no tenant role, plus the
- * resolved scope + range. Reports live behind staff access only —
- * pawn_clerks can run the daily register but the broader operational
- * reports are restricted to manager / owner / chain_admin upstream
- * (the page-level routes also redirect on insufficient role).
- *
- * Per-route note: this helper does NOT enforce role at the action
- * layer. The pages already redirect; the API endpoints rely on RLS
- * for read access AND require an authenticated session.
+ * Enforces staff role at the API layer (not just the page layer) — API
+ * routes bypass the proxy, so a portal `client` user with a tenantId
+ * could otherwise reach report endpoints and pull whatever RLS allowed.
+ * Returns 401 if unauthenticated, 403 if not staff at the active tenant.
  */
 
 import { getCtx } from '@/lib/supabase/ctx'
 import { resolveReportScope, type ReportTenantScope } from './tenant-scope'
 import { parseRange } from './http'
 import type { ReportRange } from './types'
+
+const STAFF_ROLES = new Set([
+  'owner',
+  'chain_admin',
+  'manager',
+  'pawn_clerk',
+  'repair_tech',
+  'appraiser',
+])
 
 export type ReportApiCtx = {
   userId: string
@@ -35,6 +39,9 @@ export async function guardReportRequest(
   const ctx = await getCtx()
   if (!ctx) return new Response('unauthorized', { status: 401 })
   if (!ctx.tenantId) return new Response('no_tenant', { status: 403 })
+  if (!ctx.tenantRole || !STAFF_ROLES.has(ctx.tenantRole)) {
+    return new Response('forbidden', { status: 403 })
+  }
 
   const url = new URL(req.url)
   const range = parseRange(url.searchParams)

@@ -5,9 +5,10 @@
  * purity, and inserts into `spot_prices`). Records a `spot_price_refresh`
  * row in `audit_log` with the run summary.
  *
- * Auth: `x-vercel-cron: 1` header (Vercel sets this) OR
- *       `Authorization: Bearer ${CRON_SECRET}` for manual / external
- *       schedulers.
+ * Auth: `Authorization: Bearer ${CRON_SECRET}` only. Vercel Cron sets this
+ *       header when CRON_SECRET is configured at the project level. The
+ *       `x-vercel-cron` header is NOT a security check — any external HTTP
+ *       caller can set it.
  *
  * Recommended cadence (configure in `vercel.json` at deploy time):
  *   - Every 15 min during US bullion market hours (Mon–Fri 08:00–17:00 ET)
@@ -52,7 +53,6 @@ export async function GET(req: NextRequest) {
 }
 
 function authorizeCron(req: NextRequest): boolean {
-  if (req.headers.get('x-vercel-cron') === '1') return true
   const auth = req.headers.get('authorization')
   if (!auth) return false
   const expected = process.env.CRON_SECRET
