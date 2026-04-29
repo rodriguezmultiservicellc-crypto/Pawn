@@ -61,6 +61,12 @@ export default async function AdminLayout({
                 Billing
               </Link>
               <Link
+                href="/admin/watch-models"
+                className="text-ink hover:text-rausch"
+              >
+                Watches
+              </Link>
+              <Link
                 href="/admin/settings"
                 className="text-ink hover:text-rausch"
               >

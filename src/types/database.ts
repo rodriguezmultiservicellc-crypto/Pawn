@@ -3387,6 +3387,60 @@ export type Database = {
           },
         ]
       }
+      watch_models: {
+        Row: {
+          brand: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          est_value_max: number
+          est_value_min: number
+          id: string
+          model: string
+          nickname: string | null
+          notes: string | null
+          reference_no: string | null
+          updated_at: string
+          updated_by: string | null
+          year_end: number | null
+          year_start: number | null
+        }
+        Insert: {
+          brand: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          est_value_max: number
+          est_value_min: number
+          id?: string
+          model: string
+          nickname?: string | null
+          notes?: string | null
+          reference_no?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          year_end?: number | null
+          year_start?: number | null
+        }
+        Update: {
+          brand?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          est_value_max?: number
+          est_value_min?: number
+          id?: string
+          model?: string
+          nickname?: string | null
+          notes?: string | null
+          reference_no?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          year_end?: number | null
+          year_start?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
