@@ -213,7 +213,7 @@ export function Sidebar({
       href: '/team',
       label: t.nav.team,
       icon: <UsersThree size={18} weight="regular" />,
-      disabled: true,
+      visible: canSeeAudit, // owner / chain_admin / manager
     },
     {
       href: '/settings/communications',

@@ -135,23 +135,46 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
           statusDetail="Manage overrides"
         />
 
-        <SectionCard
-          icon={<Buildings size={20} weight="regular" />}
-          title="Tenant info"
-          status={view.contactFilled && view.addressFilled ? 'configured' : 'partial'}
-          statusDetail={[
-            view.contactFilled ? 'contact ✓' : 'no contact',
-            view.addressFilled ? 'address ✓' : 'no address',
-          ].join(' · ')}
-        >
-          <p className="mt-2 text-xs text-ash">
-            Tenant name, address, phone, and modules. Edit currently lives in
-            the admin tenants console — a per-tenant editor is on the roadmap.
-          </p>
-          <div className="mt-2 text-[11px] text-ash">
-            Modules: {enabledModules.length ? enabledModules.join(' · ') : 'none'}
-          </div>
-        </SectionCard>
+        {isOwner ? (
+          <Card
+            href="/settings/general"
+            icon={<Buildings size={20} weight="regular" />}
+            title="Tenant info"
+            description="Legal name, DBA, address, phone, email. Edits flow back into invoices, receipts, and customer comms."
+            status={
+              view.contactFilled && view.addressFilled
+                ? 'configured'
+                : 'partial'
+            }
+            statusDetail={[
+              view.contactFilled ? 'contact ✓' : 'no contact',
+              view.addressFilled ? 'address ✓' : 'no address',
+            ].join(' · ')}
+          />
+        ) : (
+          <SectionCard
+            icon={<Buildings size={20} weight="regular" />}
+            title="Tenant info"
+            status={
+              view.contactFilled && view.addressFilled
+                ? 'configured'
+                : 'partial'
+            }
+            statusDetail={[
+              view.contactFilled ? 'contact ✓' : 'no contact',
+              view.addressFilled ? 'address ✓' : 'no address',
+            ].join(' · ')}
+          >
+            <p className="mt-2 text-xs text-ash">
+              Tenant name, address, phone, modules. Owner-only edit at{' '}
+              <span className="font-mono">/settings/general</span>.
+            </p>
+            <div className="mt-2 text-[11px] text-ash">
+              Modules:{' '}
+              {enabledModules.length ? enabledModules.join(' · ') : 'none'}
+            </div>
+          </SectionCard>
+        )}
 
         {view.modules.pawn && view.pawnDefaults ? (
           <SectionCard

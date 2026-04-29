@@ -61,6 +61,12 @@ export default async function AdminLayout({
                 Billing
               </Link>
               <Link
+                href="/admin/settings"
+                className="text-ink hover:text-rausch"
+              >
+                Settings
+              </Link>
+              <Link
                 href="/dashboard"
                 className="rounded-md border border-hairline px-3 py-1 text-ink hover:border-ink"
                 title="Return to the staff workspace for the active tenant"

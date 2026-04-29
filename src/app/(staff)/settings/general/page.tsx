@@ -1,0 +1,55 @@
+import { redirect } from 'next/navigation'
+import { getCtx } from '@/lib/supabase/ctx'
+import { createAdminClient } from '@/lib/supabase/admin'
+import GeneralSettingsContent from './content'
+
+const SETTINGS_ROLES = new Set(['owner', 'chain_admin'])
+
+/**
+ * /settings/general — tenant identity + contact + module gates.
+ *
+ * Owner / chain_admin only (matches who can re-trigger Stripe Connect /
+ * change billing — the same blast radius as renaming the shop or
+ * disabling a module). Manager can VIEW from the hub but not edit here.
+ */
+export default async function GeneralSettingsPage() {
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
+  if (!ctx.tenantRole || !SETTINGS_ROLES.has(ctx.tenantRole)) {
+    redirect('/settings')
+  }
+
+  const admin = createAdminClient()
+  const { data: tenant } = await admin
+    .from('tenants')
+    .select(
+      'id, name, dba, address, city, state, zip, phone, email, has_pawn, has_repair, has_retail, tenant_type, parent_tenant_id, police_report_format',
+    )
+    .eq('id', ctx.tenantId)
+    .maybeSingle()
+
+  if (!tenant) redirect('/settings')
+
+  return (
+    <GeneralSettingsContent
+      tenant={{
+        id: tenant.id,
+        name: tenant.name,
+        dba: tenant.dba,
+        address: tenant.address,
+        city: tenant.city,
+        state: tenant.state,
+        zip: tenant.zip,
+        phone: tenant.phone,
+        email: tenant.email,
+        has_pawn: tenant.has_pawn,
+        has_repair: tenant.has_repair,
+        has_retail: tenant.has_retail,
+        tenant_type: tenant.tenant_type,
+        parent_tenant_id: tenant.parent_tenant_id,
+        police_report_format: tenant.police_report_format,
+      }}
+    />
+  )
+}
