@@ -25,7 +25,6 @@ import {
   getSignedUrl,
 } from '@/lib/supabase/storage'
 import { todayDateString, toMoney } from '@/lib/pawn/math'
-import { asLoose } from '@/lib/appraisals/db'
 import { registerPdfFonts } from './fonts'
 import AppraisalPDF, {
   type AppraisalCustomer,
@@ -54,7 +53,7 @@ export async function renderAppraisalPdf(args: {
   const { supabase, appraisalId, tenantId } = args
 
   // ── 1. Appraisal + customer
-  const { data: appraisal, error: aErr } = await asLoose(supabase)
+  const { data: appraisal, error: aErr } = await supabase
     .from('appraisals')
     .select(
       `id, tenant_id, appraisal_number, customer_id, inventory_item_id,
@@ -86,7 +85,7 @@ export async function renderAppraisalPdf(args: {
   if (!tenant) throw new Error('tenant_not_found')
 
   // ── 3. Stones
-  const { data: stoneRows } = await asLoose(supabase)
+  const { data: stoneRows } = await supabase
     .from('appraisal_stones')
     .select(
       'position, count, type, cut, est_carat, color, clarity, certified, cert_lab, cert_number',
@@ -110,7 +109,7 @@ export async function renderAppraisalPdf(args: {
   }))
 
   // ── 4. Photos (data URLs, capped at 4 for the print)
-  const { data: photoRows } = await asLoose(supabase)
+  const { data: photoRows } = await supabase
     .from('appraisal_photos')
     .select('id, storage_path, kind, caption, position')
     .eq('appraisal_id', appraisalId)

@@ -64,8 +64,7 @@ export async function updateEbayConfigAction(
     (formData.get('site_id') as string | null)?.trim() || 'EBAY_US'
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
+  const supa = admin
   const { error } = await supa
     .from('tenant_ebay_credentials')
     .update({
@@ -112,8 +111,7 @@ export async function runSyncNowAction(): Promise<
   await requireRoleInTenant(ctx.tenantId, OWNER_ROLES)
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
+  const supa = admin
   const { data: listings } = (await supa
     .from('ebay_listings')
     .select('id')

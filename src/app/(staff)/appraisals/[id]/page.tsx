@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
-import { asLoose } from '@/lib/appraisals/db'
 import {
   APPRAISAL_PHOTOS_BUCKET,
   getSignedUrl,
@@ -24,7 +23,7 @@ export default async function AppraisalDetailPage(props: { params: Params }) {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
 
-  const { data: appraisal } = await asLoose(ctx.supabase)
+  const { data: appraisal } = await ctx.supabase
     .from('appraisals')
     .select(
       `id, tenant_id, appraisal_number, customer_id, inventory_item_id,
@@ -43,7 +42,7 @@ export default async function AppraisalDetailPage(props: { params: Params }) {
   if (!appraisal) redirect('/appraisals')
 
   const [{ data: stones }, { data: photos }] = await Promise.all([
-    asLoose(ctx.supabase)
+    ctx.supabase
       .from('appraisal_stones')
       .select(
         'id, position, count, type, cut, est_carat, color, clarity, certified, cert_lab, cert_number, notes',
@@ -51,7 +50,7 @@ export default async function AppraisalDetailPage(props: { params: Params }) {
       .eq('appraisal_id', id)
       .is('deleted_at', null)
       .order('position', { ascending: true }),
-    asLoose(ctx.supabase)
+    ctx.supabase
       .from('appraisal_photos')
       .select('id, storage_path, kind, caption, position, created_at')
       .eq('appraisal_id', id)

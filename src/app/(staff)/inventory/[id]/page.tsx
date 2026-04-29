@@ -107,23 +107,16 @@ export default async function InventoryItemPage(props: { params: Params }) {
   // Load tenant credentials + most-recent draft/active listing so the
   // detail page can render the eBay publishing panel inline.
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adminAny = admin as any
 
-  const { data: credRow } = (await adminAny
+  const { data: credRow } = await admin
     .from('tenant_ebay_credentials')
     .select('refresh_token, disconnected_at')
     .eq('tenant_id', item.tenant_id)
-    .maybeSingle()) as {
-    data: Pick<
-      TenantEbayCredentialsRow,
-      'refresh_token' | 'disconnected_at'
-    > | null
-  }
+    .maybeSingle()
   const ebayConnected =
     !!credRow?.refresh_token && !credRow.disconnected_at
 
-  const { data: listingRow } = (await adminAny
+  const { data: listingRow } = (await admin
     .from('ebay_listings')
     .select(
       'id, status, ebay_listing_id, ebay_offer_id, ebay_sku, title, condition_id, category_id, format, list_price, currency, quantity, description, marketing_message, photo_urls, view_count, watcher_count, last_synced_at, error_text',

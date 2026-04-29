@@ -321,9 +321,7 @@ export async function publishEbayListingAction(
     return { ok: true }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'publish_failed'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = admin as any
-    await sb
+    await admin
       .from('ebay_listings')
       .update({ status: 'error', error_text: msg })
       .eq('id', listingId)

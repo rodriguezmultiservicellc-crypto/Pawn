@@ -197,8 +197,7 @@ export async function persistTokens(args: {
     disconnected_at: null,
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
+  const supa = admin
   const existing = await supa
     .from('tenant_ebay_credentials')
     .select('tenant_id')
@@ -223,8 +222,7 @@ export async function persistTokens(args: {
  */
 export async function markDisconnected(tenantId: string): Promise<void> {
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
+  const supa = admin
   await supa
     .from('tenant_ebay_credentials')
     .update({
@@ -245,8 +243,7 @@ export async function resolveCredentials(
   tenantId: string,
 ): Promise<ResolvedEbayCredentials> {
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
+  const supa = admin
   const { data: row } = (await supa
     .from('tenant_ebay_credentials')
     .select(
@@ -306,8 +303,7 @@ export async function loadCredentialsRow(
   tenantId: string,
 ): Promise<TenantEbayCredentialsRow | null> {
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
+  const supa = admin
   const { data } = (await supa
     .from('tenant_ebay_credentials')
     .select(

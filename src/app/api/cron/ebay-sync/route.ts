@@ -39,8 +39,7 @@ export async function GET(req: NextRequest) {
   }
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
+  const supa = admin
 
   // 1) Tenants with usable credentials.
   const { data: credentialRows } = (await supa

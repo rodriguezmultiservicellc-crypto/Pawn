@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
+import { useActionState, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -276,18 +276,24 @@ export default function CustomerDetail({
   }
 
   // The form uses uncontrolled defaultValue inputs. React 19 auto-resets
-  // <form action={fn}> after submission, so on a validation error we need
-  // to bump a key + repopulate from the echoed FormData so the operator's
+  // <form action={fn}> after submission, so on a validation error we
+  // bump a key + repopulate from the echoed FormData so the operator's
   // edits aren't lost.
-  const [initial, setInitial] = useState<CustomerFieldValues>(recordInitial)
+  //
+  // Implemented via the official "compute state during render based on
+  // prev state" pattern (https://react.dev/reference/react/useState
+  // #storing-information-from-previous-renders). React handles setState
+  // calls during render by re-rendering immediately without flushing.
+  // This avoids react-hooks/set-state-in-effect + react-hooks/refs.
+  const initial: CustomerFieldValues = state.values
+    ? echoToCustomerFieldValues(state.values, recordInitial)
+    : recordInitial
+  const [lastState, setLastState] = useState(state)
   const [formGen, setFormGen] = useState(0)
-
-  useEffect(() => {
-    if (state.values) {
-      setInitial((cur) => echoToCustomerFieldValues(state.values!, cur))
-      setFormGen((g) => g + 1)
-    }
-  }, [state])
+  if (state !== lastState) {
+    setLastState(state)
+    if (state.values) setFormGen((g) => g + 1)
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

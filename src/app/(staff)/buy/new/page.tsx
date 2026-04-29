@@ -61,8 +61,7 @@ export default async function NewBuyPage() {
 
   const [spotMap, overridesRes, settingsRes] = await Promise.all([
     getLatestSpotPrices(PURITY_COMBOS),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any)
+    admin
       .from('spot_price_overrides')
       .select('metal_type, purity, multiplier')
       .eq('tenant_id', ctx.tenantId),
@@ -85,7 +84,9 @@ export default async function NewBuyPage() {
 
   // Tenant override multipliers keyed by metal::purity.
   const overrideMap: OverrideMap = {}
-  const overrideRows = (overridesRes?.data ?? []) as Array<
+  // SpotPriceOverrideRow.multiplier is `number` at runtime but the
+  // generated types narrow NUMERIC to `string`; widen via unknown.
+  const overrideRows = (overridesRes?.data ?? []) as unknown as Array<
     Pick<SpotPriceOverrideRow, 'metal_type' | 'purity' | 'multiplier'>
   >
   for (const r of overrideRows) {

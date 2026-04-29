@@ -29,8 +29,7 @@ export default async function EbayListingsPage(props: {
   const status: EbayListingStatus = STATUS_TABS.includes(tab) ? tab : 'draft'
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
+  const supa = admin
 
   const { data: rows } = (await supa
     .from('ebay_listings')

@@ -23,7 +23,6 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { logAudit } from '@/lib/audit'
 import { renderAppraisalPdf } from '@/lib/pdf/render-appraisal'
-import { asLoose } from '@/lib/appraisals/db'
 import type { TenantRole } from '@/types/database-aliases'
 
 export const dynamic = 'force-dynamic'
@@ -52,7 +51,7 @@ export async function GET(
     return new Response('unauthorized', { status: 401 })
   }
 
-  const { data: appraisal, error: lookupErr } = await asLoose(session.supabase)
+  const { data: appraisal, error: lookupErr } = await session.supabase
     .from('appraisals')
     .select('id, tenant_id, appraisal_number, status, is_printed')
     .eq('id', appraisalId)
@@ -82,7 +81,7 @@ export async function GET(
 
   // Print-flip on first render of a finalized, unprinted appraisal.
   if (appraisal.status === 'finalized' && !appraisal.is_printed) {
-    const { error: flipErr } = await asLoose(supabase)
+    const { error: flipErr } = await supabase
       .from('appraisals')
       .update({
         is_printed: true,

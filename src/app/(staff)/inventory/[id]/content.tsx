@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
+import { useActionState, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -222,19 +222,20 @@ export default function InventoryDetail({
     tags: item.tags ?? [],
   }
 
-  // The form uses uncontrolled defaultValue inputs. React 19 auto-resets
-  // <form action={fn}> after submission, so on a validation error we need
-  // to bump a key + repopulate from the echoed FormData so the operator's
-  // edits aren't lost.
-  const [initial, setInitial] = useState<InventoryFieldValues>(recordInitial)
+  // Form-reset workaround: React 19 auto-resets <form action={fn}> after
+  // submission. On validation error we bump a key + repopulate from the
+  // echoed FormData so the user's typed values aren't wiped. Uses the
+  // official "compute state during render based on prev state" pattern
+  // (avoids react-hooks/set-state-in-effect + react-hooks/refs).
+  const initial: InventoryFieldValues = state.values
+    ? echoToInventoryFieldValues(state.values, recordInitial)
+    : recordInitial
+  const [lastState, setLastState] = useState(state)
   const [formGen, setFormGen] = useState(0)
-
-  useEffect(() => {
-    if (state.values) {
-      setInitial((cur) => echoToInventoryFieldValues(state.values!, cur))
-      setFormGen((g) => g + 1)
-    }
-  }, [state])
+  if (state !== lastState) {
+    setLastState(state)
+    if (state.values) setFormGen((g) => g + 1)
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

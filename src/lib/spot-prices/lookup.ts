@@ -44,7 +44,10 @@ export async function getLatestSpotPrice(args: {
   if (hit && hit.expiresAt > now) return hit.value
 
   const admin = createAdminClient()
-  // Type-erase the table reference until db:types regenerates after 0013.
+  // NUMERIC columns come back as `string` from the generated types but
+  // we treat them as `number` at runtime (supabase-js coerces). The
+  // hand-rolled SpotPriceRow type reflects the runtime shape, so we
+  // narrow with `as unknown as SpotPriceRow[]` at the boundary.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tbl = (admin as any).from('spot_prices')
   const { data, error } = await tbl
@@ -96,6 +99,7 @@ export async function getSpotPriceHistory(args: {
   const since = new Date(Date.now() - windowHours * 3600 * 1000).toISOString()
 
   const admin = createAdminClient()
+  // Same NUMERIC-vs-types divergence as above.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tbl = (admin as any).from('spot_prices')
   const { data, error } = await tbl

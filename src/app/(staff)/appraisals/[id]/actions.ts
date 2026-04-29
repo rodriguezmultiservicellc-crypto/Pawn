@@ -19,7 +19,6 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
-import { asLoose } from '@/lib/appraisals/db'
 import { canTransition, checkFinalizeReadiness } from '@/lib/appraisals/workflow'
 import type {
   AppraisalStatus,
@@ -60,7 +59,7 @@ function newUuid(): string {
 async function resolveAppraisalScope(appraisalId: string) {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
-  const { data: appraisal } = await asLoose(ctx.supabase)
+  const { data: appraisal } = await ctx.supabase
     .from('appraisals')
     .select(
       'id, tenant_id, status, is_printed, appraised_value, appraiser_user_id, valid_from, appraisal_number',
@@ -132,7 +131,7 @@ export async function updateAppraisalAction(
     patch.valid_from = v.valid_from
   if (v.valid_until !== undefined) patch.valid_until = v.valid_until
 
-  const { error } = await asLoose(supabase)
+  const { error } = await supabase
     .from('appraisals')
     .update(patch)
     .eq('id', appraisal.id)
@@ -181,7 +180,7 @@ export async function finalizeAppraisalAction(
   })
   if (!readiness.ok) return { error: readiness.reason }
 
-  const { error } = await asLoose(supabase)
+  const { error } = await supabase
     .from('appraisals')
     .update({
       status: 'finalized',
@@ -228,7 +227,7 @@ export async function voidAppraisalAction(
   if (!canTransition(appraisal.status as AppraisalStatus, 'voided'))
     return { error: 'illegal_status' }
 
-  const { error } = await asLoose(supabase)
+  const { error } = await supabase
     .from('appraisals')
     .update({
       status: 'voided',
@@ -305,7 +304,7 @@ export async function upsertStoneAction(
 
   let recordId: string | null = null
   if (v.stone_id) {
-    const { data: updated, error } = await asLoose(supabase)
+    const { data: updated, error } = await supabase
       .from('appraisal_stones')
       .update(row)
       .eq('id', v.stone_id)
@@ -315,7 +314,7 @@ export async function upsertStoneAction(
     if (error) return { error: error.message }
     recordId = updated?.id ?? v.stone_id
   } else {
-    const { data: inserted, error } = await asLoose(supabase)
+    const { data: inserted, error } = await supabase
       .from('appraisal_stones')
       .insert(row)
       .select('id')
@@ -348,7 +347,7 @@ export async function removeStoneAction(
   if (!stoneId) return { error: 'validation_failed' }
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
-  const { data: stone } = await asLoose(ctx.supabase)
+  const { data: stone } = await ctx.supabase
     .from('appraisal_stones')
     .select('id, tenant_id, appraisal_id')
     .eq('id', stoneId)
@@ -361,14 +360,14 @@ export async function removeStoneAction(
   )
 
   // Block if parent is locked.
-  const { data: parent } = await asLoose(supabase)
+  const { data: parent } = await supabase
     .from('appraisals')
     .select('is_printed, status')
     .eq('id', stone.appraisal_id)
     .maybeSingle()
   if (parent?.is_printed) return { error: 'locked' }
 
-  const { error } = await asLoose(supabase)
+  const { error } = await supabase
     .from('appraisal_stones')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', stoneId)
@@ -428,7 +427,7 @@ export async function addPhotoAction(
     }
   }
 
-  const { data: inserted, error } = await asLoose(supabase)
+  const { data: inserted, error } = await supabase
     .from('appraisal_photos')
     .insert({
       appraisal_id: appraisal.id,
@@ -462,7 +461,7 @@ export async function removePhotoAction(
   if (!photoId) return { error: 'validation_failed' }
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
-  const { data: photo } = await asLoose(ctx.supabase)
+  const { data: photo } = await ctx.supabase
     .from('appraisal_photos')
     .select('id, tenant_id, appraisal_id, storage_path')
     .eq('id', photoId)
@@ -474,7 +473,7 @@ export async function removePhotoAction(
     STAFF_APPRAISAL_ROLES,
   )
 
-  const { error } = await asLoose(supabase)
+  const { error } = await supabase
     .from('appraisal_photos')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', photoId)

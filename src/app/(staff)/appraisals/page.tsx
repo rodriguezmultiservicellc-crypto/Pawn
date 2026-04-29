@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
-import { asLoose } from '@/lib/appraisals/db'
 import AppraisalListContent, { type AppraisalListRow } from './content'
 import type {
   AppraisalPurpose,
@@ -27,7 +26,7 @@ export default async function AppraisalListPage(props: {
   const purposeFilter = (params.purpose ?? '') as AppraisalPurpose | ''
   const customerFilter = (params.customer ?? '').trim()
 
-  let query = asLoose(ctx.supabase)
+  let query = ctx.supabase
     .from('appraisals')
     .select(
       `id, appraisal_number, customer_id, item_description, purpose,
@@ -65,19 +64,19 @@ export default async function AppraisalListPage(props: {
     { count: countFinalized },
     { count: countVoided },
   ] = await Promise.all([
-    asLoose(ctx.supabase)
+    ctx.supabase
       .from('appraisals')
       .select('id', { count: 'exact', head: true })
       .eq('tenant_id', ctx.tenantId)
       .is('deleted_at', null)
       .eq('status', 'draft'),
-    asLoose(ctx.supabase)
+    ctx.supabase
       .from('appraisals')
       .select('id', { count: 'exact', head: true })
       .eq('tenant_id', ctx.tenantId)
       .is('deleted_at', null)
       .eq('status', 'finalized'),
-    asLoose(ctx.supabase)
+    ctx.supabase
       .from('appraisals')
       .select('id', { count: 'exact', head: true })
       .eq('tenant_id', ctx.tenantId)

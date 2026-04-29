@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import {
@@ -74,22 +74,21 @@ export default function NewInventoryItemForm() {
     FormData
   >(createInventoryItemAction, {})
 
-  const [initial, setInitial] = useState<InventoryFieldValues>(() =>
-    emptyInventoryItem(),
-  )
+  // Form-reset workaround: React 19 auto-resets <form action={fn}> after
+  // submission. On validation error we bump a key + repopulate from the
+  // echoed FormData so the user's typed values aren't wiped. Uses the
+  // official "compute state during render based on prev state" pattern
+  // (avoids react-hooks/set-state-in-effect + react-hooks/refs).
+  const baseInitial = emptyInventoryItem()
+  const initial: InventoryFieldValues = state.values
+    ? echoToFieldValues(state.values, baseInitial)
+    : baseInitial
+  const [lastState, setLastState] = useState(state)
   const [formGen, setFormGen] = useState(0)
-
-  // On each new server-action response carrying echoed values,
-  // repopulate `initial` and bump the key so InventoryFormFields
-  // remounts with the echoed values as new defaults. (React 19 auto-
-  // resets <form action={fn}> after submission, which would otherwise
-  // wipe the user's typed values on a validation error.)
-  useEffect(() => {
-    if (state.values) {
-      setInitial((cur) => echoToFieldValues(state.values!, cur))
-      setFormGen((g) => g + 1)
-    }
-  }, [state])
+  if (state !== lastState) {
+    setLastState(state)
+    if (state.values) setFormGen((g) => g + 1)
+  }
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 

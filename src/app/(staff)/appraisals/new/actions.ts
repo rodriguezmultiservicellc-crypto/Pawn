@@ -14,7 +14,6 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
-import { asLoose } from '@/lib/appraisals/db'
 import type { TenantRole } from '@/types/database-aliases'
 
 export type CreateAppraisalState = {
@@ -148,7 +147,7 @@ export async function createAppraisalAction(
   }
 
   // 1. Insert the appraisal. Trigger assigns appraisal_number.
-  const { data: appraisal, error: aErr } = await asLoose(supabase)
+  const { data: appraisal, error: aErr } = await supabase
     .from('appraisals')
     .insert({
       tenant_id: tenantId,
@@ -192,7 +191,7 @@ export async function createAppraisalAction(
       cert_number: s.cert_number,
       notes: s.notes,
     }))
-    await asLoose(supabase).from('appraisal_stones').insert(rows)
+    await supabase.from('appraisal_stones').insert(rows)
   }
 
   // 3. Upload photos (multiple under 'photo_files'). First photo becomes
@@ -215,7 +214,7 @@ export async function createAppraisalAction(
         body: f,
         contentType: f.type,
       })
-      await asLoose(supabase).from('appraisal_photos').insert({
+      await supabase.from('appraisal_photos').insert({
         appraisal_id: appraisalId,
         tenant_id: tenantId,
         storage_path: path,
