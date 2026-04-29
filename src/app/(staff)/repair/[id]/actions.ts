@@ -35,7 +35,11 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
-import { canTransition } from '@/lib/repair/workflow'
+import {
+  canTransition,
+  shouldOpenTimerOnEnter,
+  shouldStopTimerOnLeave,
+} from '@/lib/repair/workflow'
 import { computeBalanceDue, lineTotalCost, r4 } from '@/lib/repair/billing'
 import type {
   RepairStatus,
@@ -90,7 +94,9 @@ async function resolveTicketScope(
   const { data: ticket } = await ctx.supabase
     .from('repair_tickets')
     .select(
-      'id, tenant_id, customer_id, service_type, status, is_locked, quote_amount, deposit_amount, paid_amount, item_description, ticket_number',
+      // assigned_to / assigned_at / claimed_at added in 0023; needed for
+      // claim authorization + auto-timer flow.
+      'id, tenant_id, customer_id, service_type, status, is_locked, quote_amount, deposit_amount, paid_amount, item_description, ticket_number, assigned_to, assigned_at, claimed_at',
     )
     .eq('id', ticketId)
     .is('deleted_at', null)
@@ -102,6 +108,57 @@ async function resolveTicketScope(
   )
   return { ticket, supabase, userId, tenantId: ticket.tenant_id }
 }
+
+// ── Auto-timer helpers (used by claim / QA-return / parts-received and
+// the in_progress-out transitions). Idempotent: openTimerForTech is a
+// no-op if a timer is already running for this tech on this ticket;
+// stopRunningTimers is a no-op if no timers are running. ──────────────
+
+type AdminLikeClient = Awaited<ReturnType<typeof requireRoleInTenant>>['supabase']
+
+async function openTimerForTech(args: {
+  supabase: AdminLikeClient
+  tenantId: string
+  ticketId: string
+  techUserId: string
+  reason: 'claim' | 'parts_received' | 'qa_returned' | 'manual'
+}): Promise<void> {
+  const { data: existing } = await args.supabase
+    .from('repair_time_logs')
+    .select('id')
+    .eq('ticket_id', args.ticketId)
+    .eq('technician_id', args.techUserId)
+    .is('stopped_at', null)
+    .maybeSingle()
+  if (existing) return
+  await args.supabase.from('repair_time_logs').insert({
+    ticket_id: args.ticketId,
+    tenant_id: args.tenantId,
+    technician_id: args.techUserId,
+    started_at: new Date().toISOString(),
+    notes: `auto: ${args.reason}`,
+  })
+}
+
+async function stopRunningTimers(args: {
+  supabase: AdminLikeClient
+  tenantId: string
+  ticketId: string
+  reason: 'needs_parts' | 'qa' | 'ready' | 'voided' | 'abandoned'
+}): Promise<void> {
+  await args.supabase
+    .from('repair_time_logs')
+    .update({ stopped_at: new Date().toISOString() })
+    .eq('ticket_id', args.ticketId)
+    .eq('tenant_id', args.tenantId)
+    .is('stopped_at', null)
+}
+
+const MANAGER_ROLES: ReadonlyArray<TenantRole> = [
+  'owner',
+  'manager',
+  'chain_admin',
+]
 
 // ── Update basic fields (title / promised / description / notes) ─────────────
 
@@ -448,7 +505,8 @@ export async function markNeedsPartsAction(
   const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
     v.ticket_id,
   )
-  if (!canTransition(ticket.status as RepairStatus, 'needs_parts'))
+  const fromStatus = ticket.status as RepairStatus
+  if (!canTransition(fromStatus, 'needs_parts'))
     return { error: 'illegalTransition' }
 
   const { error } = await supabase
@@ -457,6 +515,16 @@ export async function markNeedsPartsAction(
     .eq('id', ticket.id)
     .eq('tenant_id', tenantId)
   if (error) return { error: error.message }
+
+  // Auto-stop running timers when leaving in_progress.
+  if (shouldStopTimerOnLeave(fromStatus)) {
+    await stopRunningTimers({
+      supabase,
+      tenantId,
+      ticketId: ticket.id,
+      reason: 'needs_parts',
+    })
+  }
 
   await supabase.from('repair_ticket_events').insert({
     ticket_id: ticket.id,
@@ -504,6 +572,18 @@ export async function partsReceivedAction(
     .eq('id', ticket.id)
     .eq('tenant_id', tenantId)
   if (error) return { error: error.message }
+
+  // Auto-open timer for the assigned tech when entering in_progress.
+  // (No-op if no tech is assigned — operator can still hit Resume manually.)
+  if (ticket.assigned_to && shouldOpenTimerOnEnter('in_progress')) {
+    await openTimerForTech({
+      supabase,
+      tenantId,
+      ticketId: ticket.id,
+      techUserId: ticket.assigned_to,
+      reason: 'parts_received',
+    })
+  }
 
   await supabase.from('repair_ticket_events').insert({
     ticket_id: ticket.id,
@@ -556,6 +636,17 @@ export async function markCompleteAction(
     .eq('id', ticket.id)
     .eq('tenant_id', tenantId)
   if (error) return { error: error.message }
+
+  // Auto-stop any running timer (in_progress always has one open if a
+  // tech claimed; needs_parts won't but the call is a no-op).
+  if (shouldStopTimerOnLeave(cur)) {
+    await stopRunningTimers({
+      supabase,
+      tenantId,
+      ticketId: ticket.id,
+      reason: 'ready',
+    })
+  }
 
   await supabase.from('repair_ticket_events').insert({
     ticket_id: ticket.id,
@@ -697,8 +788,17 @@ export async function markAbandonedAction(
   const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
     v.ticket_id,
   )
-  if (!canTransition(ticket.status as RepairStatus, 'abandoned'))
+  const fromStatus = ticket.status as RepairStatus
+  if (!canTransition(fromStatus, 'abandoned'))
     return { error: 'illegalTransition' }
+  if (shouldStopTimerOnLeave(fromStatus)) {
+    await stopRunningTimers({
+      supabase,
+      tenantId,
+      ticketId: ticket.id,
+      reason: 'abandoned',
+    })
+  }
 
   // 1. Flip to abandoned + lock.
   const { error: upErr } = await supabase
@@ -807,8 +907,17 @@ export async function voidTicketAction(
   const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
     v.ticket_id,
   )
-  if (!canTransition(ticket.status as RepairStatus, 'voided'))
+  const fromStatus = ticket.status as RepairStatus
+  if (!canTransition(fromStatus, 'voided'))
     return { error: 'illegalTransition' }
+  if (shouldStopTimerOnLeave(fromStatus)) {
+    await stopRunningTimers({
+      supabase,
+      tenantId,
+      ticketId: ticket.id,
+      reason: 'voided',
+    })
+  }
 
   const { error } = await supabase
     .from('repair_tickets')
@@ -856,15 +965,65 @@ export async function assignTechnicianAction(
   if (!parsed.success) return { error: 'validation_failed' }
   const v = parsed.data
 
+  // Routing a ticket is a manager-level decision (it changes who is
+  // accountable for the work). Tech members can self-assign by claiming
+  // an unassigned ticket, but they shouldn't be moving tickets between
+  // jewelers from this surface.
   const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
     v.ticket_id,
+    MANAGER_ROLES,
   )
+  const cur = ticket.status as RepairStatus
+
+  // Decide the new status.
+  // - awaiting_approval → assigned (the standard route-after-quote path)
+  // - assigned          → assigned (re-routing to a different tech)
+  // - in_progress / needs_parts / tech_qa → keep status (mid-work
+  //   re-assignment; rare but legal)
+  // - intake / quoted / terminal → refuse
+  let nextStatus: RepairStatus = cur
+  let isFirstAssign = false
+  if (cur === 'awaiting_approval') {
+    nextStatus = 'assigned'
+    isFirstAssign = true
+  } else if (cur === 'assigned') {
+    nextStatus = 'assigned'
+  } else if (
+    cur === 'in_progress' ||
+    cur === 'needs_parts' ||
+    cur === 'tech_qa'
+  ) {
+    nextStatus = cur
+  } else {
+    return { error: 'illegalTransition' }
+  }
+
+  const patch: RepairTicketUpdate = {
+    assigned_to: v.assigned_to,
+    updated_by: userId,
+  }
+  if (nextStatus !== cur) patch.status = nextStatus
+  // Stamp assigned_at on the FIRST routing only — re-assignment keeps
+  // the original timestamp so we can measure how long the queue took.
+  if (isFirstAssign || ticket.assigned_at == null) {
+    patch.assigned_at = new Date().toISOString()
+  }
+
   const { error } = await supabase
     .from('repair_tickets')
-    .update({ assigned_to: v.assigned_to, updated_by: userId })
+    .update(patch)
     .eq('id', ticket.id)
     .eq('tenant_id', tenantId)
   if (error) return { error: error.message }
+
+  await supabase.from('repair_ticket_events').insert({
+    ticket_id: ticket.id,
+    tenant_id: tenantId,
+    event_type: 'assigned_to_tech',
+    new_status: nextStatus !== cur ? nextStatus : null,
+    notes: null,
+    performed_by: userId,
+  })
 
   await logAudit({
     tenantId,
@@ -872,10 +1031,277 @@ export async function assignTechnicianAction(
     action: 'assign_technician',
     tableName: 'repair_tickets',
     recordId: ticket.id,
-    changes: { assigned_to: v.assigned_to ?? null },
+    changes: {
+      assigned_to: v.assigned_to ?? null,
+      new_status: nextStatus !== cur ? nextStatus : null,
+    },
   })
 
   revalidatePath(`/repair/${ticket.id}`)
+  revalidatePath('/repair')
+  return { ok: true }
+}
+
+// ── Tech actions: claim / send-to-QA / approve-QA / return-from-QA ────────
+
+/**
+ * Claim an `assigned` ticket and start work. Auto-opens a time log so
+ * the jeweler doesn't have to remember a separate punch-in step. The
+ * assigned tech (or a manager override) is the only one who can claim.
+ */
+export async function claimTicketAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const ticketIdRaw = formData.get('ticket_id')
+  if (typeof ticketIdRaw !== 'string' || !ticketIdRaw)
+    return { error: 'validation_failed' }
+
+  const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
+    ticketIdRaw,
+    TECH_ROLES,
+  )
+
+  if (ticket.status !== 'assigned') return { error: 'illegalTransition' }
+
+  // Authorization: must be the assigned tech, or a manager-level role.
+  // Manager override lets owners reassign-and-claim in one step if a
+  // jeweler is out and the ticket needs to move.
+  const { data: myMembership } = await supabase
+    .from('user_tenants')
+    .select('role')
+    .eq('tenant_id', tenantId)
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .maybeSingle()
+  const myRole = myMembership?.role as TenantRole | undefined
+  const isManager =
+    myRole === 'owner' || myRole === 'manager' || myRole === 'chain_admin'
+  if (!isManager && ticket.assigned_to !== userId) {
+    return { error: 'notAuthorized' }
+  }
+
+  // If a manager is claiming for someone else, also re-route assigned_to
+  // to the claiming user so the timer + audit trail line up.
+  const claimingTechId = isManager && ticket.assigned_to == null
+    ? userId
+    : (ticket.assigned_to ?? userId)
+
+  const patch: RepairTicketUpdate = {
+    status: 'in_progress',
+    claimed_at: new Date().toISOString(),
+    updated_by: userId,
+  }
+  if (ticket.assigned_to == null) patch.assigned_to = claimingTechId
+
+  const { error } = await supabase
+    .from('repair_tickets')
+    .update(patch)
+    .eq('id', ticket.id)
+    .eq('tenant_id', tenantId)
+  if (error) return { error: error.message }
+
+  await openTimerForTech({
+    supabase,
+    tenantId,
+    ticketId: ticket.id,
+    techUserId: claimingTechId,
+    reason: 'claim',
+  })
+
+  await supabase.from('repair_ticket_events').insert({
+    ticket_id: ticket.id,
+    tenant_id: tenantId,
+    event_type: 'claimed_by_tech',
+    new_status: 'in_progress',
+    notes: null,
+    performed_by: userId,
+  })
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'claim_ticket',
+    tableName: 'repair_tickets',
+    recordId: ticket.id,
+    changes: { new_status: 'in_progress', claimed_by: claimingTechId },
+  })
+
+  revalidatePath(`/repair/${ticket.id}`)
+  revalidatePath('/repair')
+  return { ok: true }
+}
+
+/**
+ * Tech finished hands-on work — move to tech_qa and stop the timer.
+ * Final QA pass before marking the ticket ready for customer pickup.
+ */
+export async function sendToQaAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const ticketIdRaw = formData.get('ticket_id')
+  const notes = formData.get('notes')
+  if (typeof ticketIdRaw !== 'string' || !ticketIdRaw)
+    return { error: 'validation_failed' }
+
+  const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
+    ticketIdRaw,
+    TECH_ROLES,
+  )
+
+  if (!canTransition(ticket.status as RepairStatus, 'tech_qa'))
+    return { error: 'illegalTransition' }
+
+  const { error } = await supabase
+    .from('repair_tickets')
+    .update({ status: 'tech_qa', updated_by: userId })
+    .eq('id', ticket.id)
+    .eq('tenant_id', tenantId)
+  if (error) return { error: error.message }
+
+  if (shouldStopTimerOnLeave('in_progress')) {
+    await stopRunningTimers({
+      supabase,
+      tenantId,
+      ticketId: ticket.id,
+      reason: 'qa',
+    })
+  }
+
+  await supabase.from('repair_ticket_events').insert({
+    ticket_id: ticket.id,
+    tenant_id: tenantId,
+    event_type: 'qa_started',
+    new_status: 'tech_qa',
+    notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
+    performed_by: userId,
+  })
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'send_to_qa',
+    tableName: 'repair_tickets',
+    recordId: ticket.id,
+    changes: { new_status: 'tech_qa' },
+  })
+
+  revalidatePath(`/repair/${ticket.id}`)
+  revalidatePath('/repair')
+  return { ok: true }
+}
+
+/**
+ * QA passes — mark ready for customer pickup. Same end state as
+ * markCompleteAction, but the source is the tech_qa stage so the audit
+ * trail records 'qa_completed' instead of 'completed'.
+ */
+export async function approveQaAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const ticketIdRaw = formData.get('ticket_id')
+  const notes = formData.get('notes')
+  if (typeof ticketIdRaw !== 'string' || !ticketIdRaw)
+    return { error: 'validation_failed' }
+
+  const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
+    ticketIdRaw,
+    TECH_ROLES,
+  )
+
+  if (ticket.status !== 'tech_qa') return { error: 'illegalTransition' }
+
+  const { error } = await supabase
+    .from('repair_tickets')
+    .update({
+      status: 'ready',
+      completed_at: new Date().toISOString(),
+      updated_by: userId,
+    })
+    .eq('id', ticket.id)
+    .eq('tenant_id', tenantId)
+  if (error) return { error: error.message }
+
+  await supabase.from('repair_ticket_events').insert({
+    ticket_id: ticket.id,
+    tenant_id: tenantId,
+    event_type: 'qa_completed',
+    new_status: 'ready',
+    notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
+    performed_by: userId,
+  })
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'approve_qa',
+    tableName: 'repair_tickets',
+    recordId: ticket.id,
+    changes: { new_status: 'ready' },
+  })
+
+  revalidatePath(`/repair/${ticket.id}`)
+  revalidatePath('/repair')
+  return { ok: true }
+}
+
+/**
+ * QA failed — send back to in_progress for more work. Reopens the
+ * timer for the assigned tech.
+ */
+export async function returnFromQaAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const ticketIdRaw = formData.get('ticket_id')
+  const notes = formData.get('notes')
+  if (typeof ticketIdRaw !== 'string' || !ticketIdRaw)
+    return { error: 'validation_failed' }
+
+  const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
+    ticketIdRaw,
+    TECH_ROLES,
+  )
+
+  if (ticket.status !== 'tech_qa') return { error: 'illegalTransition' }
+  if (!canTransition('tech_qa', 'in_progress'))
+    return { error: 'illegalTransition' }
+
+  const { error } = await supabase
+    .from('repair_tickets')
+    .update({ status: 'in_progress', updated_by: userId })
+    .eq('id', ticket.id)
+    .eq('tenant_id', tenantId)
+  if (error) return { error: error.message }
+
+  if (ticket.assigned_to && shouldOpenTimerOnEnter('in_progress')) {
+    await openTimerForTech({
+      supabase,
+      tenantId,
+      ticketId: ticket.id,
+      techUserId: ticket.assigned_to,
+      reason: 'qa_returned',
+    })
+  }
+
+  await supabase.from('repair_ticket_events').insert({
+    ticket_id: ticket.id,
+    tenant_id: tenantId,
+    event_type: 'qa_returned',
+    new_status: 'in_progress',
+    notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
+    performed_by: userId,
+  })
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'return_from_qa',
+    tableName: 'repair_tickets',
+    recordId: ticket.id,
+    changes: { new_status: 'in_progress' },
+  })
+
+  revalidatePath(`/repair/${ticket.id}`)
+  revalidatePath('/repair')
   return { ok: true }
 }
 

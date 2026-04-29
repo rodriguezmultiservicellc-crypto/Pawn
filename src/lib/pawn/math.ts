@@ -47,15 +47,29 @@ export function dailyRateFromMonthly(monthlyRate: number): number {
   return r4(monthlyRate / 30)
 }
 
-/** Straight-line accrual: principal × monthlyRate / 30 × daysElapsed. */
+/**
+ * Straight-line accrual: principal × monthlyRate / 30 × daysElapsed.
+ *
+ * Optional `minMonthlyCharge` floors the daily accrual at
+ * `minMonthlyCharge / 30`, so a 30-day redemption pays at least the
+ * monthly minimum and a 15-day redemption pays half. Floor applies
+ * regardless of monthlyRate — a $0 rate with $20 min still accrues
+ * $20/mo (defensive; the form won't allow rate=0 today, but the math
+ * shouldn't silently drop the minimum if it ever does).
+ */
 export function interestAccrued(
   principal: number,
   monthlyRate: number,
   daysElapsed: number,
+  minMonthlyCharge: number = 0,
 ): number {
-  if (daysElapsed <= 0 || principal <= 0 || monthlyRate <= 0) return 0
-  const daily = monthlyRate / 30
-  return r4(principal * daily * daysElapsed)
+  if (daysElapsed <= 0 || principal <= 0) return 0
+  const percentageDaily =
+    monthlyRate > 0 ? (principal * monthlyRate) / 30 : 0
+  const minDaily = minMonthlyCharge > 0 ? minMonthlyCharge / 30 : 0
+  const daily = Math.max(percentageDaily, minDaily)
+  if (daily <= 0) return 0
+  return r4(daily * daysElapsed)
 }
 
 // ── Date helpers ───────────────────────────────────────────────────────────
@@ -156,6 +170,8 @@ export type PayoffArgs = {
   events: ReadonlyArray<
     Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>
   >
+  /** Optional snapshot of the rate's min_monthly_charge floor. */
+  minMonthlyCharge?: number | null
 }
 
 export type PayoffResult = {
@@ -196,7 +212,14 @@ export function payoffBalance(args: PayoffArgs): PayoffResult {
   const today = args.today ?? todayDateString()
   const days = Math.max(0, daysBetween(args.issueDate, today))
 
-  const accrued = interestAccrued(principal, args.monthlyRate, days)
+  const minCharge =
+    args.minMonthlyCharge != null ? toMoney(args.minMonthlyCharge) : 0
+  const accrued = interestAccrued(
+    principal,
+    args.monthlyRate,
+    days,
+    minCharge,
+  )
 
   const { principalApplied, interestApplied } = appliedPayments(args.events)
   const principalOutstanding = r4(Math.max(0, principal - principalApplied))
@@ -257,7 +280,13 @@ export function splitPayment(
  * payoff balance. Useful in server components and the detail page.
  */
 export function payoffFromLoan(
-  loan: Pick<LoanRow, 'principal' | 'interest_rate_monthly' | 'issue_date'>,
+  loan: Pick<
+    LoanRow,
+    | 'principal'
+    | 'interest_rate_monthly'
+    | 'issue_date'
+    | 'min_monthly_charge'
+  >,
   events: ReadonlyArray<
     Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>
   >,
@@ -269,6 +298,7 @@ export function payoffFromLoan(
     issueDate: loan.issue_date,
     today,
     events,
+    minMonthlyCharge: loan.min_monthly_charge ?? null,
   })
 }
 

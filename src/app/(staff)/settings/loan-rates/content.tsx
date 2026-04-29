@@ -14,13 +14,16 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import {
   saveLoanRateAction,
+  saveTenantLoanPolicyAction,
   deleteLoanRateAction,
   type SaveRateState,
+  type SavePolicyState,
 } from './actions'
 
 export type LoanRateRow = {
   id: string
   rateMonthly: number
+  minMonthlyCharge: number | null
   label: string
   description: string | null
   sortOrder: number
@@ -32,8 +35,10 @@ export type LoanRateRow = {
 
 export default function LoanRatesContent({
   rows,
+  minLoanAmount,
 }: {
   rows: LoanRateRow[]
+  minLoanAmount: number | null
 }) {
   const { t } = useI18n()
   const [editing, setEditing] = useState<LoanRateRow | 'new' | null>(null)
@@ -72,6 +77,8 @@ export default function LoanRatesContent({
         </button>
       </header>
 
+      <PolicyCard initial={minLoanAmount} />
+
       <RateTable
         title={t.settingsLoanRates.activeTitle}
         rows={active}
@@ -97,6 +104,75 @@ export default function LoanRatesContent({
         />
       ) : null}
     </div>
+  )
+}
+
+function PolicyCard({ initial }: { initial: number | null }) {
+  const { t } = useI18n()
+  const [state, formAction, pending] = useActionState<
+    SavePolicyState,
+    FormData
+  >(saveTenantLoanPolicyAction, {})
+
+  const fe = state.fieldErrors?.['min_loan_amount']
+
+  return (
+    <section className="rounded-lg border border-hairline bg-canvas p-4">
+      <h2 className="text-sm font-semibold text-ink">
+        {t.settingsLoanRates.policyTitle}
+      </h2>
+      <p className="mt-1 text-xs text-ash">
+        {t.settingsLoanRates.policySubtitle}
+      </p>
+
+      <form action={formAction} className="mt-3 flex flex-wrap items-end gap-3">
+        <label className="block space-y-1">
+          <span className="text-sm font-medium text-ink">
+            {t.settingsLoanRates.minLoanAmountLabel}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-ash">$</span>
+            <input
+              type="number"
+              name="min_loan_amount"
+              step="0.01"
+              min={0}
+              defaultValue={initial == null ? '' : initial.toString()}
+              placeholder={t.settingsLoanRates.minLoanAmountPlaceholder}
+              className={`block w-40 rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+                fe ? 'border-error/60' : 'border-hairline'
+              }`}
+            />
+          </div>
+          {fe ? (
+            <span className="block text-xs text-error">{fe}</span>
+          ) : (
+            <span className="block text-xs text-ash">
+              {t.settingsLoanRates.minLoanAmountHint}
+            </span>
+          )}
+        </label>
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+        >
+          {pending ? t.common.saving : t.common.save}
+        </button>
+        {state.ok ? (
+          <span className="inline-flex items-center gap-1 text-xs text-success">
+            <CheckCircle size={12} weight="bold" />
+            {t.common.save} ✓
+          </span>
+        ) : null}
+        {state.error ? (
+          <span className="inline-flex items-center gap-1 text-xs text-error">
+            <Warning size={12} weight="bold" />
+            {state.error}
+          </span>
+        ) : null}
+      </form>
+    </section>
   )
 }
 
@@ -152,7 +228,15 @@ function RateTable({
                   ) : null}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-ink">
-                  {(r.rateMonthly * 100).toFixed(2)}% / mo
+                  <div>{(r.rateMonthly * 100).toFixed(2)}% / mo</div>
+                  {r.minMonthlyCharge != null ? (
+                    <div className="text-xs text-ash">
+                      {t.settingsLoanRates.minMonthlyChargeShort.replace(
+                        '{amount}',
+                        `$${r.minMonthlyCharge.toFixed(2)}`,
+                      )}
+                    </div>
+                  ) : null}
                 </td>
                 <td className="px-3 py-2 text-ink">{r.label}</td>
                 <td className="px-3 py-2 text-xs text-ash">
@@ -279,6 +363,42 @@ function EditDialog({
             {fe('rate_monthly') ? (
               <span className="block text-xs text-error">
                 {fe('rate_monthly')}
+              </span>
+            ) : null}
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-ink">
+              {t.settingsLoanRates.fieldMinMonthlyCharge}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-ash">$</span>
+              <input
+                type="number"
+                name="min_monthly_charge"
+                step="0.01"
+                min={0}
+                defaultValue={
+                  row?.minMonthlyCharge == null
+                    ? ''
+                    : row.minMonthlyCharge.toString()
+                }
+                placeholder={
+                  t.settingsLoanRates.fieldMinMonthlyChargePlaceholder
+                }
+                className={`block w-32 rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+                  fe('min_monthly_charge')
+                    ? 'border-error/60'
+                    : 'border-hairline'
+                }`}
+              />
+              <span className="text-xs text-ash">
+                {t.settingsLoanRates.fieldMinMonthlyChargeHint}
+              </span>
+            </div>
+            {fe('min_monthly_charge') ? (
+              <span className="block text-xs text-error">
+                {fe('min_monthly_charge')}
               </span>
             ) : null}
           </label>

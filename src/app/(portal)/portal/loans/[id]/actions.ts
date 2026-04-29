@@ -46,7 +46,8 @@ export async function createLoanPayoffSession(args: {
     .from('loans')
     .select(
       `id, tenant_id, customer_id, ticket_number, principal,
-       interest_rate_monthly, issue_date, status, deleted_at,
+       interest_rate_monthly, min_monthly_charge, issue_date, status,
+       deleted_at,
        events:loan_events(principal_paid, interest_paid, fees_paid)`,
     )
     .eq('id', args.loanId)
@@ -83,6 +84,7 @@ export async function createLoanPayoffSession(args: {
       principal: loan.principal,
       interest_rate_monthly: loan.interest_rate_monthly,
       issue_date: loan.issue_date,
+      min_monthly_charge: loan.min_monthly_charge,
     },
     events,
     todayDateString(),

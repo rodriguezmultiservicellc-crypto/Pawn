@@ -41,8 +41,8 @@ export default async function PortalLoanDetailPage(props: {
     .from('loans')
     .select(
       `id, tenant_id, customer_id, ticket_number, principal,
-       interest_rate_monthly, term_days, issue_date, due_date, status,
-       created_at, deleted_at,
+       interest_rate_monthly, min_monthly_charge, term_days, issue_date,
+       due_date, status, created_at, deleted_at,
        collateral:loan_collateral_items(id, description, position, deleted_at),
        events:loan_events(id, event_type, amount, principal_paid,
          interest_paid, fees_paid, payment_method, occurred_at, notes)`,
@@ -98,6 +98,7 @@ export default async function PortalLoanDetailPage(props: {
       principal: loan.principal,
       interest_rate_monthly: loan.interest_rate_monthly,
       issue_date: loan.issue_date,
+      min_monthly_charge: loan.min_monthly_charge,
     },
     events,
     today,

@@ -107,6 +107,10 @@ export const loanCreateSchema = z.object({
       (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
       z.coerce.number().min(0).max(0.25).finite(),
     ),
+  // Optional snapshot of the selected rate's min_monthly_charge floor.
+  // Empty/null = no per-rate floor (custom rate selection or rate has
+  // no minimum configured).
+  min_monthly_charge: optionalDecimal,
   term_days: z.coerce.number().int().min(1).max(180),
   issue_date: z
     .preprocess(

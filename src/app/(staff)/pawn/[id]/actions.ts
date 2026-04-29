@@ -39,7 +39,7 @@ async function resolveLoanScope(loanId: string) {
   const { data: loan } = await ctx.supabase
     .from('loans')
     .select(
-      'id, tenant_id, customer_id, principal, interest_rate_monthly, issue_date, due_date, status, is_printed',
+      'id, tenant_id, customer_id, principal, interest_rate_monthly, min_monthly_charge, issue_date, due_date, status, is_printed',
     )
     .eq('id', loanId)
     .is('deleted_at', null)
@@ -104,6 +104,7 @@ export async function recordPaymentAction(
       principal: loan.principal,
       interest_rate_monthly: loan.interest_rate_monthly,
       issue_date: loan.issue_date,
+      min_monthly_charge: loan.min_monthly_charge,
     },
     events ?? [],
     todayDateString(),
@@ -271,6 +272,7 @@ export async function redeemLoanAction(
       principal: loan.principal,
       interest_rate_monthly: loan.interest_rate_monthly,
       issue_date: loan.issue_date,
+      min_monthly_charge: loan.min_monthly_charge,
     },
     events ?? [],
     todayDateString(),

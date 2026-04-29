@@ -90,6 +90,8 @@ export type PawnTicketData = {
   is_printed: boolean
   principal: number
   interest_rate_monthly: number
+  /** Optional per-month interest floor. Null = no minimum. */
+  min_monthly_charge: number | null
   term_days: number
   issue_date: string
   due_date: string
@@ -578,13 +580,23 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
             mono
             width="third"
           />
-          <Field
-            labelEn={en.terms.dailyRateNote}
-            labelEs={es.terms.dailyRateNote}
-            value={formatPercent(data.daily_rate)}
-            mono
-            width="third"
-          />
+          {data.min_monthly_charge != null ? (
+            <Field
+              labelEn={en.terms.minMonthlyCharge ?? 'Min interest / mo'}
+              labelEs={es.terms.minMonthlyCharge ?? 'Interés mín. / mes'}
+              value={formatMoney(data.min_monthly_charge)}
+              mono
+              width="third"
+            />
+          ) : (
+            <Field
+              labelEn={en.terms.dailyRateNote}
+              labelEs={es.terms.dailyRateNote}
+              value={formatPercent(data.daily_rate)}
+              mono
+              width="third"
+            />
+          )}
           <Field
             labelEn={en.terms.termDays}
             labelEs={es.terms.termDays}

@@ -211,8 +211,10 @@ export type RepairStatus =
   | 'intake'
   | 'quoted'
   | 'awaiting_approval'
+  | 'assigned'
   | 'in_progress'
   | 'needs_parts'
+  | 'tech_qa'
   | 'ready'
   | 'picked_up'
   | 'abandoned'
@@ -233,6 +235,11 @@ export type RepairEventType =
   | 'void'
   | 'note'
   | 'photo_added'
+  | 'assigned_to_tech'
+  | 'claimed_by_tech'
+  | 'qa_started'
+  | 'qa_completed'
+  | 'qa_returned'
 
 export type RepairPhotoKind = 'intake' | 'in_progress' | 'final' | 'reference'
 

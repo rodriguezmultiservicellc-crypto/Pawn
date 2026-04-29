@@ -32,6 +32,12 @@ const TONE: Record<RepairEventType, string> = {
   void: 'border-error/30 bg-error/5 text-error',
   note: 'border-hairline bg-cloud text-ink',
   photo_added: 'border-hairline bg-cloud text-ink',
+  // Tech workflow events (0023).
+  assigned_to_tech: 'border-rausch/30 bg-rausch/5 text-rausch-deep',
+  claimed_by_tech: 'border-rausch/30 bg-rausch/5 text-rausch',
+  qa_started: 'border-success/30 bg-success/5 text-success',
+  qa_completed: 'border-success/30 bg-success/5 text-success',
+  qa_returned: 'border-warning/30 bg-warning/5 text-warning',
 }
 
 export function TimelinePanel({ events }: { events: RepairEventItem[] }) {

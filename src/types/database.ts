@@ -1586,6 +1586,7 @@ export type Database = {
           interest_rate_monthly: number
           is_printed: boolean
           issue_date: string
+          min_monthly_charge: number | null
           notes: string | null
           principal: number
           printed_at: string | null
@@ -1608,6 +1609,7 @@ export type Database = {
           interest_rate_monthly: number
           is_printed?: boolean
           issue_date?: string
+          min_monthly_charge?: number | null
           notes?: string | null
           principal: number
           printed_at?: string | null
@@ -1630,6 +1632,7 @@ export type Database = {
           interest_rate_monthly?: number
           is_printed?: boolean
           issue_date?: string
+          min_monthly_charge?: number | null
           notes?: string | null
           principal?: number
           printed_at?: string | null
@@ -2180,8 +2183,10 @@ export type Database = {
       }
       repair_tickets: {
         Row: {
+          assigned_at: string | null
           assigned_to: string | null
           balance_due: number | null
+          claimed_at: string | null
           completed_at: string | null
           created_at: string
           created_by: string | null
@@ -2213,8 +2218,10 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          assigned_at?: string | null
           assigned_to?: string | null
           balance_due?: number | null
+          claimed_at?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -2246,8 +2253,10 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          assigned_at?: string | null
           assigned_to?: string | null
           balance_due?: number | null
+          claimed_at?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -2731,6 +2740,7 @@ export type Database = {
           default_loan_interest_rate: number
           default_loan_term_days: number
           email_from: string | null
+          min_loan_amount: number | null
           resend_api_key: string | null
           resend_from_email: string | null
           resend_from_name: string | null
@@ -2752,6 +2762,7 @@ export type Database = {
           default_loan_interest_rate?: number
           default_loan_term_days?: number
           email_from?: string | null
+          min_loan_amount?: number | null
           resend_api_key?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
@@ -2773,6 +2784,7 @@ export type Database = {
           default_loan_interest_rate?: number
           default_loan_term_days?: number
           email_from?: string | null
+          min_loan_amount?: number | null
           resend_api_key?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
@@ -3155,6 +3167,7 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           label: string
+          min_monthly_charge: number | null
           rate_monthly: number
           sort_order: number
           tenant_id: string
@@ -3169,6 +3182,7 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           label: string
+          min_monthly_charge?: number | null
           rate_monthly: number
           sort_order?: number
           tenant_id: string
@@ -3183,6 +3197,7 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           label?: string
+          min_monthly_charge?: number | null
           rate_monthly?: number
           sort_order?: number
           tenant_id?: string
@@ -3706,13 +3721,20 @@ export type Database = {
         | "void"
         | "note"
         | "photo_added"
+        | "assigned_to_tech"
+        | "claimed_by_tech"
+        | "qa_started"
+        | "qa_completed"
+        | "qa_returned"
       repair_photo_kind: "intake" | "in_progress" | "final" | "reference"
       repair_status:
         | "intake"
         | "quoted"
         | "awaiting_approval"
+        | "assigned"
         | "in_progress"
         | "needs_parts"
+        | "tech_qa"
         | "ready"
         | "picked_up"
         | "abandoned"
@@ -4058,14 +4080,21 @@ export const Constants = {
         "void",
         "note",
         "photo_added",
+        "assigned_to_tech",
+        "claimed_by_tech",
+        "qa_started",
+        "qa_completed",
+        "qa_returned",
       ],
       repair_photo_kind: ["intake", "in_progress", "final", "reference"],
       repair_status: [
         "intake",
         "quoted",
         "awaiting_approval",
+        "assigned",
         "in_progress",
         "needs_parts",
+        "tech_qa",
         "ready",
         "picked_up",
         "abandoned",

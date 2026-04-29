@@ -52,6 +52,7 @@ export type LoanView = {
   ticket_number: string
   principal: number
   interest_rate_monthly: number
+  min_monthly_charge: number | null
   term_days: number
   issue_date: string
   due_date: string

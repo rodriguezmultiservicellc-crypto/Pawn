@@ -22,6 +22,8 @@ export type CustomerOption = {
 export type LoanRateOption = {
   id: string
   rateMonthly: number
+  /** Per-rate floor on monthly interest. Null = no floor. */
+  minMonthlyCharge: number | null
   label: string
   description: string | null
   isDefault: boolean
@@ -32,9 +34,12 @@ const CUSTOM_RATE_VALUE = '__custom__'
 export default function NewPawnLoanForm({
   customers,
   rates,
+  minLoanAmount,
 }: {
   customers: CustomerOption[]
   rates: LoanRateOption[]
+  /** Tenant-wide min loan principal. Null = no minimum. */
+  minLoanAmount: number | null
 }) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<
@@ -63,14 +68,21 @@ export default function NewPawnLoanForm({
     '0.10'
   const [customRate, setCustomRate] = useState<string>(initialCustomRate)
   const isCustomRate = rateChoice === CUSTOM_RATE_VALUE
+  const selectedRate = isCustomRate
+    ? null
+    : (rates.find((r) => r.id === rateChoice) ?? null)
   const submittedRate = isCustomRate
     ? customRate
-    : (rates.find((r) => r.id === rateChoice)?.rateMonthly?.toString() ??
-       customRate)
+    : (selectedRate?.rateMonthly?.toString() ?? customRate)
+  // Custom rate has no min by definition. Snapshot the preset rate's
+  // min_monthly_charge to the hidden field so the server can write it
+  // onto loans.min_monthly_charge.
+  const submittedMinCharge =
+    selectedRate?.minMonthlyCharge != null
+      ? selectedRate.minMonthlyCharge.toString()
+      : ''
 
-  const selectedRateDescription = isCustomRate
-    ? null
-    : (rates.find((r) => r.id === rateChoice)?.description ?? null)
+  const selectedRateDescription = selectedRate?.description ?? null
 
   const computedDueDate = useMemo(() => {
     const days = parseInt(termDays || '0', 10)
@@ -164,12 +176,20 @@ export default function NewPawnLoanForm({
               <input
                 type="number"
                 step="0.01"
-                min={0.01}
+                min={minLoanAmount ?? 0.01}
                 name="principal"
                 required
                 placeholder="0.00"
                 className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
               />
+              {minLoanAmount != null ? (
+                <span className="block text-xs text-ash">
+                  {t.pawn.new_.principalMinHint.replace(
+                    '{amount}',
+                    `$${minLoanAmount.toFixed(2)}`,
+                  )}
+                </span>
+              ) : null}
               {state.fieldErrors?.principal ? (
                 <span className="text-xs text-error">
                   {state.fieldErrors.principal}
@@ -189,6 +209,14 @@ export default function NewPawnLoanForm({
                 name="interest_rate_monthly"
                 value={submittedRate}
               />
+              {/* Snapshot of the selected rate's per-month minimum (empty
+                  when the operator picked Custom or the rate has no
+                  floor). The server reads this onto loans.min_monthly_charge. */}
+              <input
+                type="hidden"
+                name="min_monthly_charge"
+                value={submittedMinCharge}
+              />
               {rates.length > 0 ? (
                 <select
                   value={rateChoice}
@@ -198,6 +226,12 @@ export default function NewPawnLoanForm({
                   {rates.map((r) => (
                     <option key={r.id} value={r.id}>
                       {(r.rateMonthly * 100).toFixed(2)}% — {r.label}
+                      {r.minMonthlyCharge != null
+                        ? ` (${t.pawn.new_.rateMinSuffix.replace(
+                            '{amount}',
+                            `$${r.minMonthlyCharge.toFixed(2)}`,
+                          )})`
+                        : ''}
                       {r.isDefault ? ` (${t.pawn.new_.rateDefaultBadge})` : ''}
                     </option>
                   ))}

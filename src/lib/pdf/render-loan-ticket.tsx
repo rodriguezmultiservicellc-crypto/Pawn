@@ -72,8 +72,8 @@ export async function renderLoanTicketPdf(args: {
     .from('loans')
     .select(
       `id, tenant_id, customer_id, ticket_number, principal,
-       interest_rate_monthly, term_days, issue_date, due_date, status,
-       is_printed, signature_path, notes,
+       interest_rate_monthly, min_monthly_charge, term_days, issue_date,
+       due_date, status, is_printed, signature_path, notes,
        customer:customers(
          id, first_name, last_name, middle_name, date_of_birth,
          address1, address2, city, state, zip,
@@ -186,7 +186,14 @@ export async function renderLoanTicketPdf(args: {
   // ── 6. Compute end-of-term interest + payoff
   const principal = toMoney(loan.principal)
   const monthlyRate = toMoney(loan.interest_rate_monthly)
-  const termInterest = interestAccrued(principal, monthlyRate, loan.term_days)
+  const minMonthlyCharge =
+    loan.min_monthly_charge == null ? 0 : toMoney(loan.min_monthly_charge)
+  const termInterest = interestAccrued(
+    principal,
+    monthlyRate,
+    loan.term_days,
+    minMonthlyCharge,
+  )
   const totalPayoffAtTerm = r4(principal + termInterest)
   const dailyRate = dailyRateFromMonthly(monthlyRate)
 
@@ -197,6 +204,7 @@ export async function renderLoanTicketPdf(args: {
     is_printed: loan.is_printed,
     principal,
     interest_rate_monthly: monthlyRate,
+    min_monthly_charge: minMonthlyCharge > 0 ? minMonthlyCharge : null,
     term_days: loan.term_days,
     issue_date: loan.issue_date,
     due_date: loan.due_date,

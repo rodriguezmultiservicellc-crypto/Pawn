@@ -14,14 +14,19 @@ type SearchParams = Promise<{
   customer?: string
   serviceType?: string
   assignedTo?: string
+  showAll?: string
 }>
 
 const NON_TERMINAL_STATUSES: ReadonlyArray<RepairStatus> = [
   'intake',
   'quoted',
   'awaiting_approval',
+  // patches/0023 added 'assigned' (routed but not claimed) and 'tech_qa'
+  // (final QA pass) — both belong in the active queue.
+  'assigned',
   'in_progress',
   'needs_parts',
+  'tech_qa',
   'ready',
 ]
 
@@ -49,7 +54,17 @@ export default async function RepairListPage(props: {
     | 'dueSoon7'
   const customerFilter = (params.customer ?? '').trim()
   const serviceTypeFilter = (params.serviceType ?? '') as ServiceType | ''
-  const assignedToFilter = (params.assignedTo ?? '').trim()
+  const showAll = params.showAll === '1'
+
+  // Tech inbox auto-filter: when a repair_tech opens the list and hasn't
+  // explicitly asked for the full board, default to "my tickets" so the
+  // first thing they see is the queue they're accountable for. Manager+
+  // roles see everything by default — they're routing work, not doing it.
+  let assignedToFilter = (params.assignedTo ?? '').trim()
+  const isTech = ctx.tenantRole === 'repair_tech'
+  if (isTech && !assignedToFilter && !showAll) {
+    assignedToFilter = ctx.userId
+  }
 
   const today = todayDateString()
   const in7 = addDaysIso(today, 7)
@@ -73,8 +88,10 @@ export default async function RepairListPage(props: {
     statusFilter === 'intake' ||
     statusFilter === 'quoted' ||
     statusFilter === 'awaiting_approval' ||
+    statusFilter === 'assigned' ||
     statusFilter === 'in_progress' ||
     statusFilter === 'needs_parts' ||
+    statusFilter === 'tech_qa' ||
     statusFilter === 'ready' ||
     statusFilter === 'picked_up' ||
     statusFilter === 'abandoned' ||

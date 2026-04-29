@@ -245,6 +245,7 @@ export async function createLoanAction(
     customer_id: formData.get('customer_id'),
     principal: formData.get('principal'),
     interest_rate_monthly: formData.get('interest_rate_monthly'),
+    min_monthly_charge: formData.get('min_monthly_charge'),
     term_days: termDays,
     issue_date: issueDate,
     due_date: computedDueDate,
@@ -268,6 +269,27 @@ export async function createLoanAction(
 
   const v = parsed.data
 
+  // Tenant-wide minimum loan amount (patches/0022). Read AFTER schema
+  // validation so we don't run a query on a malformed submission, but
+  // BEFORE customer lookup / inserts so a too-small loan never lands
+  // partially in the DB.
+  const { data: settingsRow } = await supabase
+    .from('settings')
+    .select('min_loan_amount')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  const tenantMin =
+    settingsRow?.min_loan_amount == null
+      ? null
+      : Number(settingsRow.min_loan_amount)
+  if (tenantMin != null && v.principal < tenantMin) {
+    return {
+      fieldErrors: {
+        principal: `principal_below_tenant_min:${tenantMin.toFixed(2)}`,
+      },
+    }
+  }
+
   // Defense in depth: re-validate the customer belongs to this tenant.
   const { data: customer } = await supabase
     .from('customers')
@@ -290,6 +312,9 @@ export async function createLoanAction(
       customer_id: v.customer_id,
       principal: v.principal,
       interest_rate_monthly: v.interest_rate_monthly,
+      // Snapshot of the selected rate's min_monthly_charge floor, frozen
+      // for the life of the loan. Null = no floor applies to this loan.
+      min_monthly_charge: v.min_monthly_charge,
       term_days: v.term_days,
       issue_date: v.issue_date,
       due_date: v.due_date ?? addDaysIso(v.issue_date, v.term_days),
@@ -480,6 +505,7 @@ export async function createLoanAction(
       ticket_number: loanRow.ticket_number,
       principal: v.principal,
       interest_rate_monthly: v.interest_rate_monthly,
+      min_monthly_charge: v.min_monthly_charge,
       term_days: v.term_days,
       customer_id: v.customer_id,
       collateral_count: collateralInserts.length,

@@ -10,9 +10,20 @@ import { logAudit } from '@/lib/audit'
 
 const ROLES = ['owner', 'chain_admin', 'manager'] as const
 
+// Empty string from a blank optional money input must become null BEFORE
+// the inner schema runs — same pattern as the loan validators.
+const optionalMoney = z
+  .preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.coerce.number().nonnegative().finite().nullable().optional(),
+  )
+  .transform((v) => (v === null || v === undefined ? null : v))
+
 const rateSchema = z
   .object({
     rate_monthly: z.coerce.number().min(0).max(0.25),
+    // Optional floor on monthly interest. NULL = no floor.
+    min_monthly_charge: optionalMoney,
     label: z.string().trim().min(1).max(80),
     description: z
       .preprocess(
@@ -45,6 +56,7 @@ export async function saveLoanRateAction(
 
   const parsed = rateSchema.safeParse({
     rate_monthly: formData.get('rate_monthly'),
+    min_monthly_charge: formData.get('min_monthly_charge'),
     label: formData.get('label'),
     description: formData.get('description'),
     sort_order: formData.get('sort_order'),
@@ -83,6 +95,7 @@ export async function saveLoanRateAction(
       .from('tenant_loan_rates')
       .update({
         rate_monthly: v.rate_monthly,
+        min_monthly_charge: v.min_monthly_charge,
         label: v.label,
         description: v.description,
         sort_order: v.sort_order,
@@ -98,6 +111,7 @@ export async function saveLoanRateAction(
     const { error } = await admin.from('tenant_loan_rates').insert({
       tenant_id: ctx.tenantId,
       rate_monthly: v.rate_monthly,
+      min_monthly_charge: v.min_monthly_charge,
       label: v.label,
       description: v.description,
       sort_order: v.sort_order,
@@ -117,10 +131,75 @@ export async function saveLoanRateAction(
     recordId: id || 'new',
     changes: {
       rate_monthly: v.rate_monthly,
+      min_monthly_charge: v.min_monthly_charge,
       label: v.label,
       is_default: v.is_default,
       is_active: v.is_active,
     },
+  })
+
+  revalidatePath('/settings/loan-rates')
+  revalidatePath('/pawn/new')
+  return { ok: true }
+}
+
+// ── Tenant-wide loan policy ──────────────────────────────────────────────
+
+const policySchema = z.object({
+  min_loan_amount: optionalMoney,
+})
+
+export type SavePolicyState = {
+  ok?: boolean
+  error?: string
+  fieldErrors?: Record<string, string>
+}
+
+/**
+ * Save tenant-wide loan policy (currently just min_loan_amount). Lives on
+ * /settings/loan-rates because it's the same audience and same blast
+ * radius as editing the rate menu.
+ */
+export async function saveTenantLoanPolicyAction(
+  _prev: SavePolicyState,
+  formData: FormData,
+): Promise<SavePolicyState> {
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
+
+  const { userId } = await requireRoleInTenant(ctx.tenantId, [...ROLES])
+
+  const parsed = policySchema.safeParse({
+    min_loan_amount: formData.get('min_loan_amount'),
+  })
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {}
+    for (const issue of parsed.error.issues) {
+      const path = issue.path.join('.')
+      if (path) fieldErrors[path] = issue.message
+    }
+    return { fieldErrors }
+  }
+  const v = parsed.data
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('settings')
+    .update({
+      min_loan_amount: v.min_loan_amount,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('tenant_id', ctx.tenantId)
+  if (error) return { error: error.message }
+
+  await logAudit({
+    tenantId: ctx.tenantId,
+    userId,
+    action: 'update',
+    tableName: 'settings',
+    recordId: ctx.tenantId,
+    changes: { min_loan_amount: v.min_loan_amount },
   })
 
   revalidatePath('/settings/loan-rates')

@@ -35,8 +35,9 @@ export default async function PortalLoansPage() {
   const { data: loanRows } = await admin
     .from('loans')
     .select(
-      `id, ticket_number, principal, interest_rate_monthly, term_days,
-       issue_date, due_date, status, created_at,
+      `id, ticket_number, principal, interest_rate_monthly,
+       min_monthly_charge, term_days, issue_date, due_date, status,
+       created_at,
        collateral:loan_collateral_items(description, position),
        events:loan_events(principal_paid, interest_paid, fees_paid)`,
     )
@@ -67,6 +68,7 @@ export default async function PortalLoansPage() {
         principal: l.principal,
         interest_rate_monthly: l.interest_rate_monthly,
         issue_date: l.issue_date,
+        min_monthly_charge: l.min_monthly_charge,
       },
       events,
       today,

@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
       const { data: loans } = await admin
         .from('loans')
-        .select('id, tenant_id, customer_id, ticket_number, principal, interest_rate_monthly, issue_date, due_date, status')
+        .select('id, tenant_id, customer_id, ticket_number, principal, interest_rate_monthly, min_monthly_charge, issue_date, due_date, status')
         .eq('tenant_id', tenant.id)
         .eq('due_date', dueDate)
         .in('status', ['active', 'extended', 'partial_paid'])
@@ -81,6 +81,10 @@ export async function GET(req: NextRequest) {
             principal: Number(loan.principal),
             interest_rate_monthly: Number(loan.interest_rate_monthly),
             issue_date: loan.issue_date,
+            min_monthly_charge:
+              loan.min_monthly_charge == null
+                ? null
+                : Number(loan.min_monthly_charge),
           },
           events,
           today,

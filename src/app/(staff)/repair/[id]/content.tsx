@@ -41,8 +41,10 @@ import {
   addPartAction,
   addPhotoAction,
   addStoneAction,
+  approveQaAction,
   approveQuoteAction,
   assignTechnicianAction,
+  claimTicketAction,
   collectDepositAction,
   markAbandonedAction,
   markCompleteAction,
@@ -53,6 +55,8 @@ import {
   removePhotoAction,
   removeStoneAction,
   requestApprovalAction,
+  returnFromQaAction,
+  sendToQaAction,
   setPhotoCaptionAction,
   setQuoteAction,
   startTimerAction,
@@ -243,28 +247,51 @@ export default function RepairTicketDetail({
   const canEditQuote =
     status === 'quoted' ||
     status === 'awaiting_approval' ||
+    status === 'assigned' ||
     status === 'in_progress' ||
-    status === 'needs_parts'
+    status === 'needs_parts' ||
+    status === 'tech_qa'
   const canRequestApproval = status === 'quoted'
   const canApproveQuote = status === 'awaiting_approval'
   const canCollectDeposit =
-    !isTerminal && (status === 'awaiting_approval' || status === 'in_progress')
+    !isTerminal &&
+    (status === 'awaiting_approval' ||
+      status === 'assigned' ||
+      status === 'in_progress')
+  // Legacy "start work" path (operator-driven, no claim flow). Still
+  // available from awaiting_approval and needs_parts so a manager who
+  // skips the assignment step can keep tickets moving.
   const canStart =
     status === 'awaiting_approval' || status === 'needs_parts'
+  // New tech-side actions (Phase 0023):
+  //   claim:        assigned → in_progress  (auto-opens timer)
+  //   sendToQa:     in_progress → tech_qa  (auto-stops timer)
+  //   approveQa:    tech_qa → ready
+  //   returnFromQa: tech_qa → in_progress  (auto-opens timer)
+  const canClaim = status === 'assigned'
+  const canSendToQa = status === 'in_progress'
+  const canApproveQa = status === 'tech_qa'
+  const canReturnFromQa = status === 'tech_qa'
   const canMarkNeedsParts = status === 'in_progress'
   const canPartsReceived = status === 'needs_parts'
+  // Legacy "mark complete" — bypasses tech_qa. Stays available for
+  // operators who want to skip the QA stage entirely.
   const canMarkComplete = status === 'in_progress' || status === 'needs_parts'
   const canRecordPickup = status === 'ready'
   const canAbandon =
+    status === 'assigned' ||
     status === 'in_progress' ||
     status === 'needs_parts' ||
+    status === 'tech_qa' ||
     status === 'ready'
   const canVoid =
     status === 'intake' ||
     status === 'quoted' ||
     status === 'awaiting_approval' ||
+    status === 'assigned' ||
     status === 'in_progress' ||
     status === 'needs_parts' ||
+    status === 'tech_qa' ||
     status === 'ready'
 
   return (
@@ -404,6 +431,44 @@ export default function RepairTicketDetail({
             onClick={() => runSimple(startWorkAction)}
             disabled={pending}
             tone="success"
+          />
+        ) : null}
+        {canClaim ? (
+          <ActionButton
+            label={t.repair.actions.claimTicket}
+            icon={<Play size={14} weight="bold" />}
+            onClick={() => runSimple(claimTicketAction)}
+            disabled={pending}
+            tone="success"
+            primary
+          />
+        ) : null}
+        {canSendToQa ? (
+          <ActionButton
+            label={t.repair.actions.sendToQa}
+            icon={<CheckCircle size={14} weight="bold" />}
+            onClick={() => runSimple(sendToQaAction)}
+            disabled={pending}
+            tone="success"
+          />
+        ) : null}
+        {canApproveQa ? (
+          <ActionButton
+            label={t.repair.actions.approveQa}
+            icon={<CheckCircle size={14} weight="bold" />}
+            onClick={() => runSimple(approveQaAction)}
+            disabled={pending}
+            tone="success"
+            primary
+          />
+        ) : null}
+        {canReturnFromQa ? (
+          <ActionButton
+            label={t.repair.actions.returnFromQa}
+            icon={<Wrench size={14} weight="bold" />}
+            onClick={() => runSimple(returnFromQaAction)}
+            disabled={pending}
+            tone="warning"
           />
         ) : null}
         {canMarkNeedsParts ? (

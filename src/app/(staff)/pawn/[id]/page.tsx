@@ -24,6 +24,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     .from('loans')
     .select(
       `id, tenant_id, customer_id, ticket_number, principal, interest_rate_monthly,
+       min_monthly_charge,
        term_days, issue_date, due_date, status, is_printed, printed_at,
        signature_path, notes, created_at, updated_at,
        customer:customers(id, first_name, last_name, phone, email)`,
@@ -111,6 +112,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
       principal: loan.principal,
       interest_rate_monthly: loan.interest_rate_monthly,
       issue_date: loan.issue_date,
+      min_monthly_charge: loan.min_monthly_charge,
     },
     events,
     today,
@@ -128,6 +130,8 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     ticket_number: loan.ticket_number ?? '',
     principal: Number(loan.principal),
     interest_rate_monthly: Number(loan.interest_rate_monthly),
+    min_monthly_charge:
+      loan.min_monthly_charge == null ? null : Number(loan.min_monthly_charge),
     term_days: loan.term_days,
     issue_date: loan.issue_date,
     due_date: loan.due_date,

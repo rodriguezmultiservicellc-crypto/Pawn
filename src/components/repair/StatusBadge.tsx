@@ -10,8 +10,14 @@ const TONE: Record<RepairStatus, { bg: string; text: string }> = {
     bg: 'bg-warning/5 border-warning/30',
     text: 'text-warning',
   },
+  // Routed to a tech but not yet claimed — neutral cool tone signaling
+  // queued work.
+  assigned: { bg: 'bg-rausch/5 border-rausch/20', text: 'text-rausch-deep' },
   in_progress: { bg: 'bg-rausch/5 border-rausch/30', text: 'text-rausch' },
   needs_parts: { bg: 'bg-warning/10 border-warning/40', text: 'text-warning' },
+  // Final QA pass — uses the same warm tone as ready since it's the
+  // last lap, but slightly muted.
+  tech_qa: { bg: 'bg-success/5 border-success/20', text: 'text-success' },
   ready: { bg: 'bg-success/10 border-success/30', text: 'text-success' },
   picked_up: { bg: 'bg-success/5 border-success/20', text: 'text-success' },
   abandoned: { bg: 'bg-error/5 border-error/30', text: 'text-error' },
