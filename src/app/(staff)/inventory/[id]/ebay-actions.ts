@@ -112,8 +112,6 @@ export async function createEbayDraftAction(
   if (!description) return { ok: false, error: 'description_required' }
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
   const insert: EbayListingInsert = {
     tenant_id: tenantId,
     inventory_item_id: itemId,
@@ -132,9 +130,9 @@ export async function createEbayDraftAction(
     created_by: userId,
     updated_by: userId,
   }
-  const { data: created, error } = await supa
+  const { data: created, error } = await admin
     .from('ebay_listings')
-    .insert(insert)
+    .insert(insert as never)
     .select('id')
     .single()
   if (error || !created) {
@@ -165,17 +163,16 @@ export async function updateEbayDraftAction(
   const { tenantId, userId } = await resolveItemTenant(itemId)
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
 
   // Verify the listing belongs to the same tenant + item.
-  const { data: existing } = (await supa
+  const { data: existingRow } = await admin
     .from('ebay_listings')
     .select('id, tenant_id, inventory_item_id, status, ebay_offer_id')
     .eq('id', listingId)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
-    .maybeSingle()) as { data: EbayListingRow | null }
+    .maybeSingle()
+  const existing = existingRow as unknown as EbayListingRow | null
   if (!existing || existing.inventory_item_id !== itemId) {
     return { ok: false, error: 'listing_not_found' }
   }
@@ -208,9 +205,9 @@ export async function updateEbayDraftAction(
     updated_by: userId,
   }
 
-  const { error: updateErr } = await supa
+  const { error: updateErr } = await admin
     .from('ebay_listings')
-    .update(update)
+    .update(update as never)
     .eq('id', listingId)
     .eq('tenant_id', tenantId)
   if (updateErr) {
@@ -266,16 +263,15 @@ export async function publishEbayListingAction(
   if (!ctx) redirect('/login')
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
-  const { data: existing } = (await supa
+  const { data: existingRow } = await admin
     .from('ebay_listings')
     .select(
       'id, tenant_id, inventory_item_id, status, ebay_offer_id, ebay_sku, title, condition_id, category_id, format, list_price, currency, quantity, description, marketing_message, photo_urls',
     )
     .eq('id', listingId)
     .is('deleted_at', null)
-    .maybeSingle()) as { data: EbayListingRow | null }
+    .maybeSingle()
+  const existing = existingRow as unknown as EbayListingRow | null
   if (!existing) return { ok: false, error: 'listing_not_found' }
 
   await requireStaff(existing.tenant_id)
@@ -339,19 +335,16 @@ export async function endEbayListingAction(
   if (!ctx) redirect('/login')
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
-  const { data: existing } = (await supa
+  const { data: existingRow } = await admin
     .from('ebay_listings')
     .select('id, tenant_id, inventory_item_id, status')
     .eq('id', listingId)
     .is('deleted_at', null)
-    .maybeSingle()) as {
-    data: Pick<
-      EbayListingRow,
-      'id' | 'tenant_id' | 'inventory_item_id' | 'status'
-    > | null
-  }
+    .maybeSingle()
+  const existing = existingRow as unknown as Pick<
+    EbayListingRow,
+    'id' | 'tenant_id' | 'inventory_item_id' | 'status'
+  > | null
   if (!existing) return { ok: false, error: 'listing_not_found' }
 
   await requireStaff(existing.tenant_id)
@@ -386,19 +379,16 @@ export async function syncEbayListingAction(
   if (!ctx) redirect('/login')
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
-  const { data: existing } = (await supa
+  const { data: existingRow } = await admin
     .from('ebay_listings')
     .select('id, tenant_id, inventory_item_id')
     .eq('id', listingId)
     .is('deleted_at', null)
-    .maybeSingle()) as {
-    data: Pick<
-      EbayListingRow,
-      'id' | 'tenant_id' | 'inventory_item_id'
-    > | null
-  }
+    .maybeSingle()
+  const existing = existingRow as unknown as Pick<
+    EbayListingRow,
+    'id' | 'tenant_id' | 'inventory_item_id'
+  > | null
   if (!existing) return { ok: false, error: 'listing_not_found' }
 
   await requireStaff(existing.tenant_id)

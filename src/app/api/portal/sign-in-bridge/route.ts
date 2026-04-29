@@ -30,14 +30,11 @@ export async function GET(req: NextRequest) {
   }
 
   const admin = createAdminClient()
-  // customers.auth_user_id is added in 0009. Until db:types regenerates
-  // every consumer, we cast — the column is real on the server.
   type CustomerLink = { id: string; tenant_id: string }
   const lookup = await admin
     .from('customers')
     .select('id, tenant_id')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .eq('auth_user_id' as any, user.id)
+    .eq('auth_user_id', user.id)
     .is('deleted_at', null)
     .maybeSingle()
   const customer = (lookup.data ?? null) as CustomerLink | null

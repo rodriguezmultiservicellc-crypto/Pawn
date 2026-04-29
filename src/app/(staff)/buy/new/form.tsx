@@ -2,7 +2,6 @@
 
 import {
   useActionState,
-  useEffect,
   useMemo,
   useState,
 } from 'react'
@@ -145,19 +144,24 @@ export default function BuyForm({
   const [formGen, setFormGen] = useState(0)
 
   // Repopulate scalars on validation echo (item rows are kept intact in
-  // local state since they're already client-controlled).
-  useEffect(() => {
-    if (!state.values) return
-    if (state.values.customer_id) setCustomerId(state.values.customer_id)
-    if (state.values.payment_method) {
-      const pm = state.values.payment_method
-      if (pm === 'cash' || pm === 'card' || pm === 'check' || pm === 'other') {
-        setPaymentMethod(pm)
+  // local state since they're already client-controlled). Compute-during-
+  // render pattern per the Session 8 rule — useEffect+setState would
+  // trip react-hooks/set-state-in-effect.
+  const [lastState, setLastState] = useState(state)
+  if (state !== lastState) {
+    setLastState(state)
+    if (state.values) {
+      if (state.values.customer_id) setCustomerId(state.values.customer_id)
+      if (state.values.payment_method) {
+        const pm = state.values.payment_method
+        if (pm === 'cash' || pm === 'card' || pm === 'check' || pm === 'other') {
+          setPaymentMethod(pm)
+        }
       }
+      if (state.values.notes != null) setNotes(state.values.notes)
+      setFormGen((g) => g + 1)
     }
-    if (state.values.notes != null) setNotes(state.values.notes)
-    setFormGen((g) => g + 1)
-  }, [state])
+  }
 
   function patchItem(uid: string, patch: Partial<ItemRow>) {
     setItems((rows) =>
@@ -195,8 +199,16 @@ export default function BuyForm({
 
   // Auto-sync the operator's payout to the computed melt as long as
   // they haven't typed in the field. Once they do, payoutAuto flips
-  // false and we stop overwriting their value.
-  useEffect(() => {
+  // false and we stop overwriting their value. Compute-during-render
+  // pattern per Session 8 — driven off a signature of the inputs that
+  // affect the computed melt; the conditional setItems only fires when
+  // the signature actually changes.
+  const meltSignature = items
+    .map((r) => `${r.uid}:${r.metal}:${r.karat}:${r.weight_grams}`)
+    .join('|')
+  const [lastMeltSig, setLastMeltSig] = useState(meltSignature)
+  if (meltSignature !== lastMeltSig) {
+    setLastMeltSig(meltSignature)
     setItems((rows) =>
       rows.map((r) => {
         if (!r.payoutAuto) return r
@@ -209,8 +221,7 @@ export default function BuyForm({
         return { ...r, payout: next }
       }),
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.map((r) => `${r.uid}:${r.metal}:${r.karat}:${r.weight_grams}`).join('|')])
+  }
 
   const totalPayout = useMemo(() => {
     return items.reduce((s, r) => {

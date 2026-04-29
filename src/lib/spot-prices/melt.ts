@@ -174,9 +174,8 @@ async function loadTenantMultiplier(
   if (hit && hit.expiresAt > now) return hit.value
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tbl = (admin as any).from('spot_price_overrides')
-  const { data, error } = await tbl
+  const { data, error } = await admin
+    .from('spot_price_overrides')
     .select('id, tenant_id, metal_type, purity, multiplier, updated_by, updated_at, created_at')
     .eq('tenant_id', tenantId)
     .eq('metal_type', metalType)
@@ -189,7 +188,9 @@ async function loadTenantMultiplier(
     return 1.0
   }
 
-  const row = (data ?? null) as SpotPriceOverrideRow | null
+  // multiplier is NUMERIC: generated types narrow to string; runtime
+  // returns number. SpotPriceOverrideRow uses number.
+  const row = (data ?? null) as unknown as SpotPriceOverrideRow | null
   const value = row?.multiplier != null ? toMoney(row.multiplier) : 1.0
   overrideCache.set(key, { value, expiresAt: now + OVERRIDE_TTL_MS })
   return value

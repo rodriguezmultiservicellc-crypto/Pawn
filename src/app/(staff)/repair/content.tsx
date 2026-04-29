@@ -3,7 +3,12 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MagnifyingGlass, Plus, Wrench } from '@phosphor-icons/react'
+import {
+  Kanban,
+  MagnifyingGlass,
+  Plus,
+  Wrench,
+} from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { daysBetween } from '@/lib/pawn/math'
 import { ServiceTypeBadge } from '@/components/repair/ServiceTypeBadge'
@@ -51,6 +56,7 @@ export default function RepairContent({
   assignedToFilter,
   counts,
   today,
+  isManager,
 }: {
   rows: RepairListRow[]
   query: string
@@ -61,6 +67,7 @@ export default function RepairContent({
   assignedToFilter: string
   counts: Counts
   today: string
+  isManager: boolean
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -99,13 +106,24 @@ export default function RepairContent({
           <h1 className="text-2xl font-bold">{t.repair.title}</h1>
           <p className="text-sm text-ash">{t.repair.subtitle}</p>
         </div>
-        <Link
-          href="/repair/new"
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep"
-        >
-          <Plus size={16} weight="bold" />
-          <span>{t.repair.new}</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          {isManager ? (
+            <Link
+              href="/repair/board"
+              className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+            >
+              <Kanban size={16} weight="bold" />
+              <span>{t.repair.list.openBoard}</span>
+            </Link>
+          ) : null}
+          <Link
+            href="/repair/new"
+            className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep"
+          >
+            <Plus size={16} weight="bold" />
+            <span>{t.repair.new}</span>
+          </Link>
+        </div>
       </div>
 
       {/* Status chips */}

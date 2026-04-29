@@ -119,7 +119,11 @@ export default function SaleDetailContent({
   }
 
   function printReceipt() {
-    if (typeof window !== 'undefined') window.print()
+    if (typeof window === 'undefined') return
+    // Open the bilingual PDF endpoint in a new tab. Browser's PDF
+    // viewer surfaces the print button. window.print() of the HTML
+    // page would print the staff UI itself, not a customer receipt.
+    window.open(`/api/print/sale/${sale.id}`, '_blank')
   }
 
   return (

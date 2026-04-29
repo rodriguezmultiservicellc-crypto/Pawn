@@ -16,13 +16,8 @@ import type {
  * Supabase client surface and we can delete this file.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function table(): any {
-  // Cast the admin client to `any` so we can use the new table by name
-  // without TS picking up the generated Database union (which doesn't
-  // know about it yet).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (createAdminClient() as any).from('stripe_payment_links')
+function table() {
+  return createAdminClient().from('stripe_payment_links')
 }
 
 export async function findStripeLinkBySessionId(

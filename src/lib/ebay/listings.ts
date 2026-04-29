@@ -326,9 +326,7 @@ async function loadListing(
   listingId: string,
 ): Promise<EbayListingRow | null> {
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
-  const { data } = (await supa
+  const { data } = await admin
     .from('ebay_listings')
     .select(
       'id, tenant_id, inventory_item_id, ebay_offer_id, ebay_listing_id, ebay_sku, title, condition_id, category_id, format, list_price, currency, quantity, description, marketing_message, photo_urls, status, error_text, last_synced_at, view_count, watcher_count, sold_at, sale_id, created_by, updated_by, created_at, updated_at, deleted_at',
@@ -336,8 +334,10 @@ async function loadListing(
     .eq('tenant_id', tenantId)
     .eq('id', listingId)
     .is('deleted_at', null)
-    .maybeSingle()) as { data: EbayListingRow | null }
-  return data ?? null
+    .maybeSingle()
+  // NUMERIC list_price comes back as string in generated types — narrow
+  // to the runtime shape (number) via the hand-rolled EbayListingRow.
+  return (data ?? null) as unknown as EbayListingRow | null
 }
 
 async function persistListingPatch(
@@ -346,11 +346,9 @@ async function persistListingPatch(
   patch: EbayListingUpdate,
 ): Promise<void> {
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supa = admin as any
-  const { error } = await supa
+  const { error } = await admin
     .from('ebay_listings')
-    .update(patch)
+    .update(patch as never)
     .eq('tenant_id', tenantId)
     .eq('id', listingId)
   if (error) {

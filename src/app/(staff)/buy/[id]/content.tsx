@@ -65,8 +65,20 @@ export default function BuyReceiptContent({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:bg-cloud"
+            onClick={() =>
+              // Open the bilingual PDF receipt in a new tab. Browser's
+              // PDF viewer surfaces the print button. window.print() of
+              // the HTML page would print the staff UI, not a customer
+              // receipt.
+              view.items[0]?.inventoryId
+                ? window.open(
+                    `/api/print/buy/${view.items[0].inventoryId}`,
+                    '_blank',
+                  )
+                : null
+            }
+            disabled={!view.items[0]?.inventoryId}
+            className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:bg-cloud disabled:opacity-50"
           >
             <Printer size={14} weight="bold" />
             Print

@@ -85,14 +85,13 @@ export async function saveSpotOverrideAction(
     updated_at: new Date().toISOString(),
   }
 
-  // SpotPriceOverrideInsert.multiplier is `number` at runtime but the
-  // generated types narrow NUMERIC to `string`. We send numbers and
-  // they round-trip fine — narrow the table reference here.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const overrideTable = (admin as any).from('spot_price_overrides')
-  const { error } = await overrideTable.upsert([insert], {
-    onConflict: 'tenant_id,metal_type,purity',
-  })
+  // multiplier is NUMERIC — generated Insert type narrows to string,
+  // but supabase-js round-trips number fine. Cast at the upsert boundary.
+  const { error } = await admin
+    .from('spot_price_overrides')
+    .upsert([insert] as never, {
+      onConflict: 'tenant_id,metal_type,purity',
+    })
 
   if (error) {
     console.error('[spot-prices] override save failed', error.message)

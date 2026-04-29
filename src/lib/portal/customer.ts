@@ -40,8 +40,7 @@ export async function resolvePortalCustomer(): Promise<{
   const lookup = await admin
     .from('customers')
     .select('id, tenant_id, email, language, first_name, last_name')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .eq('auth_user_id' as any, ctx.userId)
+    .eq('auth_user_id', ctx.userId)
     .is('deleted_at', null)
     .maybeSingle()
   const customer = (lookup.data ?? null) as CustomerRow | null

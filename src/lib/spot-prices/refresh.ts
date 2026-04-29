@@ -116,23 +116,13 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
   }
 
   const admin = createAdminClient()
-  // Type-erase to allow upsert into a table that the generated types may
-  // not yet know about (regen happens at merge). The schema is constrained
-  // by the migration; this cast is a temporary aliasing hack.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const spotTable = (admin as any).from('spot_prices') as {
-    upsert: (
-      rows: SpotPriceInsert[],
-      opts: { onConflict: string; ignoreDuplicates: boolean },
-    ) => Promise<{
-      data: Array<{ id: string }> | null
-      error: { message: string } | null
-    }>
-  }
-  const { data, error } = await spotTable.upsert(inserts, {
-    onConflict: 'metal_type,purity,fetched_at',
-    ignoreDuplicates: true,
-  })
+  const { data, error } = await admin
+    .from('spot_prices')
+    .upsert(inserts as never, {
+      onConflict: 'metal_type,purity,fetched_at',
+      ignoreDuplicates: true,
+    })
+    .select('id')
 
   if (error) {
     console.error('[spot-prices] insert failed', error.message)

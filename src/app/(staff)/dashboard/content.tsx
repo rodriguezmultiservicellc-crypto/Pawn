@@ -41,6 +41,24 @@ export type RecentItem = {
   created_at: string
 }
 
+export type ActivityKind =
+  | 'customer'
+  | 'inventory'
+  | 'pawn'
+  | 'sale'
+  | 'repair'
+  | 'layaway'
+
+export type ActivityFeedItem = {
+  id: string
+  kind: ActivityKind
+  title: string
+  subtitle: string
+  amount: number | null
+  href: string
+  created_at: string
+}
+
 type TabId = 'overview' | 'sales' | 'layaways' | 'pawn' | 'repairs'
 type RangeId = 'today' | '7d' | '14d' | '30d'
 type ModuleId = Exclude<TabId, 'overview'>
@@ -62,6 +80,13 @@ type Props = {
   heldCount: number
   recentCustomers: RecentCustomer[]
   recentItems: RecentItem[]
+  /**
+   * Cross-module recent-activity feed shown in the Overview "Recent
+   * activity" panel. Populated by the dashboard server query — top 10
+   * most-recent rows merged across customers, inventory, loans, sales,
+   * layaways, and repairs.
+   */
+  recentActivity?: ActivityFeedItem[]
   hasPawn?: boolean
   activeLoanCount?: number
   dueThisWeekCount?: number
@@ -82,6 +107,25 @@ type Props = {
    * panel. Last entry equals `todayRevenue`.
    */
   dailyRevenue14d?: number[]
+  /** New pawn loans per day, last 14 days, oldest → newest. */
+  pawnsCreated14d?: number[]
+  /**
+   * Redemptions per day, last 14 days. Counts loan_events rows where
+   * event_type='redemption'. Pairs with pawnsCreated14d in the
+   * "Pawns vs redemptions" line chart.
+   */
+  redemptions14d?: number[]
+  /**
+   * Sum of layaway_payments.amount per day (positive amounts only —
+   * refunds excluded), last 14 days.
+   */
+  layawayPayments14d?: number[]
+  /**
+   * Repair tickets transitioned to a finished state per day, last 14
+   * days. Counted by completed_at, which is set on both the markComplete
+   * path (to ready) and the QA approve path.
+   */
+  repairsCompleted14d?: number[]
 }
 
 export default function DashboardContent(props: Props) {
@@ -162,6 +206,7 @@ export default function DashboardContent(props: Props) {
         <LayawaysPanel
           router={router}
           activeCount={props.activeLayawayCount ?? 0}
+          payments14d={props.layawayPayments14d}
         />
       </Panel>
 
@@ -170,6 +215,8 @@ export default function DashboardContent(props: Props) {
           router={router}
           activeLoans={props.activeLoanCount ?? 0}
           dueThisWeek={props.dueThisWeekCount ?? 0}
+          pawns14d={props.pawnsCreated14d}
+          redemptions14d={props.redemptions14d}
         />
       </Panel>
 
@@ -178,6 +225,7 @@ export default function DashboardContent(props: Props) {
           router={router}
           openCount={props.activeRepairCount ?? 0}
           readyCount={props.readyForPickupCount ?? 0}
+          completed14d={props.repairsCompleted14d}
         />
       </Panel>
     </div>
@@ -349,36 +397,10 @@ function OverviewPanel(props: Props) {
           <span className="p-meta">all modules</span>
         </div>
         <div className="feed">
-          {props.recentCustomers.slice(0, 3).map((c) => (
-            <div key={`c-${c.id}`} className="feed-item">
-              <span className="tag emerald">New</span>
-              <div style={{ flex: 1 }}>
-                <p className="ti">
-                  {c.last_name}, {c.first_name}
-                </p>
-                <p className="su">Customer · {relTime(c.created_at)}</p>
-              </div>
-              <span className="am" style={{ color: 'var(--m-repair-text)' }}>
-                {c.phone ?? '—'}
-              </span>
-            </div>
+          {(props.recentActivity ?? []).map((it) => (
+            <ActivityRow key={it.id} item={it} />
           ))}
-          {props.recentItems.slice(0, 3).map((it) => (
-            <div key={`i-${it.id}`} className="feed-item">
-              <span className="tag cyan">Inv</span>
-              <div style={{ flex: 1 }}>
-                <p className="ti">{it.description}</p>
-                <p className="su">
-                  {it.sku} · {relTime(it.created_at)}
-                </p>
-              </div>
-              <span className="am" style={{ color: 'var(--m-sales-text)' }}>
-                {it.list_price != null ? fmtMoney(it.list_price) : '—'}
-              </span>
-            </div>
-          ))}
-          {props.recentCustomers.length === 0 &&
-          props.recentItems.length === 0 ? (
+          {(props.recentActivity ?? []).length === 0 ? (
             <div className="feed-item" style={{ borderBottom: 'none' }}>
               <p className="ti" style={{ color: 'var(--text-dim)' }}>
                 Nothing yet.
@@ -388,6 +410,48 @@ function OverviewPanel(props: Props) {
         </div>
       </div>
     </>
+  )
+}
+
+function ActivityRow({ item }: { item: ActivityFeedItem }) {
+  const router = useRouter()
+  // Tag tone + label per module. The CSS classes are defined in
+  // dashboard.css under the .feed-item .tag.* family.
+  const meta = {
+    customer: { tag: 'emerald', label: 'New', kindLabel: 'Customer' },
+    inventory: { tag: 'cyan', label: 'Inv', kindLabel: 'Inventory' },
+    pawn: { tag: 'amber', label: 'Pawn', kindLabel: 'Pawn loan' },
+    sale: { tag: 'cyan', label: 'Sale', kindLabel: 'Sale' },
+    layaway: { tag: 'indigo', label: 'Lay', kindLabel: 'Layaway' },
+    repair: { tag: 'emerald', label: 'Rep', kindLabel: 'Repair' },
+  }[item.kind]
+  const amountColorVar =
+    item.kind === 'pawn'
+      ? 'var(--m-pawn-text)'
+      : item.kind === 'repair'
+        ? 'var(--m-repair-text)'
+        : item.kind === 'layaway'
+          ? 'var(--m-layaway-text)'
+          : 'var(--m-sales-text)'
+  return (
+    <div
+      className="feed-item"
+      style={{ cursor: 'pointer' }}
+      onClick={() => router.push(item.href)}
+    >
+      <span className={`tag ${meta.tag}`}>{meta.label}</span>
+      <div style={{ flex: 1 }}>
+        <p className="ti">{item.title}</p>
+        <p className="su">
+          {meta.kindLabel}
+          {item.subtitle ? ` · ${item.subtitle}` : ''} ·{' '}
+          {relTime(item.created_at)}
+        </p>
+      </div>
+      <span className="am" style={{ color: amountColorVar }}>
+        {item.amount != null ? fmtMoney(item.amount) : '—'}
+      </span>
+    </div>
   )
 }
 
@@ -550,10 +614,21 @@ function SalesPanel({
 function LayawaysPanel({
   router,
   activeCount,
+  payments14d,
 }: {
   router: ReturnType<typeof useRouter>
   activeCount: number
+  payments14d?: number[]
 }) {
+  // Real series from page.tsx; zero-fill when missing/short so the bar
+  // chart axis stays sane on a brand-new tenant. Same pattern as the
+  // Sales panel.
+  const paymentSeries: number[] =
+    payments14d && payments14d.length === 14
+      ? payments14d
+      : Array<number>(14).fill(0)
+  const paymentMax = paymentSeries.reduce((m, v) => (v > m ? v : m), 0)
+  const todayPayments = paymentSeries[paymentSeries.length - 1] ?? 0
   return (
     <>
       <Lookup
@@ -573,7 +648,12 @@ function LayawaysPanel({
           router={router}
         />
         <Kpi tone="indigo" label="Total owed" value="—" sub="see /pos/layaways" />
-        <Kpi tone="indigo" label="Payments today" value="—" />
+        <Kpi
+          tone="indigo"
+          label="Payments today"
+          value={fmtMoney(todayPayments)}
+          sub="gross collections"
+        />
         <Kpi
           tone="red"
           drillHref="/pos/layaways?status=active&filter=late"
@@ -589,7 +669,11 @@ function LayawaysPanel({
           title="Payments collected · 14d"
           legend={[{ color: 'bg-indigo', label: 'Payments' }]}
         >
-          <Bars tone="indigo" max={500} data={demoBars(14, 11)} />
+          <Bars
+            tone="indigo"
+            max={Math.max(1.5, paymentMax * 1.1)}
+            data={paymentSeries}
+          />
         </ChartPanel>
         <div className="side-stack">
           <SidePanel title="Layaway status">
@@ -608,11 +692,25 @@ function PawnPanel({
   router,
   activeLoans,
   dueThisWeek,
+  pawns14d,
+  redemptions14d,
 }: {
   router: ReturnType<typeof useRouter>
   activeLoans: number
   dueThisWeek: number
+  pawns14d?: number[]
+  redemptions14d?: number[]
 }) {
+  const pawnSeries: number[] =
+    pawns14d && pawns14d.length === 14 ? pawns14d : Array<number>(14).fill(0)
+  const redeemSeries: number[] =
+    redemptions14d && redemptions14d.length === 14
+      ? redemptions14d
+      : Array<number>(14).fill(0)
+  const seriesMax = [...pawnSeries, ...redeemSeries].reduce(
+    (m, v) => (v > m ? v : m),
+    0,
+  )
   return (
     <>
       <Lookup
@@ -653,7 +751,11 @@ function PawnPanel({
             { color: 'bg-cyan', label: 'Redeem' },
           ]}
         >
-          <Lines max={20} a={demoSeries(13, 13)} b={demoSeries(13, 11)} />
+          <Lines
+            max={Math.max(2, seriesMax * 1.1)}
+            a={pawnSeries}
+            b={redeemSeries}
+          />
         </ChartPanel>
         <div className="side-stack">
           <SidePanel title="Loan health">
@@ -677,11 +779,18 @@ function RepairsPanel({
   router,
   openCount,
   readyCount,
+  completed14d,
 }: {
   router: ReturnType<typeof useRouter>
   openCount: number
   readyCount: number
+  completed14d?: number[]
 }) {
+  const completedSeries: number[] =
+    completed14d && completed14d.length === 14
+      ? completed14d
+      : Array<number>(14).fill(0)
+  const completedMax = completedSeries.reduce((m, v) => (v > m ? v : m), 0)
   return (
     <>
       <Lookup
@@ -708,7 +817,11 @@ function RepairsPanel({
           title="Tickets completed · 14d"
           legend={[{ color: 'bg-emerald', label: 'Completed' }]}
         >
-          <Bars tone="emerald" max={10} data={demoBars(14, 5)} />
+          <Bars
+            tone="emerald"
+            max={Math.max(2, completedMax * 1.1)}
+            data={completedSeries}
+          />
         </ChartPanel>
         <div className="side-stack">
           <SidePanel title="Pipeline">
@@ -1289,18 +1402,3 @@ function initials(name: string): string {
     .toUpperCase()
 }
 
-// Deterministic demo data for the chart placeholders. Swap with real
-// reports queries once Phase 7 merges.
-function demoBars(n: number, base: number): number[] {
-  const out: number[] = []
-  let s = n + base
-  for (let i = 0; i < n; i += 1) {
-    s = (s * 9301 + 49297) % 233280
-    out.push(base * 0.5 + (s / 233280) * base * 1.5)
-  }
-  return out
-}
-
-function demoSeries(n: number, base: number): number[] {
-  return demoBars(n, base)
-}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import {
@@ -140,13 +140,17 @@ export default function NewCustomerForm({
 
   // On each new server-action response carrying echoed values,
   // repopulate `initial` and bump the key so CustomerFormFields
-  // remounts with the echoed values as new defaults.
-  useEffect(() => {
+  // remounts with the echoed values as new defaults. Compute-during-
+  // render pattern per Session 8 — useEffect+setState would trip
+  // react-hooks/set-state-in-effect.
+  const [lastState, setLastState] = useState(state)
+  if (state !== lastState) {
+    setLastState(state)
     if (state.values) {
       setInitial((cur) => echoToFieldValues(state.values!, cur))
       setFormGen((g) => g + 1)
     }
-  }, [state])
+  }
 
   function handleScanResult(info: DLInfo, raw: string) {
     setInitial((cur) => mergeScanIntoCustomer(cur, info))

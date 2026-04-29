@@ -65,6 +65,12 @@ export default async function RepairListPage(props: {
   if (isTech && !assignedToFilter && !showAll) {
     assignedToFilter = ctx.userId
   }
+  // Manager+ roles see the "Open board" button. Same membership the
+  // /repair/board page enforces — keep the gate consistent.
+  const isManager =
+    ctx.tenantRole === 'owner' ||
+    ctx.tenantRole === 'manager' ||
+    ctx.tenantRole === 'chain_admin'
 
   const today = todayDateString()
   const in7 = addDaysIso(today, 7)
@@ -259,6 +265,7 @@ export default async function RepairListPage(props: {
         voided: countVoided ?? 0,
       }}
       today={today}
+      isManager={isManager}
     />
   )
 }

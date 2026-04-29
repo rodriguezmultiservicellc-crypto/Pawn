@@ -5,14 +5,31 @@ import {
   Calculator,
   CaretDown,
   CaretUp,
+  Check,
+  ClipboardText,
   Lightning,
+  MagnifyingGlass,
   Warning,
+  Watch,
+  X,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import {
   suggestLoanFromCollateralAction,
   type SuggestLoanState,
 } from '@/app/(staff)/pawn/new/actions'
+
+type WatchModelMatch = {
+  id: string
+  brand: string
+  model: string
+  reference_no: string
+  nickname: string
+  year_start: number
+  year_end: number
+  est_value_min: number
+  est_value_max: number
+}
 
 /**
  * Inline calculator embedded inside /pawn/new. Reads the parent form's
@@ -91,7 +108,9 @@ export function InlinePawnCalculator({
 
       {open ? (
         <div className="border-t border-hairline p-4">
-          <p className="mb-3 text-xs text-ash">
+          <WatchLookupSection />
+
+          <p className="mb-3 mt-4 text-xs text-ash">
             {t.pawn.inlineCalc.help}
           </p>
 
@@ -236,4 +255,306 @@ function translateError(
     no_rows: t.pawn.inlineCalc.errNoRows,
   }
   return map[reason] ?? reason
+}
+
+/**
+ * Embedded watch-model reference tool. Searches the curated
+ * `watch_models` table via /api/watch-models/search and displays
+ * brand / model / ref / year range / wholesale-floor value range
+ * for a selected match.
+ *
+ * Read-only on purpose: the parent /pawn/new collateral rows are
+ * controlled React inputs, so writing values via DOM would require
+ * the native-setter shim and ties this lookup to the form's internal
+ * state. We surface the data clearly + offer copy-to-clipboard so the
+ * operator types it into the collateral row themselves.
+ */
+function WatchLookupSection() {
+  const { t } = useI18n()
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<WatchModelMatch[]>([])
+  const [selected, setSelected] = useState<WatchModelMatch | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [errored, setErrored] = useState(false)
+  const [copied, setCopied] = useState(false)
+  // Debounce timer + abort controller live in refs so rapid keystrokes
+  // cancel the prior request cleanly. Per the project gotcha, debounced
+  // search MUST live in onChange — never useEffect+setState.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function runFetch(q: string) {
+    if (abortRef.current) abortRef.current.abort()
+    const ac = new AbortController()
+    abortRef.current = ac
+    setLoading(true)
+    setErrored(false)
+    fetch(
+      `/api/watch-models/search?q=${encodeURIComponent(q)}&limit=20`,
+      { signal: ac.signal },
+    )
+      .then(async (res) => {
+        if (ac.signal.aborted) return
+        if (!res.ok) {
+          setErrored(true)
+          setResults([])
+          return
+        }
+        const data = (await res.json()) as { items?: WatchModelMatch[] }
+        if (ac.signal.aborted) return
+        setResults(data.items ?? [])
+      })
+      .catch((err) => {
+        if (err?.name === 'AbortError') return
+        setErrored(true)
+        setResults([])
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setLoading(false)
+      })
+  }
+
+  function onQueryChange(v: string) {
+    setQuery(v)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (v.trim().length < 2) {
+      setResults([])
+      setLoading(false)
+      if (abortRef.current) abortRef.current.abort()
+      return
+    }
+    debounceRef.current = setTimeout(() => runFetch(v.trim()), 200)
+  }
+
+  function pickResult(m: WatchModelMatch) {
+    setSelected(m)
+    setResults([])
+    setQuery('')
+    setCopied(false)
+  }
+
+  function clearSelection() {
+    setSelected(null)
+    setCopied(false)
+  }
+
+  async function copyDescription() {
+    if (!selected) return
+    const text = describeWatch(selected)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1800)
+    } catch {
+      // Clipboard write blocked (e.g. insecure context). Fall back: leave
+      // the user to manually copy from the displayed text.
+    }
+  }
+
+  return (
+    <section className="rounded-md border border-hairline bg-cloud/40 p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-ink">
+        <Watch size={14} weight="bold" className="text-rausch" />
+        {t.pawn.inlineCalc.watchLookup.title}
+      </div>
+
+      {selected ? (
+        <SelectedWatchCard
+          match={selected}
+          onClear={clearSelection}
+          onCopy={copyDescription}
+          copied={copied}
+        />
+      ) : (
+        <div className="space-y-2">
+          <div className="relative">
+            <MagnifyingGlass
+              size={14}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash"
+            />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              placeholder={t.pawn.inlineCalc.watchLookup.placeholder}
+              className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            />
+          </div>
+
+          {loading ? (
+            <div className="text-[11px] text-ash">{t.common.loading}</div>
+          ) : null}
+          {errored ? (
+            <div className="flex items-center gap-1 text-[11px] text-error">
+              <Warning size={12} weight="bold" />
+              {t.pawn.inlineCalc.watchLookup.errFetch}
+            </div>
+          ) : null}
+          {!loading && !errored && query.trim().length >= 2 && results.length === 0 ? (
+            <div className="text-[11px] text-ash">
+              {t.pawn.inlineCalc.watchLookup.noMatches}
+            </div>
+          ) : null}
+
+          {results.length > 0 ? (
+            <ul className="max-h-56 overflow-y-auto rounded-md border border-hairline bg-canvas">
+              {results.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => pickResult(m)}
+                    className="flex w-full flex-col items-start gap-0.5 border-b border-hairline px-3 py-2 text-left last:border-0 hover:bg-cloud"
+                  >
+                    <span className="text-sm font-medium text-ink">
+                      {m.brand} {m.model}
+                      {m.nickname ? (
+                        <span className="ml-1 text-ash">
+                          “{m.nickname}”
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="font-mono text-[11px] text-ash">
+                      ref {m.reference_no} · {m.year_start}
+                      {m.year_end !== m.year_start ? `–${m.year_end}` : ''}
+                      {' · '}
+                      {fmtUsd(m.est_value_min)}–{fmtUsd(m.est_value_max)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {query.trim().length < 2 ? (
+            <p className="text-[10px] text-ash">
+              {t.pawn.inlineCalc.watchLookup.minLengthHint}
+            </p>
+          ) : null}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function SelectedWatchCard({
+  match,
+  onClear,
+  onCopy,
+  copied,
+}: {
+  match: WatchModelMatch
+  onClear: () => void
+  onCopy: () => void
+  copied: boolean
+}) {
+  const { t } = useI18n()
+  const midpoint = Math.round((match.est_value_min + match.est_value_max) / 2)
+  const yearLabel =
+    match.year_start === match.year_end
+      ? `${match.year_start}`
+      : `${match.year_start}–${match.year_end}`
+  return (
+    <div className="rounded-md border border-rausch/20 bg-canvas p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-sm font-semibold text-ink">
+            {match.brand} {match.model}
+            {match.nickname ? (
+              <span className="ml-1 text-ash">“{match.nickname}”</span>
+            ) : null}
+          </div>
+          <div className="mt-0.5 font-mono text-[11px] text-ash">
+            ref {match.reference_no} · {yearLabel}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded p-1 text-ash hover:bg-cloud hover:text-ink"
+          aria-label={t.common.clear}
+        >
+          <X size={12} weight="bold" />
+        </button>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+        <Stat
+          label={t.pawn.inlineCalc.watchLookup.minValue}
+          value={fmtUsd(match.est_value_min)}
+        />
+        <Stat
+          label={t.pawn.inlineCalc.watchLookup.midValue}
+          value={fmtUsd(midpoint)}
+          accent
+        />
+        <Stat
+          label={t.pawn.inlineCalc.watchLookup.maxValue}
+          value={fmtUsd(match.est_value_max)}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={onCopy}
+        className="mt-3 inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-[11px] font-medium text-ink hover:bg-cloud"
+      >
+        {copied ? (
+          <>
+            <Check size={12} weight="bold" className="text-success" />
+            {t.pawn.inlineCalc.watchLookup.copied}
+          </>
+        ) : (
+          <>
+            <ClipboardText size={12} weight="bold" />
+            {t.pawn.inlineCalc.watchLookup.copyDescription}
+          </>
+        )}
+      </button>
+      <p className="mt-2 text-[10px] text-ash">
+        {t.pawn.inlineCalc.watchLookup.disclaimer}
+      </p>
+    </div>
+  )
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+}: {
+  label: string
+  value: string
+  accent?: boolean
+}) {
+  return (
+    <div
+      className={`rounded-md border px-2 py-1.5 ${
+        accent
+          ? 'border-success/30 bg-success/5 text-success'
+          : 'border-hairline bg-cloud text-ink'
+      }`}
+    >
+      <div className="font-mono text-sm font-semibold">{value}</div>
+      <div className="text-[9px] uppercase tracking-wide text-ash">{label}</div>
+    </div>
+  )
+}
+
+function describeWatch(m: WatchModelMatch): string {
+  const yearLabel =
+    m.year_start === m.year_end
+      ? `${m.year_start}`
+      : `${m.year_start}–${m.year_end}`
+  return `${m.brand} ${m.model} ref ${m.reference_no} (${yearLabel})`
+}
+
+function fmtUsd(n: number): string {
+  return n.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
 }

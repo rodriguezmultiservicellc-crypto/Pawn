@@ -154,16 +154,12 @@ export async function requireClientInTenant(tenantId: string): Promise<{
   // Resolve the customer row via the admin client — RLS already protects
   // staff data; this lookup just maps auth.uid() -> customers.id without
   // depending on the customer's own SELECT policy being live.
-  //
-  // customers.auth_user_id ships in patches/0009 — until db:types regenerates
-  // we cast the eq() call so TS doesn't complain about the unknown column.
   const admin = createAdminClient()
   type CustomerLink = { id: string; tenant_id: string }
   const customerLookup = await admin
     .from('customers')
     .select('id, tenant_id')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .eq('auth_user_id' as any, ctx.userId)
+    .eq('auth_user_id', ctx.userId)
     .is('deleted_at', null)
     .maybeSingle()
   const customer = (customerLookup.data ?? null) as CustomerLink | null

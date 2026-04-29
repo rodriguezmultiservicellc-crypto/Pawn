@@ -750,6 +750,20 @@ export const es: Dictionary = {
       useAmount: 'Usar este monto',
       perRowBreakdown: 'Desglose por artículo',
       errNoRows: 'Agrega al menos un artículo de garantía arriba primero.',
+      watchLookup: {
+        title: 'Búsqueda de modelo de reloj',
+        placeholder: 'Buscar marca, modelo, ref. o apodo',
+        minLengthHint: 'Escribe al menos 2 caracteres para buscar.',
+        noMatches: 'No hay modelos de reloj coincidentes.',
+        errFetch: 'No se pudieron cargar resultados. Reintenta.',
+        minValue: 'Mín',
+        midValue: 'Medio',
+        maxValue: 'Máx',
+        copyDescription: 'Copiar detalles',
+        copied: 'Copiado',
+        disclaimer:
+          'Los valores de referencia son precios mayoristas mínimos de segunda mano — sirven como ancla, no son un avalúo formal.',
+      },
     },
     new_: {
       title: 'Nuevo boleto de empeño',
@@ -1009,6 +1023,18 @@ export const es: Dictionary = {
       empty: 'Aún no hay órdenes de reparación. Crea una para comenzar.',
       emptyForFilter: 'Ninguna orden coincide con el filtro actual.',
       searchPlaceholder: 'Buscar por orden, cliente o título…',
+      openBoard: 'Abrir tablero de órdenes',
+    },
+    board: {
+      title: 'Tablero de órdenes',
+      subtitle:
+        'Órdenes activas agrupadas por etapa. Haz clic en una tarjeta para abrirla.',
+      backToList: 'Volver al listado',
+      totalActive: 'Órdenes activas',
+      techAll: 'Todos los técnicos',
+      techUnassigned: 'Sin asignar',
+      columnEmpty: 'No hay órdenes en esta etapa.',
+      cardUnassigned: 'Sin asignar',
     },
     serviceTypes: {
       repair: 'Reparación',
@@ -1483,6 +1509,57 @@ export const es: Dictionary = {
       nextDue: 'Próximo',
       created: 'Creado',
       itemsCount: 'Artículos',
+    },
+    print: {
+      header: 'Recibo de venta',
+      sections: {
+        sale: 'Venta',
+        items: 'Artículos',
+        payments: 'Pagos',
+      },
+      customer: {
+        name: 'Cliente',
+        phone: 'Teléfono',
+        anonymous: 'Walk-in anónimo',
+      },
+      meta: {
+        kind: 'Tipo',
+        kindRetail: 'Venta directa',
+        kindLayaway: 'Apartado',
+        taxRate: 'Tasa de impuesto',
+      },
+      columns: {
+        description: 'Descripción',
+        sku: 'SKU',
+        qty: 'Cant.',
+        unit: 'Unitario',
+        line: 'Total línea',
+      },
+      itemsEmpty: 'Sin artículos en esta venta.',
+      paymentsEmpty: 'Sin pagos registrados.',
+      totals: {
+        subtotal: 'Subtotal',
+        discount: 'Descuento',
+        tax: 'Impuesto',
+        total: 'Total',
+        paid: 'Pagado',
+        balance: 'Saldo pendiente',
+      },
+      payment: {
+        cash: 'Efectivo',
+        card: 'Tarjeta',
+        check: 'Cheque',
+        other: 'Otro',
+      },
+      notes: 'Notas',
+      returnPolicy: {
+        title: 'Política de devolución',
+        body:
+          'Se aceptan devoluciones dentro de los 14 días posteriores a la compra presentando este recibo. Los artículos deben estar en su estado original. Las ofertas finales, los pedidos personalizados y los pedidos especiales no se devuelven.',
+      },
+      footer: {
+        pageOf: 'Página {n} de {total}',
+      },
     },
     statusBadges: {
       sale: {
@@ -2503,6 +2580,55 @@ export const es: Dictionary = {
       platinum_950: 'Platino .950',
       palladium_950: 'Paladio .950',
       fine: '.999 fina',
+    },
+  },
+
+  buy: {
+    print: {
+      header: 'Recibo de compra directa',
+      sections: {
+        customer: 'Cliente',
+        items: 'Artículos comprados',
+      },
+      customer: {
+        name: 'Nombre',
+        dob: 'Fecha de nacimiento',
+        address: 'Dirección',
+        phone: 'Teléfono',
+        idType: 'Tipo de ID',
+        idNumber: 'Número de ID',
+      },
+      columns: {
+        description: 'Descripción',
+        metal: 'Metal',
+        weight: 'Peso',
+        melt: 'Valor fundición',
+        payout: 'Pago',
+      },
+      itemsEmpty: 'Sin artículos en esta transacción.',
+      totals: {
+        totalPayout: 'Pago total',
+      },
+      holdNotice: {
+        title: 'Período de retención obligatorio',
+        bodyWithDays:
+          'Estos artículos deben permanecer en custodia de la tienda y sin vender durante {days} días desde la fecha indicada. La retención cumple con los requisitos estatales de reporte de bienes de segunda mano.',
+        bodyGeneric:
+          'Estos artículos están sujetos al período de retención estatal de bienes de segunda mano antes de poder ser revendidos.',
+      },
+      acknowledgement: {
+        title: 'Reconocimiento del cliente',
+        body:
+          'Soy el dueño legítimo de los artículos listados y tengo plena autoridad para venderlos. La información proporcionada es verdadera y completa. He recibido el pago total mostrado arriba en plena satisfacción de esta transacción.',
+      },
+      signatures: {
+        customer: 'Firma del cliente',
+        staff: 'Firma del empleado',
+        date: 'Fecha',
+      },
+      footer: {
+        pageOf: 'Página {n} de {total}',
+      },
     },
   },
 

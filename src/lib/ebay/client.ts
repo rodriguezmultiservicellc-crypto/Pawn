@@ -138,9 +138,9 @@ export async function writeEvent(args: {
       http_status: args.httpStatus,
       error_text: args.errorText,
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supa = admin as any
-    const { error } = await supa.from('ebay_listing_events').insert(insert)
+    const { error } = await admin
+      .from('ebay_listing_events')
+      .insert(insert as never)
     if (error) {
       console.error('[ebay] event insert failed', error.message, {
         kind: args.kind,

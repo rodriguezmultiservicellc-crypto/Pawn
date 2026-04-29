@@ -12,192 +12,245 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 12 (2026-04-29 evening) — Two new modules
-                  shipped end-to-end: loan-rate minimums (per-rate
-                  min monthly charge + tenant-wide min loan amount)
-                  AND repair tech workflow (assignment + claim +
-                  tech_qa stage with auto-timer hooks).
+  Last session:   Session 13 (2026-04-29 evening — late) — Nine
+                  features merged in one cycle: dashboard polish (3
+                  charts wired to real data + cross-module activity
+                  feed), watch-models typeahead, manager repair
+                  kanban, two pre-existing lint pre-fixes, two
+                  receipt PDFs (POS + buy-outright), 19 `as any`
+                  casts cleaned up, Vitest scaffold with 36 passing
+                  pawn-math tests.
   Context budget: HEAVY — /progress clear after this save.
-  Last worked on: Repair tech workflow shipped end-to-end. Migration
-                  0023 applied. Typecheck + lint clean. No in-progress
-                  work.
+  Last worked on: Session ended cleanly. Typecheck + lint clean
+                  on every changed file. 36 tests pass. No
+                  in-progress work.
 
   ACTIVE FILE(S) — last touched this session:
-    --- LOAN-RATE MINIMUMS (item 167) ---
-    - patches/0022-loan-rate-minimums.sql (APPLIED — min_monthly_charge
-      on tenant_loan_rates + loans, min_loan_amount on settings)
-    - src/lib/pawn/math.ts (interestAccrued daily floor, payoffBalance
-      + payoffFromLoan thread minMonthlyCharge through)
-    - src/lib/validations/loan.ts (min_monthly_charge field on
-      loanCreateSchema)
-    - src/app/(staff)/settings/loan-rates/{page,actions,content}.tsx
-      (per-rate min input + tenant-wide policy card +
-      saveTenantLoanPolicyAction)
-    - src/app/(staff)/pawn/new/{page,form,actions}.ts (rate dropdown
-      shows "min $X / mo" suffix, principal input enforces tenant min,
-      hidden field snapshots min_monthly_charge)
-    - src/app/(staff)/pawn/[id]/{page,content,actions}.tsx (load +
-      thread min_monthly_charge; LoanView gains min_monthly_charge)
-    - src/app/(portal)/portal/loans/{page,[id]/page,[id]/actions}.tsx
-      (portal payoff threads min)
-    - src/app/api/cron/maturity-reminders/route.ts (SMS payoff math
-      respects min)
-    - src/app/api/stripe/webhook/route.ts (Stripe payoff math respects
-      min — prevents under-billing redemptions)
-    - src/lib/pdf/PawnTicketPDF.tsx + render-loan-ticket.tsx
-      (PDF prints "Min interest / mo" in daily-rate slot when set)
-    - src/lib/i18n/{en,es}.ts (settingsLoanRates.minMonthlyCharge*,
-      .policyTitle, .minLoanAmount*, pawn.new_.rateMinSuffix,
-      .principalMinHint, terms.minMonthlyCharge)
+    --- DASHBOARD CHARTS + ACTIVITY FEED (items 169 + 173) ---
+    - src/app/(staff)/dashboard/page.tsx (4 new aggregations:
+      pawnsCreated14d, redemptions14d via loan_events,
+      layawayPayments14d > 0 only, repairsCompleted14d via
+      completed_at; cross-module activity feed merging 6 sources)
+    - src/app/(staff)/dashboard/content.tsx (LayawaysPanel /
+      PawnPanel / RepairsPanel consume real props with sane
+      empty-tenant zero-fill; ActivityRow component replaces the
+      recentCustomers + recentItems split feed; demoBars +
+      demoSeries removed)
 
-    --- REPAIR TECH WORKFLOW (item 168) ---
-    - patches/0023-repair-tech-workflow.sql (APPLIED — repair_status
-      gains 'assigned' + 'tech_qa'; repair_event_type gains 5 events;
-      repair_tickets gains assigned_at + claimed_at)
-    - src/lib/repair/workflow.ts (LEGAL_TRANSITIONS extended;
-      shouldOpenTimerOnEnter / shouldStopTimerOnLeave helpers)
-    - src/lib/audit.ts (claim_ticket / send_to_qa / approve_qa /
-      return_from_qa added to AuditAction)
-    - src/types/database-aliases.ts (RepairStatus + RepairEventType
-      hand-rolled aliases extended)
-    - src/app/(staff)/repair/[id]/actions.ts (4 new actions:
-      claimTicketAction, sendToQaAction, approveQaAction,
-      returnFromQaAction; openTimerForTech + stopRunningTimers
-      helpers; assignTechnicianAction now manager-only and flips
-      status to 'assigned' from awaiting_approval; auto-timer hooks
-      added to markNeedsParts/partsReceived/markComplete/
-      markAbandoned/voidTicket; resolveTicketScope now selects
-      assigned_to/assigned_at/claimed_at)
-    - src/app/(staff)/repair/[id]/content.tsx (4 new ActionButtons in
-      action row; canClaim/canSendToQa/canApproveQa/canReturnFromQa
-      gates; canAbandon/canVoid include new states)
-    - src/app/(staff)/repair/page.tsx (NON_TERMINAL_STATUSES extended;
-      tech-inbox auto-filter — repair_tech role defaults to
-      assigned_to=me with ?showAll=1 opt-out)
-    - src/components/repair/StatusBadge.tsx (assigned + tech_qa tones)
-    - src/components/repair/TimelinePanel.tsx (5 new event tones)
-    - src/lib/i18n/{en,es}.ts (claimTicket / sendToQa / approveQa /
-      returnFromQa action labels; assigned + tech_qa status badges
-      both staff + portal; 5 new event labels both staff + portal)
+    --- WATCH-MODELS TYPEAHEAD (item 170) ---
+    - src/components/pawn/InlinePawnCalculator.tsx (new
+      WatchLookupSection above the LTV row; debounced fetch via
+      AbortController + onChange-handler-driven; selected model
+      card with Min/Mid/Max stat tiles + copy-to-clipboard)
+    - src/lib/i18n/{en,es}.ts (pawn.inlineCalc.watchLookup.*)
+
+    --- MANAGER REPAIR KANBAN (item 171) ---
+    - src/app/(staff)/repair/board/page.tsx (NEW — manager-only
+      gate, module-gated on has_repair, 5 active-status columns,
+      sort by promised_date asc nulls-last + created_at asc,
+      tech-options strip with active-count sort)
+    - src/app/(staff)/repair/board/content.tsx (NEW — Column +
+      Card + TechChip; click-through to /repair/[id])
+    - src/app/(staff)/repair/page.tsx (isManager prop)
+    - src/app/(staff)/repair/content.tsx ("Open work-order
+      board" button gated by isManager)
+    - src/lib/i18n/{en,es}.ts (repair.board.* + repair.list
+      .openBoard)
+
+    --- LINT PRE-FIXES (item 172) ---
+    - src/app/(staff)/buy/new/form.tsx (2 useEffects converted
+      to compute-during-render — meltSignature-driven payout
+      sync + lastState-driven validation echo)
+    - src/app/(staff)/customers/new/form.tsx (1 useEffect →
+      compute-during-render; useEffect import dropped)
+
+    --- POS RECEIPT PDF (item 174) ---
+    - src/lib/pdf/SaleReceiptPDF.tsx (NEW — bilingual EN+ES,
+      Letter, items table + totals + payments + return policy)
+    - src/lib/pdf/render-sale-receipt.tsx (NEW — sale + customer
+      + items + payments via user-scoped supabase / RLS)
+    - src/app/api/print/sale/[id]/route.ts (NEW — gates getCtx
+      → resolveTenant → requireRoleInTenant → render →
+      audit-log → application/pdf inline)
+    - src/app/(staff)/pos/sales/[id]/content.tsx (printReceipt
+      now opens the PDF endpoint, not window.print())
+    - src/lib/i18n/{en,es}.ts (pos.print.*)
+
+    --- BUY-OUTRIGHT RECEIPT PDF (item 175) ---
+    - src/lib/pdf/BuyReceiptPDF.tsx (NEW — bilingual,
+      hold-period notice + acknowledgement + 3 signature lines)
+    - src/lib/pdf/render-buy-receipt.tsx (NEW — sources from
+      compliance_log + reads settings.buy_hold_period_days +
+      live inventory_items.hold_until)
+    - src/app/api/print/buy/[id]/route.ts (NEW — anchor
+      inventory_item_id mirrors /buy/[id] page convention)
+    - src/app/(staff)/buy/[id]/content.tsx (Print button → PDF
+      endpoint)
+    - src/lib/i18n/{en,es}.ts (NEW buy.print.* namespace)
+
+    --- NUMERIC AS-ANY CLEANUP (item 176) ---
+    - src/lib/ebay/listings.ts (2 casts removed)
+    - src/app/(staff)/inventory/[id]/ebay-actions.ts (5)
+    - src/lib/ebay/client.ts (1)
+    - src/app/(portal)/layout.tsx (1)
+    - src/lib/supabase/guards.ts (1)
+    - src/lib/portal/stripe-payment-links.ts (1)
+    - src/lib/portal/customer.ts (1)
+    - src/app/(staff)/inventory/spot-prices/page.tsx (1)
+    - src/app/(staff)/inventory/spot-prices/actions.tsx (1)
+    - src/lib/spot-prices/refresh.ts (1)
+    - src/lib/spot-prices/melt.ts (1)
+    - src/lib/spot-prices/lookup.ts (2)
+    - src/app/api/portal/sign-in-bridge/route.ts (1)
+
+    --- TEST SCAFFOLD (item 177) ---
+    - vitest.config.ts (NEW — node env, @/ alias matching
+      next config, src/**/*.test.ts include)
+    - package.json (test/test:watch/test:coverage scripts +
+      vitest@4.1.5 + @vitest/coverage-v8@4.1.5 devDeps)
+    - src/lib/pawn/math.test.ts (NEW — 36 tests across r4 /
+      toMoney / dailyRateFromMonthly / interestAccrued /
+      daysBetween / addDaysIso / appliedPayments /
+      payoffBalance / splitPayment)
 
   RESUME POINT:
-    Session ended cleanly — both modules fully shipped. Next session,
-    pick from coding-side backlog OR address the operator-setup
-    gates that block real-money smoke testing.
+    Session ended cleanly — 9 features shipped end-to-end and
+    every gate passes (typecheck, lint on changed files, 36
+    tests). No in-progress work. Next session, two paths:
 
-    Coding-side options (pick one):
-      • Phase 8 polish — 3 dashboard charts still on PRNG demoBars
-        (pawn-vs-redemptions, layaway-payments, repairs-completed)
-      • Watch-models typeahead inside InlinePawnCalculator (data +
-        /api/watch-models/search are live; UI hookup is the polish
-        step on Session-11 item 164)
-      • POS receipt PDF (mirror /api/print/loan pattern)
-      • Buy-outright bilingual PDF receipt
-      • Cron: held → available status flip when buy-outright
-        hold_until <= today
-      • Real eBay wire-up — 12-step checklist in commit 9b93e235
-      • Phase 10 Path A — public per-tenant landing pages, public
-        catalog, loyalty/referrals, Google Reviews ingestion, email
-        campaigns
-      • pgsodium at-rest encryption rollout for Twilio / Resend /
-        Stripe creds + eBay tokens
-      • NUMERIC type-divergence fix — Database<'public'> override that
-        maps NUMERIC → number (eliminates ~14 `as any` casts)
-      • Test suite scaffold
+    (A) Operator setup — close the production-behavior gates
+        listed under OPEN ISSUES below (CRON_SECRET +
+        NEXT_PUBLIC_APP_URL + Stripe webhook config + per-tenant
+        Stripe Connect / Resend onboarding).
+
+    (B) Coding-side backlog — pick from:
+        • Cron: held → available status flip on hold_until
+        • Phase 10 Path A (public landing pages, catalog,
+          loyalty/referrals, Google Reviews, email campaigns)
+        • Real eBay wire-up (12-step checklist in commit
+          9b93e235)
+        • pgsodium at-rest encryption rollout
+        • Drag-and-drop on the manager kanban (currently
+          read-only)
+        • Watch-typeahead → CollateralItemsList imperative-
+          handle integration to auto-fill row description +
+          est_value
+        • Project-wide Database<'public'> NUMERIC → number
+          override (replaces `as unknown as T` pattern)
+        • Tiered loan rates by amount range (needs schema
+          decision: per-row min/max vs sub-table)
+        • Test suite expansion (lib/repair/workflow, lib/saas/
+          gates, lib/validations/*)
 
   OPEN ISSUES / BLOCKERS:
     - Phase 0 punch list still open: NEXT_PUBLIC_APP_URL +
-      CRON_SECRET in Vercel + 3 pasted secrets rotation (anon JWT,
-      service-role JWT, sbp_ token) + repo-local git config revert.
-    - SaaS billing real-money flow still gates on operator setup
-      (Stripe webhook config + Sync Stripe products button click).
-    - Per-tenant Stripe Connect not onboarded for the first tenant.
+      CRON_SECRET in Vercel + 3 pasted secrets rotation (anon
+      JWT, service-role JWT, sbp_ token) + repo-local git
+      config revert.
+    - SaaS billing real-money flow still gates on operator
+      setup (Stripe webhook config + Sync Stripe products
+      button click).
+    - Per-tenant Stripe Connect not onboarded for the first
+      tenant.
     - Per-tenant Resend not set up for first tenant — portal /
       customer comm emails fall back to operator-copies-link.
-    - eBay paths still STUBBED (Phase 10 B). 12-step real wire-up
-      checklist documented in commit 9b93e235.
-    - Diamond cert lookup is in stub mode — needs IDEX_API_KEY or
-      RAPAPORT_API_KEY in env to leave 'not_configured'.
-    - Watch-models typeahead not wired into InlinePawnCalculator
-      yet (data + /api/watch-models/search are live; UI hookup is
-      the future polish item).
-    - WhatsApp Content SIDs NULL until Twilio + Meta approval per
-      template per tenant.
+    - eBay paths still STUBBED (Phase 10 B). 12-step real
+      wire-up checklist documented in commit 9b93e235.
+    - Diamond cert lookup is in stub mode — needs IDEX_API_KEY
+      or RAPAPORT_API_KEY in env to leave 'not_configured'.
+    - WhatsApp Content SIDs NULL until Twilio + Meta approval
+      per template per tenant.
     - FL LeadsOnline CSV format still DRAFT.
-    - tenants.agency_store_id column missing — police-report uses
-      UUID fallback.
+    - tenants.agency_store_id column missing — police-report
+      uses UUID fallback.
+    - Pre-existing lint debt (NOT mine): 2 react/no-
+      unescaped-entities errors in admin/billing/content.tsx;
+      7 unused-var warnings across various files.
     - Reviewer's stronger architectural fix on secrets (split
-      secret columns or expose only masked status views) bundles
-      with pgsodium-encryption migration on backlog.
+      secret columns or expose only masked status views)
+      bundles with pgsodium-encryption migration on backlog.
 
   KEY DECISIONS LOCKED THIS SESSION:
-    - LOAN-RATE MIN APPLIES PER-DAY, NOT PER-MONTH. interestAccrued
-      floors `daily = MAX(principal * rate / 30, min / 30)` so a
-      partial-month redemption pro-rates cleanly. A $10 loan with
-      10%/mo + $20 min charges $0.67/day; 30 days = $20, 15 days =
-      $10. Defensive: works even if rate=0 with min set (the form
-      won't allow that today, but math handles it).
-    - PER-RATE MIN, NOT TENANT-WIDE MIN. Each tenant_loan_rates row
-      gets its own optional min_monthly_charge so an operator can
-      configure "10%/mo, $20 min" and "5%/mo, $10 min" as two
-      different rate rows. More flexible than one tenant-wide knob.
-    - MIN-CHARGE SNAPSHOTTED ONTO loans AT INTAKE. Same pattern as
-      interest_rate_monthly: the value copies from the chosen rate
-      to loans.min_monthly_charge at /pawn/new submission, frozen
-      for the life of the loan. Future rate-menu edits never alter
-      existing loans.
-    - TENANT-WIDE MIN LOAN AMOUNT LIVES ON settings. /pawn/new
-      server action validates `principal >= settings.min_loan_amount`
-      after schema parse but before any DB writes, returns
-      'principal_below_tenant_min:X.XX' field error.
-    - MIN-CHARGE THREADED THROUGH ALL 6 payoffFromLoan CALLERS
-      (staff detail page, staff actions, portal list, portal detail,
-      portal pay-by-link action, cron maturity reminders, Stripe
-      webhook). Critical: Stripe webhook computes payoff for
-      automated redemption flips — under-billing here would write
-      'redeemed' status on insufficient funds.
-    - REPAIR WORKFLOW: 'assigned' SITS BETWEEN awaiting_approval AND
-      in_progress. Operator routes ticket → assigned (with assigned_to
-      + assigned_at). Tech claims → in_progress (with claimed_at).
-      Legacy bypass (awaiting_approval → in_progress directly) kept
-      for operators who don't use the assignment flow.
-    - REPAIR WORKFLOW: 'tech_qa' SITS BETWEEN in_progress AND ready.
-      Tech finishes hands-on work → tech_qa. QA approve → ready. QA
-      fail → back to in_progress. Legacy bypass (in_progress →
-      ready directly via markCompleteAction) kept.
-    - AUTO-TIMER HOOKS DRIVEN BY workflow.ts HELPERS.
-      shouldOpenTimerOnEnter('in_progress') = true and
-      shouldStopTimerOnLeave('in_progress') = true. claim /
-      parts_received / qa_returned auto-OPEN a timer for the assigned
-      tech; needs_parts / sendToQa / markComplete / markAbandoned /
-      void auto-STOP all running timers. Idempotent helpers
-      (openTimerForTech / stopRunningTimers) — no error if a timer
-      is already open or no timer is running.
-    - MANUAL PAUSE/RESUME PRESERVED VIA existing startTimer /
-      stopTimer (e.g. lunch breaks). The auto path doesn't replace
-      the manual path; both coexist.
-    - assignTechnicianAction NOW MANAGER-ROLE-ONLY. Was open to all
-      STAFF_REPAIR_ROLES (incl. pawn_clerk + repair_tech). Now
-      MANAGER_ROLES only (owner/manager/chain_admin). Routing work
-      is a managerial decision; techs claim work, they don't move
-      tickets between jewelers.
-    - CLAIM-TICKET AUTHORIZATION: must be the assigned_to tech, OR
-      a manager-level role (owner/manager/chain_admin). Manager
-      override lets owners reassign-and-claim in one step if a
-      jeweler is out. If a manager claims an unassigned ticket,
-      assigned_to gets set to the claiming user so the timer + audit
-      trail line up.
-    - TECH-INBOX AUTO-FILTER on /repair list: when role=
-      'repair_tech' and no explicit assignedTo param and no
-      ?showAll=1 flag, default assignedToFilter to ctx.userId. So
-      jewelers land on their own queue by default; manager+ roles
-      see everything.
-    - assigned_at STAMPED ON FIRST ROUTING ONLY. Re-assignment keeps
-      the original timestamp so we can measure queue-to-claim time
-      across re-routings.
-    - STATUS BADGES: 'assigned' uses cool rausch-deep tone (queued);
-      'tech_qa' uses muted success tone (final lap). Status enums
-      now have 11 values total (was 9).
+    - DASHBOARD CHARTS USE THE EXISTING 14-DAY WINDOW
+      (`dailyRevenueWindowStart`). Range selector remains
+      UI-only for now — the window stays fixed at 14 days.
+      seriesMax * 1.1 with sane minima prevents axis collapse
+      on empty tenants.
+    - PAWN-VS-REDEMPTIONS PULLS REDEMPTIONS FROM
+      `loan_events.event_type='redemption'` BY `occurred_at`,
+      NOT FROM `loans.updated_at`. loan_events is append-only
+      so the redemption date is preserved across edits; status
+      flips that get re-edited would otherwise clobber the
+      historical date.
+    - LAYAWAY-PAYMENTS CHART EXCLUDES REFUNDS. Filters
+      `layaway_payments.amount > 0` so the bar shows gross
+      collections; the refund-only / empty-day case doesn't
+      dip below zero.
+    - REPAIRS-COMPLETED COUNTS BY `completed_at IS NOT NULL`.
+      Covers both markCompleteAction (transition to ready) and
+      approveQaAction (transition to ready via QA path) — both
+      stamp completed_at.
+    - WATCH TYPEAHEAD IS READ-ONLY V1. parent CollateralItems
+      List rows are React-controlled — DOM writes via the
+      native-setter shim would be fragile and tightly couple
+      the lookup to internal form state. Operator copies the
+      midpoint or transcribes the description.
+    - WATCH TYPEAHEAD DISCLAIMER IS LOCKED: "Reference values
+      are pre-owned wholesale floors — anchor only, not a
+      formal appraisal." Bilingual. Rendered every time a
+      match is selected.
+    - MANAGER KANBAN IS READ-ONLY V1. No drag-and-drop. Card
+      click → /repair/[id]. 5 columns: assigned →
+      in_progress → needs_parts → tech_qa → ready. Terminal
+      states excluded — list page handles those.
+    - MANAGER KANBAN GATES TO OWNER / MANAGER / CHAIN_ADMIN.
+      Non-managers redirect to /repair (the regular list),
+      NOT /no-tenant — they keep their normal access. Same
+      role list as assignTechnicianAction (Session 12).
+    - TECH CHIP STRIP ON KANBAN SORTS BY ACTIVE-COUNT DESC,
+      THEN ALPHABETIC. Drops idle staff to the end so the busy
+      techs surface first.
+    - ACTIVITY FEED MERGES 6 MODULE TABLES, NOT audit_log.
+      The customer-name path is what operators actually want
+      to see; joining audit_log to every source table at
+      render time would be expensive. Each row is module-
+      gated by tenant flag.
+    - RECEIPT PDFs USE BROWSER-PDF-VIEWER PRINTING, NOT
+      window.print(). Both POS and buy-outright Print buttons
+      open the PDF endpoint in a new tab; window.print() of
+      the HTML page would print the staff UI itself, not a
+      customer receipt.
+    - BUY RECEIPT NUMBER FORMAT: `BO-{LAST8(compliance_log.id)}`.
+      Customer doesn't need the full UUID; last-8 is unique
+      enough for manual lookup against the audit trail.
+    - BUY RECEIPT HOLD-PERIOD NOTICE PICKS THE LONGEST hold_
+      until ACROSS ALL ITEMS in the transaction. Conservative
+      against legal-hold extensions that override the
+      tenant-default.
+    - NUMERIC `AS ANY` CASTS WERE MISSING-TYPE CASTS, NOT
+      NUMERIC-mapping casts. The 19 cleaned up were leftovers
+      from before db:types regenerated. The runtime
+      string-vs-number divergence remains — bridged at row
+      boundaries via `as unknown as T` to hand-rolled types
+      that use `number`. Project-wide Database<'public'>
+      override with NUMERIC → number is on backlog as a
+      proper fix (replaces the `as unknown as` pattern).
+    - SUPABASE-JS UPSERT/UPDATE WITH NUMERIC FIELDS USES
+      `as never` AT THE CALL BOUNDARY. The narrowing trips
+      because generated Insert/Update types narrow NUMERIC
+      to string but supabase-js round-trips number fine.
+      Single-call surface — NOT a project-wide cast.
+    - VITEST CONFIG IS NODE-ENV ONLY. v1 scope: pure-logic
+      tests under src/lib/** and src/types/**. React rendering
+      tests + Supabase mock surface deferred until there's a
+      regression worth locking down. Path alias `@/` mirrors
+      next.config.ts.
+    - TEST FOCUS — REGRESSION-LOCKING THE STRIPE-WEBHOOK
+      UNDER-BILLING INCIDENT (Session 12). interestAccrued
+      with min_monthly_charge / 30 daily floor is covered for
+      30-day, 15-day, 1-day, zero-rate-with-min, and
+      no-min-with-rate cases. payoffBalance threads min
+      through end-to-end.
 
   KEY DECISIONS CARRIED FROM PRIOR SESSIONS (still authoritative):
     - Multi-store from day 1 (tenants.parent_tenant_id +
@@ -213,7 +266,7 @@ SEE ALSO (do not duplicate here):
     - Dedicated cloud projects (Rule 17): own GitHub + Supabase +
       Vercel.
     - Money is numeric(18,4) — never floats; r4() in
-      lib/pawn/math.ts.
+      lib/pawn/math.ts. Regression-locked by Session 13 tests.
     - Audit-log every mutation through admin client.
     - Phosphor icons in client components only.
     - 'use server' modules export async functions ONLY (type
@@ -226,8 +279,9 @@ SEE ALSO (do not duplicate here):
       <select> with placeholder MUST wrap in preprocess(""→null).
     - SESSION 8 FORM-RESET WORKAROUND: compute-during-render
       via `if (state !== lastState) setLastState(state); if
-      (state.values) setFormGen(g => g + 1)`. NOT useEffect+set
-      State. NOT useRef.current reads.
+      (state.values) setFormGen(g => g + 1)`. NOT useEffect+
+      setState. Re-applied in Session 13 to buy/new + customers/
+      new (item 172).
     - SESSION 9: any postgres function mutating a tenant-scoped
       table from a trigger MUST be SECURITY DEFINER + locked
       search_path.
@@ -248,29 +302,32 @@ SEE ALSO (do not duplicate here):
       handle role-gating exemptions.
     - SESSION 10: /api/portal/sign-in-bridge sets the active-
       tenant cookie BEFORE the (portal) layout runs.
-    - SESSION 10: customer auth users without a password are fine —
-      they sign in via magic link forever; optional password set
-      via supabase.auth.updateUser({password}) from /portal/account.
+    - SESSION 10: customer auth users without a password are fine
+      — they sign in via magic link forever; optional password
+      set via supabase.auth.updateUser({password}) from /portal/
+      account.
     - SESSION 10: subscription_plans uses price_monthly_cents /
       price_yearly_cents (NOT monthly_amount / yearly_amount).
-    - SESSION 11: NUMERIC columns (NUMERIC(N,M)) come back as
-      `string` from auto-generated db:types but supabase-js
-      returns `number` at runtime. Coerce at the page boundary
-      via Number(row.col).
-    - SESSION 11: form state that needs to be read from one
-      component into another (e.g. inline calculator reading
-      collateral fields) can avoid React state-lift via DOM
-      access: getElementById(formId) + new FormData(form).
+    - SESSION 11: NUMERIC columns return as `string` from
+      auto-generated db:types but supabase-js returns `number`
+      at runtime. Session 13 cleaned up the leftover `as any`
+      casts; remaining bridge points use `as unknown as T` at
+      row boundaries.
+    - SESSION 11: form state that needs cross-component reads
+      (e.g. inline calculator → collateral fields) avoids state
+      lift via getElementById(formId) + new FormData(form).
+      Re-applied in Session 13's WatchLookupSection.
     - SESSION 11: Stripe subscription update for plan-CHANGE
-      must locate items[0].id (subscription items, not the sub
-      itself) and PATCH that item's price.
+      must locate items[0].id (subscription items, not the
+      sub itself) and PATCH that item's price.
     - SESSION 11: watch_models seed values are publicly-quoted
       pre-owned wholesale floors as of 2026-04. Treat as
-      anchors, NOT appraisals.
+      anchors, NOT appraisals. Session 13 watch typeahead
+      surfaces this disclaimer on every selected match.
     - SESSION 12: Loan-rate min_monthly_charge applies per-day
-      as min/30. Floor at the daily-accrual level so partial-
-      month redemptions pro-rate cleanly. Threaded through
-      every payoffFromLoan caller incl. Stripe webhook.
+      as min/30. Threaded through every payoffFromLoan caller
+      incl. Stripe webhook. Regression-locked by Session 13
+      tests (item 177).
     - SESSION 12: Tenant-wide min_loan_amount lives on settings,
       validated in /pawn/new server action AFTER schema parse
       but BEFORE any DB write so a too-small loan never lands
@@ -278,18 +335,37 @@ SEE ALSO (do not duplicate here):
     - SESSION 12: Repair workflow's auto-timer hooks are
       idempotent: openTimerForTech is a no-op if a timer is
       already running for the same tech; stopRunningTimers is a
-      no-op if no timers are running. Wired into status
-      transitions (claim / parts_received / qa_returned open;
-      needs_parts / sendToQa / markComplete / markAbandoned /
-      void stop).
-    - SESSION 12: assignTechnicianAction is now manager-only.
+      no-op if no timers are running. shouldOpenTimerOnEnter /
+      shouldStopTimerOnLeave helpers in lib/repair/workflow.ts
+      are the single source of truth.
+    - SESSION 12: assignTechnicianAction is manager-only.
       Tech members can self-assign by claiming an unassigned
-      ticket (which auto-routes assigned_to to themselves), but
-      they can't move tickets between jewelers from the staff
-      surface.
+      ticket. Manager kanban (Session 13) reuses the same
+      MANAGER_ROLES list.
     - SESSION 12: tech-inbox auto-filter for repair_tech role on
       /repair list defaults to assigned_to=me. ?showAll=1 opts
       out. Manager+ roles see everything by default.
+    - SESSION 13: PDF receipts go through /api/print/<kind>/[id]
+      and open in a new tab. Three live: /api/print/loan/[id]
+      (Session 5), /api/print/sale/[id] + /api/print/buy/[id]
+      (Session 13). NEVER call window.print() on the staff page.
+    - SESSION 13: Buy-receipt path param is the FIRST inventory_
+      item_id (anchor, mirrors /buy/[id] page). The route
+      resolves compliance_log via source_id = anchor_item_id +
+      source_table='inventory_items' + event_type='buy_outright'.
+    - SESSION 13: Manager kanban route is /repair/board (NOT
+      /repair/kanban). Manager-only gate; non-managers redirect
+      to /repair (NOT /no-tenant).
+    - SESSION 13: Activity feed pulls from module tables
+      directly, NOT audit_log. The customer-name path is what
+      operators want; joining audit_log to source tables at
+      render time would be expensive.
+    - SESSION 13: Watch typeahead is READ-ONLY by design. Don't
+      add DOM-write auto-fill without first migrating Collateral
+      ItemsList to expose an imperative handle (refactor on
+      backlog).
+    - SESSION 13: Vitest scope is pure-logic only. React
+      rendering / Supabase-mock tests deferred until needed.
 
   IMPORTANT CONSTANTS / PATHS:
     - Project root:   c:\Users\rodri\OneDrive\Documents\Pawn\
@@ -300,8 +376,7 @@ SEE ALSO (do not duplicate here):
     - Active-tenant cookie: pawn-active-tenant
     - Sidebar collapse key: pawn.sidebar.collapsed
     - Spot-prices hide key: pawn.spot-prices.hidden
-    - Dashboard storage keys: dash.activeTab, dash.activeRange,
-      dash.recent.{sales|layaways|pawn|repairs}
+    - Dashboard storage keys: dash.activeTab, dash.activeRange
     - Customer portal sign-in URL: <APP_URL>/portal/login
     - Portal sign-in bridge:       <APP_URL>/api/portal/sign-in-bridge
     - Portal claim URL pattern:    <APP_URL>/portal/claim/<token>
@@ -309,8 +384,14 @@ SEE ALSO (do not duplicate here):
     - Admin watch-models curation: /admin/watch-models
     - Diamond cert lookup endpoint: /api/diamonds/cert-lookup (stub)
     - SaaS plan-change endpoint:    /api/stripe/saas/change-plan
-    - Tech-inbox toggle:            /repair?showAll=1 (repair_tech
-                                    sees all instead of assigned-to-me)
+    - Tech-inbox toggle:            /repair?showAll=1
+    - Manager kanban:               /repair/board (manager-only)
+    - Loan ticket PDF:              /api/print/loan/[loan_id]
+    - Sale receipt PDF:             /api/print/sale/[sale_id]
+    - Buy-outright receipt PDF:     /api/print/buy/[anchor_inventory_item_id]
+    - Watch-models search API:      /api/watch-models/search?q=&limit=
+    - Run tests:                    npm test (vitest run)
+    - Test watch:                   npm run test:watch
     - First tenant: Eddy's Jewelers Corp.
         tenant_id    1abc8070-0797-4740-8dea-70cbb16060fe
     - SaaS plans (codes UNIQUE on subscription_plans.code):
@@ -332,6 +413,7 @@ SEE ALSO (do not duplicate here):
         Return         'R-'   + LPAD(seq,6,'0')   (R-000123)
         Layaway        'L-'   + LPAD(seq,6,'0')   (L-000123)
         Appraisal      'AP-'  + LPAD(seq,6,'0')   (AP-000123)
+        Buy receipt    'BO-'  + LAST8(compliance_log.id)
     - Required env vars for live SaaS billing + crons + portal:
         STRIPE_SAAS_WEBHOOK_SECRET
         RESEND_PLATFORM_FROM_EMAIL
@@ -358,6 +440,7 @@ SEE ALSO (do not duplicate here):
     - Repair status enum (11 values): intake | quoted |
       awaiting_approval | assigned | in_progress | needs_parts |
       tech_qa | ready | picked_up | abandoned | voided.
+    - Manager-role list: ['owner','manager','chain_admin'].
 
 ================================================================================
 PHASE OVERVIEW
@@ -370,21 +453,25 @@ PHASE OVERVIEW
           CRON_SECRET + secret rotation still open.)
   1       Customers + Inventory                      COMPLETE    2026-04-26
   2       Pawn loans (gated on has_pawn)             COMPLETE    2026-04-27
-          (Variable rate menu added 2026-04-29
-          Session 11. Loan-rate minimums + tenant
-          min loan amount added 2026-04-29 Session
-          12.)
+          (Variable rate menu Session 11. Loan-rate
+          minimums + tenant min loan amount Session
+          12. Watch typeahead + 3 dashboard charts
+          live Session 13.)
   3       Repair / stone setting                     COMPLETE    2026-04-27
-          (Tech workflow upgraded 2026-04-29 Session
-          12 — assigned + tech_qa stages, auto-
-          timer hooks, tech-inbox filter.)
+          (Tech workflow upgraded Session 12 —
+          assigned + tech_qa stages, auto-timer
+          hooks, tech-inbox filter. Manager kanban
+          Session 13.)
   4       Retail / POS                               COMPLETE    2026-04-27
+          (POS receipt PDF Session 13.)
   5       Customer portal (full)                     COMPLETE    2026-04-29
   6       Communications                             COMPLETE    2026-04-27
   7       Reporting + compliance                     COMPLETE    2026-04-27
   8       Polish                                     IN PROGRESS  —
-          (Remaining: 3 dashboard charts on PRNG +
-          mobile audits.)
+          (Charts + activity feed + repair kanban +
+          receipt PDFs + as-any cleanup + test
+          scaffold landed Session 13. Remaining:
+          mobile audits across portal + dashboard.)
   9 (A)   SaaS GA infrastructure                     COMPLETE    2026-04-29
   9 (B)   Pricing intelligence                       COMPLETE    2026-04-29
   10 (A)  Marketing & customer growth                PENDING     —
@@ -441,76 +528,203 @@ SESSION HISTORY LOG
      variable-rate menu module.
 
 --- Session 12 (2026-04-29 evening) — Loan-rate minimums + repair tech workflow ---
+  167-168. Per-rate min_monthly_charge + tenant-wide min_loan_amount;
+     repair tech workflow with assigned + tech_qa stages, auto-timer
+     hooks driven by workflow.ts helpers, and tech-inbox auto-filter.
 
- 167. LOAN-RATE MINIMUMS — PER-RATE MIN MONTHLY CHARGE + TENANT-WIDE
-     MIN LOAN AMOUNT. Migration 0022 added min_monthly_charge
-     NUMERIC(18,4) NULL to tenant_loan_rates AND loans (snapshot at
-     intake), plus min_loan_amount NUMERIC(18,4) NULL to settings.
-     interestAccrued() in lib/pawn/math.ts now floors at
-     min_monthly_charge / 30 daily — partial-month redemptions
-     pro-rate cleanly (a $10 loan with 10%/mo + $20 min charges
-     $0.67/day; 30-day redeem = $20, 15-day redeem = $10).
-     payoffBalance + payoffFromLoan thread minMonthlyCharge through
-     to all 6 callers (staff detail page + actions, portal list +
-     detail + pay-by-link action, cron maturity reminders, Stripe
-     webhook). Critical: Stripe webhook computes payoff for automated
-     redemption flips — under-billing here would write 'redeemed' on
-     insufficient funds. /settings/loan-rates content.tsx adds a
-     "Loan policy" card at the top with the tenant-wide min input
-     (saveTenantLoanPolicyAction); rate-edit dialog gains optional
-     "Minimum monthly charge" input; rate table shows "min $X / mo"
-     under the rate when set. /pawn/new form dropdown labels include
-     "(min $X / mo)" suffix; principal input enforces tenant min via
-     server-side validation that runs after Zod parse but before any
-     DB write so a too-small loan never lands partially. Hidden
-     min_monthly_charge field carries the snapshot to the loan
-     insert. Print PDF displays "Min interest / mo" in the daily-rate
-     slot when set (collapses informational daily-rate display since
-     the floor is more important to communicate). i18n EN+ES added.
-     Commit pending.
+--- Session 13 (2026-04-29 evening — late) — Dashboard polish + watch typeahead + manager kanban + receipt PDFs + NUMERIC cleanup + test scaffold ---
 
- 168. REPAIR TECH WORKFLOW — ASSIGNMENT + CLAIM + tech_qa STAGE +
-     AUTO-TIMER HOOKS. Eddy explicitly chose options 1+2+3 from the
-     scope clarification. Migration 0023 extended repair_status
-     enum with 'assigned' (between awaiting_approval and
-     in_progress) and 'tech_qa' (between in_progress and ready);
-     extended repair_event_type with assigned_to_tech /
-     claimed_by_tech / qa_started / qa_completed / qa_returned;
-     added assigned_at + claimed_at TIMESTAMPTZ NULL columns to
-     repair_tickets. Workflow state machine in lib/repair/workflow.ts
-     extended with new transitions; shouldOpenTimerOnEnter /
-     shouldStopTimerOnLeave helpers added (currently only
-     in_progress). 4 new server actions in repair/[id]/actions.ts:
-     claimTicketAction (assigned → in_progress; auto-opens timer;
-     sets claimed_at; assigned-tech-only or manager override),
-     sendToQaAction (in_progress → tech_qa; auto-stops timer),
-     approveQaAction (tech_qa → ready; sets completed_at),
-     returnFromQaAction (tech_qa → in_progress; auto-opens timer).
-     Idempotent helpers openTimerForTech / stopRunningTimers wired
-     into existing transitions: claim/parts_received/qa_returned
-     OPEN; needs_parts/sendToQa/markComplete/markAbandoned/void STOP.
-     assignTechnicianAction now manager-only (was open to all
-     STAFF_REPAIR_ROLES) and flips status to 'assigned' from
-     awaiting_approval; stamps assigned_at on first routing only;
-     emits assigned_to_tech event. UI: 4 new ActionButtons in
-     /repair/[id] action row (Claim & start, Send to QA, Approve &
-     mark ready, Send back for more work). StatusBadge gains
-     assigned + tech_qa tones. TimelinePanel gains 5 new event
-     tones. Tech-inbox auto-filter on /repair list — when role=
-     repair_tech and no explicit assignedTo and no ?showAll=1,
-     defaults assignedToFilter to ctx.userId so jewelers land on
-     their own queue. NON_TERMINAL_STATUSES extended with assigned
-     + tech_qa. Manual Pause/Resume preserved via existing
-     startTimer/stopTimer (e.g. for lunch breaks). Legacy paths
-     kept: awaiting_approval → in_progress (skip assignment),
-     in_progress → ready (skip QA via markCompleteAction). i18n
-     EN+ES updated for action labels (claimTicket, sendToQa,
-     approveQa, returnFromQa), staff + portal status badges
-     (assigned, tech_qa), staff + portal timeline events (5 new).
-     types/database-aliases.ts hand-rolled aliases extended.
-     audit.ts AuditAction extended with claim_ticket / send_to_qa /
-     approve_qa / return_from_qa. Typecheck + lint clean. Commit
-     pending.
+ 169. PHASE 8 — DASHBOARD CHARTS WIRED TO REAL DATA. The 3 charts that
+     were on demoBars/demoSeries PRNG are now live. dashboard/page.tsx
+     adds 4 new aggregations folded into the existing
+     dailyRevenueWindowStart 14-day window: pawnsCreated14d (loans
+     COUNT by created_at day), redemptions14d (loan_events COUNT by
+     occurred_at where event_type='redemption' — append-only, so the
+     date is preserved across edits, unlike loans.updated_at),
+     layawayPayments14d (layaway_payments SUM where amount > 0 —
+     refunds excluded so chart shows gross collections), and
+     repairsCompleted14d (repair_tickets COUNT where completed_at IS
+     NOT NULL — covers markCompleteAction → ready and approveQaAction
+     → ready). dashboard/content.tsx LayawaysPanel / PawnPanel /
+     RepairsPanel consume real props with sane empty-tenant zero-fill;
+     each chart axis caps at seriesMax * 1.1 with minima for empty
+     series. demoBars + demoSeries removed entirely. Sparkline on the
+     OverviewPanel module cards is left unchanged (separate visual
+     element, not in scope). Commit pending.
+
+ 170. WATCH-MODELS TYPEAHEAD — LIVE INSIDE InlinePawnCalculator. New
+     `WatchLookupSection` mounts above the LTV row in
+     components/pawn/InlinePawnCalculator.tsx. Debounced search
+     (200ms, AbortController-cancelled, onChange-handler-driven per
+     the project gotcha) hits /api/watch-models/search, lists matches
+     as the user types, and on selection displays a card with brand /
+     model / ref / year-range plus Min/Mid/Max stat tiles and a
+     copy-to-clipboard button for the descriptive text. Read-only by
+     design — CollateralItemsList rows are React-controlled, so DOM
+     writes via the native-setter shim would be fragile and tightly
+     couple the lookup to internal form state. Bilingual disclaimer
+     locked: "wholesale floors — anchor only, not a formal appraisal."
+     i18n keys at pawn.inlineCalc.watchLookup.* in both en.ts +
+     es.ts. Resolves the open Session-11 polish note (item 164).
+     Future enhancement on backlog: imperative-handle integration to
+     auto-fill row description + est_value when the operator selects
+     a model. Commit pending.
+
+ 171. MANAGER REPAIR KANBAN — /repair/board (NEW). New route at
+     app/(staff)/repair/board/{page,content}.tsx. Manager-only role
+     gate (owner/manager/chain_admin); non-managers redirect to
+     /repair (NOT /no-tenant — they keep their normal access).
+     Module-gated on has_repair. Five status columns in workflow
+     order: assigned → in_progress → needs_parts → tech_qa → ready.
+     Terminal states excluded — list page handles those. Sort within
+     column: promised_date asc nulls-last, then created_at asc.
+     Tech chip strip with active-count badges, sorted by load
+     (count desc, then alphabetic). Service-type filter. Cards show
+     ticket number, customer "Last, First", service-type badge,
+     title (line-clamp-2), assigned tech (or "Unassigned"), and a
+     due-date column with overdue/due-soon coloring. Click-through
+     to /repair/[id]. Responsive grid: 1 / 3 / 5 cols across
+     breakpoints. /repair list gets an "Open work-order board"
+     button visible only to managers (isManager prop threads down
+     from page.tsx). i18n keys at repair.board.* + repair.list
+     .openBoard. Resolves backlog item #24 (Session 12 added the
+     data + workflow; Session 13 ships the view). Commit pending.
+
+ 172. PRE-EXISTING SET-STATE-IN-EFFECT LINT ERRORS FIXED. buy/new/
+     form.tsx had two offending useEffects: one syncing items[].
+     payout from melt-value computation (driven off a joined item
+     signature), and one repopulating scalars from validation echo.
+     Both rewrote as compute-during-render per the Session 8
+     pattern: signature-tracking sentinel state + conditional
+     setStates outside any effect body. customers/new/form.tsx had
+     one useEffect for validation echo — same pattern. Removed
+     unused `useEffect` imports from both files. Net: -3 errors
+     against react-hooks/set-state-in-effect (the 5 reported by
+     lint at start of session were 3 from these files + 2
+     pre-existing react/no-unescaped-entities in admin/billing/
+     content.tsx which are NOT mine and stay open). Commit pending.
+
+ 173. CROSS-MODULE ACTIVITY FEED — DASHBOARD OVERVIEW. dashboard/
+     page.tsx queries 6 module sources in parallel (customers,
+     inventory_items, loans gated by has_pawn, sales + layaways
+     gated by has_retail, repair_tickets gated by has_repair),
+     6 most-recent rows per source, merged into a unified top-10
+     timeline sorted by created_at desc. Each row carries kind
+     ('customer' | 'inventory' | 'pawn' | 'sale' | 'layaway' |
+     'repair'), title (customer name OR item description), subtitle
+     (ticket / sale / layaway number), amount (principal / total /
+     list_price / quote_amount / null), and href (drill-down URL).
+     dashboard/content.tsx ActivityRow component renders kind-
+     tagged feed items with click-through to /customers/[id],
+     /inventory/[id], /pawn/[id], /pos/sales/[id], /pos/layaways/
+     [id], or /repair/[id]. Replaces the recentCustomers +
+     recentItems split feed. Tag tones reuse the dashboard's
+     per-module CSS variables (--m-pawn-text / --m-sales-text /
+     --m-layaway-text / --m-repair-text). Commit pending.
+
+ 174. POS RECEIPT PDF — BILINGUAL EN+ES. Three new files. lib/pdf/
+     SaleReceiptPDF.tsx (component): Letter paper, header with
+     tenant + sale number + status pill, customer + sale-meta block
+     (customer name OR "Anonymous walk-in" / phone / type / tax
+     rate), items table (description / SKU / qty / unit / line
+     total), totals breakdown (subtotal / discount only when > 0 /
+     tax / grand total), payments list with grand-total + balance-
+     due if nonzero, optional notes, return-policy block, footer
+     with page X of Y. Stacked-pair labels for bilingual rows.
+     lib/pdf/render-sale-receipt.tsx: server-side renderer pulls
+     sale + customer (single embedded select) + tenant + sale_items
+     with inventory.sku join + sale_payments via user-scoped
+     supabase (RLS enforces tenant). app/api/print/sale/[id]/
+     route.ts: gates getCtx → tenant lookup → requireRoleInTenant
+     (['owner','manager','pawn_clerk','chain_admin']) → render →
+     audit-log 'update' (kind: 'print_render') → application/pdf
+     inline. pos/sales/[id]/content.tsx printReceipt() rewired
+     from window.print() (which would print the staff UI itself)
+     to window.open('/api/print/sale/'+id, '_blank'). i18n keys
+     at pos.print.* in both en.ts + es.ts. Commit pending.
+
+ 175. BUY-OUTRIGHT RECEIPT PDF — BILINGUAL EN+ES. Three new files.
+     lib/pdf/BuyReceiptPDF.tsx (component): Letter, header with
+     receipt number `BO-{LAST8(compliance_log.id)}`, customer
+     block (name + DOB + address + phone + ID type + ID number),
+     items table (description with optional S/N suffix / metal+
+     karat / weight in grams / melt value at buy / payout), total
+     payout (no balance — buy-outright is paid in full at intake
+     by definition), mandatory hold-period notice (parameterized
+     by days from settings.buy_hold_period_days, default 30 = FL),
+     customer-acknowledgement block ("I am the lawful owner...
+     received the total payout shown above in full satisfaction"),
+     three signature lines (customer / staff / date), footer.
+     lib/pdf/render-buy-receipt.tsx: sources from compliance_log
+     (write-once buy snapshot — Rule 15), reads settings.buy_hold_
+     period_days for the hold-period text, queries live
+     inventory_items.hold_until and uses the LONGEST across the
+     transaction's items (defensive against legal-hold extensions
+     that override the tenant-default). app/api/print/buy/[id]/
+     route.ts: path param is the anchor inventory_item_id (same
+     convention as /buy/[id] page). Resolves item → tenant via
+     admin (uniform with the receipt page itself) →
+     requireRoleInTenant → render → audit-log → inline PDF.
+     /buy/[id]/content.tsx Print button rewired from window.
+     print() to the PDF endpoint, gated on the anchor item id
+     being present. New i18n namespace buy.print.* in both en.ts
+     + es.ts. Commit pending.
+
+ 176. NUMERIC `as any` CLEANUP — 19 CASTS REMOVED. Every `as any`
+     cast in src/ turned out to be a missing-table-type or
+     missing-column-type cast that's now resolved because
+     database.ts has been regenerated since the casts were added
+     (spot_prices, spot_price_overrides, ebay_listings, ebay_
+     listing_events, stripe_payment_links, watch_models, and
+     customers.auth_user_id are all in the generated types now).
+     Removed across 13 files: lib/ebay/listings.ts (loadListing +
+     persistListingPatch, 2), inventory/[id]/ebay-actions.ts
+     (createEbayDraft + updateEbayDraft + publish + endListing +
+     syncListing, 5), lib/ebay/client.ts (event insert, 1),
+     (portal)/layout.tsx (portal customer lookup, 1), supabase/
+     guards.ts (requireClientInTenant, 1), portal/stripe-payment-
+     links.ts (table() helper, 1), portal/customer.ts (1),
+     inventory/spot-prices/page.tsx (1), inventory/spot-prices/
+     actions.tsx (1), spot-prices/refresh.ts (1), spot-prices/
+     melt.ts (1), spot-prices/lookup.ts (getLatest + history, 2),
+     api/portal/sign-in-bridge/route.ts (1). Where supabase-js's
+     generic narrowing trips on NUMERIC's string-vs-number
+     divergence at upsert/update time, the call site uses `as
+     never` (single-call surface, NOT a project-wide cast).
+     Where hand-rolled row types use `number` for NUMERIC fields,
+     the row boundary uses `as unknown as T` to bridge the
+     type-system gap with the runtime shape. Project-wide
+     Database<'public'> override mapping NUMERIC → number remains
+     on backlog as a proper fix that would replace the
+     `as unknown as` pattern. Commit pending.
+
+ 177. VITEST SCAFFOLD + 36 PASSING TESTS ON lib/pawn/math.ts. New:
+     vitest.config.ts (test environment 'node', `@/` alias
+     mirroring next.config.ts, src/**/*.test.ts include glob,
+     globals: false). package.json scripts: test (vitest run),
+     test:watch (vitest), test:coverage (vitest run --coverage).
+     devDeps: vitest@4.1.5 + @vitest/coverage-v8@4.1.5. Test
+     file src/lib/pawn/math.test.ts covers 36 cases across r4
+     (rounding contract + non-finite handling), toMoney (string
+     / null / undefined paths), dailyRateFromMonthly,
+     interestAccrued (zero-principal / zero-days / classic /
+     partial-month / min_monthly_charge floor —
+     REGRESSION-LOCKING the Session-12 Stripe-webhook
+     under-billing incident — small-principal-with-min cases at
+     30/15/1 days, large-principal-no-floor, zero-rate-with-min,
+     min<=0 = no-floor), daysBetween (1 day, negative, zero
+     same-day, month boundary, year boundary), addDaysIso
+     (forward + backward), todayDateString (ISO format match),
+     appliedPayments (string + number Supabase shapes, empty
+     events), payoffBalance (zero-days = principal, classic
+     30-day, prior interest-payment netting, partial principal,
+     overpayment-of-interest clamped to 0, fully-paid principal
+     stops billing further interest, min-charge passthrough,
+     null-min = no-floor), splitPayment (zero-amount, ≤-owed,
+     >-owed, zero-owed, negative-clamp). All 36 pass. Build
+     floor, not ceiling — React rendering tests + Supabase mock
+     surface deferred until a regression worth locking down
+     arrives. Commit pending.
 
 ================================================================================
 PENDING — NEXT UP
@@ -542,58 +756,58 @@ PENDING — NEXT UP
     1. Operator setup gates (above) + per-tenant Stripe Connect
        onboarding for first tenant + per-tenant Resend setup at
        /settings/communications.
-    2. Phase 8 — remaining polish:
-         - pawn-vs-redemptions / layaway-payments / repairs-completed
-           dashboard charts (still on demoBars/demoSeries PRNG)
-         - Mobile audits across portal + dashboard
+    2. Phase 8 — remaining polish: mobile audits across portal +
+       dashboard (charts + activity feed + kanban + receipt PDFs
+       all need mobile review before going live).
     3. Phase 9 (A) — Stripe SaaS GA real-money smoke test (after
        operator setup completes).
-    4. Watch-models typeahead inside InlinePawnCalculator. Data +
-       /api/watch-models/search endpoint are live; UI hookup is
-       the polish step on Session-11 item 164.
-    5. POS receipt PDF (mirrors /api/print/loan pattern).
-    6. Buy-outright bilingual PDF receipt.
-    7. Cron: held → available status flip when buy-outright
+    4. Cron: held → available status flip when buy-outright
        hold_until <= today.
-    8. Real eBay wire-up — 12-step checklist in commit 9b93e235.
-    9. WhatsApp Business per-template approval.
-   10. FL LeadsOnline format reconciliation with agency.
-   11. tenants.agency_store_id ADD COLUMN migration.
-   12. DL scanner upgrades (dl_raw_payload audit column, expired-
-       license guard, front-of-license webcam).
-   13. Phase 10 Path A — public per-tenant landing pages on
+    5. Real eBay wire-up — 12-step checklist in commit 9b93e235.
+    6. WhatsApp Business per-template approval.
+    7. FL LeadsOnline format reconciliation with agency.
+    8. tenants.agency_store_id ADD COLUMN migration.
+    9. DL scanner upgrades (dl_raw_payload audit column,
+       expired-license guard, front-of-license webcam).
+   10. Phase 10 Path A — public per-tenant landing pages on
        NEXT_PUBLIC_BASE_DOMAIN, public catalog, loyalty/referrals,
        Google Reviews ingestion, email campaign engine.
-   14. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
+   11. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
        Mercari listing publishers (after eBay flow is stable).
-   15. Stripe Terminal hardware reader pairing UI when readers
+   12. Stripe Terminal hardware reader pairing UI when readers
        arrive.
-   16. pgsodium at-rest encryption rollout for Twilio / Resend /
+   13. pgsodium at-rest encryption rollout for Twilio / Resend /
        Stripe creds + eBay tokens. Bundle with the reviewer's
        stronger architectural fix (split secret columns or expose
        only masked status views).
-   17. NUMERIC type-divergence proper fix: hand-write a
-       Database<'public'> override that maps NUMERIC → number.
-       Eliminates the remaining ~14 `as any` casts in eBay /
-       spot-prices code.
-   18. Real activity feed for /dashboard (currently placeholder).
-   19. Test suite scaffold (none currently — flagged by external
-       reviewer Session 9).
-   20. Platform-side staff-invite email (currently /team invites
+   14. Drag-and-drop card moves on the manager kanban (currently
+       read-only — Session 13 ships the view).
+   15. Watch-typeahead → CollateralItemsList imperative-handle
+       integration to auto-fill row description + est_value when
+       the operator selects a model.
+   16. Project-wide Database<'public'> override mapping NUMERIC →
+       number. Replaces the `as unknown as T` pattern at row
+       boundaries.
+   17. Platform-side staff-invite email (currently /team invites
        return the magic link to the operator for manual delivery).
-   21. Diamond cert real provider wire-up (IDEX or Rapaport) when
+   18. Diamond cert real provider wire-up (IDEX or Rapaport) when
        operator obtains API keys.
-   22. Dedicated MessageKind 'saas_admin_new_tenant' migration
+   19. Dedicated MessageKind 'saas_admin_new_tenant' migration
        (currently Session-11 item 161 reuses 'custom' — works but
        loses sub-typing in the comms templates UI).
-   23. Tiered loan rates by amount range (the v1 variable-rate
+   20. Tiered loan rates by amount range (the v1 variable-rate
        menu is flat; FL pawn-shop convention often tiers rates
-       by loan size). Schema extension would add min_amount /
-       max_amount to tenant_loan_rates.
-   24. Manager-side work-order board for repair tickets (group by
-       assigned_tech with claim/QA stage columns) — Session-12
-       added the data + workflow; a kanban view would let managers
-       see queue depth at a glance.
+       by loan size). Schema decision still pending: per-row min/
+       max columns vs sub-table.
+   21. Test suite expansion — add coverage for lib/repair/workflow
+       (LEGAL_TRANSITIONS + timer-helper invariants), lib/saas/
+       gates (plan tier matrices), lib/validations/* (Zod schema
+       edge cases). Session 13 scaffold is the floor.
+   22. React-rendering tests via @testing-library/react + jsdom —
+       when a UI regression worth locking down surfaces.
+   23. Pre-existing lint debt (NOT mine): 2 react/no-unescaped-
+       entities errors in admin/billing/content.tsx; 7 unused-var
+       warnings across various files. Sweep when convenient.
 
   KNOWN GOTCHAS TO AVOID FROM DAY 1 (carried + new):
     - Next 16 file is `proxy.ts`, exported function named `proxy`.
@@ -641,20 +855,22 @@ PENDING — NEXT UP
       a client component. Use lib/audit-format.ts for label
       helpers.
     - layaway_payments.amount allows NEGATIVE values. CHECK is
-      `<> 0`.
+      `<> 0`. Session 13 dashboard chart filters > 0 to show
+      gross collections.
     - Stripe Connect: per-tenant calls need Stripe-Account header.
       SaaS-platform calls (lib/stripe/saas.ts) must NOT set it.
     - @fontsource fonts in @react-pdf/renderer must be loaded via
       fs.readFileSync + base64 dataURL.
     - Setting state inside useEffect on mount triggers
       react-hooks/set-state-in-effect. Use the compute-during-
-      render pattern from Session 8 / 11 instead.
-    - Debounced search MUST live in onChange handler, not useEffect.
+      render pattern from Session 8 / 11 / 13 instead.
+    - Debounced search MUST live in onChange handler, not
+      useEffect. Re-confirmed by Session 13 watch typeahead.
     - 3-way merge of additive top-level objects: ALWAYS UNION.
     - When re-dispatching an agent after a crash, scrub the primary
       tree of leftover untracked files FIRST.
-    - Validation Zod helpers — preprocess MUST handle empty-string-
-      after-trim BEFORE the inner schema.
+    - Validation Zod helpers — preprocess MUST handle
+      empty-string-after-trim BEFORE the inner schema.
     - NUMERIC(N,M) columns are typed as `string` in generated DB
       types but supabase-js returns `number` at runtime.
     - lib modules with 'server-only' cannot be imported by client
@@ -690,27 +906,27 @@ PENDING — NEXT UP
       not useI18n().
     - SESSION 10: /api/portal/sign-in-bridge sets active-tenant
       cookie BEFORE the (portal) layout runs.
-    - SESSION 10: customer auth users without a password sign in via
-      magic link forever.
+    - SESSION 10: customer auth users without a password sign in
+      via magic link forever.
     - SESSION 10: subscription_plans uses price_monthly_cents /
       price_yearly_cents.
-    - SESSION 11: NUMERIC(N,M) columns return as `number` at runtime
-      but generated types narrow to `string` — coerce at the page
-      boundary.
+    - SESSION 11: NUMERIC(N,M) columns return as `number` at
+      runtime but generated types narrow to `string` — coerce at
+      the page boundary.
     - SESSION 11: form state can be read across components without
       lifting via getElementById(formId) + new FormData(form).
     - SESSION 11: Stripe subscription update for plan-CHANGE
       requires items[0].id (the SUB ITEM, not the sub).
-    - SESSION 11: Per-tenant variable-rate menus use a flat list in
-      v1.
-    - SESSION 11: When Stripe Checkout would create a duplicate sub
-      (existing subscriber clicking "Choose"), use the change-plan
-      endpoint instead.
+    - SESSION 11: Per-tenant variable-rate menus use a flat list
+      in v1.
+    - SESSION 11: When Stripe Checkout would create a duplicate
+      sub (existing subscriber clicking "Choose"), use the
+      change-plan endpoint instead.
     - SESSION 12: Loan-rate minimum charge is enforced per-DAY via
       `daily = MAX(principal * rate / 30, min / 30)`. Threaded
-      through every payoffFromLoan caller — the Stripe webhook one
-      is critical to update or automated redemption flips
-      under-bill.
+      through every payoffFromLoan caller — the Stripe webhook
+      one is critical to update or automated redemption flips
+      under-bill. Regression-locked by Session 13 tests.
     - SESSION 12: Per-tenant min_loan_amount lives on settings,
       not on each rate row. /pawn/new server action validates
       principal >= settings.min_loan_amount AFTER Zod parse but
@@ -733,6 +949,35 @@ PENDING — NEXT UP
     - SESSION 12: Tech-inbox auto-filter on /repair list queries
       ctx.tenantRole === 'repair_tech'. Passing ?showAll=1 opts
       out. Manager+ roles see everything by default.
+    - SESSION 13: PDF receipts go through /api/print/<kind>/[id]
+      and open in a new tab. Three live: /api/print/loan/[id]
+      (Session 5), /api/print/sale/[id] + /api/print/buy/[id]
+      (Session 13). NEVER call window.print() on the staff page
+      — it prints the staff UI itself, not a customer receipt.
+    - SESSION 13: Buy-receipt path param is the FIRST inventory_
+      item_id (anchor, mirrors /buy/[id] page). The route resolves
+      compliance_log via source_id = anchor_item_id + source_table
+      ='inventory_items' + event_type='buy_outright'.
+    - SESSION 13: Manager kanban route is /repair/board (NOT
+      /repair/kanban). Manager-only — non-managers redirect to
+      /repair (NOT /no-tenant).
+    - SESSION 13: Activity feed pulls from module tables directly,
+      NOT audit_log. Joining audit_log to source tables at render
+      time would be expensive; the customer-name path is what
+      operators actually want.
+    - SESSION 13: Watch typeahead is READ-ONLY by design. Don't
+      add DOM-write auto-fill without first migrating Collateral
+      ItemsList to expose an imperative handle (refactor on
+      backlog).
+    - SESSION 13: Vitest + `@/` alias is configured; new tests
+      go in src/**/*.test.ts. Run via `npm test`.
+    - SESSION 13: When supabase-js generic narrowing trips on
+      NUMERIC at upsert/update time, use `as never` at the call
+      boundary. NOT a project-wide cast.
+    - SESSION 13: For SELECT queries with hand-rolled row types
+      (e.g. SpotPriceRow uses `number` for NUMERIC), narrow at
+      the row boundary with `as unknown as T`. Bridge until the
+      Database<'public'> override lands.
 
   KNOWN ISSUES TO REVISIT WHEN PHASES LAND:
     - Phase 5: pawn ticket print PDF legal disclosure — vet with
@@ -742,6 +987,9 @@ PENDING — NEXT UP
     - Phase 6: WhatsApp Content SIDs need Twilio + Meta approval.
     - Phase 7: confirm current FL LeadsOnline upload format.
     - Phase 7: idempotency for compliance_log re-export.
+    - Phase 8: mobile audits across portal + dashboard (charts +
+      activity feed + kanban + receipt PDFs all need mobile
+      review before going live).
     - Phase 9 (A): admin-notification email currently uses
       MessageKind 'custom' — add a dedicated 'saas_admin_new_tenant'
       kind in a future migration so the comms templates UI can
@@ -750,8 +998,9 @@ PENDING — NEXT UP
       goldapi.io / metals-api.com.
     - Phase 9 (B): legal disclaimer copy in appraisals i18n
       placeholders — counsel vetting before go-live.
-    - Phase 9 (B): wire watch-models typeahead into the Inline
-      PawnCalculator. Data + API are live.
+    - Phase 9 (B): wire watch-models typeahead into CollateralItems
+      List rows (auto-fill description + est_value via imperative
+      handle). Read-only typeahead landed Session 13 item 170.
     - Phase 9 (B): diamond cert real provider wire-up (IDEX or
       Rapaport) when operator obtains API keys.
     - Phase 10 Path B (eBay): photo public-mirror question
@@ -763,16 +1012,17 @@ PENDING — NEXT UP
     - DL scanner: dl_raw_payload TEXT column.
     - DL scanner: block-expired-licenses guard.
     - DL scanner: front-of-license photo capture.
-    - Buy-outright: bilingual PDF receipt.
     - Buy-outright: customer signature capture.
     - Buy-outright: cron job to flip status='held' → 'available'.
     - 1099-MISC: SSN/TIN field on customers.
     - 1099-MISC: chain rollup across multi-shop tenants.
     - Portal: per-tenant customer-portal email template editor.
     - Portal: staff-side platform invite email.
-    - NUMERIC type-divergence (backlog #17).
-    - Variable-rate tiered-by-amount (backlog #23).
-    - Manager-side repair work-order kanban (backlog #24).
+    - Project-wide Database<'public'> NUMERIC → number override
+      (backlog #16). Replaces `as unknown as T` row-boundary
+      pattern locked in Session 13.
+    - Variable-rate tiered-by-amount (backlog #20).
+    - Drag-and-drop manager kanban (backlog #14).
 
   OUT OF SCOPE (noted for later):
     - Mobile native app.
@@ -795,4 +1045,20 @@ PENDING — NEXT UP
       min loan amount). [SHIPPED 2026-04-29 Session 12 item 167]
     - Repair tech workflow (assignment + claim + tech_qa stage +
       auto-timer hooks). [SHIPPED 2026-04-29 Session 12 item 168]
+    - Phase 8 dashboard charts (3 PRNG charts → real DB).
+      [SHIPPED 2026-04-29 Session 13 item 169]
+    - Watch-models typeahead inside InlinePawnCalculator (read-
+      only v1). [SHIPPED 2026-04-29 Session 13 item 170]
+    - Manager-side repair work-order kanban. [SHIPPED 2026-04-29
+      Session 13 item 171]
+    - Real activity feed for /dashboard. [SHIPPED 2026-04-29
+      Session 13 item 173]
+    - POS receipt PDF. [SHIPPED 2026-04-29 Session 13 item 174]
+    - Buy-outright bilingual PDF receipt. [SHIPPED 2026-04-29
+      Session 13 item 175]
+    - NUMERIC `as any` cleanup. [SHIPPED 2026-04-29 Session 13
+      item 176 — partial; project-wide override remains on
+      backlog]
+    - Vitest scaffold + first tests. [SHIPPED 2026-04-29 Session
+      13 item 177]
 ================================================================================

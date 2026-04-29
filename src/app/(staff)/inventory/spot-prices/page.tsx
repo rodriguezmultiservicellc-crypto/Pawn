@@ -114,11 +114,8 @@ async function loadOverrides(tenantId: string): Promise<SpotPriceOverrideRow[]> 
   // hit by a chain_admin viewing a child shop. Easier to admin-load with
   // an explicit tenant_id filter than fight the RLS join.
   const admin = createAdminClient()
-  // NUMERIC `multiplier` returns as string in the generated types; the
-  // hand-rolled SpotPriceOverrideRow uses number to match runtime.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tbl = (admin as any).from('spot_price_overrides')
-  const { data, error } = await tbl
+  const { data, error } = await admin
+    .from('spot_price_overrides')
     .select(
       'id, tenant_id, metal_type, purity, multiplier, updated_by, updated_at, created_at',
     )
@@ -127,5 +124,7 @@ async function loadOverrides(tenantId: string): Promise<SpotPriceOverrideRow[]> 
     console.error('[spot-prices] override load failed', error.message)
     return []
   }
-  return (data ?? []) as SpotPriceOverrideRow[]
+  // multiplier is NUMERIC: generated types narrow to string; runtime
+  // returns number. Hand-rolled SpotPriceOverrideRow uses number.
+  return (data ?? []) as unknown as SpotPriceOverrideRow[]
 }

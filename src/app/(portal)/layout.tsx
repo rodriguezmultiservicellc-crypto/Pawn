@@ -37,8 +37,7 @@ export default async function PortalLayout({
   const customerLookup = await admin
     .from('customers')
     .select('id, tenant_id, first_name, last_name, language')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .eq('auth_user_id' as any, ctx.userId)
+    .eq('auth_user_id', ctx.userId)
     .is('deleted_at', null)
     .maybeSingle()
   const customer = (customerLookup.data ?? null) as PortalCustomer | null

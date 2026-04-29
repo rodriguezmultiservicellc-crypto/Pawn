@@ -753,6 +753,20 @@ export const en = {
       useAmount: 'Use this amount',
       perRowBreakdown: 'Per-row breakdown',
       errNoRows: 'Add at least one collateral item above first.',
+      watchLookup: {
+        title: 'Watch model lookup',
+        placeholder: 'Search brand, model, ref, or nickname',
+        minLengthHint: 'Type at least 2 characters to search.',
+        noMatches: 'No watch models match.',
+        errFetch: 'Could not load matches. Try again.',
+        minValue: 'Min',
+        midValue: 'Mid',
+        maxValue: 'Max',
+        copyDescription: 'Copy details',
+        copied: 'Copied',
+        disclaimer:
+          'Reference values are pre-owned wholesale floors — anchor only, not a formal appraisal.',
+      },
     },
     new_: {
       title: 'New pawn ticket',
@@ -1011,6 +1025,18 @@ export const en = {
       empty: 'No repair tickets yet. Create one to get started.',
       emptyForFilter: 'No tickets match the current filter.',
       searchPlaceholder: 'Search by ticket, customer, or title…',
+      openBoard: 'Open work-order board',
+    },
+    board: {
+      title: 'Work-order board',
+      subtitle:
+        'Active tickets grouped by stage. Click a card to open it.',
+      backToList: 'Back to repair list',
+      totalActive: 'Active tickets',
+      techAll: 'All techs',
+      techUnassigned: 'Unassigned',
+      columnEmpty: 'No tickets in this stage.',
+      cardUnassigned: 'Unassigned',
     },
     serviceTypes: {
       repair: 'Repair',
@@ -1478,6 +1504,57 @@ export const en = {
       nextDue: 'Next due',
       created: 'Created',
       itemsCount: 'Items',
+    },
+    print: {
+      header: 'Sales Receipt',
+      sections: {
+        sale: 'Sale',
+        items: 'Items',
+        payments: 'Payments',
+      },
+      customer: {
+        name: 'Customer',
+        phone: 'Phone',
+        anonymous: 'Anonymous walk-in',
+      },
+      meta: {
+        kind: 'Type',
+        kindRetail: 'Retail',
+        kindLayaway: 'Layaway',
+        taxRate: 'Tax rate',
+      },
+      columns: {
+        description: 'Description',
+        sku: 'SKU',
+        qty: 'Qty',
+        unit: 'Unit',
+        line: 'Line total',
+      },
+      itemsEmpty: 'No items on this sale.',
+      paymentsEmpty: 'No payments recorded.',
+      totals: {
+        subtotal: 'Subtotal',
+        discount: 'Discount',
+        tax: 'Tax',
+        total: 'Total',
+        paid: 'Paid',
+        balance: 'Balance due',
+      },
+      payment: {
+        cash: 'Cash',
+        card: 'Card',
+        check: 'Check',
+        other: 'Other',
+      },
+      notes: 'Notes',
+      returnPolicy: {
+        title: 'Return policy',
+        body:
+          'Returns accepted within 14 days of purchase with this receipt. Items must be in original condition. Final-sale items, custom orders, and special-order pieces are non-returnable.',
+      },
+      footer: {
+        pageOf: 'Page {n} of {total}',
+      },
     },
     statusBadges: {
       sale: {
@@ -2492,6 +2569,55 @@ export const en = {
       platinum_950: 'Platinum .950',
       palladium_950: 'Palladium .950',
       fine: '.999 fine',
+    },
+  },
+
+  buy: {
+    print: {
+      header: 'Buy-Outright Receipt',
+      sections: {
+        customer: 'Customer',
+        items: 'Items purchased',
+      },
+      customer: {
+        name: 'Name',
+        dob: 'Date of birth',
+        address: 'Address',
+        phone: 'Phone',
+        idType: 'ID type',
+        idNumber: 'ID number',
+      },
+      columns: {
+        description: 'Description',
+        metal: 'Metal',
+        weight: 'Weight',
+        melt: 'Melt value',
+        payout: 'Payout',
+      },
+      itemsEmpty: 'No items on this transaction.',
+      totals: {
+        totalPayout: 'Total payout',
+      },
+      holdNotice: {
+        title: 'Mandatory hold period',
+        bodyWithDays:
+          'These items must remain in shop custody and unsold for {days} days from the date above. The hold satisfies state second-hand-goods reporting requirements.',
+        bodyGeneric:
+          'These items are subject to the state-mandated second-hand-goods hold before they may be resold.',
+      },
+      acknowledgement: {
+        title: 'Customer acknowledgement',
+        body:
+          'I am the lawful owner of the items listed above and have full authority to sell them. The information I have provided is true and complete. I have received the total payout shown above in full satisfaction of this transaction.',
+      },
+      signatures: {
+        customer: 'Customer signature',
+        staff: 'Staff signature',
+        date: 'Date',
+      },
+      footer: {
+        pageOf: 'Page {n} of {total}',
+      },
     },
   },
 

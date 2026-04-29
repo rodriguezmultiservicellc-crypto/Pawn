@@ -44,13 +44,8 @@ export async function getLatestSpotPrice(args: {
   if (hit && hit.expiresAt > now) return hit.value
 
   const admin = createAdminClient()
-  // NUMERIC columns come back as `string` from the generated types but
-  // we treat them as `number` at runtime (supabase-js coerces). The
-  // hand-rolled SpotPriceRow type reflects the runtime shape, so we
-  // narrow with `as unknown as SpotPriceRow[]` at the boundary.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tbl = (admin as any).from('spot_prices')
-  const { data, error } = await tbl
+  const { data, error } = await admin
+    .from('spot_prices')
     .select(
       'id, metal_type, purity, price_per_gram, price_per_troy_oz, currency, source, source_request_id, fetched_at, created_at',
     )
@@ -66,7 +61,9 @@ export async function getLatestSpotPrice(args: {
     return null
   }
 
-  const row = (data ?? null) as SpotPriceRow | null
+  // NUMERIC columns come back as string from generated types — narrow
+  // to the runtime shape (number) via the hand-rolled SpotPriceRow.
+  const row = (data ?? null) as unknown as SpotPriceRow | null
   cache.set(key, { value: row, expiresAt: now + CACHE_TTL_MS })
   return row
 }
@@ -99,10 +96,8 @@ export async function getSpotPriceHistory(args: {
   const since = new Date(Date.now() - windowHours * 3600 * 1000).toISOString()
 
   const admin = createAdminClient()
-  // Same NUMERIC-vs-types divergence as above.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tbl = (admin as any).from('spot_prices')
-  const { data, error } = await tbl
+  const { data, error } = await admin
+    .from('spot_prices')
     .select(
       'id, metal_type, purity, price_per_gram, price_per_troy_oz, currency, source, source_request_id, fetched_at, created_at',
     )
@@ -113,5 +108,5 @@ export async function getSpotPriceHistory(args: {
     console.error('[spot-prices] history failed', error.message)
     return []
   }
-  return (data ?? []) as SpotPriceRow[]
+  return (data ?? []) as unknown as SpotPriceRow[]
 }
