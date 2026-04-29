@@ -21,11 +21,109 @@ import {
 import { logAudit } from '@/lib/audit'
 import { addDaysIso, todayDateString } from '@/lib/pawn/math'
 import { checkPlanLimit, countActiveLoans } from '@/lib/saas/gates'
+import {
+  computeSuggestedLoan,
+  type CollateralLoanInput,
+  type SuggestedLoanResult,
+} from '@/lib/pawn/suggested-loan'
 import type { Database } from '@/types/database'
+import type { MetalType } from '@/types/database-aliases'
 
 export type CreateLoanState = {
   error?: string
   fieldErrors?: Record<string, string>
+}
+
+const VALID_METALS: ReadonlyArray<MetalType> = [
+  'gold',
+  'silver',
+  'platinum',
+  'palladium',
+  'rose_gold',
+  'white_gold',
+  'tungsten',
+  'titanium',
+  'stainless_steel',
+  'mixed',
+  'none',
+  'other',
+]
+
+export type SuggestLoanState =
+  | { status: 'idle' }
+  | { status: 'error'; error: string }
+  | { status: 'ok'; result: SuggestedLoanResult }
+
+/**
+ * Inline calculator action — reads the SAME collateral_<n>_* field
+ * names that the pawn-new form's CollateralItemsList writes, so the
+ * operator can hit "Calculate" inline and get a suggested principal
+ * without leaving the page.
+ *
+ * Distinct from calculateSuggestedLoanAction in /pawn/calculator —
+ * that action reads row_<n>_* (its own field names). Both call the
+ * same lib/pawn/suggested-loan.computeSuggestedLoan under the hood.
+ */
+export async function suggestLoanFromCollateralAction(
+  _prev: SuggestLoanState,
+  formData: FormData,
+): Promise<SuggestLoanState> {
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
+
+  await requireRoleInTenant(ctx.tenantId, [
+    'owner',
+    'manager',
+    'pawn_clerk',
+    'chain_admin',
+    'appraiser',
+  ])
+
+  const countRaw = formData.get('collateral_count')
+  const count = Math.max(
+    0,
+    Math.min(50, parseInt(String(countRaw ?? '0'), 10) || 0),
+  )
+
+  const collateral: CollateralLoanInput[] = []
+  for (let i = 0; i < count; i++) {
+    const metalRaw = String(formData.get(`collateral_${i}_metal_type`) ?? '')
+      .trim()
+    const metal = (
+      VALID_METALS.includes(metalRaw as MetalType) ? metalRaw : null
+    ) as MetalType | null
+    collateral.push({
+      metal,
+      karat: String(formData.get(`collateral_${i}_karat`) ?? '').trim() || null,
+      weightGrams:
+        String(formData.get(`collateral_${i}_weight_grams`) ?? '').trim() ||
+        null,
+      estValue:
+        String(formData.get(`collateral_${i}_est_value`) ?? '').trim() || null,
+      appraisedValue: null, // pawn-new flow doesn't expose this; appraisal
+                            // links happen later from the /pawn/<id> page.
+    })
+  }
+
+  if (collateral.length === 0) {
+    return { status: 'error', error: 'no_rows' }
+  }
+
+  const ltvRaw = String(formData.get('ltv_percent') ?? '').trim()
+  const ltvParsed = ltvRaw === '' ? null : parseFloat(ltvRaw)
+
+  try {
+    const result = await computeSuggestedLoan({
+      tenantId: ctx.tenantId,
+      collateral,
+      ltvPercent: ltvParsed,
+    })
+    return { status: 'ok', result }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown'
+    return { status: 'error', error: msg }
+  }
 }
 
 

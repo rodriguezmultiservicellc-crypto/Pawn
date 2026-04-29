@@ -740,6 +740,17 @@ export const es: Dictionary = {
     statusRedeemed: 'Rescatado',
     statusForfeited: 'No rescatado',
     statusVoided: 'Anulado',
+    inlineCalc: {
+      title: 'Estimación rápida de principal',
+      help: 'Calcula un principal sugerido tomando el mayor entre valor de fundición, valor tasado o estimado por el operador, y aplica el LTV.',
+      ltvLabel: 'Loan-to-value',
+      calculateButton: 'Calcular',
+      suggestedLabel: 'Principal sugerido',
+      basisLabel: 'Valor base',
+      useAmount: 'Usar este monto',
+      perRowBreakdown: 'Desglose por artículo',
+      errNoRows: 'Agrega al menos un artículo de garantía arriba primero.',
+    },
     new_: {
       title: 'Nuevo boleto de empeño',
       sectionCustomer: 'Cliente',

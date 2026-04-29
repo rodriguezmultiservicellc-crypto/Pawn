@@ -3,6 +3,7 @@ import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/audit'
 import { sendDunningEmail } from './dunning'
+import { sendNewTenantSignupNotification } from './admin-notify'
 import type { Database } from '@/types/database'
 
 type SubscriptionStatus = Database['public']['Enums']['subscription_status']
@@ -153,6 +154,20 @@ export async function handleSubscriptionUpsert(
   }
 
   const admin = createAdminClient()
+
+  // "Is this a brand-new tenant subscribing for the first time?" — used
+  // below to fire the platform admin-notification email exactly once
+  // per tenant. We treat "no prior tenant_subscriptions row OR prior
+  // row never had a stripe_subscription_id" as "new". Plan changes,
+  // status flips, and trial-end events all come through this same
+  // upsert path; we want the email only on first signup.
+  const { data: prior } = await admin
+    .from('tenant_subscriptions')
+    .select('tenant_id, stripe_subscription_id')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  const isNewSignup = !prior || !prior.stripe_subscription_id
+
   const status = mapStatus(sub.status)
   const billingCycle = cycleFromSubscription(sub)
 
@@ -193,10 +208,62 @@ export async function handleSubscriptionUpsert(
       cycle: billingCycle,
       plan_id: planId,
       stripe_subscription_id: sub.id,
+      is_new_signup: isNewSignup,
     },
   })
 
+  // Platform notification — best-effort, fire-and-forget. Never blocks
+  // the webhook ack on email send results. Only fires on first signup.
+  if (isNewSignup) {
+    void notifyAdminsOfNewSignup(tenantId, sub, planId, billingCycle).catch(
+      (err) => {
+        console.error('[saas-webhook] new_tenant_notify_failed', err)
+      },
+    )
+  }
+
   return { ok: true, tenantId }
+}
+
+async function notifyAdminsOfNewSignup(
+  tenantId: string,
+  sub: StripeSubscription,
+  planId: string,
+  billingCycle: BillingCycle,
+): Promise<void> {
+  const admin = createAdminClient()
+
+  const [tenantRes, planRes] = await Promise.all([
+    admin
+      .from('tenants')
+      .select('name, dba')
+      .eq('id', tenantId)
+      .maybeSingle(),
+    admin
+      .from('subscription_plans')
+      .select('code, name, price_monthly_cents, price_yearly_cents')
+      .eq('id', planId)
+      .maybeSingle(),
+  ])
+
+  const tenantName =
+    tenantRes.data?.dba || tenantRes.data?.name || 'unnamed tenant'
+  const planCode = planRes.data?.code ?? 'unknown'
+  const planName = planRes.data?.name ?? planCode
+  const amountCents =
+    billingCycle === 'yearly'
+      ? planRes.data?.price_yearly_cents ?? null
+      : planRes.data?.price_monthly_cents ?? null
+
+  await sendNewTenantSignupNotification({
+    tenantId,
+    tenantName,
+    planCode,
+    planName,
+    cycle: billingCycle,
+    amountCents,
+    status: sub.status,
+  })
 }
 
 export async function handleSubscriptionDeleted(

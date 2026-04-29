@@ -6,10 +6,13 @@ import { Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { addDaysIso, todayDateString } from '@/lib/pawn/math'
 import { CollateralItemsList } from '@/components/pawn/CollateralItemsList'
+import { InlinePawnCalculator } from '@/components/pawn/InlinePawnCalculator'
 import {
   createLoanAction,
   type CreateLoanState,
 } from './actions'
+
+const PAWN_NEW_FORM_ID = 'pawn-new-form'
 
 export type CustomerOption = {
   id: string
@@ -69,7 +72,11 @@ export default function NewPawnLoanForm({
         </div>
       ) : null}
 
-      <form action={formAction} className="space-y-6">
+      <form
+        id={PAWN_NEW_FORM_ID}
+        action={formAction}
+        className="space-y-6"
+      >
         {/* Customer */}
         <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
           <legend className="px-1 text-sm font-semibold text-ink">
@@ -212,6 +219,10 @@ export default function NewPawnLoanForm({
             <CollateralItemsList />
           </div>
         </fieldset>
+
+        {/* Inline calculator — reads collateral_<n>_* from this form via
+            DOM access; writes back to the principal field on click. */}
+        <InlinePawnCalculator formId={PAWN_NEW_FORM_ID} />
 
         {/* Signature & notes */}
         <fieldset className="rounded-lg border border-hairline bg-canvas p-4">

@@ -743,6 +743,17 @@ export const en = {
     statusRedeemed: 'Redeemed',
     statusForfeited: 'Forfeited',
     statusVoided: 'Voided',
+    inlineCalc: {
+      title: 'Quick principal estimate',
+      help: 'Computes a suggested principal from the collateral above using the highest of melt value, appraised value, or operator estimate, then applies the LTV.',
+      ltvLabel: 'Loan-to-value',
+      calculateButton: 'Calculate',
+      suggestedLabel: 'Suggested principal',
+      basisLabel: 'Value basis',
+      useAmount: 'Use this amount',
+      perRowBreakdown: 'Per-row breakdown',
+      errNoRows: 'Add at least one collateral item above first.',
+    },
     new_: {
       title: 'New pawn ticket',
       sectionCustomer: 'Customer',
