@@ -764,6 +764,10 @@ export const es: Dictionary = {
       principal: 'Principal',
       interestRate: 'Tasa de interés (mensual)',
       interestRateHelp: 'Fracción decimal (p. ej. 0.10 = 10%/mes).',
+      rateDefaultBadge: 'predeterminada',
+      rateCustom: 'Tasa personalizada…',
+      rateNoneConfigured:
+        'Aún no hay tasas configuradas. Configúralas en Configuración → Tasas de préstamo.',
       termDays: 'Plazo (días)',
       issueDate: 'Fecha de emisión',
       dueDate: 'Fecha de vencimiento',
@@ -2157,6 +2161,36 @@ export const es: Dictionary = {
       tinReminderBody:
         'El IRS requiere el TIN/SSN del receptor en cada 1099-MISC. No almacenamos TINs en este sistema — tu contador recolectará un Formulario W-9 de cada candidato y agregará el TIN antes de presentar.',
     },
+  },
+
+  settingsLoanRates: {
+    title: 'Tasas de préstamo',
+    subtitle:
+      'Menú de tasas de interés mostrado en el formulario de empeño. Marca una como predeterminada; las desactivadas se mantienen legibles en préstamos existentes.',
+    add: 'Agregar tasa',
+    activeTitle: 'Activas',
+    deactivatedTitle: 'Desactivadas',
+    rateColumn: 'Tasa',
+    labelColumn: 'Etiqueta',
+    descriptionColumn: 'Descripción',
+    defaultBadge: 'Predeterminada',
+    empty: 'Aún no hay tasas. Agrega una para empezar.',
+    addTitle: 'Agregar una tasa',
+    editTitle: 'Editar tasa',
+    fieldRate: 'Tasa mensual',
+    fieldRateHint: 'Decimal — p. ej. 0.10 = 10% / mes. Tope 0.25.',
+    fieldLabel: 'Etiqueta',
+    fieldLabelPlaceholder: '10% estándar',
+    fieldDescription: 'Descripción (opcional)',
+    fieldSortOrder: 'Orden',
+    fieldSortOrderHint: 'Números menores aparecen primero en la lista.',
+    fieldIsDefault: 'Tasa predeterminada',
+    fieldIsActive: 'Activa',
+    replaceDefaultNote:
+      'Guardar con la opción de Predeterminada marcada reemplazará la actual.',
+    deactivate: 'Desactivar',
+    errCannotDeleteDefault:
+      'No se puede desactivar la tasa predeterminada. Promueve otra primero.',
   },
 
   compliance: {

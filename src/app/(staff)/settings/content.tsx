@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   ChatCircleText,
   CreditCard,
+  Percent,
   Plug,
   Coins,
   Wrench,
@@ -134,6 +135,17 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
           status="configured"
           statusDetail="Manage overrides"
         />
+
+        {view.modules.pawn ? (
+          <Card
+            href="/settings/loan-rates"
+            icon={<Percent size={20} weight="regular" />}
+            title="Loan rates"
+            description="Variable interest-rate menu shown on /pawn/new. One rate is marked default. Custom-rate fallback always available."
+            status="configured"
+            statusDetail="Manage rate menu"
+          />
+        ) : null}
 
         {isOwner ? (
           <Card

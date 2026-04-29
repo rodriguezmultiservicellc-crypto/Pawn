@@ -19,10 +19,22 @@ export type CustomerOption = {
   label: string
 }
 
+export type LoanRateOption = {
+  id: string
+  rateMonthly: number
+  label: string
+  description: string | null
+  isDefault: boolean
+}
+
+const CUSTOM_RATE_VALUE = '__custom__'
+
 export default function NewPawnLoanForm({
   customers,
+  rates,
 }: {
   customers: CustomerOption[]
+  rates: LoanRateOption[]
 }) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<
@@ -34,6 +46,31 @@ export default function NewPawnLoanForm({
   const [issueDate, setIssueDate] = useState<string>(today)
   const [termDays, setTermDays] = useState<string>('30')
   const [customerId, setCustomerId] = useState<string>('')
+
+  // Default rate selection: the configured default rate, OR the first
+  // active rate, OR the literal "custom" sentinel when no rates exist
+  // (graceful fallback so the form still works on a brand-new tenant
+  // before any rates are configured).
+  const defaultRateId =
+    rates.find((r) => r.isDefault)?.id ?? rates[0]?.id ?? CUSTOM_RATE_VALUE
+  const [rateChoice, setRateChoice] = useState<string>(defaultRateId)
+
+  // The actual rate value submitted to the server. Picked from the menu
+  // for preset choices, or typed manually when the operator picks
+  // Custom. Defaults to 0.10 to match the legacy behavior.
+  const initialCustomRate =
+    (rates.find((r) => r.isDefault) ?? rates[0])?.rateMonthly?.toString() ??
+    '0.10'
+  const [customRate, setCustomRate] = useState<string>(initialCustomRate)
+  const isCustomRate = rateChoice === CUSTOM_RATE_VALUE
+  const submittedRate = isCustomRate
+    ? customRate
+    : (rates.find((r) => r.id === rateChoice)?.rateMonthly?.toString() ??
+       customRate)
+
+  const selectedRateDescription = isCustomRate
+    ? null
+    : (rates.find((r) => r.id === rateChoice)?.description ?? null)
 
   const computedDueDate = useMemo(() => {
     const days = parseInt(termDays || '0', 10)
@@ -144,19 +181,57 @@ export default function NewPawnLoanForm({
               <span className="text-sm font-medium text-ink">
                 {t.pawn.new_.interestRate} *
               </span>
+              {/* Hidden field carries the actual rate value submitted
+                  to the server. The visible <select> chooses preset OR
+                  custom; the custom path swaps in a number input. */}
               <input
-                type="number"
-                step="0.0001"
-                min={0}
-                max={0.25}
+                type="hidden"
                 name="interest_rate_monthly"
-                required
-                defaultValue="0.10"
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                value={submittedRate}
               />
-              <span className="text-xs text-ash">
-                {t.pawn.new_.interestRateHelp}
-              </span>
+              {rates.length > 0 ? (
+                <select
+                  value={rateChoice}
+                  onChange={(e) => setRateChoice(e.target.value)}
+                  className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                >
+                  {rates.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {(r.rateMonthly * 100).toFixed(2)}% — {r.label}
+                      {r.isDefault ? ` (${t.pawn.new_.rateDefaultBadge})` : ''}
+                    </option>
+                  ))}
+                  <option value={CUSTOM_RATE_VALUE}>
+                    {t.pawn.new_.rateCustom}
+                  </option>
+                </select>
+              ) : null}
+              {isCustomRate ? (
+                <input
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  max={0.25}
+                  value={customRate}
+                  onChange={(e) => setCustomRate(e.target.value)}
+                  required
+                  className="mt-2 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                />
+              ) : null}
+              {selectedRateDescription ? (
+                <span className="block text-xs text-ash">
+                  {selectedRateDescription}
+                </span>
+              ) : (
+                <span className="block text-xs text-ash">
+                  {t.pawn.new_.interestRateHelp}
+                </span>
+              )}
+              {rates.length === 0 ? (
+                <span className="block text-xs text-ash">
+                  {t.pawn.new_.rateNoneConfigured}
+                </span>
+              ) : null}
             </label>
 
             <label className="block space-y-1">

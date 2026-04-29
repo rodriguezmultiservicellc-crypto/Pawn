@@ -767,6 +767,10 @@ export const en = {
       principal: 'Principal',
       interestRate: 'Interest rate (monthly)',
       interestRateHelp: 'Decimal fraction (e.g. 0.10 = 10%/month).',
+      rateDefaultBadge: 'default',
+      rateCustom: 'Custom rate…',
+      rateNoneConfigured:
+        'No rates configured yet. Set them up in Settings → Loan rates.',
       termDays: 'Term (days)',
       issueDate: 'Issue date',
       dueDate: 'Due date',
@@ -2147,6 +2151,36 @@ export const en = {
       tinReminderBody:
         "The IRS requires the recipient's TIN/SSN on each 1099-MISC. We don't store TINs in this system — your accountant will collect a Form W-9 from each candidate and add the TIN before filing.",
     },
+  },
+
+  settingsLoanRates: {
+    title: 'Loan rates',
+    subtitle:
+      'Variable interest-rate menu shown on the pawn-intake form. Mark one rate as default; deactivated rates stay readable on existing loans.',
+    add: 'Add rate',
+    activeTitle: 'Active',
+    deactivatedTitle: 'Deactivated',
+    rateColumn: 'Rate',
+    labelColumn: 'Label',
+    descriptionColumn: 'Description',
+    defaultBadge: 'Default',
+    empty: 'No rates yet. Add one to start.',
+    addTitle: 'Add a rate',
+    editTitle: 'Edit rate',
+    fieldRate: 'Monthly rate',
+    fieldRateHint: 'Decimal — e.g. 0.10 = 10% / month. Cap 0.25.',
+    fieldLabel: 'Label',
+    fieldLabelPlaceholder: '10% standard',
+    fieldDescription: 'Description (optional)',
+    fieldSortOrder: 'Sort order',
+    fieldSortOrderHint: 'Lower numbers appear first in the dropdown.',
+    fieldIsDefault: 'Default rate',
+    fieldIsActive: 'Active',
+    replaceDefaultNote:
+      'Saving with the Default checkbox set will replace the current default.',
+    deactivate: 'Deactivate',
+    errCannotDeleteDefault:
+      'Cannot deactivate the default rate. Promote another rate first.',
   },
 
   compliance: {
