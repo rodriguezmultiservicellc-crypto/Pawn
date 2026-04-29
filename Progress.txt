@@ -12,20 +12,29 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 13 (2026-04-29 evening — late) — Nine
-                  features merged in one cycle: dashboard polish (3
-                  charts wired to real data + cross-module activity
-                  feed), watch-models typeahead, manager repair
-                  kanban, two pre-existing lint pre-fixes, two
-                  receipt PDFs (POS + buy-outright), 19 `as any`
-                  casts cleaned up, Vitest scaffold with 36 passing
-                  pawn-math tests.
+  Last session:   Session 14 (2026-04-29 night) — Wire production
+                  crons via vercel.json. Diagnostic session that
+                  resolved why the live spot-price feed (and every
+                  other cron) wasn't running in production: vercel.
+                  json never existed in the repo, so Vercel had no
+                  schedule pointing at /api/cron/*. Five routes had
+                  shipped over Sessions 5-9 but never fired auto-
+                  matically. Single-file commit (c753654) added
+                  vercel.json with 6 cron entries.
   Context budget: HEAVY — /progress clear after this save.
-  Last worked on: Session ended cleanly. Typecheck + lint clean
-                  on every changed file. 36 tests pass. No
-                  in-progress work.
+  Last worked on: Session ended cleanly. vercel.json committed +
+                  pushed. Operator must still set CRON_SECRET in
+                  Vercel project env or every cron 401s.
 
   ACTIVE FILE(S) — last touched this session:
+    - vercel.json (NEW — 6 cron schedules: refresh-spot-prices x2
+      [15-min during US bullion market hours weekdays + hourly
+      fallback], maturity/layaway/repair-ready reminders staggered
+      daily at 14:00-14:10 UTC, ebay-sync every 30 min during
+      business hours weekdays — STUBBED route, schedule lands
+      preemptively)
+
+  ACTIVE FILE(S) — Session 13 carried forward (already committed):
     --- DASHBOARD CHARTS + ACTIVITY FEED (items 169 + 173) ---
     - src/app/(staff)/dashboard/page.tsx (4 new aggregations:
       pawnsCreated14d, redemptions14d via loan_events,
@@ -114,14 +123,22 @@ SEE ALSO (do not duplicate here):
       payoffBalance / splitPayment)
 
   RESUME POINT:
-    Session ended cleanly — 9 features shipped end-to-end and
-    every gate passes (typecheck, lint on changed files, 36
-    tests). No in-progress work. Next session, two paths:
+    Session 14 ended cleanly — vercel.json shipped (commit
+    c753654, pushed to main). Production now has cron schedules
+    pointing at all 5 cron routes. Every cron will 401 silently
+    until the operator sets CRON_SECRET in Vercel project env;
+    the schedule fires either way. After CRON_SECRET lands,
+    spot prices refresh every 15 min during market hours +
+    hourly off-hours, and the daily reminder crons fire at
+    9:00-9:10 ET.
+
+    Two paths next session:
 
     (A) Operator setup — close the production-behavior gates
-        listed under OPEN ISSUES below (CRON_SECRET +
-        NEXT_PUBLIC_APP_URL + Stripe webhook config + per-tenant
-        Stripe Connect / Resend onboarding).
+        listed under OPEN ISSUES below. CRON_SECRET is THE most
+        load-bearing one now that vercel.json is in place; until
+        it's set the schedules execute but the route bodies
+        return 401 immediately.
 
     (B) Coding-side backlog — pick from:
         • Cron: held → available status flip on hold_until
@@ -146,7 +163,11 @@ SEE ALSO (do not duplicate here):
     - Phase 0 punch list still open: NEXT_PUBLIC_APP_URL +
       CRON_SECRET in Vercel + 3 pasted secrets rotation (anon
       JWT, service-role JWT, sbp_ token) + repo-local git
-      config revert.
+      config revert. (vercel.json cron schedules landed Session
+      14 — that compounding cause is now closed.)
+    - CRON_SECRET still missing in Vercel — schedules fire
+      but route bodies 401. Promotes from "punch list" to
+      "first thing to set" now that vercel.json is wired.
     - SaaS billing real-money flow still gates on operator
       setup (Stripe webhook config + Sync Stripe products
       button click).
@@ -171,6 +192,31 @@ SEE ALSO (do not duplicate here):
       bundles with pgsodium-encryption migration on backlog.
 
   KEY DECISIONS LOCKED THIS SESSION:
+    - VERCEL.JSON PAIRS TWO ENTRIES POINTING AT THE SAME PATH
+      FOR refresh-spot-prices: a market-hours `*/15 13-21 * *
+      1-5` (every 15 min Mon-Fri 8am-4pm ET) AND an off-hours
+      hourly fallback `0 * * * *`. Vercel allows multiple
+      crons hitting the same path. The pair gives 15-min
+      freshness during business hours without wasting weekend
+      requests on a market that's closed.
+    - REMINDER CRONS RUN ONCE DAILY, STAGGERED BY 5 MINUTES.
+      maturity-reminders at 14:00 UTC, layaway-reminders at
+      14:05, repair-ready at 14:10. Stagger spreads DB load
+      across the morning fan-out. ET equivalent: 9:00-9:10
+      EST, 10:00-10:10 EDT.
+    - EBAY-SYNC SCHEDULE LANDED PREEMPTIVELY (every 30 min
+      weekdays during business hours, `0,30 13-21 * * 1-5`).
+      Route is STUBBED (Phase 10 B) so the cron is a no-op
+      today. When eBay wires up, the schedule needs no config
+      change.
+    - VERCEL CRON SCHEDULES ASSUME PRO+ TIER. Hobby tier
+      caps cadence and total-cron count; the `*/15` and
+      `0,30` schedules will be rejected at deploy and Vercel
+      falls back to once-per-day. If Eddy's plan is Hobby,
+      either upgrade or trim to daily-only schedules. Pro+
+      accepts the file as written.
+
+  KEY DECISIONS LOCKED PRIOR SESSION (Session 13 — kept for context):
     - DASHBOARD CHARTS USE THE EXISTING 14-DAY WINDOW
       (`dailyRevenueWindowStart`). Range selector remains
       UI-only for now — the window stays fixed at 14 days.
@@ -450,7 +496,8 @@ PHASE OVERVIEW
   ------  -----------------------------------------  ----------  ------------
   0       Foundation skeleton                        IN PROGRESS  —
           (Op punch list: NEXT_PUBLIC_APP_URL +
-          CRON_SECRET + secret rotation still open.)
+          CRON_SECRET + secret rotation still open.
+          vercel.json cron schedules wired Session 14.)
   1       Customers + Inventory                      COMPLETE    2026-04-26
   2       Pawn loans (gated on has_pawn)             COMPLETE    2026-04-27
           (Variable rate menu Session 11. Loan-rate
@@ -726,6 +773,34 @@ SESSION HISTORY LOG
      surface deferred until a regression worth locking down
      arrives. Commit pending.
 
+--- Session 14 (2026-04-29 night) — Wire production crons via vercel.json ---
+
+ 178. PRODUCTION CRONS WIRED — ROOT CAUSE OF SILENT FEED FAILURE.
+     Diagnostic session triggered by the operator question "why isn't
+     the live spot-price feed working?". Investigation: 5 cron routes
+     under src/app/api/cron/* (refresh-spot-prices, maturity-
+     reminders, layaway-reminders, repair-ready-reminders, ebay-sync)
+     are each gated by `Authorization: Bearer ${CRON_SECRET}`. Two
+     compounding causes for "no automatic runs": (1) vercel.json
+     never existed in the repo, so Vercel has no schedule pointing
+     at any /api/cron/* path — the routes had shipped over Sessions
+     5/6/7/8/9 but never fired automatically since deploy; (2)
+     CRON_SECRET still unset in Vercel project env (Phase 0 punch
+     list item, open since Session 9). New vercel.json adds 6 cron
+     entries: refresh-spot-prices x2 (`*/15 13-21 * * 1-5` + `0 *
+     * * *`), maturity / layaway / repair-ready reminders staggered
+     daily at 14:00 / 14:05 / 14:10 UTC, and ebay-sync at
+     `0,30 13-21 * * 1-5` (STUBBED route; schedule lands preemptively
+     so eBay wire-up needs no further config). Single-file commit
+     c753654 pushed to main. CRON_SECRET still pending — schedules
+     fire, route bodies return 401 until the operator sets it in
+     Vercel project env. Confirmed Session 13 NUMERIC cleanup edit
+     to refresh.ts did NOT cause the feed staleness — it improved
+     inserted-count accuracy by chaining .select('id') after the
+     upsert, but the insert path itself is unchanged. Plan caveat
+     noted: Vercel Hobby tier rejects the sub-daily schedules and
+     falls back to once-per-day; Pro+ accepts as written.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
@@ -733,8 +808,10 @@ PENDING — NEXT UP
   IMMEDIATE (do this first next session):
     Phase 0 close-out + Phase 9 (A) operator setup. Operator-side
     config tasks that block production behavior:
-    (1) CRON_SECRET in Vercel (without it all 5 cron routes 401
-        silently);
+    (1) CRON_SECRET in Vercel (vercel.json now schedules all 5 cron
+        routes — but every call returns 401 until this env var is
+        set, so spot prices never refresh and reminder dispatches
+        never fire);
     (2) NEXT_PUBLIC_APP_URL=https://pawn-three.vercel.app in Vercel;
     (3) STRIPE_SAAS_WEBHOOK_SECRET + RESEND_PLATFORM_FROM_EMAIL +
         RESEND_PLATFORM_FROM_NAME in Vercel;
@@ -978,6 +1055,17 @@ PENDING — NEXT UP
       (e.g. SpotPriceRow uses `number` for NUMERIC), narrow at
       the row boundary with `as unknown as T`. Bridge until the
       Database<'public'> override lands.
+    - SESSION 14: Vercel cron requires BOTH vercel.json (with
+      `crons` entries) AND CRON_SECRET env var. Without
+      vercel.json, Vercel has no schedule. Without CRON_SECRET,
+      the route bodies all 401. Both gates must be in place or
+      auto-runs silently no-op. Current state: vercel.json
+      committed; CRON_SECRET still pending in Vercel project env.
+    - SESSION 14: Vercel free Hobby plan rejects sub-daily cron
+      schedules at deploy and falls back to once-per-day. If
+      vercel.json's `*/15` or `0,30` schedules don't appear in
+      the deployment summary, the project is on Hobby — upgrade
+      or trim to daily-only.
 
   KNOWN ISSUES TO REVISIT WHEN PHASES LAND:
     - Phase 5: pawn ticket print PDF legal disclosure — vet with
@@ -1061,4 +1149,8 @@ PENDING — NEXT UP
       backlog]
     - Vitest scaffold + first tests. [SHIPPED 2026-04-29 Session
       13 item 177]
+    - vercel.json with cron schedules for all 5 cron routes.
+      [SHIPPED 2026-04-29 Session 14 item 178 — closes the
+      auto-cron-never-fires compounding cause; CRON_SECRET still
+      pending]
 ================================================================================
