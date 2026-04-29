@@ -12,188 +12,255 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 9 (2026-04-28 night) — Pawn save bug, admin
-                  menu access, tenant_counters RLS, security audit
-                  Part A (5 review findings closed).
-  Context budget: ~moderate at save time.
-  Last worked on: Closing Part A of an external security review.
-                  Part B (RLS tightening on secret-bearing tables)
-                  deferred to a future phase per Eddy's direction.
-                  Session ended cleanly — no in-progress work.
+  Last session:   Session 10 (2026-04-29 morning) — Customer portal
+                  invite + claim + dedicated /portal/login + optional
+                  password + RLS tightening (0019) + alias-cast cleanup
+                  + 3 lint fixes + /admin/settings hub + /settings/
+                  general + /team CRUD. 10 commits on main; tree clean.
+  Context budget: HEAVY. /progress clear after this save.
+  Last worked on: Six pending-list items shipped end-to-end in one
+                  push. Session ended cleanly — no in-progress work.
 
   ACTIVE FILE(S) — last touched this session:
-    --- Pawn save bug (collateral metal_type) ---
-    - src/lib/validations/loan.ts (collateralItemSchema metal_type
-      now wraps in preprocess "" → null shield, mirroring inventory.
-      metal — same Session 8 root cause)
+    --- Customer portal invite + claim (item 147) ---
+    - patches/0018-customer-portal-invites.sql (APPLIED)
+    - src/lib/portal/{invite.ts,invite-email.ts}
+    - src/app/(staff)/customers/[id]/portal-actions.ts
+    - src/app/portal/claim/[token]/{page,actions,content}.tsx
+    - src/components/customers/PortalInvitePanel.tsx
+    - src/app/(staff)/customers/[id]/{page,content}.tsx
+    - src/proxy.ts (carve-out /portal/claim from isPortalPath)
+    - src/lib/audit.ts (3 new AuditAction values)
 
-    --- Admin/Staff topbar reciprocal links ---
-    - src/app/(staff)/layout.tsx (Admin · Console chip in top-right
-      gated on globalRole='superadmin')
-    - src/app/(admin)/layout.tsx (Staff → link to /dashboard for
-      bouncing back)
+    --- Portal flow bug fixes (items 148-151) ---
+    - src/lib/portal/invite.ts (auto-fallback invite → magiclink)
+    - src/app/(staff)/customers/[id]/portal-actions.ts (resolveAppUrl
+      via request headers when NEXT_PUBLIC_APP_URL is missing/local)
+    - src/components/customers/PortalInvitePanel.tsx (surface raw
+      provider error in mono text under the friendly message)
+    - src/app/portal/claim/[token]/content.tsx (useI18n →
+      useLangLocal — claim page is OUTSIDE the (portal) group so
+      no I18nProvider is in scope)
 
-    --- Migration 0017 SECURITY DEFINER fix ---
-    - patches/0017-tenant-counters-security-definer.sql (APPLIED
-      to project kjyaxfwlggxiqijiiuna)
-    - next_tenant_counter() now SECURITY DEFINER + locked search_path
-      + REVOKE PUBLIC + GRANT EXECUTE TO authenticated. Same body as
-      0003; only the security attributes change. Unblocks all
-      per-tenant trigger sequences (loan ticket, inventory SKU,
-      repair ticket, sale receipt, layaway, appraisal, return).
+    --- Supabase Auth URL config (item 150) ---
+    - scripts/{inspect-auth-config,set-auth-urls}.mjs
+    - LIVE PATCH: site_url=https://pawn-three.vercel.app,
+      uri_allow_list=https://pawn-three.vercel.app/**,
+      http://localhost:3060/** (was localhost:3000 default + empty)
 
-    --- Security audit Part A (code only — no RLS) ---
-    - src/lib/portal/customer.ts (#3 — replaced comment-only
-      fallthrough with explicit user_tenants check at customer.
-      tenant_id; reject mismatch with /no-tenant)
-    - src/lib/reports/api-guard.ts (#4 — added STAFF_ROLES set check;
-      returns 403 'forbidden' if tenantRole not in staff allowlist)
-    - src/app/api/cron/maturity-reminders/route.ts (#5)
-    - src/app/api/cron/layaway-reminders/route.ts (#5)
-    - src/app/api/cron/repair-ready-reminders/route.ts (#5)
-    - src/app/api/cron/refresh-spot-prices/route.ts (#5)
-    - src/app/api/cron/ebay-sync/route.ts (#5)
-      All 5 cron routes: dropped x-vercel-cron shortcut. Only
-      Authorization: Bearer ${CRON_SECRET} now accepted. Header
-      docstrings updated.
-    - README.md (#6 — replaced create-next-app boilerplate with
-      project-specific quickstart pointing at port 3060)
-    - src/app/page.tsx (#7 — removed stale "Phase 0 skeleton — auth
-      and role gating not yet wired" copy)
+    --- Dedicated /portal/login + sign-in bridge (item 152) ---
+    - src/app/portal/login/{page,form,actions}.tsx
+    - src/app/api/portal/sign-in-bridge/route.ts
+    - src/proxy.ts (PUBLIC_PATHS += /portal/login; isPortalPath
+      excludes /portal/login; unauth /portal/* → /portal/login)
+    - src/components/portal/PortalChrome.tsx (sign-out → /portal/
+      login)
+    - src/app/(portal)/layout.tsx (!ctx redirect → /portal/login)
+    - src/lib/portal/invite-email.ts (signInUrl footer)
+
+    --- In-store sign-in assist (item 153) ---
+    - src/app/(staff)/customers/[id]/portal-actions.ts
+      (generatePortalSignInLinkAction)
+    - src/components/customers/PortalInvitePanel.tsx (always-visible
+      portal sign-in URL row + "Generate sign-in link" button when
+      status=active)
+    - src/app/(staff)/customers/[id]/page.tsx (resolves portalLoginUrl
+      using NEXT_PUBLIC_APP_URL → headers fallback)
+
+    --- Optional password layer (item 154) ---
+    - src/app/(portal)/portal/account/{page,content}.tsx
+    - src/app/portal/login/form.tsx (smart Sign-in: password if
+      filled, else magic link)
+    - src/components/portal/PortalChrome.tsx (Account nav link)
+
+    --- Migration 0019 RLS tightening (item 155) ---
+    - patches/0019-tighten-secret-table-rls.sql (APPLIED to project
+      kjyaxfwlggxiqijiiuna)
+    - tenant_billing_settings, settings, tenant_ebay_credentials
+      SELECT policies tightened from my_accessible_tenant_ids() to
+      owner/chain_admin (manager too for eBay)
+
+    --- Alias-collapse + cast-strip (item 156) ---
+    - DELETED src/lib/appraisals/db.ts (asLoose shim)
+    - 6 appraisal consumers now use direct typed supabase client
+    - (admin as any) stripped from buy/new/page.tsx, inventory/[id]/
+      page.tsx, inventory/listings/ebay/page.tsx, ebay/auth.ts,
+      settings/integrations/ebay/actions.ts, cron/ebay-sync, spot-
+      prices/{actions.tsx,page.tsx,lib/spot-prices/lookup.ts}
+    - Remaining ~14 casts kept ONLY where NUMERIC type divergence
+      forces it (SpotPrice* / EbayListing* hand-rolled types use
+      number while generated types use string)
+
+    --- Lint fixes (item 157) ---
+    - src/app/(staff)/customers/[id]/content.tsx
+    - src/app/(staff)/inventory/[id]/content.tsx
+    - src/app/(staff)/inventory/new/form.tsx
+      Form-reset workaround moved from useEffect+setState to the
+      official "compute state during render based on prev state"
+      pattern. Avoids react-hooks/set-state-in-effect AND react-
+      hooks/refs.
+
+    --- /admin/settings platform-health hub (item 158) ---
+    - src/app/(admin)/admin/settings/{page,content}.tsx
+    - src/app/(admin)/layout.tsx (Settings link in topbar)
+
+    --- /settings/general tenant-info editor (item 159) ---
+    - src/app/(staff)/settings/general/{page,actions,content}.tsx
+    - src/app/(staff)/settings/content.tsx (Tenant info card now
+      links to it for owners; managers see read-only SectionCard)
+
+    --- /team CRUD (item 160) ---
+    - src/app/(staff)/team/{page,actions,content}.tsx
+    - src/components/layout/Sidebar.tsx (Team entry flipped from
+      disabled → visible, gated to owner/chain_admin/manager)
 
   RESUME POINT:
     Phase 0 close-out + Phase 9 (A) operator setup is still the
-    cleanest "ship-real-money-billing" path. Operator-side tasks:
-      (1) populate STRIPE_SAAS_WEBHOOK_SECRET +
-          RESEND_PLATFORM_FROM_EMAIL + RESEND_PLATFORM_FROM_NAME +
-          CRON_SECRET in Vercel + .env.local; CRON_SECRET is now
-          required after this session — cron routes 401 silently
-          without it.
-      (2) configure Stripe webhook endpoint pointing at
-          /api/stripe/saas/webhook in dashboard.stripe.com (events:
-          customer.subscription.{created,updated,deleted,trial_will
-          _end}, invoice.{paid,payment_failed}).
-      (3) click "Sync Stripe products" on /admin/billing to
-          provision the 3 plans into the platform Stripe account.
+    cleanest "ship-real-money-billing" path. Operator-side tasks
+    that remain BLOCK production behavior:
+      (1) Set CRON_SECRET in Vercel — without it all 5 cron routes
+          401 silently.
+      (2) Set NEXT_PUBLIC_APP_URL=https://pawn-three.vercel.app in
+          Vercel — header derivation fallback works in most spots
+          but Stripe / eBay OAuth / dunning still read this directly.
+      (3) Set STRIPE_SAAS_WEBHOOK_SECRET, RESEND_PLATFORM_FROM_EMAIL,
+          RESEND_PLATFORM_FROM_NAME in Vercel.
+      (4) Configure Stripe webhook endpoint at /api/stripe/saas/
+          webhook (events: customer.subscription.{created,updated,
+          deleted,trial_will_end} + invoice.{paid,payment_failed}).
+      (5) Click "Sync Stripe products" on /admin/billing.
+      (6) Per-tenant Stripe Connect onboarding for first tenant.
+      (7) Set per-tenant Resend at /settings/communications so
+          customer-portal invites email instead of falling back to
+          the operator-copies-link flow.
 
     Coding-side, pick from:
-      • Migration 0018 — RLS tightening on tenant_billing_settings
-        + settings + tenant_ebay_credentials. Closes the disclosed
-        secrets-read leak. Bundle naturally with the pgsodium-
-        encryption migration on the backlog. Needs grep-audit of
-        non-admin reads first per CLAUDE.md Rule 1.
-      • /admin/settings hub — paused mid-build earlier; platform-
-        health view + subscription-plans editor + links to existing
-        /admin/tenants and /admin/billing.
-      • /settings/general editable form — placeholder card on the
-        tenant settings hub becomes a real edit surface.
-      • /team page — full build (currently disabled placeholder in
-        sidebar). Needs: list user_tenants for active tenant, role
-        chips, invite-by-email, edit role, deactivate member, owner-
-        only gating.
-      • Alias-collapse + cast-strip cleanup (~1h).
-      • Phase 8 remaining: pawn-vs-redemptions / layaway-payments /
-        repairs-completed charts still on demoBars; mobile audits.
+      • Phase 8 remaining charts (pawn-vs-redemptions / layaway-
+        payments / repairs-completed still on PRNG demoBars; mobile
+        audits)
+      • Phase 9 (A) follow-ups: self-service plan-CHANGE flow + new-
+        tenant admin notification email
+      • Phase 9 (B) — diamond cert API integration / watch model DB
+      • POS receipt PDF (mirrors /api/print/loan pattern)
+      • Buy-outright bilingual PDF receipt
+      • Cron: held → available status flip when buy-outright
+        hold_until <= today
+      • Real eBay wire-up — 12-step checklist
+      • Phase 10 Path A — public per-tenant landing pages, public
+        catalog, loyalty / referrals, Google Reviews ingestion,
+        email campaign engine
+      • pgsodium at-rest encryption for Twilio / Resend / Stripe
+        creds + eBay tokens (bundle with the secret-column-split
+        the reviewer recommended)
+      • Test suite scaffold
 
   OPEN ISSUES / BLOCKERS:
-    - 3 Phase 0 punch-list items still open: NEXT_PUBLIC_APP_URL
-      update + 3 pasted secrets rotation (anon JWT, service-role
-      JWT, sbp_ token) + repo-local git config revert.
-    - CRON_SECRET must be set in Vercel for crons to fire post-
-      Session 9. The x-vercel-cron shortcut was removed because it
-      was never a real security check; Vercel Cron sets the
-      Authorization header automatically once CRON_SECRET is in
-      project env. Without it, all 5 cron routes 401 silently.
-    - SaaS billing real-money flow gates on operator setup tasks
-      (STRIPE_SAAS_WEBHOOK_SECRET + Stripe webhook config + Sync
-      Stripe products button click).
-    - Per-tenant Stripe Connect not yet onboarded for the first
-      tenant — portal payoff (Phase 5) + comm cron (Phase 6) still
-      silently no-op until then. Render side already degrades
-      gracefully.
-    - DEFERRED — Migration 0018 RLS tightening on secret-bearing
-      tables. tenant_billing_settings + settings + tenant_ebay_
-      credentials SELECT policies still gate on
-      my_accessible_tenant_ids() (which includes 'client' role) so
-      a portal client can SELECT Stripe access/refresh/webhook
-      secrets, Twilio creds, Resend creds, eBay OAuth tokens.
-      Reviewer's stronger architectural fix (split-table or masked
-      view) bundles with pgsodium-encryption migration on backlog.
-    - eBay code paths still STUBBED (Phase 10 Path B). 12-step real
-      wire-up checklist documented in commit 9b93e235.
+    - Phase 0 punch list still open: NEXT_PUBLIC_APP_URL +
+      CRON_SECRET + 3 pasted secrets rotation (anon JWT, service-
+      role JWT, sbp_ token) + repo-local git config revert.
+    - SaaS billing real-money flow gates on operator setup (env
+      vars + Stripe webhook config + Sync Stripe products button).
+    - Per-tenant Stripe Connect not onboarded — portal payoff
+      (Phase 5) + comm cron (Phase 6) silently no-op until then.
+    - Per-tenant Resend not set up for the first tenant — portal
+      invite emails fall back to operator-copies-manual-link
+      (which works fine but isn't ideal).
+    - eBay paths still STUBBED (Phase 10 B). 12-step real wire-up
+      checklist documented in commit 9b93e235.
     - WhatsApp Content SIDs NULL until Twilio + Meta approval per
       template per tenant.
     - FL LeadsOnline CSV format still DRAFT; confirm with agency.
     - tenants.agency_store_id column missing — police-report uses
       UUID fallback.
-    - Pre-existing react-hooks/set-state-in-effect lint errors in
-      inventory/new/form.tsx + inventory/[id]/content.tsx (Phase 8
-      agent flagged as pre-existing).
-    - Phase 8 dashboard chart wire-up only covered daily-revenue;
-      pawn-vs-redemptions / layaway-payments / repairs-completed
-      charts still on PRNG.
-    - Pre-existing use-lang.ts:29 lint error from Phase 0 still
-      unresolved.
+    - Pre-existing use-lang.ts:29 lint error from Phase 0 — Session
+      10 grep showed it's now clean. Probably fixed earlier; remove
+      from blockers next session.
+    - Reviewer's stronger architectural fix on secrets (split secret
+      columns or expose only masked status views) bundles with the
+      pgsodium-encryption migration on backlog.
 
   KEY DECISIONS LOCKED THIS SESSION:
-    - PAWN SAVE BUG was the same Session 8 root cause exposed in a
-      new surface — z.enum().optional().nullable() rejects "" but
-      the metal_type <select> "—" placeholder always sends "". The
-      Session 8 fix only patched customers + inventory; loan.ts
-      collateralItemSchema kept the bare enum form. Fix mirrors
-      inventory.metal — preprocess "" → null BEFORE the enum runs.
-      Lesson: any time Session 8's preprocess shield is missing on
-      an enum field whose <select> has a placeholder option, that
-      form will fail every save where the user doesn't pick a value.
-    - ADMIN MENU ACCESS — staff topbar now shows an "Admin · Console"
-      chip in the top-right gated on ctx.globalRole === 'superadmin'.
-      Reciprocal "Staff →" link in the admin topbar. Proxy already
-      gated /admin/* on superadmin — the UI just had no entry point.
-    - SECURITY DEFINER ON next_tenant_counter ROOT CAUSE: 0003
-      created the counter helper as plain plpgsql. Triggers on
-      inventory_items / loans / repair_tickets / sales / etc. all
-      call it from BEFORE INSERT, running in the user's transaction.
-      INSERT/UPDATE on tenant_counters fired RLS as the user, but
-      the table only has a SELECT policy by design ("app-only writes
-      (RPC)" — comment in 0003 line 537). Non-superadmin staff
-      therefore hit "new row violates row-level security policy for
-      table tenant_counters" on every per-tenant counter advance.
-      Fix is the documented design: SECURITY DEFINER on the function
-      so it runs as postgres and bypasses RLS, with locked
-      search_path per Postgres SECURITY DEFINER best practice.
-      0017 keeps the body identical to 0003 — only the security
-      attributes change.
-    - SECURITY REVIEW PART A SHIPPED, PART B DEFERRED. External
-      review surfaced 5 high-severity findings. Each was verified
-      against the actual code before fixing — reviewer overstated
-      eBay severity (read policy DOES gate on my_is_staff; tokens
-      ARE plaintext but only staff can read), and the portal cross-
-      tenant claim was real (the ts:50 comment said "prefer the
-      customer's tenant" but the code did literally nothing). Part
-      A (code-only fixes #3 #4 #5 #6 #7) shipped this session. Part
-      B (migration 0018 — RLS on secret-bearing tables) deferred
-      per Eddy's direction; touches RLS so CLAUDE.md Rule 1 demands
-      explicit confirmation + grep-audit of non-admin reads first.
-    - PORTAL CROSS-TENANT FIX (#3) — resolvePortalCustomer in
-      src/lib/portal/customer.ts now reads user_tenants with admin
-      client to confirm an ACTIVE 'client' membership at customer.
-      tenant_id (not at the active-cookie tenant). A former client
-      at tenant A whose customers row was never deactivated cannot
-      pull tenant A data after onboarding at tenant B. Used admin
-      client because user-scoped client may not see its own
-      user_tenants row in some edge timings.
-    - REPORT API GUARD (#4) — guardReportRequest now enforces
-      tenantRole IN STAFF_ROLES (owner / chain_admin / manager /
-      pawn_clerk / repair_tech / appraiser). API routes bypass the
-      proxy; without this, a portal client with a tenantId could
-      hit /api/reports/* directly. Page-level redirects continue to
-      handle the upstream gating; this is defense in depth.
-    - CRON AUTH (#5) — x-vercel-cron header is NOT a security check.
-      Any external HTTP caller can set it. Vercel Cron sets
-      Authorization: Bearer ${CRON_SECRET} when CRON_SECRET is
-      configured at the project level — that's the only check now.
-      Operator must populate CRON_SECRET in Vercel env or all 5
-      crons will 401 silently. Documented in OPEN ISSUES.
+    - PORTAL INVITE FLOW. Operator at /customers/[id] → "Send portal
+      invite" → server creates customer_portal_invites row (UUID
+      token, 7-day expiry) → admin.auth.admin.generateLink({type:
+      'invite', email, options.redirectTo: APP_URL +
+      '/magic-link?next=/portal/claim/<token>'}) → email via per-
+      tenant Resend OR fall back to manual-link copy in panel →
+      customer clicks → /magic-link sets session → /portal/claim/
+      <token> validates token + email-match + customer not already
+      bound → user_tenants(role='client') upsert + customers.
+      auth_user_id link + invite consumed → set pawn-active-tenant
+      cookie → redirect /portal/loans.
+    - PORTAL CLAIM ROUTING. /portal/claim/* lives at src/app/portal/
+      claim/<token>/ NOT inside (portal) route group. Reason: the
+      (portal) layout enforces tenantRole='client' which would
+      deadlock the brand-new auth user. Proxy.isPortalPath has a
+      carve-out for /portal/claim AND /portal/login.
+    - PORTAL LOGIN IS DEDICATED. Customers go to /portal/login (NOT
+      staff /login). Magic-link request via per-tenant Resend; same
+      pattern as invite. After magic-link verification, /api/portal/
+      sign-in-bridge sets the active-tenant cookie BEFORE the
+      (portal) layout runs (otherwise the layout's tenantRole check
+      would fail and bounce to /no-tenant).
+    - OPTIONAL PASSWORD. Customers can set one from /portal/account
+      via supabase.auth.updateUser({password}). Portal login form has
+      a single smart "Sign in" button: password if filled (uses
+      signInWithPassword + nav to sign-in bridge), magic-link if
+      empty. Forgot-password is "leave blank, get magic link" — no
+      separate flow needed.
+    - SUPABASE AUTH URL CONFIG. Defaults are localhost:3000 site_url
+      + empty uri_allow_list. Patched live to pawn-three.vercel.app.
+      scripts/{inspect-auth-config,set-auth-urls}.mjs check this in
+      so future drift is one command away. Without these, magic
+      links redirect to whatever Supabase's site_url is — and any
+      redirect_to we pass that isn't on the allow list gets ignored.
+    - generateLink TYPE FALLBACK. type='invite' fails when the auth
+      user already exists (re-invites, multi-tenant customers). Auto-
+      retry with type='magiclink' when the error message contains
+      "already" / "exists" / "registered".
+    - APP URL DERIVATION ORDER. (1) NEXT_PUBLIC_APP_URL if set AND
+      not localhost; (2) request headers (x-forwarded-host +
+      x-forwarded-proto, Vercel auto-injects); (3) VERCEL_URL; (4)
+      NEXT_PUBLIC_APP_URL even if localhost. Means the magic-link
+      flow works without any env-var setup on the deployed URL —
+      but the operator should still set NEXT_PUBLIC_APP_URL for
+      Stripe / eBay / dunning paths that read it directly.
+    - RLS TIGHTENING SAFE WHEN ALL READS USE ADMIN CLIENT. Migration
+      0019 closed the disclosed leak by moving SELECT policies on
+      tenant_billing_settings / settings / tenant_ebay_credentials
+      from my_accessible_tenant_ids() to my_role_in_tenant() ∈
+      {owner,chain_admin} (and +manager for eBay). Pre-flight grep
+      confirmed every read uses createAdminClient() — zero-regression.
+    - FORM-RESET PATTERN UPGRADED. Session 8's useEffect+setInitial
+      pattern tripped react-hooks/set-state-in-effect. Replaced with
+      the React docs' official "compute state during render based on
+      prev state" pattern: useState comparison guarded by `if
+      (state !== lastState) setLastState(state)` then setFormGen.
+      React handles in-render setState by re-rendering immediately
+      without flushing. Documented in CLAUDE.md gotchas.
+    - ASLOOSE SHIM DELETED. lib/appraisals/db.ts was a "until 0014
+      types regen" shim — db:types ran, the auto-generated database.
+      ts now has appraisals/spot_prices/ebay_listings/tenant_ebay_
+      credentials. All 6 consumers swapped to direct typed
+      supabase.from() calls. Remaining `as any` casts (~14) are
+      gated to NUMERIC-type divergence (SpotPriceRow.multiplier:
+      number at runtime, string in generated types). Each has an
+      inline comment explaining why.
+    - /TEAM LAST-OWNER GUARD. Server-side count of active owners
+      blocks self-demotion AND deactivation when the actor is the
+      only owner. Self-deactivate also blocked client-side via
+      disabled button.
+    - /admin/settings IS READ-ONLY. Editing flows out to /admin/
+      tenants (lifecycle) and /admin/billing (plans + Stripe sync).
+      The hub is a one-stop platform-health overview: env-var
+      presence (redacted), tenant counts by type/module, active
+      subscriptions, plan list, last-24h activity, schema migrations
+      applied, build/deploy info, quick links to dashboards, and
+      pre-flight reminders for the operator setup gates.
+    - /settings/general IS OWNER-ONLY. Module flags (has_pawn/repair
+      /retail) and police-report format are intentionally read-only
+      here — those are owner+platform decisions because plan limits
+      and compliance reporting depend on them.
 
   KEY DECISIONS CARRIED FROM PRIOR SESSIONS (still authoritative):
     - Multi-store from day 1 (tenants.parent_tenant_id + tenant_type).
@@ -210,19 +277,24 @@ SEE ALSO (do not duplicate here):
     - Money is numeric(18,4) — never floats; r4() in
       lib/pawn/math.ts.
     - Audit-log every mutation through admin client.
-    - Phosphor icons in client components only (no FlaskConical).
-    - 'use server' modules export async functions ONLY.
+    - Phosphor icons in client components only.
+    - 'use server' modules export async functions ONLY (type exports
+      are erased so `export type` is fine).
     - Storage paths: tenant_id MUST be folder[0] for RLS.
-    - Parallel-agent worktree pattern: dispatch with isolation,
-      agent commits on its branch, primary tree merges with --no-ff.
     - Validation Zod helpers: preprocess null-on-empty BEFORE inner
       schema; trailing .transform(v => v ?? null) keeps
       `string | null`.
-    - SESSION 8 ENUM-EMPTY-STRING SHIELD — every z.enum used on a
-      <select> with a placeholder option must wrap in
-      preprocess(""→null) BEFORE the enum runs. Session 9 added
-      one more instance (loan.ts collateralItemSchema metal_type);
-      audit any new enum field for the same shape.
+    - SESSION 8: every z.enum used on a <select> with placeholder
+      MUST wrap in preprocess(""→null) BEFORE the enum.
+    - SESSION 9: any postgres function that mutates a tenant-scoped
+      table from a trigger MUST be marked SECURITY DEFINER with
+      locked search_path.
+    - SESSION 9: x-vercel-cron header is NOT a security check — only
+      Authorization: Bearer ${CRON_SECRET}.
+    - SESSION 9: Portal customer resolution must verify an active
+      'client' membership at customer.tenant_id specifically.
+    - SESSION 9: Report-style API endpoints MUST enforce staff role
+      at the endpoint level (proxy doesn't run on /api/*).
 
   IMPORTANT CONSTANTS / PATHS:
     - Project root:   c:\Users\rodri\OneDrive\Documents\Pawn\
@@ -235,12 +307,17 @@ SEE ALSO (do not duplicate here):
     - Spot-prices hide key: pawn.spot-prices.hidden
     - Dashboard storage keys: dash.activeTab, dash.activeRange,
       dash.recent.{sales|layaways|pawn|repairs}
+    - Customer portal sign-in URL: <APP_URL>/portal/login
+    - Portal sign-in bridge:       <APP_URL>/api/portal/sign-in-bridge
+    - Portal claim URL pattern:    <APP_URL>/portal/claim/<token>
     - First tenant: Eddy's Jewelers Corp.
         tenant_id    1abc8070-0797-4740-8dea-70cbb16060fe
-    - SaaS plans (seeded; codes UNIQUE on subscription_plans.code):
+    - SaaS plans (codes UNIQUE on subscription_plans.code):
         basic   $99/mo   $999/yr
         pro     $199/mo  $1999/yr
         chain   $499/mo  $4999/yr
+      (DB columns are price_monthly_cents / price_yearly_cents —
+      not monthly_amount / yearly_amount. Easy to typo.)
     - Storage layout:
         customer-documents/<tenant_id>/<customer_id>/<kind>/<uuid>.<ext>
         inventory-photos/<tenant_id>/<item_id>/<uuid>.<ext>
@@ -255,16 +332,24 @@ SEE ALSO (do not duplicate here):
         Return         'R-'   + LPAD(seq,6,'0')   (R-000123)
         Layaway        'L-'   + LPAD(seq,6,'0')   (L-000123)
         Appraisal      'AP-'  + LPAD(seq,6,'0')   (AP-000123)
-    - Env vars required for live SaaS billing + crons:
+    - Required env vars for live SaaS billing + crons + portal:
         STRIPE_SAAS_WEBHOOK_SECRET
         RESEND_PLATFORM_FROM_EMAIL
         RESEND_PLATFORM_FROM_NAME (default 'Pawn')
-        CRON_SECRET                       ← required after Session 9
+        CRON_SECRET                   ← required since Session 9
+        NEXT_PUBLIC_APP_URL           ← required for canonical Stripe
+                                        / eBay / dunning paths
+    - Supabase Auth config (live, set via scripts/set-auth-urls.mjs):
+        site_url       = https://pawn-three.vercel.app
+        uri_allow_list = https://pawn-three.vercel.app/**,
+                         http://localhost:3060/**
     - SaaS Stripe webhook endpoint:    /api/stripe/saas/webhook
     - Per-tenant Connect webhook endpoint: /api/stripe/webhook
     - Default LTV for /pawn/calculator: 50% (overridable per call).
     - Default buy-outright hold period: 30 days (FL); per-tenant
       override via settings.buy_hold_period_days.
+    - Portal-invite TTL: 7 days. Sign-in link TTL: 1 hour (Supabase
+      magic-link default).
 
 ================================================================================
 PHASE OVERVIEW
@@ -273,29 +358,27 @@ PHASE OVERVIEW
   Phase   Description                                Status      Completed
   ------  -----------------------------------------  ----------  ------------
   0       Foundation skeleton                        IN PROGRESS  —
-          (~92%; deploy URL update + secret rotation
-          still open. CRON_SECRET added to required
-          env list this session.)
+          (Op punch list: NEXT_PUBLIC_APP_URL +
+          CRON_SECRET + secret rotation still open.)
   1       Customers + Inventory                      COMPLETE    2026-04-26
   2       Pawn loans (gated on has_pawn)             COMPLETE    2026-04-27
-          (Save bug second-order fix Session 9 —
-          collateral metal_type "" → null shield.)
   3       Repair / stone setting                     COMPLETE    2026-04-27
   4       Retail / POS                               COMPLETE    2026-04-27
-  5       Customer portal (full)                     COMPLETE    2026-04-27
-          (Cross-tenant resolution gap closed
-          Session 9.)
+  5       Customer portal (full)                     COMPLETE    2026-04-29
+          (Self-link onboarding flow + dedicated
+          /portal/login + optional password layer
+          shipped Session 10. Per-tenant Resend
+          setup still required for emails to actually
+          send — falls back to operator copy-link.)
   6       Communications                             COMPLETE    2026-04-27
   7       Reporting + compliance                     COMPLETE    2026-04-27
-          (API guard now enforces staff role
-          Session 9.)
   8       Polish                                     IN PROGRESS  —
-          (Remaining: 3 demoBar charts on dashboard,
-          mobile audits.)
+          (Banner pattern + dashboard real-data wire-
+          up + i18n cleanup + form-reset lint
+          refactor done. Remaining: 3 dashboard
+          charts + mobile audits.)
   9 (A)   SaaS GA infrastructure                     COMPLETE    2026-04-28
-          (Real-money flow gates on operator setup:
-          env vars + Stripe webhook config + Sync
-          Stripe button.)
+          (Real-money flow gates on operator setup.)
   9 (B)   Pricing intelligence                       IN PROGRESS  —
           (Diamond cert API + watch model DB still
           pending.)
@@ -308,269 +391,308 @@ SESSION HISTORY LOG
 ================================================================================
 
 --- Session 1 (2026-04-26) — Project planning + skeleton docs ---
+  1-28. Skeleton + 0001-foundation + design tokens + scaffold.
 
-  1-28. Skeleton + 0001-foundation + design tokens + scaffold + cloud-
-     isolation Rule 17 + initial CLAUDE.md/Progress.txt/DESIGN-airbnb.md.
-     Build green at 11 routes.
+--- Session 2 (2026-04-26 ~16:00) — Cloud wiring + first tenant + fixes ---
+  29-42. .env.local + first tenant + /onboard claim. Build green at 13 routes.
 
---- Session 2 (2026-04-26 ~16:00) — Cloud wiring + first tenant + bug fixes ---
+--- Session 3 (2026-04-26 ~18:00) — Phase 1: Customers + Inventory ---
+  43-64. 0003 + 0004 + audit log + dashboard widgets. Build green at 19 routes.
 
-  29-42. .env.local wiring + TenantSwitcher + git + initial commit + 0001
-     applied + superadmin onboarded + 3 bug fixes + /onboard claim flow.
-     Build green at 13 routes.
+--- Session 4 (2026-04-27) — Phase 2 pawn loans + transfers + audit viewer ---
+  65-83. 3-agent dispatch. 0005 + 0006. lib/pawn/math.ts. Build green at 25.
 
---- Session 3 (2026-04-26 ~18:00) — Phase 1 complete: Customers + Inventory ---
+--- Session 5 (2026-04-27 ~late) — Phase 3 + Print PDF + Phase 4 POS + DL scanner ---
+  84-101. Phase 3 + 0007. Print PDF. Phase 4 (0008). Build green at 34 routes.
 
-  43-64. Phase 1 planning, 0003 written + applied, 0004 customer pawn
-     fields, audit log helper + wired everywhere, dashboard widgets,
-     customer portrait photo, 4 bug fixes. Build green at 19 routes.
+--- Session 6 (2026-04-27 evening) — Phases 5+6+7 merged + customer-save fix ---
+  102-110. Customer-save bug fix. 3-agent dispatch. 4 deploys.
 
---- Session 4 (2026-04-27) — Phase 2 pawn loans + transfers UI + audit viewer ---
+--- Session 7 (2026-04-28 morning) — Migration cleanup + Path A start + 3 Path B ---
+  111-121. APPLIED 0009/0010/0011. Sidebar collapse. Phase 9 A schema +
+     UI. Bullion + appraisals + eBay-stub agents merged.
 
-  65-83. 3-agent parallel dispatch. 0005 + 0006 applied. Phase 2 pawn
-     internal flow. Lib/pawn/math.ts. Inventory transfers UI. Audit log
-     viewer at /audit. apply-migration.mjs. 4 bug fixes. Build green at
-     25 routes.
+--- Session 8 (2026-04-28 evening) — Save bug + Phase 9 GA + 2 out-of-scope items ---
+  122-137. Save bug (customer + inventory). Version-footer. Phase 9 A
+     chunks 1-5 (Stripe sync + checkout + webhook + plan gates + dunning).
+     0016. Settings hub + integrations index. Spot-prices headline.
+     Buy-outright. Phase 8 polish. Portal Stripe-optional. 1099-MISC.
 
---- Session 5 (2026-04-27 ~late) — Phase 3 merge, Phase 2 PRINT PDF, Phase 4 RETAIL/POS, DL scanner ---
+--- Session 9 (2026-04-28 night) — Pawn save + admin menu + RLS + security audit Part A ---
+  138-146. Pawn collateral metal_type fix. Admin/Staff topbar reciprocal
+     links. Migration 0017 (next_tenant_counter SECURITY DEFINER).
+     Security audit Part A: portal cross-tenant fix + report API guard
+     staff role + cron Bearer-only auth (5 routes) + README rewrite +
+     stale page.tsx comment. Part B (RLS) deferred.
 
-  84-101. Phase 3 merge + 0007. Worktree cleanup. Print PDF (bilingual).
-     Phase 4 retail/POS (0008). Stripe Terminal stub. POS layaway
-     lifecycle. db:types regen 87,736 bytes. 4 type fixes. Vercel project
-     imported. DL scanner port-kit integrated. Build green at 34 routes.
+--- Session 10 (2026-04-29 morning) — Customer portal end-to-end + RLS Part B + 3 admin pages ---
 
---- Session 6 (2026-04-27 evening) — Phases 5+6+7 merged + customer-save fix + dashboard port ---
+ 147. CUSTOMER PORTAL INVITE + CLAIM FLOW END-TO-END. Migration 0018
+     (customer_portal_invites table + RLS + portal_invite enum value
+     applied to project kjyaxfwlggxiqijiiuna). lib/portal/invite.ts
+     mints rows + asks Supabase admin.auth.admin.generateLink({type:
+     'invite'}, options.redirectTo: APP_URL + '/magic-link?next=/portal/
+     claim/<token>'}) for an action_link, sends via per-tenant Resend
+     OR returns the link to the operator if Resend isn't configured.
+     lib/portal/invite-email.ts bilingual EN+ES email body with HTML
+     CTA. /customers/[id]/portal-actions.ts (sendPortalInviteAction +
+     revokePortalInvitesAction, owner/chain_admin/manager gated).
+     /portal/claim/[token]/{page,actions,content}.tsx — anti-link-
+     theft email match check + token expiry/consumed check + customer-
+     not-already-bound check + on confirm: customers.auth_user_id +
+     user_tenants(role='client') upsert + invite consumed + cookie set
+     + redirect /portal/loans. PortalInvitePanel UI on customer detail.
+     proxy.ts isPortalPath excludes /portal/claim/* (the new auth user
+     has no client role yet). Audit-log: 3 new actions. Commit 8717796.
 
-  102-110. Customer-save bug FIXED across 6 validation files + banner
-     fix on /customers/new. 3-agent dispatch (Phase 5/6/7). Phase 5
-     customer portal. Phase 6 per-tenant communications. Phase 7
-     reporting + FL LeadsOnline draft. Vibrant-dark dashboard ported
-     into /staff/dashboard. 4 deploys via merge sequence.
+ 148. PORTAL FLOW BUG FIX — error surface + magiclink fallback. The
+     friendly "Could not generate magic link" message was hiding the
+     real Supabase error. Plumbed resp.error.message through action
+     state as `details`, render under the error in mono. Plus auto-
+     retry with type='magiclink' if generateLink type='invite' fails
+     because the user already exists (operator self-test, or customer
+     was previously linked to a different customer record). Detection:
+     error message contains "already"/"registered"/"exists". Commit
+     f3d8492.
 
---- Session 7 (2026-04-28 morning) — Migration cleanup, sidebar collapse, Path A start, 3 Path B agents ---
+ 149. APP URL HEADER FALLBACK. Operator's prod build had NEXT_PUBLIC_
+     APP_URL baked from .env.local (http://localhost:3060), so the
+     magic-link redirect_to was getting composed against localhost —
+     Supabase rejected it and used its Site URL fallback (which was
+     also localhost:3000, see item 150). resolveAppUrl() now prefers
+     env only when not localhost, otherwise derives from request
+     headers (x-forwarded-host + x-forwarded-proto, Vercel auto-
+     injects), then VERCEL_URL as last resort. Portal flow works
+     without any env-var setup on the deployed URL. Commit 900ee49.
 
-  111-121. APPLIED 0009 + 0010 + 0011. Collapsed Phase 5+6 aliases.
-     Stripped 15 (admin as unknown as) casts. Sidebar collapse with
-     phone auto-collapse + localStorage. Phase 9 Path A SaaS billing
-     schema + admin UI. 3 Path B agents in worktrees: bullion spot
-     prices, appraisals module, eBay listing scaffold. All 3 merged
-     cleanly. Build green at 60+ routes.
+ 150. SUPABASE AUTH URL CONFIG PATCHED LIVE. site_url was
+     http://localhost:3000 (Luna Azul's port — likely copy-paste from
+     another project's setup) and uri_allow_list was empty. So Supabase
+     rejected every redirect_to we passed and substituted the wrong
+     Site URL. Patched via Management API to:
+       site_url       = https://pawn-three.vercel.app
+       uri_allow_list = https://pawn-three.vercel.app/**,
+                        http://localhost:3060/**
+     scripts/inspect-auth-config.mjs + scripts/set-auth-urls.mjs
+     committed for future re-patching. Commit 7331b2d.
 
---- Session 8 (2026-04-28 evening) — Save bug, Phase 9 GA, two out-of-scope items, Phase 8 polish ---
+ 151. PORTAL CLAIM CRASH FIX — useI18n → useLangLocal. ClaimContent
+     called useI18n() with no I18nProvider in scope: root layout
+     doesn't include it (only (staff)/(admin)/(portal) layouts do),
+     and /portal/claim/* lives OUTSIDE the (portal) group by design.
+     Switched to useLangLocal — the standalone hook designed for
+     unauthenticated/edge pages (its docstring lists /onboard,
+     /login, /magic-link). Same return shape, drop-in replacement.
+     Commit b4b9020.
 
-  122-137. Save bug (customer + inventory). Version-footer kit. Phase 9
-     (A) chunks 1-5 (Stripe sync, checkout+webhook, billing UI, plan
-     gates, dunning emails). Migration 0016 + cast removal. Settings
-     hub + integrations index. Spot-prices headline + hide cards.
-     Buy-outright workflow. Phase 8 polish parallel-agent merge.
-     Portal Stripe-optional. 1099-MISC year-end helper merge.
+ 152. DEDICATED /portal/login + SIGN-IN BRIDGE. Customers don't have
+     passwords (invite flow creates auth users without one), so they
+     need a non-staff sign-in page. /portal/login (page+form+actions)
+     mints magic-link via admin.auth.admin.generateLink({type:
+     'magiclink'}) → per-tenant Resend. Always returns ok:true to
+     hide email existence (anti-enumeration). After magic-link
+     verification, /api/portal/sign-in-bridge (GET) looks up the
+     customer's tenant via auth_user_id, verifies active client
+     membership, sets pawn-active-tenant cookie, redirects to /portal/
+     loans. proxy.ts: /portal/login added to PUBLIC_PATHS, isPortalPath
+     excludes it, unauth /portal/* now redirects to /portal/login (not
+     staff /login). PortalChrome sign-out → /portal/login. (portal)/
+     layout.tsx !ctx redirect → /portal/login. Invite email gets a
+     "Next time, sign in here: <APP_URL>/portal/login" footer. Commit
+     1ead5aa.
 
---- Session 9 (2026-04-28 night) — Pawn save, admin menu, tenant_counters RLS, security audit Part A ---
+ 153. IN-STORE SIGN-IN ASSIST + ALWAYS-VISIBLE PORTAL URL ON CUSTOMER
+     PANEL. PortalInvitePanel always shows the portal sign-in URL row
+     with a copy button. When status='active' (customer claimed), a
+     new "Generate sign-in link" button mints a fresh 1-hour magic
+     link via generatePortalSignInLinkAction (admin.auth.admin.
+     generateLink type='magiclink'), returns it to the operator AND
+     attempts per-tenant Resend. Use case: customer at counter forgot
+     their email or device — operator hands them a tap-to-open link
+     in seconds. Audit-logged with kind='sign_in_link'. Commit c3eb313.
 
- 138. PAWN SAVE BUG (collateral metal_type "" → null) — same Session 8
-     root cause exposed in a new surface. z.enum().optional().nullable()
-     rejects ""; the metal_type <select> "—" placeholder always sends "";
-     CollateralRow doesn't display per-field errors so the banner fired
-     without any field highlight. Fix in src/lib/validations/loan.ts
-     wraps metalTypeSchema in preprocess "" → null BEFORE the enum runs,
-     mirroring the inventory.metal pattern. Commit 64f77aa.
+ 154. OPTIONAL PASSWORD LAYER. /portal/account (page+content) inside
+     (portal) group — gets chrome + I18nProvider for free. Identity
+     card (read-only email + name) + Password card (set/change via
+     supabase.auth.updateUser({password}) — Supabase doesn't require
+     current-password by default; the session itself is the auth
+     proof). Min 8 chars, confirm-twice. /portal/login form gets a
+     password field marked (optional) with show/hide toggle. Smart
+     "Sign in" button branches: password filled → signInWithPassword
+     + nav to sign-in bridge; password empty → magic-link path. Bad-
+     password error tells user "or leave the password blank to get a
+     magic link" — never deadlocks. PortalChrome: Account link in
+     desktop top nav + mobile bottom nav. Commit b0f91b2.
 
- 139. ADMIN/STAFF TOPBAR RECIPROCAL LINKS — staff topbar shows an
-     "Admin · Console" chip in the top-right when ctx.globalRole ===
-     'superadmin'. Admin topbar gets a reciprocal "Staff →" link to
-     /dashboard. Proxy already gated /admin/* on superadmin, but the
-     UI provided no entry point in either direction. Same commit
-     64f77aa.
+ 155. MIGRATION 0019 — RLS TIGHTENING ON SECRET-BEARING TABLES (Session
+     9 deferred Part B). tenant_billing_settings, settings, and
+     tenant_ebay_credentials SELECT policies tightened from
+     `tenant_id IN (SELECT my_accessible_tenant_ids())` (which
+     includes 'client' role) to `my_role_in_tenant(tenant_id) IN
+     ('owner','chain_admin')` for billing+settings and
+     `('owner','chain_admin','manager')` for eBay creds. Pre-flight
+     grep audit confirmed every read uses createAdminClient() (RLS
+     bypass) — zero-regression. Closes the disclosed leak where
+     portal customers could SELECT Stripe access/refresh/webhook
+     secrets, Twilio + Resend creds, eBay OAuth tokens. Applied to
+     project kjyaxfwlggxiqijiiuna. Commit 600b2ef.
 
- 140. TENANT_COUNTERS RLS — SECURITY DEFINER FIX (patch 0017). Pawn
-     loan save was failing with "new row violates row-level security
-     policy for table tenant_counters". 0003 created next_tenant_
-     counter() as plain plpgsql. The trigger on loans (and on
-     inventory_items / repair_tickets / sales / etc.) called it from
-     BEFORE INSERT, running in the user's transaction. INSERT/UPDATE
-     on tenant_counters fired RLS as the user, but the table only has
-     a SELECT policy ("app-only writes (RPC)" — comment in 0003 line
-     537). Fix: CREATE OR REPLACE the function with SECURITY DEFINER
-     + SET search_path = public, pg_temp + REVOKE PUBLIC + GRANT
-     EXECUTE TO authenticated. Same body as 0003 — only the security
-     attributes change. Applied to project kjyaxfwlggxiqijiiuna.
-     Commit 6cffc10.
+ 156. ALIAS-COLLAPSE + CAST-STRIP. Deleted lib/appraisals/db.ts
+     (asLoose shim) entirely — db:types regen after 0014 made the
+     appraisals/appraisal_stones/appraisal_photos tables available
+     in the auto-generated database.ts. All 6 consumers (appraisals
+     new/edit actions, list page, detail page, PDF route, render-
+     appraisal lib) swapped to direct typed supabase.from() calls.
+     Stripped (admin as any) from buy/new/page.tsx, inventory/[id]/
+     page.tsx, inventory/listings/ebay/page.tsx, ebay/auth.ts (5
+     sites), settings/integrations/ebay/actions.ts (2 sites), cron/
+     ebay-sync route, spot-prices/actions.tsx (cleaner inline cast).
+     Remaining ~14 casts (down from 24+) are scoped strictly to the
+     NUMERIC-vs-string divergence between the auto-generated types
+     (NUMERIC → string) and the hand-rolled SpotPrice* /
+     EbayListingInsert / Partial<EbayListingRow> types (NUMERIC →
+     number to match runtime). Each is documented inline. Commit
+     600b2ef (same).
 
- 141. SECURITY AUDIT PART A — PORTAL CROSS-TENANT FIX (#3). External
-     review found that src/lib/portal/customer.ts:50 detected a
-     ctx.tenantId vs customer.tenant_id mismatch in a comment but
-     did literally nothing — fell through and returned the customer's
-     tenant. Plus there was no check that the user holds an active
-     'client' membership at customer.tenant_id. Fix: read user_
-     tenants with admin client (since user-scoped client may not see
-     its own row in some edge timings) for role='client' AND
-     is_active=TRUE AND tenant_id=customer.tenant_id; redirect to
-     /no-tenant on miss. Closes the cross-tenant data exposure where
-     a former client at tenant A whose customers row wasn't
-     deactivated could pull tenant A data after re-onboarding at
-     tenant B.
+ 157. PRE-EXISTING REACT-HOOKS LINT FIXES. 3 instances of the Session
+     8 form-reset pattern (customers/[id]/content.tsx, inventory/[id]
+     /content.tsx, inventory/new/form.tsx) refactored from
+       useState + useEffect(() => { setState(...) }, [state])
+     to the official "calculate state during render based on prev
+     state" pattern from React docs (https://react.dev/reference/
+     react/useState#storing-information-from-previous-renders) —
+     useState comparison guarded by `if (state !== lastState)
+     setLastState(state)`. React handles the in-render setState by
+     re-rendering immediately without flushing. No useEffect, no
+     useRef.current read during render (which would trip
+     react-hooks/refs). Commit 600b2ef.
 
- 142. SECURITY AUDIT PART A — REPORT API GUARD STAFF ROLE (#4).
-     guardReportRequest in src/lib/reports/api-guard.ts now enforces
-     ctx.tenantRole IN ('owner','chain_admin','manager','pawn_clerk',
-     'repair_tech','appraiser') and returns 403 'forbidden'
-     otherwise. API routes bypass the proxy, so without this a portal
-     'client' user with a tenantId could hit /api/reports/* directly
-     and pull whatever RLS allowed (audit_log gates on staff but
-     compliance_log / sales / loans policies vary). Page-level
-     redirects continue to handle upstream gating; this is defense
-     in depth.
+ 158. /admin/settings PLATFORM-HEALTH HUB. Superadmin-only read-only
+     overview: env-var presence checklist (redacted, just set/
+     required/missing badges), tenant counts by type + module,
+     active subscriptions, plan list with prices, last-24h activity
+     (messages + audit events), schema migrations list scanned from
+     patches/, build/deploy info from VERCEL_GIT_COMMIT_*, quick
+     links to Vercel/Supabase/Stripe/Resend dashboards, pre-flight
+     reminders for Stripe webhook config / Sync Stripe products /
+     CRON_SECRET / per-tenant Stripe Connect. Settings link added to
+     admin topbar. Editing flows out to /admin/billing (plans) and
+     /admin/tenants (tenant lifecycle). Commit 281fa7f.
 
- 143. SECURITY AUDIT PART A — CRON BEARER-ONLY AUTH (#5). All 5 cron
-     routes (maturity-reminders, layaway-reminders, repair-ready-
-     reminders, refresh-spot-prices, ebay-sync) had a "if x-vercel-
-     cron === '1' return true" shortcut. That header can be set by
-     any external HTTP caller — it was never a real security check.
-     Removed across all 5 routes. Authorization: Bearer ${CRON_
-     SECRET} is now the only accepted check. Vercel Cron sets the
-     Authorization header automatically when CRON_SECRET is in
-     project env. Operator must populate CRON_SECRET or all 5 crons
-     401 silently — added to OPEN ISSUES. Updated header docstrings.
+ 159. /settings/general TENANT-INFO EDITOR. Owner / chain_admin only.
+     Edits tenant name, dba, address, city, state, zip, phone,
+     email. Module flags + police-report format are read-only here
+     (owner+platform decisions). Zod-validated, audit-logged. Field-
+     errors echo via the official "compute state during render"
+     pattern (item 157). Hub's "Tenant info" SectionCard now flips
+     to a real Card linking to /settings/general for owners; managers
+     see the read-only SectionCard with a pointer to the URL. Commit
+     281fa7f (same).
 
- 144. SECURITY AUDIT PART A — README REWRITE (#6). README.md was
-     still create-next-app boilerplate pointing at port 3000.
-     Replaced with project-specific quickstart: port 3060, sister
-     apps, scripts table, env var list (with CRON_SECRET +
-     RESEND_PLATFORM_FROM_EMAIL etc.), pointer to CLAUDE.md +
-     DESIGN-airbnb.md.
-
- 145. SECURITY AUDIT PART A — STALE PAGE.TSX COMMENT (#7). src/app/
-     page.tsx still said "Phase 0 skeleton — auth and role gating
-     not yet wired" as of 2026-04-28. Both have been wired since
-     Phase 1. Trimmed the placeholder buttons; the proxy redirects
-     "/" by role before this component renders anyway.
-
-     Items 141-145 committed together as a4ad95c with detailed
-     summary message recording each finding + verification + fix.
-
- 146. PART B (RLS MIGRATION 0018) DEFERRED. Reviewer's strongest
-     finding was that tenant_billing_settings + settings + tenant_
-     ebay_credentials SELECT policies gate on my_accessible_tenant_
-     ids() (which includes 'client' role from user_tenants), letting
-     a portal client SELECT Stripe access/refresh/webhook secrets,
-     Twilio creds, Resend creds, eBay OAuth tokens. Per CLAUDE.md
-     Rule 1 ("NEVER touch Supabase RLS policies without explicit
-     confirmation"), held until: (a) explicit Eddy approval AND
-     (b) grep-audit of non-admin reads of those 3 tables to make
-     sure tightening to owner/chain_admin doesn't break /staff/
-     billing or /settings/integrations. Reviewer's stronger
-     architectural recommendation (split secret columns into a
-     separate table or expose only masked-status views) bundles
-     naturally with the pgsodium-encryption migration already on
-     the backlog.
+ 160. /team CRUD PAGE. Read access: owner/chain_admin/manager. Write
+     access (invite, role change, deactivate): owner/chain_admin
+     only — manager UI hides action affordances. Invite flow: enter
+     email + role + optional full name → admin.auth.admin.generateLink
+     ({type:'invite'}, fallback to magiclink for existing users) →
+     upsert user_tenants(role, is_active=true) → optionally seed
+     profile.full_name. Returns magic link to operator for manual
+     delivery (platform-side staff invite email is out of scope for
+     v1). Per-row inline role selector auto-submits on change. Per-row
+     deactivate toggle — refuses to deactivate yourself, refuses to
+     demote/deactivate the LAST owner (server-side count guard).
+     Sidebar entry flipped from disabled → visible (gated to
+     canSeeAudit set: owner/chain_admin/manager). Commit 281fa7f.
 
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Phase 0 close-out + Phase 9 (A) operator setup. Operator-side:
-    (1) populate STRIPE_SAAS_WEBHOOK_SECRET +
-        RESEND_PLATFORM_FROM_EMAIL + RESEND_PLATFORM_FROM_NAME +
-        **CRON_SECRET** (new requirement from Session 9) in Vercel
-        + .env.local;
-    (2) configure Stripe webhook endpoint at /api/stripe/saas/
-        webhook in dashboard.stripe.com (events: customer.
-        subscription.{created,updated,deleted,trial_will_end},
-        invoice.{paid,payment_failed});
-    (3) click "Sync Stripe products" on /admin/billing.
+    Phase 0 close-out + Phase 9 (A) operator setup. Operator-side
+    config tasks that block production behavior:
+    (1) CRON_SECRET in Vercel (without it all 5 cron routes 401
+        silently);
+    (2) NEXT_PUBLIC_APP_URL=https://pawn-three.vercel.app in Vercel
+        (header derivation works in most spots but Stripe / eBay /
+        dunning still read this directly);
+    (3) STRIPE_SAAS_WEBHOOK_SECRET + RESEND_PLATFORM_FROM_EMAIL +
+        RESEND_PLATFORM_FROM_NAME in Vercel;
+    (4) Stripe webhook endpoint /api/stripe/saas/webhook in
+        dashboard.stripe.com (events: customer.subscription.{created,
+        updated,deleted,trial_will_end} + invoice.{paid,payment_
+        failed});
+    (5) Click "Sync Stripe products" on /admin/billing.
 
   PHASE 0 PUNCH LIST (still open):
-    a. Confirm Vercel deploy status + production URL.
-    b. Update NEXT_PUBLIC_APP_URL in .env.local + Vercel (Production
-       env). Redeploy.
+    a. Set CRON_SECRET in Vercel.
+    b. Set NEXT_PUBLIC_APP_URL=https://pawn-three.vercel.app in
+       Vercel (Production env). Redeploy.
     c. Rotate the three pasted secrets (anon JWT, service_role JWT,
        sbp_ access token). Update .env.local + Vercel.
     d. Optionally revert repo-local git user.name + user.email config
        (CLAUDE.md violation — use inline `-c` overrides going forward).
-    e. Set CRON_SECRET in Vercel + .env.local. Without it, all 5
-       cron routes 401 silently after Session 9.
 
   BACKLOG (in priority order):
-    1. Phase 0 close-out + SaaS billing operator setup (above).
-    2. Per-tenant Stripe Connect onboarding for the first tenant.
-       Unblocks portal payoff + comm cron silently no-op'ing.
-    3. Migration 0018 — RLS tightening on tenant_billing_settings +
-       settings + tenant_ebay_credentials. Closes the disclosed
-       secrets-read leak. Needs explicit Eddy approval (Rule 1) +
-       grep-audit of non-admin reads first. Bundle with pgsodium-
-       encryption migration when it lands.
-    4. /admin/settings hub — paused mid-build (no commit).
-       Platform-health view (env vars detected, recent activity) +
-       subscription-plans editor + links to existing /admin/tenants
-       and /admin/billing.
-    5. /settings/general editable form — placeholder card on the
-       tenant settings hub becomes a real edit surface.
-    6. /team page — currently a disabled placeholder in the sidebar.
-       Build: list user_tenants for active tenant, role chips,
-       invite-by-email (Supabase Auth invite or magic link), edit
-       role, deactivate member, owner-only gating.
-    7. Alias-collapse + cast-strip cleanup (~1h):
-         Path B hand-rolled types in src/types/database-aliases.ts
-         (MetalPurity / SpotPrice* / Appraisal* / Ebay*) collapse
-         to Database['public']['Tables']['…']['Row|Insert|Update']
-         forms. (admin as any).from(...) casts strip from 4 spot-
-         prices lib files, src/lib/appraisals/db.ts (delete entirely
-         after), 3 eBay lib files, eBay sync cron, inventory/[id]
-         /page.tsx.
-    8. Customer portal onboarding self-link flow — shop hands
-       customer a magic-link to claim portal access without operator
-       intervention.
-    9. Phase 8 — remaining polish:
-         - pawn-vs-redemptions / layaway-payments / repairs-
-           completed dashboard charts (still on demoBars/demoSeries
-           PRNG).
-         - Mobile audits across portal + dashboard.
-         - Pre-existing react-hooks/set-state-in-effect lint errors
-           in inventory/new/form.tsx + inventory/[id]/content.tsx.
-   10. Phase 9 (A) follow-ups:
+    1. Operator setup gates (above) + per-tenant Stripe Connect
+       onboarding for first tenant + per-tenant Resend setup at
+       /settings/communications.
+    2. Phase 8 — remaining polish:
+         - pawn-vs-redemptions / layaway-payments / repairs-completed
+           dashboard charts (still on demoBars/demoSeries PRNG)
+         - Mobile audits across portal + dashboard
+    3. Phase 9 (A) follow-ups:
          - Self-service plan-CHANGE flow for existing subscribers
-           (currently the Choose button starts a fresh checkout).
-         - SaaS webhook → admin-notification email when a new
-           tenant signs up.
-   11. Phase 9 (A) — Stripe SaaS GA real-money smoke test (after
-       operator setup completes).
-   12. Phase 9 (B) continuation — diamond cert API integration
-       (Rapaport / IDEX); watch model database; inline /pawn/new
-       calculator panel.
-   13. Real eBay wire-up — 12-step checklist in commit 9b93e235.
-       Developer signup, sandbox keys, RuName, env vars, replace
-       stubs.
-   14. WhatsApp Business per-template approval.
-   15. FL LeadsOnline format reconciliation with agency before
-       go-live.
-   16. tenants.agency_store_id ADD COLUMN migration.
-   17. POS receipt PDF (mirrors /api/print/loan pattern).
-   18. Buy-outright bilingual PDF receipt (browser print works for
+           (Choose button currently always starts a fresh checkout)
+         - SaaS webhook → admin-notification email when a new tenant
+           signs up
+    4. Phase 9 (A) — Stripe SaaS GA real-money smoke test (after
+       operator setup completes — kick a test buy through a sandboxed
+       Stripe account, verify webhook fires, plan flips, dunning
+       email arrives).
+    5. Phase 9 (B) continuation — diamond cert API integration
+       (Rapaport / IDEX); watch model database (curated table or
+       paid API like ALPS); inline /pawn/new calculator panel.
+    6. POS receipt PDF (mirrors /api/print/loan pattern).
+    7. Buy-outright bilingual PDF receipt (browser print works for
        v1).
-   19. DL scanner upgrades (dl_raw_payload audit column, expired-
+    8. Cron: held → available status flip when buy-outright
+       hold_until <= today.
+    9. Real eBay wire-up — 12-step checklist in commit 9b93e235.
+       Developer signup, sandbox keys, RuName, env vars, replace
+       stubs. ~1-2 wk for prod approval.
+   10. WhatsApp Business per-template approval.
+   11. FL LeadsOnline format reconciliation with agency before
+       go-live.
+   12. tenants.agency_store_id ADD COLUMN migration.
+   13. DL scanner upgrades (dl_raw_payload audit column, expired-
        license guard, front-of-license webcam).
-   20. Phase 10 Path A — public per-tenant landing pages on
+   14. Phase 10 Path A — public per-tenant landing pages on
        NEXT_PUBLIC_BASE_DOMAIN, public catalog, loyalty/referrals,
        Google Reviews ingestion, email campaign engine.
-   21. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
+   15. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
        Mercari listing publishers (after eBay flow is stable).
-   22. Stripe Terminal hardware reader pairing UI when readers
+   16. Stripe Terminal hardware reader pairing UI when readers
        arrive.
-   23. pgsodium at-rest encryption rollout for Twilio / Resend /
-       Stripe creds + eBay tokens. Bundle migration 0018 RLS-
-       tightening fix into the same migration if scope allows.
-   24. Pre-existing use-lang.ts:29 lint error from Phase 0 — finally
-       fix.
-   25. Real activity feed for /dashboard (currently placeholder).
-   26. Cron: held → available status flip when buy-outright
-       hold_until <= today.
-   27. Build a basic test suite (none currently — flagged by
-       reviewer).
+   17. pgsodium at-rest encryption rollout for Twilio / Resend /
+       Stripe creds + eBay tokens. Bundle with the reviewer's
+       stronger architectural fix (split secret columns or expose
+       only masked status views).
+   18. NUMERIC type-divergence proper fix: either accept string-typed
+       NUMERICs everywhere (and stop hand-rolling SpotPrice* /
+       EbayListing* aliases) OR hand-write a Database<'public'>
+       override that maps NUMERIC → number. Eliminates the remaining
+       ~14 `as any` casts.
+   19. Real activity feed for /dashboard (currently placeholder).
+   20. Test suite scaffold (none currently — flagged by external
+       reviewer Session 9).
+   21. Platform-side staff-invite email (currently Section #160 returns
+       the magic link to the operator for manual delivery; could
+       wire through platform Resend like SaaS dunning does).
 
   KNOWN GOTCHAS TO AVOID FROM DAY 1 (carried + new):
     - Next 16 file is `proxy.ts`, exported function named `proxy`.
-    - Next 16 'use server' modules can ONLY export async functions.
+    - Next 16 'use server' modules can ONLY export async functions
+      (type exports are erased so `export type` is fine).
     - Phosphor icons crash server components — only import in 'use
       client' files.
     - Phosphor doesn't have FlaskConical — that's Lucide. Use Flask.
@@ -609,9 +731,13 @@ PENDING — NEXT UP
     - Cross-chain transfers blocked at trigger.
     - Use useMemo for derived state, not useEffect+setState.
     - Date.now() / random / location inside useState() trip the
-      react-hooks/purity rule. Wrap in lazy initializer.
-    - lib/audit.ts pulls in the admin client — never import from
-      a client component. Use lib/audit-format.ts for label helpers.
+      react-hooks/purity rule. Wrap in lazy initializer
+      `useState(() => Date.now())[0]`.
+    - Server components can use `// eslint-disable-next-line
+      react-hooks/purity` for Date.now() since they render once per
+      request.
+    - lib/audit.ts pulls in the admin client — never import from a
+      client component. Use lib/audit-format.ts for label helpers.
     - layaway_payments.amount allows NEGATIVE values. CHECK is
       `<> 0`.
     - Stripe Connect: every per-tenant call needs Stripe-Account
@@ -628,78 +754,100 @@ PENDING — NEXT UP
       tree of leftover untracked files FIRST.
     - Validation Zod helpers — preprocess MUST handle empty-string-
       after-trim BEFORE the inner schema.
-    - NUMERIC(18,4) columns are typed as `number` in generated DB
-      types. Don't .toFixed() values before passing to Insert types
-      — use the r4()-rounded number directly.
+    - NUMERIC(18,4) columns are typed as `string` in generated DB
+      types but supabase-js returns `number` at runtime. Hand-rolled
+      type aliases (SpotPrice* / EbayListing*) use `number` to match.
+      Queries that insert/update against those tables sometimes need
+      a narrow `(admin as any).from(...)` cast — keep it tight, add
+      an inline comment, plan to fix via Database<'public'> override
+      eventually.
     - lib modules with 'server-only' cannot be imported by client
-      components. Split: pure types/helpers in a .ts WITHOUT
-      'server-only'; server-DB-touching code in a separate file
-      WITH it.
+      components. Split: pure types/helpers in a .ts WITHOUT 'server-
+      only'; server-DB-touching code in a separate file WITH it.
     - .toFixed(4) is the wrong safety net. r4() already 4dp-rounds;
       .toFixed produces strings that break type checking against
       generated NUMERIC column types.
     - SESSION 8: <form action={fn}> in React 19 auto-resets the form
-      after submission. Pattern when you want to preserve typed
-      values on validation error: action returns { values: echoMap,
-      fieldErrors }; client useEffect on state bumps a formGen key;
-      form remounts with echoed values as new defaultValue.
+      after submission. The form-reset workaround is now compute-
+      during-render via useState comparison (Session 10 lint fix):
+        const [lastState, setLastState] = useState(state)
+        const [formGen, setFormGen] = useState(0)
+        if (state !== lastState) {
+          setLastState(state)
+          if (state.values) setFormGen((g) => g + 1)
+        }
+      Use this. NOT useEffect+setInitial (trips react-hooks/set-
+      state-in-effect). NOT useRef.current (trips react-hooks/refs).
     - SESSION 8: z.enum().optional().nullable() rejects "" (empty
       string). The <select> "—" placeholder option always sends "".
       Wrap the enum in a preprocess that maps "" → null FIRST.
       AUDIT EVERY enum field that backs a <select> with a
-      placeholder. Session 9 found loan.ts collateralItemSchema
-      had been missed in the original Session 8 sweep.
-    - SESSION 8: When building a Select component, always include
-      an `error` prop + red-border treatment from the start. A
-      validation failure on a field with no visible highlight is
-      worse than a hard crash.
+      placeholder.
     - SESSION 8: Stripe REST pattern for both Connect (per-tenant)
       and SaaS (platform) — raw fetch + URLSearchParams. Webhook
       verify uses Web Crypto HMAC-SHA256 (Edge-safe).
     - SESSION 8: Plan-tier feature gates via lib/saas/gates.ts.
       Don't gate on subscription status (past_due/unpaid) — that's
-      dunning's job. Status-based degradation belongs in the webhook
-      handler, not the gate.
+      dunning's job.
     - SESSION 8: Parallel-agent worktree gotcha — agents that Write
       before realizing they're in a worktree leak files to main's
-      filesystem. Recovery: `git show main:<path> > <main-path>`
-      to restore main's content + rm to delete the agent's strays.
-      Lesson: agents should `pwd` before first Write to confirm
-      they're in the worktree path.
+      filesystem. Recovery: `git show main:<path> > <main-path>`.
     - SESSION 8: compliance_log.source_id is polymorphic — for
       pawn_intake it points to loans.id; for buy_outright it points
       to the FIRST inventory_item.id (items_snapshot lists the
-      rest). source_table='inventory_items' in the buy case.
+      rest).
     - SESSION 9: any postgres function that mutates a tenant-scoped
       table from inside a trigger context MUST be marked
-      SECURITY DEFINER with locked search_path. The tenant_counters
-      design intent ("app-only writes (RPC)") only works if the
-      function bypasses RLS via DEFINER privileges. Pattern:
-      LANGUAGE plpgsql SECURITY DEFINER SET search_path = public,
-      pg_temp + REVOKE PUBLIC + GRANT EXECUTE TO authenticated.
+      SECURITY DEFINER with locked search_path.
     - SESSION 9: x-vercel-cron header is NOT a security check.
-      Vercel Cron's actual auth is the Authorization: Bearer header
-      it sets when CRON_SECRET is configured at the project level.
-      Cron routes must require Authorization-only and reject
-      anything else. CRON_SECRET is now a required env var.
+      Vercel Cron sets the Authorization: Bearer header when
+      CRON_SECRET is configured.
     - SESSION 9: Portal customer resolution must verify an active
-      'client' membership at customer.tenant_id specifically, not
-      just trust the active-tenant cookie. The customers.auth_user
-      _id linkage maps a user to ONE customer row, but the user's
-      user_tenants membership at that customer's tenant must be
-      actively confirmed — otherwise stale memberships from prior
-      shops can leak.
-    - SESSION 9: Report-style API endpoints (any /api/reports/*)
-      must enforce staff role at the endpoint level. The proxy
-      doesn't run on /api/* and page-level redirects don't fire
-      when a route is hit programmatically. Use a STAFF_ROLES set
-      check inside the API guard.
+      'client' membership at customer.tenant_id specifically.
+    - SESSION 9: Report-style /api/* endpoints must enforce staff
+      role at the endpoint level (proxy doesn't run on /api/*).
+    - SESSION 10: Supabase site_url + uri_allow_list need to be
+      configured per project. Defaults are localhost:3000 + empty,
+      which silently breaks every magic-link redirect. Use
+      scripts/inspect-auth-config.mjs and scripts/set-auth-urls.mjs
+      to inspect/patch via Management API.
+    - SESSION 10: admin.auth.admin.generateLink({type:'invite'})
+      errors when user already exists. Auto-fallback to type=
+      'magiclink' when error message contains "already" / "exists"
+      / "registered".
+    - SESSION 10: Pages that need to render OUTSIDE the (staff)/
+      (admin)/(portal) route groups (auth pages, claim pages, login
+      pages) must:
+        (a) live at src/app/<path>/page.tsx (NOT inside a group
+            that has a layout.tsx with I18nProvider),
+        (b) be exempted from the proxy gates that the route group's
+            layout enforces (e.g. /portal/claim and /portal/login
+            are carved out of isPortalPath),
+        (c) use useLangLocal() instead of useI18n() since they have
+            no I18nProvider in their layout chain.
+    - SESSION 10: Portal sign-in flow needs an active-tenant cookie
+      set BEFORE the (portal) layout runs. Without it the layout's
+      tenantRole check fails. The /api/portal/sign-in-bridge route
+      handles this for the magic-link path (next= points there).
+      Same problem applies to any future portal entry path.
+    - SESSION 10: Customer auth users without a password are fine —
+      they sign in via magic link forever. Optional password set via
+      supabase.auth.updateUser({password}) from /portal/account.
+      Login form's "leave password blank to get a magic link" copy
+      doubles as the forgot-password recovery — no separate flow
+      needed.
+    - SESSION 10: Magic-link redirect_to MUST be in Supabase's
+      Allowed Redirect URLs. Otherwise Supabase silently substitutes
+      its Site URL.
+    - SESSION 10: subscription_plans uses price_monthly_cents /
+      price_yearly_cents — NOT monthly_amount / yearly_amount. Easy
+      to typo when writing /admin/* code.
 
   KNOWN ISSUES TO REVISIT WHEN PHASES LAND:
-    - Phase 5 portal: pawn ticket print PDF legal disclosure — vet
-      with counsel before any live FL pawn intake.
-    - Phase 5: compliance_log.customer_snapshot must include the new
-      pawn fields. Verify the snapshot the intake action writes today.
+    - Phase 5: pawn ticket print PDF legal disclosure — vet with
+      counsel before any live FL pawn intake.
+    - Phase 5: compliance_log.customer_snapshot must include the
+      new pawn fields. Verify the snapshot the intake action writes.
     - Phase 6: WhatsApp Content SIDs need Twilio + Meta approval per
       template per tenant.
     - Phase 7: confirm current FL LeadsOnline upload format (drifts).
@@ -713,7 +861,7 @@ PENDING — NEXT UP
     - Phase 10 Path B (eBay): photo public-mirror question
       (signed-URL TTL caps vs CDN mirror).
     - Phase 10 Path B (eBay): real wire-up needs eBay developer-
-      account approval, ~1-2 week prod review.
+      account approval.
     - ID retention enforcement: read current FL statute right before
       portal pay-by-link ships.
     - DL scanner: dl_raw_payload TEXT column.
@@ -721,15 +869,16 @@ PENDING — NEXT UP
     - DL scanner: front-of-license photo capture.
     - Buy-outright: bilingual PDF receipt (browser print is v1).
     - Buy-outright: customer signature capture.
-    - Buy-outright: cron job to flip status='held' → 'available'
-      when hold_until <= today.
+    - Buy-outright: cron job to flip status='held' → 'available'.
     - 1099-MISC: SSN/TIN field on customers (separate W-9 workflow).
     - 1099-MISC: chain rollup across multi-shop tenants.
-    - Migration 0018 (RLS): grep-audit non-admin reads of tenant_
-      billing_settings + settings + tenant_ebay_credentials before
-      tightening. /staff/billing, /settings/integrations,
-      /admin/billing, comm-sender per-tenant credential reads —
-      verify each uses admin client OR is gated to owner/chain_admin.
+    - Portal: per-tenant customer-portal email template editor (today
+      uses built-in bilingual template; operators may want to
+      customize).
+    - Portal: staff-side platform invite email (currently /team
+      invites return the magic link to the operator for manual
+      delivery; could wire through platform Resend like SaaS dunning).
+    - NUMERIC type-divergence: see backlog item #18.
 
   OUT OF SCOPE (noted for later):
     - Mobile native app.
@@ -737,9 +886,10 @@ PENDING — NEXT UP
     - Watch / fine-jewelry authentication services beyond model
       lookup. [Needs paid partner — Entrupy / ALPS]
     - Bullion / coin spot-price feeds beyond the free-tier adapter.
-      [goldapi.io / metals-api.com paid tiers as fallback adapters]
     - Tax filing helpers (1099-MISC year-end). [SHIPPED 2026-04-28
       Session 8 item 137]
     - Wholesale buy-side (gold-buying with melt-value calculator).
       [SHIPPED 2026-04-28 Session 8 item 134]
+    - Customer portal onboarding self-link flow. [SHIPPED 2026-04-29
+      Session 10 items 147 + 152 + 154]
 ================================================================================
