@@ -35,6 +35,7 @@ export default function BillingContent({
   const params = useSearchParams()
   const showSuccess = params.get('session_id') !== null
   const showCancelled = params.get('cancelled') === '1'
+  const showChanged = params.get('changed') === '1'
 
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>(
     subscription?.billing_cycle === 'yearly' ? 'yearly' : 'monthly',
@@ -61,6 +62,13 @@ export default function BillingContent({
           Checkout was cancelled. No charge was made.
         </Banner>
       ) : null}
+      {showChanged ? (
+        <Banner kind="success">
+          Plan change submitted. Stripe will reflect the new plan within
+          a few seconds. The pro-rated invoice (if any) will appear in
+          your invoice history below.
+        </Banner>
+      ) : null}
 
       <CurrentPlanCard
         subscription={subscription}
@@ -82,6 +90,13 @@ export default function BillingContent({
               plan={p}
               cycle={cycle}
               isCurrent={p.id === currentPlan?.id}
+              hasActiveSubscription={
+                !!subscription?.stripe_subscription_id &&
+                (subscription.status === 'active' ||
+                  subscription.status === 'trialing' ||
+                  subscription.status === 'past_due')
+              }
+              currentCycle={subscription?.billing_cycle ?? null}
               tenantId={tenantId}
             />
           ))}
@@ -269,11 +284,15 @@ function PlanCard({
   plan,
   cycle,
   isCurrent,
+  hasActiveSubscription,
+  currentCycle,
   tenantId,
 }: {
   plan: SubscriptionPlan
   cycle: 'monthly' | 'yearly'
   isCurrent: boolean
+  hasActiveSubscription: boolean
+  currentCycle: 'monthly' | 'yearly' | null
   tenantId: string
 }) {
   const [pending, startTransition] = useTransition()
@@ -284,10 +303,51 @@ function PlanCard({
   const features = planFeatures(plan)
   const limits = ['max_locations', 'max_users', 'max_active_loans']
 
+  // No-op: same plan + same cycle.
+  const isExactMatch = isCurrent && currentCycle === cycle
+
+  // Helper: same plan + different cycle → "Switch cycle" label.
+  function cycleSwitchOnly(
+    _plan: SubscriptionPlan,
+    targetCycle: 'monthly' | 'yearly',
+    cardIsCurrent: boolean,
+  ): boolean {
+    return cardIsCurrent && currentCycle !== null && currentCycle !== targetCycle
+  }
+
+  // Path branches:
+  //   - Existing active sub + different plan/cycle → change-plan endpoint
+  //     (mutates subscription, no Stripe redirect).
+  //   - No active sub OR cancelled → checkout endpoint (Stripe redirect).
+  const willChangeInPlace = hasActiveSubscription && !isExactMatch
+
   const onChoose = () => {
     setError(null)
     startTransition(async () => {
       try {
+        if (willChangeInPlace) {
+          const res = await fetch('/api/stripe/saas/change-plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tenant_id: tenantId,
+              plan_code: plan.code,
+              cycle,
+            }),
+          })
+          const json = (await res.json()) as {
+            ok?: boolean
+            no_op?: boolean
+            error?: string
+          }
+          if (!res.ok || !json.ok) {
+            setError(json.error ?? `http_${res.status}`)
+            return
+          }
+          window.location.href = '/billing?changed=1'
+          return
+        }
+
         const res = await fetch('/api/stripe/saas/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -370,11 +430,28 @@ function PlanCard({
         <button
           type="button"
           onClick={onChoose}
-          disabled={pending || priceCents == null}
+          disabled={pending || priceCents == null || isExactMatch}
           className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          title={
+            isExactMatch
+              ? 'You are already on this plan and cycle.'
+              : undefined
+          }
         >
-          {pending ? 'Redirecting…' : isCurrent ? 'Manage / change' : 'Choose'}
-          <ArrowSquareOut size={12} weight="bold" />
+          {pending
+            ? willChangeInPlace
+              ? 'Changing…'
+              : 'Redirecting…'
+            : isExactMatch
+              ? 'Current plan'
+              : willChangeInPlace
+                ? cycleSwitchOnly(plan, cycle, isCurrent)
+                  ? 'Switch cycle'
+                  : 'Switch to this plan'
+                : 'Choose'}
+          {willChangeInPlace ? null : (
+            <ArrowSquareOut size={12} weight="bold" />
+          )}
         </button>
         {error ? (
           <p className="mt-1 text-xs text-error">{error}</p>

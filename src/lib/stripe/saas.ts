@@ -325,6 +325,74 @@ export async function createSubscriptionCheckoutSession(args: {
   })
 }
 
+// ── Subscription update (plan-CHANGE flow) ──────────────────────────────
+
+export type StripeSubscription = {
+  id: string
+  status: string
+  customer: string
+  items: {
+    data: Array<{ id: string; price: { id: string } }>
+  }
+}
+
+/** Retrieve a subscription so we can locate its current item.id (needed
+ *  for the price-swap update call). Stripe's "update subscription with
+ *  new price" requires us to PATCH the existing item, not the
+ *  subscription's price field directly. */
+export async function retrieveSubscription(
+  subscriptionId: string,
+): Promise<StripeSubscription> {
+  return stripeFetch<StripeSubscription>(`/subscriptions/${subscriptionId}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Swap a subscription's price (used for self-service plan-CHANGE). The
+ * tenant's first item gets its price updated to `newPriceId`. Stripe
+ * issues a prorated invoice automatically when proration_behavior is
+ * 'create_prorations' (the default we use here).
+ *
+ * `metadata` updates are merged in atomically so the webhook handler's
+ * tenant_id resolution stays accurate post-change.
+ */
+export async function updateSubscriptionPrice(args: {
+  subscriptionId: string
+  /** The Stripe price ID to switch to. */
+  newPriceId: string
+  /** Stripe's billing-cycle anchor — pass 'create_prorations' (default)
+   *  to bill the difference now, or 'none' to defer until next renewal. */
+  prorationBehavior?: 'create_prorations' | 'none' | 'always_invoice'
+  /** Re-stamp metadata so the webhook routes correctly. */
+  metadata: Record<string, string>
+  idempotencyKey?: string
+}): Promise<StripeSubscription> {
+  const sub = await retrieveSubscription(args.subscriptionId)
+  const itemId = sub.items?.data?.[0]?.id
+  if (!itemId) {
+    throw new Error('subscription_has_no_items')
+  }
+
+  const body: Record<string, string | number | boolean> = {
+    'items[0][id]': itemId,
+    'items[0][price]': args.newPriceId,
+    proration_behavior: args.prorationBehavior ?? 'create_prorations',
+  }
+  for (const [k, v] of Object.entries(args.metadata)) {
+    body[`metadata[${k}]`] = v
+  }
+
+  return stripeFetch<StripeSubscription>(
+    `/subscriptions/${args.subscriptionId}`,
+    {
+      method: 'POST',
+      body,
+      idempotencyKey: args.idempotencyKey,
+    },
+  )
+}
+
 // ── Webhook signing ──────────────────────────────────────────────────────
 
 /**
