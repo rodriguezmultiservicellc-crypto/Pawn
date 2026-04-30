@@ -3,7 +3,7 @@
  * "Refresh now" button on /staff/inventory/spot-prices.
  *
  * Pipeline:
- *   1. Fetch the four pure-metal spot quotes from metals.live.
+ *   1. Fetch the four pure-metal spot quotes from Yahoo Finance.
  *   2. Expand each pure quote into per-purity rows by applying the
  *      purity multiplier (24k=1.0, 22k=22/24, 18k=18/24, 14k=14/24,
  *      10k=10/24; sterling silver = 0.925; platinum_950 = 0.95;
@@ -20,7 +20,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { r4 } from '@/lib/pawn/math'
-import { fetchSpotQuotes, type MetalsLiveQuote } from './sources/metals-live'
+import { fetchSpotQuotes, type SpotQuote } from './sources/yahoo-finance'
 import type {
   MetalPurity,
   MetalType,
@@ -35,7 +35,7 @@ const GRAMS_PER_TROY_OZ = 31.1034768
  * applicable purity. Spot prices for purities not relevant to a given
  * metal are not generated (e.g. silver doesn't get a 14k row).
  */
-const PURITY_MAP: Record<MetalsLiveQuote['metal'], Array<{ purity: MetalPurity; multiplier: number }>> = {
+const PURITY_MAP: Record<SpotQuote['metal'], Array<{ purity: MetalPurity; multiplier: number }>> = {
   gold: [
     { purity: 'pure_24k', multiplier: 1.0 },
     { purity: 'fine', multiplier: 0.999 },
@@ -55,7 +55,7 @@ const PURITY_MAP: Record<MetalsLiveQuote['metal'], Array<{ purity: MetalPurity; 
 export type RefreshSummary = {
   ok: boolean
   /** Source label written to spot_prices.source for every inserted row. */
-  source: 'metals.live' | 'manual'
+  source: 'yahoo-finance' | 'manual'
   /** Quotes returned by the upstream (pure-metal level, before per-purity expansion). */
   quotes: number
   /** Rows attempted to insert (after per-purity expansion). */
@@ -80,7 +80,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
       quotes: 0,
       attempted: 0,
       inserted: 0,
-      error: 'No quotes returned from metals.live; admin can update via override UI.',
+      error: 'No quotes returned from Yahoo Finance; admin can update via override UI.',
     }
   }
 
@@ -98,7 +98,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
         price_per_gram: pricePerGram,
         price_per_troy_oz: pricePerOz,
         currency: 'USD',
-        source: 'metals.live',
+        source: 'yahoo-finance',
         fetched_at: q.fetched_at,
       })
     }
@@ -107,7 +107,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
   if (inserts.length === 0) {
     return {
       ok: false,
-      source: 'metals.live',
+      source: 'yahoo-finance',
       quotes: quotes.length,
       attempted: 0,
       inserted: 0,
@@ -128,7 +128,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
     console.error('[spot-prices] insert failed', error.message)
     return {
       ok: false,
-      source: 'metals.live',
+      source: 'yahoo-finance',
       quotes: quotes.length,
       attempted: inserts.length,
       inserted: 0,
@@ -140,7 +140,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
   const inserted = Array.isArray(data) ? data.length : inserts.length
   return {
     ok: true,
-    source: 'metals.live',
+    source: 'yahoo-finance',
     quotes: quotes.length,
     attempted: inserts.length,
     inserted,

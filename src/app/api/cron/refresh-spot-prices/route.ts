@@ -1,7 +1,7 @@
 /**
  * Cron — refresh bullion spot prices.
  *
- * Calls `refreshSpotPrices()` (which fetches metals.live, expands per
+ * Calls `refreshSpotPrices()` (which fetches Yahoo Finance, expands per
  * purity, and inserts into `spot_prices`). Records a `spot_price_refresh`
  * row in `audit_log` with the run summary.
  *
