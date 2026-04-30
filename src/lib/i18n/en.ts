@@ -764,6 +764,8 @@ export const en = {
         maxValue: 'Max',
         copyDescription: 'Copy details',
         copied: 'Copied',
+        addToCollateral: 'Add to collateral',
+        added: 'Added',
         disclaimer:
           'Reference values are pre-owned wholesale floors — anchor only, not a formal appraisal.',
       },
@@ -1909,6 +1911,14 @@ export const en = {
     errorBadRead: 'Could not read license data. Try scanning again.',
     errorParse: 'Parse failed',
     autoFilled: 'Auto-filled from license scan',
+    expiredWarning:
+      'License expired — verify a current document before completing the intake.',
+    captureFront: 'Capture front of license',
+    capturing: 'Capturing…',
+    captureCancel: 'Cancel',
+    captureRetake: 'Retake',
+    captureConfirm: 'Use this photo',
+    captureCameraError: 'Could not access camera. Check browser permissions.',
   },
 
   comms: {

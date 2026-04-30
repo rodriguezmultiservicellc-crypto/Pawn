@@ -1,13 +1,37 @@
 'use client'
 
-import { useId, useRef, useState } from 'react'
+import {
+  forwardRef,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
 import Image from 'next/image'
 import { Plus, Trash, Camera } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import type { WatchModelMatch } from './InlinePawnCalculator'
 import type {
   InventoryCategory,
   MetalType,
 } from '@/types/database-aliases'
+
+/**
+ * Imperative handle exposed by CollateralItemsList. The /pawn/new form
+ * uses this to push a populated row into the list when the operator
+ * picks a watch model from the inline calculator's typeahead.
+ *
+ * Why imperative instead of lifting state to the parent: collateral
+ * row state is large (each row owns a description, category, metal,
+ * karat, weight, est_value, photo File + preview URL) and lifting it
+ * would require re-plumbing every keystroke through the parent, which
+ * complicates the existing form action serialization. The handle lets
+ * the parent INSERT a new pre-populated row without owning the rest of
+ * the list's state.
+ */
+export type CollateralListHandle = {
+  addWatchRow: (match: WatchModelMatch) => void
+}
 
 /**
  * Inline editor for the collateral list on /pawn/new. Each row collects:
@@ -88,7 +112,8 @@ function newRow(): Row {
   }
 }
 
-export function CollateralItemsList() {
+export const CollateralItemsList = forwardRef<CollateralListHandle>(
+  function CollateralItemsList(_props, ref) {
   const { t } = useI18n()
   const [rows, setRows] = useState<Row[]>([newRow()])
 
@@ -109,6 +134,63 @@ export function CollateralItemsList() {
       prev.map((r) => (r.uid === uid ? { ...r, ...patch } : r)),
     )
   }
+
+  // Build a populated row from a WatchModelMatch. Description follows
+  // the existing describeWatch() pattern from InlinePawnCalculator
+  // (brand + model + ref + year). est_value is the midpoint of
+  // min/max — same anchor the calculator surfaces in its midValue
+  // tile. Metal / karat / weight stay blank because watches are
+  // typically valued by reference, not melt.
+  function buildWatchRow(match: WatchModelMatch): Row {
+    const yearLabel =
+      match.year_start === match.year_end
+        ? `${match.year_start}`
+        : `${match.year_start}–${match.year_end}`
+    const description = `${match.brand} ${match.model} ref ${match.reference_no} (${yearLabel})`
+    const midpoint = Math.round(
+      (match.est_value_min + match.est_value_max) / 2,
+    )
+    return {
+      ...newRow(),
+      description,
+      category: 'watch',
+      est_value: midpoint.toString(),
+    }
+  }
+
+  // If the first row is still pristine (default empty values), reuse
+  // it instead of appending — saves the operator the click to delete
+  // the placeholder row that newRow() seeds. Pristine = empty
+  // description, default category, no photo, est_value still '0'.
+  function isPristineRow(r: Row): boolean {
+    return (
+      r.description.trim() === '' &&
+      r.category === 'other' &&
+      r.metal_type === '' &&
+      r.karat === '' &&
+      r.weight_grams === '' &&
+      r.est_value === '0' &&
+      r.photo == null
+    )
+  }
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      addWatchRow(match) {
+        const built = buildWatchRow(match)
+        setRows((prev) => {
+          if (prev.length === 1 && isPristineRow(prev[0])) {
+            // Replace the seed row in place so the row count stays at 1
+            // for the typical "operator opens form, picks a watch" path.
+            return [{ ...built, uid: prev[0].uid }]
+          }
+          return [...prev, built]
+        })
+      },
+    }),
+    [],
+  )
 
   return (
     <div className="space-y-3">
@@ -146,7 +228,7 @@ export function CollateralItemsList() {
       </div>
     </div>
   )
-}
+})
 
 function CollateralRow({
   index,

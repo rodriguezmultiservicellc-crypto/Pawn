@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { addDaysIso, todayDateString } from '@/lib/pawn/math'
-import { CollateralItemsList } from '@/components/pawn/CollateralItemsList'
+import {
+  CollateralItemsList,
+  type CollateralListHandle,
+} from '@/components/pawn/CollateralItemsList'
 import { InlinePawnCalculator } from '@/components/pawn/InlinePawnCalculator'
 import {
   createLoanAction,
@@ -92,6 +95,13 @@ export default function NewPawnLoanForm({
 
   const sigInputRef = useRef<HTMLInputElement>(null)
   const [sigPreview, setSigPreview] = useState<string | null>(null)
+
+  // Ref into CollateralItemsList exposes addWatchRow(match), letting the
+  // inline calculator's watch typeahead append a populated collateral
+  // row when the operator picks a model. Imperative handle pattern
+  // keeps row state in the list (not lifted) so existing keystrokes
+  // don't re-render the parent.
+  const collateralRef = useRef<CollateralListHandle>(null)
 
   function onSigChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -325,13 +335,21 @@ export default function NewPawnLoanForm({
           </legend>
           <p className="mt-1 text-xs text-ash">{t.pawn.new_.itemMinOne}</p>
           <div className="mt-2">
-            <CollateralItemsList />
+            <CollateralItemsList ref={collateralRef} />
           </div>
         </fieldset>
 
         {/* Inline calculator — reads collateral_<n>_* from this form via
-            DOM access; writes back to the principal field on click. */}
-        <InlinePawnCalculator formId={PAWN_NEW_FORM_ID} />
+            DOM access; writes back to the principal field on click.
+            onAddWatchToCollateral pushes the picked watch into the
+            collateral list as a populated row (description + est_value
+            from the typeahead match midpoint). */}
+        <InlinePawnCalculator
+          formId={PAWN_NEW_FORM_ID}
+          onAddWatchToCollateral={(match) =>
+            collateralRef.current?.addWatchRow(match)
+          }
+        />
 
         {/* Signature & notes */}
         <fieldset className="rounded-lg border border-hairline bg-canvas p-4">

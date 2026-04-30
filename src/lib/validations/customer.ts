@@ -146,6 +146,20 @@ export const customerCreateSchema = z.object({
 
   notes: optionalTrimmedString,
   tags: tagsSchema,
+  // Full AAMVA PDF417 payload from the back-of-license scanner. NULL
+  // when the customer was created without a scan. Cap at 4000 chars —
+  // real DL barcodes are ~600-800 chars; the cap protects against
+  // pasted free-text masquerading as a scan.
+  dl_raw_payload: z
+    .preprocess(
+      (v) => {
+        if (typeof v !== 'string') return v
+        const trimmed = v.trim()
+        return trimmed === '' ? null : trimmed
+      },
+      z.string().min(1).max(4000).nullable().optional(),
+    )
+    .transform((v) => v ?? null),
 })
 
 export const customerUpdateSchema = customerCreateSchema.extend({

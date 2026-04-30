@@ -9,6 +9,7 @@ import {
   ClipboardText,
   Lightning,
   MagnifyingGlass,
+  Plus,
   Warning,
   Watch,
   X,
@@ -19,7 +20,7 @@ import {
   type SuggestLoanState,
 } from '@/app/(staff)/pawn/new/actions'
 
-type WatchModelMatch = {
+export type WatchModelMatch = {
   id: string
   brand: string
   model: string
@@ -45,8 +46,14 @@ type WatchModelMatch = {
  */
 export function InlinePawnCalculator({
   formId,
+  onAddWatchToCollateral,
 }: {
   formId: string
+  /** Optional. When wired by the parent, the watch-lookup section
+   *  surfaces an "Add to collateral" action alongside Copy that hands
+   *  the selected match back so the parent can append a populated row
+   *  on the collateral list. */
+  onAddWatchToCollateral?: (match: WatchModelMatch) => void
 }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
@@ -108,7 +115,7 @@ export function InlinePawnCalculator({
 
       {open ? (
         <div className="border-t border-hairline p-4">
-          <WatchLookupSection />
+          <WatchLookupSection onAddToCollateral={onAddWatchToCollateral} />
 
           <p className="mb-3 mt-4 text-xs text-ash">
             {t.pawn.inlineCalc.help}
@@ -269,11 +276,25 @@ function translateError(
  * state. We surface the data clearly + offer copy-to-clipboard so the
  * operator types it into the collateral row themselves.
  */
-function WatchLookupSection() {
+function WatchLookupSection({
+  onAddToCollateral,
+}: {
+  onAddToCollateral?: (match: WatchModelMatch) => void
+}) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<WatchModelMatch[]>([])
   const [selected, setSelected] = useState<WatchModelMatch | null>(null)
+  const [added, setAdded] = useState(false)
+  const addedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function addToCollateral() {
+    if (!selected || !onAddToCollateral) return
+    onAddToCollateral(selected)
+    setAdded(true)
+    if (addedTimerRef.current) clearTimeout(addedTimerRef.current)
+    addedTimerRef.current = setTimeout(() => setAdded(false), 1800)
+  }
   const [loading, setLoading] = useState(false)
   const [errored, setErrored] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -366,6 +387,8 @@ function WatchLookupSection() {
           onClear={clearSelection}
           onCopy={copyDescription}
           copied={copied}
+          onAddToCollateral={onAddToCollateral ? addToCollateral : undefined}
+          added={added}
         />
       ) : (
         <div className="space-y-2">
@@ -443,11 +466,18 @@ function SelectedWatchCard({
   onClear,
   onCopy,
   copied,
+  onAddToCollateral,
+  added,
 }: {
   match: WatchModelMatch
   onClear: () => void
   onCopy: () => void
   copied: boolean
+  /** Optional. When set, an "Add to collateral" button renders next to
+   *  Copy. The /pawn/new form wires this to push a populated row into
+   *  CollateralItemsList. */
+  onAddToCollateral?: () => void
+  added: boolean
 }) {
   const { t } = useI18n()
   const midpoint = Math.round((match.est_value_min + match.est_value_max) / 2)
@@ -495,23 +525,44 @@ function SelectedWatchCard({
         />
       </div>
 
-      <button
-        type="button"
-        onClick={onCopy}
-        className="mt-3 inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-[11px] font-medium text-ink hover:bg-cloud"
-      >
-        {copied ? (
-          <>
-            <Check size={12} weight="bold" className="text-success" />
-            {t.pawn.inlineCalc.watchLookup.copied}
-          </>
-        ) : (
-          <>
-            <ClipboardText size={12} weight="bold" />
-            {t.pawn.inlineCalc.watchLookup.copyDescription}
-          </>
-        )}
-      </button>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {onAddToCollateral ? (
+          <button
+            type="button"
+            onClick={onAddToCollateral}
+            className="inline-flex items-center gap-1 rounded-md border border-rausch/40 bg-rausch/5 px-2 py-1 text-[11px] font-medium text-rausch hover:bg-rausch/10"
+          >
+            {added ? (
+              <>
+                <Check size={12} weight="bold" className="text-success" />
+                {t.pawn.inlineCalc.watchLookup.added}
+              </>
+            ) : (
+              <>
+                <Plus size={12} weight="bold" />
+                {t.pawn.inlineCalc.watchLookup.addToCollateral}
+              </>
+            )}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={onCopy}
+          className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-[11px] font-medium text-ink hover:bg-cloud"
+        >
+          {copied ? (
+            <>
+              <Check size={12} weight="bold" className="text-success" />
+              {t.pawn.inlineCalc.watchLookup.copied}
+            </>
+          ) : (
+            <>
+              <ClipboardText size={12} weight="bold" />
+              {t.pawn.inlineCalc.watchLookup.copyDescription}
+            </>
+          )}
+        </button>
+      </div>
       <p className="mt-2 text-[10px] text-ash">
         {t.pawn.inlineCalc.watchLookup.disclaimer}
       </p>

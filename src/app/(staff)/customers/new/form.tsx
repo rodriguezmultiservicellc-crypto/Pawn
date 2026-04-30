@@ -132,11 +132,15 @@ export default function NewCustomerForm({
   )
   const [formGen, setFormGen] = useState(0)
   const [autoFilledFlash, setAutoFilledFlash] = useState(false)
-  // Raw AAMVA payload from the most recent scan. Carried in a hidden field
-  // so a future schema upgrade (customers.dl_raw_payload TEXT) can capture
-  // it without changing the scanner UI. The server action ignores it for
-  // now — wire it in when the column lands.
+  // Raw AAMVA payload from the most recent scan. Carried in a hidden
+  // field so the server action can persist it to customers.dl_raw_payload
+  // (lands via patches/0025) for compliance audits.
   const [rawPayload, setRawPayload] = useState('')
+  // Surfaced when the most recent scan returned an id_expiry that's
+  // already past. Operator can still save (some flows accept expired
+  // ID with documentation), but the warning ensures it's a deliberate
+  // decision, not a missed detail.
+  const [expiredAt, setExpiredAt] = useState<string | null>(null)
 
   // On each new server-action response carrying echoed values,
   // repopulate `initial` and bump the key so CustomerFormFields
@@ -157,6 +161,15 @@ export default function NewCustomerForm({
     setRawPayload(raw)
     setFormGen((g) => g + 1)
     setAutoFilledFlash(true)
+    // YYYY-MM-DD lexical compare against today's date string is correct
+    // because both are zero-padded ISO and the AAMVA expiry is a calendar
+    // date, not a timestamp.
+    const today = new Date().toISOString().slice(0, 10)
+    if (info.expirationDate && info.expirationDate < today) {
+      setExpiredAt(info.expirationDate)
+    } else {
+      setExpiredAt(null)
+    }
   }
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
@@ -192,6 +205,12 @@ export default function NewCustomerForm({
         </div>
       ) : null}
 
+      {expiredAt ? (
+        <div className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-warning">
+          {t.dlScanner.expiredWarning} ({expiredAt})
+        </div>
+      ) : null}
+
       <form action={formAction} className="space-y-6">
         <CustomerFormFields
           key={formGen}
@@ -200,7 +219,6 @@ export default function NewCustomerForm({
           hasPawn={hasPawn}
         />
 
-        {/* Reserved for the optional dl_raw_payload column upgrade. */}
         {rawPayload ? (
           <input type="hidden" name="dl_raw_payload" value={rawPayload} />
         ) : null}

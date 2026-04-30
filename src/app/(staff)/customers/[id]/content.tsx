@@ -18,6 +18,7 @@ import {
   type CustomerFieldValues,
 } from '@/components/customers/CustomerFormFields'
 import { PortalInvitePanel } from '@/components/customers/PortalInvitePanel'
+import WebcamCapture from '@/components/customers/WebcamCapture'
 import {
   banCustomerAction,
   deleteCustomerAction,
@@ -854,11 +855,18 @@ function DocumentsPanel({
         {t.customers.sectionDocuments}
       </legend>
       <div className="mt-2 space-y-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <UploadButton
             customerId={customerId}
             kind="id_scan"
             label={t.customers.uploadIdScan}
+            defaultIdType={defaultIdType}
+            defaultIdNumber={defaultIdNumber}
+            defaultIdState={defaultIdState}
+            defaultIdExpiry={defaultIdExpiry}
+          />
+          <WebcamCaptureForId
+            customerId={customerId}
             defaultIdType={defaultIdType}
             defaultIdNumber={defaultIdNumber}
             defaultIdState={defaultIdState}
@@ -1011,6 +1019,62 @@ function UploadButton({
       {error ? (
         <div className="mt-1 text-xs text-error">{error}</div>
       ) : null}
+    </div>
+  )
+}
+
+/**
+ * Wrap the generic WebcamCapture component to upload its captured Blob
+ * through the same uploadCustomerDocumentAction the file-picker
+ * UploadButton uses. Carries the customer's existing id_type / number /
+ * state / expiry so the new id_scan row inherits them — same shape as
+ * UploadButton.
+ */
+function WebcamCaptureForId({
+  customerId,
+  defaultIdType,
+  defaultIdNumber,
+  defaultIdState,
+  defaultIdExpiry,
+}: {
+  customerId: string
+  defaultIdType: IdDocumentType | null
+  defaultIdNumber: string | null
+  defaultIdState: string | null
+  defaultIdExpiry: string | null
+}) {
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+
+  async function onCapture(blob: Blob) {
+    setError(null)
+    setPending(true)
+    try {
+      const fd = new FormData()
+      fd.set('customer_id', customerId)
+      fd.set('kind', 'id_scan')
+      // Server validates MIME against ALLOWED_DOCUMENT_MIME_TYPES; the
+      // capture component encodes JPEG so we name the file accordingly.
+      fd.set('file', new File([blob], `id-front-${Date.now()}.jpg`, { type: blob.type }))
+      if (defaultIdType) fd.set('id_type', defaultIdType)
+      if (defaultIdNumber) fd.set('id_number', defaultIdNumber)
+      if (defaultIdState) fd.set('id_state', defaultIdState)
+      if (defaultIdExpiry) fd.set('id_expiry', defaultIdExpiry)
+      const res = await uploadCustomerDocumentAction(fd)
+      if (res.error) setError(res.error)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <div>
+      <WebcamCapture
+        onCapture={onCapture}
+        disabled={pending}
+        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-3 text-sm font-medium text-ink hover:border-ink disabled:opacity-50"
+      />
+      {error ? <div className="mt-1 text-xs text-error">{error}</div> : null}
     </div>
   )
 }

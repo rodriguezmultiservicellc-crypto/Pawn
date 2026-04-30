@@ -63,6 +63,7 @@ export async function createCustomerAction(
     'place_of_employment',
     'notes',
     'tags',
+    'dl_raw_payload',
   ] as const
 
   const raw: Record<string, FormDataEntryValue | null> = {}
@@ -85,43 +86,49 @@ export async function createCustomerAction(
 
   const v = parsed.data
 
+  // dl_raw_payload column lands via patches/0025-customer-dl-raw-
+  // payload.sql; the autogen Database type picks it up after
+  // `npm run db:types`. Cast at the boundary so the field flows
+  // through without silencing type checking on the typed columns.
+  const insertPayload = {
+    tenant_id: ctx.tenantId,
+    first_name: v.first_name,
+    last_name: v.last_name,
+    middle_name: v.middle_name,
+    date_of_birth: v.date_of_birth,
+    phone: v.phone,
+    phone_alt: v.phone_alt,
+    email: v.email,
+    address1: v.address1,
+    address2: v.address2,
+    city: v.city,
+    state: v.state,
+    zip: v.zip,
+    country: v.country,
+    id_type: v.id_type ?? null,
+    id_number: v.id_number,
+    id_state: v.id_state,
+    id_country: v.id_country,
+    id_expiry: v.id_expiry,
+    comm_preference: v.comm_preference,
+    language: v.language,
+    marketing_opt_in: v.marketing_opt_in,
+    height_inches: v.height_inches,
+    weight_lbs: v.weight_lbs,
+    sex: v.sex,
+    hair_color: v.hair_color,
+    eye_color: v.eye_color,
+    identifying_marks: v.identifying_marks,
+    place_of_employment: v.place_of_employment,
+    notes: v.notes,
+    tags: v.tags,
+    dl_raw_payload: v.dl_raw_payload,
+    created_by: userId,
+    updated_by: userId,
+  }
   const { data, error } = await supabase
     .from('customers')
-    .insert({
-      tenant_id: ctx.tenantId,
-      first_name: v.first_name,
-      last_name: v.last_name,
-      middle_name: v.middle_name,
-      date_of_birth: v.date_of_birth,
-      phone: v.phone,
-      phone_alt: v.phone_alt,
-      email: v.email,
-      address1: v.address1,
-      address2: v.address2,
-      city: v.city,
-      state: v.state,
-      zip: v.zip,
-      country: v.country,
-      id_type: v.id_type ?? null,
-      id_number: v.id_number,
-      id_state: v.id_state,
-      id_country: v.id_country,
-      id_expiry: v.id_expiry,
-      comm_preference: v.comm_preference,
-      language: v.language,
-      marketing_opt_in: v.marketing_opt_in,
-      height_inches: v.height_inches,
-      weight_lbs: v.weight_lbs,
-      sex: v.sex,
-      hair_color: v.hair_color,
-      eye_color: v.eye_color,
-      identifying_marks: v.identifying_marks,
-      place_of_employment: v.place_of_employment,
-      notes: v.notes,
-      tags: v.tags,
-      created_by: userId,
-      updated_by: userId,
-    })
+    .insert(insertPayload as never)
     .select('id')
     .single()
 
@@ -140,6 +147,10 @@ export async function createCustomerAction(
       phone: v.phone,
       email: v.email,
       id_type: v.id_type,
+      // Don't log the raw payload — it has the same PII the parsed
+      // fields do but in a re-parseable format. The audit trail just
+      // notes whether one was captured.
+      dl_scan_captured: v.dl_raw_payload != null,
     },
   })
 

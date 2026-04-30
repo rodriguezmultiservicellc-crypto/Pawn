@@ -761,6 +761,8 @@ export const es: Dictionary = {
         maxValue: 'Máx',
         copyDescription: 'Copiar detalles',
         copied: 'Copiado',
+        addToCollateral: 'Agregar a colateral',
+        added: 'Agregado',
         disclaimer:
           'Los valores de referencia son precios mayoristas mínimos de segunda mano — sirven como ancla, no son un avalúo formal.',
       },
@@ -1917,6 +1919,15 @@ export const es: Dictionary = {
     errorBadRead: 'No se pudo leer la licencia. Intenta escanear de nuevo.',
     errorParse: 'Error al procesar',
     autoFilled: 'Datos completados desde la licencia',
+    expiredWarning:
+      'Licencia vencida — verifica un documento vigente antes de completar la captura.',
+    captureFront: 'Capturar frente de licencia',
+    capturing: 'Capturando…',
+    captureCancel: 'Cancelar',
+    captureRetake: 'Volver a tomar',
+    captureConfirm: 'Usar esta foto',
+    captureCameraError:
+      'No se pudo acceder a la cámara. Revisa los permisos del navegador.',
   },
 
   comms: {
