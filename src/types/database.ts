@@ -570,6 +570,7 @@ export type Database = {
           created_by: string | null
           date_of_birth: string | null
           deleted_at: string | null
+          dl_raw_payload: string | null
           email: string | null
           eye_color: string | null
           first_name: string
@@ -615,6 +616,7 @@ export type Database = {
           created_by?: string | null
           date_of_birth?: string | null
           deleted_at?: string | null
+          dl_raw_payload?: string | null
           email?: string | null
           eye_color?: string | null
           first_name: string
@@ -660,6 +662,7 @@ export type Database = {
           created_by?: string | null
           date_of_birth?: string | null
           deleted_at?: string | null
+          dl_raw_payload?: string | null
           email?: string | null
           eye_color?: string | null
           first_name?: string
@@ -3301,6 +3304,7 @@ export type Database = {
       tenants: {
         Row: {
           address: string | null
+          agency_store_id: string | null
           city: string | null
           created_at: string
           dba: string | null
@@ -3318,6 +3322,10 @@ export type Database = {
           parent_tenant_id: string | null
           phone: string | null
           police_report_format: Database["public"]["Enums"]["police_report_format"]
+          public_about: string | null
+          public_hours: Json | null
+          public_landing_enabled: boolean
+          public_slug: string | null
           state: string | null
           tenant_type: Database["public"]["Enums"]["tenant_type"]
           updated_at: string
@@ -3325,6 +3333,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          agency_store_id?: string | null
           city?: string | null
           created_at?: string
           dba?: string | null
@@ -3342,6 +3351,10 @@ export type Database = {
           parent_tenant_id?: string | null
           phone?: string | null
           police_report_format?: Database["public"]["Enums"]["police_report_format"]
+          public_about?: string | null
+          public_hours?: Json | null
+          public_landing_enabled?: boolean
+          public_slug?: string | null
           state?: string | null
           tenant_type?: Database["public"]["Enums"]["tenant_type"]
           updated_at?: string
@@ -3349,6 +3362,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          agency_store_id?: string | null
           city?: string | null
           created_at?: string
           dba?: string | null
@@ -3366,6 +3380,10 @@ export type Database = {
           parent_tenant_id?: string | null
           phone?: string | null
           police_report_format?: Database["public"]["Enums"]["police_report_format"]
+          public_about?: string | null
+          public_hours?: Json | null
+          public_landing_enabled?: boolean
+          public_slug?: string | null
           state?: string | null
           tenant_type?: Database["public"]["Enums"]["tenant_type"]
           updated_at?: string

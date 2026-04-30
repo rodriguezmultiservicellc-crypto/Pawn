@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
+import { extractTenantSubdomain } from '@/lib/tenant-resolver'
 
 /**
  * Next 16 renamed `middleware.ts` → `proxy.ts` and the export name from
@@ -12,6 +13,8 @@ import { updateSession } from '@/lib/supabase/middleware'
  *   3. Gate routes by role.
  *   4. Send the user "home" — / redirects to whichever surface they belong
  *      on (admin / staff / portal / login).
+ *   5. Rewrite tenant-subdomain hosts to /s/<slug> so the same RSC handles
+ *      both URL forms (acme.basedomain.com/ AND basedomain.com/s/acme).
  *
  * Public paths bypass auth entirely. Static + Next internals are skipped
  * via the matcher config at the bottom.
@@ -26,6 +29,7 @@ const PUBLIC_PATHS = [
   '/no-tenant',
   '/auth/callback',
   '/portal/login',
+  '/s', // public tenant landing — /s/<slug>
 ]
 
 const STAFF_PATH_PREFIXES = [
@@ -79,6 +83,28 @@ function isPortalPath(pathname: string): boolean {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Tenant-subdomain rewrite: `acme.basedomain.com/` (or any path) →
+  // `/s/acme/<rest>`. Pure host-header parse, no DB call. The RSC at
+  // /s/[slug]/page.tsx does the lookup. We only rewrite when the path
+  // starts at `/` and we haven't already rewritten — otherwise admin /
+  // staff users hitting acme.basedomain.com/dashboard would get
+  // double-rewritten (`/s/acme/dashboard` exists → 404 by design).
+  //
+  // The base domain is configured via NEXT_PUBLIC_BASE_DOMAIN. While
+  // empty (local dev, before wildcard DNS lands), this whole branch
+  // short-circuits and the path form `/s/<slug>` is the only working
+  // URL — that's intentional.
+  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN
+  if (baseDomain && !pathname.startsWith('/s/') && !pathname.startsWith('/_next')) {
+    const host = request.headers.get('host')
+    const tenantSub = extractTenantSubdomain(host, baseDomain)
+    if (tenantSub) {
+      const url = request.nextUrl.clone()
+      url.pathname = `/s/${tenantSub}${pathname === '/' ? '' : pathname}`
+      return NextResponse.rewrite(url)
+    }
+  }
 
   // Public routes: refresh session but don't gate.
   if (isPublicPath(pathname)) {

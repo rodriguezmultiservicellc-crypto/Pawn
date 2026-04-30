@@ -26,6 +26,44 @@ export type TenantGeneralView = {
   parent_tenant_id: string | null
   police_report_format: string | null
   agency_store_id: string | null
+  public_slug: string | null
+  public_landing_enabled: boolean
+  public_about: string | null
+  public_hours: unknown
+}
+
+const HOURS_DAYS: ReadonlyArray<{
+  key: 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
+  label: string
+}> = [
+  { key: 'mon', label: 'Mon' },
+  { key: 'tue', label: 'Tue' },
+  { key: 'wed', label: 'Wed' },
+  { key: 'thu', label: 'Thu' },
+  { key: 'fri', label: 'Fri' },
+  { key: 'sat', label: 'Sat' },
+  { key: 'sun', label: 'Sun' },
+]
+
+type HoursDay = { open: string; close: string; closed: boolean }
+type HoursMap = Partial<
+  Record<'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun', HoursDay>
+>
+
+function hoursFromUnknown(raw: unknown): HoursMap {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: HoursMap = {}
+  for (const { key } of HOURS_DAYS) {
+    const v = (raw as Record<string, unknown>)[key]
+    if (!v || typeof v !== 'object') continue
+    const d = v as Record<string, unknown>
+    out[key] = {
+      open: typeof d.open === 'string' ? d.open : '',
+      close: typeof d.close === 'string' ? d.close : '',
+      closed: d.closed === true,
+    }
+  }
+  return out
 }
 
 export default function GeneralSettingsContent({
@@ -208,6 +246,122 @@ export default function GeneralSettingsContent({
 
         <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
           <legend className="px-1 text-sm font-semibold text-ink">
+            Public landing page
+          </legend>
+          <p className="mt-1 px-1 text-xs text-ash">
+            Customer-facing landing rendered at{' '}
+            <code className="font-mono text-[11px]">/s/&lt;slug&gt;</code> and
+            (when wildcard DNS is configured) at
+            <code className="font-mono text-[11px]"> &lt;slug&gt;.&lt;domain&gt;</code>.
+            Set the slug, then flip Publish to make it live. Leave Publish
+            off to reserve a slug without going public.
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Field
+              label="URL slug"
+              name="public_slug"
+              defaultValue={initial.public_slug ?? ''}
+              error={fe('public_slug')}
+              hint="3–40 chars, lowercase letters, digits, hyphens. e.g. main-st-pawn"
+              maxLength={40}
+              autoComplete="off"
+            />
+            <label className="flex items-center gap-3 self-end pb-2 text-sm">
+              <input
+                type="checkbox"
+                name="public_landing_enabled"
+                value="on"
+                defaultChecked={tenant.public_landing_enabled}
+                className="h-4 w-4 rounded border-hairline text-rausch focus:ring-rausch"
+              />
+              <span className="font-medium text-ink">Publish landing page</span>
+            </label>
+            <div className="md:col-span-2">
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-ink">About</span>
+                <textarea
+                  name="public_about"
+                  defaultValue={initial.public_about ?? ''}
+                  rows={4}
+                  maxLength={2000}
+                  className={`block w-full rounded-md border bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+                    fe('public_about') ? 'border-error/60' : 'border-hairline'
+                  }`}
+                />
+                {fe('public_about') ? (
+                  <span className="block text-xs text-error">
+                    {fe('public_about')}
+                  </span>
+                ) : (
+                  <span className="block text-xs text-ash">
+                    Optional. Plain text shown under the contact info. 2,000
+                    characters max.
+                  </span>
+                )}
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <p className="px-1 text-sm font-medium text-ink">Hours</p>
+            <p className="mt-1 px-1 text-xs text-ash">
+              24-hour format (e.g. 09:00, 18:00). Tick Closed to hide a day.
+              Leave blank to render as Closed.
+            </p>
+            {fe('public_hours') ? (
+              <p className="mt-1 px-1 text-xs text-error">
+                {fe('public_hours')}
+              </p>
+            ) : null}
+            <div className="mt-2 space-y-1">
+              {HOURS_DAYS.map(({ key, label }) => {
+                const day = initial.hours_map[key] ?? {
+                  open: '',
+                  close: '',
+                  closed: false,
+                }
+                return (
+                  <div
+                    key={key}
+                    className="grid grid-cols-12 items-center gap-2 rounded-md border border-hairline px-3 py-2"
+                  >
+                    <span className="col-span-2 text-sm font-medium text-ink">
+                      {label}
+                    </span>
+                    <input
+                      type="time"
+                      name={`hours_${key}_open`}
+                      defaultValue={day.open}
+                      className="col-span-3 rounded-md border border-hairline bg-canvas px-2 py-1 font-mono text-xs text-ink focus:border-ink focus:outline-none"
+                    />
+                    <span className="col-span-1 text-center text-xs text-ash">
+                      –
+                    </span>
+                    <input
+                      type="time"
+                      name={`hours_${key}_close`}
+                      defaultValue={day.close}
+                      className="col-span-3 rounded-md border border-hairline bg-canvas px-2 py-1 font-mono text-xs text-ink focus:border-ink focus:outline-none"
+                    />
+                    <label className="col-span-3 flex items-center gap-2 text-xs text-ink">
+                      <input
+                        type="checkbox"
+                        name={`hours_${key}_closed`}
+                        value="on"
+                        defaultChecked={day.closed}
+                        className="h-3.5 w-3.5 rounded border-hairline text-rausch focus:ring-rausch"
+                      />
+                      Closed
+                    </label>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+          <legend className="px-1 text-sm font-semibold text-ink">
             Modules (read-only)
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -260,6 +414,9 @@ function defaultsFromTenant(t: TenantGeneralView): {
   phone: string
   email: string
   agency_store_id: string
+  public_slug: string
+  public_about: string
+  hours_map: HoursMap
 } {
   return {
     name: t.name,
@@ -271,6 +428,9 @@ function defaultsFromTenant(t: TenantGeneralView): {
     phone: t.phone ?? '',
     email: t.email ?? '',
     agency_store_id: t.agency_store_id ?? '',
+    public_slug: t.public_slug ?? '',
+    public_about: t.public_about ?? '',
+    hours_map: hoursFromUnknown(t.public_hours),
   }
 }
 

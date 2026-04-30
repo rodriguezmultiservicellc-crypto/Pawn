@@ -2744,4 +2744,38 @@ export const es: Dictionary = {
       error: 'Error',
     },
   },
+
+  landing: {
+    heroDefault: 'Empeños, joyería y reparación — bien hecho.',
+    heroWithCity: 'Empeños, joyería y reparación en {city}, {state}.',
+    visit: 'Visítanos',
+    openInMaps: 'Abrir en Mapas',
+    addressUnavailable: 'Dirección próximamente.',
+    hours: 'Horarios',
+    hoursUnavailable: 'Horarios próximamente.',
+    about: 'Sobre nosotros',
+    closed: 'Cerrado',
+    poweredBy: 'Hecho con Pawn',
+    ctaSoonHint: 'Próximamente — visítanos en la tienda mientras tanto.',
+    services: {
+      pawn: 'Préstamos prendarios',
+      repair: 'Reparación y engaste',
+      retail: 'Joyería y reventa',
+    },
+    ctas: {
+      getQuote: 'Cotizar un préstamo',
+      dropOffRepair: 'Dejar una reparación',
+      shopInventory: 'Ver nuestra mercancía',
+      portalLogin: 'Portal del cliente',
+    },
+    days: {
+      mon: 'Lunes',
+      tue: 'Martes',
+      wed: 'Miércoles',
+      thu: 'Jueves',
+      fri: 'Viernes',
+      sat: 'Sábado',
+      sun: 'Domingo',
+    },
+  },
 }

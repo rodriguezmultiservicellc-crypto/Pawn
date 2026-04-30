@@ -2736,6 +2736,40 @@ export const en = {
       error: 'Error',
     },
   },
+
+  landing: {
+    heroDefault: 'Pawn, jewelry, and repair — done right.',
+    heroWithCity: 'Pawn, jewelry, and repair in {city}, {state}.',
+    visit: 'Visit us',
+    openInMaps: 'Open in Maps',
+    addressUnavailable: 'Address coming soon.',
+    hours: 'Hours',
+    hoursUnavailable: 'Hours coming soon.',
+    about: 'About us',
+    closed: 'Closed',
+    poweredBy: 'Powered by Pawn',
+    ctaSoonHint: 'Coming soon — visit the shop in the meantime.',
+    services: {
+      pawn: 'Pawn loans',
+      repair: 'Repair & stone setting',
+      retail: 'Jewelry & resale',
+    },
+    ctas: {
+      getQuote: 'Get a quote on a loan',
+      dropOffRepair: 'Drop off a repair',
+      shopInventory: 'Shop our inventory',
+      portalLogin: 'Customer portal login',
+    },
+    days: {
+      mon: 'Monday',
+      tue: 'Tuesday',
+      wed: 'Wednesday',
+      thu: 'Thursday',
+      fri: 'Friday',
+      sat: 'Saturday',
+      sun: 'Sunday',
+    },
+  },
 }
 
 export type Dictionary = typeof en

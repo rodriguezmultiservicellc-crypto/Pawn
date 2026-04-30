@@ -128,7 +128,7 @@ export async function createCustomerAction(
   }
   const { data, error } = await supabase
     .from('customers')
-    .insert(insertPayload as never)
+    .insert(insertPayload)
     .select('id')
     .single()
 
