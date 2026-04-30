@@ -1030,13 +1030,16 @@ export const en = {
     board: {
       title: 'Work-order board',
       subtitle:
-        'Active tickets grouped by stage. Click a card to open it.',
+        'Active tickets grouped by stage. Click a card to open it, or drag it between columns to advance.',
       backToList: 'Back to repair list',
       totalActive: 'Active tickets',
       techAll: 'All techs',
       techUnassigned: 'Unassigned',
       columnEmpty: 'No tickets in this stage.',
       cardUnassigned: 'Unassigned',
+      moveSaving: 'Moving…',
+      moveIllegal: 'Cannot move from this stage to that one.',
+      moveFailed: 'Move failed.',
     },
     serviceTypes: {
       repair: 'Repair',

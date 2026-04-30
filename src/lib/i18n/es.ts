@@ -1028,13 +1028,16 @@ export const es: Dictionary = {
     board: {
       title: 'Tablero de órdenes',
       subtitle:
-        'Órdenes activas agrupadas por etapa. Haz clic en una tarjeta para abrirla.',
+        'Órdenes activas agrupadas por etapa. Haz clic para abrir, o arrastra entre columnas para avanzar.',
       backToList: 'Volver al listado',
       totalActive: 'Órdenes activas',
       techAll: 'Todos los técnicos',
       techUnassigned: 'Sin asignar',
       columnEmpty: 'No hay órdenes en esta etapa.',
       cardUnassigned: 'Sin asignar',
+      moveSaving: 'Moviendo…',
+      moveIllegal: 'No se puede mover de esta etapa a esa.',
+      moveFailed: 'No se pudo mover.',
     },
     serviceTypes: {
       repair: 'Reparación',

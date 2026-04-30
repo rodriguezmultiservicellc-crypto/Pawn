@@ -1,13 +1,27 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, User } from '@phosphor-icons/react'
+import { ArrowLeft, User, Warning } from '@phosphor-icons/react'
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 import { useI18n } from '@/lib/i18n/context'
 import { daysBetween } from '@/lib/pawn/math'
 import { ServiceTypeBadge } from '@/components/repair/ServiceTypeBadge'
 import { StatusBadge } from '@/components/repair/StatusBadge'
+import { canTransition } from '@/lib/repair/workflow'
+import { moveTicketStatusAction } from './actions'
 import type { RepairStatus, ServiceType } from '@/types/database-aliases'
 
 export type TechOption = {
@@ -30,6 +44,8 @@ export type BoardCard = {
   created_at: string
 }
 
+type BoardCardMap = Record<RepairStatus, BoardCard[]>
+
 export default function BoardContent({
   columns,
   cardsByStatus,
@@ -40,7 +56,7 @@ export default function BoardContent({
   today,
 }: {
   columns: ReadonlyArray<RepairStatus>
-  cardsByStatus: Record<RepairStatus, BoardCard[]>
+  cardsByStatus: BoardCardMap
   techOptions: TechOption[]
   techFilter: string
   unassignedCount: number
@@ -51,6 +67,30 @@ export default function BoardContent({
   const router = useRouter()
   const sp = useSearchParams()
   const [pending, startTransition] = useTransition()
+
+  // Local card map so optimistic moves render before the server action
+  // round-trips. Reset when the parent prop changes (route refresh).
+  const [localCards, setLocalCards] = useState<BoardCardMap>(cardsByStatus)
+  const [propsSnapshot, setPropsSnapshot] = useState(cardsByStatus)
+  if (cardsByStatus !== propsSnapshot) {
+    setPropsSnapshot(cardsByStatus)
+    setLocalCards(cardsByStatus)
+  }
+
+  const [activeCard, setActiveCard] = useState<BoardCard | null>(null)
+  const [moveError, setMoveError] = useState<string | null>(null)
+  const [movePending, startMoveTransition] = useTransition()
+
+  // PointerSensor with an 8px activation distance keeps clicks (which
+  // navigate to the detail page) fast — only intentional drags trigger
+  // DnD. KeyboardSensor preserves accessibility for users who can't /
+  // don't drag.
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor),
+  )
 
   function pushParams(next: Record<string, string | null>) {
     const usp = new URLSearchParams(sp.toString())
@@ -64,95 +104,192 @@ export default function BoardContent({
   }
 
   const totalCards = columns.reduce(
-    (sum, status) => sum + cardsByStatus[status].length,
+    (sum, status) => sum + localCards[status].length,
     0,
   )
 
+  function handleDragStart(e: DragStartEvent) {
+    const id = String(e.active.id)
+    for (const col of columns) {
+      const found = localCards[col].find((c) => c.id === id)
+      if (found) {
+        setActiveCard(found)
+        setMoveError(null)
+        return
+      }
+    }
+  }
+
+  function handleDragEnd(e: DragEndEvent) {
+    setActiveCard(null)
+    if (!e.over) return
+    const cardId = String(e.active.id)
+    const toStatus = String(e.over.id) as RepairStatus
+
+    // Locate the card + its current status in the local map.
+    let fromStatus: RepairStatus | null = null
+    let card: BoardCard | null = null
+    for (const col of columns) {
+      const idx = localCards[col].findIndex((c) => c.id === cardId)
+      if (idx >= 0) {
+        fromStatus = col
+        card = localCards[col][idx]
+        break
+      }
+    }
+    if (!fromStatus || !card) return
+    if (fromStatus === toStatus) return
+
+    // Client-side guard: same canTransition() the server uses. Bouncing
+    // illegal drops here keeps the UX snappy without a round-trip.
+    if (!canTransition(fromStatus, toStatus)) {
+      setMoveError(t.repair.board.moveIllegal)
+      return
+    }
+
+    // Optimistic update: snapshot, mutate, dispatch.
+    const snapshot = localCards
+    const optimistic: BoardCardMap = { ...localCards }
+    optimistic[fromStatus] = localCards[fromStatus].filter(
+      (c) => c.id !== cardId,
+    )
+    optimistic[toStatus] = [
+      ...localCards[toStatus],
+      { ...card, status: toStatus },
+    ]
+    setLocalCards(optimistic)
+
+    const fd = new FormData()
+    fd.set('ticket_id', cardId)
+    fd.set('to_status', toStatus)
+    startMoveTransition(async () => {
+      const res = await moveTicketStatusAction(fd)
+      if (!res.ok) {
+        // Revert and surface the error.
+        setLocalCards(snapshot)
+        setMoveError(
+          res.error === 'illegalTransition'
+            ? t.repair.board.moveIllegal
+            : t.repair.board.moveFailed,
+        )
+      } else {
+        // Refresh server state so derived views (timer state, audit log,
+        // counts) reflect the move on the next render.
+        router.refresh()
+      }
+    })
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <Link
-            href="/repair"
-            className="mb-1 inline-flex items-center gap-1 text-xs text-ash hover:text-ink"
-          >
-            <ArrowLeft size={12} weight="bold" />
-            {t.repair.board.backToList}
-          </Link>
-          <h1 className="text-2xl font-bold">{t.repair.board.title}</h1>
-          <p className="text-sm text-ash">{t.repair.board.subtitle}</p>
-        </div>
-        <div className="text-right">
-          <div className="font-mono text-2xl font-semibold text-ink">
-            {totalCards}
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveCard(null)}
+    >
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Link
+              href="/repair"
+              className="mb-1 inline-flex items-center gap-1 text-xs text-ash hover:text-ink"
+            >
+              <ArrowLeft size={12} weight="bold" />
+              {t.repair.board.backToList}
+            </Link>
+            <h1 className="text-2xl font-bold">{t.repair.board.title}</h1>
+            <p className="text-sm text-ash">{t.repair.board.subtitle}</p>
           </div>
-          <div className="text-[11px] text-ash">{t.repair.board.totalActive}</div>
+          <div className="text-right">
+            <div className="font-mono text-2xl font-semibold text-ink">
+              {totalCards}
+            </div>
+            <div className="text-[11px] text-ash">{t.repair.board.totalActive}</div>
+          </div>
+        </div>
+
+        {moveError ? (
+          <div className="flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+            <Warning size={14} weight="bold" />
+            <span>{moveError}</span>
+          </div>
+        ) : null}
+
+        {/* Tech chip strip */}
+        <div className="flex flex-wrap gap-2">
+          <TechChip
+            label={t.repair.board.techAll}
+            count={null}
+            active={techFilter === ''}
+            onClick={() => pushParams({ tech: null })}
+          />
+          <TechChip
+            label={t.repair.board.techUnassigned}
+            count={unassignedCount}
+            active={techFilter === 'unassigned'}
+            tone="warning"
+            onClick={() => pushParams({ tech: 'unassigned' })}
+          />
+          {techOptions.map((tech) => (
+            <TechChip
+              key={tech.id}
+              label={tech.name}
+              count={tech.activeCount}
+              active={techFilter === tech.id}
+              onClick={() => pushParams({ tech: tech.id })}
+            />
+          ))}
+        </div>
+
+        {/* Service type filter */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-ash">
+            {t.repair.list.serviceType}:
+          </label>
+          <select
+            value={serviceTypeFilter}
+            onChange={(e) => pushParams({ serviceType: e.target.value })}
+            className="rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          >
+            <option value="">{t.common.all}</option>
+            <option value="repair">{t.repair.serviceTypes.repair}</option>
+            <option value="stone_setting">{t.repair.serviceTypes.stoneSetting}</option>
+            <option value="sizing">{t.repair.serviceTypes.sizing}</option>
+            <option value="restring">{t.repair.serviceTypes.restring}</option>
+            <option value="plating">{t.repair.serviceTypes.plating}</option>
+            <option value="engraving">{t.repair.serviceTypes.engraving}</option>
+            <option value="custom">{t.repair.serviceTypes.custom}</option>
+          </select>
+          {pending || movePending ? (
+            <span className="text-[11px] text-ash">
+              {movePending ? t.repair.board.moveSaving : t.common.loading}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Columns */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
+          {columns.map((status) => (
+            <Column
+              key={status}
+              status={status}
+              cards={localCards[status]}
+              today={today}
+              activeCardStatus={activeCard?.status ?? null}
+              onCardClick={(id) => router.push(`/repair/${id}`)}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Tech chip strip */}
-      <div className="flex flex-wrap gap-2">
-        <TechChip
-          label={t.repair.board.techAll}
-          count={null}
-          active={techFilter === ''}
-          onClick={() => pushParams({ tech: null })}
-        />
-        <TechChip
-          label={t.repair.board.techUnassigned}
-          count={unassignedCount}
-          active={techFilter === 'unassigned'}
-          tone="warning"
-          onClick={() => pushParams({ tech: 'unassigned' })}
-        />
-        {techOptions.map((tech) => (
-          <TechChip
-            key={tech.id}
-            label={tech.name}
-            count={tech.activeCount}
-            active={techFilter === tech.id}
-            onClick={() => pushParams({ tech: tech.id })}
-          />
-        ))}
-      </div>
-
-      {/* Service type filter */}
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-ash">
-          {t.repair.list.serviceType}:
-        </label>
-        <select
-          value={serviceTypeFilter}
-          onChange={(e) => pushParams({ serviceType: e.target.value })}
-          className="rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
-        >
-          <option value="">{t.common.all}</option>
-          <option value="repair">{t.repair.serviceTypes.repair}</option>
-          <option value="stone_setting">{t.repair.serviceTypes.stoneSetting}</option>
-          <option value="sizing">{t.repair.serviceTypes.sizing}</option>
-          <option value="restring">{t.repair.serviceTypes.restring}</option>
-          <option value="plating">{t.repair.serviceTypes.plating}</option>
-          <option value="engraving">{t.repair.serviceTypes.engraving}</option>
-          <option value="custom">{t.repair.serviceTypes.custom}</option>
-        </select>
-        {pending ? (
-          <span className="text-[11px] text-ash">{t.common.loading}</span>
+      <DragOverlay>
+        {activeCard ? (
+          <div className="cursor-grabbing">
+            <CardBody card={activeCard} today={today} />
+          </div>
         ) : null}
-      </div>
-
-      {/* Columns */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        {columns.map((status) => (
-          <Column
-            key={status}
-            status={status}
-            cards={cardsByStatus[status]}
-            today={today}
-            onCardClick={(id) => router.push(`/repair/${id}`)}
-          />
-        ))}
-      </div>
-    </div>
+      </DragOverlay>
+    </DndContext>
   )
 }
 
@@ -160,28 +297,56 @@ function Column({
   status,
   cards,
   today,
+  activeCardStatus,
   onCardClick,
 }: {
   status: RepairStatus
   cards: BoardCard[]
   today: string
+  activeCardStatus: RepairStatus | null
   onCardClick: (id: string) => void
 }) {
   const { t } = useI18n()
+  const { isOver, setNodeRef } = useDroppable({ id: status })
+
+  // Visual hint: tint the column when a drag is in progress AND the move
+  // would be a legal transition. Same canTransition() the server uses.
+  const isLegalTarget =
+    activeCardStatus != null &&
+    activeCardStatus !== status &&
+    canTransition(activeCardStatus, status)
+  const isIllegalTarget =
+    activeCardStatus != null &&
+    activeCardStatus !== status &&
+    !canTransition(activeCardStatus, status)
+
+  const dropClass = isOver
+    ? isLegalTarget
+      ? 'border-success bg-success/5'
+      : 'border-error bg-error/5'
+    : isLegalTarget
+      ? 'border-success/40'
+      : isIllegalTarget
+        ? 'opacity-50'
+        : 'border-hairline'
+
   return (
-    <div className="flex flex-col rounded-lg border border-hairline bg-cloud/40">
+    <div
+      ref={setNodeRef}
+      className={`flex flex-col rounded-lg border bg-cloud/40 transition-colors ${dropClass}`}
+    >
       <div className="flex items-center justify-between border-b border-hairline px-3 py-2">
         <StatusBadge status={status} />
         <span className="font-mono text-xs text-ash">{cards.length}</span>
       </div>
-      <div className="flex flex-col gap-2 p-2">
+      <div className="flex flex-col gap-2 p-2 min-h-[3rem]">
         {cards.length === 0 ? (
           <div className="px-2 py-6 text-center text-[11px] text-ash">
             {t.repair.board.columnEmpty}
           </div>
         ) : (
           cards.map((card) => (
-            <Card
+            <DraggableCard
               key={card.id}
               card={card}
               today={today}
@@ -194,7 +359,7 @@ function Column({
   )
 }
 
-function Card({
+function DraggableCard({
   card,
   today,
   onClick,
@@ -203,6 +368,31 @@ function Card({
   today: string
   onClick: () => void
 }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: card.id,
+  })
+  // PointerSensor's 8px activationConstraint means pointer-down→up without
+  // movement passes through as a native click; only intentional drags
+  // cross the threshold and consume the gesture. Render as a button so
+  // keyboard activation (Enter/Space when the keyboard sensor isn't
+  // dragging) still navigates.
+  return (
+    <button
+      type="button"
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onClick={onClick}
+      className={`block w-full text-left cursor-grab transition-opacity ${
+        isDragging ? 'opacity-30' : ''
+      }`}
+    >
+      <CardBody card={card} today={today} />
+    </button>
+  )
+}
+
+function CardBody({ card, today }: { card: BoardCard; today: string }) {
   const { t } = useI18n()
   const days =
     card.promised_date != null ? daysBetween(today, card.promised_date) : null
@@ -210,11 +400,7 @@ function Card({
   const isDueSoon = days != null && days >= 0 && days <= 7
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col gap-1.5 rounded-md border border-hairline bg-canvas p-2.5 text-left transition-colors hover:border-ink"
-    >
+    <div className="flex flex-col gap-1.5 rounded-md border border-hairline bg-canvas p-2.5 text-left transition-colors hover:border-ink">
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[11px] text-ash">
           {card.ticket_number}
@@ -249,7 +435,7 @@ function Card({
           </span>
         ) : null}
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -288,4 +474,3 @@ function TechChip({
     </button>
   )
 }
-
