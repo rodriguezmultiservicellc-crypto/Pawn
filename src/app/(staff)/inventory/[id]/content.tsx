@@ -66,7 +66,7 @@ export type InventoryMeltSummary = {
   spot_per_gram: number
   /** Tenant pay-rate override applied (1.0 when none configured). */
   multiplier: number
-  /** Spot-row source label ('yahoo-finance' / 'manual' / 'seed' — older rows may still read 'metals.live'). */
+  /** Spot-row source label ('stooq' / 'manual' / 'seed' — older rows may still read 'yahoo-finance' or 'metals.live'). */
   source: string
   /** Spot-row fetched_at ISO timestamp. */
   fetched_at: string

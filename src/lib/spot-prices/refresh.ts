@@ -3,7 +3,7 @@
  * "Refresh now" button on /staff/inventory/spot-prices.
  *
  * Pipeline:
- *   1. Fetch the four pure-metal spot quotes from Yahoo Finance.
+ *   1. Fetch the four pure-metal LBMA spot quotes from Stooq.
  *   2. Expand each pure quote into per-purity rows by applying the
  *      purity multiplier (24k=1.0, 22k=22/24, 18k=18/24, 14k=14/24,
  *      10k=10/24; sterling silver = 0.925; platinum_950 = 0.95;
@@ -20,7 +20,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { r4 } from '@/lib/pawn/math'
-import { fetchSpotQuotes, type SpotQuote } from './sources/yahoo-finance'
+import { fetchSpotQuotes, type SpotQuote } from './sources/stooq'
 import type {
   MetalPurity,
   MetalType,
@@ -55,7 +55,7 @@ const PURITY_MAP: Record<SpotQuote['metal'], Array<{ purity: MetalPurity; multip
 export type RefreshSummary = {
   ok: boolean
   /** Source label written to spot_prices.source for every inserted row. */
-  source: 'yahoo-finance' | 'manual'
+  source: 'stooq' | 'manual'
   /** Quotes returned by the upstream (pure-metal level, before per-purity expansion). */
   quotes: number
   /** Rows attempted to insert (after per-purity expansion). */
@@ -80,7 +80,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
       quotes: 0,
       attempted: 0,
       inserted: 0,
-      error: 'No quotes returned from Yahoo Finance; admin can update via override UI.',
+      error: 'No quotes returned from Stooq; admin can update via override UI.',
     }
   }
 
@@ -98,7 +98,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
         price_per_gram: pricePerGram,
         price_per_troy_oz: pricePerOz,
         currency: 'USD',
-        source: 'yahoo-finance',
+        source: 'stooq',
         fetched_at: q.fetched_at,
       })
     }
@@ -107,7 +107,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
   if (inserts.length === 0) {
     return {
       ok: false,
-      source: 'yahoo-finance',
+      source: 'stooq',
       quotes: quotes.length,
       attempted: 0,
       inserted: 0,
@@ -128,7 +128,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
     console.error('[spot-prices] insert failed', error.message)
     return {
       ok: false,
-      source: 'yahoo-finance',
+      source: 'stooq',
       quotes: quotes.length,
       attempted: inserts.length,
       inserted: 0,
@@ -140,7 +140,7 @@ export async function refreshSpotPrices(): Promise<RefreshSummary> {
   const inserted = Array.isArray(data) ? data.length : inserts.length
   return {
     ok: true,
-    source: 'yahoo-finance',
+    source: 'stooq',
     quotes: quotes.length,
     attempted: inserts.length,
     inserted,

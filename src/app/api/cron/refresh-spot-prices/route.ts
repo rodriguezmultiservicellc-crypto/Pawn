@@ -1,8 +1,9 @@
 /**
  * Cron — refresh bullion spot prices.
  *
- * Calls `refreshSpotPrices()` (which fetches Yahoo Finance, expands per
- * purity, and inserts into `spot_prices`). Records a `spot_price_refresh`
+ * Calls `refreshSpotPrices()` (which fetches Stooq LBMA spot, expands
+ * per purity, and inserts into `spot_prices`). Records a
+ * `spot_price_refresh`
  * row in `audit_log` with the run summary.
  *
  * Auth: `Authorization: Bearer ${CRON_SECRET}` only. Vercel Cron sets this
