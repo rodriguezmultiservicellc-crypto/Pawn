@@ -7,57 +7,54 @@ File:    Progress.txt
 SEE ALSO (do not duplicate here):
   - Architecture / conventions: CLAUDE.md
   - Source of truth: the code itself
+  - Archived sessions 1-11: Progress_archive.txt
 
 ────────────────────────────────────────────────────────────────────────────────
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 15 (2026-04-29 night — late) — Spot-
-                  price source swap. Root-cause fix for "spot-price
-                  feature not working": api.metals.live's TLS
-                  endpoint went dead (SEC_E_ILLEGAL_MESSAGE on
-                  handshake). The cron has been hitting a corpse
-                  since whenever metals.live decommissioned, silently
-                  producing zero rows and leaving inventory melt
-                  values pinned to the migration 0013 'seed'
-                  placeholders. Replaced with Yahoo Finance v8 chart
-                  endpoint (GC=F / SI=F / PL=F / PA=F) — no auth, no
-                  API key, all four bullion metals in one source.
-                  Commit ea68bdc pushed to main.
-  Context budget: ~70% full at save time.
-  Last worked on: Session ended cleanly. Spot-price source swap
-                  committed + pushed. CRON_SECRET in Vercel still
-                  the gating production task — without it the cron
-                  schedule fires but routes 401. "Refresh now"
-                  button on /staff/inventory/spot-prices uses staff
-                  auth (not CRON_SECRET) and is the fastest way to
-                  validate end-to-end after deploy.
+  Last session:   Session 16 (2026-04-30 early-AM) — Stooq spot
+                  swap, matching Kitco. Session 15's Yahoo source
+                  shipped working but quoted $4575/oz vs Kitco's
+                  $4559.70 — operator caught the ~$15 gap. Yahoo's
+                  GC=F is COMEX gold futures (contango premium over
+                  LBMA spot), not what Kitco displays. Yahoo's spot
+                  ticker XAUUSD=X is delisted from the v8/chart
+                  endpoint as of 2026-04 ("symbol may be delisted"),
+                  so swapped to Stooq — CSV, no auth, no UA dance,
+                  returns LBMA spot for all four bullion metals
+                  within pennies of Kitco. Commit 344d822 pushed
+                  to main.
+  Context budget: ~80% full at save time.
+  Last worked on: Session ended cleanly. Stooq source live and
+                  matching Kitco within tick spread (verified gold
+                  $4562 vs Kitco $4559.70 = $2.40). CRON_SECRET in
+                  Vercel still the gating production task. "Refresh
+                  now" on /staff/inventory/spot-prices is the
+                  fastest end-to-end validation after deploy lands.
 
   ACTIVE FILE(S) — last touched this session:
-    --- SPOT-PRICE SOURCE SWAP (item 179) ---
-    - src/lib/spot-prices/sources/yahoo-finance.ts (NEW —
-      Yahoo v8 chart endpoint fetcher, no auth, all four
-      bullion metals; Stooq commented at the bottom as a
-      one-line swap if true LBMA spot ever needed)
-    - src/lib/spot-prices/sources/metals-live.ts (DELETED —
-      upstream TLS endpoint dead)
+    --- SPOT-PRICE STOOQ SWAP (item 180) ---
+    - src/lib/spot-prices/sources/stooq.ts (NEW — Stooq CSV
+      fetcher for xauusd / xagusd / xptusd / xpdusd, no auth,
+      true LBMA spot)
+    - src/lib/spot-prices/sources/yahoo-finance.ts (DELETED —
+      futures price diverges from Kitco spot)
     - src/lib/spot-prices/refresh.ts (import path swap;
-      type rename MetalsLiveQuote → SpotQuote; source label
-      'metals.live' → 'yahoo-finance' in 5 places + header
-      comment + error message)
+      source label 'yahoo-finance' → 'stooq' in 5 places +
+      header comment + error message)
     - src/app/api/cron/refresh-spot-prices/route.ts (header
       comment refresh)
     - src/app/(staff)/inventory/[id]/content.tsx (source
       label comment refresh; older rows may still read
-      'metals.live')
+      'yahoo-finance' or 'metals.live')
 
-    Side-trip cleanly reverted: a v3 Armando handoff doc and
-    a working Yahoo-source gold widget were briefly built into
-    paracubasolutions.com (C:\xampp\htdocs\lunaazul) before the
-    operator redirected scope into Pawn. paracubasolutions back
-    to original state (api/gold.php deleted, cache/gold.json +
-    gold_errors.log deleted, index.html nav reverted, v3 handoff
-    in Downloads removed).
+  ACTIVE FILE(S) — Session 15 (already committed, files
+  superseded by Session 16): item 179 swapped metals.live →
+  Yahoo (commit ea68bdc). Yahoo file deleted in Session 16
+  when we discovered the futures-vs-spot gap. Brief side-trip
+  into paracubasolutions.com gold widget cleanly reverted
+  during Session 15.
 
   ACTIVE FILE(S) — Session 14 carried forward (already committed):
     - vercel.json (NEW — 6 cron schedules: refresh-spot-prices x2
@@ -156,20 +153,22 @@ SEE ALSO (do not duplicate here):
       payoffBalance / splitPayment)
 
   RESUME POINT:
-    Session 15 ended cleanly — spot-price source swap shipped
-    (commit ea68bdc, pushed to main). The dead-upstream half of
-    "spot prices not working" is fixed in code; full pipeline
-    validation gates on CRON_SECRET being set in Vercel. The
-    same refreshSpotPrices() is callable via the "Refresh now"
-    button on /staff/inventory/spot-prices using staff auth,
-    which is the fastest way to confirm Yahoo → DB upsert works
-    end-to-end after the Vercel deploy lands.
+    Session 16 ended cleanly — Stooq source shipped (commit
+    344d822, pushed to main), prices now match Kitco within
+    tick spread. Full code-side spot-price story complete:
+    metals.live (dead upstream) → Yahoo (futures gap) → Stooq
+    (LBMA spot). End-to-end pipeline validation gates on
+    CRON_SECRET being set in Vercel. The "Refresh now" button
+    on /staff/inventory/spot-prices works without CRON_SECRET
+    — staff auth, same refreshSpotPrices() underneath; click
+    after the Vercel deploy lands and inventory melt values
+    will recompute against fresh Stooq rows on next page load.
 
     Two paths next session:
 
     (A) Operator setup — close the production-behavior gates
         listed under OPEN ISSUES below. CRON_SECRET in Vercel
-        is the load-bearing one (Sessions 14+15 both end
+        is the load-bearing one (Sessions 14/15/16 all end
         blocked on it). After CRON_SECRET, the auto-refresh
         schedule fires every 15 min during market hours.
 
@@ -196,9 +195,9 @@ SEE ALSO (do not duplicate here):
     - Phase 0 punch list still open: NEXT_PUBLIC_APP_URL +
       CRON_SECRET in Vercel + 3 pasted secrets rotation (anon
       JWT, service-role JWT, sbp_ token) + repo-local git
-      config revert. (vercel.json cron schedules wired Session
-      14, dead metals.live source swapped to Yahoo Session 15
-      — both code-side compounding causes now closed.)
+      config revert. (Code-side spot-price story closed
+      Sessions 14/15/16: schedule wired, source live, prices
+      match Kitco. Only operator config gates remain.)
     - CRON_SECRET still missing in Vercel — schedules fire
       but route bodies 401. THE single remaining gate for
       automated spot-price refresh; "Refresh now" button works
@@ -227,148 +226,55 @@ SEE ALSO (do not duplicate here):
       bundles with pgsodium-encryption migration on backlog.
 
   KEY DECISIONS LOCKED THIS SESSION:
-    - YAHOO V8 CHART, NOT V7 QUOTE. v7/finance/quote returns
-      401 Unauthorized for unauthenticated callers in 2026 —
-      it requires a session cookie + crumb token dance now.
-      v8/finance/chart returns price + previous-close cleanly
-      with just a User-Agent header. Validated live from this
-      machine and via Node's native fetch (Vercel runtime
-      parity).
-    - YAHOO SERVES COMEX FUTURES, NOT LBMA SPOT. GC=F / SI=F /
-      PL=F / PA=F are futures contracts; typical gap vs Kitco
-      spot is $5-15/oz on gold. Acceptable for melt-value math
-      at Pawn's tolerance levels (tenant overrides multiply
-      down by 60-85% anyway). Stooq (xauusd/xagusd/xptusd CSV,
-      no auth) returns true LBMA spot if sub-percent accuracy
-      ever matters — documented as a one-line swap at the
-      bottom of yahoo-finance.ts.
-    - USER-AGENT HEADER IS REQUIRED. Yahoo blocks requests
-      with no UA or generic node UAs in some regions. A real
-      Chrome UA string keeps Vercel's outbound IPs out of that
-      bucket. Set in the fetch call, not relying on Node's
-      default.
-    - BACKWARDS-COMPAT FOR HISTORICAL ROWS. Older spot_prices
-      rows still carry source='metals.live'; the lookup query
-      is source-agnostic (orders by fetched_at DESC LIMIT 1
-      per metal/purity), so the swap is non-breaking. The
-      inventory detail page comment was updated to note both
-      labels can appear.
+    - STOOQ FOR LBMA SPOT, NOT YAHOO. The other Claude
+      (web) recommended swapping Yahoo's GC=F (futures) for
+      XAUUSD=X (Yahoo's spot ticker) but XAUUSD=X is delisted
+      from the v8/chart endpoint as of 2026-04 ("symbol may
+      be delisted"). Tested ^XAU (Philadelphia gold/silver
+      INDEX, not bullion), GLD (ETF NAV, ~1/10th spot, expense
+      ratio drift), GOLD (equity ticker for Barrick Gold) —
+      none return USD/oz spot. Stooq does: xauusd/xagusd/
+      xptusd/xpdusd return Close prices matching Kitco within
+      pennies. CSV format, no auth, no UA dance, no API key.
+    - SPOT-VS-FUTURES IS OPERATOR-VISIBLE. Eddy compared
+      $4575 (Yahoo GC=F) vs $4559.70 (Kitco) and caught the
+      $15 gap immediately — that's contango, not a bug, but
+      jewelers anchor on Kitco for buy-price quotes so the
+      app must too. Lesson: futures-as-proxy-for-spot is fine
+      for internal melt math but unacceptable when operators
+      visually compare against Kitco.
+    - FILE RENAMED yahoo-finance.ts → stooq.ts. Filename
+      should match what the code does. Keeping the misleading
+      name with a "now uses Stooq" comment would confuse the
+      next reader. One import update in refresh.ts.
+    - THE OTHER CLAUDE'S RECOMMENDATION WAS RIGHT IN
+      DIAGNOSIS, WRONG IN FIX. Diagnosis (futures vs spot,
+      contango spread) was accurate; the recommended swap
+      target (XAUUSD=X) didn't actually work because Yahoo
+      delisted it from the chart endpoint. Always verify
+      ticker-level claims against the live endpoint before
+      trusting them.
+    - BACKWARDS-COMPAT FOR HISTORICAL ROWS, MULTI-TIER
+      VERSION. spot_prices.source column now spans 4 historical
+      values: 'seed' (migration 0013), 'metals.live' (pre-15),
+      'yahoo-finance' (Session 15 only — short-lived window),
+      'stooq' (current). Lookup is source-agnostic, so the
+      swap chain is non-breaking. Inventory detail comment
+      enumerates all four.
     - PARACUBASOLUTIONS IS NOT THE PAWN APP. A v3 Armando
       handoff doc + working PHP gold widget were briefly built
-      into C:\xampp\htdocs\lunaazul before the operator
-      redirected scope. The two surfaces have unrelated
-      purposes: paracubasolutions = customer-facing marketing
-      pill on a static landing page; Pawn /api/cron/refresh-
-      spot-prices = internal valuation data feed. Don't
-      confuse the two — the Yahoo logic ported cleanly because
-      the source is the same, but the surface is not.
+      into C:\xampp\htdocs\lunaazul during Session 15 before
+      the operator redirected scope. The two surfaces have
+      unrelated purposes: paracubasolutions = customer-facing
+      marketing pill on a static landing page; Pawn /api/cron/
+      refresh-spot-prices = internal valuation data feed.
+      Don't confuse the two — the source logic ports between
+      them but the surfaces don't.
 
-  KEY DECISIONS LOCKED PRIOR SESSION (Session 14 — kept for context):
-    - VERCEL.JSON PAIRS TWO ENTRIES POINTING AT THE SAME PATH
-      FOR refresh-spot-prices: a market-hours `*/15 13-21 * *
-      1-5` (every 15 min Mon-Fri 8am-4pm ET) AND an off-hours
-      hourly fallback `0 * * * *`. Vercel allows multiple
-      crons hitting the same path. The pair gives 15-min
-      freshness during business hours without wasting weekend
-      requests on a market that's closed.
-    - REMINDER CRONS RUN ONCE DAILY, STAGGERED BY 5 MINUTES.
-      maturity-reminders at 14:00 UTC, layaway-reminders at
-      14:05, repair-ready at 14:10. Stagger spreads DB load
-      across the morning fan-out. ET equivalent: 9:00-9:10
-      EST, 10:00-10:10 EDT.
-    - EBAY-SYNC SCHEDULE LANDED PREEMPTIVELY (every 30 min
-      weekdays during business hours, `0,30 13-21 * * 1-5`).
-      Route is STUBBED (Phase 10 B) so the cron is a no-op
-      today. When eBay wires up, the schedule needs no config
-      change.
-    - VERCEL CRON SCHEDULES ASSUME PRO+ TIER. Hobby tier
-      caps cadence and total-cron count; the `*/15` and
-      `0,30` schedules will be rejected at deploy and Vercel
-      falls back to once-per-day. If Eddy's plan is Hobby,
-      either upgrade or trim to daily-only schedules. Pro+
-      accepts the file as written.
-
-  KEY DECISIONS LOCKED PRIOR SESSION (Session 13 — kept for context):
-    - DASHBOARD CHARTS USE THE EXISTING 14-DAY WINDOW
-      (`dailyRevenueWindowStart`). Range selector remains
-      UI-only for now — the window stays fixed at 14 days.
-      seriesMax * 1.1 with sane minima prevents axis collapse
-      on empty tenants.
-    - PAWN-VS-REDEMPTIONS PULLS REDEMPTIONS FROM
-      `loan_events.event_type='redemption'` BY `occurred_at`,
-      NOT FROM `loans.updated_at`. loan_events is append-only
-      so the redemption date is preserved across edits; status
-      flips that get re-edited would otherwise clobber the
-      historical date.
-    - LAYAWAY-PAYMENTS CHART EXCLUDES REFUNDS. Filters
-      `layaway_payments.amount > 0` so the bar shows gross
-      collections; the refund-only / empty-day case doesn't
-      dip below zero.
-    - REPAIRS-COMPLETED COUNTS BY `completed_at IS NOT NULL`.
-      Covers both markCompleteAction (transition to ready) and
-      approveQaAction (transition to ready via QA path) — both
-      stamp completed_at.
-    - WATCH TYPEAHEAD IS READ-ONLY V1. parent CollateralItems
-      List rows are React-controlled — DOM writes via the
-      native-setter shim would be fragile and tightly couple
-      the lookup to internal form state. Operator copies the
-      midpoint or transcribes the description.
-    - WATCH TYPEAHEAD DISCLAIMER IS LOCKED: "Reference values
-      are pre-owned wholesale floors — anchor only, not a
-      formal appraisal." Bilingual. Rendered every time a
-      match is selected.
-    - MANAGER KANBAN IS READ-ONLY V1. No drag-and-drop. Card
-      click → /repair/[id]. 5 columns: assigned →
-      in_progress → needs_parts → tech_qa → ready. Terminal
-      states excluded — list page handles those.
-    - MANAGER KANBAN GATES TO OWNER / MANAGER / CHAIN_ADMIN.
-      Non-managers redirect to /repair (the regular list),
-      NOT /no-tenant — they keep their normal access. Same
-      role list as assignTechnicianAction (Session 12).
-    - TECH CHIP STRIP ON KANBAN SORTS BY ACTIVE-COUNT DESC,
-      THEN ALPHABETIC. Drops idle staff to the end so the busy
-      techs surface first.
-    - ACTIVITY FEED MERGES 6 MODULE TABLES, NOT audit_log.
-      The customer-name path is what operators actually want
-      to see; joining audit_log to every source table at
-      render time would be expensive. Each row is module-
-      gated by tenant flag.
-    - RECEIPT PDFs USE BROWSER-PDF-VIEWER PRINTING, NOT
-      window.print(). Both POS and buy-outright Print buttons
-      open the PDF endpoint in a new tab; window.print() of
-      the HTML page would print the staff UI itself, not a
-      customer receipt.
-    - BUY RECEIPT NUMBER FORMAT: `BO-{LAST8(compliance_log.id)}`.
-      Customer doesn't need the full UUID; last-8 is unique
-      enough for manual lookup against the audit trail.
-    - BUY RECEIPT HOLD-PERIOD NOTICE PICKS THE LONGEST hold_
-      until ACROSS ALL ITEMS in the transaction. Conservative
-      against legal-hold extensions that override the
-      tenant-default.
-    - NUMERIC `AS ANY` CASTS WERE MISSING-TYPE CASTS, NOT
-      NUMERIC-mapping casts. The 19 cleaned up were leftovers
-      from before db:types regenerated. The runtime
-      string-vs-number divergence remains — bridged at row
-      boundaries via `as unknown as T` to hand-rolled types
-      that use `number`. Project-wide Database<'public'>
-      override with NUMERIC → number is on backlog as a
-      proper fix (replaces the `as unknown as` pattern).
-    - SUPABASE-JS UPSERT/UPDATE WITH NUMERIC FIELDS USES
-      `as never` AT THE CALL BOUNDARY. The narrowing trips
-      because generated Insert/Update types narrow NUMERIC
-      to string but supabase-js round-trips number fine.
-      Single-call surface — NOT a project-wide cast.
-    - VITEST CONFIG IS NODE-ENV ONLY. v1 scope: pure-logic
-      tests under src/lib/** and src/types/**. React rendering
-      tests + Supabase mock surface deferred until there's a
-      regression worth locking down. Path alias `@/` mirrors
-      next.config.ts.
-    - TEST FOCUS — REGRESSION-LOCKING THE STRIPE-WEBHOOK
-      UNDER-BILLING INCIDENT (Session 12). interestAccrued
-      with min_monthly_charge / 30 daily floor is covered for
-      30-day, 15-day, 1-day, zero-rate-with-min, and
-      no-min-with-rate cases. payoffBalance threads min
-      through end-to-end.
+  (Session 13 + 14 PRIOR-SESSION decision blocks pruned from
+  RESUME — full context preserved in the SESSION HISTORY LOG
+  below. Carried-forward architectural decisions stay in the
+  block beneath.)
 
   KEY DECISIONS CARRIED FROM PRIOR SESSIONS (still authoritative):
     - Multi-store from day 1 (tenants.parent_tenant_id +
@@ -601,50 +507,9 @@ PHASE OVERVIEW
 SESSION HISTORY LOG
 ================================================================================
 
---- Session 1 (2026-04-26) — Project planning + skeleton docs ---
-  1-28. Skeleton + 0001-foundation + design tokens + scaffold.
-
---- Session 2 (2026-04-26 ~16:00) — Cloud wiring + first tenant + fixes ---
-  29-42. .env.local + first tenant + /onboard claim. Build green at 13.
-
---- Session 3 (2026-04-26 ~18:00) — Phase 1: Customers + Inventory ---
-  43-64. 0003 + 0004 + audit log + dashboard widgets. Build green at 19.
-
---- Session 4 (2026-04-27) — Phase 2 pawn loans + transfers + audit viewer ---
-  65-83. 3-agent dispatch. 0005 + 0006. lib/pawn/math.ts. Build green
-     at 25 routes.
-
---- Session 5 (2026-04-27 ~late) — Phase 3 + Print PDF + Phase 4 POS + DL scanner ---
-  84-101. Phase 3 + 0007. Print PDF. Phase 4 (0008). Build green at
-     34 routes.
-
---- Session 6 (2026-04-27 evening) — Phases 5+6+7 merged + customer-save fix ---
-  102-110. Customer-save bug fix. 3-agent dispatch. 4 deploys.
-
---- Session 7 (2026-04-28 morning) — Migration cleanup + Path A start + 3 Path B ---
-  111-121. APPLIED 0009/0010/0011. Sidebar collapse. Phase 9 A schema +
-     UI. Bullion + appraisals + eBay-stub agents merged.
-
---- Session 8 (2026-04-28 evening) — Save bug + Phase 9 GA + 2 out-of-scope ---
-  122-137. Save bug. Version-footer. Phase 9 A chunks 1-5. 0016. Settings
-     hub + integrations. Spot-prices headline. Buy-outright. Phase 8
-     polish. Portal Stripe-optional. 1099-MISC.
-
---- Session 9 (2026-04-28 night) — Pawn save + admin menu + RLS + security audit Part A ---
-  138-146. Pawn collateral metal_type fix. Admin/Staff topbar reciprocal
-     links. Migration 0017 (next_tenant_counter SECURITY DEFINER).
-     Security audit Part A. Part B (RLS) deferred.
-
---- Session 10 (2026-04-29 morning) — Customer portal end-to-end + 3 admin pages ---
-  147-160. Customer-portal invite + claim + dedicated /portal/login +
-     optional password + Migration 0019 RLS tightening + alias-cast
-     cleanup + 3 lint fixes + /admin/settings hub + /settings/general
-     + /team CRUD.
-
---- Session 11 (2026-04-29 afternoon) — Phase 9 closure + variable-rate menu ---
-  161-166. Admin notify on new tenant signup + inline pawn calculator +
-     self-service plan-CHANGE + watch-model DB + diamond cert scaffold +
-     variable-rate menu module.
+(Sessions 1-11 archived 2026-04-30 to Progress_archive.txt — see file
+for early-build history through Phase 9 closure / variable-rate menu.
+Items 1-166 covered there.)
 
 --- Session 12 (2026-04-29 evening) — Loan-rate minimums + repair tech workflow ---
   167-168. Per-rate min_monthly_charge + tenant-wide min_loan_amount;
@@ -899,6 +764,36 @@ SESSION HISTORY LOG
      Stooq (xauusd/xagusd/xptusd CSV, no auth) documented as a
      one-line swap if true LBMA spot ever matters.
 
+--- Session 16 (2026-04-30 early-AM) — Stooq swap (Kitco-matching spot) ---
+
+ 180. [BUG] FUTURES-VS-SPOT GAP — YAHOO QUOTED $15 ABOVE KITCO.
+     Operator compared the Session 15 Yahoo source against Kitco
+     immediately after deploy: $4575 (Yahoo GC=F) vs $4559.70
+     (Kitco). Web Claude diagnosed the gap correctly (COMEX gold
+     futures trade in contango above LBMA spot — typical $5–15/oz
+     premium) and recommended swapping `GC=F` → `XAUUSD=X`
+     (Yahoo's spot ticker). Live test against Yahoo's v8/chart
+     endpoint returned "No data found, symbol may be delisted"
+     for XAUUSD=X. Yahoo has dropped that ticker from the chart
+     endpoint as of 2026-04. Probed alternates: ^XAU is the
+     Philadelphia gold/silver INDEX (not bullion), GLD is the
+     SPDR Gold Trust ETF (NAV ~1/10th spot, expense-ratio drift),
+     GOLD is the equity ticker for Barrick Gold — none return
+     USD/oz spot. Pivoted to Stooq (the swap path I'd already
+     documented as the alternative in yahoo-finance.ts). Stooq
+     returns Close prices for xauusd / xagusd / xptusd / xpdusd
+     within pennies of Kitco — verified live: gold $4562.105 vs
+     Kitco $4559.70 = $2.40 gap (normal tick spread). Files:
+     src/lib/spot-prices/sources/stooq.ts (NEW — CSV parser,
+     polite UA, no auth), deleted yahoo-finance.ts, refresh.ts
+     (import path swap; source label 'yahoo-finance' → 'stooq'
+     across 5 places + header comment + error message),
+     src/app/api/cron/refresh-spot-prices/route.ts (comment),
+     src/app/(staff)/inventory/[id]/content.tsx (comment now
+     enumerates 4 historical source values: 'stooq' / 'manual' /
+     'seed' / older 'yahoo-finance' / 'metals.live'). tsc clean.
+     Commit 344d822 pushed to main.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
@@ -907,12 +802,13 @@ PENDING — NEXT UP
     Phase 0 close-out + Phase 9 (A) operator setup. Operator-side
     config tasks that block production behavior:
     (1) CRON_SECRET in Vercel (vercel.json schedules all 5 cron
-        routes + Yahoo source now wired — but every call returns
-        401 until this env var is set, so automated spot-price
-        refresh and reminder dispatches stay blocked. "Refresh
-        now" button on /staff/inventory/spot-prices works without
-        CRON_SECRET — staff auth, same refreshSpotPrices() under-
-        neath; fastest end-to-end validation after deploy lands);
+        routes + Stooq source now wired and Kitco-matching — but
+        every call returns 401 until this env var is set, so
+        automated spot-price refresh and reminder dispatches stay
+        blocked. "Refresh now" button on /staff/inventory/spot-
+        prices works without CRON_SECRET — staff auth, same
+        refreshSpotPrices() underneath; fastest end-to-end
+        validation after deploy lands);
     (2) NEXT_PUBLIC_APP_URL=https://pawn-three.vercel.app in Vercel;
     (3) STRIPE_SAAS_WEBHOOK_SECRET + RESEND_PLATFORM_FROM_EMAIL +
         RESEND_PLATFORM_FROM_NAME in Vercel;

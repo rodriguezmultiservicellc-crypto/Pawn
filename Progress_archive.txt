@@ -1,0 +1,55 @@
+================================================================================
+PROJECT: Pawn — Multi-Tenant Pawn / Jewelry / Repair SaaS
+File:    Progress_archive.txt
+================================================================================
+
+This file holds session-history entries rotated out of Progress.txt to keep
+the active log lean. Append-only. Never read during /resume — exists for
+human reference only.
+
+--- Archived 2026-04-30 ---
+
+--- Session 1 (2026-04-26) — Project planning + skeleton docs ---
+  1-28. Skeleton + 0001-foundation + design tokens + scaffold.
+
+--- Session 2 (2026-04-26 ~16:00) — Cloud wiring + first tenant + fixes ---
+  29-42. .env.local + first tenant + /onboard claim. Build green at 13.
+
+--- Session 3 (2026-04-26 ~18:00) — Phase 1: Customers + Inventory ---
+  43-64. 0003 + 0004 + audit log + dashboard widgets. Build green at 19.
+
+--- Session 4 (2026-04-27) — Phase 2 pawn loans + transfers + audit viewer ---
+  65-83. 3-agent dispatch. 0005 + 0006. lib/pawn/math.ts. Build green
+     at 25 routes.
+
+--- Session 5 (2026-04-27 ~late) — Phase 3 + Print PDF + Phase 4 POS + DL scanner ---
+  84-101. Phase 3 + 0007. Print PDF. Phase 4 (0008). Build green at
+     34 routes.
+
+--- Session 6 (2026-04-27 evening) — Phases 5+6+7 merged + customer-save fix ---
+  102-110. Customer-save bug fix. 3-agent dispatch. 4 deploys.
+
+--- Session 7 (2026-04-28 morning) — Migration cleanup + Path A start + 3 Path B ---
+  111-121. APPLIED 0009/0010/0011. Sidebar collapse. Phase 9 A schema +
+     UI. Bullion + appraisals + eBay-stub agents merged.
+
+--- Session 8 (2026-04-28 evening) — Save bug + Phase 9 GA + 2 out-of-scope ---
+  122-137. Save bug. Version-footer. Phase 9 A chunks 1-5. 0016. Settings
+     hub + integrations. Spot-prices headline. Buy-outright. Phase 8
+     polish. Portal Stripe-optional. 1099-MISC.
+
+--- Session 9 (2026-04-28 night) — Pawn save + admin menu + RLS + security audit Part A ---
+  138-146. Pawn collateral metal_type fix. Admin/Staff topbar reciprocal
+     links. Migration 0017 (next_tenant_counter SECURITY DEFINER).
+     Security audit Part A. Part B (RLS) deferred.
+
+--- Session 10 (2026-04-29 morning) — Customer portal end-to-end + 3 admin pages ---
+  147-160. Customer-portal invite + claim + dedicated /portal/login +
+     optional password + Migration 0019 RLS tightening + alias-cast
+     cleanup + 3 lint fixes + /admin/settings hub + /settings/general
+     + /team CRUD.
+
+--- Session 11 (2026-04-29 afternoon) — Phase 9 closure + variable-rate menu ---
+  161-166. Admin notify on new tenant signup + inline pawn calculator +
+     self-service plan-CHANGE + watch-model DB + diamond cert scaffold +
+     variable-rate menu module.
