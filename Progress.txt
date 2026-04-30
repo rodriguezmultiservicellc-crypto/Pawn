@@ -12,21 +12,54 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 14 (2026-04-29 night) — Wire production
-                  crons via vercel.json. Diagnostic session that
-                  resolved why the live spot-price feed (and every
-                  other cron) wasn't running in production: vercel.
-                  json never existed in the repo, so Vercel had no
-                  schedule pointing at /api/cron/*. Five routes had
-                  shipped over Sessions 5-9 but never fired auto-
-                  matically. Single-file commit (c753654) added
-                  vercel.json with 6 cron entries.
-  Context budget: HEAVY — /progress clear after this save.
-  Last worked on: Session ended cleanly. vercel.json committed +
-                  pushed. Operator must still set CRON_SECRET in
-                  Vercel project env or every cron 401s.
+  Last session:   Session 15 (2026-04-29 night — late) — Spot-
+                  price source swap. Root-cause fix for "spot-price
+                  feature not working": api.metals.live's TLS
+                  endpoint went dead (SEC_E_ILLEGAL_MESSAGE on
+                  handshake). The cron has been hitting a corpse
+                  since whenever metals.live decommissioned, silently
+                  producing zero rows and leaving inventory melt
+                  values pinned to the migration 0013 'seed'
+                  placeholders. Replaced with Yahoo Finance v8 chart
+                  endpoint (GC=F / SI=F / PL=F / PA=F) — no auth, no
+                  API key, all four bullion metals in one source.
+                  Commit ea68bdc pushed to main.
+  Context budget: ~70% full at save time.
+  Last worked on: Session ended cleanly. Spot-price source swap
+                  committed + pushed. CRON_SECRET in Vercel still
+                  the gating production task — without it the cron
+                  schedule fires but routes 401. "Refresh now"
+                  button on /staff/inventory/spot-prices uses staff
+                  auth (not CRON_SECRET) and is the fastest way to
+                  validate end-to-end after deploy.
 
   ACTIVE FILE(S) — last touched this session:
+    --- SPOT-PRICE SOURCE SWAP (item 179) ---
+    - src/lib/spot-prices/sources/yahoo-finance.ts (NEW —
+      Yahoo v8 chart endpoint fetcher, no auth, all four
+      bullion metals; Stooq commented at the bottom as a
+      one-line swap if true LBMA spot ever needed)
+    - src/lib/spot-prices/sources/metals-live.ts (DELETED —
+      upstream TLS endpoint dead)
+    - src/lib/spot-prices/refresh.ts (import path swap;
+      type rename MetalsLiveQuote → SpotQuote; source label
+      'metals.live' → 'yahoo-finance' in 5 places + header
+      comment + error message)
+    - src/app/api/cron/refresh-spot-prices/route.ts (header
+      comment refresh)
+    - src/app/(staff)/inventory/[id]/content.tsx (source
+      label comment refresh; older rows may still read
+      'metals.live')
+
+    Side-trip cleanly reverted: a v3 Armando handoff doc and
+    a working Yahoo-source gold widget were briefly built into
+    paracubasolutions.com (C:\xampp\htdocs\lunaazul) before the
+    operator redirected scope into Pawn. paracubasolutions back
+    to original state (api/gold.php deleted, cache/gold.json +
+    gold_errors.log deleted, index.html nav reverted, v3 handoff
+    in Downloads removed).
+
+  ACTIVE FILE(S) — Session 14 carried forward (already committed):
     - vercel.json (NEW — 6 cron schedules: refresh-spot-prices x2
       [15-min during US bullion market hours weekdays + hourly
       fallback], maturity/layaway/repair-ready reminders staggered
@@ -123,22 +156,22 @@ SEE ALSO (do not duplicate here):
       payoffBalance / splitPayment)
 
   RESUME POINT:
-    Session 14 ended cleanly — vercel.json shipped (commit
-    c753654, pushed to main). Production now has cron schedules
-    pointing at all 5 cron routes. Every cron will 401 silently
-    until the operator sets CRON_SECRET in Vercel project env;
-    the schedule fires either way. After CRON_SECRET lands,
-    spot prices refresh every 15 min during market hours +
-    hourly off-hours, and the daily reminder crons fire at
-    9:00-9:10 ET.
+    Session 15 ended cleanly — spot-price source swap shipped
+    (commit ea68bdc, pushed to main). The dead-upstream half of
+    "spot prices not working" is fixed in code; full pipeline
+    validation gates on CRON_SECRET being set in Vercel. The
+    same refreshSpotPrices() is callable via the "Refresh now"
+    button on /staff/inventory/spot-prices using staff auth,
+    which is the fastest way to confirm Yahoo → DB upsert works
+    end-to-end after the Vercel deploy lands.
 
     Two paths next session:
 
     (A) Operator setup — close the production-behavior gates
-        listed under OPEN ISSUES below. CRON_SECRET is THE most
-        load-bearing one now that vercel.json is in place; until
-        it's set the schedules execute but the route bodies
-        return 401 immediately.
+        listed under OPEN ISSUES below. CRON_SECRET in Vercel
+        is the load-bearing one (Sessions 14+15 both end
+        blocked on it). After CRON_SECRET, the auto-refresh
+        schedule fires every 15 min during market hours.
 
     (B) Coding-side backlog — pick from:
         • Cron: held → available status flip on hold_until
@@ -163,11 +196,13 @@ SEE ALSO (do not duplicate here):
     - Phase 0 punch list still open: NEXT_PUBLIC_APP_URL +
       CRON_SECRET in Vercel + 3 pasted secrets rotation (anon
       JWT, service-role JWT, sbp_ token) + repo-local git
-      config revert. (vercel.json cron schedules landed Session
-      14 — that compounding cause is now closed.)
+      config revert. (vercel.json cron schedules wired Session
+      14, dead metals.live source swapped to Yahoo Session 15
+      — both code-side compounding causes now closed.)
     - CRON_SECRET still missing in Vercel — schedules fire
-      but route bodies 401. Promotes from "punch list" to
-      "first thing to set" now that vercel.json is wired.
+      but route bodies 401. THE single remaining gate for
+      automated spot-price refresh; "Refresh now" button works
+      without it.
     - SaaS billing real-money flow still gates on operator
       setup (Stripe webhook config + Sync Stripe products
       button click).
@@ -192,6 +227,43 @@ SEE ALSO (do not duplicate here):
       bundles with pgsodium-encryption migration on backlog.
 
   KEY DECISIONS LOCKED THIS SESSION:
+    - YAHOO V8 CHART, NOT V7 QUOTE. v7/finance/quote returns
+      401 Unauthorized for unauthenticated callers in 2026 —
+      it requires a session cookie + crumb token dance now.
+      v8/finance/chart returns price + previous-close cleanly
+      with just a User-Agent header. Validated live from this
+      machine and via Node's native fetch (Vercel runtime
+      parity).
+    - YAHOO SERVES COMEX FUTURES, NOT LBMA SPOT. GC=F / SI=F /
+      PL=F / PA=F are futures contracts; typical gap vs Kitco
+      spot is $5-15/oz on gold. Acceptable for melt-value math
+      at Pawn's tolerance levels (tenant overrides multiply
+      down by 60-85% anyway). Stooq (xauusd/xagusd/xptusd CSV,
+      no auth) returns true LBMA spot if sub-percent accuracy
+      ever matters — documented as a one-line swap at the
+      bottom of yahoo-finance.ts.
+    - USER-AGENT HEADER IS REQUIRED. Yahoo blocks requests
+      with no UA or generic node UAs in some regions. A real
+      Chrome UA string keeps Vercel's outbound IPs out of that
+      bucket. Set in the fetch call, not relying on Node's
+      default.
+    - BACKWARDS-COMPAT FOR HISTORICAL ROWS. Older spot_prices
+      rows still carry source='metals.live'; the lookup query
+      is source-agnostic (orders by fetched_at DESC LIMIT 1
+      per metal/purity), so the swap is non-breaking. The
+      inventory detail page comment was updated to note both
+      labels can appear.
+    - PARACUBASOLUTIONS IS NOT THE PAWN APP. A v3 Armando
+      handoff doc + working PHP gold widget were briefly built
+      into C:\xampp\htdocs\lunaazul before the operator
+      redirected scope. The two surfaces have unrelated
+      purposes: paracubasolutions = customer-facing marketing
+      pill on a static landing page; Pawn /api/cron/refresh-
+      spot-prices = internal valuation data feed. Don't
+      confuse the two — the Yahoo logic ported cleanly because
+      the source is the same, but the surface is not.
+
+  KEY DECISIONS LOCKED PRIOR SESSION (Session 14 — kept for context):
     - VERCEL.JSON PAIRS TWO ENTRIES POINTING AT THE SAME PATH
       FOR refresh-spot-prices: a market-hours `*/15 13-21 * *
       1-5` (every 15 min Mon-Fri 8am-4pm ET) AND an off-hours
@@ -801,6 +873,32 @@ SESSION HISTORY LOG
      noted: Vercel Hobby tier rejects the sub-daily schedules and
      falls back to once-per-day; Pro+ accepts as written.
 
+--- Session 15 (2026-04-29 night — late) — Spot-price source swap ---
+
+ 179. [CRITICAL] DEAD UPSTREAM — METALS.LIVE TLS ENDPOINT GONE.
+     Operator reported "the pawn saas spot-price feature is not
+     working" mid-session after a brief detour into the unrelated
+     paracubasolutions.com gold widget (cleanly reverted). Live
+     diagnostic via curl revealed api.metals.live returns
+     SEC_E_ILLEGAL_MESSAGE on the TLS handshake — service is
+     dead/decommissioned. Combined with Session 14's CRON_SECRET
+     gap, the Pawn cron has been silently producing zero rows
+     since whenever metals.live went down. Inventory melt values
+     across the platform have been pinned to the migration 0013
+     'seed' placeholder rows (gold=2400, silver=28, platinum=950,
+     palladium=1100 USD/oz). Replaced with Yahoo Finance v8 chart
+     endpoint — verified live for all four metals via curl + Node
+     native fetch (gold $4575, silver $72.78, platinum $1915,
+     palladium $1470 USD/oz at save time). Files touched:
+     src/lib/spot-prices/sources/yahoo-finance.ts (NEW), deleted
+     metals-live.ts, src/lib/spot-prices/refresh.ts (import +
+     type rename + 5x source-label literals + comment),
+     src/app/api/cron/refresh-spot-prices/route.ts (comment),
+     src/app/(staff)/inventory/[id]/content.tsx (comment).
+     Project tsc --noEmit clean. Commit ea68bdc pushed to main.
+     Stooq (xauusd/xagusd/xptusd CSV, no auth) documented as a
+     one-line swap if true LBMA spot ever matters.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
@@ -808,10 +906,13 @@ PENDING — NEXT UP
   IMMEDIATE (do this first next session):
     Phase 0 close-out + Phase 9 (A) operator setup. Operator-side
     config tasks that block production behavior:
-    (1) CRON_SECRET in Vercel (vercel.json now schedules all 5 cron
-        routes — but every call returns 401 until this env var is
-        set, so spot prices never refresh and reminder dispatches
-        never fire);
+    (1) CRON_SECRET in Vercel (vercel.json schedules all 5 cron
+        routes + Yahoo source now wired — but every call returns
+        401 until this env var is set, so automated spot-price
+        refresh and reminder dispatches stay blocked. "Refresh
+        now" button on /staff/inventory/spot-prices works without
+        CRON_SECRET — staff auth, same refreshSpotPrices() under-
+        neath; fastest end-to-end validation after deploy lands);
     (2) NEXT_PUBLIC_APP_URL=https://pawn-three.vercel.app in Vercel;
     (3) STRIPE_SAAS_WEBHOOK_SECRET + RESEND_PLATFORM_FROM_EMAIL +
         RESEND_PLATFORM_FROM_NAME in Vercel;
