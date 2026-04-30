@@ -15,10 +15,7 @@ import InventoryDetail, {
   type InventoryPhotoItem,
   type InventoryStoneItem,
 } from './content'
-import type {
-  EbayListingRow,
-  TenantEbayCredentialsRow,
-} from '@/types/database-aliases'
+import type { EbayListingRow } from '@/types/database-aliases'
 import type { EbayPanelListing } from '@/components/ebay/InventoryEbayPanel'
 
 type Params = Promise<{ id: string }>

@@ -25,6 +25,7 @@ export type TenantGeneralView = {
   tenant_type: string
   parent_tenant_id: string | null
   police_report_format: string | null
+  agency_store_id: string | null
 }
 
 export default function GeneralSettingsContent({
@@ -67,9 +68,10 @@ export default function GeneralSettingsContent({
       <header>
         <h1 className="text-2xl font-bold text-ink">Tenant info</h1>
         <p className="mt-1 text-sm text-ash">
-          Identity and contact details for this tenant. Module flags and
-          police-report format are read-only here — they&apos;re set when the
-          tenant is provisioned by the platform admin.
+          Identity, contact, and compliance settings for this tenant.
+          Module flags and police-report format are read-only here —
+          they&apos;re set when the tenant is provisioned by the platform
+          admin.
         </p>
       </header>
 
@@ -186,14 +188,30 @@ export default function GeneralSettingsContent({
 
         <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
           <legend className="px-1 text-sm font-semibold text-ink">
-            Modules & compliance (read-only)
+            Compliance
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ReadOnly label="Tenant type" value={tenant.tenant_type.replace('_', ' ')} />
+            <Field
+              label="Agency store ID"
+              name="agency_store_id"
+              defaultValue={initial.agency_store_id ?? ''}
+              error={fe('agency_store_id')}
+              hint="Compliance-agency-assigned store identifier (e.g. LeadsOnline). Falls back to tenant UUID when blank."
+              maxLength={64}
+            />
             <ReadOnly
               label="Police-report format"
               value={tenant.police_report_format ?? '—'}
             />
+          </div>
+        </fieldset>
+
+        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+          <legend className="px-1 text-sm font-semibold text-ink">
+            Modules (read-only)
+          </legend>
+          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <ReadOnly label="Tenant type" value={tenant.tenant_type.replace('_', ' ')} />
             <ReadOnly
               label="Modules enabled"
               value={[
@@ -241,6 +259,7 @@ function defaultsFromTenant(t: TenantGeneralView): {
   zip: string
   phone: string
   email: string
+  agency_store_id: string
 } {
   return {
     name: t.name,
@@ -251,6 +270,7 @@ function defaultsFromTenant(t: TenantGeneralView): {
     zip: t.zip ?? '',
     phone: t.phone ?? '',
     email: t.email ?? '',
+    agency_store_id: t.agency_store_id ?? '',
   }
 }
 

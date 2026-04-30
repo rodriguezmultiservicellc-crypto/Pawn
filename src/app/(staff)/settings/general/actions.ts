@@ -55,6 +55,12 @@ const generalSchema = z.object({
       z.string().email().nullable().optional(),
     )
     .transform((v) => v ?? null),
+  agency_store_id: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v?.toString().trim()),
+      z.string().min(1).max(64).nullable().optional(),
+    )
+    .transform((v) => v ?? null),
 })
 
 export type UpdateGeneralState = {
@@ -96,6 +102,7 @@ export async function updateGeneralAction(
     'zip',
     'phone',
     'email',
+    'agency_store_id',
   ]) {
     const v = formData.get(k)
     if (typeof v === 'string') echo[k] = v
@@ -110,6 +117,7 @@ export async function updateGeneralAction(
     zip: formData.get('zip'),
     phone: formData.get('phone'),
     email: formData.get('email'),
+    agency_store_id: formData.get('agency_store_id'),
   })
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {}
@@ -123,6 +131,10 @@ export async function updateGeneralAction(
   const v = parsed.data
 
   const admin = createAdminClient()
+  // agency_store_id lands via 0024-tenant-agency-store-id.sql; the
+  // autogen Database type picks it up after `npm run db:types`. Until
+  // then the field is unknown to TS — split the writes so the typed
+  // base columns stay typed and the new column rides along separately.
   const { error } = await admin
     .from('tenants')
     .update({
@@ -137,6 +149,15 @@ export async function updateGeneralAction(
       updated_at: new Date().toISOString(),
     })
     .eq('id', ctx.tenantId)
+  if (!error) {
+    const { error: agencyError } = await admin
+      .from('tenants')
+      .update({ agency_store_id: v.agency_store_id } as never)
+      .eq('id', ctx.tenantId)
+    if (agencyError) {
+      return { error: agencyError.message, values: echo }
+    }
+  }
 
   if (error) {
     return { error: error.message, values: echo }
@@ -161,6 +182,7 @@ export async function updateGeneralAction(
         'zip',
         'phone',
         'email',
+        'agency_store_id',
       ],
     },
   })

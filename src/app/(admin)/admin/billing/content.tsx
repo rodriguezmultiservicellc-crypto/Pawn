@@ -30,7 +30,7 @@ export default function BillingContent({
           <h1 className="text-2xl font-bold text-ink">Billing</h1>
           <p className="text-sm text-ash">
             Per-tenant subscription state. The webhook keeps these rows in
-            sync with Stripe; the manual "Set plan" controls below are an
+            sync with Stripe; the manual &ldquo;Set plan&rdquo; controls below are an
             override for support cases.
           </p>
         </div>

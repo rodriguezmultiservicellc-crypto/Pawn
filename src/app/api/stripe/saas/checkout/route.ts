@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { getCtx } from '@/lib/supabase/ctx'
-import { requireOwner } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ensureStripeCustomerForTenant } from '@/lib/saas/customer'
 import { createSubscriptionCheckoutSession } from '@/lib/stripe/saas'

@@ -7,7 +7,6 @@ import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   buyOutrightSchema,
-  buyItemSchema,
   ALLOWED_BUY_PHOTO_MIME_TYPES,
   MAX_BUY_PHOTO_BYTES,
   type BuyItemInput,

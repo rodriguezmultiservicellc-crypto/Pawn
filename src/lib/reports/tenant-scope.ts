@@ -31,17 +31,26 @@ export async function resolveReportScope(args: {
 
   const { data: tenant, error } = await supabase
     .from('tenants')
-    .select('id, name, dba, tenant_type, parent_tenant_id')
+    .select('id, name, dba, tenant_type, parent_tenant_id, agency_store_id')
     .eq('id', tenantId)
-    .maybeSingle()
+    .maybeSingle<{
+      id: string
+      name: string
+      dba: string | null
+      tenant_type: string | null
+      parent_tenant_id: string | null
+      agency_store_id: string | null
+    }>()
   if (error) throw new Error(`tenant_lookup_failed: ${error.message}`)
   if (!tenant) throw new Error('tenant_not_found')
 
   const tenantType = (tenant.tenant_type ?? null) as TenantType | null
   const tenantName = tenant.dba?.trim() || tenant.name
-  // store_id fallback: use tenant.id UUID until a real agency-assigned id
-  // lives on `tenants` (Phase 0 enum schema doesn't include it yet).
-  const storeId = tenantId
+  // Prefer the agency-assigned store id (e.g. LeadsOnline) when set; fall
+  // back to the tenant UUID so reports stay well-formed for tenants that
+  // haven't been onboarded with the agency yet.
+  const agencyStoreId = tenant.agency_store_id?.trim() ?? ''
+  const storeId = agencyStoreId.length > 0 ? agencyStoreId : tenantId
 
   if (tenantType === 'chain_hq') {
     const { data: children } = await supabase

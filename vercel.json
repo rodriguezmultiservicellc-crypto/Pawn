@@ -22,6 +22,10 @@
       "schedule": "10 14 * * *"
     },
     {
+      "path": "/api/cron/release-buy-holds",
+      "schedule": "15 14 * * *"
+    },
+    {
       "path": "/api/cron/ebay-sync",
       "schedule": "0,30 13-21 * * 1-5"
     }

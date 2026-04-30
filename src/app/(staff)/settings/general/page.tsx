@@ -24,10 +24,27 @@ export default async function GeneralSettingsPage() {
   const { data: tenant } = await admin
     .from('tenants')
     .select(
-      'id, name, dba, address, city, state, zip, phone, email, has_pawn, has_repair, has_retail, tenant_type, parent_tenant_id, police_report_format',
+      'id, name, dba, address, city, state, zip, phone, email, has_pawn, has_repair, has_retail, tenant_type, parent_tenant_id, police_report_format, agency_store_id',
     )
     .eq('id', ctx.tenantId)
-    .maybeSingle()
+    .maybeSingle<{
+      id: string
+      name: string
+      dba: string | null
+      address: string | null
+      city: string | null
+      state: string | null
+      zip: string | null
+      phone: string | null
+      email: string | null
+      has_pawn: boolean
+      has_repair: boolean
+      has_retail: boolean
+      tenant_type: string
+      parent_tenant_id: string | null
+      police_report_format: string | null
+      agency_store_id: string | null
+    }>()
 
   if (!tenant) redirect('/settings')
 
@@ -49,6 +66,7 @@ export default async function GeneralSettingsPage() {
         tenant_type: tenant.tenant_type,
         parent_tenant_id: tenant.parent_tenant_id,
         police_report_format: tenant.police_report_format,
+        agency_store_id: tenant.agency_store_id,
       }}
     />
   )
