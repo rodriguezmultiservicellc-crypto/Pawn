@@ -13,214 +13,139 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 17 (2026-04-30 mid-day) — Backlog
-                  sweep: lint debt zeroed, agency_store_id
-                  migration shipped, release-buy-holds cron
-                  built, kanban drag-and-drop wired, test suite
-                  grew 36 → 312. Three commits pushed to main:
-                  a1ef4ad (lint + migration + cron),
-                  5f074e1 (kanban DnD), 9763c7f (test suite
-                  expansion). NUMERIC override task closed as
-                  moot — autogen already types NUMERIC as
-                  number; the 76 remaining `as unknown as` casts
-                  are FK-join / JSONB / partial-select shapes,
-                  not NUMERIC.
-  Context budget: ~88% full at save time.
-  Last worked on: Session ended cleanly. Lint = 0 errors / 0
-                  warnings. Typecheck clean. 312/312 tests pass.
-                  CRON_SECRET in Vercel still the load-bearing
-                  production task. After CRON_SECRET, both the
-                  spot-price refresh AND the new release-buy-
-                  holds cron start firing on schedule.
+  Last session:   Session 18 (2026-04-30 evening) — DL scanner
+                  upgrades (3 sub-items) + watch typeahead pushes
+                  to collateral. One commit pushed: e14460b. Eddy
+                  asked for backlog items 1-4; I flagged context
+                  budget reality, did 3 + 4 in this session, and
+                  recommended /progress clear before tackling the
+                  mobile audit (item 1) and Phase 10 Path A
+                  landing pages (item 2).
+  Context budget: ~95% full at save time. /progress clear
+                  recommended after this save before next work.
+  Last worked on: Session ended cleanly. Lint clean, typecheck
+                  clean, all 312 tests still pass. Operator
+                  follow-ups stack now: apply patches/0024 +
+                  patches/0025, run db:types, set CRON_SECRET.
 
-  ACTIVE FILE(S) — last touched this session (already
-  committed across 3 commits):
+  ACTIVE FILE(S) — last touched this session (all in
+  commit e14460b):
 
-    --- LINT DEBT CLEAN (item 181, commit a1ef4ad) ---
-    - src/app/(admin)/admin/billing/content.tsx
-      (line 33 — `"Set plan"` quotes escaped to
-      `&ldquo;Set plan&rdquo;`)
-    - src/app/(staff)/buy/new/actions.ts (dropped unused
-      `buyItemSchema` import)
-    - src/app/(staff)/inventory/[id]/page.tsx (dropped
-      unused `TenantEbayCredentialsRow` import)
-    - src/app/api/stripe/saas/checkout/route.ts (dropped
-      unused `requireOwner` import; comment now reads
-      "requireOwner-style check inline")
-    - eslint.config.mjs (added rule:
-      `@typescript-eslint/no-unused-vars` with
-      argsIgnorePattern: '^_' — honors React 19 server-
-      action shape `(prevState, formData)` where the
-      action ignores both but can't delete them)
-
-    --- TENANTS.AGENCY_STORE_ID MIGRATION (item 182,
-        commit a1ef4ad) ---
-    - patches/0024-tenant-agency-store-id.sql (NEW —
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS
-      agency_store_id TEXT + COMMENT + NOTIFY pgrst.
+    --- DL_RAW_PAYLOAD MIGRATION + WRITE PATH (item 187) ---
+    - patches/0025-customer-dl-raw-payload.sql (NEW —
+      ALTER TABLE customers ADD COLUMN IF NOT EXISTS
+      dl_raw_payload TEXT + COMMENT + NOTIFY pgrst.
       Append-only; documented rollback)
-    - src/lib/reports/tenant-scope.ts (selects
-      agency_store_id; storeId = trimmed value when set,
-      else falls back to tenant UUID — police-report
-      exporter no longer hardcodes UUID fallback)
-    - src/app/(staff)/settings/general/page.tsx
-      (selects agency_store_id, passes to content)
-    - src/app/(staff)/settings/general/content.tsx
-      (split "Modules & compliance" into "Compliance"
-      [editable] + "Modules" [read-only]; agency_store_id
-      gets a Field with hint "falls back to tenant UUID
-      when blank")
-    - src/app/(staff)/settings/general/actions.ts
-      (zod validates 1-64 chars; split write keeps the
-      typed base columns typed and ships agency_store_id
-      via a single `as never` cast at boundary until
-      `npm run db:types` runs after migration apply)
+    - src/lib/validations/customer.ts (added
+      dl_raw_payload to customerCreateSchema — empty-
+      string shield + 1..4000 char cap; surfaces on
+      customerUpdateSchema via .extend chain)
+    - src/app/(staff)/customers/new/actions.ts (added
+      'dl_raw_payload' to FIELDS array; insert payload
+      shifted to a named const + cast `as never` at
+      boundary until db:types runs; audit_log records
+      `dl_scan_captured: true|false` rather than the
+      raw payload to avoid duplicating PII into the
+      staff-readable audit viewer)
 
-    --- RELEASE-BUY-HOLDS CRON (item 183, commit
-        a1ef4ad) ---
-    - src/app/api/cron/release-buy-holds/route.ts (NEW —
-      selects items where status='held' AND hold_until
-      IS NOT NULL AND hold_until <= today AND
-      deleted_at IS NULL; flips to 'available'; per-
-      tenant audit_log row with item_ids + skus +
-      hold_until_max). hold_until-NOT-NULL filter is
-      load-bearing: layaway holds use NULL.
-    - vercel.json (added 6th schedule: `15 14 * * *`
-      daily — 10:15 AM ET, well past midnight in any
-      US TZ)
+    --- EXPIRED-LICENSE WARNING (item 188) ---
+    - src/app/(staff)/customers/new/form.tsx (added
+      expiredAt state; handleScanResult compares
+      info.expirationDate to today via lexical YYYY-MM-DD
+      string compare; banner renders when expired —
+      non-blocking, operator decides; rawPayload comment
+      refreshed since the column now lands)
+    - src/lib/i18n/{en,es}.ts (added dlScanner
+      .expiredWarning + 6 capture-modal strings)
 
-    --- NUMERIC OVERRIDE — MOOT (item 184) ---
-    - No code change. Verified autogen
-      src/types/database.ts already types every NUMERIC
-      column as `number` (loans.principal,
-      loans.interest_rate_monthly, layaways.balance_
-      remaining, sales.subtotal, etc.). The Session 11
-      Progress.txt note about "NUMERIC returns as string"
-      reflects an earlier supabase-cli typegen state
-      that has since been fixed. The 76 surviving `as
-      unknown as` casts in src/ are FK-join shapes,
-      JSONB columns, partial-select bridging, and
-      tables added since the last db:types — NOT the
-      NUMERIC pattern. Different cleanup, different
-      scope.
+    --- WEBCAM CAPTURE — FRONT OF LICENSE (item 189) ---
+    - src/components/customers/WebcamCapture.tsx (NEW —
+      reusable component; getUserMedia({ video:
+      facingMode:'environment', audio:false }) for rear-
+      cam preference; <video> live preview → snap to
+      hidden <canvas> via drawImage → canvas.toBlob to
+      JPEG @ 92% quality; preview + Retake/Confirm
+      flow; createPortal modal; stream cleanup on every
+      exit path; set-state-in-effect avoided per Session
+      8 convention by relying on close() to reset state)
+    - src/app/(staff)/customers/[id]/content.tsx (added
+      WebcamCaptureForId wrapper that builds FormData
+      and calls uploadCustomerDocumentAction with
+      kind='id_scan' + the customer's existing id_type/
+      number/state/expiry; document grid widened from
+      md:grid-cols-2 to md:grid-cols-3 to fit the new
+      button next to the existing UploadButtons)
 
-    --- KANBAN DRAG-AND-DROP (item 185, commit 5f074e1) ---
-    - package.json (+@dnd-kit/core, @dnd-kit/sortable,
-      @dnd-kit/utilities — accessible by default,
-      touch-supported, no polyfills)
-    - src/app/(staff)/repair/board/actions.ts (NEW —
-      moveTicketStatusAction; manager-only role gate;
-      moveDescriptor() maps each (from, to) pair to the
-      matching event_type AND existing audit verb so
-      timeline + audit_log read consistently with the
-      buttoned actions; handles claimed_at +
-      completed_at stamps; auto-timer hooks
-      [stop on leaving in_progress, open on entering
-      with assigned tech])
-    - src/app/(staff)/repair/board/content.tsx (REWRITE
-      — DndContext + PointerSensor 8px activation +
-      KeyboardSensor; useDraggable on each card,
-      useDroppable on each column; client-side
-      canTransition() guard before round-trip; optimistic
-      update + revert-on-error; legal-target columns
-      tint green, illegal columns dim; DragOverlay
-      preview; cards stay <button> for click navigation)
-    - src/lib/i18n/{en,es}.ts (added repair.board
-      .moveSaving / moveIllegal / moveFailed; refreshed
-      board.subtitle to mention drag)
-
-    --- TEST SUITE EXPANSION (item 186, commit
-        9763c7f) ---
-    - src/lib/repair/workflow.test.ts (NEW — 89 tests:
-      every legal/illegal (from, to) pair, terminal
-      invariants, LEGAL_TRANSITIONS table integrity,
-      shouldOpenTimerOnEnter/Leave hooks,
-      nextSuggestedStatus per (current, event) pair)
-    - src/lib/saas/types.test.ts (NEW — 29 tests:
-      formatCents quirks, statusTone for every
-      SubscriptionStatus, isTrialing strictness,
-      trialDaysRemaining rounding, planFeatures /
-      planHasFeature / planLimit JSONB tolerance incl.
-      zero-as-hard-limit)
-    - src/lib/validations/loan.test.ts (NEW — 38 tests:
-      empty-string shield, metal-placeholder shield,
-      principal-positive vs interest-nonneg, interest
-      cap 0.25, term_days 1..180, payment-split sum
-      guard $0.0001 tolerance, void reason min 10 chars,
-      collateral 1..50)
-    - src/lib/validations/customer.test.ts (NEW — 32
-      tests: empty-shield across optional fields,
-      country US default, email gate, id_type empty
-      shield, height 12..108 / weight 1..999 bounds,
-      tags comma-string + array parsing, banCustomer
-      coercion, document upload kind enum)
-    - src/lib/validations/buy-outright.test.ts (NEW —
-      24 tests: payout required, metal placeholder,
-      items 1..20, payment_method 'cash' default, per-
-      item validation surfacing through array)
-    - src/lib/validations/inventory.test.ts (NEW — 32
-      tests: description required, source enum
-      tightness, defaults [other / case / available /
-      acquired_at = today], SKU empty-as-null trigger
-      delegation, stones array 0..50, stone count
-      1..999, is_total_carat coercion)
+    --- WATCH-TYPEAHEAD → COLLATERAL INTEGRATION (item 190) ---
+    - src/components/pawn/InlinePawnCalculator.tsx
+      (exported WatchModelMatch type; calculator accepts
+      onAddWatchToCollateral?(match) prop; SelectedWatch
+      Card renders an "Add to collateral" button next
+      to Copy when callback is wired; "Added" success
+      state with 1.8s timer mirrors the copied flow)
+    - src/components/pawn/CollateralItemsList.tsx
+      (converted to forwardRef<CollateralListHandle>;
+      addWatchRow(match) builds a populated row —
+      description = "$brand $model ref $ref ($years)",
+      category='watch', est_value = round((min+max)/2);
+      replaces a pristine seed row in place when the
+      list is fresh, else appends. State stays inside
+      the list, no lift)
+    - src/app/(staff)/pawn/new/form.tsx (collateralRef +
+      passed callback to InlinePawnCalculator —
+      onAddWatchToCollateral={(m) => collateralRef
+      .current?.addWatchRow(m)})
+    - src/lib/i18n/{en,es}.ts (added pawn.inlineCalc
+      .watchLookup.addToCollateral + .added)
 
   RESUME POINT:
-    Session 17 ended cleanly. Three commits shipped:
-    a1ef4ad (lint + agency_store_id migration +
-    release-buy-holds cron), 5f074e1 (kanban drag-and-
-    drop), 9763c7f (test suite 36 → 312). Lint = 0,
-    typecheck clean, all 312 tests pass.
+    Session 18 ended cleanly. Single commit shipped
+    (e14460b). Operator follow-up stack:
+    1. Apply patches/0024-tenant-agency-store-id.sql AND
+       patches/0025-customer-dl-raw-payload.sql in
+       Supabase (in order — both append-only).
+    2. Run `npm run db:types` to refresh autogen.
+       Drops TWO `as never` casts: one in
+       settings/general/actions.ts (agency_store_id),
+       one in customers/new/actions.ts (insertPayload
+       with dl_raw_payload).
+    3. Set CRON_SECRET in Vercel. Gates 6 cron paths.
 
-    Operator follow-ups required before any of the
-    Session 17 work goes fully live:
-    1. Apply patches/0024-tenant-agency-store-id.sql in
-       Supabase.
-    2. Run `npm run db:types` so the autogen Database
-       type picks up agency_store_id (drops the single
-       `as never` cast in settings/general/actions.ts).
-    3. Set CRON_SECRET in Vercel — gates BOTH the
-       Stooq spot-price refresh AND the new
-       release-buy-holds daily cron. Until set, Vercel
-       fires the schedules but the route bodies 401.
+    Two paths next session (recommend /progress clear
+    first — context already past 95%):
 
-    Two paths next session:
+    (A) Backlog item 1 — MOBILE AUDIT. Code-level pass
+        across portal pages (loans/repairs/layaways),
+        dashboard (charts + activity feed), repair
+        kanban (verify column min-widths + drag UX on
+        touch), and receipt PDF download flows. Find
+        responsive gaps (overflow-x missing, fixed
+        widths, tap targets <44px) and patch. Real
+        device verification needs Eddy's eyes — code
+        review can only catch the obvious gaps.
 
-    (A) Operator setup — close the production-behavior
-        gates listed under OPEN ISSUES below. CRON_SECRET
-        in Vercel is still the load-bearing one
-        (Sessions 14/15/16/17 all end blocked on it).
+    (B) Backlog item 2 — PHASE 10 PATH A landing pages
+        skeleton. Multi-session epic; start with the
+        public per-tenant landing page on
+        NEXT_PUBLIC_BASE_DOMAIN (catalog, loyalty/
+        referrals, Google Reviews, email campaigns are
+        each a follow-up session).
 
-    (B) Coding-side backlog — pick from:
-        • Phase 10 Path A (public landing pages, catalog,
-          loyalty/referrals, Google Reviews, email
-          campaigns)
-        • Real eBay wire-up (12-step checklist in commit
-          9b93e235)
-        • pgsodium at-rest encryption rollout
-        • Watch-typeahead → CollateralItemsList
-          imperative-handle integration to auto-fill
-          row description + est_value
-        • Tiered loan rates by amount range (needs
-          schema decision: per-row min/max vs sub-table)
-        • Test suite further: lib/repair/billing,
-          lib/spot-prices/melt, lib/saas/gates I/O via
-          Supabase mock (out of current vitest scope —
-          would need new test infrastructure)
+    (C) Backlog leftovers — pgsodium encryption,
+        tiered loan rates schema decision, lib/repair/
+        billing + lib/spot-prices/melt test coverage,
+        FK-join `as unknown as` cleanup (~25 casts),
+        platform-side staff-invite email.
 
   OPEN ISSUES / BLOCKERS:
     - Phase 0 punch list still open: NEXT_PUBLIC_APP_URL
       + CRON_SECRET in Vercel + 3 pasted secrets
       rotation (anon JWT, service-role JWT, sbp_ token)
-      + repo-local git config revert. CRON_SECRET now
-      gates 5 cron paths (refresh-spot-prices x2 cadences,
-      maturity-reminders, layaway-reminders, repair-
-      ready-reminders, release-buy-holds, ebay-sync).
-    - patches/0024 not yet applied to Supabase. Until
-      applied, code path falls back to tenant UUID for
-      storeId — works but the police-report still emits
-      UUIDs in the store_id column, which a real
-      LeadsOnline submission would reject.
+      + repo-local git config revert. CRON_SECRET gates
+      6 cron paths.
+    - patches/0024 + 0025 not yet applied to Supabase.
+      Code paths fall back / cast at boundary until
+      they apply.
     - SaaS billing real-money flow still gates on
       operator setup (Stripe webhook config + Sync
       Stripe products button click).
@@ -233,95 +158,73 @@ SEE ALSO (do not duplicate here):
       real wire-up checklist documented in commit
       9b93e235.
     - Diamond cert lookup is in stub mode — needs
-      IDEX_API_KEY or RAPAPORT_API_KEY in env to leave
-      'not_configured'.
+      IDEX_API_KEY or RAPAPORT_API_KEY in env.
     - WhatsApp Content SIDs NULL until Twilio + Meta
       approval per template per tenant.
     - FL LeadsOnline CSV format still DRAFT.
     - Reviewer's stronger architectural fix on secrets
       (split secret columns or expose only masked status
-      views) bundles with pgsodium-encryption migration
-      on backlog.
+      views) bundles with pgsodium-encryption migration.
 
   KEY DECISIONS LOCKED THIS SESSION:
-    - LINT-IGNORE _-PREFIX, DON'T DELETE PARAMS. React 19
-      server actions used with useActionState have a
-      structural (prevState, formData) signature. When
-      the action ignores both (e.g.
-      syncStripePlansAction reads no form data), the
-      `_prev` / `_formData` underscore prefix is the
-      canonical "intentionally unused" marker — the
-      params CAN'T be deleted because the signature is
-      contract. Configured eslint to honor `^_`
-      argsIgnorePattern. Different from
-      backwards-compat var renaming (which IS a
-      smell).
-    - AGENCY_STORE_ID FALLS BACK TO TENANT UUID. The
-      column lands as NULLable text. tenant-scope
-      resolver prefers it when a non-empty value is
-      set; otherwise uses tenant.id (UUID). Lets new
-      tenants exist before LeadsOnline assigns them an
-      ID without breaking the report exporter — the
-      file is well-formed; just won't pass agency
-      lookup until set.
-    - SPLIT WRITE ON UNTYPED COLUMN. Autogen Database
-      type doesn't include agency_store_id until db:
-      types runs after migration apply. Pattern: typed
-      update for the base columns, second tiny update
-      for the new column with `as never` cast at the
-      boundary. Avoids silencing all type checking in
-      the action and gives a clear cleanup target after
-      db:types.
-    - HOLD_UNTIL IS NOT NULL FILTER IS LOAD-BEARING.
-      Both buy-outright AND layaway use status='held',
-      but layaway items have hold_until=NULL because
-      the layaway state machine flips them, not date
-      math. The release-buy-holds cron MUST filter on
-      hold_until IS NOT NULL or it will incorrectly
-      release layaway-reserved items. Documented in
-      route comments + locked by the implementation
-      filter chain.
-    - DND-KIT IS THE RIGHT CHOICE OVER HTML5 DnD.
-      Touch-supported by default (jewelry shops often
-      run tablets), accessible (keyboard sensor),
-      drag-overlay support, no polyfills, modern
-      maintained. PointerSensor 8px activation
-      distance lets clicks pass through naturally so
-      the click → /repair/[id] navigation still works.
-    - KANBAN MOVE REUSES EXISTING AUDIT VERBS.
-      Instead of a new 'board_move' AuditAction (which
-      would split timeline filtering), each (from, to)
-      pair maps to the existing per-action verb
-      (claim_ticket / mark_needs_parts / send_to_qa /
-      mark_complete / parts_received / approve_qa /
-      return_from_qa) and adds `via: 'board'` to the
-      changes JSONB. Audit log queries that filter by
-      action keep working; the surface tag is in the
-      payload.
-    - NUMERIC OVERRIDE IS MOOT IN 2026. Earlier
-      supabase-cli typegen mapped NUMERIC → string,
-      requiring per-row casts. Current typegen maps
-      NUMERIC → number directly. Verified across
-      loans / layaways / sales / repair_ticket_items
-      / appraisals. The 76 remaining `as unknown as`
-      casts in src/ are different patterns: FK-join
-      relation shapes (~25), JSONB columns / payload
-      shapes (~10), `as never` write bypasses (~5),
-      partial-select bridging (~20), tables added
-      since last db:types (~16). Future cleanup
-      targets, not NUMERIC override.
-    - VITEST STAYS PURE-LOGIC. Session 13 convention
-      held: test new pure helpers (workflow state
-      machine, validations, saas types) but defer
-      Supabase-mock and React-rendering tests until a
-      regression worth locking justifies the
-      infrastructure. 312-test surface is now the
-      regression floor for refactors.
+    - AUDIT-LOG NOTES SCAN CAPTURE FLAG, NOT RAW PAYLOAD.
+      audit_log is staff-readable and the parsed DL
+      fields (name, license number, expiry) already
+      land in the customer row. Logging the raw AAMVA
+      payload would duplicate PII into the audit
+      viewer with no recovery benefit (the customer row
+      itself has the parsed data + the raw payload from
+      patches/0025). Audit records `dl_scan_captured:
+      boolean` instead.
+    - EXPIRED-LICENSE GUARD IS UI-ONLY, NOT BLOCKING.
+      Pawn-shop convention varies — some shops refuse
+      expired IDs entirely, others accept with
+      documentation (military deployment, recent
+      renewal in mail, etc.). Form shows a warning
+      banner so it's a deliberate operator decision,
+      but doesn't reject submit. If a tenant ever
+      wants a hard block, that's a tenant-setting
+      conversation, not a default.
+    - WEBCAM REAR-CAM PREFERRED VIA facingMode:
+      'environment'. Tablets / phones default to the
+      back camera (the right side for ID capture);
+      desktops fall through to the only camera they
+      have. JPEG @ 92% at native video resolution
+      (typically 1080p+) keeps front-of-license
+      sharpness past the FL 2-year retention window.
+    - WATCH→COLLATERAL USES IMPERATIVE HANDLE, NOT
+      LIFTED STATE. CollateralItemsList row state
+      includes File objects + preview URLs +
+      keystroke-by-keystroke text inputs; lifting it
+      would re-render the form on every keystroke.
+      forwardRef + useImperativeHandle exposes a
+      narrow surface (addWatchRow only) — the parent
+      pushes a populated row in but doesn't own the
+      list state. Same trade-off lib/repair/workflow's
+      pure helpers + state machine make: keep
+      side-effects narrow.
+    - PRISTINE-SEED REPLACE-IN-PLACE FOR FIRST WATCH.
+      newRow() seeds the list with a default empty row
+      so the form has something to render. When the
+      operator picks the FIRST watch via typeahead,
+      addWatchRow detects the seed is still pristine
+      (description empty + category 'other' + no photo
+      + est_value '0') and replaces it in place. Saves
+      a click to delete the placeholder. Subsequent
+      adds append.
+    - SPLIT-WRITE PATTERN EXTENDS TO INSERT. Session 17
+      established the split-write for UPDATE on
+      untyped columns (agency_store_id). Session 18
+      extends to INSERT for dl_raw_payload — single
+      `as never` cast on the whole insertPayload const
+      since INSERT has no equivalent multi-statement
+      version. After db:types runs, the cast becomes
+      a one-line removal.
 
-  (Session 13 + 14 + 15 + 16 PRIOR-SESSION decision blocks
-  pruned from RESUME — full context preserved in the
-  SESSION HISTORY LOG below. Carried-forward architectural
-  decisions stay in the block beneath.)
+  (Sessions 13-17 PRIOR-SESSION decision blocks pruned from
+  RESUME — full context preserved in the SESSION HISTORY
+  LOG below. Carried-forward architectural decisions stay
+  in the block beneath.)
 
   KEY DECISIONS CARRIED FROM PRIOR SESSIONS (still authoritative):
     - Multi-store from day 1 (tenants.parent_tenant_id +
@@ -1015,6 +918,80 @@ Items 1-166 covered there.)
      randomUUID()` instead of "00000000-..." fixtures.
      Commit 9763c7f pushed to main.
 
+--- Session 18 (2026-04-30 evening) — DL scanner trio + watch typeahead → collateral integration ---
+
+ 187. DL_RAW_PAYLOAD MIGRATION + WRITE PATH. Backlog item
+     8a from Session 17 PENDING (DL scanner upgrade list)
+     closed. patches/0025-customer-dl-raw-payload.sql adds
+     `dl_raw_payload TEXT` to customers — the form already
+     passed the field as a hidden input since Session 13;
+     the server action ignored it until the column landed.
+     customer.ts schema gains dl_raw_payload via the
+     standard empty-string-shield pattern (1..4000 char
+     cap). new/actions.ts FIELDS array adds the key,
+     insertPayload moves to a named const + `as never`
+     cast at boundary for the untyped column (drops on
+     db:types regen). Audit log records
+     `dl_scan_captured: true|false` — NOT the raw payload —
+     to avoid duplicating PII into the staff-readable
+     audit viewer. Migration is append-only with documented
+     rollback. OPERATOR: apply 0025, run db:types.
+
+ 188. EXPIRED-LICENSE WARNING BANNER. Backlog item 8b
+     closed. customers/new/form.tsx handleScanResult now
+     compares info.expirationDate to today via lexical
+     YYYY-MM-DD compare (correct because both are
+     zero-padded ISO calendar dates, no timezone math).
+     When the parsed expiry is in the past, the form
+     shows a warning banner with the actual expiry date.
+     Non-blocking: operator decides whether to save
+     anyway. dlScanner.expiredWarning EN+ES added.
+
+ 189. WEBCAM CAPTURE — FRONT OF LICENSE. Backlog item 8c
+     closed. New WebcamCapture.tsx component:
+     getUserMedia({video:{facingMode:'environment'},
+     audio:false}) → live <video> preview → drawImage to
+     hidden <canvas> → canvas.toBlob → JPEG @ 0.92
+     quality at native video resolution (typically
+     1080p+). Modal lifecycle: open → acquire → preview
+     → snap → preview JPEG via blob URL → Retake or
+     Confirm → close. Stream cleanup on every exit
+     (close button, X, click-outside, escape via close()
+     handler, confirm). createPortal modal for z-index
+     correctness. set-state-in-effect avoided per
+     Session 8 — captured/error reset by close(), not
+     in the useEffect body. customer detail page wraps
+     it in WebcamCaptureForId which hands the JPEG to
+     uploadCustomerDocumentAction with kind='id_scan'
+     and inherits id_type/number/state/expiry from the
+     existing customer record. document grid widened to
+     md:grid-cols-3 so the new button sits next to the
+     two existing UploadButtons. Rear-cam preference
+     means jewelry shops on tablets default to the
+     correct side. Front-of-license retention follows
+     the same FL 2-year window as the back PDF417 scan.
+
+ 190. WATCH-TYPEAHEAD → COLLATERAL INTEGRATION. Backlog
+     item 13 (Session 17 numbering) / item 14 (Session
+     16) closed. CollateralItemsList converted to
+     forwardRef<CollateralListHandle>; exposes
+     addWatchRow(match) — builds a populated row with
+     description = "$brand $model ref $reference_no
+     ($year_label)", category='watch', est_value =
+     midpoint of min/max. If the list still holds the
+     pristine seed row from initial mount, replaces it
+     in place; else appends. Metal/karat/weight stay
+     blank because watches are valued by reference, not
+     melt. InlinePawnCalculator accepts an optional
+     onAddWatchToCollateral?(match) prop; SelectedWatch
+     Card renders an "Add to collateral" button next
+     to the existing Copy button when the prop is
+     wired. /pawn/new form holds collateralRef + passes
+     the callback. State stays in CollateralItemsList
+     — keystroke re-renders don't bubble to the parent.
+     pawn.inlineCalc.watchLookup.addToCollateral +
+     .added EN+ES added.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
@@ -1051,59 +1028,59 @@ PENDING — NEXT UP
     1. Operator setup gates (above) + per-tenant Stripe Connect
        onboarding for first tenant + per-tenant Resend setup at
        /settings/communications.
-    2. Apply patches/0024-tenant-agency-store-id.sql in Supabase
-       + run `npm run db:types` (drops the single `as never`
-       cast in settings/general/actions.ts).
-    3. Phase 8 — remaining polish: mobile audits across portal +
-       dashboard (charts + activity feed + kanban + receipt PDFs
-       all need mobile review before going live).
+    2. Apply patches/0024-tenant-agency-store-id.sql AND
+       patches/0025-customer-dl-raw-payload.sql in Supabase + run
+       `npm run db:types` (drops TWO `as never` casts: one in
+       settings/general/actions.ts, one in customers/new/actions.ts).
+    3. Phase 8 — mobile audit across portal + dashboard
+       (charts + activity feed + kanban + receipt PDFs all
+       need mobile review before going live). Code-level pass
+       fits a single fresh-context session; real device
+       verification needs operator's eyes.
     4. Phase 9 (A) — Stripe SaaS GA real-money smoke test (after
        operator setup completes).
     5. Real eBay wire-up — 12-step checklist in commit 9b93e235.
     6. WhatsApp Business per-template approval.
     7. FL LeadsOnline format reconciliation with agency.
-    8. DL scanner upgrades (dl_raw_payload audit column,
-       expired-license guard, front-of-license webcam).
-    9. Phase 10 Path A — public per-tenant landing pages on
+    8. Phase 10 Path A — public per-tenant landing pages on
        NEXT_PUBLIC_BASE_DOMAIN, public catalog, loyalty/referrals,
        Google Reviews ingestion, email campaign engine.
-   10. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
+       (Multi-session epic — recommend starting with the landing
+       page skeleton and treating catalog / loyalty / reviews /
+       email each as follow-up sessions.)
+    9. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
        Mercari listing publishers (after eBay flow is stable).
-   11. Stripe Terminal hardware reader pairing UI when readers
+   10. Stripe Terminal hardware reader pairing UI when readers
        arrive.
-   12. pgsodium at-rest encryption rollout for Twilio / Resend /
+   11. pgsodium at-rest encryption rollout for Twilio / Resend /
        Stripe creds + eBay tokens. Bundle with the reviewer's
        stronger architectural fix (split secret columns or expose
        only masked status views).
-   13. Watch-typeahead → CollateralItemsList imperative-handle
-       integration to auto-fill row description + est_value when
-       the operator selects a model.
-   14. Platform-side staff-invite email (currently /team invites
+   12. Platform-side staff-invite email (currently /team invites
        return the magic link to the operator for manual delivery).
-   15. Diamond cert real provider wire-up (IDEX or Rapaport) when
+   13. Diamond cert real provider wire-up (IDEX or Rapaport) when
        operator obtains API keys.
-   16. Dedicated MessageKind 'saas_admin_new_tenant' migration
+   14. Dedicated MessageKind 'saas_admin_new_tenant' migration
        (currently Session-11 item 161 reuses 'custom' — works but
        loses sub-typing in the comms templates UI).
-   17. Tiered loan rates by amount range (the v1 variable-rate
+   15. Tiered loan rates by amount range (the v1 variable-rate
        menu is flat; FL pawn-shop convention often tiers rates
        by loan size). Schema decision still pending: per-row min/
        max columns vs sub-table.
-   18. Test suite further coverage — lib/repair/billing (line-
+   16. Test suite further coverage — lib/repair/billing (line-
        cost + balance-due math), lib/spot-prices/melt (purity
        + grams + override math), lib/saas/gates I/O (would need
        Supabase mock infrastructure — out of current pure-logic
        scope), lib/validations/{repair,pos,appraisal,transfer,
        communications}. Session 17 floor: 312 tests across
        workflow + saas types + 4 validation modules.
-   19. React-rendering tests via @testing-library/react + jsdom —
+   17. React-rendering tests via @testing-library/react + jsdom —
        when a UI regression worth locking down surfaces.
-   20. FK-join `as unknown as { customer: {...} }` cleanup —
+   18. FK-join `as unknown as { customer: {...} }` cleanup —
        cuts ~25 of the 76 surviving casts in src/. Pattern: use
        a generic <Joined<Row, K, JoinShape>> helper or migrate
-       to PostgREST embedded resource shapes. Out of scope for
-       Session 17's NUMERIC-override task; tracked as separate
-       backlog item.
+       to PostgREST embedded resource shapes. Tracked as separate
+       backlog item, NOT the (now closed) NUMERIC-override task.
 
   KNOWN GOTCHAS TO AVOID FROM DAY 1 (carried + new):
     - Next 16 file is `proxy.ts`, exported function named `proxy`.
