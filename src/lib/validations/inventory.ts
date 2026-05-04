@@ -166,6 +166,10 @@ export const inventoryItemCreateSchema = z.object({
   notes: optionalTrimmedString,
   staff_memo: optionalTrimmedString,
   tags: tagsSchema,
+
+  is_hidden_from_catalog: z
+    .preprocess((v) => v === 'on' || v === true || v === 'true', z.boolean())
+    .default(false),
 })
 
 export const inventoryItemUpdateSchema = inventoryItemCreateSchema.extend({

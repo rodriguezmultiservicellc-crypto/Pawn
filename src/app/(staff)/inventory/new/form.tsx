@@ -64,6 +64,7 @@ function echoToFieldValues(
       typeof echo.tags === 'string' && echo.tags.trim() !== ''
         ? echo.tags.split(',').map((t) => t.trim()).filter(Boolean)
         : [],
+    is_hidden_from_catalog: echo.is_hidden_from_catalog === 'on',
   }
 }
 

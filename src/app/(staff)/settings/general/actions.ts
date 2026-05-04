@@ -85,6 +85,8 @@ const generalSchema = z.object({
     .transform((v) => v ?? null),
   public_landing_enabled: z
     .preprocess((v) => v === 'on' || v === true || v === 'true', z.boolean()),
+  public_catalog_enabled: z
+    .preprocess((v) => v === 'on' || v === true || v === 'true', z.boolean()),
   public_about: z
     .preprocess(
       (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
@@ -159,6 +161,7 @@ export async function updateGeneralAction(
     agency_store_id: formData.get('agency_store_id'),
     public_slug: formData.get('public_slug'),
     public_landing_enabled: formData.get('public_landing_enabled'),
+    public_catalog_enabled: formData.get('public_catalog_enabled'),
     public_about: formData.get('public_about'),
   })
   if (!parsed.success) {
@@ -241,6 +244,7 @@ export async function updateGeneralAction(
       agency_store_id: v.agency_store_id,
       public_slug: v.public_slug,
       public_landing_enabled: v.public_landing_enabled,
+      public_catalog_enabled: v.public_catalog_enabled,
       public_about: v.public_about,
       public_hours: hoursPayload,
       updated_at: new Date().toISOString(),
@@ -286,6 +290,7 @@ export async function updateGeneralAction(
         'agency_store_id',
         'public_slug',
         'public_landing_enabled',
+        'public_catalog_enabled',
         'public_about',
         'public_hours',
       ],
@@ -294,7 +299,10 @@ export async function updateGeneralAction(
 
   revalidatePath('/settings')
   revalidatePath('/settings/general')
-  if (v.public_slug) revalidatePath(`/s/${v.public_slug}`)
+  if (v.public_slug) {
+    revalidatePath(`/s/${v.public_slug}`)
+    revalidatePath(`/s/${v.public_slug}/catalog`)
+  }
   return { ok: true }
 }
 

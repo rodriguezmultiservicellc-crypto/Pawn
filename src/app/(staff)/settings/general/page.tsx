@@ -24,7 +24,7 @@ export default async function GeneralSettingsPage() {
   const { data: tenant } = await admin
     .from('tenants')
     .select(
-      'id, name, dba, address, city, state, zip, phone, email, has_pawn, has_repair, has_retail, tenant_type, parent_tenant_id, police_report_format, agency_store_id, public_slug, public_landing_enabled, public_about, public_hours',
+      'id, name, dba, address, city, state, zip, phone, email, has_pawn, has_repair, has_retail, tenant_type, parent_tenant_id, police_report_format, agency_store_id, public_slug, public_landing_enabled, public_about, public_hours, public_catalog_enabled',
     )
     .eq('id', ctx.tenantId)
     .maybeSingle<{
@@ -48,6 +48,7 @@ export default async function GeneralSettingsPage() {
       public_landing_enabled: boolean | null
       public_about: string | null
       public_hours: unknown
+      public_catalog_enabled: boolean | null
     }>()
 
   if (!tenant) redirect('/settings')
@@ -75,6 +76,7 @@ export default async function GeneralSettingsPage() {
         public_landing_enabled: tenant.public_landing_enabled ?? false,
         public_about: tenant.public_about,
         public_hours: tenant.public_hours,
+        public_catalog_enabled: tenant.public_catalog_enabled ?? false,
       }}
     />
   )

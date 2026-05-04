@@ -34,6 +34,7 @@ export type InventoryFieldValues = {
   notes: string | null
   staff_memo: string | null
   tags: string[]
+  is_hidden_from_catalog: boolean
 }
 
 export function emptyInventoryItem(): InventoryFieldValues {
@@ -61,6 +62,7 @@ export function emptyInventoryItem(): InventoryFieldValues {
     notes: null,
     staff_memo: null,
     tags: [],
+    is_hidden_from_catalog: false,
   }
 }
 
@@ -333,6 +335,23 @@ export function InventoryFormFields({
           defaultValue={v.staff_memo ?? ''}
           help={t.inventory.staffMemoHelp}
         />
+        <label className="mt-3 flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            name="is_hidden_from_catalog"
+            value="on"
+            defaultChecked={v.is_hidden_from_catalog}
+            className="mt-0.5 h-4 w-4 rounded border-hairline text-rausch focus:ring-rausch"
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="font-medium text-ink">Hide from public catalog</span>
+            <span className="text-xs text-ash">
+              When the tenant catalog is published, this item still won&apos;t
+              appear on the public surface. Use for consigned items under
+              negotiation, photo retakes pending, or back-room stock.
+            </span>
+          </span>
+        </label>
         <div className="mt-3">
           <span className="block text-sm font-medium text-ink">
             {t.inventory.tags}

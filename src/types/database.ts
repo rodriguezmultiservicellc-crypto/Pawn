@@ -1012,6 +1012,7 @@ export type Database = {
           description: string
           hold_until: string | null
           id: string
+          is_hidden_from_catalog: boolean
           karat: string | null
           list_price: number | null
           location: Database["public"]["Enums"]["inventory_location"]
@@ -1049,6 +1050,7 @@ export type Database = {
           description: string
           hold_until?: string | null
           id?: string
+          is_hidden_from_catalog?: boolean
           karat?: string | null
           list_price?: number | null
           location?: Database["public"]["Enums"]["inventory_location"]
@@ -1086,6 +1088,7 @@ export type Database = {
           description?: string
           hold_until?: string | null
           id?: string
+          is_hidden_from_catalog?: boolean
           karat?: string | null
           list_price?: number | null
           location?: Database["public"]["Enums"]["inventory_location"]
@@ -3323,6 +3326,7 @@ export type Database = {
           phone: string | null
           police_report_format: Database["public"]["Enums"]["police_report_format"]
           public_about: string | null
+          public_catalog_enabled: boolean
           public_hours: Json | null
           public_landing_enabled: boolean
           public_slug: string | null
@@ -3352,6 +3356,7 @@ export type Database = {
           phone?: string | null
           police_report_format?: Database["public"]["Enums"]["police_report_format"]
           public_about?: string | null
+          public_catalog_enabled?: boolean
           public_hours?: Json | null
           public_landing_enabled?: boolean
           public_slug?: string | null
@@ -3381,6 +3386,7 @@ export type Database = {
           phone?: string | null
           police_report_format?: Database["public"]["Enums"]["police_report_format"]
           public_about?: string | null
+          public_catalog_enabled?: boolean
           public_hours?: Json | null
           public_landing_enabled?: boolean
           public_slug?: string | null

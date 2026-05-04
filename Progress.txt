@@ -13,217 +13,251 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 19 (2026-04-30 late evening) — Phase
-                  10 Path A session 1/N: public per-tenant
-                  landing at /s/<slug> + subdomain rewrite
-                  scaffold. Patches 0024 + 0025 + 0026 all
-                  applied by operator; npm run db:types ran;
-                  4 `as never` boundary casts cleaned up.
-                  Single commit pushed: ebfe2d1.
-  Context budget: ~70% full at save time.
-  Last worked on: Session ended cleanly. Lint clean, typecheck
-                  clean, build green, tests 327/327. Operator
-                  follow-up stack shrank by 3 items (migrations
-                  + db:types done); CRON_SECRET still pending.
-                  Phase 10 Path A continues with
-                  catalog / loyalty / Google Reviews / email
-                  campaigns — each its own session.
+  Last session:   Session 20 (2026-05-04) — Phase 10 Path A
+                  slice 2/N: public catalog at
+                  /s/<slug>/catalog + per-item detail at
+                  /s/<slug>/catalog/<sku>. Brainstorm + spec +
+                  plan + execute in one session via the
+                  superpowers skills (brainstorming →
+                  writing-plans → executing-plans). Patch
+                  0027 applied by operator; npm run db:types
+                  ran. New `tenants.public_catalog_enabled`
+                  + `inventory_items.is_hidden_from_catalog`
+                  columns + 3 SELECT-only RLS policies +
+                  partial index + ~30 catalog.* i18n keys
+                  (EN+ES parity). Tests 327→342.
+  Context budget: ~85% full at save time.
+  Last worked on: Session ended cleanly. Lint clean, build
+                  green, tests 342/342. Operator smoke test
+                  pending — visit
+                  https://pawn-three.vercel.app/s/eddys/catalog
+                  after deploy and follow the spec §5.3
+                  checklist (publish a tenant catalog, add
+                  ≥3 priced+available items with photos in
+                  ≥2 categories, verify list + detail +
+                  hide-flag + 404 paths).
 
-  ACTIVE FILE(S) — all touched this session (all in
-  commit ebfe2d1):
+  ACTIVE FILE(S) — all touched this session (commit
+  pending /progress save):
 
-    --- MIGRATION + RESOLVER (item 191) ---
-    - patches/0026-tenant-public-landing.sql (NEW —
-      ALTER TABLE tenants ADD public_slug CITEXT,
-      public_landing_enabled BOOLEAN DEFAULT FALSE,
-      public_about TEXT, public_hours JSONB; CHECK on
-      slug shape (3-40 chars, lowercase, digits,
-      hyphens; no leading/trailing/consecutive hyphens
-      via `^[a-z0-9]+(-[a-z0-9]+)*$` + length BETWEEN
-      3 AND 40); UNIQUE partial index on public_slug
-      WHERE NOT NULL; new RLS policy
-      tenants_public_landing_select grants anon +
-      authenticated SELECT when public_landing_enabled
-      = TRUE AND public_slug IS NOT NULL AND is_active
-      = TRUE; CREATE EXTENSION citext; documented
-      rollback)
-    - src/lib/tenant-resolver.ts (NEW — pure
-      extractTenantSubdomain(host, baseDomain) with
-      reserved-subdomain blocklist + length/shape gate
-      via isReservedOrInvalidSlug; fetchPublicTenant
-      via anon SSR client (RLS-gated, narrows
-      public_slug from string|null to string at the
-      boundary); normalizePublicHours guards the JSONB
-      shape so bad data renders as no-hours instead
-      of crashing the page; PUBLIC_TENANT_COLUMNS
-      const lists exactly the columns that may ship
-      to an unauthenticated browser)
-    - src/lib/tenant-resolver.test.ts (NEW — 15
-      pure-logic tests: subdomain extraction across
-      apex / port / case / multi-level / reserved /
-      malformed / staging-style base / leading-dot
-      base; isReservedOrInvalidSlug shape + reserved
-      coverage)
+    --- MIGRATION (item 197) ---
+    - patches/0027-public-catalog.sql (NEW —
+      ALTER TABLE tenants ADD public_catalog_enabled
+      BOOLEAN NOT NULL DEFAULT FALSE; ALTER TABLE
+      inventory_items ADD is_hidden_from_catalog
+      BOOLEAN NOT NULL DEFAULT FALSE; partial index
+      idx_inventory_public_catalog matching the RLS
+      USING clause; 3 SELECT-only RLS policies on
+      inventory_items + inventory_item_photos +
+      inventory_item_stones, all gated on three-AND
+      tenant flags (public_landing_enabled +
+      public_catalog_enabled + has_retail +
+      is_active) plus per-row predicates
+      (status='available' + is_hidden_from_catalog
+      = FALSE + list_price IS NOT NULL + deleted_at
+      IS NULL); documented rollback; NOTIFY pgrst)
 
-    --- PROXY SUBDOMAIN REWRITE (item 192) ---
-    - src/proxy.ts (added `extractTenantSubdomain`
-      import; new branch BEFORE the public-paths
-      check rewrites tenant-subdomain hosts to
-      /s/<slug>/<rest> — e.g. acme.pawnshop.com/ →
-      /s/acme. Short-circuits when
-      NEXT_PUBLIC_BASE_DOMAIN is empty (path form
-      works in local dev pre-DNS). `/s` added to
-      PUBLIC_PATHS so /s/<slug> bypasses auth)
+    --- RESOLVER (item 198) ---
+    - src/lib/tenant-resolver.ts (PUBLIC_CATALOG_
+      COLUMNS allowlist; escapeIlikeLiteral helper;
+      resolveCatalogPagination pure pagination math
+      with silent normalize on page=0/negative/NaN/
+      too-large; fetchPublicCatalog list with count-
+      then-range to avoid 416, photo primary-pick
+      via .in() round-trip + admin-mints-signed-
+      URLs split; fetchPublicCatalogItem detail
+      with photos + stones; PublicTenant +
+      PUBLIC_TENANT_COLUMNS gain
+      public_catalog_enabled)
+    - src/lib/tenant-resolver.catalog.test.ts (NEW —
+      15 pure-logic tests: PUBLIC_CATALOG_COLUMNS
+      forbidden-set sanity, escapeIlikeLiteral
+      across % / _ / \\, resolveCatalogPagination
+      across in-range / has-more / page=0 / neg /
+      NaN / too-large / total=0 / last-partial)
 
-    --- (PUBLIC) ROUTE GROUP (item 193) ---
-    - src/app/(public)/layout.tsx (NEW — async
-      headers() reads Accept-Language, picks
-      'es' / 'en'; wraps children in I18nProvider
-      with persistRemote=false so the unauthenticated
-      toggle doesn't 401-spam /api/profile/language)
-    - src/app/(public)/s/[slug]/page.tsx (NEW —
-      params: Promise<{slug:string}>; fetchPublicTenant
-      → notFound() on miss; generateMetadata renders
-      title + description + OpenGraph from tenant
-      data, falls back to a city-based template when
-      public_about is null)
-    - src/app/(public)/s/[slug]/content.tsx (NEW —
-      'use client' bilingual landing skeleton: sticky
-      header with logo OR Storefront fallback +
-      LanguageToggle; hero with display name and
-      city-templated subline (`heroWithCity` uses
-      .replace('{city}', ...) per the established
-      template-string i18n pattern); ServiceBadges
-      pill row; two cards: Visit (address + Open in
-      Maps + tel: + mailto:) and Hours (HoursList
-      with mon-sun render, formatDay returns "open –
-      close" or dict.closed); About section (only if
-      public_about set, whitespace-pre-line); CTAs
-      (gated on has_pawn / has_repair / has_retail —
-      placeholders for now since the next-session
-      sub-flows aren't built; portal-login link is
-      always rendered); footer with copyright + Powered
-      by Pawn)
-    - src/app/(public)/s/[slug]/LanguageToggle.tsx
-      (NEW — pill-style EN | ES toggle, aria-pressed
-      semantics, uses LANGUAGES + setLang from
-      I18nProvider context)
-    - src/app/(public)/s/[slug]/not-found.tsx (NEW —
-      generic message; doesn't confirm slug existence
-      to a probe; "Back to home" link to /)
+    --- PUBLIC CATALOG ROUTES (item 199) ---
+    - src/app/(public)/s/[slug]/catalog/page.tsx
+      (NEW — RSC; tenant gate: !has_retail OR
+      !public_catalog_enabled → notFound();
+      parses ?page=&category=&q= from Promise
+      searchParams; calls fetchPublicCatalog with
+      pageSize=24; generateMetadata with city-
+      templated description + og:image from
+      tenant.logo_url)
+    - src/app/(public)/s/[slug]/catalog/content.tsx
+      (NEW — 'use client'; sticky header with
+      back-to-home + LanguageToggle; debounced
+      search input (300ms, router.replace, page
+      resets to 1 on filter change); category
+      pills auto-built from items present;
+      responsive grid 2/3/4 cols; cards: square
+      photo or category-icon fallback +
+      line-clamp-2 description + price + category;
+      empty + emptyAll states with Clear filters
+      link; server-rendered Prev/PageOf/Next
+      pagination with disabled state)
+    - src/app/(public)/s/[slug]/catalog/not-found.tsx
+      (NEW — probe-resistant generic 404)
+    - src/app/(public)/s/[slug]/catalog/[sku]/page.tsx
+      (NEW — RSC; same tenant gate; fetchPublic
+      CatalogItem → notFound() on miss; generate
+      Metadata with brand+model OR karat+metal+grams
+      OR description fallback for description; og
+      title + description + image (primary signed
+      URL); twitter summary_large_image card)
+    - src/app/(public)/s/[slug]/catalog/[sku]/content.tsx
+      (NEW — 'use client'; photo carousel with
+      thumbnail strip + prev/next buttons; right
+      column: category pill + h1 description +
+      brand·model + price + sku; spec table renders
+      only rows with data (metal/karat/weight/
+      serial); stones table renders only when
+      stones present; tel: + mailto: CTAs with
+      pre-filled subject for email)
+    - src/app/(public)/s/[slug]/catalog/[sku]/not-found.tsx
+      (NEW)
 
-    --- SETTINGS / GENERAL EXTENSION (item 194) ---
+    --- LANDING CTA WIRED (item 200) ---
+    - src/app/(public)/s/[slug]/content.tsx (the
+      shopInventory CTAPlaceholder swaps to a real
+      <Link> when tenant.has_retail &&
+      tenant.public_catalog_enabled; falls back to
+      placeholder when has_retail is on but catalog
+      flag is off; null when has_retail is off
+      entirely. Preserves "coming soon" affordance
+      for tenants who reserve has_retail but
+      haven't published)
+
+    --- SETTINGS UI (item 201) ---
     - src/app/(staff)/settings/general/page.tsx (typed
-      maybeSingle<> generic gains public_slug,
-      public_landing_enabled, public_about,
-      public_hours; passes them through to content)
+      generic gains public_catalog_enabled; passes
+      through to content)
     - src/app/(staff)/settings/general/content.tsx
-      (TenantGeneralView gets the 4 new fields;
-      hoursFromUnknown shape-narrows the JSONB on
-      load; new "Public landing page" fieldset with
-      slug Field, Publish landing-page checkbox,
-      About textarea, 7-day Hours grid using
-      type="time" inputs + Closed checkbox per row;
-      defaultsFromTenant returns hours_map shape)
+      (TenantGeneralView gains public_catalog_
+      enabled; "Publish public catalog" checkbox in
+      the existing Public landing page fieldset,
+      disabled when !has_retail with explanatory
+      hint, hardcoded English label per Session 19's
+      established staff-form pattern)
     - src/app/(staff)/settings/general/actions.ts
-      (new zod members for public_slug + landing
-      flag + about; HOURS_KEYS + buildHoursPayload
-      validate the 21 hours form fields with
-      cross-day rules — open-and-close-both-set,
-      open-before-close, 24h HH:MM regex, partial-
-      day rejection; reserved-slug guard via
-      isReservedOrInvalidSlug; "can't enable without
-      a slug" cross-validate; slug uniqueness
-      pre-check via .neq('id', tenant) + maybeSingle;
-      single combined update now that all columns
-      type — no more split write; UNIQUE-violation
-      path translates the DB error to a slug field
-      error; revalidatePath fires for /settings,
-      /settings/general, AND /s/<slug> so a
-      slug/landing flip clears the public landing's
-      RSC cache)
+      (new zod member; combined update payload;
+      audit-log fields_changed entry; revalidate
+      Path block extends to /s/<slug>/catalog when
+      slug present)
 
-    --- I18N PROVIDER + LANDING.* KEYS (item 195) ---
-    - src/lib/i18n/context.tsx (I18nProvider gains
-      `persistRemote?: boolean` — default true
-      preserves staff/portal behavior; false skips
-      the fetch('/api/profile/language') call so
-      unauthenticated surfaces don't make 401-spam
-      requests; setLang useCallback dependency list
-      now [persistRemote])
-    - src/lib/i18n/{en,es}.ts (27 new landing.* keys
-      under a single landing block — heroDefault,
-      heroWithCity (with {city}/{state} placeholders),
-      visit, openInMaps, addressUnavailable, hours,
-      hoursUnavailable, about, closed, poweredBy,
-      ctaSoonHint, services.{pawn,repair,retail},
-      ctas.{getQuote,dropOffRepair,shopInventory,
-      portalLogin}, days.{mon-sun}; en/es key sets
-      stay at parity 2158/2158)
+    --- INVENTORY FORM (item 202) ---
+    - src/lib/validations/inventory.ts (inventory
+      ItemCreateSchema gains is_hidden_from_catalog
+      BOOLEAN with checkbox preprocess; inherited
+      by inventoryItemUpdateSchema via .extend())
+    - src/components/inventory/InventoryFormFields.tsx
+      (InventoryFieldValues + emptyInventoryItem
+      gain is_hidden_from_catalog; new "Hide from
+      public catalog" checkbox in the Staff-only
+      section between staff_memo and tags, hardcoded
+      English label per established staff-form
+      pattern)
+    - src/app/(staff)/inventory/[id]/page.tsx
+      (selects is_hidden_from_catalog)
+    - src/app/(staff)/inventory/[id]/content.tsx
+      (ItemRecord + InventoryFieldValues mapping +
+      echoToInventoryFieldValues all carry the new
+      field)
+    - src/app/(staff)/inventory/[id]/actions.ts
+      (FIELDS array gains entry; payload writes;
+      after the existing /inventory revalidates, a
+      cheap tenants.public_slug lookup → revalidate
+      Path /s/<slug>/catalog AND /s/<slug>/catalog
+      /<sku>; gated to skip when slug is null)
+    - src/app/(staff)/inventory/new/actions.ts (FIELDS
+      + payload + same tenant-slug → revalidate
+      catalog list pattern, no <sku> revalidate
+      since brand-new items don't have a stable
+      detail URL yet)
+    - src/app/(staff)/inventory/new/form.tsx (echo
+      mapping carries the new field)
 
-    --- DB:TYPES + AS-NEVER CLEANUP (item 196) ---
+    --- I18N (item 203) ---
+    - src/lib/i18n/{en,es}.ts (NEW catalog block,
+      ~30 keys: metaTitle, metaDescription with
+      {name}+{city}+{state} placeholders, metaDescription
+      Fallback, backToHome, shop, filterAll,
+      searchPlaceholder, clearFilters, empty,
+      emptyAll, pageOf with {page}+{total},
+      prevPage, nextPage, categories.{ring..other},
+      specs.{metal,karat,weight,serialNumber,stones,
+      sku}, metals.{gold..other}, stonesTable.
+      {count,type,cut,carat,color,clarity,totalCarat},
+      inquireByPhone, inquireByEmail, backToAll;
+      EN+ES at full parity)
+
+    --- DESIGN + PLAN DOCS (item 204) ---
+    - docs/superpowers/specs/2026-05-04-public-catalog-design.md
+      (NEW — full spec from brainstorming skill)
+    - docs/superpowers/plans/2026-05-04-public-catalog.md
+      (NEW — full implementation plan from writing-
+      plans skill, 13 tasks with bite-sized steps +
+      complete code blocks)
+
+    --- DB:TYPES REGEN (operator + automation) ---
     - src/types/database.ts (regenerated via
-      `npm run db:types` — public_slug,
-      public_landing_enabled, public_about,
-      public_hours, agency_store_id, dl_raw_payload
-      all now typed)
-    - src/lib/tenant-resolver.ts (dropped the Row
-      generic + .eq('public_slug' as never, ...) —
-      types now know the column. Added a runtime
-      narrow `if (data.public_slug === null) return
-      null` because the column type is still nullable
-      even though the RLS policy filters NULL out)
-    - src/app/(staff)/settings/general/actions.ts
-      (dropped the SPLIT WRITE into one combined
-      update; removed `} as never` from the
-      payload; .eq('public_slug', ...) without the
-      `as never`; .maybeSingle() without the explicit
-      generic — types infer it now)
-    - src/app/(staff)/customers/new/actions.ts
-      (dropped Session 18's `as never` cast on
-      insertPayload — dl_raw_payload now in the
-      generated Customers Insert alias)
+      `npm run db:types` after operator applied
+      0027 — public_catalog_enabled +
+      is_hidden_from_catalog now typed in tenants
+      and inventory_items Row/Insert/Update
+      aliases)
 
   RESUME POINT:
-    Session 19 ended cleanly. /s/<slug> ships and is
-    deploy-ready — needs a tenant with
-    public_landing_enabled = TRUE for an end-to-end
-    test. Operator follow-up stack:
+    Session 20 ended cleanly. /s/<slug>/catalog +
+    /s/<slug>/catalog/<sku> ship deploy-ready. Needs
+    a tenant with public_catalog_enabled = TRUE +
+    has_retail = TRUE + ≥1 inventory_item with
+    status='available' AND list_price IS NOT NULL
+    AND is_hidden_from_catalog = FALSE for end-to-end
+    smoke. Eddy's smoke test pending.
 
-    1. SMOKE-TEST THE LANDING. In /settings/general
-       (logged in as owner / chain_admin of any
-       tenant), enter a slug like `eddys-jewelers`,
-       tick "Publish landing page", optionally fill
-       About + Hours, save. Visit /s/eddys-jewelers —
-       should render the bilingual landing. Toggle
-       EN/ES; verify the language toggle persists in
-       localStorage but doesn't fire a 401 to
-       /api/profile/language. Toggle Publish OFF and
-       confirm the page 404s.
+    Operator smoke test (spec §5.3):
+    1. /settings/general → tick "Publish public
+       catalog" (and "Publish landing page" if not
+       already on), save.
+    2. Add ≥3 inventory items in 2 different
+       categories with status='available', list_price
+       set, ≥1 photo each.
+    3. Visit https://pawn-three.vercel.app/s/eddys/catalog
+       — confirm grid, category pills (only for the
+       2 used categories), search, pagination if
+       items > 24.
+    4. Click an item → confirm detail page, photo
+       carousel, spec table only shows rows with
+       data, stones table renders if stones present.
+    5. Tick "Hide from public catalog" on one item
+       → confirm it disappears from the list.
+    6. Toggle public_catalog_enabled = FALSE →
+       /catalog 404s + landing CTA reverts to
+       placeholder.
+    7. Hit /catalog/INV-NONEXISTENT → generic 404
+       (no SKU-existence leak).
+    8. Probe a tenant whose catalog is OFF → same
+       generic 404.
 
-    2. SET CRON_SECRET in Vercel — still pending from
-       Session 18, gates 6 cron paths.
-
-    Three paths for next session:
+    Three paths for next session (after smoke):
 
     (A) Phase 10 Path A continuation — pick the next
-        sub-surface. Catalog (public listings page —
-        ties to has_retail + inventory_items where
-        status='available'; rendering live spot prices
-        on jewelry items is the obvious value-add),
-        loyalty/referrals (customer-facing
-        signup + share-link with referral_code on
-        customers; rewards table + redemption log
-        migration would land here), or Google Reviews
-        embed (places API or scraped widget). Each is
-        a single-session slice.
+        sub-surface. Loyalty / referrals (referral_code
+        on customers + rewards table + redemption log
+        migration; customer-portal share-link),
+        Google Reviews embed (Places API or scraped
+        widget; per-tenant place_id), or email
+        campaigns (template editor in /settings/
+        communications + Resend dispatch via cron).
+        Each is a single-session slice.
 
-    (B) Backlog item 3 — MOBILE AUDIT. Code-level pass
-        across portal pages (loans/repairs/layaways),
-        dashboard (charts + activity feed), repair
-        kanban (touch UX + min-widths), receipt PDFs.
-        Patch obvious responsive gaps; real-device
-        verification needs Eddy's eyes.
+    (B) Backlog item 3 — MOBILE AUDIT across portal +
+        dashboard + repair kanban + receipt PDFs +
+        the new public catalog (cards + carousel).
+        Code-level pass; real-device verification
+        needs Eddy's eyes.
 
     (C) Backlog leftovers — pgsodium encryption,
         tiered loan rates schema decision, lib/repair/
@@ -233,19 +267,21 @@ SEE ALSO (do not duplicate here):
         MessageKind 'saas_admin_new_tenant' migration.
 
   OPEN ISSUES / BLOCKERS:
-    - Phase 0 punch list partially closed: 0024 + 0025
-      + 0026 applied; db:types ran. CRON_SECRET +
+    - Phase 0 punch list — 0024 + 0025 + 0026 + 0027
+      all applied; db:types ran. CRON_SECRET +
       NEXT_PUBLIC_APP_URL still unset in Vercel. Three
       pasted secrets (anon JWT, service-role JWT,
       sbp_ token) still need rotation. Repo-local git
       config revert still open.
-    - NEXT_PUBLIC_BASE_DOMAIN unset (NEW from this
-      session) — without it the subdomain rewrite
+    - NEXT_PUBLIC_BASE_DOMAIN unset (Session 19
+      carry) — without it the subdomain rewrite
       short-circuits and only the /s/<slug> path form
       works. Wildcard DNS at the production base
       domain (`*.<basedomain>` → Vercel) lights up
       the subdomain form once the env var lands. Path
       form works on Vercel + local dev today.
+    - Catalog smoke test pending — Eddy publishes a
+      tenant catalog and walks the spec §5.3 flow.
     - SaaS billing real-money flow still gates on
       operator setup (Stripe webhook config + Sync
       Stripe products button click).
@@ -267,76 +303,87 @@ SEE ALSO (do not duplicate here):
       views) bundles with pgsodium-encryption migration.
 
   KEY DECISIONS LOCKED THIS SESSION:
-    - SUBDOMAIN + PATH FORM SHARE A SINGLE RSC.
-      acme.basedomain.com/ rewrites to /s/acme via the
-      proxy; basedomain.com/s/acme works directly.
-      Same RSC handles both — landing rendering doesn't
-      branch on URL form. Path form works the day the
-      code ships; subdomain form lights up when
-      wildcard DNS is configured. Avoids
-      "subdomain-only" coupling that would block local
-      dev and Vercel preview URLs.
-    - PUBLIC RLS GATES ON THREE BOOLEANS (not just one).
-      The tenants_public_landing_select policy requires
-      public_landing_enabled = TRUE AND public_slug IS
-      NOT NULL AND is_active = TRUE. Suspending a
-      tenant via is_active=FALSE auto-takes their
-      landing offline without a separate "unpublish"
-      step. Reserving a slug without publishing is
-      legitimate (typo-squat protection) — the slug+
-      flag separation supports it.
-    - RESERVED SUBDOMAINS LIVE IN APP CODE, NOT THE DB
-      REGEX. The CHECK constraint enforces shape +
-      length only. RESERVED_SUBDOMAINS list in
-      tenant-resolver.ts gates writes (via the action
-      pre-check) and reads (via the proxy). New
-      reserved names — when we add platform infra
-      subdomains — go in app code without a migration.
-    - LANDING PAGE FETCH USES ANON SSR CLIENT, NOT
-      ADMIN. Service-role bypasses RLS entirely; the
-      whole point of the RLS policy is to make the
-      public-read surface opt-in per tenant. Using the
-      anon client means the policy is the gate, not
-      the SELECT list. PUBLIC_TENANT_COLUMNS still
-      narrows to "what's safe to ship" as defense in
-      depth.
-    - I18NPROVIDER `persistRemote` PROP, NOT A FORK.
-      Two layouts (staff/portal) need profile sync; one
-      (public) doesn't. Forking I18nProvider would
-      duplicate the language-state machinery; a
-      persistRemote=false flag is one extra line and
-      lets the same provider serve both. Default
-      preserves staff/portal behavior.
-    - HOURS PAYLOAD VALIDATION IS IMPERATIVE, NOT ZOD.
-      buildHoursPayload runs on 21 form fields with
-      cross-day rules (both open + close set or both
-      blank, open<close, regex on each). Expressing
-      that in Zod would need 7 refines + per-day
-      objects; an imperative loop reads cleaner and
-      surfaces day-specific error messages. Schema
-      shape (`{open, close, closed}`) lives at the
-      runtime boundary in normalizePublicHours, NOT
-      in the DB — JSONB column is permissive on
-      purpose so schema evolutions (multi-interval
-      days, holiday overrides) don't need migrations.
-    - NEXT_PUBLIC_BASE_DOMAIN IS OPTIONAL, NOT
-      LOAD-BEARING. Local dev sets it empty; the
-      proxy short-circuits the subdomain branch and
-      everything still works via /s/<slug>. Vercel
-      production sets it once wildcard DNS is
-      configured. Avoids forcing the env var into the
-      Phase 0 punch list as a gating item.
-    - DROPPED THE SPLIT-WRITE PATTERN POST-DB:TYPES.
-      Sessions 17 and 18 used split UPDATEs with the
-      second one cast `as never` because the new
-      columns weren't typed. Once db:types regenerates
-      with all the new columns, the second update
-      rejoins the first — fewer round-trips, simpler
-      audit-log entry, no `as never`. Keep the
-      pattern in mind for the NEXT migration's first
-      session, then collapse on db:types regen.
+    - PUBLIC CATALOG GATES ON FOUR BOOLEANS. The new
+      inventory_items_public_catalog_select RLS policy
+      requires the parent tenant to satisfy
+      public_landing_enabled = TRUE AND
+      public_catalog_enabled = TRUE AND has_retail =
+      TRUE AND is_active = TRUE — plus per-row
+      predicates (status='available' AND is_hidden_
+      from_catalog = FALSE AND list_price IS NOT NULL
+      AND deleted_at IS NULL). Catalog is decoupled
+      from landing so a tenant can publish a landing
+      without exposing inventory; suspending a tenant
+      via is_active=FALSE auto-takes both surfaces
+      offline.
+    - AUTO-PUBLISH WITH PER-ITEM HIDE FLAG. Default is
+      "if it's available + priced, it's public" —
+      operators get a populated catalog the moment
+      they flip the tenant flag. is_hidden_from_
+      catalog default FALSE; per-item escape hatch for
+      consigned-under-negotiation, photos-pending-
+      retake, back-room stock. Avoided the "explicit
+      opt-in per item" alternative that would have
+      created a friction-y empty-catalog onboarding.
+    - PHOTOS VIA ANON-RLS-GATED READ + ADMIN-MINTED
+      SIGNED URLS. The anon SSR client reads
+      inventory_item_photos rows (RLS gate decides
+      which storage_paths come back); the admin
+      client mints 1h signed URLs for those paths.
+      Two-stage isolation — admin step only sees
+      paths the RLS already approved. Same precedent
+      as Session 19's tenant landing.
+    - PER-ITEM URL = SKU, NOT UUID. /s/<slug>/catalog/
+      <sku> reads cleanly in SMS share links and
+      indexes well for SEO. SKU is per-tenant unique
+      (tenant_id + sku UNIQUE), so the resolver scopes
+      .eq('tenant_id') + .eq('sku') without ambiguity.
+    - SPOT PRICING STAYS INTERNAL. The public catalog
+      shows standard product spec fields (metal,
+      karat, weight) but no melt-value dollars and no
+      "live spot" ticker. Surfacing the markup math
+      invites haggling; metal-content disclosure via
+      product specs is enough trust signal for the
+      domain. lib/spot-prices/ stays staff-only.
+    - PAGINATION: 24/PAGE, SERVER-RENDERED LINKS,
+      created_at DESC. Beats infinite scroll for SEO
+      + back-button behavior. Pure pagination math
+      lives in resolveCatalogPagination with silent
+      normalization on edge cases (page=0 / negative /
+      NaN / too-large all collapse to page=1) so probe
+      URLs don't 4xx.
+    - CATEGORY + SEARCH ONLY (NO PRICE / METAL
+      FILTERS). Categories cover most browse intent;
+      price-range + metal-type filters are scope creep
+      until we know real usage. Category pills auto-
+      build from items present (hides empty categories)
+      so the operator doesn't see a dead "Bullion" pill
+      when they have zero bullion items.
+    - DETAIL CTAs MATCH LANDING (TEL + MAILTO + PORTAL
+      LOGIN). No inquiry form yet — that gates on
+      per-tenant Resend onboarding which isn't done
+      for the first tenant. Email mailto: pre-fills
+      subject "Inquiry: <description> (<sku>)" so the
+      operator's inbox sees a clean threaded
+      conversation per item.
+    - STAFF-FORM LABELS HARDCODED ENGLISH (NOT
+      i18n'd). Session 19 established this pattern
+      with "Publish landing page". Session 20 mirrors
+      it for "Publish public catalog" + "Hide from
+      public catalog". Customer-facing strings ARE
+      i18n'd (catalog.* block). Staff form i18n is a
+      separate sweep — out of scope for this slice.
+    - FULL SUPERPOWERS LOOP (BRAINSTORM → SPEC → PLAN
+      → EXECUTE) IN ONE SESSION. First time using
+      the brainstorming + writing-plans + executing-
+      plans skills end-to-end on this project. Spec
+      lives at docs/superpowers/specs/, plan at
+      docs/superpowers/plans/. Worth keeping for
+      single-PR slices where the design space is
+      genuinely uncertain. For obvious edits, the
+      ceremony adds friction.
 
-  (Sessions 13-18 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-19 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions stay
   in the block beneath.)
@@ -479,6 +526,10 @@ SEE ALSO (do not duplicate here):
     - Sale receipt PDF:             /api/print/sale/[sale_id]
     - Buy-outright receipt PDF:     /api/print/buy/[anchor_inventory_item_id]
     - Watch-models search API:      /api/watch-models/search?q=&limit=
+    - Public landing surface:       /s/<slug>
+    - Public catalog list:          /s/<slug>/catalog?page=&category=&q=
+    - Public catalog item detail:   /s/<slug>/catalog/<sku>
+                                    (e.g. /s/eddys/catalog/INV-000001)
     - Run tests:                    npm test (vitest run)
     - Test watch:                   npm run test:watch
     - First tenant: Eddy's Jewelers Corp.
@@ -565,11 +616,11 @@ PHASE OVERVIEW
   9 (A)   SaaS GA infrastructure                     COMPLETE    2026-04-29
   9 (B)   Pricing intelligence                       COMPLETE    2026-04-29
   10 (A)  Marketing & customer growth                IN PROGRESS  —
-          (Session 19 ships first slice: public per-
-          tenant landing page at /s/<slug> + subdomain
-          rewrite scaffold. Catalog, loyalty/referrals,
-          Google Reviews, email campaigns each pending
-          their own session.)
+          (Session 19: tenant landing /s/<slug>.
+          Session 20: public catalog
+          /s/<slug>/catalog + per-item /catalog/<sku>.
+          Loyalty/referrals, Google Reviews, email
+          campaigns each pending their own session.)
   10 (B)  Channel sales                              IN PROGRESS  —
           (eBay scaffold STUBBED.)
 
@@ -1273,20 +1324,221 @@ Items 1-166 covered there.)
      hits live RLS-gated Supabase, manual smoke-test
      covers it.
 
+--- Session 20 (2026-05-04) — Phase 10 Path A slice 2/N: public catalog ---
+
+ 197. PATCHES/0027 — PUBLIC CATALOG MIGRATION. Two
+     columns + three RLS policies + partial index
+     for the public catalog surface. tenants gains
+     `public_catalog_enabled BOOLEAN NOT NULL DEFAULT
+     FALSE` — decoupled from public_landing_enabled
+     so a tenant can publish a landing without
+     exposing inventory. inventory_items gains
+     `is_hidden_from_catalog BOOLEAN NOT NULL DEFAULT
+     FALSE` — per-item escape hatch for consigned-
+     under-negotiation, photos-pending-retake,
+     back-room stock. Three SELECT-only RLS policies:
+     `inventory_items_public_catalog_select`,
+     `inventory_item_photos_public_catalog_select`,
+     `inventory_item_stones_public_catalog_select`.
+     All gated on three-AND tenant flags
+     (public_landing_enabled + public_catalog_enabled
+     + has_retail + is_active) plus per-row
+     predicates (status='available' AND
+     is_hidden_from_catalog = FALSE AND list_price
+     IS NOT NULL AND deleted_at IS NULL). Photo +
+     stone policies join through inventory_items so
+     the gate cascades. New partial index
+     idx_inventory_public_catalog matches the RLS
+     USING clause for cheap public reads regardless
+     of total inventory size. NOTIFY pgrst at
+     bottom; documented rollback (DROP POLICY x3 +
+     DROP INDEX + DROP COLUMN x2). OPERATOR: applied
+     0027; `npm run db:types` regenerated.
+
+ 198. PUBLIC CATALOG RESOLVER — fetchPublicCatalog +
+     fetchPublicCatalogItem in
+     src/lib/tenant-resolver.ts. PUBLIC_CATALOG_
+     COLUMNS allowlist locks the public-safe SELECT
+     list; FORBIDDEN set tested by
+     tenant-resolver.catalog.test.ts (cost_basis,
+     acquired_cost, sale_price, sold_at, source*,
+     staff_memo, notes, location, hold_until*,
+     created_by, updated_by — all explicitly NOT in
+     the allowlist, regression-locked).
+     escapeIlikeLiteral helper for safe ILIKE
+     patterns (escapes %, _, \\). resolveCatalogPagination
+     pure pagination math with silent normalize on
+     edge cases (page=0 / negative / NaN /
+     too-large all collapse to page=1).
+     fetchPublicCatalog runs count-then-range
+     (avoids 416 from postgrest on too-large pages)
+     + photo primary-pick via single .in() round-
+     trip + admin-mints-signed-URLs via existing
+     getSignedUrl helper (1h TTL). fetchPublicCatalogItem
+     loads the item + all photos + stones in
+     parallel; same anon-RLS-gated read + admin-
+     mint-signed-URL split. shapeListItem + numericOrNull
+     coerce supabase-js's NUMERIC-as-string returns
+     to numbers at the row boundary. PublicTenant
+     + PUBLIC_TENANT_COLUMNS gain
+     public_catalog_enabled so the landing's CTA
+     can read it. New tenant-resolver.catalog.test.ts:
+     15 pure-logic tests, total 327→342.
+
+ 199. PUBLIC CATALOG ROUTES — list at
+     /s/<slug>/catalog and detail at
+     /s/<slug>/catalog/<sku>. List page.tsx: tenant
+     gate (!has_retail OR !public_catalog_enabled
+     → notFound()); parses ?page=&category=&q=
+     from Promise searchParams (Next 16); calls
+     fetchPublicCatalog with pageSize=24;
+     generateMetadata renders city-templated
+     description + og:image from tenant.logo_url.
+     List content.tsx ('use client'): sticky header
+     with back-to-home + LanguageToggle; debounced
+     search input (300ms, router.replace, page
+     resets to 1); category pills auto-built from
+     items present (hides empty categories);
+     responsive grid 2/3/4 cols; cards: square
+     photo or category-icon fallback + line-clamp-2
+     description + price + category; empty +
+     emptyAll states with Clear filters link;
+     server-rendered Prev/PageOf/Next pagination
+     with disabled state. Detail page.tsx: same
+     tenant gate; fetchPublicCatalogItem →
+     notFound() on miss; generateMetadata picks
+     description format based on what's set
+     (brand+model OR karat+metal+grams OR raw
+     description). Detail content.tsx: photo
+     carousel with thumbnail strip + prev/next
+     buttons; right column has category pill + h1
+     description + brand·model + price + sku;
+     SpecTable renders only rows with data
+     (metal/karat/weight/serial); StonesTable
+     renders only when stones present; tel: +
+     mailto: CTAs with pre-filled subject for
+     email. Both routes ship probe-resistant
+     not-found.tsx files that don't confirm
+     slug/sku existence.
+
+ 200. LANDING CTA WIRED. The shopInventory
+     CTAPlaceholder in src/app/(public)/s/[slug]/
+     content.tsx swaps to a real <Link> when
+     tenant.has_retail && tenant.public_catalog_
+     enabled (anchor: /s/<slug>/catalog with
+     ArrowUpRight icon). Falls back to placeholder
+     when has_retail is on but catalog flag is off
+     — preserves "coming soon" affordance for
+     tenants who reserve has_retail but haven't
+     published. Null when has_retail is off
+     entirely.
+
+ 201. SETTINGS UI EXTENSION. /settings/general
+     gains a "Publish public catalog" checkbox
+     inside the existing Public landing page
+     fieldset (Session 19's footprint).
+     TenantGeneralView gains public_catalog_enabled;
+     page.tsx selects + threads it; content.tsx
+     renders the new checkbox below the landing
+     toggle, disabled when !has_retail with
+     explanatory hint. actions.ts adds the zod
+     member, the combined update payload, the
+     audit-log fields_changed entry, and extends
+     the revalidatePath block to fire
+     /s/<slug>/catalog when the slug is set.
+     Hardcoded English labels per the Session 19
+     pattern (staff form i18n is a separate
+     sweep).
+
+ 202. INVENTORY FORM EXTENSION. is_hidden_from_
+     catalog wired through the existing inventory
+     edit + create stack. lib/validations/
+     inventory.ts gains the field on
+     inventoryItemCreateSchema (BOOLEAN with
+     checkbox preprocess); inheritance via
+     .extend() picks it up on update. components/
+     inventory/InventoryFormFields.tsx renders a
+     "Hide from public catalog" checkbox in the
+     Staff-only section between staff_memo and
+     tags; defaults from emptyInventoryItem(). The
+     edit flow ([id]/page.tsx + [id]/content.tsx
+     + [id]/actions.ts) selects the new column,
+     threads it through the values type +
+     echoToInventoryFieldValues, adds to FIELDS,
+     writes in payload, and (after the existing
+     /inventory revalidates) does a cheap
+     tenants.public_slug lookup to fire
+     revalidatePath(/s/<slug>/catalog) +
+     revalidatePath(/s/<slug>/catalog/<sku>) so
+     the public RSC cache flushes when an
+     operator changes anything that could affect
+     the public surface. The create flow (new/
+     actions.ts + new/form.tsx) gets the same
+     wiring minus the per-sku revalidate (no
+     stable detail URL for a brand-new item yet).
+
+ 203. PUBLIC CATALOG i18n. New `catalog` block in
+     en.ts + es.ts under the existing landing
+     block. ~30 keys: metaTitle / metaDescription
+     (both with {name}/{city}/{state} placeholders)
+     / metaDescriptionFallback / backToHome / shop
+     / filterAll / searchPlaceholder / clearFilters
+     / empty / emptyAll / pageOf (with {page}+{total})
+     / prevPage / nextPage / categories.{ring,
+     necklace, bracelet, earrings, pendant, chain,
+     watch, coin, bullion, loose_stone, electronics,
+     tool, instrument, other} / specs.{metal,
+     karat, weight, serialNumber, stones, sku} /
+     metals.{gold, silver, platinum, palladium,
+     rose_gold, white_gold, tungsten, titanium,
+     stainless_steel, mixed, none, other} /
+     stonesTable.{count, type, cut, carat, color,
+     clarity, totalCarat} / inquireByPhone /
+     inquireByEmail / backToAll. EN + ES at full
+     parity. Diamond grading letters (D / VVS1 /
+     etc.) intentionally NOT translated —
+     international standards. ES uses `usted`
+     register matching the landing.
+
+ 204. SUPERPOWERS LOOP — SPEC + PLAN DOCS. First
+     end-to-end use of the brainstorming +
+     writing-plans + executing-plans superpowers
+     skills on this project. docs/superpowers/
+     specs/2026-05-04-public-catalog-design.md:
+     full design doc with locked-in decisions
+     table, RLS policy SQL, allowlist sets, route
+     structure, i18n surface, testing scope, out-
+     of-scope deferrals, and operator smoke
+     checklist. docs/superpowers/plans/2026-05-04-
+     public-catalog.md: 13 bite-sized tasks each
+     with file paths, complete code blocks, and
+     verification commands. Override on the skill
+     default: NO per-task commits — this project
+     commits once per session via /progress at
+     the end. Process worth keeping for single-PR
+     slices where the design space is genuinely
+     uncertain; for obvious edits the ceremony
+     adds friction.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Smoke-test the landing page end-to-end. As owner / chain_admin
-    of any tenant: /settings/general → enter slug (e.g.
-    `eddys-jewelers`) → tick "Publish landing page" → optionally
-    fill About + Hours → save. Visit /s/<slug>; verify bilingual
-    render, EN/ES toggle persists in localStorage without firing
-    /api/profile/language, address Maps deep-link works, hours
-    render correctly. Toggle Publish OFF and confirm 404. Then
-    pick the next session's path (A continuation, B mobile audit,
-    or C backlog).
+    Smoke-test the public catalog end-to-end (spec §5.3).
+    /settings/general → tick "Publish public catalog"
+    (and "Publish landing page" if not on), save. Add ≥3
+    inventory items in 2 different categories with
+    status='available' + list_price set + ≥1 photo each.
+    Visit https://pawn-three.vercel.app/s/eddys/catalog;
+    confirm grid + category pills + search. Click an item;
+    confirm detail page + photo carousel + spec table only
+    showing rows with data. Tick "Hide from public catalog"
+    on one item; confirm it disappears. Toggle
+    public_catalog_enabled=FALSE; confirm 404 + landing CTA
+    reverts to placeholder. Probe a non-existent SKU and
+    a tenant with catalog OFF; both 404 generically. After
+    smoke is green, pick the next session's path.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 6 cron paths.)
@@ -1634,4 +1886,9 @@ PENDING — NEXT UP
       [SHIPPED 2026-04-29 Session 14 item 178 — closes the
       auto-cron-never-fires compounding cause; CRON_SECRET still
       pending]
+    - Public per-tenant landing page at /s/<slug>. [SHIPPED
+      2026-04-30 Session 19 items 191-196]
+    - Public per-tenant catalog at /s/<slug>/catalog +
+      /s/<slug>/catalog/<sku>. [SHIPPED 2026-05-04 Session 20
+      items 197-204]
 ================================================================================

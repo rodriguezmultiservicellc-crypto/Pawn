@@ -116,6 +116,7 @@ type ItemRecord = {
   notes: string | null
   staff_memo: string | null
   tags: string[] | null
+  is_hidden_from_catalog: boolean | null
   created_at: string
   updated_at: string
 }
@@ -169,6 +170,7 @@ function echoToInventoryFieldValues(
       typeof echo.tags === 'string' && echo.tags.trim() !== ''
         ? echo.tags.split(',').map((t) => t.trim()).filter(Boolean)
         : [],
+    is_hidden_from_catalog: echo.is_hidden_from_catalog === 'on',
   }
 }
 
@@ -220,6 +222,7 @@ export default function InventoryDetail({
     notes: item.notes,
     staff_memo: item.staff_memo,
     tags: item.tags ?? [],
+    is_hidden_from_catalog: item.is_hidden_from_catalog ?? false,
   }
 
   // Form-reset workaround: React 19 auto-resets <form action={fn}> after

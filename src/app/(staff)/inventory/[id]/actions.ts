@@ -80,6 +80,7 @@ export async function updateInventoryItemAction(
     'notes',
     'staff_memo',
     'tags',
+    'is_hidden_from_catalog',
   ] as const
 
   const raw: Record<string, FormDataEntryValue | null> = { id }
@@ -149,6 +150,7 @@ export async function updateInventoryItemAction(
       notes: v.notes,
       staff_memo: v.staff_memo,
       tags: v.tags,
+      is_hidden_from_catalog: v.is_hidden_from_catalog,
       updated_by: userId,
     })
     .eq('id', id)
@@ -173,6 +175,28 @@ export async function updateInventoryItemAction(
 
   revalidatePath(`/inventory/${id}`)
   revalidatePath('/inventory')
+
+  // Catalog revalidation — only fire when the parent tenant has a slug
+  // (cheap indexed lookup; gated to avoid pointless revalidation when
+  // the tenant has no public surface at all).
+  const { data: tenantRow } = await supabase
+    .from('tenants')
+    .select('public_slug')
+    .eq('id', tenantId)
+    .maybeSingle()
+  if (tenantRow?.public_slug) {
+    // SKU is read-only on edit so it lives on the existing row, not in v.
+    const { data: skuRow } = await supabase
+      .from('inventory_items')
+      .select('sku')
+      .eq('id', id)
+      .maybeSingle()
+    revalidatePath(`/s/${tenantRow.public_slug}/catalog`)
+    if (skuRow?.sku) {
+      revalidatePath(`/s/${tenantRow.public_slug}/catalog/${skuRow.sku}`)
+    }
+  }
+
   return { ok: true }
 }
 

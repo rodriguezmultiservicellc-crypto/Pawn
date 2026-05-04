@@ -30,6 +30,7 @@ export type TenantGeneralView = {
   public_landing_enabled: boolean
   public_about: string | null
   public_hours: unknown
+  public_catalog_enabled: boolean
 }
 
 const HOURS_DAYS: ReadonlyArray<{
@@ -275,6 +276,24 @@ export default function GeneralSettingsContent({
                 className="h-4 w-4 rounded border-hairline text-rausch focus:ring-rausch"
               />
               <span className="font-medium text-ink">Publish landing page</span>
+            </label>
+            <label className="flex items-start gap-3 self-end pb-2 text-sm md:col-span-2">
+              <input
+                type="checkbox"
+                name="public_catalog_enabled"
+                value="on"
+                defaultChecked={tenant.public_catalog_enabled}
+                disabled={!tenant.has_retail}
+                className="mt-0.5 h-4 w-4 rounded border-hairline text-rausch focus:ring-rausch disabled:opacity-50"
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="font-medium text-ink">Publish public catalog</span>
+                <span className="text-xs text-ash">
+                  {tenant.has_retail
+                    ? 'Auto-publishes available items with a list price at /s/<slug>/catalog. Per-item Hide flag overrides.'
+                    : 'Retail module disabled — catalog unavailable.'}
+                </span>
+              </span>
             </label>
             <div className="md:col-span-2">
               <label className="block space-y-1">

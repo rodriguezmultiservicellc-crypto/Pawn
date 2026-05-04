@@ -51,6 +51,7 @@ export async function createInventoryItemAction(
     'notes',
     'staff_memo',
     'tags',
+    'is_hidden_from_catalog',
   ] as const
 
   const raw: Record<string, FormDataEntryValue | null> = {}
@@ -104,6 +105,7 @@ export async function createInventoryItemAction(
       notes: v.notes,
       staff_memo: v.staff_memo,
       tags: v.tags,
+      is_hidden_from_catalog: v.is_hidden_from_catalog,
       created_by: userId,
       updated_by: userId,
     })
@@ -129,5 +131,16 @@ export async function createInventoryItemAction(
   })
 
   revalidatePath('/inventory')
+
+  // Catalog revalidation — only fire when the parent tenant has a slug.
+  const { data: tenantRow } = await supabase
+    .from('tenants')
+    .select('public_slug')
+    .eq('id', ctx.tenantId)
+    .maybeSingle()
+  if (tenantRow?.public_slug) {
+    revalidatePath(`/s/${tenantRow.public_slug}/catalog`)
+  }
+
   redirect(`/inventory/${data.id}`)
 }

@@ -169,7 +169,20 @@ export default function LandingPageContent({
               hint={dict.ctaSoonHint}
             />
           ) : null}
-          {tenant.has_retail ? (
+          {tenant.has_retail && tenant.public_catalog_enabled ? (
+            <Link
+              href={`/s/${tenant.public_slug}/catalog`}
+              className="inline-flex items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm font-medium text-ink transition hover:bg-cloud"
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className="text-rausch">
+                  <ShoppingBag size={18} weight="bold" />
+                </span>
+                {dict.ctas.shopInventory}
+              </span>
+              <ArrowUpRight size={14} weight="bold" className="text-ash" />
+            </Link>
+          ) : tenant.has_retail ? (
             <CTAPlaceholder
               icon={<ShoppingBag size={18} weight="bold" />}
               label={dict.ctas.shopInventory}
