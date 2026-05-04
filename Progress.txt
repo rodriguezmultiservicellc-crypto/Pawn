@@ -29,13 +29,18 @@ SEE ALSO (do not duplicate here):
   Context budget: ~85% full at save time.
   Last worked on: Session ended cleanly. Lint clean, build
                   green, tests 342/342. Operator smoke test
-                  pending — visit
-                  https://pawn-three.vercel.app/s/eddys/catalog
-                  after deploy and follow the spec §5.3
-                  checklist (publish a tenant catalog, add
-                  ≥3 priced+available items with photos in
-                  ≥2 categories, verify list + detail +
-                  hide-flag + 404 paths).
+                  PASSED 7/7 paths after one Vercel-edge-
+                  cache hiccup (initial 404 cached from
+                  pre-publish state; ?bust=1 cache-buster
+                  bypassed it and the page rendered fine).
+                  Followup logged: add `export const
+                  revalidate = 60` to the public surfaces
+                  (/s/[slug] + /s/[slug]/catalog +
+                  /s/[slug]/catalog/[sku]) so flag-flip
+                  transitions propagate to Vercel's edge
+                  within ~1 min without manual
+                  cache-busting. Bundle with the next
+                  polish session.
 
   ACTIVE FILE(S) — all touched this session (commit
   pending /progress save):
@@ -280,8 +285,16 @@ SEE ALSO (do not duplicate here):
       domain (`*.<basedomain>` → Vercel) lights up
       the subdomain form once the env var lands. Path
       form works on Vercel + local dev today.
-    - Catalog smoke test pending — Eddy publishes a
-      tenant catalog and walks the spec §5.3 flow.
+    - Public catalog edge-cache flip (NEW Session 20 in-
+      session find): when a tenant's public_catalog_
+      enabled flips FALSE→TRUE, Vercel's edge can serve
+      a stale 404 from the prior render despite
+      revalidatePath() firing. Manual `?bust=N` query
+      string bypasses it. Permanent fix: add
+      `export const revalidate = 60` to the public
+      surfaces (/s/[slug] + /s/[slug]/catalog +
+      /s/[slug]/catalog/[sku]). Same pattern likely
+      benefits the landing page on similar transitions.
     - SaaS billing real-money flow still gates on
       operator setup (Stripe webhook config + Sync
       Stripe products button click).
@@ -1525,20 +1538,19 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Smoke-test the public catalog end-to-end (spec §5.3).
-    /settings/general → tick "Publish public catalog"
-    (and "Publish landing page" if not on), save. Add ≥3
-    inventory items in 2 different categories with
-    status='available' + list_price set + ≥1 photo each.
-    Visit https://pawn-three.vercel.app/s/eddys/catalog;
-    confirm grid + category pills + search. Click an item;
-    confirm detail page + photo carousel + spec table only
-    showing rows with data. Tick "Hide from public catalog"
-    on one item; confirm it disappears. Toggle
-    public_catalog_enabled=FALSE; confirm 404 + landing CTA
-    reverts to placeholder. Probe a non-existent SKU and
-    a tenant with catalog OFF; both 404 generically. After
-    smoke is green, pick the next session's path.
+    Pick a session path. Three options on the table:
+    (A) Phase 10 Path A continuation — loyalty/referrals
+        OR Google Reviews embed OR email campaigns;
+    (B) Mobile audit (Backlog #3) across portal +
+        dashboard + repair kanban + receipt PDFs + the
+        new public catalog;
+    (C) Public-surface polish — bundle the
+        `export const revalidate = 60` fix on /s/[slug]
+        and /s/[slug]/catalog + /s/[slug]/catalog/[sku]
+        with any other small public-side cleanups.
+    Slice 2 (public catalog) shipped + smoke-verified
+    Session 20 — no carry-forward implementation work
+    from it.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 6 cron paths.)
