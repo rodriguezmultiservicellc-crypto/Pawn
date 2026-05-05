@@ -7,6 +7,8 @@ import {
 import type { InventoryCategory } from '@/types/database-aliases'
 import CatalogListContent from './content'
 
+export const revalidate = 60
+
 type Params = Promise<{ slug: string }>
 type Search = Promise<{
   page?: string

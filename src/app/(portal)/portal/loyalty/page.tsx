@@ -7,6 +7,8 @@ import { ensureReferralCode } from '@/lib/loyalty/events'
 import { buildPublicLandingUrl } from '@/lib/loyalty/url'
 import LoyaltyPortalContent from './content'
 
+export const revalidate = 60
+
 export default async function PortalLoyaltyPage() {
   const ctx = await getCtx()
   if (!ctx || !ctx.tenantId) notFound()

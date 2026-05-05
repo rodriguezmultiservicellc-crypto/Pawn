@@ -6,6 +6,8 @@ import {
 } from '@/lib/tenant-resolver'
 import CatalogItemContent from './content'
 
+export const revalidate = 60
+
 type Params = Promise<{ slug: string; sku: string }>
 
 export default async function PublicCatalogItemPage({

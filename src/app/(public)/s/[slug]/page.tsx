@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { fetchPublicTenant, type PublicTenant } from '@/lib/tenant-resolver'
 import LandingPageContent from './content'
 
+export const revalidate = 60
+
 type Params = Promise<{ slug: string }>
 
 /**
