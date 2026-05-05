@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { fetchPublicTenant, type PublicTenant } from '@/lib/tenant-resolver'
+import { loadPublicReviews } from '@/lib/google-reviews/cache'
 import LandingPageContent from './content'
 
 export const revalidate = 60
@@ -28,7 +29,8 @@ export default async function PublicLandingPage({
   const { slug } = await params
   const tenant = await fetchPublicTenant(slug)
   if (!tenant) notFound()
-  return <LandingPageContent tenant={tenant} />
+  const reviews = await loadPublicReviews(tenant.id)
+  return <LandingPageContent tenant={tenant} reviews={reviews} />
 }
 
 export async function generateMetadata({

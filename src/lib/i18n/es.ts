@@ -2778,6 +2778,16 @@ export const es: Dictionary = {
       sat: 'Sábado',
       sun: 'Domingo',
     },
+    reviews: {
+      title: 'Reseñas en Google',
+      count: {
+        one: 'reseña',
+        other: 'reseñas',
+      },
+      seeAll: 'Ver todas en Google',
+      readFull: 'Leer en Google',
+      anonymous: 'Anónimo',
+    },
   },
 
   catalog: {

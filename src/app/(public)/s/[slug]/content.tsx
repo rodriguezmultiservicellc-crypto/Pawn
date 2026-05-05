@@ -13,6 +13,8 @@ import {
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { PublicTenant, PublicHoursDay } from '@/lib/tenant-resolver'
+import type { RenderableReviews } from '@/lib/google-reviews/types'
+import GoogleReviewsWidget from '@/components/public/GoogleReviewsWidget'
 import LanguageToggle from './LanguageToggle'
 
 /**
@@ -23,8 +25,10 @@ import LanguageToggle from './LanguageToggle'
  */
 export default function LandingPageContent({
   tenant,
+  reviews,
 }: {
   tenant: PublicTenant
+  reviews: RenderableReviews | null
 }) {
   const { t } = useI18n()
   const dict = t.landing
@@ -152,6 +156,9 @@ export default function LandingPageContent({
             </p>
           </section>
         ) : null}
+
+        {/* Google Reviews — silent-fail-soft per Decision 4 */}
+        {reviews ? <GoogleReviewsWidget data={reviews} /> : null}
 
         {/* CTAs */}
         <section className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-2">

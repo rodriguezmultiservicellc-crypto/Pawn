@@ -13,266 +13,286 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 22 (2026-05-05, end-of-session)
-                  — Phase 10 Path A slice 3/N: loyalty +
-                  referrals SHIPPED + SMOKE PASSED. All 16
-                  plan tasks complete + verified locally
-                  (lint clean, tsc clean, 373 tests passing,
-                  `npm run build` green). Single commit
-                  per project's once-per-session /progress
-                  flow. Vercel build green; operator smoke
-                  confirmed against production URL —
-                  loyalty/referrals slice 3 fully live.
-                  Awaiting next-move pick.
+  Last session:   Session 23 (2026-05-05, end-of-session)
+                  — Phase 10 Path A slice 4/N: Google
+                  Reviews SHIPPED. All 13 plan tasks
+                  complete + verified locally (lint clean,
+                  tsc clean, 404 tests passing, `npm run
+                  build` green, 60/60 static pages). Three
+                  prior Session 23 commits already pushed
+                  (edge-cache fix 1d2e428, spec lock
+                  710936f, plan lock f4ff316) — this is
+                  the implementation commit. Awaiting
+                  operator smoke against production URL.
   Context budget: high but well under cache-miss
                   threshold at save time.
-  Last worked on: Loyalty/referrals slice 3 — full
-                  implementation across 16 plan tasks.
-                  Migration 0028 applied; types regenerated;
-                  pure-logic math (31 tests) + central
-                  events.ts writer (single-writer rule with
-                  discriminated InsertResult); 5 server-action
-                  hooks (completeSale + redeemLoan +
-                  recordPayment + voidSale + createReturn);
-                  /settings/loyalty page; LoyaltyPanel +
-                  AdjustPointsModal + adjust/reset actions on
-                  /customers/[id]; PosRedemptionBlock +
-                  redeemPointsOnSale + undoRedemption on POS;
-                  customers/new referred-by-code field;
-                  /portal/loyalty page + buildPublicLandingUrl
-                  helper; ~27-key i18n loyalty.* block at
-                  EN+ES parity + nav.loyalty; Trophy sidebar
-                  entry. All architectural rules upheld:
-                  loyalty_events writes funneled through
-                  lib/loyalty/events.ts (single-writer);
-                  append-only DB enforcement via trigger;
-                  same-tenant referral guard via trigger;
-                  CHECK constraints on rate columns; clawback
-                  internally clamped to balance.
+  Last worked on: Three-part Session 23 — (1) edge-
+                  cache revalidate=60 on public + portal/
+                  loyalty routes (already committed as
+                  1d2e428); (2) brainstormed Google
+                  Reviews spec at docs/superpowers/specs/
+                  2026-05-05-google-reviews-design.md
+                  with 8 locked decisions (already
+                  committed as 710936f); (3) generated
+                  13-task plan at docs/superpowers/plans/
+                  2026-05-05-google-reviews.md (already
+                  committed as f4ff316) and executed via
+                  subagent-driven-development. Final
+                  commit covers Tasks 1+3-12 (Task 9
+                  deferred — see below). New surfaces:
+                  staff /settings/integrations/google-
+                  reviews page with Test-connection;
+                  integrations hub status card; public
+                  GoogleReviewsWidget on /s/<slug>
+                  between About and CTAs. Hybrid API key
+                  resolution (per-tenant override +
+                  GOOGLE_PLACES_API_KEY env fallback);
+                  24h DB cache with on-demand fill;
+                  silent fail-soft visibility per
+                  Decision 4. Two-stage subagent review
+                  caught real bugs in Tasks 3 (inverted
+                  test assertion) and 5 (writeError race
+                  log + Next.js after() for serverless).
 
   ACTIVE FILE(S) at end of session — Phase 10 Path A
-  slice 3 SHIPPED (single end-of-session commit):
+  slice 4 SHIPPED:
 
-    --- MIGRATION (item 206) ---
-    - patches/0028-loyalty-referrals.sql (NEW — 296
-      lines: 4 customer cols + 5 settings cols with
-      CHECK constraints + loyalty_events table with
-      7-kind enum + 3 indexes + idempotency partial
-      unique on 4 auto-credit kinds + 3 trigger
-      functions (apply-balance / block-mutation /
-      same-tenant-referral) + 3 RLS policies with
-      defense-in-depth performed_by self-check on
-      staff INSERT + documented rollback)
+    --- ALREADY-COMMITTED EARLIER IN SESSION 23 ---
+    - 1d2e428 — edge-cache `export const revalidate = 60`
+      on /s/[slug], /s/[slug]/catalog, /s/[slug]/catalog/
+      [sku], /portal/loyalty
+    - 710936f — spec at docs/superpowers/specs/2026-05-05-
+      google-reviews-design.md (8 locked decisions)
+    - f4ff316 — plan at docs/superpowers/plans/2026-05-05-
+      google-reviews.md (13-task bite-sized plan)
+
+    --- MIGRATION (item 218) ---
+    - patches/0029-google-reviews.sql (NEW — 110 lines:
+      3 settings cols + tenant_google_reviews cache
+      table with FK ON DELETE CASCADE + partial index
+      + RLS staff-SELECT-only + NOTIFY pgrst at end +
+      documented rollback)
     - src/types/database.ts (regenerated via
-      `npm run db:types` after operator applied 0028
-      — loyalty_events table + new columns now typed
-      in customers/settings Row/Insert/Update aliases)
+      `npm run db:types` after operator applied 0029)
 
-    --- PURE-LOGIC + EVENTS HELPERS (items 207-208) ---
-    - src/lib/loyalty/math.ts (NEW — 7 exports:
-      computeRetailEarn, computeLoanInterestEarn,
-      computeRedemptionDiscount with cap-then-shrink-
-      pointsConsumed, generateReferralCode (32-char
-      alphabet, 6 chars), canApplyAdjustment,
-      isValidReferralCode, clampClawback)
-    - src/lib/loyalty/math.test.ts (NEW — 31 vitest
-      tests across 7 describe blocks; review-driven
-      Number.isFinite + Math.floor coverage on
-      computeRedemptionDiscount edge cases)
-    - src/lib/loyalty/events.ts (NEW — 10 helpers +
-      internal insertEvent with discriminated
-      InsertResult {ok:true,id} | {ok:'collision'} |
-      {ok:false,error}; SINGLE WRITER for
-      loyalty_events; recordEarnSale,
-      recordEarnLoanInterest, maybeCreditReferral
-      (flag-flip-only-on-success-or-collision),
-      recordRedemption, recordRedeemUndo,
-      recordEarnClawback (internal clampClawback),
-      recordManualAdjust (discriminated
-      reason_too_short/would_go_negative/
-      insert_failed), ensureReferralCode (5-attempt
-      retry with race-safe loop), resetReferralCode,
-      applyReferredByCode (uppercase + validate +
-      tenant-scope + self-referral guard +
-      idempotent UPDATE))
+    --- PURE-LOGIC + TESTS (item 219) ---
+    - src/lib/google-reviews/types.ts (NEW — 4 types:
+      GoogleReview, PlaceDetails, TenantReviewRow,
+      RenderableReviews)
+    - src/lib/google-reviews/filter.ts (NEW —
+      applyMinStarFloor with Number.isFinite guard +
+      sort time DESC + cap at 3; isWidgetRenderable
+      encodes Decision 4 silent-fail-soft)
+    - src/lib/google-reviews/filter.test.ts (NEW — 12
+      vitest tests including null + undefined input
+      coverage)
+    - src/lib/google-reviews/format.ts (NEW —
+      formatRelativeTime via Intl.RelativeTimeFormat
+      with locale-aware en/es; truncateExcerpt
+      word-boundary + trailing-punct strip; starArray
+      with clamp [0,5])
+    - src/lib/google-reviews/format.test.ts (NEW — 19
+      vitest tests including future-timestamp clock-
+      skew documentation)
 
-    --- SERVER-ACTION HOOKS (items 209-210) ---
-    - src/app/(staff)/pos/sales/[id]/actions.ts
-      (completeSaleAction earn+referral hook on
-      subtotal NOT total; voidSaleAction sums
-      earn_sale rows + clawback + iterates redeem_pos
-      rows + redeem_undo each; new
-      redeemPointsOnSaleAction + undoRedemptionAction
-      via helpers; uses real
-      sales.discount_amount / tax_amount / subtotal /
-      total columns)
-    - src/app/(staff)/pawn/[id]/actions.ts
-      (recordPaymentAction captures payment loan_event
-      id + earn-on-interest hook + referral; same in
-      redeemLoanAction for the payoff loan_event)
-    - src/app/(staff)/pos/returns/new/actions.ts
-      (createReturnAction proportional clawback
-      Math.floor(returnedSubtotal × earn_rate_retail)
-      with sourceKind='return', sourceId=ret.id,
-      reason='sale_returned')
+    --- HTTP CLIENT + CACHE LAYER (items 220-221) ---
+    - src/lib/google-reviews/client.ts (NEW —
+      'server-only', fetchPlaceDetails wraps Google
+      Places Details API; never throws — returns
+      either PlaceDetails or {error:string}; cache:
+      'no-store' so the DB cache is the cache layer;
+      passes 'language=en' for cache stability)
+    - src/lib/google-reviews/cache.ts (NEW — most
+      subtle file in the slice. Three exports:
+      getCachedReviews (4-branch logic: no-placeId
+      / hot fresh / stale SWR / no-row-or-mismatch),
+      refreshReviews (UPSERT on success preserves
+      payload on error path), loadPublicReviews
+      (refactored to take just tenantId — reads
+      settings.google_reviews_min_star_floor itself
+      via admin client in parallel with cache row).
+      Two internals: loadCachedRow + writeError
+      (placeholder-row pattern lets /settings show
+      "Last sync failed" before any successful
+      fetch). Subagent code-quality review caught
+      two real issues fixed inline:
+      (a) writeError INSERT branch now captures
+          insertErr and console.errors non-23505
+          codes (silent failure on PK collision is
+          fine + documented; other errors deserved
+          surfacing);
+      (b) `void refreshReviews(...)` replaced with
+          `after(() => refreshReviews(...))` from
+          'next/server' so SWR completes reliably
+          in serverless after the response is sent.)
 
-    --- STAFF SETTINGS PAGE (item 211) ---
-    - src/app/(staff)/settings/loyalty/page.tsx (NEW
-      — RSC, owner/chain_admin gate, fetches settings
-      row + Number()-coerces NUMERIC columns)
-    - src/app/(staff)/settings/loyalty/content.tsx
-      (NEW — 'use client', useActionState form,
-      master enable + 4 numeric rates with
-      live-disabled-when-off; hardcoded English)
-    - src/app/(staff)/settings/loyalty/actions.ts
-      (NEW — 'use server', requireRoleInTenant
-      BEFORE admin client per Rule 10; Zod schema
-      with gt(0) on redemption_rate + int().min(0)
-      on referral_bonus + min(0).max(1000) on earn
-      rates; revalidates 4 paths /settings,
-      /settings/loyalty, /customers,
-      /portal/loyalty; audit logs before/after)
+    --- ZOD VALIDATION + SETTINGS PAGE (items 222-223) ---
+    - src/lib/validations/google-reviews.ts (NEW —
+      googleReviewsSettingsSchema with empty-string→
+      null preprocess on place_id + api_key,
+      coerce.number().int().min(1).max(5) on
+      min_star_floor)
+    - src/app/(staff)/settings/integrations/google-
+      reviews/page.tsx (NEW — RSC, owner/chain_admin
+      gate, parallel reads of settings + cache row,
+      view shape excludes server-only API key from
+      props)
+    - src/app/(staff)/settings/integrations/google-
+      reviews/content.tsx (NEW — 'use client',
+      useActionState form + Test-connection button +
+      status chip [Connected / Pending / Not
+      configured / Last sync failed]; collapsible
+      Advanced section for per-tenant API key
+      override; HARDCODED ENGLISH per project pattern
+      — staff settings UI doesn't use i18n; matches
+      /settings/loyalty + /settings/integrations/ebay
+      precedent)
+    - src/app/(staff)/settings/integrations/google-
+      reviews/actions.ts (NEW — 'use server', two
+      actions: updateGoogleReviewsSettingsAction
+      [Zod parse → admin update → cache-row delete
+      when place_id cleared → audit log → revalidate]
+      and testGoogleReviewsConnectionAction [calls
+      refreshReviews to honor single-writer rule];
+      both gate via requireRoleInTenant BEFORE admin
+      client per Rule 10)
 
-    --- STAFF CUSTOMER + POS SURFACES (items 212-213) ---
-    - src/components/loyalty/LoyaltyPanel.tsx (NEW —
-      'use client', balance + ≈ store credit
-      subtitle, referral code with Copy button,
-      KIND_LABEL hardcoded English for 7 kinds, last
-      5 events, Adjust button gated on
-      canAdjust && !is_banned)
-    - src/components/loyalty/AdjustPointsModal.tsx
-      (NEW — 'use client', useActionState wired to
-      adjustLoyaltyPointsAction, friendly error
-      rendering for would_go_negative /
-      reason_too_short, closes on state.ok)
-    - src/components/loyalty/PosRedemptionBlock.tsx
-      (NEW — 'use client', returns null when not
-      applicable, "Redeem points" form with live
-      preview, existing redemptions with Undo)
-    - src/app/(staff)/customers/[id]/page.tsx
-      (selects loyalty fields, lazy-generates
-      referral code via ensureReferralCode when
-      enabled+null, threads loyalty prop)
-    - src/app/(staff)/customers/[id]/content.tsx
-      (renders LoyaltyPanel near top above existing
-      portal panel)
-    - src/app/(staff)/customers/[id]/actions.ts
-      (appends adjustLoyaltyPointsAction +
-      resetReferralCodeAction; both manager+ via
-      requireRoleInTenant; audit + revalidate)
-    - src/app/(staff)/pos/sales/[id]/page.tsx
-      (settings + customer balance + redemptions
-      fetch parallelized; threads loyalty prop)
-    - src/app/(staff)/pos/sales/[id]/content.tsx
-      (renders PosRedemptionBlock below totals,
-      gated on loyalty.enabled && sale.customer_id)
+    --- INTEGRATIONS HUB + PUBLIC WIDGET (items 224-225) ---
+    - src/app/(staff)/settings/integrations/page.tsx
+      (5th Promise.all query for tenant_google_
+      reviews; google_place_id added to settings
+      SELECT; new googleReviews block in view)
+    - src/app/(staff)/settings/integrations/content.tsx
+      (Star icon imported; new IntegrationsView.
+      googleReviews shape; new <Card> mirrored from
+      eBay pattern between eBay and the rest. The
+      Card status union doesn't have 'attention' so
+      configured-but-failed falls back to
+      'disconnected' with red error text in body.)
+    - src/components/public/GoogleReviewsWidget.tsx
+      (NEW — 'use client'; aggregate header with
+      stars + rating + count; up-to-3 review cards
+      in 3-col desktop / 1-col mobile grid; per-card
+      reviewer name + relative time + 140-char
+      excerpt + Read on Google; uses
+      landing.reviews.* i18n; Phosphor Star
+      weight=fill in text-ink/text-hairline per
+      Decision 8 — NOT Warning Amber)
 
-    --- CUSTOMER-CREATE + PORTAL + i18n (items 214-216) ---
-    - src/lib/validations/customer.ts
-      (customerCreateSchema gains optional
-      referred_by_code, case-insensitive 6-char
-      A-Z+2-9, empty-string→null preprocess)
-    - src/app/(staff)/customers/new/actions.ts
-      (FIELDS gains referred_by_code; post-INSERT
-      calls applyReferredByCode helper; no inline
-      UPDATE on referred_by_customer_id)
-    - src/app/(staff)/customers/new/form.tsx
-      (uppercase 6-char input above submit row,
-      defaultValue echo on validation-error,
-      hardcoded English helper text)
-    - src/lib/loyalty/url.ts (NEW — 'server-only',
-      buildPublicLandingUrl({slug, baseDomain,
-      appUrl}) with subdomain form when baseDomain
-      set / path-form fallback / null when slug null)
-    - src/app/(portal)/portal/loyalty/page.tsx
-      (NEW — RSC; notFound() on missing ctx /
-      tenant / loyalty disabled / customer missing;
-      lazy ensureReferralCode; reads tenant + last
-      20 events + friendsReferred count;
-      buildPublicLandingUrl from x-forwarded-proto +
-      host headers + NEXT_PUBLIC_BASE_DOMAIN)
-    - src/app/(portal)/portal/loyalty/content.tsx
-      (NEW — 'use client', useI18n from
-      @/lib/i18n/context (corrected from plan's
-      use-lang path), hero + earn rules + refer-a-
-      friend with SMS/WhatsApp/Email share buttons +
-      activity log)
-    - src/lib/i18n/en.ts + es.ts (loyalty.* block
-      at EN+ES parity, ~27 keys including 7
-      kinds.* sub-keys matching the DB enum;
-      nav.loyalty)
-
-    --- SIDEBAR (item 217) ---
-    - src/components/layout/Sidebar.tsx (Trophy
-      icon import + Loyalty entry under Settings
-      group between Communications and Billing,
-      visible: canSeeSettings — server gate at
-      page level enforces actual owner/chain_admin
-      role)
+    --- LANDING PAGE INTEGRATION + i18n (items 226-227) ---
+    - src/app/(public)/s/[slug]/page.tsx
+      (loadPublicReviews(tenant.id) call after
+      fetchPublicTenant; threads `reviews` prop into
+      LandingPageContent; await-serializes first
+      visit's Places fetch ~150ms; subsequent
+      visitors hit 24h cache)
+    - src/app/(public)/s/[slug]/content.tsx
+      (RenderableReviews import; widget plugged in
+      between About and CTAs section per Decision 6;
+      `reviews ? <GoogleReviewsWidget> : null` is
+      the silent-fail-soft gate)
+    - src/lib/i18n/en.ts + es.ts (landing.reviews.*
+      block at EN+ES parity: title, count.one/other,
+      seeAll, readFull, anonymous — 7 keys)
 
     --- DESIGN SPEC + PLAN ---
-    - docs/superpowers/specs/2026-05-04-loyalty-
-      referrals-design.md (Session 21 design + §9
-      Session 22 amendments locking 5 design
-      decisions: append-only DB enforcement,
-      same-tenant referral trigger, CHECK on rate
-      cols, earn-clawback on void/return,
-      redeem_undo + earn_clawback as own kinds)
-    - docs/superpowers/plans/2026-05-04-loyalty-
-      referrals.md (NEW — 16-task bite-sized plan
-      generated by writing-plans skill, mirrors
-      Session 20's plan shape)
+    - docs/superpowers/specs/2026-05-05-google-
+      reviews-design.md (8 locked decisions: hybrid
+      API key, min-star floor, DB cache + on-demand
+      fill 24h TTL, silent fail-soft, /settings/
+      integrations/google-reviews placement,
+      between-About-and-CTAs widget placement,
+      3-card-max widget shape, Ink/Hairline star
+      color)
+    - docs/superpowers/plans/2026-05-05-google-
+      reviews.md (13-task bite-sized plan; updated
+      inline mid-execution to fix 3 plan deviations:
+      inverted test assertion, settings hardcode-
+      English correction, Task 9 deferred when
+      settings columns turned out not to be on
+      tenants table)
 
   RESUME POINT:
-    Session 22 SHIPPED + SMOKED clean. Slice 3 is
-    fully live in production (Vercel build green,
-    operator smoke passed all 11 steps). Pick the
-    next move:
+    Session 23 SHIPPED. Slice 4 is in the
+    repository awaiting Vercel deploy (this
+    /progress flow pushes the implementation
+    commit). Operator smoke test:
 
-    (a) Public-route edge-cache fix (5 min, free
-        win) — add `export const revalidate = 60`
-        to /s/[slug] + /s/[slug]/catalog +
-        /s/[slug]/catalog/[sku] + /portal/loyalty.
-        Closes the stale-404-on-flag-flip path
-        Session 20 surfaced. Cheap; ride-along on
-        any next session.
-    (b) Phase 0 punch list (20-30 min, production-
-        blocking) — set CRON_SECRET +
+    1. Set GOOGLE_PLACES_API_KEY in Vercel
+       (production env). Without it Test-connection
+       writes last_error='no_api_key' and the
+       widget hides per Decision 4. The Places API
+       must also be enabled in Google Cloud Console
+       (project → APIs & Services → Library →
+       "Places API"). Local dev needs the same key
+       in .env.local.
+    2. Visit /settings/integrations — Google
+       Reviews card renders alongside eBay; status
+       reads "Not connected".
+    3. Click "Manage" → /settings/integrations/
+       google-reviews — form renders, status chip
+       "Not configured".
+    4. Paste a real Place ID (RMS uses ChIJ-
+       prefixed IDs from google.com/maps/place-id).
+       Click "Test connection" — chip flips to
+       "Connected · last sync <1 min" and "Synced —
+       N.N ★ · N reviews".
+    5. Set min-star floor to 4. Save. "Saved"
+       confirmation appears.
+    6. Open /s/<slug> public landing — Reviews on
+       Google section renders between About and
+       CTAs grid; aggregate header + up-to-3 review
+       cards.
+    7. Toggle to ES — section heading flips to
+       "Reseñas en Google", relative times re-
+       localize.
+    8. Set min-star floor to 5. Save. Reload — if
+       no surviving reviews, the entire widget
+       silently hides.
+    9. Clear Place ID. Save. Widget gone, status
+       back to "Not configured".
+
+    If smoke green, pick next move:
+
+    (a) Phase 0 punch list (20-30 min,
+        production-blocking) — set CRON_SECRET +
         NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN
         in Vercel; rotate the three pasted secrets
         (anon JWT, service-role JWT, sbp_ token);
-        revert repo-local git config. Without
-        CRON_SECRET, all 5 Vercel cron routes 401
+        revert repo-local git config. CRON_SECRET
+        unset means all 5 Vercel cron routes 401
         — every scheduled job is silently no-op'ing
-        right now.
-    (c) Next Phase 10 (A) slice (full session) —
-        Google Reviews embed (per-tenant place_id +
-        Places API caching + landing-page widget)
-        or email-campaign engine (template editor
-        in /settings/communications + segmentation
-        + Resend dispatch via cron + bounce/
-        unsubscribe). Email campaigns gate on (b)
-        for cron + per-tenant Resend.
-
-    Recommended sequence: (a) right now (5 min),
-    then (b) before any feature that depends on
-    cron or per-tenant outbound, then (c) for the
-    next big slice.
+        right now. Email-campaign engine (Phase 10
+        Path A continuation) gates on this.
+    (b) Phase 10 (A) email-campaign engine —
+        template editor in /settings/communications
+        + segmentation by customer tag/language +
+        Resend dispatch via cron + bounce/
+        unsubscribe. Gates on (a) for cron + per-
+        tenant Resend.
+    (c) Phase 10 (A) cron warmer for Google
+        Reviews — pre-populate stale rows before
+        TTL expires; new file /api/cron/refresh-
+        google-reviews. Gates on (a). Cheap (~30
+        min once cron is live).
+    (d) Reset-code UI for LoyaltyPanel (Session 22
+        small follow-up still open).
+    (e) Sidebar visibility predicate tightening
+        for /settings/loyalty (manager sees the
+        link but server-gate blocks them — cosmetic
+        but Session 22 noted it).
 
   OPEN ISSUES / BLOCKERS:
-    - Smoke test confirmed PASSED (post-Vercel-build,
-      11/11 steps green). No follow-up fixes needed.
+    - Slice 4 awaiting operator smoke against
+      production after this /progress push lands.
+      GOOGLE_PLACES_API_KEY must be set in Vercel
+      env first or Test-connection will fail.
     - Phase 0 punch list — CRON_SECRET +
       NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN
       still unset in Vercel. Three pasted secrets
       (anon JWT, service-role JWT, sbp_ token)
       still need rotation. Repo-local git config
       revert still open.
-    - Public catalog edge-cache flip (Session 20
-      find): add `export const revalidate = 60` to
-      /s/[slug] + /s/[slug]/catalog +
-      /s/[slug]/catalog/[sku]. Same pattern likely
-      benefits /portal/loyalty.
     - SaaS billing real-money flow + per-tenant
       Stripe Connect + per-tenant Resend not yet
       onboarded for first tenant.
@@ -290,77 +310,118 @@ SEE ALSO (do not duplicate here):
 
   SMALL FOLLOW-UPS DISCOVERED THIS SESSION
   (defense-in-depth, can ride along later):
-    - Sidebar: /settings/loyalty entry uses
-      canSeeSettings (manager-inclusive) but the
-      page server-gates owner/chain_admin only.
-      Cosmetic — manager sees the link but server
-      gate blocks them. Consider tightening the
-      sidebar visibility predicate next time
-      Sidebar.tsx is touched.
-    - recordEarnClawback fire-and-forget hides
-      transient DB errors. clampClawback prevents
-      the CHECK violation case so this is mostly
-      theoretical, but worth surfacing if it ever
-      shows up in audit reconciliation.
-    - "Reset code" button on LoyaltyPanel
-      intentionally not wired —
-      resetReferralCodeAction exists server-side
-      but no UI yet. Add when needed.
+    - Cron warmer at /api/cron/refresh-google-
+      reviews to pre-populate stale tenant_google_
+      reviews rows before TTL expires. Gates on
+      Phase 0 CRON_SECRET. Pattern matches the 5
+      existing cron routes.
+    - Reviewer photos in widget — currently text-
+      only. Adding next/image remotePatterns for
+      lh3.googleusercontent.com would enable
+      avatars per review. Defer until Eddy
+      explicitly wants them; layout already reads
+      well without.
+    - Per-review hide list (settings.google_
+      reviews_hidden_ids TEXT[]) — fallback if
+      min-star floor proves insufficient over time.
+    - Per-tenant API quota guardrails — hard cap
+      to prevent a misconfigured cache from blowing
+      the platform free tier. Mitigation today:
+      code-review of cache logic + Google Cloud
+      billing alerts. Future hardening pass.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 22):
-    - SPEC §9 AMENDMENTS BAKED INTO MIGRATION 0028.
-      Five design decisions locked + applied: (1)
-      append-only DB enforcement via
-      trg_loyalty_events_block_mutation; (2)
-      same-tenant referral guard via
-      trg_customers_referral_same_tenant; (3) CHECK
-      constraints on all four rate columns
-      (>=0 / >0 / >=0 / >=0 + integer); (4)
-      earn-clawback on sale void (full magnitude)
-      and partial return (proportional to returned
-      subtotal); (5) redeem_undo and earn_clawback
-      as their own kinds (not magic-string
-      adjust_manual reasons) so the customer-facing
-      activity log labels are unambiguous.
-    - SINGLE-WRITER RULE for loyalty_events.
-      EVERY insert flows through
-      src/lib/loyalty/events.ts via the internal
-      insertEvent helper. Discriminated InsertResult
-      lets callers distinguish success / idempotency
-      collision / error so maybeCreditReferral
-      flips referral_credited only on success or
-      collision (not on real failure — preserves
-      retry path).
-    - DEFENSE-IN-DEPTH RLS on staff loyalty_events
-      INSERT: tenant scope AND
-      (performed_by IS NULL OR performed_by =
-      auth.uid()). Closes audit-attribution
-      forgery vector if a future code path
-      bypasses the admin client.
-    - PORTAL-CONTENT i18n IMPORT FROM context, NOT
-      use-lang. Plan code drift fixed during
-      implementation: useI18n lives in
-      @/lib/i18n/context (pattern matches sibling
-      /portal/repairs, /portal/layaways,
-      /portal/account).
-    - SIDEBAR LOYALTY ENTRY uses t.nav.loyalty
-      (NOT hardcoded). Adds nav.loyalty key to
-      en.ts + es.ts. Matches existing pattern for
-      every other settings nav entry.
-    - SUBAGENT-DRIVEN-DEVELOPMENT FLOW VALIDATED
-      THIRD TIME. Session 20 used brainstorming →
-      writing-plans → executing-plans. Session 21
-      (mid) used brainstorming + writing-plans.
-      Session 22 used writing-plans →
-      subagent-driven-development with two-stage
-      review (spec compliance + code quality).
-      Code-review pass surfaced two real
-      correctness bugs in Tasks 3 and 4 that the
-      verbatim plan code missed (Number.isFinite
-      gaps + InsertResult coarse failure mode);
-      both were fixed without leaving the session.
-      Process worth keeping for slices where the
-      plan code has structural risk.
+  KEY DECISIONS LOCKED THIS SESSION (Session 23):
+    - HYBRID API KEY MODEL. Platform-wide
+      GOOGLE_PLACES_API_KEY env var as default;
+      per-tenant override in
+      settings.google_places_api_key (nullable).
+      cache.ts resolves at the call site
+      (per-tenant first, env fallback). Sophisticated
+      tenants can self-host; default tenants use
+      the platform key. Mirrors the Resend
+      precedent (env fallback + per-tenant
+      override).
+    - SILENT FAIL-SOFT (Decision 4). Public widget
+      renders iff place_id set AND last fetch
+      succeeded AND ≥1 review survives min-star
+      filter. All errors surface only in /settings,
+      never on the public landing. Encoded in
+      isWidgetRenderable + the four null gates of
+      loadPublicReviews.
+    - SINGLE-WRITER RULE for tenant_google_reviews.
+      Every INSERT/UPDATE to the cache table flows
+      through src/lib/google-reviews/cache.ts.
+      Test-connection action calls refreshReviews,
+      not direct DB writes. Settings-clear path
+      DELETEs cache row but that's not a write
+      to cache business logic — it's data hygiene.
+    - PLACEHOLDER-ROW PATTERN for first-failure
+      visibility. writeError UPSERTs a row with
+      payload:{} so /settings shows "Last sync
+      failed: <error>" before any successful fetch
+      has happened. Without it tenants with
+      typo'd place_id would show "Pending"
+      forever.
+    - NEXT.JS after() FOR SWR RELIABILITY. Stale-
+      while-revalidate path uses
+      `after(() => refreshReviews(tenantId))` from
+      'next/server' (NOT bare void). Vercel
+      runtime can reclaim the function before fire-
+      and-forget promises resolve; after() registers
+      with waitUntil so the background refresh
+      reliably completes after the response is
+      sent. Subagent code-quality review caught
+      this.
+    - HARDCODED ENGLISH IN STAFF SETTINGS UI.
+      Plan over-applied i18n to the operator
+      settings page. Project's actual pattern is
+      staff settings hardcode English (operators
+      mostly English-speaking — see /settings/
+      loyalty/content.tsx + /settings/integrations/
+      content.tsx). Only customer-facing surfaces
+      use i18n. Plan Tasks 7 + 8 + 12 updated
+      inline to reflect this; landing.reviews.* is
+      the only i18n block this slice adds.
+    - LOADPUBLICREVIEWS REFACTORED TO SINGLE-ARG.
+      Plan threaded google_place_id +
+      google_reviews_min_star_floor through
+      PublicTenant, but those columns live on
+      `settings`, not `tenants`. fetchPublicTenant
+      reads tenants only — tsc rejected the column
+      additions. Refactor: loadPublicReviews now
+      takes just tenantId; it reads
+      settings.google_reviews_min_star_floor itself
+      via admin client in parallel with the cache
+      row. Admin client is safe at this call site
+      because the tenantId is already validated as
+      a published tenant by fetchPublicTenant
+      upstream.
+    - WRITEERROR INSERT BRANCH SURFACES NON-PK
+      ERRORS. The race window between SELECT and
+      INSERT could let a concurrent success-UPSERT
+      cause a 23505 PK collision in the error
+      INSERT path. 23505 is benign + silently
+      swallowed. Other errors now console.error.
+      Subagent code-quality review caught this.
+    - STAR ICON COLOR (Decision 8). Phosphor Star
+      weight=fill, text-ink filled / text-hairline
+      empty. NOT Warning Amber — that's a semantic-
+      only token; using it decoratively violates
+      the locked design system. Matches Airbnb's
+      parent treatment of dark-on-cream stars.
+    - SUBAGENT-DRIVEN-DEVELOPMENT FOURTH RUN
+      VALIDATED. Same pattern as Session 22.
+      Code-review caught two real bugs: (1) the
+      writeError race-log gap, (2) the Vercel
+      after() vs bare void. Plan-code itself had
+      one bug caught by the implementer self-
+      review (inverted truncateExcerpt assertion).
+      Three real catches in 13 tasks — process
+      continues to earn its keep on subtle
+      tasks (cache.ts) but is overhead-heavy on
+      mechanical pastes (client.ts, types.ts) —
+      consider tagging subagent-driven only on
+      load-bearing tasks in future slices.
 
   (Sessions 13-21 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
@@ -1590,21 +1651,247 @@ Items 1-166 covered there.)
      Sidebar.tsx is touched (cosmetic — flagged as
      small follow-up).
 
+--- Session 23 (2026-05-05, end-of-session) — Phase 10 Path A slice 4/N: Google Reviews SHIPPED ---
+
+ 218. EDGE-CACHE REVALIDATE=60 ON PUBLIC + PORTAL/LOYALTY
+     ROUTES. Single-line `export const revalidate = 60`
+     added to /s/[slug] + /s/[slug]/catalog +
+     /s/[slug]/catalog/[sku] + /portal/loyalty. Closes
+     the stale-404-on-flag-flip path documented in
+     Session 20. Routes remain ƒ Dynamic (Supabase
+     cookies / headers() / searchParams in scope) but
+     `revalidate` scopes Vercel's data cache for fetch
+     responses to a 60s window. Already pushed at
+     1d2e428. Build green (59/59 static pages).
+
+ 219. GOOGLE REVIEWS SPEC LOCKED VIA BRAINSTORMING. 8
+     decisions captured in docs/superpowers/specs/
+     2026-05-05-google-reviews-design.md: (1) hybrid
+     API key (platform env default + per-tenant
+     override); (2) min-star floor with default 4
+     (filter at render time over cached payload);
+     (3) DB cache table tenant_google_reviews with
+     on-demand fill, 24h TTL, no cron dependency;
+     (4) silent fail-soft visibility — widget hides
+     when anything in the chain fails; (5) settings
+     UI at /settings/integrations/google-reviews;
+     (6) widget placement between About and CTAs;
+     (7) widget shape with up-to-3 review cards
+     3-col desktop / 1-col mobile; (8) Ink/Hairline
+     star color (NOT Warning Amber semantic
+     violation). Pushed at 710936f.
+
+ 220. 13-TASK PLAN GENERATED VIA WRITING-PLANS skill
+     at docs/superpowers/plans/2026-05-05-google-
+     reviews.md. Mirrors Session 22 plan shape with
+     once-per-session commit override. 12 tasks +
+     Task 13 final verification. Spec self-review
+     fixed one inline rough spot in §2.5 before
+     commit. Pushed at f4ff316.
+
+ 221. PATCH 0029 LANDED (110 lines). Operator applied
+     patches/0029-google-reviews.sql against the
+     Supabase project then ran `npm run db:types`.
+     Migration adds: 3 settings cols
+     (google_place_id TEXT, google_places_api_key
+     TEXT, google_reviews_min_star_floor SMALLINT
+     NOT NULL DEFAULT 4 CHECK BETWEEN 1 AND 5);
+     tenant_google_reviews cache table with
+     tenant_id PK + FK ON DELETE CASCADE +
+     place_id + payload JSONB + rating NUMERIC(3,2)
+     + total_review_count INTEGER + fetched_at
+     TIMESTAMPTZ NOT NULL + last_error TEXT +
+     last_error_at TIMESTAMPTZ; partial index on
+     fetched_at WHERE last_error IS NULL (for the
+     future cron warmer's "find stale" query); RLS
+     staff-SELECT-only via my_tenant_ids() (no
+     INSERT/UPDATE/DELETE policies — writes go
+     through admin client only). NOTIFY pgrst at
+     end. Code-review caught missing NOTIFY +
+     missing END marker; both added inline before
+     commit.
+
+ 222. PURE-LOGIC + TDD: lib/google-reviews/{types,
+     filter,format}.ts with tests. types.ts exports
+     4 shapes (GoogleReview / PlaceDetails /
+     TenantReviewRow / RenderableReviews); no logic.
+     filter.ts: applyMinStarFloor with
+     Number.isFinite guard on rating + sort time
+     DESC + cap at 3 (MAX_VISIBLE constant);
+     isWidgetRenderable encodes Decision 4 silent-
+     fail-soft (returns true iff fetchedAt set AND
+     filteredReviews.length >= 1). format.ts:
+     formatRelativeTime via Intl.RelativeTimeFormat
+     with locale-aware en/es and < 60s short-circuit
+     to 'just now' / 'ahora mismo'; truncateExcerpt
+     word-boundary cut + trailing-punct strip;
+     starArray clamp [0,5] with Math.round. 31
+     vitest tests across two suites. Implementer
+     self-review caught one real bug in plan code:
+     test assertion `not.toMatch(/\w$/)` was
+     logically inverted — clean word-boundary cut
+     produces text ending in word character, so
+     assertion can never pass for correct
+     implementation. Fixed inline to
+     `.toBe('one two three four')`. Plan also
+     updated. Two minor coverage additions made
+     post-review: null input to applyMinStarFloor
+     and future-timestamp clock-skew documentation
+     for formatRelativeTime.
+
+ 223. PLACES API CLIENT + CACHE LAYER
+     (lib/google-reviews/{client,cache}.ts). client.ts
+     ('server-only') wraps Google Places Details API
+     with one exported function fetchPlaceDetails;
+     never throws — returns either PlaceDetails or
+     {error:string}; cache: 'no-store' (DB cache is
+     the cache layer); language='en' for cache
+     stability. cache.ts is the most subtle file
+     in the slice — three exports + two internals:
+     getCachedReviews (4-branch logic per spec
+     §2.2: !placeId, fresh hit, stale SWR via
+     after(), no-row-or-mismatch awaits refresh);
+     refreshReviews (resolves API key per-tenant-
+     first then env fallback, calls
+     fetchPlaceDetails, UPSERTs success row OR
+     calls writeError preserving previous good
+     payload); loadPublicReviews (refactored to
+     single-arg tenantId — reads
+     settings.google_reviews_min_star_floor itself
+     in parallel with getCachedReviews via
+     Promise.all); loadCachedRow + writeError
+     placeholder-row pattern. Subagent code-quality
+     review caught two real Important issues:
+     (a) writeError INSERT branch silently swallowed
+         non-PK errors — fixed to capture insertErr
+         and console.error non-23505 codes
+         (PK collision is documented-benign);
+     (b) `void refreshReviews(...)` would not
+         complete in serverless — replaced with
+         `after(() => refreshReviews(...))` from
+         'next/server' which registers with the
+         runtime's waitUntil. Both fixed inline
+         + plan + Progress.txt updated to reflect.
+
+ 224. ZOD SCHEMA + STAFF SETTINGS PAGE.
+     lib/validations/google-reviews.ts:
+     googleReviewsSettingsSchema with empty-string→
+     null preprocess on place_id + api_key,
+     coerce.number().int().min(1).max(5) on
+     min_star_floor; no place_id format regex —
+     the Test-connection button is the actual
+     validator. /settings/integrations/google-
+     reviews/{page,content,actions}.tsx: page is
+     RSC owner/chain_admin gate with parallel
+     reads of settings + cache row; content is
+     'use client' useActionState form with
+     status chip [Connected / Pending / Not
+     configured / Last sync failed], collapsible
+     Advanced section for per-tenant API key,
+     Test-connection button beside Save —
+     HARDCODED ENGLISH per project pattern
+     (corrected mid-execution from plan's i18n
+     scaffolding when /settings/loyalty +
+     /settings/integrations precedent showed
+     staff settings UI doesn't use i18n);
+     actions has updateGoogleReviewsSettingsAction
+     [Zod parse → admin update → cache-row delete
+     when place_id cleared with prior set →
+     audit log → revalidate two paths] and
+     testGoogleReviewsConnectionAction [calls
+     refreshReviews to honor single-writer rule];
+     both gate via requireRoleInTenant BEFORE
+     admin client per Rule 10.
+
+ 225. INTEGRATIONS HUB STATUS CARD. Modified
+     /settings/integrations/{page,content}.tsx to
+     thread Google Reviews state alongside Stripe
+     Connect / Twilio / Resend / eBay. page.tsx
+     adds 5th query to Promise.all for
+     tenant_google_reviews + google_place_id to
+     existing settings SELECT. content.tsx adds
+     Star icon import, googleReviews property to
+     IntegrationsView, and a new <Card> mirrored
+     from eBay pattern with KvList showing
+     "Rating" + "Reviews" when connected, error
+     message when configured-but-failed, "Not
+     connected" otherwise. Card status union does
+     NOT have 'attention' — fell back to
+     'disconnected' with red error text in body.
+
+ 226. PUBLIC GOOGLE-REVIEWS WIDGET.
+     src/components/public/GoogleReviewsWidget.tsx
+     ('use client'): aggregate header with star
+     row + rating to one decimal + review count
+     + plural label + "See all on Google" deep
+     link; up-to-3 review cards in 3-col-desktop
+     / 1-col-mobile grid each with star row +
+     truncated reviewer name + relative time +
+     140-char text excerpt + "Read on Google"
+     deep link; uses landing.reviews.* i18n
+     (Anonymous fallback when reviewer name
+     missing); Phosphor Star weight=fill in
+     text-ink filled / text-hairline empty per
+     Decision 8. Render-rule tests skipped —
+     @testing-library/react not installed,
+     project's vitest setup is pure-logic only.
+     Manual smoke at Task 13 covers render rules.
+
+ 227. LANDING PAGE INTEGRATION + i18n. /s/[slug]/
+     page.tsx awaits loadPublicReviews(tenant.id)
+     after fetchPublicTenant + threads `reviews`
+     prop into LandingPageContent. /s/[slug]/
+     content.tsx imports RenderableReviews +
+     GoogleReviewsWidget; renders
+     `{reviews ? <GoogleReviewsWidget data={reviews} /> : null}`
+     between About section and CTAs grid (Decision
+     6 placement). lib/i18n/en.ts + es.ts gain
+     `landing.reviews.*` block at EN+ES parity:
+     title, count.one/other, seeAll, readFull,
+     anonymous (7 keys per locale). Settings UI
+     does NOT use i18n per project pattern fix
+     locked mid-execution; only customer-facing
+     widget uses i18n.
+
+ 228. TASK 9 (PublicTenant additions) DEFERRED.
+     Plan tried to thread google_place_id +
+     google_reviews_min_star_floor through
+     PublicTenant via tenants SELECT, but those
+     columns are on `settings`, not `tenants`. tsc
+     correctly rejected the column additions
+     ('column does not exist on tenants'). Resolution:
+     loadPublicReviews refactored to single-arg
+     tenantId — reads
+     settings.google_reviews_min_star_floor itself
+     via admin client in parallel with the cache
+     row read. Admin-client read is safe at this
+     call site because the tenantId is already
+     validated as a published tenant by
+     fetchPublicTenant upstream of any
+     loadPublicReviews call. Plan Task 9 updated
+     inline to document the deferral.
+
+ 229. FINAL VERIFICATION — Lint clean. tsc clean.
+     404 vitest tests pass (was 373 → +31 google-
+     reviews pure-logic). Production build green:
+     compiled 6.8s, TypeScript 22.2s, 60/60 static
+     pages generated. New route present:
+     `ƒ /settings/integrations/google-reviews`.
+     Slice ready for operator smoke against
+     production after this commit lands.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Knock out the public-route edge-cache fix (5
-    min) — add `export const revalidate = 60` to
-    /s/[slug] + /s/[slug]/catalog +
-    /s/[slug]/catalog/[sku] + /portal/loyalty.
-    Closes the Session-20-discovered stale-404-on-
-    flag-flip path. Then escalate to the Phase 0
-    operator punch list (CRON_SECRET +
-    NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN +
-    secret rotation) so the next feature session
-    isn't blocked on cron silently no-op'ing.
+    Operator smoke against production for slice 4
+    (Google Reviews) per the RESUME POINT above.
+    Set GOOGLE_PLACES_API_KEY in Vercel + .env.local
+    first, then walk through the 9-step smoke. After
+    smoke green, the highest-leverage next move is
+    Phase 0 punch list (CRON_SECRET et al.) — every
+    cron-dependent feature blocks on it.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 6 cron paths.)
@@ -1964,4 +2251,15 @@ PENDING — NEXT UP
       /customers/[id] panel + POS redemption block, void/return
       clawback, append-only DB enforcement, bilingual portal).
       [SHIPPED 2026-05-05 Session 22 items 206-217]
+    - Edge-cache revalidate=60 on public + portal/loyalty
+      routes (closes Session-20 stale-404-on-flag-flip).
+      [SHIPPED 2026-05-05 Session 23 item 218]
+    - Google Reviews embed (per-tenant place_id + Places API
+      with hybrid platform/per-tenant key + 24h DB cache with
+      on-demand fill + min-star floor render filter +
+      /settings/integrations/google-reviews staff UI with
+      Test-connection + integrations hub status card +
+      public widget between About and CTAs + bilingual
+      landing strings + silent-fail-soft).
+      [SHIPPED 2026-05-05 Session 23 items 218-229]
 ================================================================================

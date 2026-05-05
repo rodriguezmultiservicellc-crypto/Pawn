@@ -2819,6 +2819,9 @@ export type Database = {
           default_loan_interest_rate: number
           default_loan_term_days: number
           email_from: string | null
+          google_place_id: string | null
+          google_places_api_key: string | null
+          google_reviews_min_star_floor: number
           loyalty_earn_rate_loan_interest: number
           loyalty_earn_rate_retail: number
           loyalty_enabled: boolean
@@ -2846,6 +2849,9 @@ export type Database = {
           default_loan_interest_rate?: number
           default_loan_term_days?: number
           email_from?: string | null
+          google_place_id?: string | null
+          google_places_api_key?: string | null
+          google_reviews_min_star_floor?: number
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
           loyalty_enabled?: boolean
@@ -2873,6 +2879,9 @@ export type Database = {
           default_loan_interest_rate?: number
           default_loan_term_days?: number
           email_from?: string | null
+          google_place_id?: string | null
+          google_places_api_key?: string | null
+          google_reviews_min_star_floor?: number
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
           loyalty_enabled?: boolean
@@ -3245,6 +3254,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_ebay_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_google_reviews: {
+        Row: {
+          fetched_at: string
+          last_error: string | null
+          last_error_at: string | null
+          payload: Json
+          place_id: string
+          rating: number | null
+          tenant_id: string
+          total_review_count: number | null
+        }
+        Insert: {
+          fetched_at: string
+          last_error?: string | null
+          last_error_at?: string | null
+          payload: Json
+          place_id: string
+          rating?: number | null
+          tenant_id: string
+          total_review_count?: number | null
+        }
+        Update: {
+          fetched_at?: string
+          last_error?: string | null
+          last_error_at?: string | null
+          payload?: Json
+          place_id?: string
+          rating?: number | null
+          tenant_id?: string
+          total_review_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_google_reviews_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"

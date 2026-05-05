@@ -457,8 +457,9 @@ describe('truncateExcerpt', () => {
     const out = truncateExcerpt(t, 20)
     expect(out.endsWith('…')).toBe(true)
     expect(out.length).toBeLessThanOrEqual(21)  // 20 + ellipsis char
-    // No mid-word cut: the part before the ellipsis ends at a word.
-    expect(out.replace('…', '').trim()).not.toMatch(/\w$/)
+    // No mid-word cut — the cut should land at the last full word that
+    // fits inside maxChars.
+    expect(out.replace('…', '').trim()).toBe('one two three four')
   })
 
   it('handles empty / null gracefully', () => {
@@ -697,7 +698,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { fetchPlaceDetails } from './client'
 import { applyMinStarFloor, isWidgetRenderable } from './filter'
 import type {
-  GoogleReview,
   PlaceDetails,
   RenderableReviews,
   TenantReviewRow,
@@ -1635,41 +1635,20 @@ Expected: Exit 0.
 
 ---
 
-## Task 9: PublicTenant additions + tenant-resolver column update
+## Task 9: PublicTenant additions — DEFERRED (settings columns aren't on tenants)
 
-**Files:**
-- Modify: `src/lib/tenant-resolver.ts`
+**Plan deviation locked during execution:** The fields `google_place_id` and `google_reviews_min_star_floor` live on the `settings` table, not `tenants`. The original plan tried to thread them through `PublicTenant` (sourced from a `tenants` SELECT), which fails tsc with `column 'google_place_id' does not exist on 'tenants'`.
 
-- [ ] **Step 1: Add the two new fields to `PublicTenant`**
+**Resolution:** No changes needed to `PublicTenant` or `PUBLIC_TENANT_COLUMNS`. Instead, `loadPublicReviews` was refactored to take just `tenantId` (single argument) and read `settings.google_reviews_min_star_floor` itself via the admin client, in parallel with `getCachedReviews`. The admin-client read is safe because the tenantId is already validated as a published tenant by `fetchPublicTenant` upstream of any call to `loadPublicReviews`.
 
-Find the `PublicTenant` type definition around line 105 and append:
-
-```ts
-google_place_id: string | null
-google_reviews_min_star_floor: number
-```
-
-The per-tenant API key is intentionally NOT added — it stays server-only and is read inside `cache.ts` via the admin client. Public-surface code never sees it.
-
-- [ ] **Step 2: Update `PUBLIC_TENANT_COLUMNS` to include the new safe fields**
-
-Find the `PUBLIC_TENANT_COLUMNS` constant around line 209:
+**This task is now a no-op.** The refactor lives in `src/lib/google-reviews/cache.ts`. Task 11's call site changes:
 
 ```ts
-const PUBLIC_TENANT_COLUMNS =
-  'id, name, dba, public_slug, public_about, public_hours, address, city, state, zip, phone, email, logo_url, has_pawn, has_repair, has_retail, public_catalog_enabled, google_place_id, google_reviews_min_star_floor'
+// New signature — single argument
+const reviews = await loadPublicReviews(tenant.id)
 ```
 
-Do NOT add `google_places_api_key` here. Defense-in-depth — even if RLS misbehaves the column allowlist still narrows the row to the safe shape.
-
-- [ ] **Step 3: Verify `fetchPublicTenant` shape passes through**
-
-The `return { ...data, public_slug, public_hours: normalizePublicHours(...) }` already spreads everything from `data` to the return. The new fields ride through automatically with TypeScript narrowing.
-
-- [ ] **Step 4: Lint + typecheck**
-
-Run: `npm run lint && npx tsc --noEmit`
-Expected: Exit 0.
+No file changes required for this task — proceed to Task 10.
 
 ---
 
@@ -1954,7 +1933,9 @@ Expected: Exit 0.
 
 ---
 
-## Task 12: i18n EN+ES parity
+## Task 12: i18n EN+ES parity (public landing only)
+
+**Plan deviation locked during execution:** Initial plan over-applied i18n to staff settings. The project's actual pattern is **staff settings UI hardcodes English** (operators are mostly English-speaking — see `/settings/loyalty/content.tsx` and `/settings/integrations/content.tsx`). Only customer-facing surfaces (portal, public landing, printable docs) use i18n. This task is now scoped to the public widget only; Tasks 7 and 8 use hardcoded English.
 
 **Files:**
 - Modify: `src/lib/i18n/en.ts`
@@ -1977,57 +1958,9 @@ reviews: {
 },
 ```
 
-- [ ] **Step 2: Add `settings.googleReviews.*` to `en.ts`**
-
-Find or create the `settings` block. Add:
+- [ ] **Step 2: Mirror to `es.ts` at full parity**
 
 ```ts
-googleReviews: {
-  title: 'Google Reviews',
-  subtitle: 'Show your Google rating and recent reviews on your public landing page.',
-  placeIdLabel: 'Place ID',
-  placeIdHelp: 'Your Google Place ID identifies your shop on Google Maps.',
-  placeIdFindLink: 'Find your Place ID',
-  minStarLabel: 'Hide reviews below',
-  minStarHelp:
-    "Reviews under this rating won't show on your landing page. Aggregate rating is unaffected.",
-  advancedSection: 'Advanced (optional)',
-  apiKeyLabel: 'Use my own Google API key',
-  apiKeyHelp:
-    'Leave blank to use the platform default. Provide a Places API key here only if you want to bill Google directly.',
-  testConnection: 'Test connection',
-  testSuccess: 'Synced — {rating} ★ · {count} reviews',
-  testFailed: 'Failed: {error}',
-  save: 'Save',
-  saveSuccess: 'Saved',
-  status: {
-    connected: 'Connected',
-    pending: 'Pending — first sync runs on next visit',
-    notConfigured: 'Not configured',
-    failed: 'Last sync failed: {error}',
-  },
-  lastSyncAgo: 'last sync {time} ago',
-},
-```
-
-- [ ] **Step 3: Add `settings.integrations.googleReviewsCard.*` to `en.ts`**
-
-In the existing `settings.integrations` block (where the eBay card lives), add:
-
-```ts
-googleReviewsCard: {
-  label: 'Google Reviews',
-  notConnected: 'Not connected',
-  connected: '{rating} ★ · {count} reviews',
-  lastSyncFailed: 'Last sync failed',
-  manage: 'Manage',
-},
-```
-
-- [ ] **Step 4: Mirror everything to `es.ts` at full parity**
-
-```ts
-// landing.reviews
 reviews: {
   title: 'Reseñas en Google',
   count: {
@@ -2038,47 +1971,9 @@ reviews: {
   readFull: 'Leer en Google',
   anonymous: 'Anónimo',
 },
-
-// settings.googleReviews
-googleReviews: {
-  title: 'Reseñas de Google',
-  subtitle:
-    'Muestra tu calificación de Google y las reseñas más recientes en tu página pública.',
-  placeIdLabel: 'ID del lugar',
-  placeIdHelp: 'El ID del lugar de Google identifica tu tienda en Google Maps.',
-  placeIdFindLink: 'Encuentra tu ID',
-  minStarLabel: 'Ocultar reseñas con menos de',
-  minStarHelp:
-    'Las reseñas con calificación inferior no aparecerán en tu página pública. La calificación promedio no cambia.',
-  advancedSection: 'Avanzado (opcional)',
-  apiKeyLabel: 'Usar mi propia clave de Google',
-  apiKeyHelp:
-    'Déjalo en blanco para usar la clave de la plataforma. Proporciona una clave de Places API solo si quieres facturar a Google directamente.',
-  testConnection: 'Probar conexión',
-  testSuccess: 'Sincronizado — {rating} ★ · {count} reseñas',
-  testFailed: 'Error: {error}',
-  save: 'Guardar',
-  saveSuccess: 'Guardado',
-  status: {
-    connected: 'Conectado',
-    pending: 'Pendiente — la primera sincronización se ejecutará en la próxima visita',
-    notConfigured: 'Sin configurar',
-    failed: 'Última sincronización falló: {error}',
-  },
-  lastSyncAgo: 'última sinc. hace {time}',
-},
-
-// settings.integrations.googleReviewsCard
-googleReviewsCard: {
-  label: 'Reseñas de Google',
-  notConnected: 'Sin conectar',
-  connected: '{rating} ★ · {count} reseñas',
-  lastSyncFailed: 'Última sincronización falló',
-  manage: 'Administrar',
-},
 ```
 
-- [ ] **Step 5: Run the i18n drift check**
+- [ ] **Step 3: Run the i18n drift check**
 
 Run: `cat .githooks/pre-push | grep -A5 i18n` (to find the exact drift script)
 
@@ -2086,10 +1981,10 @@ Then run the script directly. Likely candidates: `npx tsx scripts/check-i18n-dri
 
 Expected: Exit 0, no missing keys reported.
 
-- [ ] **Step 6: Lint + typecheck — confirm Task 7's settings page now compiles cleanly**
+- [ ] **Step 4: Lint + typecheck**
 
 Run: `npm run lint && npx tsc --noEmit`
-Expected: Exit 0. The i18n keys referenced from `content.tsx` now resolve.
+Expected: Exit 0.
 
 ---
 

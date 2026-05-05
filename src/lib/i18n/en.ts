@@ -2770,6 +2770,16 @@ export const en = {
       sat: 'Saturday',
       sun: 'Sunday',
     },
+    reviews: {
+      title: 'Reviews on Google',
+      count: {
+        one: 'review',
+        other: 'reviews',
+      },
+      seeAll: 'See all on Google',
+      readFull: 'Read on Google',
+      anonymous: 'Anonymous',
+    },
   },
 
   catalog: {

@@ -29,7 +29,7 @@ export default async function IntegrationsPage() {
 
   const admin = createAdminClient()
 
-  const [billingRes, settingsRes, ebayRes, tenantRes] = await Promise.all([
+  const [billingRes, settingsRes, ebayRes, tenantRes, googleRevRes] = await Promise.all([
     admin
       .from('tenant_billing_settings')
       .select(
@@ -40,7 +40,7 @@ export default async function IntegrationsPage() {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid, twilio_auth_token, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_api_key, resend_from_email',
+        'twilio_account_sid, twilio_auth_token, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_api_key, resend_from_email, google_place_id',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -56,12 +56,18 @@ export default async function IntegrationsPage() {
       .select('id, has_retail')
       .eq('id', ctx.tenantId)
       .maybeSingle(),
+    admin
+      .from('tenant_google_reviews')
+      .select('rating, total_review_count, fetched_at, last_error')
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle(),
   ])
 
   const billing = billingRes.data
   const settings = settingsRes.data
   const ebay = ebayRes.data
   const tenant = tenantRes.data
+  const googleRev = googleRevRes.data
 
   if (!tenant) redirect('/no-tenant')
 
@@ -93,6 +99,14 @@ export default async function IntegrationsPage() {
       environment: (ebay?.environment as 'sandbox' | 'production' | null) ?? null,
       connectedAt: ebay?.connected_at ?? null,
       disconnectedAt: ebay?.disconnected_at ?? null,
+    },
+    googleReviews: {
+      configured: !!settings?.google_place_id,
+      connected:
+        !!settings?.google_place_id && !!googleRev && !googleRev.last_error,
+      rating: googleRev?.rating ?? null,
+      totalReviewCount: googleRev?.total_review_count ?? null,
+      lastError: googleRev?.last_error ?? null,
     },
   }
 

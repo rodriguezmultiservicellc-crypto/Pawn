@@ -9,6 +9,7 @@ import {
   CreditCard,
   EnvelopeSimple,
   PaperPlaneTilt,
+  Star,
   Storefront,
   WarningCircle,
   WhatsappLogo,
@@ -43,6 +44,13 @@ export type IntegrationsView = {
     environment: 'sandbox' | 'production' | null
     connectedAt: string | null
     disconnectedAt: string | null
+  }
+  googleReviews: {
+    configured: boolean
+    connected: boolean
+    rating: number | null
+    totalReviewCount: number | null
+    lastError: string | null
   }
 }
 
@@ -222,6 +230,48 @@ export default function IntegrationsContent({
             )}
           </Card>
         ) : null}
+
+        <Card
+          icon={<Star size={22} weight="regular" />}
+          title="Google Reviews"
+          tagline="Show your Google rating and recent reviews on your public landing page"
+          status={
+            view.googleReviews.connected
+              ? 'connected'
+              : 'disconnected'
+          }
+          actionHref="/settings/integrations/google-reviews"
+          actionLabel="Manage"
+          actionDisabled={!isOwner}
+          actionDisabledReason="Owner-only"
+        >
+          {view.googleReviews.connected ? (
+            <KvList
+              rows={[
+                {
+                  k: 'Rating',
+                  v:
+                    view.googleReviews.rating != null
+                      ? `${view.googleReviews.rating.toFixed(1)} ★`
+                      : '—',
+                },
+                {
+                  k: 'Reviews',
+                  v:
+                    view.googleReviews.totalReviewCount != null
+                      ? String(view.googleReviews.totalReviewCount)
+                      : '—',
+                },
+              ]}
+            />
+          ) : view.googleReviews.configured && view.googleReviews.lastError ? (
+            <p className="text-sm text-error">
+              Last sync failed: {view.googleReviews.lastError}
+            </p>
+          ) : (
+            <p className="text-sm text-ash">Not connected</p>
+          )}
+        </Card>
 
         <Card
           icon={<Coins size={22} weight="regular" />}
