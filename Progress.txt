@@ -13,246 +13,138 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 23 (2026-05-05, end-of-session)
-                  — Phase 10 Path A slice 4/N: Google
-                  Reviews SHIPPED. All 13 plan tasks
-                  complete + verified locally (lint clean,
-                  tsc clean, 404 tests passing, `npm run
-                  build` green, 60/60 static pages). Three
-                  prior Session 23 commits already pushed
-                  (edge-cache fix 1d2e428, spec lock
-                  710936f, plan lock f4ff316) — this is
-                  the implementation commit. Awaiting
-                  operator smoke against production URL.
-  Context budget: high but well under cache-miss
-                  threshold at save time.
-  Last worked on: Three-part Session 23 — (1) edge-
-                  cache revalidate=60 on public + portal/
-                  loyalty routes (already committed as
-                  1d2e428); (2) brainstormed Google
-                  Reviews spec at docs/superpowers/specs/
-                  2026-05-05-google-reviews-design.md
-                  with 8 locked decisions (already
-                  committed as 710936f); (3) generated
-                  13-task plan at docs/superpowers/plans/
-                  2026-05-05-google-reviews.md (already
-                  committed as f4ff316) and executed via
-                  subagent-driven-development. Final
-                  commit covers Tasks 1+3-12 (Task 9
-                  deferred — see below). New surfaces:
-                  staff /settings/integrations/google-
-                  reviews page with Test-connection;
-                  integrations hub status card; public
-                  GoogleReviewsWidget on /s/<slug>
-                  between About and CTAs. Hybrid API key
-                  resolution (per-tenant override +
-                  GOOGLE_PLACES_API_KEY env fallback);
-                  24h DB cache with on-demand fill;
-                  silent fail-soft visibility per
-                  Decision 4. Two-stage subagent review
-                  caught real bugs in Tasks 3 (inverted
-                  test assertion) and 5 (writeError race
-                  log + Next.js after() for serverless).
+  Last session:   Session 24 (2026-05-05, end-of-session)
+                  — Two no-input follow-ups closed:
+                  (1) sidebar /settings/loyalty predicate
+                  tightened to match the server gate
+                  (manager no longer sees a dead link);
+                  (2) LoyaltyPanel reset-code UI shipped
+                  (Session 22 follow-up — server action
+                  was already there, just needed buttons).
+                  Lint clean, tsc clean, 404 tests still
+                  passing. Slice 4 (Google Reviews from
+                  Session 23) is still awaiting operator
+                  smoke against production — that's the
+                  main outstanding work, this session was
+                  cleanup riding along.
+  Context budget: low at save time (small session
+                  on top of fresh /resume).
+  Last worked on: Two small follow-ups, both no-input:
+                  (a) sidebar predicate fix — manager
+                  used to see /settings/loyalty in the
+                  sidebar but the server gate blocked
+                  them. Added LOYALTY_ROLES + canSeeLoyalty
+                  predicate in Sidebar.tsx mirroring the
+                  server's owner+chain_admin only. Other
+                  canSeeSettings-gated links (/settings/
+                  communications, /settings hub) verified
+                  to legitimately allow managers, so left
+                  alone. (b) LoyaltyPanel reset-code UI
+                  — the server action resetReferralCode-
+                  Action at customers/[id]/actions.ts:510
+                  has existed since Session 22 with
+                  nothing calling it. Added an Arrow-
+                  Clockwise icon next to the existing
+                  Copy button (gated on canAdjust &&
+                  !is_banned, matching the action's
+                  ADJUST_ROLES gate); click opens an
+                  inline confirm form with Cancel +
+                  Reset code + pending state + error.
+                  Extracted the form into ResetReferral-
+                  CodeForm.tsx (NEW) so the parent
+                  doesn't violate react-hooks/set-state-
+                  in-effect when closing on success
+                  (mirrors the AdjustPointsModal pattern
+                  exactly).
 
-  ACTIVE FILE(S) at end of session — Phase 10 Path A
-  slice 4 SHIPPED:
+  ACTIVE FILE(S) at end of session — Session 24
+  follow-ups (uncommitted at save time, this push
+  ships them):
 
-    --- ALREADY-COMMITTED EARLIER IN SESSION 23 ---
-    - 1d2e428 — edge-cache `export const revalidate = 60`
-      on /s/[slug], /s/[slug]/catalog, /s/[slug]/catalog/
-      [sku], /portal/loyalty
-    - 710936f — spec at docs/superpowers/specs/2026-05-05-
-      google-reviews-design.md (8 locked decisions)
-    - f4ff316 — plan at docs/superpowers/plans/2026-05-05-
-      google-reviews.md (13-task bite-sized plan)
+    --- SIDEBAR PREDICATE TIGHTEN (item 230) ---
+    - src/components/layout/Sidebar.tsx (added
+      LOYALTY_ROLES = new Set(['owner','chain_admin'])
+      constant + canSeeLoyalty derived predicate;
+      /settings/loyalty entry's `visible` flipped
+      from canSeeSettings to canSeeLoyalty. Server
+      gate at settings/loyalty/page.tsx:6 +
+      actions.ts:11 already only accepts owner +
+      chain_admin so this just stops the sidebar
+      lying to managers. Verified the other two
+      canSeeSettings-gated entries —
+      /settings/communications (page.tsx:20-22
+      allows manager) + /settings hub (page.tsx:6
+      allows manager) — both legitimately accept
+      managers on the server, so left untouched.)
 
-    --- MIGRATION (item 218) ---
-    - patches/0029-google-reviews.sql (NEW — 110 lines:
-      3 settings cols + tenant_google_reviews cache
-      table with FK ON DELETE CASCADE + partial index
-      + RLS staff-SELECT-only + NOTIFY pgrst at end +
-      documented rollback)
-    - src/types/database.ts (regenerated via
-      `npm run db:types` after operator applied 0029)
-
-    --- PURE-LOGIC + TESTS (item 219) ---
-    - src/lib/google-reviews/types.ts (NEW — 4 types:
-      GoogleReview, PlaceDetails, TenantReviewRow,
-      RenderableReviews)
-    - src/lib/google-reviews/filter.ts (NEW —
-      applyMinStarFloor with Number.isFinite guard +
-      sort time DESC + cap at 3; isWidgetRenderable
-      encodes Decision 4 silent-fail-soft)
-    - src/lib/google-reviews/filter.test.ts (NEW — 12
-      vitest tests including null + undefined input
-      coverage)
-    - src/lib/google-reviews/format.ts (NEW —
-      formatRelativeTime via Intl.RelativeTimeFormat
-      with locale-aware en/es; truncateExcerpt
-      word-boundary + trailing-punct strip; starArray
-      with clamp [0,5])
-    - src/lib/google-reviews/format.test.ts (NEW — 19
-      vitest tests including future-timestamp clock-
-      skew documentation)
-
-    --- HTTP CLIENT + CACHE LAYER (items 220-221) ---
-    - src/lib/google-reviews/client.ts (NEW —
-      'server-only', fetchPlaceDetails wraps Google
-      Places Details API; never throws — returns
-      either PlaceDetails or {error:string}; cache:
-      'no-store' so the DB cache is the cache layer;
-      passes 'language=en' for cache stability)
-    - src/lib/google-reviews/cache.ts (NEW — most
-      subtle file in the slice. Three exports:
-      getCachedReviews (4-branch logic: no-placeId
-      / hot fresh / stale SWR / no-row-or-mismatch),
-      refreshReviews (UPSERT on success preserves
-      payload on error path), loadPublicReviews
-      (refactored to take just tenantId — reads
-      settings.google_reviews_min_star_floor itself
-      via admin client in parallel with cache row).
-      Two internals: loadCachedRow + writeError
-      (placeholder-row pattern lets /settings show
-      "Last sync failed" before any successful
-      fetch). Subagent code-quality review caught
-      two real issues fixed inline:
-      (a) writeError INSERT branch now captures
-          insertErr and console.errors non-23505
-          codes (silent failure on PK collision is
-          fine + documented; other errors deserved
-          surfacing);
-      (b) `void refreshReviews(...)` replaced with
-          `after(() => refreshReviews(...))` from
-          'next/server' so SWR completes reliably
-          in serverless after the response is sent.)
-
-    --- ZOD VALIDATION + SETTINGS PAGE (items 222-223) ---
-    - src/lib/validations/google-reviews.ts (NEW —
-      googleReviewsSettingsSchema with empty-string→
-      null preprocess on place_id + api_key,
-      coerce.number().int().min(1).max(5) on
-      min_star_floor)
-    - src/app/(staff)/settings/integrations/google-
-      reviews/page.tsx (NEW — RSC, owner/chain_admin
-      gate, parallel reads of settings + cache row,
-      view shape excludes server-only API key from
-      props)
-    - src/app/(staff)/settings/integrations/google-
-      reviews/content.tsx (NEW — 'use client',
-      useActionState form + Test-connection button +
-      status chip [Connected / Pending / Not
-      configured / Last sync failed]; collapsible
-      Advanced section for per-tenant API key
-      override; HARDCODED ENGLISH per project pattern
-      — staff settings UI doesn't use i18n; matches
-      /settings/loyalty + /settings/integrations/ebay
-      precedent)
-    - src/app/(staff)/settings/integrations/google-
-      reviews/actions.ts (NEW — 'use server', two
-      actions: updateGoogleReviewsSettingsAction
-      [Zod parse → admin update → cache-row delete
-      when place_id cleared → audit log → revalidate]
-      and testGoogleReviewsConnectionAction [calls
-      refreshReviews to honor single-writer rule];
-      both gate via requireRoleInTenant BEFORE admin
-      client per Rule 10)
-
-    --- INTEGRATIONS HUB + PUBLIC WIDGET (items 224-225) ---
-    - src/app/(staff)/settings/integrations/page.tsx
-      (5th Promise.all query for tenant_google_
-      reviews; google_place_id added to settings
-      SELECT; new googleReviews block in view)
-    - src/app/(staff)/settings/integrations/content.tsx
-      (Star icon imported; new IntegrationsView.
-      googleReviews shape; new <Card> mirrored from
-      eBay pattern between eBay and the rest. The
-      Card status union doesn't have 'attention' so
-      configured-but-failed falls back to
-      'disconnected' with red error text in body.)
-    - src/components/public/GoogleReviewsWidget.tsx
-      (NEW — 'use client'; aggregate header with
-      stars + rating + count; up-to-3 review cards
-      in 3-col desktop / 1-col mobile grid; per-card
-      reviewer name + relative time + 140-char
-      excerpt + Read on Google; uses
-      landing.reviews.* i18n; Phosphor Star
-      weight=fill in text-ink/text-hairline per
-      Decision 8 — NOT Warning Amber)
-
-    --- LANDING PAGE INTEGRATION + i18n (items 226-227) ---
-    - src/app/(public)/s/[slug]/page.tsx
-      (loadPublicReviews(tenant.id) call after
-      fetchPublicTenant; threads `reviews` prop into
-      LandingPageContent; await-serializes first
-      visit's Places fetch ~150ms; subsequent
-      visitors hit 24h cache)
-    - src/app/(public)/s/[slug]/content.tsx
-      (RenderableReviews import; widget plugged in
-      between About and CTAs section per Decision 6;
-      `reviews ? <GoogleReviewsWidget> : null` is
-      the silent-fail-soft gate)
-    - src/lib/i18n/en.ts + es.ts (landing.reviews.*
-      block at EN+ES parity: title, count.one/other,
-      seeAll, readFull, anonymous — 7 keys)
-
-    --- DESIGN SPEC + PLAN ---
-    - docs/superpowers/specs/2026-05-05-google-
-      reviews-design.md (8 locked decisions: hybrid
-      API key, min-star floor, DB cache + on-demand
-      fill 24h TTL, silent fail-soft, /settings/
-      integrations/google-reviews placement,
-      between-About-and-CTAs widget placement,
-      3-card-max widget shape, Ink/Hairline star
-      color)
-    - docs/superpowers/plans/2026-05-05-google-
-      reviews.md (13-task bite-sized plan; updated
-      inline mid-execution to fix 3 plan deviations:
-      inverted test assertion, settings hardcode-
-      English correction, Task 9 deferred when
-      settings columns turned out not to be on
-      tenants table)
+    --- LOYALTYPANEL RESET-CODE UI (item 231) ---
+    - src/components/loyalty/LoyaltyPanel.tsx
+      (imports ArrowClockwise icon; new
+      confirmReset useState; ArrowClockwise icon
+      button next to Copy when canAdjust &&
+      !is_banned && !confirmReset; on click,
+      replaces with inline ResetReferralCodeForm
+      below the code row.)
+    - src/components/loyalty/ResetReferralCodeForm.tsx
+      (NEW — 'use client'; useActionState wraps
+      resetReferralCodeAction; useEffect calls
+      onSuccess() on state.ok flip; renders
+      inline confirm form with Cancel + Reset code
+      buttons + pending state + error display.
+      Extraction needed because the parent's
+      direct setState in useEffect tripped
+      react-hooks/set-state-in-effect — same
+      callback-prop pattern as AdjustPointsModal.)
+    Existing server action (no change needed):
+    - src/app/(staff)/customers/[id]/actions.ts
+      lines 508-536: resetReferralCodeAction +
+      ResetReferralCodeState already shipped in
+      Session 22. Gates via requireRoleInTenant
+      ADJUST_ROLES (owner/chain_admin/manager),
+      audit-logs the kind:'referral_code_reset'
+      change, revalidatePath(`/customers/${id}`).
 
   RESUME POINT:
-    Session 23 SHIPPED. Slice 4 is in the
-    repository awaiting Vercel deploy (this
-    /progress flow pushes the implementation
-    commit). Operator smoke test:
+    Two no-input items closed this session — both
+    will be in the next push. The big work item
+    carrying over from Session 23 is unchanged:
 
-    1. Set GOOGLE_PLACES_API_KEY in Vercel
-       (production env). Without it Test-connection
-       writes last_error='no_api_key' and the
-       widget hides per Decision 4. The Places API
-       must also be enabled in Google Cloud Console
-       (project → APIs & Services → Library →
-       "Places API"). Local dev needs the same key
-       in .env.local.
-    2. Visit /settings/integrations — Google
-       Reviews card renders alongside eBay; status
-       reads "Not connected".
-    3. Click "Manage" → /settings/integrations/
-       google-reviews — form renders, status chip
-       "Not configured".
-    4. Paste a real Place ID (RMS uses ChIJ-
-       prefixed IDs from google.com/maps/place-id).
-       Click "Test connection" — chip flips to
-       "Connected · last sync <1 min" and "Synced —
-       N.N ★ · N reviews".
-    5. Set min-star floor to 4. Save. "Saved"
-       confirmation appears.
-    6. Open /s/<slug> public landing — Reviews on
-       Google section renders between About and
-       CTAs grid; aggregate header + up-to-3 review
-       cards.
-    7. Toggle to ES — section heading flips to
-       "Reseñas en Google", relative times re-
-       localize.
-    8. Set min-star floor to 5. Save. Reload — if
-       no surviving reviews, the entire widget
-       silently hides.
-    9. Clear Place ID. Save. Widget gone, status
-       back to "Not configured".
+    PRIMARY (still): Operator smoke test for slice
+    4 (Google Reviews) against production. Set
+    GOOGLE_PLACES_API_KEY in Vercel + .env.local
+    first (and enable Places API in Google Cloud
+    Console). Then walk through the 9-step smoke:
+    (1) /settings/integrations renders the new
+    card; (2) Manage → form renders, "Not
+    configured"; (3) paste a ChIJ-prefixed Place
+    ID + click Test connection → chip flips
+    "Connected · last sync <1 min"; (4) min-star
+    floor 4 + Save; (5) /s/<slug> shows the widget
+    between About and CTAs; (6) toggle ES → strings
+    + relative times re-localize; (7) min-star
+    floor 5 with no surviving reviews → widget
+    silently hides; (8) clear Place ID → widget
+    gone, status back to "Not configured"; (9)
+    sanity-check the per-tenant API key override
+    in the Advanced section.
 
-    If smoke green, pick next move:
+    SESSION 24 SMOKE (small, can ride along):
+    (a) Open /customers/<id> as owner or
+        chain_admin → Loyalty panel shows a circular
+        arrow icon next to the Copy button on the
+        referral code row → click → inline confirm
+        with Cancel / Reset code → click Reset →
+        new code appears, panel re-renders, confirm
+        form closes. As manager: same UI works
+        (manager is in ADJUST_ROLES). As pawn_clerk:
+        no reset button (canAdjust=false).
+    (b) Open the staff sidebar as a manager →
+        /settings/loyalty link no longer renders
+        (was a dead link before). /settings/
+        communications + /settings hub still
+        present.
+
+    If all smoke green, pick next move:
 
     (a) Phase 0 punch list (20-30 min,
         production-blocking) — set CRON_SECRET +
@@ -275,18 +167,20 @@ SEE ALSO (do not duplicate here):
         TTL expires; new file /api/cron/refresh-
         google-reviews. Gates on (a). Cheap (~30
         min once cron is live).
-    (d) Reset-code UI for LoyaltyPanel (Session 22
-        small follow-up still open).
-    (e) Sidebar visibility predicate tightening
-        for /settings/loyalty (manager sees the
-        link but server-gate blocks them — cosmetic
-        but Session 22 noted it).
+    (d) Phase 8 mobile audit — needs operator's
+        eyes (browser device-mode walk-throughs of
+        portal + dashboard). Static code-only audit
+        is possible but limited.
 
   OPEN ISSUES / BLOCKERS:
-    - Slice 4 awaiting operator smoke against
-      production after this /progress push lands.
+    - Slice 4 (Google Reviews, Session 23) STILL
+      awaiting operator smoke against production.
       GOOGLE_PLACES_API_KEY must be set in Vercel
       env first or Test-connection will fail.
+    - Session 24 follow-ups not yet smoke-tested
+      against production (this /progress push
+      ships them; smoke is the (a)+(b) block in
+      the RESUME POINT above).
     - Phase 0 punch list — CRON_SECRET +
       NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN
       still unset in Vercel. Three pasted secrets
@@ -308,8 +202,8 @@ SEE ALSO (do not duplicate here):
       secrets bundles with pgsodium-encryption
       migration.
 
-  SMALL FOLLOW-UPS DISCOVERED THIS SESSION
-  (defense-in-depth, can ride along later):
+  OPEN SMALL FOLLOW-UPS (carried from Session 23,
+  defense-in-depth, can ride along later):
     - Cron warmer at /api/cron/refresh-google-
       reviews to pre-populate stale tenant_google_
       reviews rows before TTL expires. Gates on
@@ -330,100 +224,29 @@ SEE ALSO (do not duplicate here):
       code-review of cache logic + Google Cloud
       billing alerts. Future hardening pass.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 23):
-    - HYBRID API KEY MODEL. Platform-wide
-      GOOGLE_PLACES_API_KEY env var as default;
-      per-tenant override in
-      settings.google_places_api_key (nullable).
-      cache.ts resolves at the call site
-      (per-tenant first, env fallback). Sophisticated
-      tenants can self-host; default tenants use
-      the platform key. Mirrors the Resend
-      precedent (env fallback + per-tenant
-      override).
-    - SILENT FAIL-SOFT (Decision 4). Public widget
-      renders iff place_id set AND last fetch
-      succeeded AND ≥1 review survives min-star
-      filter. All errors surface only in /settings,
-      never on the public landing. Encoded in
-      isWidgetRenderable + the four null gates of
-      loadPublicReviews.
-    - SINGLE-WRITER RULE for tenant_google_reviews.
-      Every INSERT/UPDATE to the cache table flows
-      through src/lib/google-reviews/cache.ts.
-      Test-connection action calls refreshReviews,
-      not direct DB writes. Settings-clear path
-      DELETEs cache row but that's not a write
-      to cache business logic — it's data hygiene.
-    - PLACEHOLDER-ROW PATTERN for first-failure
-      visibility. writeError UPSERTs a row with
-      payload:{} so /settings shows "Last sync
-      failed: <error>" before any successful fetch
-      has happened. Without it tenants with
-      typo'd place_id would show "Pending"
-      forever.
-    - NEXT.JS after() FOR SWR RELIABILITY. Stale-
-      while-revalidate path uses
-      `after(() => refreshReviews(tenantId))` from
-      'next/server' (NOT bare void). Vercel
-      runtime can reclaim the function before fire-
-      and-forget promises resolve; after() registers
-      with waitUntil so the background refresh
-      reliably completes after the response is
-      sent. Subagent code-quality review caught
-      this.
-    - HARDCODED ENGLISH IN STAFF SETTINGS UI.
-      Plan over-applied i18n to the operator
-      settings page. Project's actual pattern is
-      staff settings hardcode English (operators
-      mostly English-speaking — see /settings/
-      loyalty/content.tsx + /settings/integrations/
-      content.tsx). Only customer-facing surfaces
-      use i18n. Plan Tasks 7 + 8 + 12 updated
-      inline to reflect this; landing.reviews.* is
-      the only i18n block this slice adds.
-    - LOADPUBLICREVIEWS REFACTORED TO SINGLE-ARG.
-      Plan threaded google_place_id +
-      google_reviews_min_star_floor through
-      PublicTenant, but those columns live on
-      `settings`, not `tenants`. fetchPublicTenant
-      reads tenants only — tsc rejected the column
-      additions. Refactor: loadPublicReviews now
-      takes just tenantId; it reads
-      settings.google_reviews_min_star_floor itself
-      via admin client in parallel with the cache
-      row. Admin client is safe at this call site
-      because the tenantId is already validated as
-      a published tenant by fetchPublicTenant
-      upstream.
-    - WRITEERROR INSERT BRANCH SURFACES NON-PK
-      ERRORS. The race window between SELECT and
-      INSERT could let a concurrent success-UPSERT
-      cause a 23505 PK collision in the error
-      INSERT path. 23505 is benign + silently
-      swallowed. Other errors now console.error.
-      Subagent code-quality review caught this.
-    - STAR ICON COLOR (Decision 8). Phosphor Star
-      weight=fill, text-ink filled / text-hairline
-      empty. NOT Warning Amber — that's a semantic-
-      only token; using it decoratively violates
-      the locked design system. Matches Airbnb's
-      parent treatment of dark-on-cream stars.
-    - SUBAGENT-DRIVEN-DEVELOPMENT FOURTH RUN
-      VALIDATED. Same pattern as Session 22.
-      Code-review caught two real bugs: (1) the
-      writeError race-log gap, (2) the Vercel
-      after() vs bare void. Plan-code itself had
-      one bug caught by the implementer self-
-      review (inverted truncateExcerpt assertion).
-      Three real catches in 13 tasks — process
-      continues to earn its keep on subtle
-      tasks (cache.ts) but is overhead-heavy on
-      mechanical pastes (client.ts, types.ts) —
-      consider tagging subagent-driven only on
-      load-bearing tasks in future slices.
+  KEY DECISIONS LOCKED THIS SESSION (Session 24):
+    - LOYALTY_ROLES KEPT AS A DISTINCT CONSTANT
+      (not aliased to BILLING_ROLES). Both sets
+      are owner+chain_admin today, but loyalty
+      isn't semantically billing — keeping the
+      names distinct keeps future drift cheap if
+      one of the two role lists changes. Trivial
+      duplication; deliberate.
+    - RESET-CODE FORM EXTRACTED INTO OWN COMPONENT.
+      First attempt inlined useActionState + a
+      useEffect-based close-on-success in
+      LoyaltyPanel itself, which tripped the
+      react-hooks/set-state-in-effect lint rule.
+      Extracted into ResetReferralCodeForm.tsx so
+      the parent passes onSuccess as a callback
+      prop — the linter no longer sees a direct
+      setState in the effect body. Same pattern
+      already in use by AdjustPointsModal. The
+      extracted component is small enough that
+      the indirection is justified by the lint
+      compliance + UX consistency.
 
-  (Sessions 13-21 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-23 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -1880,18 +1703,107 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
+--- Session 24 (2026-05-05, end-of-session) — Two no-input follow-ups: sidebar predicate + LoyaltyPanel reset-code UI ---
+
+ 230. SIDEBAR /SETTINGS/LOYALTY PREDICATE TIGHTENED
+     [BUG]. Manager role saw the /settings/loyalty
+     link in the sidebar but the server gate blocked
+     them with `Forbidden`. Cosmetic dead-link bug
+     noted in Session 22. Audited every settings
+     server gate first to know the right scope:
+     /settings hub allows owner/manager/chain_admin
+     (page.tsx:6); /settings/communications also
+     manager (page.tsx:20-22); but /settings/loyalty
+     gates owner+chain_admin only (page.tsx:6 +
+     actions.ts:11). So this is loyalty-specific —
+     other canSeeSettings-gated entries are
+     legitimately reachable by manager.
+     Fix in src/components/layout/Sidebar.tsx:
+       - Added `LOYALTY_ROLES = new Set<TenantRole>
+         (['owner', 'chain_admin'])` constant after
+         BILLING_ROLES (kept distinct rather than
+         aliasing — see Decisions block).
+       - Added `canSeeLoyalty = !!tenantRole &&
+         LOYALTY_ROLES.has(tenantRole)` derived
+         predicate after canSeeBilling.
+       - Loyalty link `visible: canSeeSettings`
+         flipped to `visible: canSeeLoyalty`.
+     Verified: tsc clean, eslint clean, 404 tests
+     still passing.
+
+ 231. LOYALTYPANEL RESET-CODE UI (Session 22
+     follow-up closed). Server action
+     resetReferralCodeAction at customers/[id]/
+     actions.ts:510-536 has shipped since Session
+     22 with nothing in the UI calling it. Fix
+     plan: add a small icon button next to the
+     existing Copy button on the referral-code row,
+     gated on canAdjust && !is_banned (matches the
+     action's ADJUST_ROLES = owner/chain_admin/
+     manager); on click swap to inline confirm
+     form (Cancel + Reset code) instead of
+     window.confirm or modal — already-existing
+     `referralCode` re-renders on success because
+     the server action revalidatePath()s the
+     customer page.
+     Implementation:
+       - src/components/loyalty/LoyaltyPanel.tsx —
+         imported ArrowClockwise from
+         @phosphor-icons/react; added confirmReset
+         useState; rendered an icon button when
+         canAdjust && !is_banned && !confirmReset;
+         when confirmReset is true, renders
+         <ResetReferralCodeForm /> in a
+         border-hairline + bg-cloud sub-row.
+       - src/components/loyalty/ResetReferralCodeForm.tsx
+         (NEW — 38 lines). 'use client'. Wraps
+         resetReferralCodeAction with
+         useActionState; on state.ok flip, calls
+         onSuccess() (closes the confirm form in
+         the parent). Renders the Cancel + Reset
+         code buttons + pending state ("Resetting…")
+         + error message via role="alert".
+     Bug avoided in implementation: first attempt
+     inlined the useEffect close-on-success in
+     LoyaltyPanel itself, which tripped the
+     react-hooks/set-state-in-effect lint rule
+     (set-state-in-effect:67:24). Extracted the
+     form into its own component so the parent
+     passes onSuccess as an opaque callback prop
+     — same pattern AdjustPointsModal already
+     uses (calls onClose() in useEffect; lint
+     can't trace through the prop call).
+     Verified: tsc clean, eslint clean on both
+     files, all 404 tests still passing.
+
+ 232. SESSION 24 SCOPE BOUND. Brief reconnaissance
+     for Phase 8 mobile audit — opened the
+     dashboard (1404 lines) + the 8 portal page
+     files. Concluded a real mobile audit needs
+     visual verification of every surface in
+     phone-width viewport, which is outside this
+     session's reliable verification range.
+     Offered the operator a static-only audit
+     option (grep for known mobile-hostile
+     patterns); operator chose to defer. Mobile
+     audit remains in the backlog for a session
+     where operator can eyeball the screens
+     alongside the code changes.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
     Operator smoke against production for slice 4
-    (Google Reviews) per the RESUME POINT above.
-    Set GOOGLE_PLACES_API_KEY in Vercel + .env.local
-    first, then walk through the 9-step smoke. After
-    smoke green, the highest-leverage next move is
-    Phase 0 punch list (CRON_SECRET et al.) — every
-    cron-dependent feature blocks on it.
+    (Google Reviews, Session 23) per the RESUME
+    POINT above. Set GOOGLE_PLACES_API_KEY in Vercel
+    + .env.local first, then walk the 9-step smoke.
+    Session 24 carry-along smoke (loyalty reset-code
+    button + sidebar predicate) is cheap — fold it
+    in. After smoke green, highest-leverage next
+    move is Phase 0 punch list (CRON_SECRET et al.)
+    — every cron-dependent feature blocks on it.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 6 cron paths.)
@@ -1923,10 +1835,8 @@ PENDING — NEXT UP
            communications with merge fields; segmentation by
            customer tag / language; Resend dispatch via cron;
            bounce + unsubscribe handling);
-       (d) Reset-code UI on LoyaltyPanel — server action
-           exists; needs a small Reset button + confirm
-           modal. Defers nicely to whoever next touches the
-           customer detail panel.
+       (d) [DONE Session 24 item 231] Reset-code UI on
+           LoyaltyPanel.
     3. Phase 8 — mobile audit across portal + dashboard
        (charts + activity feed + kanban + receipt PDFs all
        need mobile review before going live). Code-level pass
@@ -2262,4 +2172,11 @@ PENDING — NEXT UP
       public widget between About and CTAs + bilingual
       landing strings + silent-fail-soft).
       [SHIPPED 2026-05-05 Session 23 items 218-229]
+    - Sidebar /settings/loyalty visibility predicate
+      tightened (manager no longer sees a dead link).
+      [SHIPPED 2026-05-05 Session 24 item 230]
+    - LoyaltyPanel reset-code UI (icon button next to Copy +
+      inline confirm form + extracted ResetReferralCodeForm
+      component for lint compliance).
+      [SHIPPED 2026-05-05 Session 24 item 231]
 ================================================================================

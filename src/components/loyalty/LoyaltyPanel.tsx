@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Trophy, Copy, Check } from '@phosphor-icons/react'
+import { Trophy, Copy, Check, ArrowClockwise } from '@phosphor-icons/react'
 import AdjustPointsModal from './AdjustPointsModal'
+import ResetReferralCodeForm from './ResetReferralCodeForm'
 
 export type LoyaltyEventView = {
   id: string
@@ -51,6 +52,7 @@ export default function LoyaltyPanel({
 }) {
   const [showModal, setShowModal] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   if (!enabled) {
     return (
@@ -94,20 +96,40 @@ export default function LoyaltyPanel({
       </div>
 
       {code && (
-        <div className="mb-4 flex items-center gap-2">
-          <span className="text-sm text-ash">Referral code:</span>
-          <code className="rounded bg-cloud px-2 py-1 font-mono text-sm text-ink">
-            {code}
-          </code>
-          <button
-            type="button"
-            onClick={copyCode}
-            className="rounded p-1 text-ash hover:bg-cloud hover:text-ink"
-            title="Copy"
-            aria-label="Copy code"
-          >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-          </button>
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-ash">Referral code:</span>
+            <code className="rounded bg-cloud px-2 py-1 font-mono text-sm text-ink">
+              {code}
+            </code>
+            <button
+              type="button"
+              onClick={copyCode}
+              className="rounded p-1 text-ash hover:bg-cloud hover:text-ink"
+              title="Copy"
+              aria-label="Copy code"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+            {canAdjust && !customer.is_banned && !confirmReset && (
+              <button
+                type="button"
+                onClick={() => setConfirmReset(true)}
+                className="rounded p-1 text-ash hover:bg-cloud hover:text-ink"
+                title="Reset code"
+                aria-label="Reset code"
+              >
+                <ArrowClockwise size={14} />
+              </button>
+            )}
+          </div>
+          {confirmReset && (
+            <ResetReferralCodeForm
+              customerId={customer.id}
+              onCancel={() => setConfirmReset(false)}
+              onSuccess={() => setConfirmReset(false)}
+            />
+          )}
         </div>
       )}
 
