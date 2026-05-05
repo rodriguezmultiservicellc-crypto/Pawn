@@ -15,15 +15,15 @@ SEE ALSO (do not duplicate here):
 
   Last session:   Session 22 (2026-05-05, end-of-session)
                   — Phase 10 Path A slice 3/N: loyalty +
-                  referrals SHIPPED. All 16 plan tasks
-                  complete + verified locally (lint clean,
-                  tsc clean, 373 tests passing,
+                  referrals SHIPPED + SMOKE PASSED. All 16
+                  plan tasks complete + verified locally
+                  (lint clean, tsc clean, 373 tests passing,
                   `npm run build` green). Single commit
                   per project's once-per-session /progress
-                  flow. Operator smoke test PENDING —
-                  Eddy authorized commit + push ahead of
-                  smoke; Vercel auto-deploys to production
-                  for smoking against the live URL.
+                  flow. Vercel build green; operator smoke
+                  confirmed against production URL —
+                  loyalty/referrals slice 3 fully live.
+                  Awaiting next-move pick.
   Context budget: high but well under cache-miss
                   threshold at save time.
   Last worked on: Loyalty/referrals slice 3 — full
@@ -224,53 +224,44 @@ SEE ALSO (do not duplicate here):
       Session 20's plan shape)
 
   RESUME POINT:
-    Session 22 complete. Slice 3 shipped with single
-    end-of-session commit + push (Eddy authorized
-    push ahead of smoke). Vercel auto-deploys to
-    production. Resume by:
+    Session 22 SHIPPED + SMOKED clean. Slice 3 is
+    fully live in production (Vercel build green,
+    operator smoke passed all 11 steps). Pick the
+    next move:
 
-    1. Watch the Vercel build of this commit. If
-       red, surface errors immediately (likely a
-       Vercel-only TS strict mode catch missed by
-       local tsc).
-    2. Once build is green, run the 11-step operator
-       smoke against the production URL (plan §16
-       step 6 + spec §6.3+§9.11):
-       (1) /settings/loyalty enable
-       (2) earn on $100 sale
-       (3) /portal/loyalty render as customer
-       (4) manual +50 adjust
-       (5) redeem 1000 pts on $20 sale
-       (6) undo redemption
-       (7) referral linkage + bonus on first sale
-       (7a) verify referred-by linkage on customer detail
-       (8) no double-credit on referred customer's 2nd sale
-       (9) toggle loyalty_enabled OFF, portal 404
-       (10) void sale → clawback + redemption-reversal
-       (11) partial return → proportional clawback
-    3. If any smoke step fails, file follow-up
-       fixes; otherwise proceed to next Phase 10
-       slice.
+    (a) Public-route edge-cache fix (5 min, free
+        win) — add `export const revalidate = 60`
+        to /s/[slug] + /s/[slug]/catalog +
+        /s/[slug]/catalog/[sku] + /portal/loyalty.
+        Closes the stale-404-on-flag-flip path
+        Session 20 surfaced. Cheap; ride-along on
+        any next session.
+    (b) Phase 0 punch list (20-30 min, production-
+        blocking) — set CRON_SECRET +
+        NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN
+        in Vercel; rotate the three pasted secrets
+        (anon JWT, service-role JWT, sbp_ token);
+        revert repo-local git config. Without
+        CRON_SECRET, all 5 Vercel cron routes 401
+        — every scheduled job is silently no-op'ing
+        right now.
+    (c) Next Phase 10 (A) slice (full session) —
+        Google Reviews embed (per-tenant place_id +
+        Places API caching + landing-page widget)
+        or email-campaign engine (template editor
+        in /settings/communications + segmentation
+        + Resend dispatch via cron + bounce/
+        unsubscribe). Email campaigns gate on (b)
+        for cron + per-tenant Resend.
 
-    Recommended next slice (operator's pick):
-    (a) Public catalog edge-cache fix — add
-        `export const revalidate = 60` to the three
-        public surfaces (/s/[slug] + /catalog +
-        /catalog/[sku]). Same pattern likely
-        benefits the new /portal/loyalty too.
-    (b) Phase 0 punch list — set
-        CRON_SECRET / NEXT_PUBLIC_APP_URL /
-        NEXT_PUBLIC_BASE_DOMAIN in Vercel; rotate
-        the three pasted secrets; revert repo-
-        local git config.
-    (c) Phase 10 (A) next sub-surface — Google
-        Reviews embed, email-campaign engine, or
-        eBay Path B real wire-up.
+    Recommended sequence: (a) right now (5 min),
+    then (b) before any feature that depends on
+    cron or per-tenant outbound, then (c) for the
+    next big slice.
 
   OPEN ISSUES / BLOCKERS:
-    - Smoke test pending (above) — Eddy authorized
-      commit ahead of smoke; surface failures via
-      follow-up patches if any.
+    - Smoke test confirmed PASSED (post-Vercel-build,
+      11/11 steps green). No follow-up fixes needed.
     - Phase 0 punch list — CRON_SECRET +
       NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN
       still unset in Vercel. Three pasted secrets
@@ -1604,17 +1595,16 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Watch the Vercel build of this commit. Once
-    green, run the 11-step operator smoke against
-    the production URL (plan §16 step 6 + spec
-    §6.3+§9.11): enable → earn $100 sale →
-    portal render → +50 manual adjust → redeem
-    1000 pts on $20 sale → undo → referral linkage
-    + bonus on first sale → no double-credit on 2nd
-    sale → disable + portal 404 → void clawback +
-    redemption-reversal → partial-return
-    proportional clawback. File follow-ups for any
-    failures.
+    Knock out the public-route edge-cache fix (5
+    min) — add `export const revalidate = 60` to
+    /s/[slug] + /s/[slug]/catalog +
+    /s/[slug]/catalog/[sku] + /portal/loyalty.
+    Closes the Session-20-discovered stale-404-on-
+    flag-flip path. Then escalate to the Phase 0
+    operator punch list (CRON_SECRET +
+    NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN +
+    secret rotation) so the next feature session
+    isn't blocked on cron silently no-op'ing.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 6 cron paths.)
