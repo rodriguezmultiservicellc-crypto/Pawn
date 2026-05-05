@@ -1,0 +1,156 @@
+'use client'
+
+import { useState } from 'react'
+import { Trophy, Copy, Check } from '@phosphor-icons/react'
+import AdjustPointsModal from './AdjustPointsModal'
+
+export type LoyaltyEventView = {
+  id: string
+  kind:
+    | 'earn_sale'
+    | 'earn_loan_interest'
+    | 'earn_referral_bonus'
+    | 'redeem_pos'
+    | 'redeem_undo'
+    | 'earn_clawback'
+    | 'adjust_manual'
+  points_delta: number
+  reason: string | null
+  created_at: string
+}
+
+const KIND_LABEL: Record<LoyaltyEventView['kind'], string> = {
+  earn_sale: 'Retail purchase',
+  earn_loan_interest: 'Loan interest',
+  earn_referral_bonus: 'Referral bonus',
+  redeem_pos: 'Redeemed at checkout',
+  redeem_undo: 'Reverted redemption',
+  earn_clawback: 'Sale reversed',
+  adjust_manual: 'Adjustment',
+}
+
+export default function LoyaltyPanel({
+  enabled,
+  customer,
+  recentEvents,
+  redemptionRate,
+  canAdjust,
+}: {
+  enabled: boolean
+  customer: {
+    id: string
+    first_name: string
+    last_name: string
+    loyalty_points_balance: number
+    referral_code: string | null
+    is_banned: boolean
+  }
+  recentEvents: LoyaltyEventView[]
+  redemptionRate: number
+  canAdjust: boolean
+}) {
+  const [showModal, setShowModal] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  if (!enabled) {
+    return (
+      <section className="rounded-lg border border-hairline bg-canvas p-4">
+        <div className="flex items-center gap-2 text-sm text-ash">
+          <Trophy size={18} weight="regular" />
+          <span>Loyalty disabled for this shop. Enable in /settings/loyalty.</span>
+        </div>
+      </section>
+    )
+  }
+
+  const equivDollars = customer.loyalty_points_balance / redemptionRate
+  const code = customer.referral_code
+
+  const copyCode = async () => {
+    if (!code) return
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // clipboard unavailable; do nothing
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-hairline bg-canvas p-4">
+      <div className="mb-4 flex items-center gap-2">
+        <Trophy size={20} weight="fill" className="text-rausch" />
+        <h2 className="text-lg font-semibold text-ink">Loyalty</h2>
+      </div>
+
+      <div className="mb-4">
+        <div className="font-mono text-3xl font-bold text-ink">
+          {customer.loyalty_points_balance.toLocaleString()}
+        </div>
+        <div className="text-sm text-ash">
+          ≈ ${equivDollars.toFixed(2)} in store credit
+        </div>
+      </div>
+
+      {code && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-sm text-ash">Referral code:</span>
+          <code className="rounded bg-cloud px-2 py-1 font-mono text-sm text-ink">
+            {code}
+          </code>
+          <button
+            type="button"
+            onClick={copyCode}
+            className="rounded p-1 text-ash hover:bg-cloud hover:text-ink"
+            title="Copy"
+            aria-label="Copy code"
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+          </button>
+        </div>
+      )}
+
+      <h3 className="mb-2 text-sm font-medium text-ink">Recent activity</h3>
+      {recentEvents.length === 0 ? (
+        <p className="text-sm text-ash">No activity yet.</p>
+      ) : (
+        <ul className="space-y-1 text-sm">
+          {recentEvents.map((e) => (
+            <li
+              key={e.id}
+              className="flex items-center justify-between gap-2 border-b border-hairline py-1.5 last:border-b-0"
+            >
+              <span className="text-ink">{KIND_LABEL[e.kind]}</span>
+              <span
+                className={`font-mono ${
+                  e.points_delta >= 0 ? 'text-success' : 'text-error'
+                }`}
+              >
+                {e.points_delta >= 0 ? '+' : ''}
+                {e.points_delta.toLocaleString()}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {canAdjust && !customer.is_banned && (
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="mt-4 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:bg-cloud"
+        >
+          Adjust points
+        </button>
+      )}
+
+      <AdjustPointsModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        customerId={customer.id}
+        customerName={`${customer.first_name} ${customer.last_name}`}
+      />
+    </section>
+  )
+}

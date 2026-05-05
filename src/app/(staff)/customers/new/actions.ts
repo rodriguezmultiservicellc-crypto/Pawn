@@ -6,6 +6,8 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { requireStaff } from '@/lib/supabase/guards'
 import { customerCreateSchema } from '@/lib/validations/customer'
 import { logAudit } from '@/lib/audit'
+import { applyReferredByCode } from '@/lib/loyalty/events'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export type CreateCustomerState = {
   error?: string
@@ -64,6 +66,7 @@ export async function createCustomerAction(
     'notes',
     'tags',
     'dl_raw_payload',
+    'referred_by_code',
   ] as const
 
   const raw: Record<string, FormDataEntryValue | null> = {}
@@ -134,6 +137,16 @@ export async function createCustomerAction(
 
   if (error) return { error: error.message, values: echo }
   if (!data?.id) return { error: 'insert returned no id', values: echo }
+
+  if (v.referred_by_code) {
+    const admin = createAdminClient()
+    await applyReferredByCode({
+      admin,
+      tenantId: ctx.tenantId,
+      newCustomerId: data.id,
+      code: v.referred_by_code,
+    })
+  }
 
   await logAudit({
     tenantId: ctx.tenantId,

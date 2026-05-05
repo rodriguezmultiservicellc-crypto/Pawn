@@ -20,6 +20,9 @@ import {
 } from '@/components/pos/Badges'
 import { AddPaymentDialog } from '@/components/pos/AddPaymentDialog'
 import { VoidSaleDialog } from '@/components/pos/VoidSaleDialog'
+import PosRedemptionBlock, {
+  type RedemptionEventView,
+} from '@/components/loyalty/PosRedemptionBlock'
 import {
   addPaymentAction,
   completeSaleAction,
@@ -80,16 +83,26 @@ export type SaleDetailPayment = {
   occurred_at: string
 }
 
+export type SaleDetailLoyalty = {
+  enabled: boolean
+  customerFirstName: string
+  customerBalance: number
+  redemptionRate: number
+  redemptionsOnThisSale: RedemptionEventView[]
+}
+
 export default function SaleDetailContent({
   sale,
   items,
   payments,
   layawayId,
+  loyalty,
 }: {
   sale: SaleDetailView
   items: SaleDetailItem[]
   payments: SaleDetailPayment[]
   layawayId: string | null
+  loyalty: SaleDetailLoyalty
 }) {
   const { t } = useI18n()
   const [showPay, setShowPay] = useState(false)
@@ -287,6 +300,18 @@ export default function SaleDetailContent({
           tone={sale.balance > 0 ? 'warning' : 'neutral'}
         />
       </div>
+
+      {/* Loyalty redemption */}
+      {loyalty.enabled && sale.customer_id && (
+        <PosRedemptionBlock
+          saleId={sale.id}
+          customerFirstName={loyalty.customerFirstName}
+          balance={loyalty.customerBalance}
+          redemptionRate={loyalty.redemptionRate}
+          saleStatus={sale.status}
+          redemptionsOnThisSale={loyalty.redemptionsOnThisSale}
+        />
+      )}
 
       {/* Items */}
       <ItemsPanel items={items} />

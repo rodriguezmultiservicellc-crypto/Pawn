@@ -19,6 +19,9 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { recordManualAdjust, resetReferralCode } from '@/lib/loyalty/events'
+import { requireRoleInTenant } from '@/lib/supabase/guards'
 
 export type UpdateCustomerState = {
   error?: string
@@ -451,4 +454,83 @@ export async function deleteCustomerDocumentAction(
   })
 
   revalidatePath(`/customers/${customerId}`)
+}
+
+const ADJUST_ROLES = ['owner', 'chain_admin', 'manager'] as const
+
+export type AdjustLoyaltyPointsState = {
+  error?: 'validation_failed' | 'reason_too_short' | 'would_go_negative' | 'insert_failed' | string
+  ok?: boolean
+}
+
+export async function adjustLoyaltyPointsAction(
+  _prev: AdjustLoyaltyPointsState,
+  formData: FormData,
+): Promise<AdjustLoyaltyPointsState> {
+  const customerIdRaw = formData.get('customer_id')
+  if (typeof customerIdRaw !== 'string' || !customerIdRaw) {
+    return { error: 'validation_failed' }
+  }
+  const deltaRaw = formData.get('delta')
+  const reasonRaw = formData.get('reason')
+  const delta = Number.parseInt(String(deltaRaw ?? ''), 10)
+  if (!Number.isFinite(delta) || delta === 0) return { error: 'validation_failed' }
+  const reason = String(reasonRaw ?? '').trim()
+  if (reason.length < 3) return { error: 'reason_too_short' }
+
+  const { tenantId, userId } = await resolveCustomerTenant(customerIdRaw)
+  await requireRoleInTenant(tenantId, ADJUST_ROLES)
+
+  const admin = createAdminClient()
+  const result = await recordManualAdjust({
+    admin,
+    tenantId,
+    customerId: customerIdRaw,
+    delta,
+    reason,
+    performedBy: userId,
+  })
+  if ('error' in result) return { error: result.error }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'update',
+    tableName: 'customers',
+    recordId: customerIdRaw,
+    changes: { kind: 'loyalty_adjust', delta, reason },
+  })
+
+  revalidatePath(`/customers/${customerIdRaw}`)
+  return { ok: true }
+}
+
+export type ResetReferralCodeState = { error?: string; ok?: boolean; code?: string }
+
+export async function resetReferralCodeAction(
+  _prev: ResetReferralCodeState,
+  formData: FormData,
+): Promise<ResetReferralCodeState> {
+  const customerIdRaw = formData.get('customer_id')
+  if (typeof customerIdRaw !== 'string' || !customerIdRaw) {
+    return { error: 'validation_failed' }
+  }
+
+  const { tenantId, userId } = await resolveCustomerTenant(customerIdRaw)
+  await requireRoleInTenant(tenantId, ADJUST_ROLES)
+
+  const admin = createAdminClient()
+  const code = await resetReferralCode(admin, customerIdRaw)
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'update',
+    tableName: 'customers',
+    recordId: customerIdRaw,
+    changes: { kind: 'referral_code_reset' },
+  })
+
+  revalidatePath(`/customers/${customerIdRaw}`)
+  return { ok: true, code }
 }

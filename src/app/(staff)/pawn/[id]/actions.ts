@@ -18,6 +18,11 @@ import {
   todayDateString,
   toMoney,
 } from '@/lib/pawn/math'
+import { createAdminClient } from '@/lib/supabase/admin'
+import {
+  recordEarnLoanInterest,
+  maybeCreditReferral,
+} from '@/lib/loyalty/events'
 import type { LoanStatus, PaymentMethod } from '@/types/database-aliases'
 
 export type ActionResult = { error?: string; ok?: boolean }
@@ -80,19 +85,23 @@ export async function recordPaymentAction(
   }
 
   // Insert event.
-  const { error: evErr } = await supabase.from('loan_events').insert({
-    loan_id: loan.id,
-    tenant_id: tenantId,
-    event_type: 'payment',
-    amount: v.amount,
-    principal_paid: v.principal_paid,
-    interest_paid: v.interest_paid,
-    fees_paid: v.fees_paid,
-    payment_method: v.payment_method,
-    notes: v.notes,
-    performed_by: userId,
-  })
-  if (evErr) return { error: evErr.message }
+  const { data: paymentEvent, error: evErr } = await supabase
+    .from('loan_events')
+    .insert({
+      loan_id: loan.id,
+      tenant_id: tenantId,
+      event_type: 'payment',
+      amount: v.amount,
+      principal_paid: v.principal_paid,
+      interest_paid: v.interest_paid,
+      fees_paid: v.fees_paid,
+      payment_method: v.payment_method,
+      notes: v.notes,
+      performed_by: userId,
+    })
+    .select('id')
+    .single()
+  if (evErr || !paymentEvent) return { error: evErr?.message ?? 'insert_failed' }
 
   // Recompute payoff to decide next status.
   const { data: events } = await supabase
@@ -150,6 +159,34 @@ export async function recordPaymentAction(
       new_status: newStatus,
     },
   })
+
+  // ── Loyalty earn on interest paid (gated) ──────────────────────────────
+  if (loan.customer_id && Number(v.interest_paid) > 0) {
+    const admin = createAdminClient()
+    const { data: settings } = await admin
+      .from('settings')
+      .select(
+        'loyalty_enabled, loyalty_earn_rate_loan_interest, loyalty_referral_bonus',
+      )
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    if (settings?.loyalty_enabled) {
+      await recordEarnLoanInterest({
+        admin,
+        tenantId,
+        customerId: loan.customer_id,
+        loanEventId: paymentEvent.id,
+        interestPaid: Number(v.interest_paid),
+        rate: Number(settings.loyalty_earn_rate_loan_interest),
+      })
+      await maybeCreditReferral({
+        admin,
+        tenantId,
+        customerId: loan.customer_id,
+        bonusPoints: settings.loyalty_referral_bonus,
+      })
+    }
+  }
 
   revalidatePath(`/pawn/${loan.id}`)
   revalidatePath('/pawn')
@@ -281,17 +318,21 @@ export async function redeemLoanAction(
   // Apply remaining interest first, then remaining principal.
   const split = splitPayment(payoff.payoff, payoff.interestOutstanding)
 
-  await supabase.from('loan_events').insert({
-    loan_id: loan.id,
-    tenant_id: tenantId,
-    event_type: 'payment',
-    amount: payoff.payoff,
-    principal_paid: split.principal_paid,
-    interest_paid: split.interest_paid,
-    fees_paid: 0,
-    payment_method: method,
-    performed_by: userId,
-  })
+  const { data: payoffEvent } = await supabase
+    .from('loan_events')
+    .insert({
+      loan_id: loan.id,
+      tenant_id: tenantId,
+      event_type: 'payment',
+      amount: payoff.payoff,
+      principal_paid: split.principal_paid,
+      interest_paid: split.interest_paid,
+      fees_paid: 0,
+      payment_method: method,
+      performed_by: userId,
+    })
+    .select('id')
+    .single()
 
   await supabase.from('loan_events').insert({
     loan_id: loan.id,
@@ -323,6 +364,34 @@ export async function redeemLoanAction(
       payment_method: method,
     },
   })
+
+  // ── Loyalty earn on interest paid + referral credit (gated) ────────────
+  if (loan.customer_id && payoffEvent && split.interest_paid > 0) {
+    const admin = createAdminClient()
+    const { data: settings } = await admin
+      .from('settings')
+      .select(
+        'loyalty_enabled, loyalty_earn_rate_loan_interest, loyalty_referral_bonus',
+      )
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    if (settings?.loyalty_enabled) {
+      await recordEarnLoanInterest({
+        admin,
+        tenantId,
+        customerId: loan.customer_id,
+        loanEventId: payoffEvent.id,
+        interestPaid: split.interest_paid,
+        rate: Number(settings.loyalty_earn_rate_loan_interest),
+      })
+      await maybeCreditReferral({
+        admin,
+        tenantId,
+        customerId: loan.customer_id,
+        bonusPoints: settings.loyalty_referral_bonus,
+      })
+    }
+  }
 
   revalidatePath(`/pawn/${loan.id}`)
   revalidatePath('/pawn')

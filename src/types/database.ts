@@ -586,6 +586,7 @@ export type Database = {
           is_banned: boolean
           language: string
           last_name: string
+          loyalty_points_balance: number
           marketing_opt_in: boolean
           middle_name: string | null
           notes: string | null
@@ -593,6 +594,9 @@ export type Database = {
           phone_alt: string | null
           photo_url: string | null
           place_of_employment: string | null
+          referral_code: string | null
+          referral_credited: boolean
+          referred_by_customer_id: string | null
           sex: string | null
           state: string | null
           tags: string[] | null
@@ -632,6 +636,7 @@ export type Database = {
           is_banned?: boolean
           language?: string
           last_name: string
+          loyalty_points_balance?: number
           marketing_opt_in?: boolean
           middle_name?: string | null
           notes?: string | null
@@ -639,6 +644,9 @@ export type Database = {
           phone_alt?: string | null
           photo_url?: string | null
           place_of_employment?: string | null
+          referral_code?: string | null
+          referral_credited?: boolean
+          referred_by_customer_id?: string | null
           sex?: string | null
           state?: string | null
           tags?: string[] | null
@@ -678,6 +686,7 @@ export type Database = {
           is_banned?: boolean
           language?: string
           last_name?: string
+          loyalty_points_balance?: number
           marketing_opt_in?: boolean
           middle_name?: string | null
           notes?: string | null
@@ -685,6 +694,9 @@ export type Database = {
           phone_alt?: string | null
           photo_url?: string | null
           place_of_employment?: string | null
+          referral_code?: string | null
+          referral_credited?: boolean
+          referred_by_customer_id?: string | null
           sex?: string | null
           state?: string | null
           tags?: string[] | null
@@ -695,6 +707,13 @@ export type Database = {
           zip?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_referred_by_customer_id_fkey"
+            columns: ["referred_by_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customers_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -1668,6 +1687,60 @@ export type Database = {
           },
           {
             foreignKeyName: "loans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_events: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          kind: string
+          performed_by: string | null
+          points_delta: number
+          reason: string | null
+          source_id: string | null
+          source_kind: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          kind: string
+          performed_by?: string | null
+          points_delta: number
+          reason?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          kind?: string
+          performed_by?: string | null
+          points_delta?: number
+          reason?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2746,6 +2819,11 @@ export type Database = {
           default_loan_interest_rate: number
           default_loan_term_days: number
           email_from: string | null
+          loyalty_earn_rate_loan_interest: number
+          loyalty_earn_rate_retail: number
+          loyalty_enabled: boolean
+          loyalty_redemption_rate: number
+          loyalty_referral_bonus: number
           min_loan_amount: number | null
           resend_api_key: string | null
           resend_from_email: string | null
@@ -2768,6 +2846,11 @@ export type Database = {
           default_loan_interest_rate?: number
           default_loan_term_days?: number
           email_from?: string | null
+          loyalty_earn_rate_loan_interest?: number
+          loyalty_earn_rate_retail?: number
+          loyalty_enabled?: boolean
+          loyalty_redemption_rate?: number
+          loyalty_referral_bonus?: number
           min_loan_amount?: number | null
           resend_api_key?: string | null
           resend_from_email?: string | null
@@ -2790,6 +2873,11 @@ export type Database = {
           default_loan_interest_rate?: number
           default_loan_term_days?: number
           email_from?: string | null
+          loyalty_earn_rate_loan_interest?: number
+          loyalty_earn_rate_retail?: number
+          loyalty_enabled?: boolean
+          loyalty_redemption_rate?: number
+          loyalty_referral_bonus?: number
           min_loan_amount?: number | null
           resend_api_key?: string | null
           resend_from_email?: string | null

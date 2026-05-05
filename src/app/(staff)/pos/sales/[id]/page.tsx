@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
+import { createAdminClient } from '@/lib/supabase/admin'
 import SaleDetailContent, {
   type SaleDetailItem,
   type SaleDetailPayment,
   type SaleDetailView,
+  type SaleDetailLoyalty,
 } from './content'
 import { computeBalance, toMoney } from '@/lib/pos/cart'
 import type {
@@ -134,12 +136,60 @@ export default async function SaleDetailPage(props: { params: Params }) {
     layawayId = lay?.id ?? null
   }
 
+  // Loyalty: settings + (if enabled and customer present) balance + redemptions.
+  const adminClient = createAdminClient()
+  const { data: posSettings } = await adminClient
+    .from('settings')
+    .select('loyalty_enabled, loyalty_redemption_rate')
+    .eq('tenant_id', sale.tenant_id)
+    .maybeSingle()
+  const loyaltyEnabled = !!posSettings?.loyalty_enabled
+  const redemptionRate = posSettings?.loyalty_redemption_rate
+    ? Number(posSettings.loyalty_redemption_rate)
+    : 100
+
+  let customerBalance = 0
+  let customerFirstName = ''
+  let redemptionsOnThisSale: {
+    id: string
+    points_delta: number
+    created_at: string
+  }[] = []
+  if (loyaltyEnabled && sale.customer_id) {
+    const [{ data: cust }, { data: redeems }] = await Promise.all([
+      adminClient
+        .from('customers')
+        .select('first_name, loyalty_points_balance')
+        .eq('id', sale.customer_id)
+        .maybeSingle(),
+      adminClient
+        .from('loyalty_events')
+        .select('id, points_delta, created_at')
+        .eq('source_kind', 'sale')
+        .eq('source_id', sale.id)
+        .eq('kind', 'redeem_pos')
+        .order('created_at', { ascending: false }),
+    ])
+    customerBalance = cust?.loyalty_points_balance ?? 0
+    customerFirstName = cust?.first_name ?? ''
+    redemptionsOnThisSale = redeems ?? []
+  }
+
+  const loyalty: SaleDetailLoyalty = {
+    enabled: loyaltyEnabled,
+    customerFirstName,
+    customerBalance,
+    redemptionRate,
+    redemptionsOnThisSale,
+  }
+
   return (
     <SaleDetailContent
       sale={view}
       items={items}
       payments={payments}
       layawayId={layawayId}
+      loyalty={loyalty}
     />
   )
 }

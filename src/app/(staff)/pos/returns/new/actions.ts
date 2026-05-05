@@ -8,6 +8,8 @@ import { returnCreateSchema } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
 import { r4, toMoney } from '@/lib/pos/cart'
 import { refundCardPayment } from '@/lib/stripe/terminal'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { recordEarnClawback } from '@/lib/loyalty/events'
 import type { PaymentMethod, SaleStatus } from '@/types/database-aliases'
 
 export type ReturnActionResult = { error?: string; ok?: boolean; redirectTo?: string }
@@ -56,7 +58,7 @@ export async function createReturnAction(
   const { data: sale } = await ctx.supabase
     .from('sales')
     .select(
-      'id, tenant_id, status, total, paid_total, returned_total, is_locked',
+      'id, tenant_id, status, total, paid_total, returned_total, is_locked, customer_id',
     )
     .eq('id', v.sale_id)
     .is('deleted_at', null)
@@ -203,6 +205,32 @@ export async function createReturnAction(
       item_count: v.items.length,
     },
   })
+
+  // ── Loyalty clawback proportional to returned subtotal (gated) ─────────
+  if (sale.customer_id) {
+    const admin = createAdminClient()
+    const { data: settings } = await admin
+      .from('settings')
+      .select('loyalty_enabled, loyalty_earn_rate_retail')
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    if (settings?.loyalty_enabled) {
+      const pointsToClaw = Math.floor(
+        subtotal * Number(settings.loyalty_earn_rate_retail),
+      )
+      if (pointsToClaw > 0) {
+        await recordEarnClawback({
+          admin,
+          tenantId,
+          customerId: sale.customer_id,
+          sourceKind: 'return',
+          sourceId: ret.id,
+          pointsToClaw,
+          reason: 'sale_returned',
+        })
+      }
+    }
+  }
 
   revalidatePath(`/pos/sales/${sale.id}`)
   revalidatePath('/pos')

@@ -78,6 +78,7 @@ export const en = {
     team: 'Team',
     settings: 'Settings',
     communications: 'Communications',
+    loyalty: 'Loyalty',
     billing: 'Billing',
     logOut: 'Log out',
     portal: 'My Account',
@@ -2836,6 +2837,49 @@ export const en = {
     inquireByPhone: 'Call to inquire',
     inquireByEmail: 'Email about this item',
     backToAll: 'Back to all items',
+  },
+
+  loyalty: {
+    title: 'Loyalty',
+    yourPoints: 'Your points',
+    storeCreditEquiv: '≈ ${value} in store credit at {tenant}',
+    heroSubtitle:
+      'Earn points on every retail purchase and loan redemption. Redeem next time you visit.',
+
+    howYouEarn: 'How you earn',
+    earnRetail: '{rate} pt per $1 on retail purchases',
+    earnLoanInterest: '{rate} pt per $1 on loan interest paid',
+    earnReferral:
+      '{bonus} pts when a friend you refer makes their first purchase or loan redemption',
+    howYouRedeem: 'How you redeem',
+    redemptionInstructions:
+      'Show this code at checkout next time. Your cashier can apply your points as a discount.',
+
+    referAFriend: 'Refer a friend',
+    yourCode: 'Your code',
+    copyCode: 'Copy',
+    copied: 'Copied!',
+    shareTextTemplate:
+      'Hi! Use my code {code} at {tenant} so we both get points: {url}',
+    shareSms: 'SMS',
+    shareWhatsapp: 'WhatsApp',
+    shareEmail: 'Email',
+    friendsReferred: '{count} friends have used your code so far',
+    friendsReferredZero: 'Share your code to start earning referrals',
+
+    activity: 'Activity',
+    emptyActivity: 'No activity yet. Earn your first points on your next visit!',
+    viewHistory: 'View all activity',
+
+    kinds: {
+      earn_sale: 'Retail purchase',
+      earn_loan_interest: 'Loan interest',
+      earn_referral_bonus: 'Referral bonus',
+      redeem_pos: 'Redeemed at checkout',
+      redeem_undo: 'Reverted redemption',
+      earn_clawback: 'Sale reversed',
+      adjust_manual: 'Adjustment',
+    },
   },
 }
 

@@ -223,6 +223,31 @@ export default function NewCustomerForm({
           <input type="hidden" name="dl_raw_payload" value={rawPayload} />
         ) : null}
 
+        <label className="block text-sm text-ink">
+          <span className="mb-1 block">Referred by code (optional)</span>
+          <input
+            key={`referred_by_code-${formGen}`}
+            type="text"
+            name="referred_by_code"
+            maxLength={6}
+            pattern="[A-HJ-NP-Za-hj-np-z2-9]{6}"
+            autoComplete="off"
+            placeholder="e.g. XF4P9Q"
+            defaultValue={state.values?.referred_by_code ?? ''}
+            className="w-32 rounded-md border border-hairline px-3 py-2 font-mono uppercase focus:outline-none focus:ring-2 focus:ring-rausch/50"
+            style={{ textTransform: 'uppercase' }}
+          />
+          {fieldError('referred_by_code') ? (
+            <span className="mt-1 block text-xs text-error">
+              {fieldError('referred_by_code')}
+            </span>
+          ) : (
+            <span className="mt-1 block text-xs text-ash">
+              Customer was referred by another customer? Enter their code (optional).
+            </span>
+          )}
+        </label>
+
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/customers"

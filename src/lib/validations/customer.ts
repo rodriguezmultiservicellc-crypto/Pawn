@@ -160,6 +160,17 @@ export const customerCreateSchema = z.object({
       z.string().min(1).max(4000).nullable().optional(),
     )
     .transform((v) => v ?? null),
+
+  referred_by_code: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      z
+        .string()
+        .regex(/^[A-HJ-NP-Z2-9]{6}$/i, 'Must be 6 chars from A-Z and 2-9 (no I/O/0/1).')
+        .nullable(),
+    )
+    .nullable()
+    .optional(),
 })
 
 export const customerUpdateSchema = customerCreateSchema.extend({

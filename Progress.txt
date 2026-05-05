@@ -13,310 +13,278 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 21 (2026-05-05, mid-session
-                  checkpoint) — Phase 10 Path A slice 3/N:
-                  loyalty + referrals. Brainstorming
-                  complete; spec written + self-reviewed
-                  + handed to Eddy for review. NO
-                  IMPLEMENTATION YET — this checkpoint
-                  captures the design-locked-in state so a
-                  fresh session could pick up at "review
-                  spec → invoke writing-plans → execute".
-  Context budget: ~95% full at save time.
-  Last worked on: Spec at docs/superpowers/specs/
-                  2026-05-04-loyalty-referrals-design.md.
-                  Locked decisions: points wallet model;
-                  earn on retail sales subtotal + loan
-                  interest paid; referral bonus on first
-                  qualifying transaction; cashier-driven
-                  POS redemption to existing
-                  sales.discount_amount; all gate + config
-                  in `settings` table; forward-only
-                  earning (no backfill); manual staff
-                  adjustments allowed (manager+);
-                  materialized balance + AFTER INSERT
-                  trigger; 6-char A-Z+2-9 referral codes;
-                  partial-unique idempotency on auto-credit
-                  kinds only.
+  Last session:   Session 22 (2026-05-05, end-of-session)
+                  — Phase 10 Path A slice 3/N: loyalty +
+                  referrals SHIPPED. All 16 plan tasks
+                  complete + verified locally (lint clean,
+                  tsc clean, 373 tests passing,
+                  `npm run build` green). Single commit
+                  per project's once-per-session /progress
+                  flow. Operator smoke test PENDING —
+                  Eddy authorized commit + push ahead of
+                  smoke; Vercel auto-deploys to production
+                  for smoking against the live URL.
+  Context budget: high but well under cache-miss
+                  threshold at save time.
+  Last worked on: Loyalty/referrals slice 3 — full
+                  implementation across 16 plan tasks.
+                  Migration 0028 applied; types regenerated;
+                  pure-logic math (31 tests) + central
+                  events.ts writer (single-writer rule with
+                  discriminated InsertResult); 5 server-action
+                  hooks (completeSale + redeemLoan +
+                  recordPayment + voidSale + createReturn);
+                  /settings/loyalty page; LoyaltyPanel +
+                  AdjustPointsModal + adjust/reset actions on
+                  /customers/[id]; PosRedemptionBlock +
+                  redeemPointsOnSale + undoRedemption on POS;
+                  customers/new referred-by-code field;
+                  /portal/loyalty page + buildPublicLandingUrl
+                  helper; ~27-key i18n loyalty.* block at
+                  EN+ES parity + nav.loyalty; Trophy sidebar
+                  entry. All architectural rules upheld:
+                  loyalty_events writes funneled through
+                  lib/loyalty/events.ts (single-writer);
+                  append-only DB enforcement via trigger;
+                  same-tenant referral guard via trigger;
+                  CHECK constraints on rate columns; clawback
+                  internally clamped to balance.
 
-  ACTIVE FILE(S) — Session 21 design-locked-in state
-  (only ONE file changed; implementation not started):
+  ACTIVE FILE(S) at end of session — Phase 10 Path A
+  slice 3 SHIPPED (single end-of-session commit):
 
-    --- LOYALTY/REFERRALS DESIGN SPEC (item 205) ---
-    - docs/superpowers/specs/2026-05-04-loyalty-
-      referrals-design.md (NEW — full design doc
-      from the brainstorming skill: locked-decisions
-      table, full SQL for migration 0028 with
-      columns + table + idempotency index +
-      materialized-balance trigger, integration
-      hooks for completeSaleAction +
-      redeemLoanAction + redemption + undo + manual
-      adjust, staff UX (loyalty panel +
-      /settings/loyalty + POS redemption block),
-      portal UX (/portal/loyalty hero + earn rules
-      + share + activity), i18n surface (~25
-      keys), testing scope (pure-logic only,
-      ~18 tests on lib/loyalty/math), 15-step
-      migration sequencing, out-of-scope deferrals)
-
-  CARRIED FROM SESSION 20 (no in-session changes):
-
-    --- MIGRATION (item 197) ---
-    - patches/0027-public-catalog.sql (NEW —
-      ALTER TABLE tenants ADD public_catalog_enabled
-      BOOLEAN NOT NULL DEFAULT FALSE; ALTER TABLE
-      inventory_items ADD is_hidden_from_catalog
-      BOOLEAN NOT NULL DEFAULT FALSE; partial index
-      idx_inventory_public_catalog matching the RLS
-      USING clause; 3 SELECT-only RLS policies on
-      inventory_items + inventory_item_photos +
-      inventory_item_stones, all gated on three-AND
-      tenant flags (public_landing_enabled +
-      public_catalog_enabled + has_retail +
-      is_active) plus per-row predicates
-      (status='available' + is_hidden_from_catalog
-      = FALSE + list_price IS NOT NULL + deleted_at
-      IS NULL); documented rollback; NOTIFY pgrst)
-
-    --- RESOLVER (item 198) ---
-    - src/lib/tenant-resolver.ts (PUBLIC_CATALOG_
-      COLUMNS allowlist; escapeIlikeLiteral helper;
-      resolveCatalogPagination pure pagination math
-      with silent normalize on page=0/negative/NaN/
-      too-large; fetchPublicCatalog list with count-
-      then-range to avoid 416, photo primary-pick
-      via .in() round-trip + admin-mints-signed-
-      URLs split; fetchPublicCatalogItem detail
-      with photos + stones; PublicTenant +
-      PUBLIC_TENANT_COLUMNS gain
-      public_catalog_enabled)
-    - src/lib/tenant-resolver.catalog.test.ts (NEW —
-      15 pure-logic tests: PUBLIC_CATALOG_COLUMNS
-      forbidden-set sanity, escapeIlikeLiteral
-      across % / _ / \\, resolveCatalogPagination
-      across in-range / has-more / page=0 / neg /
-      NaN / too-large / total=0 / last-partial)
-
-    --- PUBLIC CATALOG ROUTES (item 199) ---
-    - src/app/(public)/s/[slug]/catalog/page.tsx
-      (NEW — RSC; tenant gate: !has_retail OR
-      !public_catalog_enabled → notFound();
-      parses ?page=&category=&q= from Promise
-      searchParams; calls fetchPublicCatalog with
-      pageSize=24; generateMetadata with city-
-      templated description + og:image from
-      tenant.logo_url)
-    - src/app/(public)/s/[slug]/catalog/content.tsx
-      (NEW — 'use client'; sticky header with
-      back-to-home + LanguageToggle; debounced
-      search input (300ms, router.replace, page
-      resets to 1 on filter change); category
-      pills auto-built from items present;
-      responsive grid 2/3/4 cols; cards: square
-      photo or category-icon fallback +
-      line-clamp-2 description + price + category;
-      empty + emptyAll states with Clear filters
-      link; server-rendered Prev/PageOf/Next
-      pagination with disabled state)
-    - src/app/(public)/s/[slug]/catalog/not-found.tsx
-      (NEW — probe-resistant generic 404)
-    - src/app/(public)/s/[slug]/catalog/[sku]/page.tsx
-      (NEW — RSC; same tenant gate; fetchPublic
-      CatalogItem → notFound() on miss; generate
-      Metadata with brand+model OR karat+metal+grams
-      OR description fallback for description; og
-      title + description + image (primary signed
-      URL); twitter summary_large_image card)
-    - src/app/(public)/s/[slug]/catalog/[sku]/content.tsx
-      (NEW — 'use client'; photo carousel with
-      thumbnail strip + prev/next buttons; right
-      column: category pill + h1 description +
-      brand·model + price + sku; spec table renders
-      only rows with data (metal/karat/weight/
-      serial); stones table renders only when
-      stones present; tel: + mailto: CTAs with
-      pre-filled subject for email)
-    - src/app/(public)/s/[slug]/catalog/[sku]/not-found.tsx
-      (NEW)
-
-    --- LANDING CTA WIRED (item 200) ---
-    - src/app/(public)/s/[slug]/content.tsx (the
-      shopInventory CTAPlaceholder swaps to a real
-      <Link> when tenant.has_retail &&
-      tenant.public_catalog_enabled; falls back to
-      placeholder when has_retail is on but catalog
-      flag is off; null when has_retail is off
-      entirely. Preserves "coming soon" affordance
-      for tenants who reserve has_retail but
-      haven't published)
-
-    --- SETTINGS UI (item 201) ---
-    - src/app/(staff)/settings/general/page.tsx (typed
-      generic gains public_catalog_enabled; passes
-      through to content)
-    - src/app/(staff)/settings/general/content.tsx
-      (TenantGeneralView gains public_catalog_
-      enabled; "Publish public catalog" checkbox in
-      the existing Public landing page fieldset,
-      disabled when !has_retail with explanatory
-      hint, hardcoded English label per Session 19's
-      established staff-form pattern)
-    - src/app/(staff)/settings/general/actions.ts
-      (new zod member; combined update payload;
-      audit-log fields_changed entry; revalidate
-      Path block extends to /s/<slug>/catalog when
-      slug present)
-
-    --- INVENTORY FORM (item 202) ---
-    - src/lib/validations/inventory.ts (inventory
-      ItemCreateSchema gains is_hidden_from_catalog
-      BOOLEAN with checkbox preprocess; inherited
-      by inventoryItemUpdateSchema via .extend())
-    - src/components/inventory/InventoryFormFields.tsx
-      (InventoryFieldValues + emptyInventoryItem
-      gain is_hidden_from_catalog; new "Hide from
-      public catalog" checkbox in the Staff-only
-      section between staff_memo and tags, hardcoded
-      English label per established staff-form
-      pattern)
-    - src/app/(staff)/inventory/[id]/page.tsx
-      (selects is_hidden_from_catalog)
-    - src/app/(staff)/inventory/[id]/content.tsx
-      (ItemRecord + InventoryFieldValues mapping +
-      echoToInventoryFieldValues all carry the new
-      field)
-    - src/app/(staff)/inventory/[id]/actions.ts
-      (FIELDS array gains entry; payload writes;
-      after the existing /inventory revalidates, a
-      cheap tenants.public_slug lookup → revalidate
-      Path /s/<slug>/catalog AND /s/<slug>/catalog
-      /<sku>; gated to skip when slug is null)
-    - src/app/(staff)/inventory/new/actions.ts (FIELDS
-      + payload + same tenant-slug → revalidate
-      catalog list pattern, no <sku> revalidate
-      since brand-new items don't have a stable
-      detail URL yet)
-    - src/app/(staff)/inventory/new/form.tsx (echo
-      mapping carries the new field)
-
-    --- I18N (item 203) ---
-    - src/lib/i18n/{en,es}.ts (NEW catalog block,
-      ~30 keys: metaTitle, metaDescription with
-      {name}+{city}+{state} placeholders, metaDescription
-      Fallback, backToHome, shop, filterAll,
-      searchPlaceholder, clearFilters, empty,
-      emptyAll, pageOf with {page}+{total},
-      prevPage, nextPage, categories.{ring..other},
-      specs.{metal,karat,weight,serialNumber,stones,
-      sku}, metals.{gold..other}, stonesTable.
-      {count,type,cut,carat,color,clarity,totalCarat},
-      inquireByPhone, inquireByEmail, backToAll;
-      EN+ES at full parity)
-
-    --- DESIGN + PLAN DOCS (item 204) ---
-    - docs/superpowers/specs/2026-05-04-public-catalog-design.md
-      (NEW — full spec from brainstorming skill)
-    - docs/superpowers/plans/2026-05-04-public-catalog.md
-      (NEW — full implementation plan from writing-
-      plans skill, 13 tasks with bite-sized steps +
-      complete code blocks)
-
-    --- DB:TYPES REGEN (operator + automation) ---
+    --- MIGRATION (item 206) ---
+    - patches/0028-loyalty-referrals.sql (NEW — 296
+      lines: 4 customer cols + 5 settings cols with
+      CHECK constraints + loyalty_events table with
+      7-kind enum + 3 indexes + idempotency partial
+      unique on 4 auto-credit kinds + 3 trigger
+      functions (apply-balance / block-mutation /
+      same-tenant-referral) + 3 RLS policies with
+      defense-in-depth performed_by self-check on
+      staff INSERT + documented rollback)
     - src/types/database.ts (regenerated via
-      `npm run db:types` after operator applied
-      0027 — public_catalog_enabled +
-      is_hidden_from_catalog now typed in tenants
-      and inventory_items Row/Insert/Update
-      aliases)
+      `npm run db:types` after operator applied 0028
+      — loyalty_events table + new columns now typed
+      in customers/settings Row/Insert/Update aliases)
+
+    --- PURE-LOGIC + EVENTS HELPERS (items 207-208) ---
+    - src/lib/loyalty/math.ts (NEW — 7 exports:
+      computeRetailEarn, computeLoanInterestEarn,
+      computeRedemptionDiscount with cap-then-shrink-
+      pointsConsumed, generateReferralCode (32-char
+      alphabet, 6 chars), canApplyAdjustment,
+      isValidReferralCode, clampClawback)
+    - src/lib/loyalty/math.test.ts (NEW — 31 vitest
+      tests across 7 describe blocks; review-driven
+      Number.isFinite + Math.floor coverage on
+      computeRedemptionDiscount edge cases)
+    - src/lib/loyalty/events.ts (NEW — 10 helpers +
+      internal insertEvent with discriminated
+      InsertResult {ok:true,id} | {ok:'collision'} |
+      {ok:false,error}; SINGLE WRITER for
+      loyalty_events; recordEarnSale,
+      recordEarnLoanInterest, maybeCreditReferral
+      (flag-flip-only-on-success-or-collision),
+      recordRedemption, recordRedeemUndo,
+      recordEarnClawback (internal clampClawback),
+      recordManualAdjust (discriminated
+      reason_too_short/would_go_negative/
+      insert_failed), ensureReferralCode (5-attempt
+      retry with race-safe loop), resetReferralCode,
+      applyReferredByCode (uppercase + validate +
+      tenant-scope + self-referral guard +
+      idempotent UPDATE))
+
+    --- SERVER-ACTION HOOKS (items 209-210) ---
+    - src/app/(staff)/pos/sales/[id]/actions.ts
+      (completeSaleAction earn+referral hook on
+      subtotal NOT total; voidSaleAction sums
+      earn_sale rows + clawback + iterates redeem_pos
+      rows + redeem_undo each; new
+      redeemPointsOnSaleAction + undoRedemptionAction
+      via helpers; uses real
+      sales.discount_amount / tax_amount / subtotal /
+      total columns)
+    - src/app/(staff)/pawn/[id]/actions.ts
+      (recordPaymentAction captures payment loan_event
+      id + earn-on-interest hook + referral; same in
+      redeemLoanAction for the payoff loan_event)
+    - src/app/(staff)/pos/returns/new/actions.ts
+      (createReturnAction proportional clawback
+      Math.floor(returnedSubtotal × earn_rate_retail)
+      with sourceKind='return', sourceId=ret.id,
+      reason='sale_returned')
+
+    --- STAFF SETTINGS PAGE (item 211) ---
+    - src/app/(staff)/settings/loyalty/page.tsx (NEW
+      — RSC, owner/chain_admin gate, fetches settings
+      row + Number()-coerces NUMERIC columns)
+    - src/app/(staff)/settings/loyalty/content.tsx
+      (NEW — 'use client', useActionState form,
+      master enable + 4 numeric rates with
+      live-disabled-when-off; hardcoded English)
+    - src/app/(staff)/settings/loyalty/actions.ts
+      (NEW — 'use server', requireRoleInTenant
+      BEFORE admin client per Rule 10; Zod schema
+      with gt(0) on redemption_rate + int().min(0)
+      on referral_bonus + min(0).max(1000) on earn
+      rates; revalidates 4 paths /settings,
+      /settings/loyalty, /customers,
+      /portal/loyalty; audit logs before/after)
+
+    --- STAFF CUSTOMER + POS SURFACES (items 212-213) ---
+    - src/components/loyalty/LoyaltyPanel.tsx (NEW —
+      'use client', balance + ≈ store credit
+      subtitle, referral code with Copy button,
+      KIND_LABEL hardcoded English for 7 kinds, last
+      5 events, Adjust button gated on
+      canAdjust && !is_banned)
+    - src/components/loyalty/AdjustPointsModal.tsx
+      (NEW — 'use client', useActionState wired to
+      adjustLoyaltyPointsAction, friendly error
+      rendering for would_go_negative /
+      reason_too_short, closes on state.ok)
+    - src/components/loyalty/PosRedemptionBlock.tsx
+      (NEW — 'use client', returns null when not
+      applicable, "Redeem points" form with live
+      preview, existing redemptions with Undo)
+    - src/app/(staff)/customers/[id]/page.tsx
+      (selects loyalty fields, lazy-generates
+      referral code via ensureReferralCode when
+      enabled+null, threads loyalty prop)
+    - src/app/(staff)/customers/[id]/content.tsx
+      (renders LoyaltyPanel near top above existing
+      portal panel)
+    - src/app/(staff)/customers/[id]/actions.ts
+      (appends adjustLoyaltyPointsAction +
+      resetReferralCodeAction; both manager+ via
+      requireRoleInTenant; audit + revalidate)
+    - src/app/(staff)/pos/sales/[id]/page.tsx
+      (settings + customer balance + redemptions
+      fetch parallelized; threads loyalty prop)
+    - src/app/(staff)/pos/sales/[id]/content.tsx
+      (renders PosRedemptionBlock below totals,
+      gated on loyalty.enabled && sale.customer_id)
+
+    --- CUSTOMER-CREATE + PORTAL + i18n (items 214-216) ---
+    - src/lib/validations/customer.ts
+      (customerCreateSchema gains optional
+      referred_by_code, case-insensitive 6-char
+      A-Z+2-9, empty-string→null preprocess)
+    - src/app/(staff)/customers/new/actions.ts
+      (FIELDS gains referred_by_code; post-INSERT
+      calls applyReferredByCode helper; no inline
+      UPDATE on referred_by_customer_id)
+    - src/app/(staff)/customers/new/form.tsx
+      (uppercase 6-char input above submit row,
+      defaultValue echo on validation-error,
+      hardcoded English helper text)
+    - src/lib/loyalty/url.ts (NEW — 'server-only',
+      buildPublicLandingUrl({slug, baseDomain,
+      appUrl}) with subdomain form when baseDomain
+      set / path-form fallback / null when slug null)
+    - src/app/(portal)/portal/loyalty/page.tsx
+      (NEW — RSC; notFound() on missing ctx /
+      tenant / loyalty disabled / customer missing;
+      lazy ensureReferralCode; reads tenant + last
+      20 events + friendsReferred count;
+      buildPublicLandingUrl from x-forwarded-proto +
+      host headers + NEXT_PUBLIC_BASE_DOMAIN)
+    - src/app/(portal)/portal/loyalty/content.tsx
+      (NEW — 'use client', useI18n from
+      @/lib/i18n/context (corrected from plan's
+      use-lang path), hero + earn rules + refer-a-
+      friend with SMS/WhatsApp/Email share buttons +
+      activity log)
+    - src/lib/i18n/en.ts + es.ts (loyalty.* block
+      at EN+ES parity, ~27 keys including 7
+      kinds.* sub-keys matching the DB enum;
+      nav.loyalty)
+
+    --- SIDEBAR (item 217) ---
+    - src/components/layout/Sidebar.tsx (Trophy
+      icon import + Loyalty entry under Settings
+      group between Communications and Billing,
+      visible: canSeeSettings — server gate at
+      page level enforces actual owner/chain_admin
+      role)
+
+    --- DESIGN SPEC + PLAN ---
+    - docs/superpowers/specs/2026-05-04-loyalty-
+      referrals-design.md (Session 21 design + §9
+      Session 22 amendments locking 5 design
+      decisions: append-only DB enforcement,
+      same-tenant referral trigger, CHECK on rate
+      cols, earn-clawback on void/return,
+      redeem_undo + earn_clawback as own kinds)
+    - docs/superpowers/plans/2026-05-04-loyalty-
+      referrals.md (NEW — 16-task bite-sized plan
+      generated by writing-plans skill, mirrors
+      Session 20's plan shape)
 
   RESUME POINT:
-    Session 21 mid-session — loyalty/referrals SPEC
-    is locked + saved + handed to Eddy for review.
-    No code changes yet (implementation pending).
-    Resume by:
+    Session 22 complete. Slice 3 shipped with single
+    end-of-session commit + push (Eddy authorized
+    push ahead of smoke). Vercel auto-deploys to
+    production. Resume by:
 
-    1. Eddy reviews docs/superpowers/specs/
-       2026-05-04-loyalty-referrals-design.md.
-       Approve or request changes.
-    2. On approval → invoke superpowers:writing-plans
-       skill to generate the bite-sized
-       implementation plan at
-       docs/superpowers/plans/2026-05-04-loyalty-
-       referrals.md (mirror Session 20's plan
-       shape — 14-15 tasks, single-PR slice,
-       single end-of-session commit per the
-       project's /progress flow override).
-    3. Then invoke superpowers:executing-plans —
-       work through the tasks, pause at the
-       migration-apply step for Eddy to apply
-       patches/0028-loyalty-referrals.sql + run
-       `npm run db:types`.
-    4. Then operator smoke (spec §6.3, 9 steps:
-       enable + earn on sale + portal render +
-       manual adjust + redeem + undo + referral
-       credit + double-credit guard + disable).
-    5. End-of-session /progress saves Session 21
-       complete and pushes the slice.
+    1. Watch the Vercel build of this commit. If
+       red, surface errors immediately (likely a
+       Vercel-only TS strict mode catch missed by
+       local tsc).
+    2. Once build is green, run the 11-step operator
+       smoke against the production URL (plan §16
+       step 6 + spec §6.3+§9.11):
+       (1) /settings/loyalty enable
+       (2) earn on $100 sale
+       (3) /portal/loyalty render as customer
+       (4) manual +50 adjust
+       (5) redeem 1000 pts on $20 sale
+       (6) undo redemption
+       (7) referral linkage + bonus on first sale
+       (7a) verify referred-by linkage on customer detail
+       (8) no double-credit on referred customer's 2nd sale
+       (9) toggle loyalty_enabled OFF, portal 404
+       (10) void sale → clawback + redemption-reversal
+       (11) partial return → proportional clawback
+    3. If any smoke step fails, file follow-up
+       fixes; otherwise proceed to next Phase 10
+       slice.
 
-    Implementation files NOT yet touched but
-    enumerated in the spec §8:
-      patches/0028-loyalty-referrals.sql (NEW)
-      src/lib/loyalty/math.ts + .test.ts (NEW)
-      src/lib/loyalty/events.ts (NEW helpers module)
-      src/app/(staff)/pos/sales/[id]/actions.ts
-        (extend completeSaleAction + ADD
-         redeemPointsOnSaleAction + undoRedemption
-         Action)
-      src/app/(staff)/pawn/[id]/actions.ts (extend
-        redeemLoanAction + partial-payment paths)
-      src/app/(staff)/customers/[id]/actions.ts +
-        content.tsx (ADD adjustLoyaltyPointsAction
-        + loyalty panel)
-      src/app/(staff)/customers/new/{actions,form}.ts
-        (Add referred_by_code field + applyReferred
-        ByCode wiring)
-      src/app/(staff)/settings/loyalty/{page,content,
-        actions}.tsx (NEW page)
-      src/app/(portal)/portal/loyalty/{page,content}.tsx
-        (NEW)
-      src/lib/i18n/{en,es}.ts (extend with
-        loyalty.* block, ~25 keys, EN+ES parity)
-      src/types/database.ts (regen via db:types)
+    Recommended next slice (operator's pick):
+    (a) Public catalog edge-cache fix — add
+        `export const revalidate = 60` to the three
+        public surfaces (/s/[slug] + /catalog +
+        /catalog/[sku]). Same pattern likely
+        benefits the new /portal/loyalty too.
+    (b) Phase 0 punch list — set
+        CRON_SECRET / NEXT_PUBLIC_APP_URL /
+        NEXT_PUBLIC_BASE_DOMAIN in Vercel; rotate
+        the three pasted secrets; revert repo-
+        local git config.
+    (c) Phase 10 (A) next sub-surface — Google
+        Reviews embed, email-campaign engine, or
+        eBay Path B real wire-up.
 
   OPEN ISSUES / BLOCKERS:
-    - Loyalty/referrals slice 3 implementation pending
-      — spec locked, plan + code not yet written.
-    - Phase 0 punch list — 0024 + 0025 + 0026 + 0027
-      all applied; db:types ran. CRON_SECRET +
-      NEXT_PUBLIC_APP_URL still unset in Vercel. Three
-      pasted secrets (anon JWT, service-role JWT,
-      sbp_ token) still need rotation. Repo-local git
-      config revert still open.
-    - NEXT_PUBLIC_BASE_DOMAIN unset (Session 19
-      carry) — without it the subdomain rewrite
-      short-circuits and only the /s/<slug> path form
-      works. Wildcard DNS at the production base
-      domain (`*.<basedomain>` → Vercel) lights up
-      the subdomain form once the env var lands. Path
-      form works on Vercel + local dev today.
-    - Public catalog edge-cache flip (NEW Session 20 in-
-      session find): when a tenant's public_catalog_
-      enabled flips FALSE→TRUE, Vercel's edge can serve
-      a stale 404 from the prior render despite
-      revalidatePath() firing. Manual `?bust=N` query
-      string bypasses it. Permanent fix: add
-      `export const revalidate = 60` to the public
-      surfaces (/s/[slug] + /s/[slug]/catalog +
-      /s/[slug]/catalog/[sku]). Same pattern likely
-      benefits the landing page on similar transitions.
-    - SaaS billing real-money flow still gates on
-      operator setup (Stripe webhook config + Sync
-      Stripe products button click).
-    - Per-tenant Stripe Connect not onboarded for the
-      first tenant.
-    - Per-tenant Resend not set up for first tenant —
-      portal / customer comm emails fall back to
-      operator-copies-link.
+    - Smoke test pending (above) — Eddy authorized
+      commit ahead of smoke; surface failures via
+      follow-up patches if any.
+    - Phase 0 punch list — CRON_SECRET +
+      NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN
+      still unset in Vercel. Three pasted secrets
+      (anon JWT, service-role JWT, sbp_ token)
+      still need rotation. Repo-local git config
+      revert still open.
+    - Public catalog edge-cache flip (Session 20
+      find): add `export const revalidate = 60` to
+      /s/[slug] + /s/[slug]/catalog +
+      /s/[slug]/catalog/[sku]. Same pattern likely
+      benefits /portal/loyalty.
+    - SaaS billing real-money flow + per-tenant
+      Stripe Connect + per-tenant Resend not yet
+      onboarded for first tenant.
     - eBay paths still STUBBED (Phase 10 B). 12-step
       real wire-up checklist documented in commit
       9b93e235.
@@ -325,300 +293,88 @@ SEE ALSO (do not duplicate here):
     - WhatsApp Content SIDs NULL until Twilio + Meta
       approval per template per tenant.
     - FL LeadsOnline CSV format still DRAFT.
-    - Reviewer's stronger architectural fix on secrets
-      (split secret columns or expose only masked status
-      views) bundles with pgsodium-encryption migration.
+    - Reviewer's stronger architectural fix on
+      secrets bundles with pgsodium-encryption
+      migration.
 
-  KEY DECISIONS LOCKED THIS SESSION (loyalty design):
-    - POINTS WALLET MODEL. Customers accumulate
-      integer points (denormalized
-      customers.loyalty_points_balance + immutable
-      loyalty_events log). Points convert to dollar
-      discount at redemption time at a per-tenant
-      rate (default 100 pts = $1). Beats stored-
-      credit-in-dollars because the "earn 10x
-      points" psychological lever drives engagement
-      and avoids "we're refunding you" framing.
-    - EARN ON RETAIL SUBTOTAL + LOAN INTEREST PAID.
-      Two integration points only — completeSale
-      Action and redeemLoanAction (plus any partial
-      -payment action that records interest_paid >
-      0). Retail uses subtotal (not total — no
-      points on tax). Loan uses interest_paid (the
-      actual shop revenue). Repair tickets and
-      layaway payments deferred — too many touch
-      points per actual revenue.
-    - REFERRAL ATTRIBUTION ON FIRST QUALIFYING TXN.
-      Referrer earns the flat bonus when their
-      referred customer's first sale or loan
-      redemption posts. Single attribution event
-      gated by the customers.referral_credited flag
-      + the (customer_id, source_kind, source_id,
-      kind) UNIQUE partial index. Avoids "earn on
-      signup" gaming and avoids ongoing-kickback MLM
-      complexity.
-    - CASHIER-DRIVEN POS REDEMPTION → existing
-      sales.discount field. No new tender type.
-      Cashier types points-to-redeem; system
-      computes discount = points / redemption_rate;
-      caps at remaining-to-discount; applies. Multi
-      -redemption per sale supported (idempotency
-      partial index excludes redeem_pos kind).
-    - UNDO REDEMPTION = COMPENSATING EVENT, NOT DELETE.
-      Undo writes a +delta adjust_manual row with
-      reason='undo_redemption'. Audit trail intact;
-      balance maintenance stays trigger-driven; no
-      DELETE-trigger needed.
-    - GATE + CONFIG IN settings TABLE (not tenants).
-      `settings.loyalty_enabled` + four numeric
-      config columns (earn_rate_retail,
-      earn_rate_loan_interest, redemption_rate,
-      referral_bonus). settings is already 1:1
-      with tenants and already houses module-y
-      defaults like default_loan_interest_rate +
-      buy_hold_period_days. has_loyalty NOT a
-      tenant module flag — loyalty rides on top of
-      existing modules.
-    - FORWARD-ONLY EARNING (no backfill). Points
-      accrue on transactions completed AFTER the
-      operator flips loyalty_enabled. Backfill
-      would hand out massive overnight balances
-      under no marketing context.
-    - MATERIALIZED BALANCE + AFTER INSERT TRIGGER.
-      customers.loyalty_points_balance maintained
-      by a SECURITY DEFINER trigger on
-      loyalty_events INSERT (locked search_path
-      per Session 9 rule). CHECK (balance >= 0)
-      constraint is the safety net — trigger
-      update fails on negative, parent transaction
-      rolls back. Matches Pawn's "DB enforces
-      invariants" posture (existing SKU + photo-
-      primary triggers).
-    - REFERRAL CODES ARE 6-CHAR A-Z + 2-9 (NO I/O/0/1).
-      Random, per-tenant unique, no friendly slugs
-      (avoids namespace fights). Lazy generation
-      via ensureReferralCode helper; idempotent;
-      retries on UNIQUE collision.
-    - IDEMPOTENCY PARTIAL UNIQUE on (customer_id,
-      source_kind, source_id, kind) WHERE source*
-      NOT NULL AND kind IN earn-credit set.
-      Auto-credits can't double; manual + redeem
-      events can repeat freely (multi-redemption
-      on one sale, repeated adjustments).
-    - MANUAL STAFF ADJUSTMENTS (manager+ only).
-      adjustLoyaltyPointsAction with required
-      reason ≥3 chars. Audit-logged. CHECK
-      constraint blocks negative-balance attempts.
-    - SELF-SERVICE PORTAL SIGNUP DEFERRED. Portal
-      is gated on existing customer status. Anon
-      signup needs magic-link onboarding flow that
-      doesn't exist; not v1.
-    - SUPERPOWERS LOOP REPEATING. Session 20 used
-      brainstorming → writing-plans → executing-
-      plans end-to-end successfully. Session 21
-      is the second iteration. Process locked for
-      single-PR slices where design space is
-      genuinely uncertain.
+  SMALL FOLLOW-UPS DISCOVERED THIS SESSION
+  (defense-in-depth, can ride along later):
+    - Sidebar: /settings/loyalty entry uses
+      canSeeSettings (manager-inclusive) but the
+      page server-gates owner/chain_admin only.
+      Cosmetic — manager sees the link but server
+      gate blocks them. Consider tightening the
+      sidebar visibility predicate next time
+      Sidebar.tsx is touched.
+    - recordEarnClawback fire-and-forget hides
+      transient DB errors. clampClawback prevents
+      the CHECK violation case so this is mostly
+      theoretical, but worth surfacing if it ever
+      shows up in audit reconciliation.
+    - "Reset code" button on LoyaltyPanel
+      intentionally not wired —
+      resetReferralCodeAction exists server-side
+      but no UI yet. Add when needed.
 
-  (Sessions 13-20 PRIOR-SESSION decision blocks pruned from
+  KEY DECISIONS LOCKED THIS SESSION (Session 22):
+    - SPEC §9 AMENDMENTS BAKED INTO MIGRATION 0028.
+      Five design decisions locked + applied: (1)
+      append-only DB enforcement via
+      trg_loyalty_events_block_mutation; (2)
+      same-tenant referral guard via
+      trg_customers_referral_same_tenant; (3) CHECK
+      constraints on all four rate columns
+      (>=0 / >0 / >=0 / >=0 + integer); (4)
+      earn-clawback on sale void (full magnitude)
+      and partial return (proportional to returned
+      subtotal); (5) redeem_undo and earn_clawback
+      as their own kinds (not magic-string
+      adjust_manual reasons) so the customer-facing
+      activity log labels are unambiguous.
+    - SINGLE-WRITER RULE for loyalty_events.
+      EVERY insert flows through
+      src/lib/loyalty/events.ts via the internal
+      insertEvent helper. Discriminated InsertResult
+      lets callers distinguish success / idempotency
+      collision / error so maybeCreditReferral
+      flips referral_credited only on success or
+      collision (not on real failure — preserves
+      retry path).
+    - DEFENSE-IN-DEPTH RLS on staff loyalty_events
+      INSERT: tenant scope AND
+      (performed_by IS NULL OR performed_by =
+      auth.uid()). Closes audit-attribution
+      forgery vector if a future code path
+      bypasses the admin client.
+    - PORTAL-CONTENT i18n IMPORT FROM context, NOT
+      use-lang. Plan code drift fixed during
+      implementation: useI18n lives in
+      @/lib/i18n/context (pattern matches sibling
+      /portal/repairs, /portal/layaways,
+      /portal/account).
+    - SIDEBAR LOYALTY ENTRY uses t.nav.loyalty
+      (NOT hardcoded). Adds nav.loyalty key to
+      en.ts + es.ts. Matches existing pattern for
+      every other settings nav entry.
+    - SUBAGENT-DRIVEN-DEVELOPMENT FLOW VALIDATED
+      THIRD TIME. Session 20 used brainstorming →
+      writing-plans → executing-plans. Session 21
+      (mid) used brainstorming + writing-plans.
+      Session 22 used writing-plans →
+      subagent-driven-development with two-stage
+      review (spec compliance + code quality).
+      Code-review pass surfaced two real
+      correctness bugs in Tasks 3 and 4 that the
+      verbatim plan code missed (Number.isFinite
+      gaps + InsertResult coarse failure mode);
+      both were fixed without leaving the session.
+      Process worth keeping for slices where the
+      plan code has structural risk.
+
+  (Sessions 13-21 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
-  LOG below. Carried-forward architectural decisions stay
-  in the block beneath. Session 20's catalog decisions are
-  now load-bearing project pattern; not duplicated here.)
-
-  KEY DECISIONS CARRIED FROM PRIOR SESSIONS (still authoritative):
-    - Multi-store from day 1 (tenants.parent_tenant_id +
-      tenant_type).
-    - Per-tenant module gates: has_pawn / has_repair / has_retail.
-    - Stone setting = service_type ENUM on repair tickets.
-    - FL LeadsOnline only for v1.
-    - Stripe: per-tenant Connect (Terminal + Payment Links) AND
-      platform account (SaaS billing).
-    - compliance_log is write-once; police-report exporter reads
-      from it (not loans/sales).
-    - Pawn ticket immutability after print.
-    - Dedicated cloud projects (Rule 17): own GitHub + Supabase +
-      Vercel.
-    - Money is numeric(18,4) — never floats; r4() in
-      lib/pawn/math.ts. Regression-locked by Session 13 tests.
-    - Audit-log every mutation through admin client.
-    - Phosphor icons in client components only.
-    - 'use server' modules export async functions ONLY (type
-      exports are erased so `export type` is fine).
-    - Storage paths: tenant_id MUST be folder[0] for RLS.
-    - Validation Zod helpers: preprocess null-on-empty BEFORE
-      inner schema; trailing .transform(v => v ?? null) keeps
-      `string | null`.
-    - SESSION 8 ENUM-EMPTY-STRING SHIELD: every z.enum on a
-      <select> with placeholder MUST wrap in preprocess(""→null).
-    - SESSION 8 FORM-RESET WORKAROUND: compute-during-render
-      via `if (state !== lastState) setLastState(state); if
-      (state.values) setFormGen(g => g + 1)`. NOT useEffect+
-      setState. Re-applied in Session 13 to buy/new + customers/
-      new (item 172).
-    - SESSION 9: any postgres function mutating a tenant-scoped
-      table from a trigger MUST be SECURITY DEFINER + locked
-      search_path.
-    - SESSION 9: x-vercel-cron header is NOT a security check —
-      only Authorization: Bearer ${CRON_SECRET}.
-    - SESSION 9: portal customer resolution must verify an active
-      'client' membership at customer.tenant_id specifically.
-    - SESSION 9: report-style /api/* endpoints must enforce staff
-      role at the endpoint level.
-    - SESSION 10: Supabase site_url + uri_allow_list need to be
-      configured per project. Defaults are localhost:3000 + empty.
-      Use scripts/{inspect-auth-config,set-auth-urls}.mjs.
-    - SESSION 10: admin.auth.admin.generateLink({type:'invite'})
-      errors when user already exists. Auto-fallback to type=
-      'magiclink' on "already" / "exists" / "registered" messages.
-    - SESSION 10: pages outside (staff)/(admin)/(portal) groups
-      use useLangLocal() instead of useI18n(); proxy carve-outs
-      handle role-gating exemptions.
-    - SESSION 10: /api/portal/sign-in-bridge sets the active-
-      tenant cookie BEFORE the (portal) layout runs.
-    - SESSION 10: customer auth users without a password are fine
-      — they sign in via magic link forever; optional password
-      set via supabase.auth.updateUser({password}) from /portal/
-      account.
-    - SESSION 10: subscription_plans uses price_monthly_cents /
-      price_yearly_cents (NOT monthly_amount / yearly_amount).
-    - SESSION 11: NUMERIC columns return as `string` from
-      auto-generated db:types but supabase-js returns `number`
-      at runtime. Session 13 cleaned up the leftover `as any`
-      casts; remaining bridge points use `as unknown as T` at
-      row boundaries.
-    - SESSION 11: form state that needs cross-component reads
-      (e.g. inline calculator → collateral fields) avoids state
-      lift via getElementById(formId) + new FormData(form).
-      Re-applied in Session 13's WatchLookupSection.
-    - SESSION 11: Stripe subscription update for plan-CHANGE
-      must locate items[0].id (subscription items, not the
-      sub itself) and PATCH that item's price.
-    - SESSION 11: watch_models seed values are publicly-quoted
-      pre-owned wholesale floors as of 2026-04. Treat as
-      anchors, NOT appraisals. Session 13 watch typeahead
-      surfaces this disclaimer on every selected match.
-    - SESSION 12: Loan-rate min_monthly_charge applies per-day
-      as min/30. Threaded through every payoffFromLoan caller
-      incl. Stripe webhook. Regression-locked by Session 13
-      tests (item 177).
-    - SESSION 12: Tenant-wide min_loan_amount lives on settings,
-      validated in /pawn/new server action AFTER schema parse
-      but BEFORE any DB write so a too-small loan never lands
-      partially in the DB.
-    - SESSION 12: Repair workflow's auto-timer hooks are
-      idempotent: openTimerForTech is a no-op if a timer is
-      already running for the same tech; stopRunningTimers is a
-      no-op if no timers are running. shouldOpenTimerOnEnter /
-      shouldStopTimerOnLeave helpers in lib/repair/workflow.ts
-      are the single source of truth.
-    - SESSION 12: assignTechnicianAction is manager-only.
-      Tech members can self-assign by claiming an unassigned
-      ticket. Manager kanban (Session 13) reuses the same
-      MANAGER_ROLES list.
-    - SESSION 12: tech-inbox auto-filter for repair_tech role on
-      /repair list defaults to assigned_to=me. ?showAll=1 opts
-      out. Manager+ roles see everything by default.
-    - SESSION 13: PDF receipts go through /api/print/<kind>/[id]
-      and open in a new tab. Three live: /api/print/loan/[id]
-      (Session 5), /api/print/sale/[id] + /api/print/buy/[id]
-      (Session 13). NEVER call window.print() on the staff page.
-    - SESSION 13: Buy-receipt path param is the FIRST inventory_
-      item_id (anchor, mirrors /buy/[id] page). The route
-      resolves compliance_log via source_id = anchor_item_id +
-      source_table='inventory_items' + event_type='buy_outright'.
-    - SESSION 13: Manager kanban route is /repair/board (NOT
-      /repair/kanban). Manager-only gate; non-managers redirect
-      to /repair (NOT /no-tenant).
-    - SESSION 13: Activity feed pulls from module tables
-      directly, NOT audit_log. The customer-name path is what
-      operators want; joining audit_log to source tables at
-      render time would be expensive.
-    - SESSION 13: Watch typeahead is READ-ONLY by design. Don't
-      add DOM-write auto-fill without first migrating Collateral
-      ItemsList to expose an imperative handle (refactor on
-      backlog).
-    - SESSION 13: Vitest scope is pure-logic only. React
-      rendering / Supabase-mock tests deferred until needed.
-
-  IMPORTANT CONSTANTS / PATHS:
-    - Project root:   c:\Users\rodri\OneDrive\Documents\Pawn\
-    - Dev port:       3060
-    - Sister apps:    Luna Azul (:3000), Abacus (:3030)
-    - Memory dir:     C:\Users\rodri\.claude\projects\
-                      c--Users-rodri-OneDrive-Documents-Pawn\memory\
-    - Active-tenant cookie: pawn-active-tenant
-    - Sidebar collapse key: pawn.sidebar.collapsed
-    - Spot-prices hide key: pawn.spot-prices.hidden
-    - Dashboard storage keys: dash.activeTab, dash.activeRange
-    - Customer portal sign-in URL: <APP_URL>/portal/login
-    - Portal sign-in bridge:       <APP_URL>/api/portal/sign-in-bridge
-    - Portal claim URL pattern:    <APP_URL>/portal/claim/<token>
-    - Loan-rate menu surface:      /settings/loan-rates
-    - Admin watch-models curation: /admin/watch-models
-    - Diamond cert lookup endpoint: /api/diamonds/cert-lookup (stub)
-    - SaaS plan-change endpoint:    /api/stripe/saas/change-plan
-    - Tech-inbox toggle:            /repair?showAll=1
-    - Manager kanban:               /repair/board (manager-only)
-    - Loan ticket PDF:              /api/print/loan/[loan_id]
-    - Sale receipt PDF:             /api/print/sale/[sale_id]
-    - Buy-outright receipt PDF:     /api/print/buy/[anchor_inventory_item_id]
-    - Watch-models search API:      /api/watch-models/search?q=&limit=
-    - Public landing surface:       /s/<slug>
-    - Public catalog list:          /s/<slug>/catalog?page=&category=&q=
-    - Public catalog item detail:   /s/<slug>/catalog/<sku>
-                                    (e.g. /s/eddys/catalog/INV-000001)
-    - Run tests:                    npm test (vitest run)
-    - Test watch:                   npm run test:watch
-    - First tenant: Eddy's Jewelers Corp.
-        tenant_id    1abc8070-0797-4740-8dea-70cbb16060fe
-    - SaaS plans (codes UNIQUE on subscription_plans.code):
-        basic   $99/mo   $999/yr
-        pro     $199/mo  $1999/yr
-        chain   $499/mo  $4999/yr
-      (DB columns are price_monthly_cents / price_yearly_cents.)
-    - Storage layout:
-        customer-documents/<tenant_id>/<customer_id>/<kind>/<uuid>.<ext>
-        inventory-photos/<tenant_id>/<item_id>/<uuid>.<ext>
-        repair-photos/<tenant_id>/<ticket_id>/<kind>/<uuid>.<ext>
-        appraisal-photos/<tenant_id>/<appraisal_id>/<kind>/<uuid>.<ext>
-        appraisal-signatures/<tenant_id>/<appraisal_id>/<who>/<uuid>.<ext>
-    - Number formats:
-        SKU            'INV-' + LPAD(seq,6,'0')   (INV-000123)
-        Pawn ticket    'PT-'  + LPAD(seq,6,'0')   (PT-000123)
-        Repair ticket  'RT-'  + LPAD(seq,6,'0')   (RT-000123)
-        Sale           'S-'   + LPAD(seq,6,'0')   (S-000123)
-        Return         'R-'   + LPAD(seq,6,'0')   (R-000123)
-        Layaway        'L-'   + LPAD(seq,6,'0')   (L-000123)
-        Appraisal      'AP-'  + LPAD(seq,6,'0')   (AP-000123)
-        Buy receipt    'BO-'  + LAST8(compliance_log.id)
-    - Required env vars for live SaaS billing + crons + portal:
-        STRIPE_SAAS_WEBHOOK_SECRET
-        RESEND_PLATFORM_FROM_EMAIL
-        RESEND_PLATFORM_FROM_NAME (default 'Pawn')
-        CRON_SECRET                   ← required since Session 9
-        NEXT_PUBLIC_APP_URL           ← canonical Stripe / eBay /
-                                        dunning URL
-    - Optional env vars (provider integrations):
-        IDEX_API_KEY                  ← unlocks diamond cert lookup
-        RAPAPORT_API_KEY              ← alternate diamond cert
-                                        provider
-    - Supabase Auth config (live, set via scripts/set-auth-urls.mjs):
-        site_url       = https://pawn-three.vercel.app
-        uri_allow_list = https://pawn-three.vercel.app/**,
-                         http://localhost:3060/**
-    - SaaS Stripe webhook endpoint:    /api/stripe/saas/webhook
-    - Per-tenant Connect webhook endpoint: /api/stripe/webhook
-    - Default LTV for /pawn/calculator: 50% (overridable per call).
-    - Default buy-outright hold period: 30 days (FL); per-tenant
-      override via settings.buy_hold_period_days.
-    - Portal-invite TTL: 7 days. Sign-in link TTL: 1 hour.
-    - Loan-rate seed: every existing tenant gets 0.10 / "Standard
-      10% / month" / is_default=true on migration apply.
-    - Repair status enum (11 values): intake | quoted |
-      awaiting_approval | assigned | in_progress | needs_parts |
-      tech_qa | ready | picked_up | abandoned | voided.
-    - Manager-role list: ['owner','manager','chain_admin'].
+  LOG below. Carried-forward architectural decisions are
+  in CLAUDE.md and the existing prior-session items below.)
 
 ================================================================================
 PHASE OVERVIEW
@@ -657,8 +413,12 @@ PHASE OVERVIEW
           (Session 19: tenant landing /s/<slug>.
           Session 20: public catalog
           /s/<slug>/catalog + per-item /catalog/<sku>.
-          Loyalty/referrals, Google Reviews, email
-          campaigns each pending their own session.)
+          Session 22: loyalty + referrals (full per-
+          tenant earn/redeem/referral with /settings/
+          loyalty + /portal/loyalty + customer-detail
+          panel + POS redemption block). Google Reviews
+          and email campaigns each pending their own
+          session.)
   10 (B)  Channel sales                              IN PROGRESS  —
           (eBay scaffold STUBBED.)
 
@@ -1597,33 +1357,264 @@ Items 1-166 covered there.)
      Awaiting Eddy's review before invoking the
      writing-plans skill. NO CODE CHANGES YET.
 
+--- Session 22 (2026-05-05, end-of-session) — Phase 10 Path A slice 3/N: loyalty + referrals SHIPPED ---
+
+ 206. SPEC §9 AMENDMENTS LOCKED + WRITING-PLANS
+     GENERATED. Before touching code, locked five
+     design amendments inline in the spec at
+     docs/superpowers/specs/2026-05-04-loyalty-
+     referrals-design.md §9.1-§9.13: (1) append-only
+     DB enforcement on loyalty_events via BEFORE
+     UPDATE OR DELETE trigger; (2) same-tenant
+     referral guard via BEFORE INSERT OR UPDATE OF
+     referred_by_customer_id trigger on customers;
+     (3) CHECK constraints on all four rate columns
+     (>=0 on earn rates and bonus, >0 on
+     redemption_rate to prevent divide-by-zero); (4)
+     earn-clawback on void (full) and partial return
+     (proportional); (5) redeem_undo and
+     earn_clawback as their own enum kinds rather
+     than magic-string adjust_manual reasons.
+     Generated 16-task bite-sized plan via writing-
+     plans skill at docs/superpowers/plans/2026-05-04-
+     loyalty-referrals.md, mirroring Session 20's
+     plan shape with single-PR / single-end-of-session
+     commit override.
+
+ 207. PATCH 0028 LANDED (296 lines). Operator applied
+     patches/0028-loyalty-referrals.sql against the
+     Supabase project then ran `npm run db:types`.
+     Migration adds: 4 customer cols
+     (loyalty_points_balance INT NOT NULL DEFAULT 0
+     CHECK >= 0, referral_code TEXT, referred_by_
+     customer_id UUID FK, referral_credited BOOLEAN);
+     5 settings cols (loyalty_enabled flag + 4 rate
+     cols with CHECK constraints); loyalty_events
+     table with 7-kind CHECK enum (earn_sale,
+     earn_loan_interest, earn_referral_bonus,
+     redeem_pos, redeem_undo, earn_clawback,
+     adjust_manual); 2 ordinary indexes
+     (idx_loyalty_events_customer_created (customer_id,
+     created_at DESC) + idx_loyalty_events_tenant); 1
+     UNIQUE PARTIAL idempotency index on
+     (customer_id, source_kind, source_id, kind)
+     WHERE kind IN auto-credit-set (4 kinds:
+     earn_sale, earn_loan_interest,
+     earn_referral_bonus, earn_clawback); 1 UNIQUE
+     PARTIAL referral_code index per-tenant; 3
+     trigger functions (apply-balance with SECURITY
+     DEFINER + locked search_path; block-mutation
+     without SECURITY DEFINER; same-tenant-referral
+     with SECURITY DEFINER + locked search_path); 3
+     RLS policies on loyalty_events (staff SELECT,
+     staff INSERT with defense-in-depth performed_by
+     self-check, portal SELECT via auth.uid() =
+     customers.auth_user_id). NOTIFY pgrst at end.
+     Full reverse-order rollback documented.
+
+ 208. PURE-LOGIC + TDD: lib/loyalty/math.ts. Wrote
+     test file FIRST (red), then implementation
+     (green). 7 exports: computeRetailEarn,
+     computeLoanInterestEarn,
+     computeRedemptionDiscount with cap-then-shrink-
+     pointsConsumed semantics, generateReferralCode
+     (32-char alphabet ABCDEFGHJKLMNPQRSTUVWXYZ23456789
+     no I/O/0/1, 6 chars), canApplyAdjustment,
+     isValidReferralCode, clampClawback. 31 vitest
+     tests across 7 describe blocks. Code-review
+     surfaced two real correctness gaps:
+     computeRedemptionDiscount missed Number.isFinite
+     guards (NaN slipped past <= 0 check, could
+     silently corrupt balance) and pointsConsumed in
+     un-capped branch wasn't floored (could violate
+     INTEGER column with stale fractional input).
+     Both fixed with TDD red-then-green discipline.
+     Test count climbed 342 → 373.
+
+ 209. SINGLE-WRITER lib/loyalty/events.ts (10 helpers,
+     1 internal insertEvent). EVERY loyalty_events
+     INSERT in the codebase routes through this
+     module per spec §9.8. Internal insertEvent
+     returns discriminated InsertResult
+     {ok:true,id} | {ok:'collision'} | {ok:false,error}
+     so callers distinguish success from idempotency
+     collision (23505 unique-violation) from real
+     error. Code-review-driven fix:
+     maybeCreditReferral flips referral_credited
+     ONLY on success or collision (NOT on real
+     failure — preserves retry path; pre-fix would
+     silently corrupt referral state on transient
+     DB errors). ensureReferralCode loop tightened
+     to distinguish UNIQUE collision (continue),
+     0-rows-affected (re-read for concurrent set),
+     non-collision error (throw with real message).
+     applyReferredByCode UPDATE gated with
+     `.is('referred_by_customer_id', null)` for
+     idempotency under races. recordEarnClawback
+     internally clamps via clampClawback against
+     current balance — actions never pre-clamp, so
+     void/return cannot fail on insufficient points.
+
+ 210. EARN/REFERRAL/CLAWBACK HOOKS across 5 server
+     actions, all routing through helpers (no inline
+     INSERT INTO loyalty_events anywhere outside
+     events.ts):
+     - completeSaleAction (pos/sales/[id]):
+       recordEarnSale on sale.subtotal (NOT total —
+       no points on tax) + maybeCreditReferral
+     - recordPaymentAction (pawn/[id]): captures
+       loan_event id, recordEarnLoanInterest keyed
+       on loan_event.id when interest_paid > 0,
+       maybeCreditReferral
+     - redeemLoanAction (pawn/[id]): same pattern
+       for the payoff loan_event, gated on
+       split.interest_paid > 0
+     - voidSaleAction (pos/sales/[id]): SUMs
+       earn_sale rows for the sale → single
+       recordEarnClawback (sourceKind='sale',
+       reason='sale_voided'); iterates redeem_pos
+       rows → recordRedeemUndo for each (positive
+       delta = abs(original points_delta))
+     - createReturnAction (pos/returns/new):
+       recordEarnClawback proportional to returned
+       subtotal (sourceKind='return',
+       sourceId=ret.id, reason='sale_returned')
+
+ 211. /settings/loyalty page+content+actions (owner +
+     chain_admin only). Master enable + 4 numeric
+     rate inputs (earn_rate_retail, earn_rate_loan_
+     interest, redemption_rate, referral_bonus).
+     Zod schema mirrors DB CHECKs: gt(0) on
+     redemption_rate, int().min(0) on referral_bonus,
+     min(0).max(1000) on earn rates. Action calls
+     requireRoleInTenant BEFORE createAdminClient
+     per Rule 10. Audit logs before/after diff.
+     Revalidates 4 paths on save:
+     /settings, /settings/loyalty, /customers,
+     /portal/loyalty. Hardcoded English labels per
+     Session 19/20 staff-form pattern.
+
+ 212. CUSTOMER-DETAIL LOYALTY PANEL +
+     ADJUSTPOINTSMODAL (manager+ adjust). LoyaltyPanel
+     component rendered inside /customers/[id]
+     content; shows balance + ≈ store credit
+     subtitle + referral code with Copy + last 5
+     events (KIND_LABEL hardcoded English for all 7
+     kinds) + Adjust button gated on
+     canAdjust && !is_banned. AdjustPointsModal
+     uses useActionState with discriminated error
+     rendering (would_go_negative / reason_too_short
+     / generic). adjustLoyaltyPointsAction in
+     customers/[id]/actions.ts requires manager+ via
+     requireRoleInTenant, validates delta non-zero
+     and reason ≥3 chars BEFORE calling
+     recordManualAdjust; CHECK constraint is the
+     safety net but app-layer pre-check gives a
+     useful error code. resetReferralCodeAction
+     server-side ready for future UI wiring.
+     /customers/[id]/page.tsx lazy-generates
+     referral_code via ensureReferralCode when
+     loyalty enabled AND code is null.
+
+ 213. POSREDEMPTIONBLOCK + redeemPointsOnSaleAction
+     + undoRedemptionAction. Block rendered below
+     totals on /pos/sales/[id], gated on
+     loyalty.enabled && sale.customer_id; returns
+     null when not applicable (sale not open AND
+     no balance + no prior redemptions on this
+     sale). "Redeem points" form with live preview;
+     existing redemptions render with Undo. Action
+     uses real sales.discount_amount + tax_amount
+     + total columns (NOT sale.discount which
+     doesn't exist). Multi-redemption per sale is
+     supported because redeem_pos kind is
+     intentionally OUTSIDE the idempotency partial-
+     unique index. UNDO writes a redeem_undo
+     compensating event (positive delta) — never
+     deletes; matches the project's append-only
+     posture.
+
+ 214. CUSTOMERS/NEW REFERRED-BY-CODE optional field.
+     customerCreateSchema gains case-insensitive
+     6-char A-Z+2-9 regex with empty-string→null
+     preprocess. Action wires to applyReferredByCode
+     helper after the new customer's INSERT
+     succeeds. Form input uppercase auto-style with
+     uppercase pattern. defaultValue echoes from
+     state.values for round-trip on validation
+     errors per Session 8 form-reset workaround.
+     applyReferredByCode is silent on bad codes
+     (validation, no-match, self-referral all
+     return without throwing) — typos never block
+     customer creation.
+
+ 215. /portal/loyalty CUSTOMER SURFACE (full bilingual).
+     Page (RSC) calls notFound() on missing ctx /
+     tenant / loyalty disabled / customer-not-
+     found. Lazy-generates referral_code if missing.
+     Reads tenant for share text + last 20 events
+     for activity log + count of referrals issued.
+     Builds share URL via NEW
+     buildPublicLandingUrl helper at
+     src/lib/loyalty/url.ts: subdomain form when
+     NEXT_PUBLIC_BASE_DOMAIN set, path-form
+     fallback otherwise, returns null when
+     public_slug is null. Content (use client) uses
+     useI18n from @/lib/i18n/context (corrected
+     from plan's use-lang path during
+     implementation — matches sibling portal pages'
+     pattern). Hero + earn rules + refer-a-friend
+     with three pre-filled share buttons (SMS via
+     sms:?body=, WhatsApp via wa.me/?text=,
+     Email via mailto with subject) + activity log.
+
+ 216. i18n LOYALTY BLOCK at EN+ES PARITY (~27 keys).
+     Inserted after the catalog block in en.ts and
+     es.ts, including 7 kinds.* sub-keys matching
+     the DB enum (earn_sale "Retail purchase" /
+     "Compra", earn_loan_interest "Loan interest" /
+     "Interés de préstamo", earn_referral_bonus
+     "Referral bonus" / "Bono por referencia",
+     redeem_pos "Redeemed at checkout" / "Canje en
+     caja", redeem_undo "Reverted redemption" /
+     "Canje revertido", earn_clawback "Sale
+     reversed" / "Venta revertida", adjust_manual
+     "Adjustment" / "Ajuste"). Visual-diff
+     parity-check confirmed — no pre-push i18n
+     drift hook configured for Pawn (per Session 21
+     decision to decline hook setup).
+
+ 217. SIDEBAR NAV ENTRY (Trophy icon). Added Loyalty
+     entry under Settings group between
+     Communications and Billing. Imports Trophy
+     from @phosphor-icons/react. Uses t.nav.loyalty
+     i18n key (NOT hardcoded — matches pattern of
+     every other settings nav entry); en.ts + es.ts
+     gain "Loyalty" / "Lealtad". visible:
+     canSeeSettings (manager-inclusive); the
+     /settings/loyalty page server-gate enforces
+     actual owner/chain_admin role so
+     manager-clicking-link redirects cleanly. Worth
+     tightening the sidebar predicate next time
+     Sidebar.tsx is touched (cosmetic — flagged as
+     small follow-up).
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Loyalty/referrals slice 3 implementation. Spec is
-    locked at docs/superpowers/specs/2026-05-04-loyalty-
-    referrals-design.md. Resume by:
-    (1) Eddy approves the spec (or requests changes);
-    (2) Invoke superpowers:writing-plans skill to
-        produce docs/superpowers/plans/2026-05-04-
-        loyalty-referrals.md (mirror Session 20's
-        plan shape — bite-sized tasks with full code
-        blocks, single-PR slice, single end-of-session
-        commit override on the skill default);
-    (3) Invoke superpowers:executing-plans skill —
-        work through tasks, pause at the migration-
-        apply step for Eddy to apply
-        patches/0028-loyalty-referrals.sql + run
-        `npm run db:types`;
-    (4) Operator runs the spec §6.3 smoke checklist
-        (9 steps: enable + earn on sale + portal
-        render + manual adjust + redeem + undo +
-        referral credit + double-credit guard +
-        disable);
-    (5) End-of-session /progress saves Session 21
-        complete + pushes the slice.
+    Watch the Vercel build of this commit. Once
+    green, run the 11-step operator smoke against
+    the production URL (plan §16 step 6 + spec
+    §6.3+§9.11): enable → earn $100 sale →
+    portal render → +50 manual adjust → redeem
+    1000 pts on $20 sale → undo → referral linkage
+    + bonus on first sale → no double-credit on 2nd
+    sale → disable + portal 404 → void clawback +
+    redemption-reversal → partial-return
+    proportional clawback. File follow-ups for any
+    failures.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 6 cron paths.)
@@ -1644,21 +1635,21 @@ PENDING — NEXT UP
        /settings/communications.
     2. Phase 10 Path A continuation — pick a sub-surface for
        the next session. Recommended order:
-       (a) public catalog at /s/<slug>/catalog (renders
-           inventory_items where status='available' AND
-           tenant.has_retail; live spot-prices on jewelry items
-           is the obvious value-add — surfaces lib/spot-prices/
-           melt to the public side);
-       (b) loyalty / referrals (customers gain referral_code +
-           referred_by_code; new rewards table + redemption log
-           migration; customer-portal share-link surface;
-           threshold-based reward issuance via cron);
-       (c) Google Reviews embed (Places API or scraped widget;
+       (a) Public-route edge-cache fix — add
+           `export const revalidate = 60` to /s/[slug] +
+           /s/[slug]/catalog + /s/[slug]/catalog/[sku] +
+           /portal/loyalty. Cheap. Closes the stale-404-on-
+           flag-flip path documented in Session 20;
+       (b) Google Reviews embed (Places API or scraped widget;
            per-tenant place_id field + caching);
-       (d) email-campaign engine (template editor in /settings/
+       (c) email-campaign engine (template editor in /settings/
            communications with merge fields; segmentation by
            customer tag / language; Resend dispatch via cron;
-           bounce + unsubscribe handling).
+           bounce + unsubscribe handling);
+       (d) Reset-code UI on LoyaltyPanel — server action
+           exists; needs a small Reset button + confirm
+           modal. Defers nicely to whoever next touches the
+           customer detail panel.
     3. Phase 8 — mobile audit across portal + dashboard
        (charts + activity feed + kanban + receipt PDFs all
        need mobile review before going live). Code-level pass
@@ -1976,4 +1967,11 @@ PENDING — NEXT UP
     - Public per-tenant catalog at /s/<slug>/catalog +
       /s/<slug>/catalog/<sku>. [SHIPPED 2026-05-04 Session 20
       items 197-204]
+    - Loyalty + referrals (per-tenant points wallet, earn on
+      retail sales subtotal + loan interest paid, cashier-driven
+      POS redemption, referral attribution on first qualifying
+      transaction, /settings/loyalty + /portal/loyalty +
+      /customers/[id] panel + POS redemption block, void/return
+      clawback, append-only DB enforcement, bilingual portal).
+      [SHIPPED 2026-05-05 Session 22 items 206-217]
 ================================================================================

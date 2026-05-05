@@ -3,7 +3,7 @@
 - **Date:** 2026-05-04
 - **Phase:** 10 Path A, slice 3 (continuation of Session 19's tenant landing + Session 20's public catalog)
 - **Owner:** Eddy Rodriguez (RMS)
-- **Status:** Approved for implementation
+- **Status:** Approved for implementation (with amendments — see §9)
 
 ## What we're building
 
@@ -596,3 +596,247 @@ Single-PR slice, single-session, single-commit-via-`/progress`:
 13. `npm run lint && npm test && npm run build` green
 14. Operator runs smoke test (§6.3)
 15. End-of-session `/progress` — single commit + push, Vercel auto-deploys
+
+---
+
+## 9. Amendments (Session 21 review pass)
+
+These amendments override or extend the corresponding sections above. The plan-writer should treat §9 as authoritative wherever it conflicts with §1–§8.
+
+### 9.1 Append-only `loyalty_events` enforced at the DB (extends §1.6)
+
+`loyalty_events` is append-only. Add a BEFORE UPDATE OR DELETE trigger that raises an exception. Matches the project's `is_posted` immutability posture on loans/sales. The trigger does NOT need `SECURITY DEFINER` — it only blocks, never mutates.
+
+```sql
+CREATE OR REPLACE FUNCTION loyalty_events_block_mutation()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION 'loyalty_events is append-only — write a compensating event instead'
+    USING ERRCODE = '23000';
+END;
+$$;
+
+CREATE TRIGGER trg_loyalty_events_block_mutation
+  BEFORE UPDATE OR DELETE ON loyalty_events
+  FOR EACH ROW EXECUTE FUNCTION loyalty_events_block_mutation();
+```
+
+Rollback: `DROP TRIGGER … ; DROP FUNCTION loyalty_events_block_mutation();` (added to §1.8 rollback list).
+
+### 9.2 Same-tenant referral enforced at the DB (extends §1.1)
+
+`customers.referred_by_customer_id` must point to a customer in the same tenant. Enforced via BEFORE INSERT OR UPDATE trigger on `customers` (a CHECK can't reference another row).
+
+```sql
+CREATE OR REPLACE FUNCTION customers_referral_same_tenant()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF NEW.referred_by_customer_id IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM customers
+       WHERE id = NEW.referred_by_customer_id
+         AND tenant_id = NEW.tenant_id
+    ) THEN
+      RAISE EXCEPTION 'referred_by_customer_id must belong to the same tenant';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_customers_referral_same_tenant
+  BEFORE INSERT OR UPDATE OF referred_by_customer_id ON customers
+  FOR EACH ROW EXECUTE FUNCTION customers_referral_same_tenant();
+```
+
+`SECURITY DEFINER + locked search_path` per Session 9 rule. Added to §1.8 rollback.
+
+### 9.3 CHECK constraints on rate columns (replaces §1.2)
+
+```sql
+ALTER TABLE settings
+  ADD COLUMN loyalty_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN loyalty_earn_rate_retail NUMERIC(8,4) NOT NULL DEFAULT 1
+    CHECK (loyalty_earn_rate_retail >= 0),
+  ADD COLUMN loyalty_earn_rate_loan_interest NUMERIC(8,4) NOT NULL DEFAULT 1
+    CHECK (loyalty_earn_rate_loan_interest >= 0),
+  ADD COLUMN loyalty_redemption_rate NUMERIC(8,4) NOT NULL DEFAULT 100
+    CHECK (loyalty_redemption_rate > 0),
+  ADD COLUMN loyalty_referral_bonus INTEGER NOT NULL DEFAULT 500
+    CHECK (loyalty_referral_bonus >= 0);
+```
+
+Earn rates and bonus may be 0 (effectively disables that earn surface without flipping the master flag); redemption rate must be > 0 (divide-by-zero in `computeRedemptionDiscount`). Zod schema mirrors at the form layer.
+
+### 9.4 Two new event kinds: `redeem_undo` and `earn_clawback` (extends §1.3, §2)
+
+Replace the §1.3 CHECK list with the seven-kind enum:
+
+```sql
+  kind          TEXT NOT NULL CHECK (kind IN (
+    'earn_sale',
+    'earn_loan_interest',
+    'earn_referral_bonus',
+    'redeem_pos',
+    'redeem_undo',
+    'earn_clawback',
+    'adjust_manual'
+  )),
+```
+
+Rationale:
+- `redeem_undo` — staff clicks "Undo" on a redemption while sale is open (§2.5) AND auto-reversal of any redemption when a sale is voided (§9.6). Customer-facing label "Reverted redemption" — clearer than `adjust_manual` with magic-string reason.
+- `earn_clawback` — system-driven negative-delta event on sale void or return (§9.6). Customer-facing label "Sale reversed" / "Refund adjustment" depending on `reason`. Distinct from `adjust_manual` (which is staff-driven manager+ adjustment with free-text reason).
+
+`adjust_manual` is now reserved for actual staff adjustments only. §2.5 `undoRedemptionAction` writes `kind='redeem_undo'`, NOT `adjust_manual`.
+
+### 9.5 Idempotency partial-unique extends to clawback (replaces §1.4)
+
+```sql
+CREATE UNIQUE INDEX loyalty_events_idempotency
+  ON loyalty_events (customer_id, source_kind, source_id, kind)
+  WHERE source_kind IS NOT NULL
+    AND source_id IS NOT NULL
+    AND kind IN (
+      'earn_sale',
+      'earn_loan_interest',
+      'earn_referral_bonus',
+      'earn_clawback'
+    );
+```
+
+`earn_clawback` joins the auto-credit set so each `(sale_id, kind='earn_clawback', source_kind='sale')` and each `(return_id, kind='earn_clawback', source_kind='return')` can only insert once. `redeem_pos`, `redeem_undo`, and `adjust_manual` stay outside the index — multiple redemptions per sale, multiple undos, and repeated manual adjustments are all allowed.
+
+### 9.6 Earn-clawback hooks on void + return (NEW §2.9)
+
+All hooks gate on `settings.loyalty_enabled = TRUE` and `sale.customer_id IS NOT NULL`.
+
+**On `voidSaleAction` (existing) — after the status flip to `'voided'`:**
+
+```ts
+// 1. Find any earn_sale event for this sale and write a clawback for the
+//    same magnitude (pos earned → neg clawback). Capped at current balance.
+await recordEarnClawback({
+  admin, tenantId, customerId: sale.customer_id,
+  sourceKind: 'sale', sourceId: sale.id,
+  reason: 'sale_voided',
+  pointsToClaw: pointsOriginallyEarnedOnThisSale,
+})
+
+// 2. Reverse every redemption against this sale (one redeem_undo per row).
+for (const redemption of redemptionsOnThisSale) {
+  await recordRedeemUndo({
+    admin, tenantId, customerId: sale.customer_id,
+    originalEventId: redemption.id,
+    sourceKind: 'sale', sourceId: sale.id,
+    reason: 'sale_voided',
+  })
+}
+```
+
+**On return / partial-return action — after the return row is inserted:**
+
+```ts
+// Clawback proportional to the returned subtotal × earn_rate (floored).
+// Each return.id is its own idempotency key, so a sale with multiple
+// partial returns generates one clawback row per return.
+await recordEarnClawback({
+  admin, tenantId, customerId: sale.customer_id,
+  sourceKind: 'return', sourceId: returnRow.id,
+  reason: 'sale_returned',
+  pointsToClaw: floor(returnRow.subtotal * settings.loyalty_earn_rate_retail),
+})
+```
+
+**Negative-balance guard (critical):** clawback delta is capped at the customer's current balance — `actualDelta = -MIN(pointsToClaw, currentBalance)`. If `currentBalance = 0` the helper writes no event (skips the insert entirely) so the void/return action cannot fail due to insufficient points. Customer "got away with" any already-redeemed value; the new event log makes that auditable. The `CHECK (balance >= 0)` constraint is still the safety net.
+
+**Helper signatures** added to §8 step 4 list:
+- `recordEarnClawback(args)` — used by void + return hooks
+- `recordRedeemUndo(args)` — used by §2.5 staff "Undo" AND §9.6 void hook
+
+### 9.7 Column-name corrections (replaces §2.4 pseudocode)
+
+The actual `sales` schema (per `patches/0008-retail-pos.sql`) uses `discount_amount`, `tax_amount`, `subtotal`, `total`. Replace §2.4 steps 5–6:
+
+```ts
+// 5. Cap discount at sale.subtotal − sale.discount_amount (no negative totals).
+// 6. UPDATE sales SET discount_amount = discount_amount + new_discount,
+//                     total = subtotal − discount_amount + tax_amount,
+//                     updated_at = NOW(),
+//                     updated_by = userId
+//    WHERE id = sale.id AND status = 'open'  -- defensive
+```
+
+Also: sales are locked once `is_locked = TRUE`. The redemption + undo paths must guard on `status = 'open'` (matches §3.2 and §2.5 which already say so).
+
+### 9.8 Architectural rule — actions stay thin (extends §2)
+
+All `loyalty_events` writes route through `src/lib/loyalty/events.ts` helpers. Server actions (`completeSaleAction`, `redeemLoanAction`, `voidSaleAction`, return action, `redeemPointsOnSaleAction`, `undoRedemptionAction`, `adjustLoyaltyPointsAction`) compose helper calls — they never `INSERT INTO loyalty_events` directly. This keeps idempotency-key construction, gating logic, and balance-clamp logic in one tested place.
+
+Helpers exported from `lib/loyalty/events.ts`:
+- `recordEarnSale`
+- `recordEarnLoanInterest`
+- `maybeCreditReferral`
+- `recordRedemption`
+- `recordRedeemUndo`
+- `recordEarnClawback`
+- `recordManualAdjust`
+- `ensureReferralCode`
+- `applyReferredByCode`
+
+### 9.9 Reuse the public-landing URL helper (extends §4.1)
+
+The portal share text's `{tenant_landing_url}` MUST be generated by the existing public-landing URL helper introduced in Session 19 (subdomain form when `NEXT_PUBLIC_BASE_DOMAIN` is set, `/s/{slug}` path-form fallback otherwise). Plan-writer: locate the helper (likely in `src/lib/tenant-resolver.ts` or `src/lib/urls.ts`) and reuse it — do not reconstruct the URL inline.
+
+### 9.10 i18n additions (extends §5.1)
+
+Add two more `kinds.*` entries:
+
+```ts
+kinds: {
+  earn_sale,                // "Retail purchase"
+  earn_loan_interest,       // "Loan interest"
+  earn_referral_bonus,      // "Referral bonus"
+  redeem_pos,               // "Redeemed at checkout"
+  redeem_undo,              // "Reverted redemption"
+  earn_clawback,            // "Sale reversed"  (reason='sale_voided' | 'sale_returned')
+  adjust_manual,            // "Adjustment"
+}
+```
+
+Total `loyalty.*` block grows to ~27 keys. EN + ES at parity. Staff-form labels stay hardcoded English per §5.2.
+
+### 9.11 Smoke test additions (extends §6.3)
+
+Insert a new step 7a between 7 and 8:
+
+> **7a.** Open the second customer's detail page. Confirm the "Referred by" field shows the first customer's name. (Catches `applyReferredByCode` wiring bugs before the bonus-credit step.)
+
+Append two new steps after step 9:
+
+> **10.** Void a previously-completed sale that earned points (and had a redemption applied). Confirm the customer's balance reflects: original earn clawed back via `earn_clawback` row + redemption reversed via `redeem_undo` row. Activity log shows both with appropriate labels.
+>
+> **11.** Process a partial return on a different completed sale. Confirm an `earn_clawback` row posts for `floor(returned_subtotal × earn_rate_retail)`, capped at current balance.
+
+### 9.12 §7 (Out of scope) clarification
+
+Returns and voids ARE in scope for clawback (Question 4 resolved). Explicitly add to §7's deferred list:
+
+- **Earn clawback when a redemption is reversed by an undo while sale is still open** — already handled atomically in `undoRedemptionAction` (the `redeem_undo` row restores balance; no additional clawback is needed since no `earn_*` event ever fired against an open sale).
+- **Tier-bonus retroactive recalculation on clawback** — out of scope; v1 has no tiers.
+
+### 9.13 Plan-writer instructions
+
+When generating the bite-sized implementation plan:
+
+1. Use §9 as authoritative wherever it conflicts with §1–§8.
+2. Patch `0028-loyalty-referrals.sql` includes ALL of: customers columns, settings columns with CHECK constraints, loyalty_events table with seven-kind enum + idempotency partial-unique covering four kinds, balance-apply trigger, append-only-block trigger, same-tenant-referral trigger, RLS policies, NOTIFY pgrst, full rollback.
+3. Hooks list (§8 step 5 expands): `completeSaleAction`, `redeemLoanAction` + partial-payment paths, `voidSaleAction`, return / partial-return action(s) — locate exact action-file paths during plan-writing via grep.
+4. Test scope stays pure-logic. Add a few tests for the negative-balance clamp in `recordEarnClawback`'s pure helper (e.g., `clampClawback(pointsToClaw, currentBalance)` in `lib/loyalty/math.ts`).
+5. Single-PR slice, single end-of-session `/progress` commit.

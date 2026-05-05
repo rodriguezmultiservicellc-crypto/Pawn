@@ -46,6 +46,9 @@ import {
   LayawayStatusBadge,
   SaleStatusBadge,
 } from '@/components/pos/Badges'
+import LoyaltyPanel, {
+  type LoyaltyEventView,
+} from '@/components/loyalty/LoyaltyPanel'
 
 /**
  * Map a flat string-only echo from the server-action error response back
@@ -221,6 +224,7 @@ export default function CustomerDetail({
   sales = [],
   layaways = [],
   portal,
+  loyalty,
 }: {
   customer: CustomerRecord
   documents: CustomerDocumentItem[]
@@ -233,6 +237,14 @@ export default function CustomerDetail({
   sales?: CustomerSaleRow[]
   layaways?: CustomerLayawayRow[]
   portal: PortalInfo
+  loyalty: {
+    enabled: boolean
+    balance: number
+    referralCode: string | null
+    recentEvents: LoyaltyEventView[]
+    redemptionRate: number
+    canAdjust: boolean
+  }
 }) {
   const { t } = useI18n()
 
@@ -385,6 +397,21 @@ export default function CustomerDetail({
         defaultIdNumber={customer.id_number}
         defaultIdState={customer.id_state}
         defaultIdExpiry={customer.id_expiry}
+      />
+
+      <LoyaltyPanel
+        enabled={loyalty.enabled}
+        customer={{
+          id: customer.id,
+          first_name: customer.first_name,
+          last_name: customer.last_name,
+          loyalty_points_balance: loyalty.balance,
+          referral_code: loyalty.referralCode,
+          is_banned: !!customer.is_banned,
+        }}
+        recentEvents={loyalty.recentEvents}
+        redemptionRate={loyalty.redemptionRate}
+        canAdjust={loyalty.canAdjust}
       />
 
       <PortalInvitePanel

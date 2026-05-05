@@ -189,6 +189,43 @@ export default async function CustomerDetailPage(props: { params: Params }) {
     language: (customer.language === 'es' ? 'es' : 'en') as Language,
   }
 
+  // Loyalty: settings + recent events + role check.
+  const { data: tenantSettings } = await admin
+    .from('settings')
+    .select('loyalty_enabled, loyalty_redemption_rate')
+    .eq('tenant_id', customer.tenant_id)
+    .maybeSingle()
+  const loyaltyEnabled = !!tenantSettings?.loyalty_enabled
+  const redemptionRate = tenantSettings?.loyalty_redemption_rate
+    ? Number(tenantSettings.loyalty_redemption_rate)
+    : 100
+
+  const { data: loyaltyEvents } = await admin
+    .from('loyalty_events')
+    .select('id, kind, points_delta, reason, created_at')
+    .eq('customer_id', id)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  // Customer balance + referral code (requires re-read since the original
+  // SELECT didn't include them).
+  const { data: loyaltyExtra } = await admin
+    .from('customers')
+    .select('loyalty_points_balance, referral_code')
+    .eq('id', id)
+    .maybeSingle()
+
+  // Lazy-generate referral code if missing AND loyalty is enabled.
+  let referralCode = loyaltyExtra?.referral_code ?? null
+  if (loyaltyEnabled && !referralCode) {
+    const { ensureReferralCode } = await import('@/lib/loyalty/events')
+    referralCode = await ensureReferralCode(admin, id)
+  }
+
+  const canAdjust =
+    !!ctx.tenantRole &&
+    ['owner', 'chain_admin', 'manager'].includes(ctx.tenantRole)
+
   return (
     <CustomerDetail
       customer={customerNarrowed}
@@ -208,6 +245,27 @@ export default async function CustomerDetailPage(props: { params: Params }) {
           : null,
         canManage: canManagePortal,
         portalLoginUrl,
+      }}
+      loyalty={{
+        enabled: loyaltyEnabled,
+        balance: loyaltyExtra?.loyalty_points_balance ?? 0,
+        referralCode,
+        recentEvents: (loyaltyEvents ?? []).map((e) => ({
+          id: e.id,
+          kind: e.kind as
+            | 'earn_sale'
+            | 'earn_loan_interest'
+            | 'earn_referral_bonus'
+            | 'redeem_pos'
+            | 'redeem_undo'
+            | 'earn_clawback'
+            | 'adjust_manual',
+          points_delta: e.points_delta,
+          reason: e.reason,
+          created_at: e.created_at,
+        })),
+        redemptionRate,
+        canAdjust,
       }}
       loans={(loanRows ?? []).map((l) => ({
         id: l.id,

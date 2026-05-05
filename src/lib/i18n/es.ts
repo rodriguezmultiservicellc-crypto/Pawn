@@ -73,6 +73,7 @@ export const es: Dictionary = {
     team: 'Equipo',
     settings: 'Ajustes',
     communications: 'Comunicaciones',
+    loyalty: 'Lealtad',
     billing: 'Facturación',
     logOut: 'Cerrar sesión',
     portal: 'Mi cuenta',
@@ -2844,5 +2845,48 @@ export const es: Dictionary = {
     inquireByPhone: 'Llame para consultar',
     inquireByEmail: 'Envíe un correo sobre este artículo',
     backToAll: 'Volver a todos los artículos',
+  },
+
+  loyalty: {
+    title: 'Lealtad',
+    yourPoints: 'Tus puntos',
+    storeCreditEquiv: '≈ ${value} en crédito en {tenant}',
+    heroSubtitle:
+      'Gana puntos en cada compra y al pagar el interés de tus préstamos. Canjéalos en tu próxima visita.',
+
+    howYouEarn: 'Cómo ganar',
+    earnRetail: '{rate} pt por cada $1 en compras',
+    earnLoanInterest: '{rate} pt por cada $1 en interés de préstamo pagado',
+    earnReferral:
+      '{bonus} pts cuando un amigo que refieras haga su primera compra o pague un préstamo',
+    howYouRedeem: 'Cómo canjear',
+    redemptionInstructions:
+      'Muestra este código en tu próxima visita. El cajero podrá aplicar tus puntos como descuento.',
+
+    referAFriend: 'Refiere a un amigo',
+    yourCode: 'Tu código',
+    copyCode: 'Copiar',
+    copied: '¡Copiado!',
+    shareTextTemplate:
+      '¡Hola! Usa mi código {code} en {tenant} y los dos ganamos puntos: {url}',
+    shareSms: 'SMS',
+    shareWhatsapp: 'WhatsApp',
+    shareEmail: 'Correo',
+    friendsReferred: '{count} amigos han usado tu código',
+    friendsReferredZero: 'Comparte tu código para empezar a ganar por referencias',
+
+    activity: 'Actividad',
+    emptyActivity: 'Aún no hay actividad. ¡Gana tus primeros puntos en tu próxima visita!',
+    viewHistory: 'Ver toda la actividad',
+
+    kinds: {
+      earn_sale: 'Compra',
+      earn_loan_interest: 'Interés de préstamo',
+      earn_referral_bonus: 'Bono por referencia',
+      redeem_pos: 'Canje en caja',
+      redeem_undo: 'Canje revertido',
+      earn_clawback: 'Venta revertida',
+      adjust_manual: 'Ajuste',
+    },
   },
 }

@@ -14,6 +14,15 @@ import {
   createCardPresentPaymentIntent,
   refundCardPayment,
 } from '@/lib/stripe/terminal'
+import { createAdminClient } from '@/lib/supabase/admin'
+import {
+  recordEarnSale,
+  maybeCreditReferral,
+  recordEarnClawback,
+  recordRedeemUndo,
+  recordRedemption,
+} from '@/lib/loyalty/events'
+import { computeRedemptionDiscount } from '@/lib/loyalty/math'
 import type { PaymentMethod, SaleStatus } from '@/types/database-aliases'
 
 export type SaleActionResult = { error?: string; ok?: boolean }
@@ -33,7 +42,7 @@ async function resolveSaleScope(saleId: string) {
   const { data: sale } = await ctx.supabase
     .from('sales')
     .select(
-      'id, tenant_id, status, total, paid_total, returned_total, sale_kind, is_locked, customer_id',
+      'id, tenant_id, status, total, paid_total, returned_total, sale_kind, is_locked, customer_id, subtotal, discount_amount, tax_amount',
     )
     .eq('id', saleId)
     .is('deleted_at', null)
@@ -163,6 +172,34 @@ export async function completeSaleAction(
     changes: { total: sale.total },
   })
 
+  // ── Loyalty earn + referral (gated on per-tenant settings.loyalty_enabled) ─
+  if (sale.customer_id) {
+    const admin = createAdminClient()
+    const { data: settings } = await admin
+      .from('settings')
+      .select(
+        'loyalty_enabled, loyalty_earn_rate_retail, loyalty_referral_bonus',
+      )
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    if (settings?.loyalty_enabled) {
+      await recordEarnSale({
+        admin,
+        tenantId,
+        customerId: sale.customer_id,
+        saleId: sale.id,
+        subtotal: Number(sale.subtotal),
+        rate: Number(settings.loyalty_earn_rate_retail),
+      })
+      await maybeCreditReferral({
+        admin,
+        tenantId,
+        customerId: sale.customer_id,
+        bonusPoints: settings.loyalty_referral_bonus,
+      })
+    }
+  }
+
   revalidatePath(`/pos/sales/${sale.id}`)
   revalidatePath('/pos')
   return { ok: true }
@@ -270,6 +307,61 @@ export async function voidSaleAction(
     changes: { reason: v.reason, total: sale.total },
   })
 
+  // ── Loyalty clawback + redemption reversal (gated) ─────────────────────
+  if (sale.customer_id) {
+    const admin = createAdminClient()
+    const { data: settings } = await admin
+      .from('settings')
+      .select('loyalty_enabled')
+      .eq('tenant_id', sale.tenant_id)
+      .maybeSingle()
+    if (settings?.loyalty_enabled) {
+      // 1. Sum any earn_sale rows posted for this sale → clawback that much.
+      const { data: earnRows } = await admin
+        .from('loyalty_events')
+        .select('points_delta')
+        .eq('source_kind', 'sale')
+        .eq('source_id', sale.id)
+        .eq('kind', 'earn_sale')
+      const earnedPoints = (earnRows ?? []).reduce(
+        (acc, r) => acc + r.points_delta,
+        0,
+      )
+      if (earnedPoints > 0) {
+        await recordEarnClawback({
+          admin,
+          tenantId: sale.tenant_id,
+          customerId: sale.customer_id,
+          sourceKind: 'sale',
+          sourceId: sale.id,
+          pointsToClaw: earnedPoints,
+          reason: 'sale_voided',
+        })
+      }
+
+      // 2. Reverse every redeem_pos row tied to this sale (one undo each).
+      const { data: redemptions } = await admin
+        .from('loyalty_events')
+        .select('id, points_delta')
+        .eq('source_kind', 'sale')
+        .eq('source_id', sale.id)
+        .eq('kind', 'redeem_pos')
+      for (const r of redemptions ?? []) {
+        // points_delta is negative (e.g. -1000); restore is the absolute value.
+        await recordRedeemUndo({
+          admin,
+          tenantId: sale.tenant_id,
+          customerId: sale.customer_id,
+          originalEventId: r.id,
+          saleId: sale.id,
+          pointsToRestore: Math.abs(r.points_delta),
+          reason: 'sale_voided',
+          performedBy: userId,
+        })
+      }
+    }
+  }
+
   revalidatePath(`/pos/sales/${sale.id}`)
   revalidatePath('/pos')
   return { ok: true }
@@ -317,5 +409,199 @@ export async function markCardPaymentSucceededAction(
   })
 
   revalidatePath(`/pos/sales/${pay.sale_id}`)
+  return { ok: true }
+}
+
+// ── Loyalty: redeem points on an open sale ────────────────────────────────
+
+export type RedeemPointsState = {
+  error?:
+    | 'missing_sale_id'
+    | 'missing_points'
+    | 'invalid_points'
+    | 'sale_not_open'
+    | 'no_customer'
+    | 'loyalty_disabled'
+    | 'no_balance'
+    | 'insufficient_balance'
+    | 'insert_failed'
+    | string
+  ok?: boolean
+}
+
+export async function redeemPointsOnSaleAction(
+  _prev: RedeemPointsState,
+  formData: FormData,
+): Promise<RedeemPointsState> {
+  const saleId = String(formData.get('sale_id') ?? '')
+  if (!saleId) return { error: 'missing_sale_id' }
+
+  const pointsRaw = String(formData.get('points') ?? '')
+  if (!pointsRaw) return { error: 'missing_points' }
+  const points = Number.parseInt(pointsRaw, 10)
+  if (!Number.isFinite(points) || points <= 0) return { error: 'invalid_points' }
+
+  const { sale, supabase, userId, tenantId } = await resolveSaleScope(saleId)
+  if (sale.status !== 'open') return { error: 'sale_not_open' }
+  if (!sale.customer_id) return { error: 'no_customer' }
+
+  const admin = createAdminClient()
+  const { data: settings } = await admin
+    .from('settings')
+    .select('loyalty_enabled, loyalty_redemption_rate')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  if (!settings?.loyalty_enabled) return { error: 'loyalty_disabled' }
+
+  const rate = Number(settings.loyalty_redemption_rate)
+
+  const { data: customer } = await admin
+    .from('customers')
+    .select('loyalty_points_balance')
+    .eq('id', sale.customer_id)
+    .maybeSingle()
+  const balance = customer?.loyalty_points_balance ?? 0
+  if (balance <= 0) return { error: 'no_balance' }
+  if (points > balance) return { error: 'insufficient_balance' }
+
+  const { discount, pointsConsumed } = computeRedemptionDiscount({
+    points,
+    rate,
+    saleSubtotal: Number(sale.subtotal),
+    alreadyDiscounted: Number(sale.discount_amount),
+  })
+  if (pointsConsumed <= 0) return { error: 'no_balance' }
+
+  const newDiscount =
+    Math.round((Number(sale.discount_amount) + discount) * 10000) / 10000
+  const newTotal =
+    Math.round(
+      (Number(sale.subtotal) - newDiscount + Number(sale.tax_amount)) * 10000,
+    ) / 10000
+
+  const { error: upErr } = await supabase
+    .from('sales')
+    .update({
+      discount_amount: newDiscount,
+      total: newTotal,
+      updated_by: userId,
+    })
+    .eq('id', sale.id)
+    .eq('tenant_id', tenantId)
+    .eq('status', 'open')
+  if (upErr) return { error: upErr.message }
+
+  const inserted = await recordRedemption({
+    admin,
+    tenantId,
+    customerId: sale.customer_id,
+    saleId: sale.id,
+    pointsConsumed,
+    performedBy: userId,
+  })
+  if (!inserted) return { error: 'insert_failed' }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'update',
+    tableName: 'sales',
+    recordId: sale.id,
+    changes: { kind: 'loyalty_redeem', points: pointsConsumed, discount },
+  })
+
+  revalidatePath(`/pos/sales/${sale.id}`)
+  return { ok: true }
+}
+
+// ── Loyalty: undo a redemption on an open sale ────────────────────────────
+
+export type UndoRedemptionState = {
+  error?: string
+  ok?: boolean
+}
+
+export async function undoRedemptionAction(
+  _prev: UndoRedemptionState,
+  formData: FormData,
+): Promise<UndoRedemptionState> {
+  const saleId = String(formData.get('sale_id') ?? '')
+  const eventId = String(formData.get('event_id') ?? '')
+  if (!saleId || !eventId) return { error: 'validation_failed' }
+
+  const { sale, supabase, userId, tenantId } = await resolveSaleScope(saleId)
+  if (sale.status !== 'open') return { error: 'sale_not_open' }
+  if (!sale.customer_id) return { error: 'no_customer' }
+
+  const admin = createAdminClient()
+
+  const { data: ev } = await admin
+    .from('loyalty_events')
+    .select('id, kind, points_delta, source_kind, source_id')
+    .eq('id', eventId)
+    .maybeSingle()
+  if (!ev) return { error: 'event_not_found' }
+  if (ev.kind !== 'redeem_pos' || ev.source_kind !== 'sale' || ev.source_id !== sale.id) {
+    return { error: 'event_mismatch' }
+  }
+
+  const { data: settings } = await admin
+    .from('settings')
+    .select('loyalty_redemption_rate')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  const rate = settings?.loyalty_redemption_rate
+    ? Number(settings.loyalty_redemption_rate)
+    : 100
+
+  const pointsToRestore = Math.abs(ev.points_delta)
+  const discountToRemove = Math.round((pointsToRestore / rate) * 10000) / 10000
+
+  const newDiscount = Math.max(
+    0,
+    Math.round((Number(sale.discount_amount) - discountToRemove) * 10000) / 10000,
+  )
+  const newTotal =
+    Math.round(
+      (Number(sale.subtotal) - newDiscount + Number(sale.tax_amount)) * 10000,
+    ) / 10000
+
+  const { error: upErr } = await supabase
+    .from('sales')
+    .update({
+      discount_amount: newDiscount,
+      total: newTotal,
+      updated_by: userId,
+    })
+    .eq('id', sale.id)
+    .eq('tenant_id', tenantId)
+    .eq('status', 'open')
+  if (upErr) return { error: upErr.message }
+
+  await recordRedeemUndo({
+    admin,
+    tenantId,
+    customerId: sale.customer_id,
+    originalEventId: ev.id,
+    saleId: sale.id,
+    pointsToRestore,
+    reason: 'undo_redemption',
+    performedBy: userId,
+  })
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'update',
+    tableName: 'sales',
+    recordId: sale.id,
+    changes: {
+      kind: 'loyalty_redeem_undo',
+      original_event_id: ev.id,
+      points: pointsToRestore,
+    },
+  })
+
+  revalidatePath(`/pos/sales/${sale.id}`)
   return { ok: true }
 }

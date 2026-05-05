@@ -26,6 +26,7 @@ import {
   Calculator,
   HandCoins,
   Receipt,
+  Trophy,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -219,6 +220,12 @@ export function Sidebar({
       href: '/settings/communications',
       label: t.nav.communications,
       icon: <ChatCircleText size={18} weight="regular" />,
+      visible: canSeeSettings,
+    },
+    {
+      href: '/settings/loyalty',
+      label: t.nav.loyalty,
+      icon: <Trophy size={18} weight="regular" />,
       visible: canSeeSettings,
     },
     {
