@@ -37,6 +37,7 @@ import {
   toMoney,
 } from '@/lib/pawn/math'
 import { registerPdfFonts } from './fonts'
+import { PAWN_TICKET_BACKPAGE_DEFAULT } from './pawn-ticket-backpage-default'
 import PawnTicketPDF, {
   type PawnTicketCollateral,
   type PawnTicketCustomer,
@@ -89,14 +90,29 @@ export async function renderLoanTicketPdf(args: {
   if (loanErr) throw new Error(`loan_lookup_failed: ${loanErr.message}`)
   if (!loan) throw new Error('loan_not_found')
 
-  // ── 2. Tenant
-  const { data: tenant, error: tenantErr } = await supabase
-    .from('tenants')
-    .select('id, name, dba, address, city, state, zip, phone, email')
-    .eq('id', tenantId)
-    .maybeSingle()
+  // ── 2. Tenant + per-tenant backpage override (single round-trip pair)
+  const [tenantRes, settingsRes] = await Promise.all([
+    supabase
+      .from('tenants')
+      .select('id, name, dba, address, city, state, zip, phone, email')
+      .eq('id', tenantId)
+      .maybeSingle(),
+    supabase
+      .from('settings')
+      .select('pawn_ticket_backpage')
+      .eq('tenant_id', tenantId)
+      .maybeSingle(),
+  ])
+  const { data: tenant, error: tenantErr } = tenantRes
   if (tenantErr) throw new Error(`tenant_lookup_failed: ${tenantErr.message}`)
   if (!tenant) throw new Error('tenant_not_found')
+
+  // settings row may not exist yet for a fresh tenant — fall back to default.
+  const backpageOverride = settingsRes.data?.pawn_ticket_backpage ?? null
+  const backpageText =
+    backpageOverride && backpageOverride.trim()
+      ? backpageOverride
+      : PAWN_TICKET_BACKPAGE_DEFAULT
 
   // ── 3. Collateral items
   const { data: collateralRows } = await supabase
@@ -218,6 +234,7 @@ export async function renderLoanTicketPdf(args: {
     signatureImage,
     i18n: { en, es },
     printed_on: todayDateString(),
+    backpage_text: backpageText,
   }
 
   registerPdfFonts()

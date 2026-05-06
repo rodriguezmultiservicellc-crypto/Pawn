@@ -207,6 +207,78 @@ export async function saveTenantLoanPolicyAction(
   return { ok: true }
 }
 
+// ── Pawn ticket backpage (English-only legal disclosure) ────────────────
+
+const backpageSchema = z.object({
+  // Empty / whitespace-only → null = revert to renderer default.
+  pawn_ticket_backpage: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      z.string().min(1).max(20000).nullable().optional(),
+    )
+    .transform((v) => v ?? null),
+})
+
+export type SaveBackpageState = {
+  ok?: boolean
+  error?: string
+  fieldErrors?: Record<string, string>
+}
+
+/**
+ * Save the per-tenant pawn-ticket reverse-side legal disclosure. NULL =
+ * fall back to the FL Ch. 539 default shipped in
+ * src/lib/pdf/pawn-ticket-backpage-default.ts. The field is English-only
+ * by operator policy — the ticket is a legal document.
+ */
+export async function saveTicketBackpageAction(
+  _prev: SaveBackpageState,
+  formData: FormData,
+): Promise<SaveBackpageState> {
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
+
+  const { userId } = await requireRoleInTenant(ctx.tenantId, [...ROLES])
+
+  const parsed = backpageSchema.safeParse({
+    pawn_ticket_backpage: formData.get('pawn_ticket_backpage'),
+  })
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {}
+    for (const issue of parsed.error.issues) {
+      const path = issue.path.join('.')
+      if (path) fieldErrors[path] = issue.message
+    }
+    return { fieldErrors }
+  }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('settings')
+    .update({
+      pawn_ticket_backpage: parsed.data.pawn_ticket_backpage,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('tenant_id', ctx.tenantId)
+  if (error) return { error: error.message }
+
+  await logAudit({
+    tenantId: ctx.tenantId,
+    userId,
+    action: 'update',
+    tableName: 'settings',
+    recordId: ctx.tenantId,
+    changes: {
+      kind: 'pawn_ticket_backpage',
+      length: parsed.data.pawn_ticket_backpage?.length ?? 0,
+    },
+  })
+
+  revalidatePath('/settings/loan-rates')
+  return { ok: true }
+}
+
 export async function deleteLoanRateAction(
   _prev: { ok?: boolean; error?: string },
   formData: FormData,

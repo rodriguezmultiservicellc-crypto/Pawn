@@ -35,7 +35,7 @@ export default async function LoanRatesPage() {
       .order('rate_monthly'),
     admin
       .from('settings')
-      .select('min_loan_amount')
+      .select('min_loan_amount, pawn_ticket_backpage')
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
   ])
@@ -59,5 +59,13 @@ export default async function LoanRatesPage() {
       ? null
       : Number(settingsRes.data.min_loan_amount)
 
-  return <LoanRatesContent rows={items} minLoanAmount={minLoanAmount} />
+  const ticketBackpage = settingsRes.data?.pawn_ticket_backpage ?? null
+
+  return (
+    <LoanRatesContent
+      rows={items}
+      minLoanAmount={minLoanAmount}
+      ticketBackpage={ticketBackpage}
+    />
+  )
 }

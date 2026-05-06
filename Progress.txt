@@ -13,309 +13,202 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 26 (2026-05-06, 08:40)
-                  — Recovery + completion of the Vault
-                  cutover that Session 25 only partially
-                  landed. db:types regen at session start
-                  showed a 290-line drift: prod was in a
-                  half-applied state across 0030/0031/0032/
-                  0033, AND the pre-existing plaintext
-                  secret columns had been dropped out-of-
-                  band (effectively the pending 0034
-                  plaintext-drop, but without 0030-0032's
-                  other work). Wrote 0034 as a fully
-                  idempotent superset of all four prior
-                  migrations + the plaintext drop, applied
-                  to prod, then refactored the codebase to
-                  vault-only — no resolveSecret fallback,
-                  no dual-writes. Committed cad2b23 + pushed
-                  to main. tsc clean, eslint clean, 409
-                  tests still passing. db:types regen post-
-                  0034 matches the codebase exactly (only
-                  reordering vs hand edits).
-  Context budget: medium-high (long investigation
-                  + 18-file refactor).
-  Last worked on: Two surfaces:
-                  (A) RECOVERY MIGRATION. Session 25's
-                  RESUME claimed "Operator applied SQL
-                  migrations 0030/0031/0032/0033 mid-
-                  session, so this push lands with a green
-                  DB" — that turned out to be wrong. db:types
-                  regen showed prod was missing
-                  customers.email_unsubscribe_token,
-                  settings.google_reviews_daily_quota,
-                  settings.google_reviews_hidden_review_
-                  times, tenant_google_reviews.quota_
-                  window_start + quota_calls_used, AND the
-                  pre-existing plaintext secret columns
-                  (settings.{resend_api_key, twilio_auth_
-                  token, google_places_api_key};
-                  tenant_billing_settings.{stripe_access_
-                  token, stripe_refresh_token, stripe_
-                  webhook_secret}; tenant_ebay_credentials
-                  .{access_token, refresh_token}). The new
-                  TABLES from 0032/0033 (email_campaigns,
-                  email_campaign_recipients, tenant_secrets)
-                  also did NOT exist (head:true probe
-                  initially mis-read them as present; full
-                  select returned PGRST205). The transactional
-                  migrations would not partial-apply on their
-                  own — most plausible explanation: operator
-                  ran an ad-hoc SQL run that did SOME of
-                  0033's table setup + the plaintext drop
-                  but skipped 0030/0031 + 0032's column +
-                  0033's full structure. Wrote
-                  patches/0034-vault-cutover-resync.sql
-                  as a complete IDEMPOTENT SUPERSET of
-                  0030+0031+0032+0033 plus the plaintext-
-                  column drop (every statement uses IF NOT
-                  EXISTS / CREATE OR REPLACE / DROP-then-
-                  CREATE so it's safe to run regardless of
-                  prod state). First version had the indexes/
-                  policies/triggers but assumed the new
-                  TABLES already existed — operator hit
-                  "relation email_campaigns does not exist".
-                  Rewrote as the full superset including
-                  CREATE TABLE statements. Operator applied;
-                  succeeded. db:types regen post-0034
-                  matches the codebase.
-                  (B) CODEBASE CUTOVER TO VAULT-ONLY. The
-                  resolveSecret() vault-first/plaintext-
-                  fallback helper is gone — replaced with
-                  direct getTenantSecret() calls everywhere.
-                  Added isSecretConfigured() (single-kind
-                  check) + loadConfiguredSecretKinds()
-                  (bulk Set<SecretKind>) helpers in
-                  lib/secrets/vault.ts for the
-                  "is this connected?" badges. All read
-                  paths (lib/email/send.ts,
-                  lib/twilio/sms.ts,
-                  lib/google-reviews/cache.ts,
-                  lib/ebay/auth.ts) read tokens from vault
-                  directly. Write paths (settings/
-                  communications/actions.ts +
-                  settings/integrations/google-reviews/
-                  actions.ts) write to vault only — no
-                  plaintext column update, no dual-write.
-                  Settings UIs (4 page.tsx files +
-                  google-reviews/content.tsx with new
-                  ApiKeySecretField "Configured/Update/
-                  Clear" pattern) derive "configured"
-                  badges from tenant_secrets membership
-                  rather than the dropped plaintext
-                  column. tenant_ebay_credentials reads
-                  use a derived `refresh_token_configured`
-                  flag from loadCredentialsRow() +
-                  isEbayConnected() helper for inventory
-                  page + ebay-sync cron tenant discovery
-                  (joins tenant_secrets kind='ebay_refresh
-                  _token' with tenant_ebay_credentials.
-                  disconnected_at). Validation schemas
-                  updated: communications dropped secret
-                  field keys (handled in actions directly);
-                  google-reviews added a secretField zod
-                  helper with __CLEAR__/blank semantics.
-                  database-aliases.ts dropped the plaintext
-                  Pick keys from SettingsCommsColumns +
-                  the access_token/refresh_token columns
-                  from TenantEbayCredentialsRow.
+  Last session:   Session 27 (2026-05-06, ~11:00)
+                  — Pawn ticket backpage policy
+                  text. Adds a per-tenant override
+                  for the legal/disclosure block
+                  printed on the back of every pawn
+                  ticket. patches/0035 adds
+                  settings.pawn_ticket_backpage TEXT
+                  NULL (idempotent IF NOT EXISTS +
+                  NOTIFY pgrst); applied to prod.
+                  PDF renderer adds a second <Page>
+                  with paragraph parsing (\n\n =
+                  paragraphs, "--" lines = horizontal
+                  rules, lines with 3+ underscores
+                  switch to JetBrains Mono so
+                  handwriting rules print
+                  continuously). Default text shipped
+                  in src/lib/pdf/pawn-ticket-backpage-
+                  default.ts is the FL Ch. 539
+                  standard pawn ticket reverse the
+                  operator pasted in (forfeiture +
+                  service charge breakdown + ID rules
+                  + false-ID felony language + lost-
+                  ticket procedure + receipt
+                  acknowledgment + redeemer ID +
+                  thumbprint area). Settings field
+                  NULL/empty → fall back to default;
+                  populate it to override (English
+                  only by operator policy — the
+                  ticket is a legal document). UI:
+                  /settings/loan-rates gains a "Pawn
+                  ticket backpage" section with a
+                  16-row mono textarea, FL default
+                  as placeholder, "Reset to default"
+                  button, status line showing
+                  whether default or custom is
+                  active. tsc clean, eslint clean,
+                  409 tests still passing. db:types
+                  regen post-0035 matches prod
+                  exactly.
+  Context budget: medium (one feature, ~10 files).
+  Last worked on: One surface — pawn ticket
+                  reverse-side ("backpage") legal
+                  disclosure, per-tenant overridable
+                  through /settings/loan-rates with
+                  a Florida Ch. 539 default shipped
+                  with the renderer. Operator
+                  context: the pawn ticket is a
+                  legal document (FL Ch. 539
+                  governs the language); the front
+                  of the ticket still renders
+                  bilingually but the back is
+                  English-only — deliberate
+                  exception to CLAUDE.md Rule 6.
+                  Resolves the existing TODO in
+                  PawnTicketPDF.tsx:18-24 ("Add a
+                  per-tenant override field on
+                  tenants (or settings) when we
+                  land the second jurisdiction").
 
-  ACTIVE FILE(S) at end of session — Session 26
-  (committed in cad2b23, pushed to main):
+  ACTIVE FILE(S) at end of session — Session 27
+  (pending commit + push):
 
-    --- RECOVERY MIGRATION ---
-    - patches/0034-vault-cutover-resync.sql NEW
-      (full idempotent superset of 0030+0031+0032+
-      0033 plus the plaintext-column drop. Creates
-      email_campaigns + email_campaign_recipients +
-      tenant_secrets if missing; adds the column
-      additions from 0030/0031/0032; CREATE OR
-      REPLACE for the 3 RPCs; DROP/CREATE for RLS
-      policies + triggers; DROP COLUMN IF EXISTS for
-      the 8 plaintext secret columns. Ends with
-      NOTIFY pgrst, 'reload schema' to refresh
-      PostgREST's stale cache. Applied to prod
-      successfully.)
+    --- DB MIGRATION ---
+    - patches/0035-pawn-ticket-backpage.sql NEW
+      (single ALTER TABLE adding
+      settings.pawn_ticket_backpage TEXT NULL with
+      a COMMENT documenting the default-fallback
+      contract. Idempotent — IF NOT EXISTS. Ends
+      with NOTIFY pgrst, 'reload schema' for the
+      PostgREST cache. Applied to prod.)
 
-    --- VAULT HELPER + READ PATHS ---
-    - src/lib/secrets/vault.ts — REWRITTEN.
-      resolveSecret() with plaintext fallback removed.
-      Added isSecretConfigured(tenantId, kind) and
-      loadConfiguredSecretKinds(tenantId) for the
-      "is connected?" badges. Existing
-      getTenantSecret() / setTenantSecret() unchanged.
-    - src/lib/email/send.ts — resolveResendCreds()
-      reads apiKey via getTenantSecret('resend_api_
-      key'); plaintext column reference dropped from
-      the .select() list.
-    - src/lib/twilio/sms.ts — resolveTwilioCreds()
-      reads authToken via getTenantSecret('twilio_
-      auth_token'); plaintext column reference
-      dropped.
-    - src/lib/google-reviews/cache.ts — refreshReviews()
-      reads tenant override via getTenantSecret('google
-      _places_api_key'); google_places_api_key
-      dropped from settings .select() lists in both
-      getCachedReviews() and refreshReviews().
-    - src/lib/ebay/auth.ts — REFACTORED.
-      resolveCredentials() reads both tokens via
-      getTenantSecret(); persistTokens() writes via
-      setTenantSecret() only (no plaintext column
-      update); markDisconnected() clears vault only.
-      loadCredentialsRow() now returns a derived
-      `refresh_token_configured: boolean` flag
-      (combined with isSecretConfigured()) so call
-      sites can check connection without reading the
-      dropped plaintext column. New isEbayConnected()
-      helper for cheap "is connected?" gate.
+    --- PDF RENDERER ---
+    - src/lib/pdf/pawn-ticket-backpage-default.ts
+      NEW. Exports PAWN_TICKET_BACKPAGE_DEFAULT —
+      the FL Ch. 539 standard reverse text the
+      operator pasted in verbatim. Sections
+      separated by `--`, paragraphs by blank lines,
+      form-field lines use long underscore runs
+      (parser detects 3+ consecutive underscores
+      and switches to mono).
+    - src/lib/pdf/PawnTicketPDF.tsx — added
+      backpage_text: string to PawnTicketData;
+      new backpage style block (smaller font 7.5pt,
+      tighter line-height, mono variant for form
+      lines); parseBackpageBlocks() helper splits
+      paragraphs, detects horizontal rules, flags
+      monospace blocks; new <Page> after the front
+      renders the parsed blocks with a fixed footer
+      reusing the existing page-of-total template.
+    - src/lib/pdf/render-loan-ticket.tsx — fetches
+      settings.pawn_ticket_backpage in parallel
+      with the tenant query (Promise.all of two
+      .maybeSingle() calls); falls back to
+      PAWN_TICKET_BACKPAGE_DEFAULT when override is
+      NULL/whitespace. Threads backpage_text into
+      the assembled PawnTicketData.
 
-    --- WRITE PATHS (vault-only) ---
-    - src/app/(staff)/settings/communications/actions.ts
-      — updateCommsSettingsAction writes secrets via
-      setTenantSecret() only; the settings UPDATE no
-      longer carries twilio_auth_token / resend_api_
-      key columns.
-    - src/app/(staff)/settings/integrations/google-
-      reviews/actions.ts — google_places_api_key
-      writes to vault only via setTenantSecret().
-      Settings UPDATE no longer carries the column.
+    --- SETTINGS UI ---
+    - src/app/(staff)/settings/loan-rates/page.tsx
+      — adds pawn_ticket_backpage to the
+      .select() block; threads ticketBackpage prop
+      into LoanRatesContent.
+    - src/app/(staff)/settings/loan-rates/content
+      .tsx — new BackpageCard section between the
+      tenant-policy card and the rate table.
+      16-row mono textarea, FL default as
+      placeholder, status line showing
+      default-vs-custom, "Reset to default"
+      button (clears the textarea), Save button
+      with pending/ok/error states.
+    - src/app/(staff)/settings/loan-rates/actions
+      .ts — new saveTicketBackpageAction with
+      backpageSchema (max 20 000 chars; empty/
+      whitespace → null). Audit-logged with
+      kind='pawn_ticket_backpage' + length.
 
-    --- SETTINGS UI VAULT-DRIVEN BADGES ---
-    - src/app/(staff)/settings/page.tsx — dropped
-      twilio_auth_token / resend_api_key /
-      stripe/ebay token columns from the parallel
-      .select() block; added loadConfiguredSecret-
-      Kinds(); badges now derived from the
-      Set<SecretKind>.
-    - src/app/(staff)/settings/integrations/page.tsx
-      — same pattern; loadConfiguredSecretKinds()
-      gates Twilio/Resend/eBay "Connected" chips.
-    - src/app/(staff)/settings/communications/page.tsx
-      — same pattern. The CredsForm component itself
-      didn't change (it already accepted *_set
-      booleans); only the page-side derivation
-      changed.
-    - src/app/(staff)/settings/integrations/google-
-      reviews/page.tsx — derives apiKeyConfigured
-      via isSecretConfigured('google_places_api_key').
-    - src/app/(staff)/settings/integrations/google-
-      reviews/content.tsx — replaced the plaintext
-      Field with a new ApiKeySecretField sub-component
-      using the secret-field "Configured / Update /
-      Clear stored key" pattern (mirrors
-      CredsForm.SecretField).
-    - src/app/(staff)/settings/integrations/ebay/
-      page.tsx — connected flag derives from the
-      new refresh_token_configured property on the
-      loadCredentialsRow() return shape.
-    - src/app/(staff)/inventory/[id]/page.tsx —
-      ebay panel gate now uses isEbayConnected()
-      instead of reading the dropped refresh_token
-      column.
-    - src/app/api/cron/ebay-sync/route.ts — tenant
-      discovery via two parallel reads (tenant_
-      secrets where kind='ebay_refresh_token' and
-      tenant_ebay_credentials.disconnected_at);
-      intersect to get connected tenants.
-
-    --- VALIDATION SCHEMAS ---
-    - src/lib/validations/communications.ts —
-      commsSettingsSchema dropped twilio_auth_token
-      and resend_api_key keys. Action handler reads
-      those from formData directly with __CLEAR__ /
-      blank / value semantics.
-    - src/lib/validations/google-reviews.ts — added
-      a secretField zod helper with the same
-      semantics; google_places_api_key now uses it
-      (was optionalTrimmedString).
+    --- I18N ---
+    - src/lib/i18n/en.ts — added
+      pawn.print.backpage.header ("Terms and
+      Conditions — Reverse Side") and
+      settingsLoanRates.{backpageTitle,
+      backpageSubtitle, backpageUsingDefault,
+      backpageUsingCustom, backpageReset}.
+    - src/lib/i18n/es.ts — same keys for
+      structural parity (the PDF only reads from
+      en at render time per operator policy, but
+      Dictionary type = typeof en so es.ts must
+      mirror the shape).
 
     --- TYPES ---
-    - src/types/database-aliases.ts — dropped
-      twilio_auth_token + resend_api_key from
-      SettingsCommsColumns Pick. Updated
-      TenantEbayCredentialsRow hand-written shape
-      to remove access_token + refresh_token keys.
-    - src/types/database.ts — REGEN post-0034 +
-      0034 application. Matches prod exactly. Diff
-      vs Session 25 hand edits is purely
-      alphabetical reorder of tables — no semantic
-      changes.
+    - src/types/database.ts — REGENERATED via
+      `npm run db:types` after operator applied
+      0035. Row + Insert + Update all carry
+      pawn_ticket_backpage: string | null. Diff vs
+      pre-regen hand stub is structurally
+      identical.
 
   RESUME POINT:
-    Patches/0034 has been applied to prod and the
-    code refactor is committed (cad2b23) + pushed.
-    db:types regen post-0034 matches prod exactly.
-    Vault is now the sole secret store; every read +
-    write path reads/writes via tenant_secrets RPCs.
+    patches/0035 applied. Code compiles + lints +
+    409 tests pass. db:types regen post-0035
+    matches prod exactly. Ready to commit + push;
+    Vercel will rebuild on push.
 
-    SMOKE TESTS to walk on production (carrying
-    Session 25's set, with adjustments for vault-
-    only reality):
+    BACKPAGE SMOKE (new this session):
+    - Print a pawn ticket from /pawn/[id] and
+      verify page 2 renders the FL Ch. 539
+      default with a "Terms and Conditions —
+      Reverse Side" header.
+    - Edit the textarea on /settings/loan-rates
+      with a custom override; print again; verify
+      the custom text replaces the default.
+    - Verify form-field lines (Pledgor _____,
+      X ____, Name: ____, etc.) print as
+      continuous handwriting rules in mono, not
+      gappy.
+    - Click "Reset to default" — verify textarea
+      clears, save, status line flips to "Using
+      the Florida Ch. 539 default text", next
+      print renders default again.
+
+    SMOKE TESTS still open from Session 25/26
+    (carrying):
 
     (A) Google Reviews end-to-end: GOOGLE_PLACES_
-        API_KEY must be in Vercel env + Places API
-        enabled in GCP. Visit /s/<slug>; widget
-        renders. /settings/integrations/google-
-        reviews shows the cached-reviews list +
-        hide/unhide flow. Star floor + hide list
-        both filter at render.
-
+        API_KEY in Vercel env + Places API
+        enabled. Widget renders on /s/<slug>;
+        /settings/integrations/google-reviews
+        shows cached list + hide/unhide.
     (B) Cron warmer: curl /api/cron/refresh-google-
         reviews with Authorization: Bearer
-        <CRON_SECRET>; expect JSON {ok, configured,
-        stale, refreshed, failed}. Audit_log row per
-        tenant with action='google_reviews_refresh'.
-
-    (C) Quota guardrails: hit refreshReviews 50+
-        times in 24h. Call 51+ returns cached row +
-        last_error='quota_exceeded' without a
-        Places API round-trip.
-
-    (D) Email campaigns (no UI yet): INSERT a draft
-        into email_campaigns directly via SQL,
-        flip status='scheduled', scheduled_at=NOW().
-        Cron (every 2 min) picks up + dispatches.
-        Watch message_log + email_campaign_
-        recipients + audit_log fill.
-
-    (E) Public unsubscribe: visit /unsubscribe?t=
-        <uuid> for a customer with marketing_opt_in
-        TRUE + a token. Form renders bilingual;
-        click → marketing_opt_in flips FALSE,
-        audit-logged.
-
-    (F) Resend webhook: configure Resend dashboard
-        webhook to ${NEXT_PUBLIC_APP_URL}/api/
-        webhooks/resend with RESEND_WEBHOOK_SECRET
-        env var. Send a test event from Resend's
-        UI; expect 200 + audit-log update if it
-        matches a recipient row.
-
-    (G) Vault smoke (NEW shape — no fallback):
-        rotate Resend API key in
-        /settings/communications. Verify
-        tenant_secrets has the row + updated_at
-        matches. The "Configured" badge on
-        /settings/integrations should be lit.
-        Send a test email — sendEmail reads
-        getTenantSecret('resend_api_key') and
-        successfully dispatches.
-
-    (H) Settings UIs sanity: /settings,
+        <CRON_SECRET>; expect JSON + audit_log row.
+    (C) Quota guardrails: 50+ refresh hits in
+        24h; 51+ returns cached row +
+        last_error='quota_exceeded'.
+    (D) Email campaigns: SQL-insert a draft, flip
+        status='scheduled', cron dispatches,
+        message_log + email_campaign_recipients
+        + audit_log fill.
+    (E) Public unsubscribe: /unsubscribe?t=<uuid>
+        bilingual form; click → marketing_opt_in
+        flips FALSE, audit-logged.
+    (F) Resend webhook: ${APP_URL}/api/webhooks/
+        resend with RESEND_WEBHOOK_SECRET; test
+        event 200 + audit-log update.
+    (G) Vault smoke: rotate Resend key in
+        /settings/communications; tenant_secrets
+        row + updated_at; badge lit; test email
+        dispatches.
+    (H) Settings UIs: /settings,
         /settings/integrations,
         /settings/communications,
         /settings/integrations/google-reviews,
-        /settings/integrations/ebay all render.
-        "Configured" / "Connected" badges reflect
-        tenant_secrets membership (not the dropped
-        plaintext columns).
-
-    (I) eBay sync cron + inventory page: the
-        tenant_secrets-driven discovery paths
-        (api/cron/ebay-sync route + the inventory
-        detail page's eBay panel gate) work
-        without errors, even with stub eBay
-        tokens.
+        /settings/integrations/ebay all render
+        with vault-driven badges.
+    (I) eBay sync cron + inventory page work
+        without errors.
 
     NEXT MOVES (after smoke):
 
@@ -330,19 +223,14 @@ SEE ALSO (do not duplicate here):
     (b) Email-campaign UI editor at /settings/
         communications/campaigns — list +
         create/edit/schedule/cancel form +
-        segmentation preview ("X recipients will
-        be reached"). Engine works from SQL
-        inserts; UI is what makes it shippable to
-        operators.
+        segmentation preview. Engine ships from
+        Session 25; UI is what makes it operator-
+        usable.
     (c) Stripe-side vault cutover — when Connect
-        onboarding is built. The 3 stripe_* kinds
-        in lib/secrets/vault.ts are typed; just no
-        readers/writers yet. Existing
-        tenant_billing_settings row keeps
-        stripe_account_id / connected_at /
-        publishable_key / terminal_location_id
-        (the non-secret metadata).
-    (d) eBay de-stub — flip auth.ts + client.ts +
+        onboarding is built. 3 stripe_* kinds in
+        lib/secrets/vault.ts are typed; no
+        readers/writers yet.
+    (d) eBay de-stub — auth.ts + client.ts +
         listings.ts STUB markers to real Sell API
         calls. ~840 LOC. Needs eBay developer
         account + sandbox vs prod decision +
@@ -351,11 +239,14 @@ SEE ALSO (do not duplicate here):
         browser device-mode (carrying).
 
   OPEN ISSUES / BLOCKERS:
-    - Session 25 + Session 26 production smoke
-      not yet walked end-to-end (smokes A-I above).
-      Local lint+tsc+409 tests are green; real
-      Resend / Google / Vercel-cron behavior under
-      vault-only is unverified.
+    - Sessions 25/26/27 production smoke not yet
+      walked end-to-end. Local lint+tsc+409 tests
+      are green; real Resend / Google / Vercel-
+      cron behavior under vault-only is
+      unverified. The new backpage rendering is
+      tsc-verified only — needs an actual print
+      to confirm page 2 layout (line wrapping,
+      mono-font handwriting rules, page breaks).
     - Email-campaign engine has NO operator UI
       yet — SQL-insert campaigns to test until the
       editor lands.
@@ -371,23 +262,16 @@ SEE ALSO (do not duplicate here):
     - SaaS billing real-money flow + per-tenant
       Stripe Connect + per-tenant Resend not yet
       onboarded for first tenant.
-    - eBay paths still STUBBED (Phase 10 B). 12-step
-      real wire-up checklist documented in commit
-      9b93e235; deferred — needs operator decisions
-      on sandbox vs prod + dev account status.
+    - eBay paths still STUBBED (Phase 10 B).
+      12-step real wire-up checklist documented
+      in commit 9b93e235; deferred — needs
+      operator decisions on sandbox vs prod + dev
+      account status.
     - Diamond cert lookup is in stub mode — needs
       IDEX_API_KEY or RAPAPORT_API_KEY in env.
-    - WhatsApp Content SIDs NULL until Twilio + Meta
-      approval per template per tenant.
+    - WhatsApp Content SIDs NULL until Twilio +
+      Meta approval per template per tenant.
     - FL LeadsOnline CSV format still DRAFT.
-    - If any tenants had real plaintext secrets at
-      the moment the operator's manual run dropped
-      the plaintext columns BEFORE 0033's backfill
-      ran, those secrets are LOST. Operator must
-      re-enter via the settings UI (which now
-      writes to vault). For RMS pre-launch state
-      this is unlikely to matter, but worth noting
-      if any real creds were entered before today.
 
   OPEN SMALL FOLLOW-UPS (carried, can ride along):
     - Reviewer photos in widget — adding next/image
@@ -396,78 +280,75 @@ SEE ALSO (do not duplicate here):
       Eddy explicitly wants them.
     - Email-campaign editor UI at /settings/
       communications/campaigns — list + create/edit
-      form + segmentation preview ("X recipients
-      will be reached"). Engine ships without it.
+      form + segmentation preview. Engine ships
+      without it.
     - Stripe-side vault cutover — ready when
       Connect onboarding is built; the 3 stripe_*
-      kinds in lib/secrets/vault.ts are typed and
-      backfilled, just no readers/writers yet.
+      kinds in lib/secrets/vault.ts are typed,
+      just no readers/writers yet.
+    - Multi-jurisdiction backpage defaults — when
+      a tenant outside Florida onboards, expand
+      pawn-ticket-backpage-default.ts to a
+      jurisdiction map keyed by
+      tenants.police_report_format (or a new
+      tenants.jurisdiction_code). Per-tenant
+      override on settings still wins regardless.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 26):
-    - SINGLE IDEMPOTENT SUPERSET MIGRATION over
-      restoring 0030/0031/0032/0033 + writing a
-      separate 0034 plaintext-drop. Reasons: (1)
-      The exact subset that landed on prod was
-      unknown. Trying to reconcile would require
-      forensic analysis + risk re-applying parts
-      that DID land. (2) The destination state
-      (vault-only, no plaintext columns) was
-      already locked from Session 25's plan;
-      collapsing 0033 + 0034 into one applied
-      migration just brings the timetable forward.
-      (3) Every statement in 0034 is IF NOT
-      EXISTS / CREATE OR REPLACE / DROP-then-
-      CREATE so it's safe to run regardless of
-      starting state.
-    - VAULT IS THE SOLE SECRET STORE — no
-      plaintext-fallback path remains. The dual-
-      state design from Session 25 (vault-first +
-      plaintext fallback) was always meant to
-      collapse to vault-only at the 0034 cutover;
-      we just collapsed it sooner because prod
-      forced our hand. resolveSecret() with the
-      `plaintextFallback` parameter is gone;
-      callers use getTenantSecret() directly.
-    - "CONFIGURED?" CHECKS USE VAULT REGISTRY
-      MEMBERSHIP, NOT PLAINTEXT-IS-NOT-NULL.
-      isSecretConfigured() and loadConfigured-
-      SecretKinds() do count(*) on tenant_secrets
-      filtered by tenant + kind. No vault
-      decryption round-trip needed for the
-      "Connected" badge. The bulk variant
-      (loadConfiguredSecretKinds) returns a Set
-      so a page rendering 5 badges is one query.
-    - DERIVED `refresh_token_configured` FLAG ON
-      THE EBAY ROW SHAPE rather than calling
-      isSecretConfigured() at every UI site. Keeps
-      the call surface consistent with the
-      previous "row.refresh_token IS NOT NULL"
-      pattern; the helper does the vault check
-      once at the boundary.
-    - APIKEYSECRETFIELD MIRRORS COMMS CREDSFORM
-      SECRETFIELD. Both use the same blank ='no
-      change', '__CLEAR__' = clear, value = update
-      semantics. Operator UX is identical across
-      every secret field in the app (Twilio, Resend,
-      Google, eBay, future Stripe).
-    - 0034 ENDS WITH `NOTIFY pgrst, 'reload
-      schema'`. PostgREST's schema cache is
-      otherwise stale until a Supabase API
-      restart, which would invisibly leave new
-      tables/RPCs unreachable from REST routes.
-      The notify-on-commit pattern is consistent
-      with 0030/0031/0032/0033 already.
-    - FIRST 0034 ATTEMPT FAILED AT
-      "relation email_campaigns does not exist"
-      → REWROTE AS FULL SUPERSET. Initial version
-      assumed the new tables existed (only added
-      missing columns + indexes + policies + RPCs).
-      Lesson: when prod state is unknown, the
-      migration must be self-contained — include
-      every CREATE TABLE / CREATE TYPE statement,
-      not just the deltas.
+  KEY DECISIONS LOCKED THIS SESSION (Session 27):
+    - DEFAULT-IN-CODE, NOT BACKFILLED-IN-DB. The
+      FL Ch. 539 standard text ships as a
+      TypeScript constant in src/lib/pdf/pawn-
+      ticket-backpage-default.ts; the renderer
+      falls back to it when settings.pawn_ticket_
+      backpage is NULL/whitespace. Reasons:
+      (1) Tenants who never customize ALWAYS see
+      the latest version of the default — if we
+      improve the wording, every uncustomized
+      tenant gets the update on next print, no
+      backfill migration needed. (2) Operator
+      can still override per tenant by typing
+      into the settings textarea. (3) An empty
+      textarea = "use the default" is the
+      simplest mental model — no checkbox, no
+      "are you sure you want to reset" prompt.
+    - ENGLISH ONLY ON THE BACKPAGE — DELIBERATE
+      EXCEPTION TO CLAUDE.md RULE 6 (BILINGUAL).
+      The pawn ticket is a legal document; the
+      operator confirmed it must print English
+      regardless of customer language preference.
+      The front of the ticket still renders
+      bilingually (customer fields, terms,
+      collateral table, signature lines). Only
+      the reverse-side legal disclosure is
+      English-only. ES dictionary still carries
+      pawn.print.backpage.header for type-shape
+      parity, but it's never read at render time.
+    - PARSE BACKPAGE TEXT AT RENDER TIME, NOT AT
+      INPUT TIME. Operator types/pastes plain
+      text with paragraph breaks (\n\n) and `--`
+      separators; parseBackpageBlocks() converts
+      that to PDF blocks. Lines with 3+
+      consecutive underscores switch to JetBrains
+      Mono so handwriting rules ("Pledgor _____")
+      print as continuous lines (Inter would
+      render with kerning gaps). Operator never
+      edits structured JSON or block markers —
+      just plain text.
+    - 20 000-CHAR CAP ON THE FIELD. The default
+      FL text is ~5.5 KB; multi-state operators
+      who concatenate 2-3 disclosures might run
+      ~15 KB. 20 KB headroom is enough for any
+      realistic legal block while still bounding
+      DB row size and PDF render time.
+    - LIVES ON /settings/loan-rates, NOT
+      /settings/general. The audience for "edit
+      pawn ticket disclosure" matches the
+      audience for "edit loan rates" (owner /
+      chain_admin / manager) and the page is
+      already pawn-context. No new page or
+      sidebar entry needed.
 
-  (Sessions 13-25 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-26 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -1929,6 +1810,179 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
+--- Session 27 (2026-05-06, ~11:00) — Pawn ticket backpage policy text (per-tenant override + FL Ch. 539 default) ---
+
+ 256. PATCHES/0035-PAWN-TICKET-BACKPAGE.SQL —
+     SINGLE-COLUMN ADDITIVE MIGRATION. ALTER
+     TABLE public.settings ADD COLUMN IF NOT
+     EXISTS pawn_ticket_backpage TEXT NULL with
+     a COMMENT documenting the default-fallback
+     contract ("NULL = use the FL Ch. 539
+     default shipped with the renderer; English
+     only — the ticket is a legal document").
+     Idempotent — IF NOT EXISTS makes re-run
+     safe. Ends with NOTIFY pgrst, 'reload
+     schema' so PostgREST can see the new
+     column without a Supabase API restart.
+     Operator applied; db:types regen post-
+     0035 picked up the new column on Row +
+     Insert + Update of the settings table.
+
+ 257. PAWN-TICKET-BACKPAGE-DEFAULT.TS — FL CH.
+     539 STANDARD TEXT AS A TS CONSTANT. New
+     src/lib/pdf/pawn-ticket-backpage-default.ts
+     exports PAWN_TICKET_BACKPAGE_DEFAULT
+     containing the operator-pasted FL Ch. 539
+     standard pawn ticket reverse text:
+     pledged-goods deposit clause, anti-stolen-
+     goods warranty, 30-day automatic-
+     forfeiture rule, 25%-per-30-days service
+     charge breakdown (with 2% interest /
+     remainder = storage and service fees
+     allocation), redemption-within-first-30
+     vs 31-60-day rate rules, extension daily-
+     rate computation (1/30 of original),
+     redemption-ID requirements (firearms-
+     only-by-original-pledgor, attorney-in-
+     fact + authorized-representative rules
+     with notarized authorization for the
+     latter), false-ID felony language with
+     specific F.S. cites (s.775.082/083/084),
+     lost-ticket procedure (certified mail /
+     in-person), shop liability cap on
+     lost/damaged goods (replacement-with-
+     like-kind defense), attorney's-fee shift
+     to losing party, mail-redemption terms,
+     no-oral-modification clause, the asterisk
+     bullet list of "PROPER ID REQUIRED" /
+     "FIREARMS ONLY BY ORIGINAL PLEDGOR" / etc.,
+     a separator, the LOST PAWN TICKET
+     STATEMENT form ($2.00 fee + date +
+     lost/destroyed/stolen circle + Pledgor +
+     Pledgor's I.D. + Employee/PS), another
+     separator, and the I HEREBY ACKNOWLEDGE
+     RECEIPT block with redeemer signature line +
+     "REDEEMER'S IDENTIFICATION IF OTHER THAN
+     ORIGINAL PLEDGOR" sub-form (Name / Address
+     / ID Number and Type) + thumbprint label.
+     Sections separated by `--` lines, paragraphs
+     by blank lines, form-field lines use long
+     underscore runs (5+ underscores). The
+     constant ships in code so improvements to
+     the default reach every uncustomized
+     tenant on next print without a backfill
+     migration.
+
+ 258. PAWNTICKETPDF.TSX — SECOND <Page> FOR
+     REVERSE-SIDE LEGAL BLOCK. Added
+     backpage_text: string field to PawnTicketData;
+     new backpage style block (smaller font 7.5pt,
+     tighter line-height 1.35, mono variant for
+     form-field lines, marginVertical=6 for the
+     `--` rules); new parseBackpageBlocks(text)
+     helper at module scope that:
+       1. Normalizes \r\n → \n
+       2. Splits on /\n{2,}/ for paragraph
+          boundaries
+       3. Tags `^--+$` paragraphs as `kind:
+          'rule'` (renders as a horizontal rule)
+       4. Tags paragraphs containing any line
+          matching /_{3,}/ as `mono: true`
+          (renders in JetBrains Mono so 5+
+          underscores form continuous handwriting
+          rules — Inter would render gappy due
+          to kerning)
+       5. Returns a typed BackpageBlock[]
+     New <Page size="LETTER"> after the front
+     page renders the parsed blocks: header
+     "Terms and Conditions — Reverse Side"
+     (uppercase tracking, ink color), then for
+     each block either a divider <View> with
+     borderBottom or a paragraph <View> wrapping
+     each line as its own <Text> (preserves
+     line breaks within paragraphs without
+     react-pdf collapsing them). Reuses the
+     existing footer template (page n of total
+     bilingual) inside the backpage Page so
+     pagination spans both pages naturally.
+
+ 259. RENDER-LOAN-TICKET.TSX — FETCH BACKPAGE
+     OVERRIDE + FALLBACK. Imported
+     PAWN_TICKET_BACKPAGE_DEFAULT. Replaced the
+     single tenant query with a Promise.all of
+     two .maybeSingle() calls (tenants +
+     settings.pawn_ticket_backpage). Falls back
+     to PAWN_TICKET_BACKPAGE_DEFAULT when the
+     settings row is missing OR
+     pawn_ticket_backpage is NULL OR
+     whitespace-only. Threads backpage_text into
+     the assembled PawnTicketData. settings row
+     missing for fresh tenants is OK — the
+     fallback applies.
+
+ 260. /SETTINGS/LOAN-RATES — BACKPAGE TEXTAREA
+     SECTION. page.tsx adds pawn_ticket_backpage
+     to the settings .select() and threads it
+     as ticketBackpage prop. content.tsx adds a
+     new BackpageCard section between the
+     existing PolicyCard (min loan amount) and
+     the rate tables: 16-row monospace textarea
+     with the FL default rendered as the
+     placeholder (so operators see what the
+     default looks like before deciding whether
+     to override), a status line showing
+     either "Using the Florida Ch. 539 default
+     text" (when blank) or "Using your custom
+     text" (when populated), a "Reset to
+     default" button that clears the textarea
+     state (so submitting saves null and the
+     renderer falls back), and a Save button
+     with pending/ok/error indicator chips.
+     PAWN_TICKET_BACKPAGE_DEFAULT imported as
+     placeholder text — single source of truth.
+
+ 261. SAVETICKETBACKPAGEACTION + ZOD SCHEMA.
+     New saveTicketBackpageAction in /settings/
+     loan-rates/actions.ts. backpageSchema =
+     z.object({ pawn_ticket_backpage: preprocess
+     (whitespace → null) → z.string().min(1).
+     max(20000).nullable().optional() →
+     transform(v => v ?? null) }). 20 000-char
+     cap is enough for FL default (~5.5 KB) +
+     concatenated multi-state disclosures (~15
+     KB) with headroom. requireRoleInTenant
+     guard for owner/chain_admin/manager (same
+     audience as the rate-menu and policy
+     editors). Audit-logged with kind=
+     'pawn_ticket_backpage' + length. Revalidates
+     /settings/loan-rates after save.
+
+ 262. I18N (EN+ES) — BACKPAGE LABELS. en.ts
+     adds pawn.print.backpage.header ("Terms
+     and Conditions — Reverse Side") +
+     settingsLoanRates.{backpageTitle,
+     backpageSubtitle, backpageUsingDefault,
+     backpageUsingCustom, backpageReset}. es.ts
+     mirrors the same keys for type-shape parity
+     (Dictionary = typeof en, so es.ts must
+     match the structural shape). The PDF only
+     reads from the EN side at render time per
+     operator policy — the ES strings exist for
+     type symmetry but never reach the printed
+     ticket.
+
+ 263. SESSION 27 VERIFICATION. tsc clean,
+     eslint clean, 409 tests still passing
+     (no new tests this session — the parser
+     helper is small + deterministic enough to
+     defer until a regression motivates a unit
+     test). db:types regen post-0035 matches
+     the codebase exactly: Row + Insert +
+     Update all carry pawn_ticket_backpage:
+     string | null with the right
+     required/optional discipline. Ready for
+     commit + push.
+
 --- Session 26 (2026-05-06, 08:40) — 0034 vault-cutover-resync recovery migration + codebase cutover to vault-only ---
 
  247. PROD HALF-APPLIED STATE DISCOVERED. Started
@@ -2450,15 +2504,26 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Walk the 9-smoke sequence (A-I) from the RESUME
-    POINT above against production. Patches/0034
-    is applied + cad2b23 is deployed; vault is the
-    sole secret store. The biggest blocker for
-    smoke completion is the Phase 0 punch list —
-    CRON_SECRET + RESEND_WEBHOOK_SECRET +
-    GOOGLE_PLACES_API_KEY + the three secret
-    rotations all need to land in Vercel before
-    smokes B/F/A can fully run.
+    Print a real pawn ticket (any active loan in
+    /pawn) and verify the new page-2 backpage:
+    FL Ch. 539 default renders cleanly, paragraph
+    spacing reads, "Pledgor _____" form lines are
+    continuous in JetBrains Mono not gappy in
+    Inter, page-of-total footer counts both pages.
+    Then go to /settings/loan-rates, paste a
+    custom override into the textarea, save,
+    print again — verify the override replaces
+    the default. Click "Reset to default", save,
+    print again — verify default is restored.
+    AFTER THAT: walk the 9-smoke sequence (A-I)
+    from the RESUME POINT carried from Session 26
+    (Google Reviews, cron warmer, quota, email
+    campaigns, unsubscribe, Resend webhook, vault
+    smoke, settings UIs, eBay sync). Phase 0
+    punch list (CRON_SECRET + RESEND_WEBHOOK_
+    SECRET + GOOGLE_PLACES_API_KEY + the three
+    secret rotations) is still the biggest
+    blocker for smokes B/F/A.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 7 cron paths

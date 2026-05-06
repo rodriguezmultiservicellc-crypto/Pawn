@@ -907,6 +907,9 @@ export const en = {
         ticketLabel: 'Ticket',
       },
       notes: 'Notes',
+      backpage: {
+        header: 'Terms and Conditions — Reverse Side',
+      },
     },
     payment: {
       title: 'Record payment',
@@ -2308,6 +2311,12 @@ export const en = {
     minLoanAmountPlaceholder: 'e.g. 25.00',
     minLoanAmountHint:
       "Pawn intake refuses any loan below this principal. Leave empty for no minimum.",
+    backpageTitle: 'Pawn ticket backpage',
+    backpageSubtitle:
+      "Reverse-side legal disclosure printed on every pawn ticket. English only — the ticket is a legal document. Leave blank to use the Florida Ch. 539 default.",
+    backpageUsingDefault: 'Using the Florida Ch. 539 default text.',
+    backpageUsingCustom: 'Using your custom text.',
+    backpageReset: 'Reset to default',
   },
 
   compliance: {

@@ -3004,6 +3004,7 @@ export type Database = {
           loyalty_redemption_rate: number
           loyalty_referral_bonus: number
           min_loan_amount: number | null
+          pawn_ticket_backpage: string | null
           resend_from_email: string | null
           resend_from_name: string | null
           tenant_id: string
@@ -3033,6 +3034,7 @@ export type Database = {
           loyalty_redemption_rate?: number
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
+          pawn_ticket_backpage?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
           tenant_id: string
@@ -3062,6 +3064,7 @@ export type Database = {
           loyalty_redemption_rate?: number
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
+          pawn_ticket_backpage?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
           tenant_id?: string

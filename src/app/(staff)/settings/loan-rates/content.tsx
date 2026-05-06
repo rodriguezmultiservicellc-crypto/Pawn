@@ -15,10 +15,13 @@ import { useI18n } from '@/lib/i18n/context'
 import {
   saveLoanRateAction,
   saveTenantLoanPolicyAction,
+  saveTicketBackpageAction,
   deleteLoanRateAction,
   type SaveRateState,
   type SavePolicyState,
+  type SaveBackpageState,
 } from './actions'
+import { PAWN_TICKET_BACKPAGE_DEFAULT } from '@/lib/pdf/pawn-ticket-backpage-default'
 
 export type LoanRateRow = {
   id: string
@@ -36,9 +39,11 @@ export type LoanRateRow = {
 export default function LoanRatesContent({
   rows,
   minLoanAmount,
+  ticketBackpage,
 }: {
   rows: LoanRateRow[]
   minLoanAmount: number | null
+  ticketBackpage: string | null
 }) {
   const { t } = useI18n()
   const [editing, setEditing] = useState<LoanRateRow | 'new' | null>(null)
@@ -78,6 +83,8 @@ export default function LoanRatesContent({
       </header>
 
       <PolicyCard initial={minLoanAmount} />
+
+      <BackpageCard initial={ticketBackpage} />
 
       <RateTable
         title={t.settingsLoanRates.activeTitle}
@@ -171,6 +178,76 @@ function PolicyCard({ initial }: { initial: number | null }) {
             {state.error}
           </span>
         ) : null}
+      </form>
+    </section>
+  )
+}
+
+function BackpageCard({ initial }: { initial: string | null }) {
+  const { t } = useI18n()
+  const [state, formAction, pending] = useActionState<
+    SaveBackpageState,
+    FormData
+  >(saveTicketBackpageAction, {})
+  const [value, setValue] = useState<string>(initial ?? '')
+  const usingDefault = value.trim().length === 0
+
+  return (
+    <section className="rounded-lg border border-hairline bg-canvas p-4">
+      <h2 className="text-sm font-semibold text-ink">
+        {t.settingsLoanRates.backpageTitle}
+      </h2>
+      <p className="mt-1 text-xs text-ash">
+        {t.settingsLoanRates.backpageSubtitle}
+      </p>
+
+      <form action={formAction} className="mt-3 space-y-3">
+        <textarea
+          name="pawn_ticket_backpage"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          rows={16}
+          spellCheck={false}
+          className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 font-mono text-xs text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          placeholder={PAWN_TICKET_BACKPAGE_DEFAULT}
+        />
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-ash">
+            {usingDefault
+              ? t.settingsLoanRates.backpageUsingDefault
+              : t.settingsLoanRates.backpageUsingCustom}
+          </span>
+          <div className="flex items-center gap-2">
+            {!usingDefault ? (
+              <button
+                type="button"
+                onClick={() => setValue('')}
+                className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+              >
+                {t.settingsLoanRates.backpageReset}
+              </button>
+            ) : null}
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+            >
+              {pending ? t.common.saving : t.common.save}
+            </button>
+            {state.ok ? (
+              <span className="inline-flex items-center gap-1 text-xs text-success">
+                <CheckCircle size={12} weight="bold" />
+                {t.common.save} ✓
+              </span>
+            ) : null}
+            {state.error ? (
+              <span className="inline-flex items-center gap-1 text-xs text-error">
+                <Warning size={12} weight="bold" />
+                {state.error}
+              </span>
+            ) : null}
+          </div>
+        </div>
       </form>
     </section>
   )

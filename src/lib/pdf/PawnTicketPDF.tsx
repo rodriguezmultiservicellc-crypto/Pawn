@@ -114,6 +114,12 @@ export type PawnTicketData = {
   i18n: { en: Dictionary; es: Dictionary }
   /** Date this PDF is being rendered (for the printed-on stamp). ISO date. */
   printed_on: string
+  /** English-only legal disclosure printed on the reverse side. The pawn
+   *  ticket is a legal document — operator confirmed this block must be
+   *  English regardless of customer language preference. Resolved upstream
+   *  from settings.pawn_ticket_backpage with the FL Ch. 539 default as
+   *  fallback. */
+  backpage_text: string
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -386,6 +392,45 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: PALETTE.muted,
   },
+
+  // ── Backpage (reverse-side legal disclosure, English-only)
+  backpagePage: {
+    paddingTop: 32,
+    paddingBottom: 36,
+    paddingHorizontal: 36,
+    fontSize: 7.5,
+    fontFamily: 'Inter',
+    fontWeight: 500,
+    color: PALETTE.body,
+    lineHeight: 1.35,
+  },
+  backpageHeader: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: PALETTE.ink,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+  },
+  backpageParagraph: {
+    fontSize: 7.5,
+    color: PALETTE.body,
+    marginBottom: 5,
+    lineHeight: 1.35,
+  },
+  backpageMonoLine: {
+    fontFamily: 'JetBrains Mono',
+    fontSize: 7.5,
+    color: PALETTE.body,
+    marginBottom: 1,
+    lineHeight: 1.4,
+  },
+  backpageRule: {
+    borderBottomWidth: 1,
+    borderBottomColor: PALETTE.divider,
+    borderBottomStyle: 'solid',
+    marginVertical: 6,
+  },
 })
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -413,6 +458,35 @@ function dash(value: string | number | null | undefined): string {
   if (value == null) return '—'
   if (typeof value === 'string') return value.trim() || '—'
   return String(value)
+}
+
+// ── Backpage block parser ──────────────────────────────────────────────────
+//
+// The backpage text is plain English with paragraph breaks (\n\n) and section
+// separators ("--" on its own line). Lines containing 3+ consecutive
+// underscores are treated as form-field lines and rendered in monospace so
+// the underscores form continuous handwriting rules.
+
+type BackpageBlock =
+  | { kind: 'rule' }
+  | { kind: 'paragraph'; lines: string[]; mono: boolean }
+
+function parseBackpageBlocks(text: string): BackpageBlock[] {
+  const blocks: BackpageBlock[] = []
+  const paragraphs = text.replace(/\r\n/g, '\n').split(/\n{2,}/)
+
+  for (const raw of paragraphs) {
+    const trimmed = raw.trim()
+    if (!trimmed) continue
+    if (/^--+$/.test(trimmed)) {
+      blocks.push({ kind: 'rule' })
+      continue
+    }
+    const lines = raw.split('\n')
+    const mono = lines.some((ln) => /_{3,}/.test(ln))
+    blocks.push({ kind: 'paragraph', lines, mono })
+  }
+  return blocks
 }
 
 // ── Field component ────────────────────────────────────────────────────────
@@ -799,6 +873,47 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
             </Text>
           </View>
         </View>
+
+        {/* ── Footer */}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerTicket}>
+            {data.ticket_number}  ·  {data.tenant.dba?.trim() || data.tenant.name}
+          </Text>
+          <Text
+            render={({ pageNumber, totalPages }) =>
+              `${en.footer.pageOf
+                .replace('{n}', String(pageNumber))
+                .replace('{total}', String(totalPages))} / ${es.footer.pageOf
+                .replace('{n}', String(pageNumber))
+                .replace('{total}', String(totalPages))}`
+            }
+          />
+        </View>
+      </Page>
+
+      {/* ── Reverse side: legal disclosure / policy. English-only by
+          operator policy — the ticket is a legal document. */}
+      <Page size="LETTER" style={styles.backpagePage} wrap>
+        <Text style={styles.backpageHeader}>
+          {en.backpage.header}
+        </Text>
+        {parseBackpageBlocks(data.backpage_text).map((block, i) => {
+          if (block.kind === 'rule') {
+            return <View key={i} style={styles.backpageRule} />
+          }
+          const style = block.mono
+            ? styles.backpageMonoLine
+            : styles.backpageParagraph
+          return (
+            <View key={i} style={{ marginBottom: block.mono ? 5 : 0 }}>
+              {block.lines.map((line, j) => (
+                <Text key={j} style={style}>
+                  {line || ' '}
+                </Text>
+              ))}
+            </View>
+          )
+        })}
 
         {/* ── Footer */}
         <View style={styles.footer} fixed>

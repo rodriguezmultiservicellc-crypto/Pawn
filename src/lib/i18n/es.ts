@@ -904,6 +904,9 @@ export const es: Dictionary = {
         ticketLabel: 'Boleto',
       },
       notes: 'Notas',
+      backpage: {
+        header: 'Términos y Condiciones — Reverso',
+      },
     },
     payment: {
       title: 'Registrar pago',
@@ -2319,6 +2322,12 @@ export const es: Dictionary = {
     minLoanAmountPlaceholder: 'p. ej. 25.00',
     minLoanAmountHint:
       'El registro de empeño rechazará préstamos por debajo de este monto. Vacío = sin mínimo.',
+    backpageTitle: 'Reverso del boleto de empeño',
+    backpageSubtitle:
+      'Aviso legal impreso en el reverso de cada boleto de empeño. Solo en inglés — el boleto es un documento legal. Déjalo vacío para usar el texto estándar del Capítulo 539 de Florida.',
+    backpageUsingDefault: 'Usando el texto estándar del Capítulo 539 de Florida.',
+    backpageUsingCustom: 'Usando tu texto personalizado.',
+    backpageReset: 'Restablecer al texto estándar',
   },
 
   compliance: {
