@@ -76,46 +76,46 @@ export default async function StaffLayout({
 
   return (
     <I18nProvider initialLang={initialLang}>
-      <div className="flex min-h-screen flex-col bg-background">
-        <header className="h-16 border-b border-border bg-card">
-          <div className="flex h-full items-center justify-between px-6">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard"
-                className="font-display text-xl font-bold text-navy"
-              >
-                Pawn
-              </Link>
-              <span className="text-muted">·</span>
-              <TenantSwitcher
-                tenants={switcherTenants}
-                activeTenantId={ctx.tenantId}
-              />
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-              {ctx.globalRole === 'superadmin' ? (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar
+          modules={modules}
+          tenantRole={ctx.tenantRole}
+          tenant={sidebarTenant}
+        />
+        <div className="flex flex-1 flex-col">
+          <header className="h-16 border-b border-border bg-card">
+            <div className="flex h-full items-center justify-between px-6">
+              <div className="flex items-center gap-3">
                 <Link
-                  href="/admin/tenants"
-                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted transition-all hover:bg-background hover:text-foreground"
+                  href="/dashboard"
+                  className="font-display text-xl font-bold text-navy"
                 >
-                  <span className="rounded-full bg-navy px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                    Admin
-                  </span>
-                  <span>Console</span>
+                  Pawn
                 </Link>
-              ) : null}
-              <span className="text-text-secondary">
-                {profile?.full_name ?? ctx.email}
-              </span>
+                <span className="text-muted">·</span>
+                <TenantSwitcher
+                  tenants={switcherTenants}
+                  activeTenantId={ctx.tenantId}
+                />
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                {ctx.globalRole === 'superadmin' ? (
+                  <Link
+                    href="/admin/tenants"
+                    className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted transition-all hover:bg-background hover:text-foreground"
+                  >
+                    <span className="rounded-full bg-navy px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                      Admin
+                    </span>
+                    <span>Console</span>
+                  </Link>
+                ) : null}
+                <span className="text-text-secondary">
+                  {profile?.full_name ?? ctx.email}
+                </span>
+              </div>
             </div>
-          </div>
-        </header>
-        <div className="flex flex-1">
-          <Sidebar
-            modules={modules}
-            tenantRole={ctx.tenantRole}
-            tenant={sidebarTenant}
-          />
+          </header>
           <main className="flex-1 overflow-x-auto px-6 py-6">{children}</main>
         </div>
       </div>

@@ -13,109 +13,73 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 29 (2026-05-06, ~14:00)
-                  — DESIGN SYSTEM REPLACED. Airbnb
-                  (Rausch coral + Inter + 14/20px
-                  radii, "marketplace" feel) is
-                  out. Luna Azul (navy chrome +
-                  gold action + DM Sans body +
-                  Playfair Display titles + 12px
-                  radii, "ops console" feel) is
-                  in. The operator's call: "Airbnb
-                  is not what I want, it doesn't
-                  flow." DESIGN-airbnb.md deleted,
-                  DESIGN-lunaazul.md ships in its
-                  place as the locked source of
-                  truth. CLAUDE.md "DESIGN SYSTEM
-                  — LOCKED" section rewritten to
-                  match. Tokens (lib/tokens.ts)
-                  and globals.css both rewritten
-                  with the new palette + new
-                  radius scale (6/8/12/16) +
-                  Tailwind-default semantic
-                  colors (success #22c55e /
-                  warning #f59e0b / danger
-                  #ef4444 / info #3b82f6). Fonts
-                  in app/layout.tsx swapped from
-                  Inter → DM Sans + Playfair
-                  Display, JetBrains Mono kept.
-                  Body weight 500 → 400.
-                  Then a four-pass mechanical
-                  sweep across src/ touched 154
-                  files: rausch → gold, cloud →
-                  background, hairline → border,
-                  ink → foreground/navy, ash/mute/
-                  stone → muted, charcoal →
-                  text-secondary, error → danger,
-                  canvas → card or white,
-                  rounded-pill → rounded-xl,
-                  shadow-elevation → shadow-lg.
-                  Gold buttons specifically had
-                  their text-white flipped to
-                  text-navy (Luna Azul reads gold
-                  with navy text, not white).
-                  Mid-pass artifact (mutedd from
-                  rule-overlap) caught and
-                  cleaned up across 132 files /
-                  811 occurrences. Manual
-                  composition restyles followed:
-                  (staff)/layout.tsx topbar
-                  (gradient wordmark gone, h-16,
-                  Playfair "Pawn" navy on white),
-                  Sidebar.tsx (full dark navy
-                  column, w-52 / w-16 collapse,
-                  white/65 idle text, gold-active
-                  rows with white/10 bg overlay),
-                  dashboard content.tsx (Playfair
-                  page title, stat cards now lift
-                  on hover via -translate-y-1 +
-                  shadow-lg, 12px radius, p-5),
-                  (auth)/layout.tsx (full navy
-                  bg, white centered card with
-                  Playfair "Pawn" wordmark
-                  above). One-shot migration
-                  script (scripts/migrate-tokens-
-                  to-lunaazul.mjs) deleted after
-                  the typecheck passed. tsc
-                  --noEmit exit 0. NOT COMMITTED
-                  yet — operator needs to load
-                  /dashboard, /login, and the
-                  staff routes in a browser to
-                  eyeball the result before the
-                  Vercel push. The Session 28
-                  dashboard revert was effectively
-                  absorbed into this migration —
-                  the dashboard's STRUCTURE is
-                  what was reverted (4f5b13a),
-                  but its STYLING is now Luna
-                  Azul, not Airbnb. End state =
-                  reverted-then-restyled.
-  Context budget: large (whole-codebase sweep,
-                  154 files modified, 6 manual
-                  composition restyles, ~5300
-                  total token replacements + 4
-                  passes).
-  Last worked on: Whole UI surface. Started as
-                  a "study Luna Azul, give me a
-                  delta report" question; the
-                  operator picked option (a)
-                  "lock the delta in, write the
-                  new doc first, then start the
-                  migration." Foundation +
-                  mechanical sweep + manual
-                  composition + typecheck all
-                  done in one session. The plan
-                  proposed a route-group sweep
-                  after the shell + dashboard,
-                  but the mechanical sweep
-                  already covered every route
-                  group's stale token classes —
-                  no separate per-route-group
-                  pass remains.
+  Last session:   Session 30 (2026-05-06, ~14:30)
+                  — Layout shell follow-up to
+                  Session 29's design migration.
+                  Operator feedback after seeing
+                  the production build: "the menu
+                  doesn't go all the way to the
+                  top, the header is in the way."
+                  Root cause: (staff)/layout.tsx
+                  wrapped the whole shell in `flex
+                  flex-col` with the topbar as the
+                  first child and a `flex flex-1`
+                  row below it — so the navy
+                  sidebar started below the white
+                  header instead of hugging the
+                  full left edge. Fix: restructured
+                  to the Luna Azul reference shape
+                  — outer `flex min-h-screen` with
+                  Sidebar on the left at full
+                  height, plus a `flex flex-1
+                  flex-col` right column holding
+                  the header (h-16) + main. Sidebar
+                  now spans the entire viewport
+                  height, topbar only spans the
+                  right portion next to it. tsc
+                  clean. Committed + pushed as a
+                  follow-up to Session 29.
+                  Session 29 context (DESIGN SYSTEM
+                  REPLACED, Airbnb → Luna Azul,
+                  navy chrome + gold action + DM
+                  Sans / Playfair Display, 154
+                  files / ~5300 className renames,
+                  4-pass mechanical sweep + manual
+                  composition restyles for the
+                  shell / sidebar / dashboard /
+                  auth) is preserved in the
+                  SESSION HISTORY LOG below — see
+                  Session 29 entry for the full
+                  migration record.
+  Context budget: small (one file restructured,
+                  layout shell composition only).
+  Last worked on: One surface — (staff)/layout.tsx
+                  shell. Operator browser-verified
+                  the Session 29 migration after
+                  it shipped, and the only call-out
+                  was the sidebar / topbar
+                  stacking. Pure composition fix,
+                  no token changes, no logic
+                  changes elsewhere.
 
-  ACTIVE FILE(S) at end of session — Session 29
-  (pending commit + push, pending operator
-  browser verification):
+  ACTIVE FILE(S) modified this session — Session 30
+  (committed + pushed):
+
+    - src/app/(staff)/layout.tsx — outer wrapper
+      changed from `flex min-h-screen flex-col`
+      → `flex min-h-screen` (no flex-col). Sidebar
+      moved to be the FIRST child (full-height
+      left column). The right side is a new
+      `flex flex-1 flex-col` wrapper that contains
+      the header (h-16) followed by main. Result:
+      navy sidebar runs from y=0 to bottom-of-
+      viewport; white topbar only spans the right
+      portion. No content / no styling changes
+      elsewhere — header markup, sidebar markup,
+      main padding all unchanged.
+
+  PRIOR-SESSION ACTIVE FILE(S) — Session 29
+  (committed in 1d57110, on production):
 
     --- DESIGN SYSTEM (replaced) ---
     - DESIGN-lunaazul.md (new) — full doc
@@ -223,58 +187,65 @@ SEE ALSO (do not duplicate here):
       logic changes in any of them.
 
   RESUME POINT:
-    Migration is on disk + tsc clean. NOT
-    committed. Operator needs to load these
-    surfaces in a browser and confirm the
-    navy/gold/Playfair look is right before
-    commit + push. Dev server probably needs a
-    restart to pick up the font swap.
+    Layout shell fix is on production (Session 30
+    follow-up commit). Sidebar now hugs the full
+    left edge top-to-bottom; topbar only spans
+    the right portion. Operator should refresh
+    /dashboard and confirm the column reaches
+    y=0 with no white strip above it. Once that
+    looks right, walk the rest of the
+    Session 29 migration verification (browser
+    spot-checks of /login, /customers, /inventory,
+    /pawn, /repair, /pos, /settings) and flag
+    anything that still feels Airbnb-era — the
+    Session 29 mechanical sweep covered every
+    classlist but a visual pass may still surface
+    a few orphan stat-pill colors or a hover
+    state that didn't translate cleanly.
 
-    BROWSER VERIFY (this session, before commit):
-    - /dashboard — page title in serif
-      (Playfair) navy. Stat cards lift 4px on
-      hover with a soft shadow. Cards have
-      12px radius (rounded-xl), 1px #dde6f0
-      border. Module-gated row only renders
-      pawn/repair/retail cards if the tenant
-      has that module. No tabs, no charts, no
-      kanban, no DL scanner.
-    - Sidebar — full dark navy column.
-      Inactive rows white/65 muted. Hovered row
-      slight white/5 overlay + full white text.
-      Active row gold text + white/10 bg
-      overlay + gold icon. Collapse caret in
-      muted white at the top. w-52 expanded,
-      w-16 collapsed.
-    - Topbar — clean white strip, h-16.
-      Solid Playfair "Pawn" navy on the left,
-      next to tenant switcher. Admin Console
-      pill (superadmin only) and user name on
-      the right.
-    - /login — full navy page background.
-      White card centered, max-w-md, rounded-2xl,
-      p-10. White Playfair "Pawn" wordmark
-      above the card. Form uses gold submit
-      button with NAVY text, not white.
-    - Spot-check a few ops routes — /customers,
-      /inventory, /pawn, /repair, /pos,
-      /settings. The mechanical sweep handled
-      every classlist; no logic touched. If
-      something's clearly off (a button still
-      pink, a card still rounded too far, a
-      label using an old grey) name the route
-      and Claude will surgical-fix.
+    BROWSER VERIFY (carrying from Session 29 —
+    the sidebar concern is fixed; the rest is
+    still open):
+    - /dashboard — Playfair page title navy.
+      Stat cards lift 4px on hover with shadow-
+      lg. Cards have 12px radius (rounded-xl),
+      1px #dde6f0 border. Module-gated row only
+      renders pawn/repair/retail cards if the
+      tenant has that module. No tabs, charts,
+      kanban, DL scanner.
+    - Sidebar — full dark navy column TOP TO
+      BOTTOM (Session 30 fix). Inactive rows
+      white/65 muted. Hovered row slight white/5
+      overlay + full white text. Active row gold
+      text + white/10 bg overlay + gold icon.
+      Collapse caret in muted white at the top.
+      w-52 expanded, w-16 collapsed.
+    - Topbar — clean white strip, h-16, on the
+      RIGHT side only (next to the sidebar, not
+      above it). Solid Playfair "Pawn" navy on
+      the left of the topbar, next to tenant
+      switcher. Admin Console pill (superadmin
+      only) + user name on the right.
+    - /login — full navy page background. White
+      card centered, max-w-md, rounded-2xl, p-10.
+      White Playfair "Pawn" wordmark above the
+      card. Gold submit with NAVY text, not white.
+    - Spot-check ops routes — /customers,
+      /inventory, /pawn, /repair, /pos, /settings.
+      Mechanical sweep handled every classlist;
+      no logic touched. If something's clearly
+      off (a button still pink, a card still
+      rounded too far, a label using an old grey)
+      name the route and Claude will surgical-fix.
 
-    SHIP IT IF GOOD, FIX IF NOT:
-    - If the look is right, say "ship it" and
-      Claude will commit + push as the Session 29
-      checkpoint. Vercel rebuilds in ~1 min.
-    - If something's off, identify what (route +
-      element). Claude will fix it before the
-      commit. The migration script is gone but
-      everything is still local — re-running
-      the mass sweep is not on the table; case-
-      by-case fixes only.
+    SHIP-AS-YOU-GO:
+    - Session 29 + 30 are already on production
+      (commits 1d57110 + Session 30 follow-up).
+      Vercel auto-deployed both. Any further
+      visual fix gets its own commit + push as
+      operator finds them. The migration script
+      is gone — case-by-case fixes only, no
+      mass-sweep encore.
 
     BACKPAGE SMOKE (carried from Session 27 —
     still open):
@@ -368,9 +339,14 @@ SEE ALSO (do not duplicate here):
         new design system.
 
   OPEN ISSUES / BLOCKERS:
-    - Migration is tsc-verified only — not yet
-      loaded in a browser. Operator review
-      pending before commit + push.
+    - Session 29 migration shipped (commit
+      1d57110). Session 30 sidebar fix shipped.
+      Operator browser verification of the
+      remaining staff routes (/customers,
+      /inventory, /pawn, /repair, /pos,
+      /settings) still open — anything that
+      reads "Airbnb-era" gets a surgical
+      follow-up commit.
     - Sessions 25/26/27 production smoke not yet
       walked end-to-end. Local lint+tsc+409 tests
       are green; real Resend / Google / Vercel-
@@ -422,7 +398,27 @@ SEE ALSO (do not duplicate here):
       remapped to gold/blue/navy. None spotted in
       tsc, but a visual pass may surface a few.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 29):
+  KEY DECISIONS LOCKED THIS SESSION (Session 30):
+    - SIDEBAR-FIRST LAYOUT, NOT HEADER-FIRST.
+      The Session 29 staff layout had the topbar
+      as the first child (above the sidebar/main
+      row) — quick to write but stacked the
+      navy column under a white strip. Switched
+      to the Luna Azul reference shape: outer
+      flex-row with sidebar as first child
+      (full-height) and a flex-col right column
+      holding header + main. Sidebar reaches
+      y=0; header only spans the right portion.
+      This is the right end state, not a
+      workaround.
+    - NO STICKY SIDEBAR YET. The current shell
+      lets the page scroll behind the topbar.
+      Operator may want sticky/independent
+      sidebar scroll later (`sticky top-0
+      self-start` add); deferred until requested,
+      so the simple layout stays simple.
+
+  KEY DECISIONS LOCKED LAST SESSION (Session 29):
     - DESIGN SYSTEM SOURCE = LUNA AZUL WEB SAAS,
       NOT NEW. The operator already has a
       shipped sister app in this aesthetic
@@ -1951,6 +1947,36 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
+--- Session 30 (2026-05-06, ~14:30) — Layout shell follow-up: sidebar full-height ---
+
+ 271. SIDEBAR FULL-HEIGHT LAYOUT FIX. Operator
+     reported after Session 29's commit landed:
+     "the menu doesn't go all the way to the top,
+     the header is in the way." Root cause:
+     src/app/(staff)/layout.tsx wrapped the
+     entire shell in `<div className="flex
+     min-h-screen flex-col">` — header was the
+     FIRST child (full width across the top),
+     sidebar/main row was the SECOND child.
+     That stacked the navy sidebar UNDER a
+     full-width white header, leaving a 64px
+     white strip above the navy column. The
+     Luna Azul reference puts the sidebar
+     adjacent to the topbar, not below it.
+     Fix: removed `flex-col` from the outer
+     wrapper, moved Sidebar to be the first
+     child, wrapped the header + main in a
+     new `<div className="flex flex-1 flex-col">`
+     right column. Net structure now:
+     `<flex min-h-screen> [Sidebar] [flex-col
+     {header h-16, main}]`. Result: navy column
+     runs y=0 → bottom-of-viewport; topbar
+     only spans the right portion (next to the
+     sidebar, not above it). No content / styling
+     /component changes — pure parent-element
+     restructure. tsc --noEmit exit 0. Single-
+     file diff (src/app/(staff)/layout.tsx).
+
 --- Session 29 (2026-05-06, ~14:00) — Design system replaced: Airbnb → Luna Azul ---
 
  266. DESIGN SYSTEM SOURCE OF TRUTH SWAPPED.
@@ -2884,46 +2910,30 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Restart the dev server (the font swap from
-    Inter → DM Sans + Playfair Display needs a
-    cold rebuild) and walk through the Luna Azul
-    migration in the browser:
-    (1) /dashboard — Playfair page title navy.
-        Stat cards lift on hover with shadow-lg.
-        12px radius. Module-gated row only when
-        tenant has the module.
-    (2) Sidebar — full dark navy column. Idle
-        rows white/65, hover white/5 + full
-        white text, active row gold-text +
-        white/10 bg + gold icon.
-    (3) Topbar — h-16 white strip. Solid
-        Playfair "Pawn" navy, no gradient.
-    (4) /login — full navy bg, white centered
-        card max-w-md rounded-2xl p-10. White
-        Playfair "Pawn" wordmark above. Gold
-        submit with NAVY text.
-    (5) Spot-check ops routes — /customers,
-        /inventory, /pawn, /repair, /pos,
-        /settings — for any straggler that
-        still feels "Airbnb." Mechanical sweep
-        handled every classlist; logic
-        untouched.
-    If it looks right, say "ship it" and Claude
-    will commit + push as the Session 29
-    checkpoint. Vercel rebuilds in ~1 min. If
-    something's off, identify route + element
-    and Claude will surgical-fix before the
-    commit.
+    Refresh /dashboard. The navy sidebar should
+    now run from the very top of the viewport
+    to the bottom (Session 30 fix). The white
+    topbar lives only on the right portion next
+    to the sidebar, not stacked above it. If
+    that looks right, walk the rest of the
+    Session 29 migration verification — spot-
+    check /login, /customers, /inventory, /pawn,
+    /repair, /pos, /settings for any element
+    that still feels Airbnb-era (a button still
+    pink, a card with too-large radius, a label
+    in an old gray). Each finding gets a
+    surgical commit + push (Vercel auto-deploys
+    in ~1 min).
     AFTER THAT (carrying from Session 27): walk
     the backpage smoke (print a pawn ticket;
     verify default + custom override + reset
     paths — the PDF print uses reportColors,
     NOT the screen palette, so the print look
-    is unchanged by this migration), then the
-    9-smoke sequence (A-I) for Google Reviews /
-    cron warmer / quota / email campaigns /
-    unsubscribe / Resend webhook / vault /
-    settings UIs / eBay sync.
+    is unchanged by the Luna Azul migration),
+    then the 9-smoke sequence (A-I) for Google
+    Reviews / cron warmer / quota / email
+    campaigns / unsubscribe / Resend webhook /
+    vault / settings UIs / eBay sync.
     Phase 0 punch list (CRON_SECRET +
     RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY
     + the three secret rotations) is still the
