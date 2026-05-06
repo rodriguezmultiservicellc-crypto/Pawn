@@ -95,7 +95,7 @@ export default function LayawayListContent({
             className={`rounded-full border px-3 py-1 text-xs ${
               chip.active
                 ? 'border-gold bg-gold text-navy'
-                : 'border-border bg-card text-foreground hover:border-foreground'
+                : 'border-border bg-card text-foreground hover:bg-background hover:text-foreground'
             }`}
           >
             {chip.label}
@@ -106,7 +106,7 @@ export default function LayawayListContent({
           className={`rounded-full border px-3 py-1 text-xs ${
             dueWindow === 'dueSoon7'
               ? 'border-warning bg-warning/10 text-warning'
-              : 'border-border bg-card text-foreground hover:border-foreground'
+              : 'border-border bg-card text-foreground hover:bg-background hover:text-foreground'
           }`}
         >
           {t.pos.layaway.filtersDueSoon}
@@ -120,7 +120,7 @@ export default function LayawayListContent({
             : t.pos.layaway.emptyForFilter}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">

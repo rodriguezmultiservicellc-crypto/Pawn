@@ -97,7 +97,7 @@ export default function CatalogItemContent({
                       i <= 0 ? photos.length - 1 : i - 1,
                     )
                   }
-                  className="rounded-full border border-border bg-card p-1.5 hover:border-foreground/40"
+                  className="rounded-full border border-border bg-card p-1.5 hover:bg-background hover:text-foreground/40"
                   aria-label={dict.prevPage}
                 >
                   <CaretLeft size={14} weight="bold" />
@@ -132,7 +132,7 @@ export default function CatalogItemContent({
                       i >= photos.length - 1 ? 0 : i + 1,
                     )
                   }
-                  className="rounded-full border border-border bg-card p-1.5 hover:border-foreground/40"
+                  className="rounded-full border border-border bg-card p-1.5 hover:bg-background hover:text-foreground/40"
                   aria-label={dict.nextPage}
                 >
                   <CaretRight size={14} weight="bold" />
@@ -187,7 +187,7 @@ export default function CatalogItemContent({
                   href={`mailto:${tenant.email}?subject=${encodeURIComponent(
                     `Inquiry: ${item.description} (${item.sku})`,
                   )}`}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:border-foreground/40"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-background hover:text-foreground/40"
                 >
                   <EnvelopeSimple size={14} weight="bold" />
                   {dict.inquireByEmail}
@@ -234,7 +234,7 @@ function SpecTable({
   }
   if (rows.length === 0) return null
   return (
-    <dl className="space-y-1.5 rounded-lg border border-border bg-card p-4 text-sm">
+    <dl className="space-y-1.5 rounded-xl border border-border bg-card p-4 text-sm">
       {rows.map(([k, v]) => (
         <div key={k} className="flex items-baseline justify-between gap-3">
           <dt className="text-muted">{k}</dt>

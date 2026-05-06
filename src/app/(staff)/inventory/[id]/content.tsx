@@ -375,7 +375,7 @@ function PhotosPanel({
   }
 
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">
         {t.inventory.sectionPhotos}
       </legend>
@@ -388,7 +388,7 @@ function PhotosPanel({
             type="button"
             onClick={onPick}
             disabled={pending}
-            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border bg-card text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50"
+            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border bg-card text-sm font-medium text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             <Upload size={20} weight="bold" />
             <span>{pending ? t.common.uploading : t.inventory.addPhoto}</span>
@@ -492,7 +492,7 @@ function StonesPanel({
   const { t } = useI18n()
 
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">
         {t.inventory.sectionStones}
       </legend>
@@ -735,7 +735,7 @@ function MeltPanel({ melt }: { melt: InventoryMeltSummary }) {
       maximumFractionDigits: 2,
     })
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">
         {t.spotPrices.meltPanelTitle}
       </legend>

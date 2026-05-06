@@ -170,7 +170,7 @@ export default function CatalogListContent({
               <li key={item.id}>
                 <Link
                   href={`/s/${tenant.public_slug}/catalog/${item.sku}`}
-                  className="block overflow-hidden rounded-lg border border-border bg-card transition hover:border-foreground/40"
+                  className="block overflow-hidden rounded-xl border border-border bg-card transition hover:bg-background hover:text-foreground/40"
                 >
                   <div className="aspect-square w-full overflow-hidden bg-background">
                     {item.primary_photo?.signed_url ? (
@@ -269,7 +269,7 @@ function CategoryPill({
       className={`rounded-xl border px-3 py-1 text-xs font-medium transition ${
         active
           ? 'border-gold bg-gold text-navy'
-          : 'border-border bg-card text-foreground hover:border-foreground/40'
+          : 'border-border bg-card text-foreground hover:bg-background hover:text-foreground/40'
       }`}
     >
       {label}
@@ -312,7 +312,7 @@ function PageLink({
   return (
     <Link
       href={`/s/${slug}/catalog?${params.toString()}`}
-      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:border-foreground/40"
+      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-background hover:text-foreground/40"
     >
       {right ? null : icon}
       {label}

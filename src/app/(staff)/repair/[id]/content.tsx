@@ -308,7 +308,7 @@ export default function RepairTicketDetail({
           <button
             type="button"
             onClick={() => setShowReminder(true)}
-            className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
+            className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
           >
             {t.comms.sendReminderButton}
           </button>
@@ -342,7 +342,7 @@ export default function RepairTicketDetail({
       ) : null}
 
       {/* Header */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-wide text-muted">
@@ -635,7 +635,7 @@ export default function RepairTicketDetail({
 function OverviewPanel({ ticket }: { ticket: RepairTicketView }) {
   const { t } = useI18n()
   return (
-    <section className="rounded-lg border border-border bg-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">
           {t.repair.detail.sectionOverview}
@@ -698,7 +698,7 @@ function OverviewPanel({ ticket }: { ticket: RepairTicketView }) {
 function ItemPanel({ ticket }: { ticket: RepairTicketView }) {
   const { t } = useI18n()
   return (
-    <section className="rounded-lg border border-border bg-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="border-b border-border px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Wrench size={14} weight="regular" />
@@ -760,7 +760,7 @@ function AssignmentPanel({
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">
           {t.repair.detail.assignedTechnician}
@@ -806,7 +806,7 @@ function AddNoteForm({ ticketId }: { ticketId: string }) {
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">
           {t.repair.actions.addNote}
@@ -828,7 +828,7 @@ function AddNoteForm({ ticketId }: { ticketId: string }) {
             type="button"
             onClick={submit}
             disabled={pending || !notes.trim()}
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:border-foreground disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {pending ? t.common.saving : t.repair.actions.addNote}
           </button>
@@ -865,7 +865,7 @@ function ActionButton({
   } else if (tone === 'error') {
     cls += ' border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
   } else {
-    cls += ' border-border bg-card text-foreground hover:border-foreground'
+    cls += ' border-border bg-card text-foreground hover:bg-background hover:text-foreground'
   }
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={cls}>

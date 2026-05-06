@@ -142,7 +142,7 @@ export function Cart({
       ) : null}
 
       {/* Customer picker */}
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
           <User size={14} weight="bold" />
           {t.pos.sale.customer}
@@ -163,7 +163,7 @@ export function Cart({
       </fieldset>
 
       {/* Cart lines */}
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
           <ShoppingBag size={14} weight="bold" />
           {t.pos.sale.cart}
@@ -274,7 +274,7 @@ export function Cart({
           <button
             type="button"
             onClick={() => setShowInventoryPicker(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:border-foreground"
+            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted transition-all hover:bg-background hover:text-foreground"
           >
             <Plus size={14} weight="bold" />
             {t.pos.sale.addItem}
@@ -282,7 +282,7 @@ export function Cart({
           <button
             type="button"
             onClick={addCustomLine}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:border-foreground"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background hover:text-foreground"
           >
             <Plus size={14} weight="bold" />
             {t.pos.sale.addCustomLine}
@@ -291,7 +291,7 @@ export function Cart({
       </fieldset>
 
       {/* Totals */}
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
             <span className="text-sm font-medium text-foreground">
@@ -362,7 +362,7 @@ export function Cart({
           onClick={() =>
             onSaveAsLayaway(customerId, lines, taxRate, discount, notes)
           }
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
         >
           {t.pos.sale.saveAsLayaway}
         </button>

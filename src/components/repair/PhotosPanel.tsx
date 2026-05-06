@@ -71,7 +71,7 @@ export function PhotosPanel({
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <ImageIcon size={14} weight="regular" />
@@ -104,7 +104,7 @@ export function PhotosPanel({
               type="button"
               onClick={pick}
               disabled={pending}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
             >
               <Upload size={14} weight="bold" />
               {pending ? t.common.uploading : t.repair.actions.addPhoto}
@@ -229,7 +229,7 @@ function PhotoTile({
                 type="button"
                 onClick={saveCaption}
                 disabled={pending}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[11px] font-medium text-foreground hover:border-foreground disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
               >
                 <Plus size={10} weight="bold" />
                 {t.repair.actions.saveCaption}

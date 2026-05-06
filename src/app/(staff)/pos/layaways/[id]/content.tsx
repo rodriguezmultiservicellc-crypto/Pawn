@@ -91,7 +91,7 @@ export default function LayawayDetailContent({
       </div>
 
       {/* Header */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-wide text-muted">
@@ -147,7 +147,7 @@ export default function LayawayDetailContent({
         <button
           type="button"
           onClick={() => setShowReminder(true)}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
         >
           {t.comms.sendReminderButton}
         </button>
@@ -184,7 +184,7 @@ export default function LayawayDetailContent({
       ) : null}
 
       {/* Totals */}
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-card p-4 lg:grid-cols-4">
         <Stat label={t.pos.sale.total} value={fmtMoney(layaway.total_due)} />
         <Stat
           label={t.pos.layaway.paidTotal}
@@ -203,7 +203,7 @@ export default function LayawayDetailContent({
       </div>
 
       {/* Schedule preview */}
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-xl border border-border bg-card p-4">
         <header className="mb-2 flex items-center gap-2">
           <Calendar size={14} weight="regular" className="text-muted" />
           <h2 className="text-sm font-semibold text-foreground">
@@ -239,7 +239,7 @@ export default function LayawayDetailContent({
       </section>
 
       {/* Items */}
-      <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <section className="overflow-hidden rounded-xl border border-border bg-card">
         <header className="border-b border-border px-3 py-2">
           <h2 className="text-sm font-semibold text-foreground">
             {t.pos.sale.itemsTitle}
@@ -275,7 +275,7 @@ export default function LayawayDetailContent({
       </section>
 
       {/* Payments */}
-      <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <section className="overflow-hidden rounded-xl border border-border bg-card">
         <header className="border-b border-border px-3 py-2">
           <h2 className="text-sm font-semibold text-foreground">
             {t.pos.layaway.paymentsHistory}

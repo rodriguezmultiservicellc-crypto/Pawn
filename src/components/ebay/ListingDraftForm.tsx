@@ -79,7 +79,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-4 rounded-lg border border-border bg-card p-4"
+      className="space-y-4 rounded-xl border border-border bg-card p-4"
     >
       <div className="flex items-start justify-between">
         <div>
@@ -243,7 +243,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
                 }
               })
             }}
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {t.ebay.syncNow}
           </button>
@@ -274,7 +274,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
+          className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
         >
           {pending ? t.common.saving : t.common.save}
         </button>

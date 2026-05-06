@@ -158,7 +158,7 @@ function KindGroup({
 }) {
   const { t } = useI18n()
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-4 py-2">
         <div>
           <div className="text-sm font-semibold text-foreground">
@@ -196,7 +196,7 @@ function KindGroup({
                 <button
                   type="button"
                   onClick={() => onTest(r)}
-                  className="mr-2 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
+                  className="mr-2 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
                 >
                   {t.comms.actionTest}
                 </button>

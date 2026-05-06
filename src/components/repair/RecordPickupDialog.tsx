@@ -135,7 +135,7 @@ export function RecordPickupDialog({
           <button
             type="button"
             onClick={() => sigRef.current?.click()}
-            className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
+            className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
           >
             <Upload size={14} weight="bold" />
             {sigFileName ?? t.common.upload}
@@ -165,7 +165,7 @@ export function RecordPickupDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
         >
           {t.common.cancel}
         </button>

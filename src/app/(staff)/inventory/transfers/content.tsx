@@ -160,7 +160,7 @@ export default function TransfersContent({
           <button
             type="button"
             onClick={() => pushParams({ status: null, direction: null })}
-            className="ml-auto rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:border-foreground"
+            className="ml-auto rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background hover:text-foreground"
           >
             {t.common.clear}
           </button>
@@ -168,7 +168,7 @@ export default function TransfersContent({
       </div>
 
       {transfers.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
           <p className="text-muted">
             {hasFilter
               ? t.inventory.transfers.list.emptyForFilter
@@ -176,7 +176,7 @@ export default function TransfersContent({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-muted">
               <tr>
@@ -283,7 +283,7 @@ function FilterChip({
       : tone === 'error'
       ? 'bg-danger/10 border-danger/40 text-danger'
       : 'bg-navy text-white border-navy'
-    : 'border-border bg-card text-foreground hover:border-foreground'
+    : 'border-border bg-card text-foreground hover:bg-background hover:text-foreground'
 
   return (
     <button

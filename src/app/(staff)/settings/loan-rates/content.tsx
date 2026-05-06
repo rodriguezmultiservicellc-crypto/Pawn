@@ -124,7 +124,7 @@ function PolicyCard({ initial }: { initial: number | null }) {
   const fe = state.fieldErrors?.['min_loan_amount']
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <h2 className="text-sm font-semibold text-foreground">
         {t.settingsLoanRates.policyTitle}
       </h2>
@@ -193,7 +193,7 @@ function BackpageCard({ initial }: { initial: string | null }) {
   const usingDefault = value.trim().length === 0
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <h2 className="text-sm font-semibold text-foreground">
         {t.settingsLoanRates.backpageTitle}
       </h2>
@@ -222,7 +222,7 @@ function BackpageCard({ initial }: { initial: string | null }) {
               <button
                 type="button"
                 onClick={() => setValue('')}
-                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
               >
                 {t.settingsLoanRates.backpageReset}
               </button>
@@ -323,7 +323,7 @@ function RateTable({
                   <button
                     type="button"
                     onClick={() => onEdit(r)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
                   >
                     <PencilSimple size={11} weight="bold" />
                     {t.common.edit}
@@ -383,7 +383,7 @@ function EditDialog({
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-5 shadow-lg">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-lg">
         <header className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground">
             {row ? t.settingsLoanRates.editTitle : t.settingsLoanRates.addTitle}
@@ -578,7 +578,7 @@ function EditDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:border-foreground"
+                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
               >
                 {t.common.cancel}
               </button>

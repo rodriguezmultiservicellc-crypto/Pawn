@@ -74,7 +74,7 @@ export default async function AdminLayout({
               </Link>
               <Link
                 href="/dashboard"
-                className="rounded-md border border-border px-3 py-1 text-foreground hover:border-foreground"
+                className="rounded-md border border-border px-3 py-1 text-foreground hover:bg-background hover:text-foreground"
                 title="Return to the staff workspace for the active tenant"
               >
                 Staff →

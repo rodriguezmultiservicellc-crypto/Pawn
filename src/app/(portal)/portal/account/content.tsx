@@ -73,7 +73,7 @@ export default function AccountContent({
       </div>
 
       {/* Identity card — read-only. */}
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <legend className="px-1 text-sm font-semibold text-foreground">
           {t.portal.account.identity}
         </legend>
@@ -97,7 +97,7 @@ export default function AccountContent({
       </fieldset>
 
       {/* Password card. */}
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <legend className="flex items-center gap-1 px-1 text-sm font-semibold text-foreground">
           <Key size={14} weight="bold" />
           <span>{t.portal.account.passwordTitle}</span>

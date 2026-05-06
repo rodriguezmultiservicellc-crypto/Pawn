@@ -400,7 +400,7 @@ function CardBody({ card, today }: { card: BoardCard; today: string }) {
   const isDueSoon = days != null && days >= 0 && days <= 7
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-md border border-border bg-card p-2.5 text-left transition-colors hover:border-foreground">
+    <div className="flex flex-col gap-1.5 rounded-md border border-border bg-card p-2.5 text-left transition-colors hover:bg-background hover:text-foreground">
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[11px] text-muted">
           {card.ticket_number}

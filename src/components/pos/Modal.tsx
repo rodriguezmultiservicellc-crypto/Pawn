@@ -31,7 +31,7 @@ export function Modal({
       aria-modal="true"
     >
       <div
-        className={`w-full ${widthCls} rounded-lg border border-border bg-card p-5 shadow-lg`}
+        className={`w-full ${widthCls} rounded-xl border border-border bg-card p-5 shadow-lg`}
       >
         <header className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground">{title}</h3>

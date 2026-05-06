@@ -108,7 +108,7 @@ export function DateRangePicker({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
+        className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
       >
         {t.reports.range.apply}
       </button>
@@ -127,7 +127,7 @@ export function DateRangePicker({
             type="button"
             onClick={() => applyPreset(key)}
             disabled={pending}
-            className="rounded-full border border-border bg-card px-3 py-1 text-xs text-foreground hover:border-foreground disabled:opacity-50"
+            className="rounded-full border border-border bg-card px-3 py-1 text-xs text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {label}
           </button>

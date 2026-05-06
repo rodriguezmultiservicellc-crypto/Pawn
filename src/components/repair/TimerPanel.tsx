@@ -84,7 +84,7 @@ export function TimerPanel({
   }, 0)
 
   return (
-    <section className="rounded-lg border border-border bg-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Clock size={14} weight="regular" />

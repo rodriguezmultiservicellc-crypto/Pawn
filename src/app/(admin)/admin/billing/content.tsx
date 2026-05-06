@@ -39,7 +39,7 @@ export default function BillingContent({
 
       <PlanSummary plans={plans} />
 
-      <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <section className="overflow-hidden rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-background text-left text-xs uppercase tracking-wide text-muted">
             <tr>
@@ -86,7 +86,7 @@ function PlanSummary({ plans }: { plans: SubscriptionPlan[] }) {
       {plans.map((p) => (
         <article
           key={p.id}
-          className="rounded-lg border border-border bg-card p-4"
+          className="rounded-xl border border-border bg-card p-4"
         >
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-foreground">{p.name}</h2>

@@ -54,7 +54,7 @@ export function CredsForm({ settings, action }: CredsFormProps) {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-5 rounded-lg border border-border bg-card p-5"
+      className="space-y-5 rounded-xl border border-border bg-card p-5"
     >
       {error ? (
         <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -255,7 +255,7 @@ function SecretField({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
           >
             {t.common.update}
           </button>

@@ -108,7 +108,7 @@ export function TenantSwitcher({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-foreground"
+        className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-background hover:text-foreground"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -130,7 +130,7 @@ export function TenantSwitcher({
       {open ? (
         <div
           role="listbox"
-          className="absolute right-0 z-20 mt-1 w-72 overflow-hidden rounded-lg border border-border bg-card"
+          className="absolute right-0 z-20 mt-1 w-72 overflow-hidden rounded-xl border border-border bg-card"
           style={{
             boxShadow:
               'rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0',

@@ -119,11 +119,11 @@ export default function TenantsContent({
       ) : null}
 
       {tenants.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
           <p className="text-muted">{t.admin.tenants.empty}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-muted">
               <tr>
@@ -177,7 +177,7 @@ export default function TenantsContent({
                       type="button"
                       onClick={() => openTenant(tn.id)}
                       disabled={pendingTenantId === tn.id}
-                      className="rounded-md border border-border bg-card px-3 py-1 text-sm text-foreground hover:border-foreground disabled:opacity-50"
+                      className="rounded-md border border-border bg-card px-3 py-1 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
                     >
                       {pendingTenantId === tn.id
                         ? t.common.opening

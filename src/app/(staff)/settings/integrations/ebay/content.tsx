@@ -127,7 +127,7 @@ export default function EbaySettingsContent({
       ) : null}
 
       {/* Connection card */}
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <legend className="px-1 text-sm font-semibold text-foreground">
           {t.ebay.connectionTitle}
         </legend>
@@ -162,7 +162,7 @@ export default function EbaySettingsContent({
                 type="button"
                 disabled={pending}
                 onClick={onSync}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
               >
                 <ArrowsClockwise size={14} weight="bold" />
                 {t.ebay.runSyncNow}
@@ -190,7 +190,7 @@ export default function EbaySettingsContent({
               </Link>
               <Link
                 href="/api/ebay/oauth/start?env=production"
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 text-foreground hover:border-foreground"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 text-foreground hover:bg-background hover:text-foreground"
               >
                 <Plug size={14} weight="bold" />
                 {t.ebay.connectProduction}
@@ -202,7 +202,7 @@ export default function EbaySettingsContent({
 
       {/* Config card — only when connected. */}
       {view.connected ? (
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.ebay.configTitle}
           </legend>

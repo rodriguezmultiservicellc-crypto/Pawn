@@ -133,7 +133,7 @@ export default function GeneralSettingsContent({
       ) : null}
 
       <form action={formAction} key={formGen} className="space-y-6">
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             Identity
           </legend>
@@ -155,7 +155,7 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             Contact
           </legend>
@@ -179,7 +179,7 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             Address
           </legend>
@@ -225,7 +225,7 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             Compliance
           </legend>
@@ -245,7 +245,7 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             Public landing page
           </legend>
@@ -379,7 +379,7 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             Modules (read-only)
           </legend>

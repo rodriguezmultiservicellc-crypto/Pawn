@@ -53,7 +53,7 @@ export function ReportPageShell({
           {totals.map((t, i) => (
             <div
               key={i}
-              className="rounded-lg border border-border bg-card p-4"
+              className="rounded-xl border border-border bg-card p-4"
             >
               <div className="text-xs uppercase tracking-wide text-muted">
                 {t.label}

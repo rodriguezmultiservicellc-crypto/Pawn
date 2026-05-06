@@ -60,7 +60,7 @@ export function VoidSaleDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
         >
           {t.common.cancel}
         </button>

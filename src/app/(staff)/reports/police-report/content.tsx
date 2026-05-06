@@ -120,11 +120,11 @@ export default function PoliceReportContent({
             .replace('{flattened}', String(flattenedRowCount))}
         </p>
         {previewRows.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card p-12 text-center text-muted">
+          <div className="rounded-xl border border-border bg-card p-12 text-center text-muted">
             {t.reports.empty}
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border bg-card">
+          <div className="overflow-x-auto rounded-xl border border-border bg-card">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-border text-muted">
                 <tr>
@@ -181,7 +181,7 @@ export default function PoliceReportContent({
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
       <div className="mt-1 font-mono text-lg font-bold text-foreground">{value}</div>
     </div>

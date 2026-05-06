@@ -220,7 +220,7 @@ export const CollateralItemsList = forwardRef<CollateralListHandle>(
         <button
           type="button"
           onClick={addRow}
-          className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
+          className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
         >
           <Plus size={14} weight="bold" />
           {t.pawn.new_.addItem}
@@ -262,7 +262,7 @@ function CollateralRow({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
+    <div className="rounded-xl border border-border bg-card p-3">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
         {/* Photo */}
         <div className="md:col-span-2">
@@ -272,7 +272,7 @@ function CollateralRow({
           <button
             type="button"
             onClick={() => photoInputRef.current?.click()}
-            className="group relative flex h-24 w-full items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-background hover:border-foreground"
+            className="group relative flex h-24 w-full items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-background hover:bg-background hover:text-foreground"
             aria-label={t.pawn.new_.itemPhoto}
           >
             {row.photoPreview ? (

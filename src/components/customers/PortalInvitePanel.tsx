@@ -75,7 +75,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
   }
 
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">
         {t.customers.portalInvite.title}
       </legend>
@@ -176,7 +176,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
                 <button
                   type="button"
                   onClick={() => onCopy(sendState.manualLink!, 'manual')}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
                 >
                   <LinkIcon size={12} weight="bold" />
                   {copied === 'manual'
@@ -205,7 +205,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
           <button
             type="button"
             onClick={() => onCopy(props.portalLoginUrl, 'portal')}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
           >
             <LinkIcon size={12} weight="bold" />
             {copied === 'portal'
@@ -240,7 +240,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
               <button
                 type="submit"
                 disabled={signInPending || !props.customerEmail}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:border-foreground disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
               >
                 <Key size={12} weight="bold" />
                 {signInPending
@@ -280,7 +280,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
                 <button
                   type="button"
                   onClick={() => onCopy(signInState.magicLink!, 'signin')}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
                 >
                   <LinkIcon size={12} weight="bold" />
                   {copied === 'signin'

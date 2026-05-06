@@ -169,7 +169,7 @@ export default function PawnContent({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {t.common.search}
           </button>
@@ -198,7 +198,7 @@ export default function PawnContent({
                 customer: null,
               })
             }}
-            className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+            className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
           >
             {t.common.clear}
           </button>
@@ -206,14 +206,14 @@ export default function PawnContent({
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
           <Coins size={32} weight="light" className="mx-auto mb-3 text-muted" />
           <p className="text-muted">
             {hasFilter ? t.pawn.list.emptyForFilter : t.pawn.list.empty}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-muted">
               <tr>

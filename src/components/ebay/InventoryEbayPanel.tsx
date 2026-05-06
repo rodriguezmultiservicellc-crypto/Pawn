@@ -65,7 +65,7 @@ export default function InventoryEbayPanel(props: InventoryEbayPanelProps) {
 
   if (!props.ebayConnected) {
     return (
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <legend className="px-1 text-sm font-semibold text-foreground">
           {t.ebay.panelTitle}
         </legend>
@@ -88,7 +88,7 @@ export default function InventoryEbayPanel(props: InventoryEbayPanelProps) {
   // No listing yet → "Create eBay listing" button.
   if (!props.listing && !showForm) {
     return (
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <legend className="px-1 text-sm font-semibold text-foreground">
           {t.ebay.panelTitle}
         </legend>
@@ -126,7 +126,7 @@ export default function InventoryEbayPanel(props: InventoryEbayPanelProps) {
     : props.createDraftAction
 
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">
         {t.ebay.panelTitle}
       </legend>

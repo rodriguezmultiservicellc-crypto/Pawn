@@ -129,7 +129,7 @@ export default function NewAppraisalForm({
 
       <form action={formAction} className="space-y-6">
         {/* Subject */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionSubject}
           </legend>
@@ -176,7 +176,7 @@ export default function NewAppraisalForm({
         </fieldset>
 
         {/* Item */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionItem}
           </legend>
@@ -268,7 +268,7 @@ export default function NewAppraisalForm({
         </fieldset>
 
         {/* Stones */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionStones}
           </legend>
@@ -286,7 +286,7 @@ export default function NewAppraisalForm({
             <button
               type="button"
               onClick={addStone}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
             >
               <Plus size={14} weight="bold" />
               {t.appraisal.new_.addStone}
@@ -295,7 +295,7 @@ export default function NewAppraisalForm({
         </fieldset>
 
         {/* Photos */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionPhotos}
           </legend>
@@ -306,7 +306,7 @@ export default function NewAppraisalForm({
             <button
               type="button"
               onClick={() => photoInputRef.current?.click()}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
             >
               <Upload size={14} weight="bold" />
               {t.appraisal.new_.photoUpload}
@@ -331,7 +331,7 @@ export default function NewAppraisalForm({
         </fieldset>
 
         {/* Valuation */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionValuation}
           </legend>
@@ -427,7 +427,7 @@ export default function NewAppraisalForm({
         </fieldset>
 
         {/* Validity */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionValidity}
           </legend>

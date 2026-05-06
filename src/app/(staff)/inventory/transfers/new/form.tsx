@@ -120,7 +120,7 @@ export default function NewTransferForm({
             {t.inventory.transfers.new.backToList}
           </Link>
         </div>
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
           <Package
             size={28}
             weight="regular"
@@ -166,7 +166,7 @@ export default function NewTransferForm({
       ) : null}
 
       <form action={formAction} className="space-y-6">
-        <div className="rounded-lg border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-5">
           <label
             htmlFor="destination_tenant_id"
             className="block text-sm font-medium text-foreground"
@@ -197,7 +197,7 @@ export default function NewTransferForm({
           ) : null}
         </div>
 
-        <div className="rounded-lg border border-border bg-card">
+        <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <div>
               <h2 className="text-sm font-semibold text-foreground">
@@ -317,7 +317,7 @@ export default function NewTransferForm({
           ) : null}
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-5">
           <label htmlFor="notes" className="block text-sm font-medium text-foreground">
             {t.inventory.transfers.new.notes}{' '}
             <span className="text-muted">({t.common.optional})</span>

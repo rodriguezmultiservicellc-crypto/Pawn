@@ -166,7 +166,7 @@ export default function SaleDetailContent({
       </div>
 
       {/* Header */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-wide text-muted">
@@ -259,7 +259,7 @@ export default function SaleDetailContent({
         {isCompleted && !isFullyReturned ? (
           <Link
             href={`/pos/returns/new?sale=${sale.id}`}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
           >
             <ArrowsClockwise size={14} weight="bold" />
             {t.pos.sale.issueReturn}
@@ -277,7 +277,7 @@ export default function SaleDetailContent({
           <button
             type="button"
             onClick={printReceipt}
-            className="ml-auto inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
+            className="ml-auto inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
           >
             <Printer size={14} weight="bold" />
             {t.pos.sale.receiptCopy}
@@ -286,7 +286,7 @@ export default function SaleDetailContent({
       </div>
 
       {/* Totals */}
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-card p-4 lg:grid-cols-5">
         <Stat label={t.pos.sale.subtotal} value={fmtMoney(sale.subtotal)} />
         <Stat
           label={t.pos.sale.discount}
@@ -341,7 +341,7 @@ export default function SaleDetailContent({
 function ItemsPanel({ items }: { items: SaleDetailItem[] }) {
   const { t } = useI18n()
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
+    <section className="overflow-hidden rounded-xl border border-border bg-card">
       <header className="border-b border-border px-3 py-2">
         <h2 className="text-sm font-semibold text-foreground">
           {t.pos.sale.itemsTitle}
@@ -409,7 +409,7 @@ function PaymentsPanel({
 }) {
   const { t } = useI18n()
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
+    <section className="overflow-hidden rounded-xl border border-border bg-card">
       <header className="border-b border-border px-3 py-2">
         <h2 className="text-sm font-semibold text-foreground">
           {t.pos.sale.paymentsTitle}
@@ -486,7 +486,7 @@ function ActionButton({
   } else if (tone === 'error') {
     cls += ' border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
   } else {
-    cls += ' border-border bg-card text-foreground hover:border-foreground'
+    cls += ' border-border bg-card text-foreground hover:bg-background hover:text-foreground'
   }
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={cls}>

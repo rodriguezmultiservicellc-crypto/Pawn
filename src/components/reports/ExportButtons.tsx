@@ -28,14 +28,14 @@ export function ExportButtons({
         href={`/api/reports/${slug}/pdf?${qs}`}
         target="_blank"
         rel="noreferrer"
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+        className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
       >
         <FilePdf size={16} weight="regular" />
         {t.reports.actions.exportPdf}
       </a>
       <a
         href={`/api/reports/${slug}/csv?${qs}`}
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+        className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
       >
         <FileCsv size={16} weight="regular" />
         {t.reports.actions.exportCsv}

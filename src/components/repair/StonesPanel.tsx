@@ -44,7 +44,7 @@ export function StonesPanel({
     stones.reduce((max, s) => (s.stone_index > max ? s.stone_index : max), 0) + 1
 
   return (
-    <section className="rounded-lg border border-border bg-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Diamond size={14} weight="regular" />
@@ -54,7 +54,7 @@ export function StonesPanel({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:border-foreground"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
           >
             <Plus size={12} weight="bold" />
             {t.repair.actions.addStone}

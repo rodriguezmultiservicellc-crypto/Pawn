@@ -130,7 +130,7 @@ export function RecordPaymentDialog({
             <button
               type="button"
               onClick={toggleManual}
-              className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
+              className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
             >
               {manual ? t.pawn.payment.autoSplit : t.pawn.payment.manualSplit}
             </button>
@@ -180,7 +180,7 @@ export function RecordPaymentDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
         >
           {t.common.cancel}
         </button>
@@ -244,7 +244,7 @@ export function Modal({
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-5 shadow-lg">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-lg">
         <header className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground">{title}</h3>
           <button

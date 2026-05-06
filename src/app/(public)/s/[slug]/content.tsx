@@ -147,7 +147,7 @@ export default function LandingPageContent({
 
         {/* About */}
         {tenant.public_about ? (
-          <section className="mb-10 rounded-lg border border-border bg-card p-6">
+          <section className="mb-10 rounded-xl border border-border bg-card p-6">
             <h2 className="text-lg font-semibold tracking-[-0.01em] text-foreground">
               {dict.about}
             </h2>
@@ -179,7 +179,7 @@ export default function LandingPageContent({
           {tenant.has_retail && tenant.public_catalog_enabled ? (
             <Link
               href={`/s/${tenant.public_slug}/catalog`}
-              className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-background"
+              className="inline-flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-background"
             >
               <span className="inline-flex items-center gap-2">
                 <span className="text-gold">
@@ -198,7 +198,7 @@ export default function LandingPageContent({
           ) : null}
           <Link
             href="/portal/login"
-            className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-background"
+            className="inline-flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-background"
           >
             <span className="inline-flex items-center gap-2">
               <span className="text-gold">●</span>
@@ -225,7 +225,7 @@ export default function LandingPageContent({
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
+    <div className="rounded-xl border border-border bg-card p-5">
       {children}
     </div>
   )

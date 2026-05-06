@@ -223,7 +223,7 @@ export default function AppraisalDetail({
               href={`/api/appraisals/${appraisal.id}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
             >
               <Printer size={14} weight="bold" />
               {t.appraisal.detail.printPdf}
@@ -302,7 +302,7 @@ export default function AppraisalDetail({
       ) : null}
 
       {/* Subject */}
-      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 className="text-sm font-semibold text-foreground">
           {t.appraisal.detail.sectionSubject}
         </h2>
@@ -340,7 +340,7 @@ export default function AppraisalDetail({
       </section>
 
       {/* Item */}
-      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 className="text-sm font-semibold text-foreground">
           {t.appraisal.detail.sectionItem}
         </h2>
@@ -367,7 +367,7 @@ export default function AppraisalDetail({
       </section>
 
       {/* Photos */}
-      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">
             {t.appraisal.detail.sectionPhotos}
@@ -418,7 +418,7 @@ export default function AppraisalDetail({
       </section>
 
       {/* Stones */}
-      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">
             {t.appraisal.detail.sectionStones}
@@ -427,7 +427,7 @@ export default function AppraisalDetail({
             <button
               type="button"
               onClick={() => setShowAddStone((v) => !v)}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:border-foreground"
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
             >
               <Plus size={12} weight="bold" />
               {t.appraisal.detail.addStone}
@@ -510,7 +510,7 @@ export default function AppraisalDetail({
       </section>
 
       {/* Valuation */}
-      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 className="text-sm font-semibold text-foreground">
           {t.appraisal.detail.sectionValuation}
         </h2>
@@ -544,7 +544,7 @@ export default function AppraisalDetail({
 
       {/* Validity + Appraiser */}
       <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
           <h2 className="text-sm font-semibold text-foreground">
             {t.appraisal.detail.sectionValidity}
           </h2>
@@ -559,7 +559,7 @@ export default function AppraisalDetail({
             </Field>
           </div>
         </div>
-        <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
           <h2 className="text-sm font-semibold text-foreground">
             {t.appraisal.detail.sectionAppraiser}
           </h2>
@@ -655,7 +655,7 @@ function PhotoUploader({
       <button
         type="button"
         onClick={() => setShow(true)}
-        className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:border-foreground"
+        className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
       >
         <UploadSimple size={12} weight="bold" />
         {t.appraisal.detail.addPhoto}

@@ -57,7 +57,7 @@ export default function NewReturnForm({
         </h1>
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="text-xs uppercase tracking-wide text-muted">
           {t.pos.return.saleLookup}
         </div>

@@ -314,7 +314,7 @@ function SpotGrid({
         />
       ))}
       {cards.length === 0 ? (
-        <div className="col-span-full rounded-lg border border-border bg-card p-6 text-center text-sm text-muted">
+        <div className="col-span-full rounded-xl border border-border bg-card p-6 text-center text-sm text-muted">
           {t.spotPrices.noPrices}
         </div>
       ) : null}
@@ -346,7 +346,7 @@ function SpotCard({
   const perOz = card.price_per_troy_oz ? Number(card.price_per_troy_oz) : null
 
   return (
-    <div className="group relative rounded-lg border border-border bg-card p-4">
+    <div className="group relative rounded-xl border border-border bg-card p-4">
       <button
         type="button"
         onClick={onToggleHidden}
@@ -453,7 +453,7 @@ function OverridesPanel({
 }) {
   const { t } = useI18n()
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">
         {t.spotPrices.overridesTitle}
       </legend>

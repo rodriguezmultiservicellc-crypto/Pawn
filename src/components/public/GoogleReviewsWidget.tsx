@@ -25,7 +25,7 @@ export default function GoogleReviewsWidget({
     data.totalReviewCount === 1 ? dict.count.one : dict.count.other
 
   return (
-    <section className="mb-10 rounded-lg border border-border bg-card p-5">
+    <section className="mb-10 rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">

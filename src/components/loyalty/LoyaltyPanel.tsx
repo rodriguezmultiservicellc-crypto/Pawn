@@ -56,7 +56,7 @@ export default function LoyaltyPanel({
 
   if (!enabled) {
     return (
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-xl border border-border bg-card p-4">
         <div className="flex items-center gap-2 text-sm text-muted">
           <Trophy size={18} weight="regular" />
           <span>Loyalty disabled for this shop. Enable in /settings/loyalty.</span>
@@ -80,7 +80,7 @@ export default function LoyaltyPanel({
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <div className="mb-4 flex items-center gap-2">
         <Trophy size={20} weight="fill" className="text-gold" />
         <h2 className="text-lg font-semibold text-foreground">Loyalty</h2>

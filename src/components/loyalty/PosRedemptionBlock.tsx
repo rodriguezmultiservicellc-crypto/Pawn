@@ -53,7 +53,7 @@ export default function PosRedemptionBlock({
       : 0
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <h3 className="mb-3 text-sm font-semibold text-foreground">Loyalty</h3>
 
       {balance > 0 && (

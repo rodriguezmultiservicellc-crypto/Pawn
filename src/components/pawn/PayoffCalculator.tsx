@@ -24,7 +24,7 @@ export function PayoffCalculator({
   const isOverdue = days < 0
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <header className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">
           {t.pawn.detail.payoffPanelTitle}

@@ -163,7 +163,7 @@ export default function PawnLoanDetail({
           <button
             type="button"
             onClick={() => setShowReminder(true)}
-            className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
+            className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
           >
             {t.comms.sendReminderButton}
           </button>
@@ -205,7 +205,7 @@ export default function PawnLoanDetail({
       ) : null}
 
       {/* Header */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-wide text-muted">
@@ -275,7 +275,7 @@ export default function PawnLoanDetail({
               href={loan.signature_signed_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+              className="mt-3 inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
             >
               {t.pawn.detail.signatureView}
             </a>
@@ -432,7 +432,7 @@ function ActionButton({
   } else if (tone === 'error') {
     cls += ' border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
   } else {
-    cls += ' border-border bg-card text-foreground hover:border-foreground'
+    cls += ' border-border bg-card text-foreground hover:bg-background hover:text-foreground'
   }
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={cls}>
@@ -445,7 +445,7 @@ function ActionButton({
 function CollateralPanel({ collateral }: { collateral: LoanCollateralView[] }) {
   const { t } = useI18n()
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <h2 className="mb-3 text-sm font-semibold text-foreground">
         {t.pawn.detail.collateralPanelTitle}
       </h2>
@@ -502,7 +502,7 @@ function EventLogPanel({ events }: { events: LoanEventView[] }) {
   const { t } = useI18n()
   if (events.length === 0) {
     return (
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold text-foreground">
           {t.pawn.detail.eventLogTitle}
         </h2>
@@ -511,7 +511,7 @@ function EventLogPanel({ events }: { events: LoanEventView[] }) {
     )
   }
   return (
-    <section className="rounded-lg border border-border bg-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">
           {t.pawn.detail.eventLogTitle}

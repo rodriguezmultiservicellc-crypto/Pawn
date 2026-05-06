@@ -95,7 +95,7 @@ export default function Form1099Content({
 
       {/* Headline tiles */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-card p-4">
           <div className="text-xs uppercase tracking-wide text-muted">
             {f.candidatesAboveTile}
           </div>
@@ -104,7 +104,7 @@ export default function Form1099Content({
           </div>
           <p className="mt-1 text-xs text-muted">{headlineCandidates}</p>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-card p-4">
           <div className="text-xs uppercase tracking-wide text-muted">
             {f.totalReportableTile}
           </div>
@@ -140,7 +140,7 @@ export default function Form1099Content({
 
       {/* Empty state vs table */}
       {candidates.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
           <HandCoins
             size={32}
             weight="regular"
@@ -155,7 +155,7 @@ export default function Form1099Content({
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-muted">
               <tr>

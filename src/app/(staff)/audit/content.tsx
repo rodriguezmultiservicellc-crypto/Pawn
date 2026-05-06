@@ -151,7 +151,7 @@ export default function AuditContent({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {t.common.search}
           </button>
@@ -200,7 +200,7 @@ export default function AuditContent({
           <button
             type="button"
             onClick={clearAll}
-            className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+            className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
           >
             {t.common.clear}
           </button>
@@ -229,11 +229,11 @@ export default function AuditContent({
       </div>
 
       {events.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
           <p className="text-muted">{t.audit.empty}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-muted">
               <tr>
@@ -320,7 +320,7 @@ export default function AuditContent({
             pushParams({ page: page > 2 ? String(page - 1) : null })
           }
           disabled={page <= 1 || pending}
-          className="rounded-md border border-border bg-card px-3 py-2 text-foreground hover:border-foreground disabled:opacity-40"
+          className="rounded-md border border-border bg-card px-3 py-2 text-foreground hover:bg-background hover:text-foreground disabled:opacity-40"
         >
           {t.audit.pagination.previous}
         </button>
@@ -329,7 +329,7 @@ export default function AuditContent({
           type="button"
           onClick={() => pushParams({ page: String(page + 1) })}
           disabled={page >= totalPages || pending}
-          className="rounded-md border border-border bg-card px-3 py-2 text-foreground hover:border-foreground disabled:opacity-40"
+          className="rounded-md border border-border bg-card px-3 py-2 text-foreground hover:bg-background hover:text-foreground disabled:opacity-40"
         >
           {t.audit.pagination.next}
         </button>

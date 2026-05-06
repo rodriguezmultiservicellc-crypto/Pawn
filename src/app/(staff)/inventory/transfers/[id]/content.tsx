@@ -192,7 +192,7 @@ export default function TransferDetail({
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-border bg-card p-5">
+      <div className="rounded-xl border border-border bg-card p-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-7 sm:items-center">
           <div className="sm:col-span-3">
             <p className="text-xs uppercase tracking-wide text-muted">
@@ -216,7 +216,7 @@ export default function TransferDetail({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card">
+      <div className="rounded-xl border border-border bg-card">
         <div className="border-b border-border px-5 py-3">
           <h2 className="text-sm font-semibold text-foreground">
             {t.inventory.transfers.detail.items}
@@ -284,7 +284,7 @@ export default function TransferDetail({
       </div>
 
       {data.notes ? (
-        <div className="rounded-lg border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-5">
           <p className="text-xs uppercase tracking-wide text-muted">
             {t.inventory.transfers.detail.notes}
           </p>
@@ -305,7 +305,7 @@ export default function TransferDetail({
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-border bg-card p-5">
+      <div className="rounded-xl border border-border bg-card p-5">
         <h3 className="mb-3 text-xs uppercase tracking-wide text-muted">
           {t.inventory.transfers.detail.timeline}
         </h3>
@@ -345,7 +345,7 @@ export default function TransferDetail({
 
       {showRejectDialog ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/30 p-4">
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg">
             <h3 className="text-lg font-semibold text-foreground">
               {t.inventory.transfers.actions.confirmReject}
             </h3>

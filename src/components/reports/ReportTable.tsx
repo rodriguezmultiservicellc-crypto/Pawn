@@ -40,14 +40,14 @@ export function ReportTable<Row>({
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-12 text-center text-muted">
+      <div className="rounded-xl border border-border bg-card p-12 text-center text-muted">
         {empty ?? t.reports.empty}
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-left text-sm">
         <thead className="border-b border-border text-muted">
           <tr>

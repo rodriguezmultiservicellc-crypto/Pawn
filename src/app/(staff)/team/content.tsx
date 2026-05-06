@@ -135,7 +135,7 @@ function InvitePanel() {
   }
 
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="flex items-center gap-1 px-1 text-sm font-semibold text-foreground">
         <UserPlus size={14} weight="bold" />
         <span>Invite a team member</span>
@@ -226,7 +226,7 @@ function InvitePanel() {
             <button
               type="button"
               onClick={() => onCopy(state.manualLink!)}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
             >
               <LinkIcon size={12} weight="bold" />
               {copied ? 'Copied!' : 'Copy link'}

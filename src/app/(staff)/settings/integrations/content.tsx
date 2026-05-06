@@ -315,7 +315,7 @@ function Card({
   children?: React.ReactNode
 }) {
   return (
-    <article className="rounded-lg border border-border bg-card p-4">
+    <article className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 text-foreground">{icon}</span>
         <div className="min-w-0 flex-1">

@@ -74,7 +74,7 @@ export default function CalculatorContent({
           {rows.map((row, idx) => (
             <article
               key={row.id}
-              className="rounded-lg border border-border bg-card p-3"
+              className="rounded-xl border border-border bg-card p-3"
             >
               <input
                 type="hidden"
@@ -195,7 +195,7 @@ export default function CalculatorContent({
           </button>
         </section>
 
-        <section className="rounded-lg border border-border bg-card p-3">
+        <section className="rounded-xl border border-border bg-card p-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Field label="LTV %">
               <input
@@ -263,7 +263,7 @@ function Result({ state }: { state: CalculatorState }) {
   }
   const r = state.result
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <div className="grid grid-cols-1 gap-4 border-b border-border pb-3 md:grid-cols-3">
         <Stat label="Suggested principal" value={fmt(r.totalSuggestedPrincipal)} highlight />
         <Stat label="Total value basis" value={fmt(r.totalValueBasis)} />

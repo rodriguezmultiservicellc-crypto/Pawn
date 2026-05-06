@@ -113,7 +113,7 @@ export default function NewRepairTicketForm({
 
       <form action={formAction} className="space-y-6">
         {/* Customer */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.repair.new_.sectionCustomer}
           </legend>
@@ -135,7 +135,7 @@ export default function NewRepairTicketForm({
             </select>
             <Link
               href="/customers/new?return=/repair/new"
-              className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
             >
               {t.repair.new_.newCustomer}
             </Link>
@@ -148,7 +148,7 @@ export default function NewRepairTicketForm({
         </fieldset>
 
         {/* Item & service */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.repair.new_.sectionItem}
           </legend>
@@ -266,7 +266,7 @@ export default function NewRepairTicketForm({
 
         {/* Stones (gated by service_type) */}
         {showStones ? (
-          <fieldset className="rounded-lg border border-border bg-card p-4">
+          <fieldset className="rounded-xl border border-border bg-card p-4">
             <legend className="px-1 text-sm font-semibold text-foreground">
               {t.repair.new_.sectionStones}
             </legend>
@@ -284,7 +284,7 @@ export default function NewRepairTicketForm({
               <button
                 type="button"
                 onClick={addStone}
-                className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
+                className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
               >
                 <Plus size={14} weight="bold" />
                 {t.repair.new_.addStone}
@@ -294,7 +294,7 @@ export default function NewRepairTicketForm({
         ) : null}
 
         {/* Intake photos */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.repair.new_.sectionPhotos}
           </legend>
@@ -305,7 +305,7 @@ export default function NewRepairTicketForm({
             <button
               type="button"
               onClick={() => photoInputRef.current?.click()}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
             >
               <Upload size={14} weight="bold" />
               {t.repair.new_.photoUpload}
@@ -330,7 +330,7 @@ export default function NewRepairTicketForm({
         </fieldset>
 
         {/* Internal notes */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.repair.new_.sectionStaff}
           </legend>

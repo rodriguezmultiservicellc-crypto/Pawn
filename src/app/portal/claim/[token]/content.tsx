@@ -149,7 +149,7 @@ function BadStateBlock({
       ) : null}
       <Link
         href="/login"
-        className="mt-6 block w-full rounded-md border border-border bg-card px-4 py-3 text-center text-foreground hover:border-foreground"
+        className="mt-6 block w-full rounded-md border border-border bg-card px-4 py-3 text-center text-foreground hover:bg-background hover:text-foreground"
       >
         {t.portal.claim.backToLogin}
       </Link>

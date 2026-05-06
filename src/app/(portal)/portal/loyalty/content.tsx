@@ -71,7 +71,7 @@ export default function LoyaltyPortalContent({
       </header>
 
       {/* Hero */}
-      <section className="rounded-lg border border-border bg-card p-6">
+      <section className="rounded-xl border border-border bg-card p-6">
         <p className="mb-1 text-sm uppercase tracking-wide text-muted">
           {t.loyalty.yourPoints}
         </p>
@@ -87,7 +87,7 @@ export default function LoyaltyPortalContent({
       </section>
 
       {/* Earn rules */}
-      <section className="rounded-lg border border-border bg-card p-6">
+      <section className="rounded-xl border border-border bg-card p-6">
         <h2 className="mb-3 text-base font-semibold text-foreground">
           {t.loyalty.howYouEarn}
         </h2>
@@ -114,7 +114,7 @@ export default function LoyaltyPortalContent({
       </section>
 
       {/* Refer a friend */}
-      <section className="rounded-lg border border-border bg-card p-6">
+      <section className="rounded-xl border border-border bg-card p-6">
         <h2 className="mb-3 text-base font-semibold text-foreground">
           {t.loyalty.referAFriend}
         </h2>
@@ -167,7 +167,7 @@ export default function LoyaltyPortalContent({
       </section>
 
       {/* Activity */}
-      <section className="rounded-lg border border-border bg-card p-6">
+      <section className="rounded-xl border border-border bg-card p-6">
         <h2 className="mb-3 text-base font-semibold text-foreground">
           {t.loyalty.activity}
         </h2>

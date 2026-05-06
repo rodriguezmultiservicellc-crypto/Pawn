@@ -41,7 +41,7 @@ export function PartsPanel({
   const totalCost = parts.reduce((sum, p) => sum + (p.total_cost || 0), 0)
 
   return (
-    <section className="rounded-lg border border-border bg-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Hammer size={14} weight="regular" />
@@ -51,7 +51,7 @@ export function PartsPanel({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:border-foreground"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
           >
             <Plus size={12} weight="bold" />
             {t.repair.actions.addPart}
@@ -121,7 +121,7 @@ function PartRow({
             {part.inventory_item_id ? (
               <Link
                 href={`/inventory/${part.inventory_item_id}`}
-                className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] text-foreground hover:border-foreground"
+                className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] text-foreground hover:bg-background hover:text-foreground"
               >
                 {t.inventory.title}
               </Link>

@@ -454,7 +454,7 @@ function CustomerSalesPanel({
 }) {
   const { t } = useI18n()
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
         <span>{t.pos.customerSales.title}</span>
         <Link
@@ -508,7 +508,7 @@ function CustomerLayawaysPanel({
 }) {
   const { t } = useI18n()
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
         <span>{t.pos.customerLayaways.title}</span>
         <Link
@@ -562,7 +562,7 @@ function CustomerRepairsPanel({
 }) {
   const { t } = useI18n()
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
         <span>{t.repair.customerTickets.title}</span>
         <Link
@@ -639,7 +639,7 @@ function CustomerLoansPanel({
     voided: t.pawn.statusVoided,
   }
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
         <span>{t.pawn.customerLoans.title}</span>
         <Link
@@ -779,7 +779,7 @@ function BanSection({
   }
 
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">
         {t.customers.sectionBan}
       </legend>
@@ -799,7 +799,7 @@ function BanSection({
                 type="button"
                 onClick={toggleBan}
                 disabled={pending}
-                className="shrink-0 rounded-md border border-border bg-card px-3 py-1 text-sm text-foreground hover:border-foreground disabled:opacity-50"
+                className="shrink-0 rounded-md border border-border bg-card px-3 py-1 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
               >
                 {pending ? t.common.saving : t.common.remove}
               </button>
@@ -877,7 +877,7 @@ function DocumentsPanel({
   const { t } = useI18n()
 
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">
         {t.customers.sectionDocuments}
       </legend>
@@ -938,7 +938,7 @@ function DocumentsPanel({
                       href={doc.signed_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
                     >
                       <Eye size={12} weight="bold" />
                       {t.customers.viewDocument}
@@ -1031,7 +1031,7 @@ function UploadButton({
         type="button"
         onClick={onClick}
         disabled={pending}
-        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-3 text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-3 text-sm font-medium text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
       >
         <Upload size={14} weight="bold" />
         {pending ? t.common.uploading : label}
@@ -1099,7 +1099,7 @@ function WebcamCaptureForId({
       <WebcamCapture
         onCapture={onCapture}
         disabled={pending}
-        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-3 text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-3 text-sm font-medium text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
       />
       {error ? <div className="mt-1 text-xs text-danger">{error}</div> : null}
     </div>

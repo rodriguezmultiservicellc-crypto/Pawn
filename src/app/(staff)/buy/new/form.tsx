@@ -281,7 +281,7 @@ export default function BuyForm({
 
       <form action={formAction} className="space-y-6" key={formGen}>
         {/* Customer */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             Customer
           </legend>
@@ -353,7 +353,7 @@ export default function BuyForm({
         </fieldset>
 
         {/* Totals + payment */}
-        <fieldset className="rounded-lg border border-border bg-card p-4">
+        <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             Payout
           </legend>
@@ -459,7 +459,7 @@ function ItemCard({
   const errPrefix = `items.${idx}.`
 
   return (
-    <article className="rounded-lg border border-border bg-card p-3">
+    <article className="rounded-xl border border-border bg-card p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-mono text-foreground">
           Item {idx + 1}

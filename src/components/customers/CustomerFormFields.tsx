@@ -468,7 +468,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <fieldset className="rounded-lg border border-border bg-card p-4">
+    <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">{label}</legend>
       {help ? <p className="mt-1 text-xs text-muted">{help}</p> : null}
       <div className="mt-2">{children}</div>

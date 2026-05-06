@@ -45,7 +45,7 @@ export default function NewTenantForm({
         </div>
       ) : null}
 
-      <form action={formAction} className="space-y-6 rounded-lg border border-border bg-card p-6">
+      <form action={formAction} className="space-y-6 rounded-xl border border-border bg-card p-6">
         {/* Identity */}
         <fieldset className="space-y-3">
           <Field

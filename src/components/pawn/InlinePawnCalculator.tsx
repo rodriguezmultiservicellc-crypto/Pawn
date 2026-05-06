@@ -98,7 +98,7 @@ export function InlinePawnCalculator({
   }
 
   return (
-    <fieldset className="rounded-lg border border-border bg-card">
+    <fieldset className="rounded-xl border border-border bg-card">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

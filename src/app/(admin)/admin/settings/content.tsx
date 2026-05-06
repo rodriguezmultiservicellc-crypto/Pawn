@@ -231,7 +231,7 @@ export default function SettingsContent({
           {envPresence.map((g) => (
             <div
               key={g.group}
-              className="rounded-lg border border-border bg-card p-3"
+              className="rounded-xl border border-border bg-card p-3"
             >
               <div className="mb-2 flex items-center gap-1 text-xs font-semibold text-foreground">
                 <Envelope size={12} weight="regular" className="text-muted" />
@@ -365,7 +365,7 @@ function ExtLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="block rounded-md border border-border px-3 py-2 text-xs hover:border-foreground"
+      className="block rounded-md border border-border px-3 py-2 text-xs hover:bg-background hover:text-foreground"
     >
       <div className="font-medium text-foreground">{label} ↗</div>
       <div className="text-muted">{hint}</div>

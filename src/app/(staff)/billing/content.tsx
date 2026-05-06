@@ -141,7 +141,7 @@ function CurrentPlanCard({
 }) {
   if (!subscription || !currentPlan) {
     return (
-      <section className="rounded-lg border border-border bg-card p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         <p className="text-sm text-muted">
           No subscription yet. Pick a plan below to start a Stripe Checkout.
         </p>
@@ -166,7 +166,7 @@ function CurrentPlanCard({
   const lastInvoice = invoices[0] ?? null
 
   return (
-    <section className="rounded-lg border border-border bg-card p-5">
+    <section className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="text-lg font-bold text-foreground">{currentPlan.name}</h2>
         <span
@@ -468,7 +468,7 @@ function InvoicesSection({ invoices }: { invoices: BillingInvoice[] }) {
   return (
     <section className="space-y-2">
       <h2 className="text-base font-semibold text-foreground">Recent invoices</h2>
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-background text-left text-xs uppercase tracking-wide text-muted">
             <tr>

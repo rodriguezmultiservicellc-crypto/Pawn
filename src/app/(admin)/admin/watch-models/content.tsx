@@ -115,7 +115,7 @@ export default function WatchModelsContent({
                   <button
                     type="button"
                     onClick={() => setEditing(r)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
                   >
                     <PencilSimple size={11} weight="bold" />
                     Edit
@@ -176,7 +176,7 @@ function EditDialog({
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
     >
-      <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-5 shadow-lg">
+      <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-5 shadow-lg">
         <header className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground">
             {row ? 'Edit watch model' : 'Add watch model'}
@@ -295,7 +295,7 @@ function EditDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:border-foreground"
+                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
               >
                 Cancel
               </button>

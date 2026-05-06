@@ -267,7 +267,7 @@ function Card({
   return (
     <Link
       href={href}
-      className="group flex flex-col rounded-lg border border-border bg-card p-4 transition hover:border-foreground/30 hover:shadow-sm"
+      className="group flex flex-col rounded-xl border border-border bg-card p-4 transition hover:bg-background hover:text-foreground/30 hover:shadow-sm"
     >
       <div className="flex items-start justify-between gap-2">
         <span className="text-foreground">{icon}</span>
@@ -303,7 +303,7 @@ function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <article className="flex flex-col rounded-lg border border-border bg-card p-4">
+    <article className="flex flex-col rounded-xl border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-2">
         <span className="text-foreground">{icon}</span>
         <StatusPill status={status} />

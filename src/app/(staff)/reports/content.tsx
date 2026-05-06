@@ -107,7 +107,7 @@ export default function ReportsLanding({
               <Link
                 key={c.href}
                 href={c.href}
-                className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-colors hover:border-foreground"
+                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-background hover:text-foreground"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-gold">{c.icon}</span>

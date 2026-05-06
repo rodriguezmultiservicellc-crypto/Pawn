@@ -74,7 +74,7 @@ export default function PosHomeContent({
               <button
                 type="button"
                 onClick={() => setShowClose(true)}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
               >
                 <CashRegister size={14} weight="bold" />
                 {t.pos.register.closeSession}
@@ -92,7 +92,7 @@ export default function PosHomeContent({
           )}
           <Link
             href="/pos/layaways"
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
           >
             <ShoppingBag size={14} weight="bold" />
             {t.pos.layaway.list}
@@ -129,7 +129,7 @@ export default function PosHomeContent({
 function SessionPanel({ session }: { session: PosHomeOpenSession }) {
   const { t } = useI18n()
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <header className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <CashRegister size={16} weight="regular" />
@@ -196,7 +196,7 @@ function NoSessionPanel({ onOpen }: { onOpen: () => void }) {
 function RecentSalesPanel({ rows }: { rows: PosHomeRecentSale[] }) {
   const { t } = useI18n()
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
+    <section className="overflow-hidden rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-3 py-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <ArrowsClockwise size={14} weight="regular" />

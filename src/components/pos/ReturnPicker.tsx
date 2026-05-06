@@ -131,7 +131,7 @@ export function ReturnPicker({
         </div>
       ) : null}
 
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <legend className="px-1 text-sm font-semibold text-foreground">
           {t.pos.return.selectItems}
         </legend>
@@ -208,7 +208,7 @@ export function ReturnPicker({
         </div>
       </fieldset>
 
-      <fieldset className="rounded-lg border border-border bg-card p-4">
+      <fieldset className="rounded-xl border border-border bg-card p-4">
         <legend className="px-1 text-sm font-semibold text-foreground">
           {t.pos.return.refundSummary}
         </legend>

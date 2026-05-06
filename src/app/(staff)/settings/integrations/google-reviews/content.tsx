@@ -142,7 +142,7 @@ export default function GoogleReviewsSettingsContent({
           <button
             type="submit"
             disabled={testing || !view.placeId}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-background disabled:opacity-50"
+            className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-background disabled:opacity-50"
           >
             {testing ? 'Test connection…' : 'Test connection'}
           </button>
@@ -218,7 +218,7 @@ function ReviewRow({ review }: { review: GoogleReviewsSettingsReview }) {
           <button
             type="submit"
             disabled={toggling}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-background disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-background disabled:opacity-50"
           >
             {review.hidden ? (
               <>
@@ -324,7 +324,7 @@ function Field({
         type={type}
         name={name}
         defaultValue={defaultValue}
-        className="mt-2 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
+        className="mt-2 block w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
       />
       <p className="mt-2 text-xs text-muted">
         {help}
@@ -380,7 +380,7 @@ function ApiKeySecretField({
             setValue(e.target.value)
           }}
           placeholder={isSet ? 'Leave blank to keep current key' : ''}
-          className="mt-2 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
+          className="mt-2 block w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
         />
       ) : (
         <div className="mt-2 flex items-center gap-2">
@@ -393,7 +393,7 @@ function ApiKeySecretField({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
+            className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
           >
             Update
           </button>
@@ -438,7 +438,7 @@ function SelectField({
       <select
         name={name}
         defaultValue={defaultValue}
-        className="mt-2 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
+        className="mt-2 block w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
