@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadConfiguredSecretKinds } from '@/lib/secrets/vault'
 import CommunicationsContent, {
   type CommsSettingsView,
   type TemplateRowView,
@@ -26,23 +27,26 @@ export default async function CommunicationsSettingsPage() {
 
   const admin = createAdminClient()
 
-  const { data: settingsRow } = await admin
-    .from('settings')
-    .select(
-      'twilio_account_sid, twilio_auth_token, twilio_phone_number, twilio_whatsapp_number, twilio_messaging_service_sid, twilio_sms_from, twilio_whatsapp_from, resend_api_key, email_from, resend_from_email, resend_from_name',
-    )
-    .eq('tenant_id', ctx.tenantId)
-    .maybeSingle<SettingsCommsColumns>()
+  const [{ data: settingsRow }, configuredSecrets] = await Promise.all([
+    admin
+      .from('settings')
+      .select(
+        'twilio_account_sid, twilio_phone_number, twilio_whatsapp_number, twilio_messaging_service_sid, twilio_sms_from, twilio_whatsapp_from, email_from, resend_from_email, resend_from_name',
+      )
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle<SettingsCommsColumns>(),
+    loadConfiguredSecretKinds(ctx.tenantId),
+  ])
 
   const settings: CommsSettingsView = {
     twilio_account_sid: settingsRow?.twilio_account_sid ?? null,
-    twilio_auth_token_set: !!settingsRow?.twilio_auth_token,
+    twilio_auth_token_set: configuredSecrets.has('twilio_auth_token'),
     twilio_sms_from:
       settingsRow?.twilio_sms_from ?? settingsRow?.twilio_phone_number ?? null,
     twilio_whatsapp_from:
       settingsRow?.twilio_whatsapp_from ?? settingsRow?.twilio_whatsapp_number ?? null,
     twilio_messaging_service_sid: settingsRow?.twilio_messaging_service_sid ?? null,
-    resend_api_key_set: !!settingsRow?.resend_api_key,
+    resend_api_key_set: configuredSecrets.has('resend_api_key'),
     resend_from_email: settingsRow?.resend_from_email ?? settingsRow?.email_from ?? null,
     resend_from_name: settingsRow?.resend_from_name ?? null,
   }

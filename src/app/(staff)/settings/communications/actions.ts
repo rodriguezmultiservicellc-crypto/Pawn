@@ -64,11 +64,11 @@ export async function updateCommsSettingsAction(
   }
   const v = parsed.data
 
-  // Auth-token semantics: if the form submitted '' for the token / api key,
-  // we treat that as "no change". Submitting the literal string '__CLEAR__'
-  // clears it. Submitting any other value updates it.
+  // Secret-field semantics: blank submission means "no change". The
+  // literal string '__CLEAR__' clears the secret (vault row deleted).
+  // Any other non-empty value updates it.
   const admin = createAdminClient()
-  const update: Record<string, string | null> = {
+  const settingsUpdate = {
     twilio_account_sid: v.twilio_account_sid,
     twilio_sms_from: v.twilio_sms_from,
     twilio_whatsapp_from: v.twilio_whatsapp_from,
@@ -76,42 +76,33 @@ export async function updateCommsSettingsAction(
     resend_from_email: v.resend_from_email,
     resend_from_name: v.resend_from_name,
   }
+
+  let twilioTokenChange: string | null | undefined
   const tokenRaw = formData.get('twilio_auth_token')
   if (typeof tokenRaw === 'string') {
-    if (tokenRaw === '__CLEAR__') update.twilio_auth_token = null
-    else if (tokenRaw.trim() !== '') update.twilio_auth_token = tokenRaw.trim()
+    if (tokenRaw === '__CLEAR__') twilioTokenChange = null
+    else if (tokenRaw.trim() !== '') twilioTokenChange = tokenRaw.trim()
   }
+  let resendKeyChange: string | null | undefined
   const keyRaw = formData.get('resend_api_key')
   if (typeof keyRaw === 'string') {
-    if (keyRaw === '__CLEAR__') update.resend_api_key = null
-    else if (keyRaw.trim() !== '') update.resend_api_key = keyRaw.trim()
+    if (keyRaw === '__CLEAR__') resendKeyChange = null
+    else if (keyRaw.trim() !== '') resendKeyChange = keyRaw.trim()
   }
 
-  // Cast through unknown — the new comms columns from 0010 aren't in the
-  // generated Database type yet (operator regenerates after applying the
-  // migration). The runtime shape is correct.
-  const { error } = await (admin as unknown as {
-    from: (t: 'settings') => {
-      update: (v: Record<string, unknown>) => {
-        eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>
-      }
-    }
-  })
+  const { error } = await admin
     .from('settings')
-    .update(update)
+    .update(settingsUpdate)
     .eq('tenant_id', ctx.tenantId)
   if (error) return { error: error.message }
 
-  // Dual-write secrets to vault. Plaintext column update above keeps
-  // pre-migration read paths working; this writes the same value into
-  // tenant_secrets so vault-first read paths see the latest. Once all
-  // read paths flip to vault-only and migration 0034 drops the
-  // plaintext columns, this dual-write becomes the single write.
-  if ('twilio_auth_token' in update) {
-    await setTenantSecret(ctx.tenantId, 'twilio_auth_token', update.twilio_auth_token ?? null)
+  // Vault is the sole secret store. Plaintext columns were dropped in
+  // patches/0034.
+  if (twilioTokenChange !== undefined) {
+    await setTenantSecret(ctx.tenantId, 'twilio_auth_token', twilioTokenChange)
   }
-  if ('resend_api_key' in update) {
-    await setTenantSecret(ctx.tenantId, 'resend_api_key', update.resend_api_key ?? null)
+  if (resendKeyChange !== undefined) {
+    await setTenantSecret(ctx.tenantId, 'resend_api_key', resendKeyChange)
   }
 
   await logAudit({
@@ -121,12 +112,9 @@ export async function updateCommsSettingsAction(
     tableName: 'settings',
     recordId: ctx.tenantId,
     changes: {
-      // Don't log secrets — log the keys that changed only.
-      changed_fields: Object.keys(update).filter(
-        (k) => k !== 'twilio_auth_token' && k !== 'resend_api_key',
-      ),
-      twilio_auth_token_changed: 'twilio_auth_token' in update,
-      resend_api_key_changed: 'resend_api_key' in update,
+      changed_fields: Object.keys(settingsUpdate),
+      twilio_auth_token_changed: twilioTokenChange !== undefined,
+      resend_api_key_changed: resendKeyChange !== undefined,
     },
   })
 

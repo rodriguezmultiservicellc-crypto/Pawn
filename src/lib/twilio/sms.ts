@@ -21,7 +21,7 @@
 
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveSecret } from '@/lib/secrets/vault'
+import { getTenantSecret } from '@/lib/secrets/vault'
 import type {
   MessageKind,
   MessageLogInsert,
@@ -183,7 +183,7 @@ export async function sendSms(args: SendSmsArgs): Promise<SendSmsResult> {
   }
 }
 
-/** Resolve per-tenant Twilio creds from settings. Reads new + legacy columns. */
+/** Resolve per-tenant Twilio creds. Auth token comes from vault. */
 export async function resolveTwilioCreds(tenantId: string): Promise<{
   accountSid: string | null
   authToken: string | null
@@ -192,22 +192,18 @@ export async function resolveTwilioCreds(tenantId: string): Promise<{
   messagingServiceSid: string | null
 }> {
   const admin = createAdminClient()
-  const { data } = await admin
-    .from('settings')
-    .select(
-      'twilio_account_sid, twilio_auth_token, twilio_phone_number, twilio_whatsapp_number, twilio_messaging_service_sid, twilio_sms_from, twilio_whatsapp_from',
-    )
-    .eq('tenant_id', tenantId)
-    .maybeSingle<SettingsCommsColumns>()
+  const [{ data }, authToken] = await Promise.all([
+    admin
+      .from('settings')
+      .select(
+        'twilio_account_sid, twilio_phone_number, twilio_whatsapp_number, twilio_messaging_service_sid, twilio_sms_from, twilio_whatsapp_from',
+      )
+      .eq('tenant_id', tenantId)
+      .maybeSingle<SettingsCommsColumns>(),
+    getTenantSecret(tenantId, 'twilio_auth_token'),
+  ])
 
   const row = data ?? null
-  // Vault-first read for the auth token. Plaintext fallback during the
-  // dual-state window — see lib/secrets/vault.ts.
-  const authToken = await resolveSecret(
-    tenantId,
-    'twilio_auth_token',
-    row?.twilio_auth_token ?? null,
-  )
   return {
     accountSid: row?.twilio_account_sid ?? null,
     authToken,

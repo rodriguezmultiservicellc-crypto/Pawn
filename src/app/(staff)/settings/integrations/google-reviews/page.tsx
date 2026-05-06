@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isSecretConfigured } from '@/lib/secrets/vault'
 import GoogleReviewsSettingsContent, {
   type GoogleReviewsSettingsView,
 } from './content'
@@ -18,11 +19,11 @@ export default async function GoogleReviewsSettingsPage() {
 
   const admin = createAdminClient()
 
-  const [{ data: settings }, { data: cache }] = await Promise.all([
+  const [{ data: settings }, { data: cache }, apiKeyConfigured] = await Promise.all([
     admin
       .from('settings')
       .select(
-        'google_place_id, google_places_api_key, google_reviews_min_star_floor, google_reviews_hidden_review_times',
+        'google_place_id, google_reviews_min_star_floor, google_reviews_hidden_review_times',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -31,6 +32,7 @@ export default async function GoogleReviewsSettingsPage() {
       .select('place_id, rating, total_review_count, fetched_at, last_error, last_error_at, payload')
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
+    isSecretConfigured(ctx.tenantId, 'google_places_api_key'),
   ])
 
   if (!settings) redirect('/settings/integrations')
@@ -42,7 +44,7 @@ export default async function GoogleReviewsSettingsPage() {
 
   const view: GoogleReviewsSettingsView = {
     placeId: settings.google_place_id ?? '',
-    apiKey: settings.google_places_api_key ?? '',
+    apiKeyConfigured,
     minStarFloor: settings.google_reviews_min_star_floor ?? 4,
     cache: cache
       ? {

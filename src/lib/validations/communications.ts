@@ -48,14 +48,18 @@ export const messageKindSchema = z.enum([
 export const messageChannelSchema = z.enum(['sms', 'whatsapp', 'email'])
 export const messageLanguageSchema = z.enum(['en', 'es'])
 
-/** Per-tenant comms settings form. */
+/**
+ * Per-tenant comms settings form. The secret fields (twilio_auth_token,
+ * resend_api_key) are NOT validated here — they're read directly from
+ * formData by the action handler with secret-field semantics
+ * (blank = no change, '__CLEAR__' = clear, value = update) and written
+ * to vault, never to the settings table.
+ */
 export const commsSettingsSchema = z.object({
   twilio_account_sid: optionalTrimmed,
-  twilio_auth_token: optionalTrimmed,
   twilio_sms_from: optionalPhone,
   twilio_whatsapp_from: optionalPhone,
   twilio_messaging_service_sid: optionalTrimmed,
-  resend_api_key: optionalTrimmed,
   resend_from_email: optionalEmail,
   resend_from_name: optionalTrimmed,
 })

@@ -1,21 +1,14 @@
 /**
  * Tenant secrets — Supabase-Vault-backed encryption-at-rest helpers.
  *
- * Wraps the `set_tenant_secret` / `get_tenant_secret` RPCs from
- * patches/0033-tenant-secrets-vault.sql with a typed kind union, so
+ * Wraps the `set_tenant_secret` / `get_tenant_secret` RPCs (introduced in
+ * patches/0033 and reaffirmed by patches/0034) with a typed kind union, so
  * read sites get autocomplete + the misspelled-kind class of bugs is
  * caught at compile time instead of leaving secrets unreadable in prod.
  *
- * Migration plan (2026-05-05):
- *   1. ✅ migration 0033 — vault registry + RPCs + backfill
- *   2. Read paths cut over to `getTenantSecret(...)` with plaintext
- *      fallback during the dual-state window. ONE path proven this
- *      session (resend_api_key in lib/email/send.ts); remainder
- *      follow the same template.
- *   3. Write paths cut over to `setTenantSecret(...)` PLUS keep the
- *      plaintext column write so old read paths don't break.
- *   4. After all read + write paths are on vault: migration 0034
- *      drops the plaintext columns.
+ * Vault is the SOLE storage for these credentials. The original plaintext
+ * columns on `settings` / `tenant_billing_settings` / `tenant_ebay_credentials`
+ * were dropped during the Session 25/26 cutover — there is no fallback.
  *
  * This file is server-only — the RPCs are SECURITY DEFINER and granted
  * to service_role only, so there's no client-bundle path that could
@@ -39,10 +32,8 @@ export type SecretKind =
   | 'ebay_refresh_token'
 
 /**
- * Fetch a secret from vault. Returns null if no row in tenant_secrets
- * (caller should fall back to the plaintext column during the dual-
- * state migration window). Returns null on RPC error too — secrets
- * never throw to user-facing surfaces.
+ * Fetch a secret from vault. Returns null on missing row, empty value,
+ * or RPC error — secrets never throw to user-facing surfaces.
  */
 export async function getTenantSecret(
   tenantId: string,
@@ -65,9 +56,6 @@ export async function getTenantSecret(
  * Upsert a secret into vault. Empty / null value clears both vault row
  * and registry entry — operators clearing a credential expect "no
  * leftover". Returns the stable vault id (or null if cleared).
- *
- * Callers should ALSO write the plaintext column during the dual-state
- * window so read paths that haven't cut over yet still work.
  */
 export async function setTenantSecret(
   tenantId: string,
@@ -87,23 +75,49 @@ export async function setTenantSecret(
 }
 
 /**
- * Read a secret with vault-first / plaintext-fallback semantics. Use
- * this from read sites during the dual-state migration window.
- *
- * If vault returns a value, use it.
- * If vault is empty (no migrated row yet, or a write happened that
- * didn't dual-write), fall back to the supplied plaintext.
- *
- * Once all write paths dual-write reliably, this fallback can be
- * removed and read sites can call getTenantSecret() directly.
+ * Cheap "is this kind configured?" check that avoids decrypting the
+ * secret. Reads the registry directly (no vault round-trip). Useful for
+ * "(connected)" / "(not configured)" badges in the settings UI.
  */
-export async function resolveSecret(
+export async function isSecretConfigured(
   tenantId: string,
   kind: SecretKind,
-  plaintextFallback: string | null,
-): Promise<string | null> {
-  const vaultValue = await getTenantSecret(tenantId, kind)
-  if (vaultValue !== null) return vaultValue
-  if (plaintextFallback && plaintextFallback.length > 0) return plaintextFallback
-  return null
+): Promise<boolean> {
+  const admin = createAdminClient()
+  const { count, error } = await admin
+    .from('tenant_secrets')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .eq('kind', kind)
+  if (error) {
+    console.error('[vault] isSecretConfigured failed', kind, error.message)
+    return false
+  }
+  return (count ?? 0) > 0
+}
+
+/**
+ * Bulk variant of `isSecretConfigured`. Returns the set of kinds that
+ * have a row for this tenant. One query → many flags. Use this when
+ * a page renders multiple "configured" badges (e.g. settings index).
+ */
+export async function loadConfiguredSecretKinds(
+  tenantId: string,
+): Promise<Set<SecretKind>> {
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('tenant_secrets')
+    .select('kind')
+    .eq('tenant_id', tenantId)
+  if (error) {
+    console.error('[vault] loadConfiguredSecretKinds failed', error.message)
+    return new Set()
+  }
+  const out = new Set<SecretKind>()
+  for (const row of data ?? []) {
+    if (typeof row.kind === 'string') {
+      out.add(row.kind as SecretKind)
+    }
+  }
+  return out
 }

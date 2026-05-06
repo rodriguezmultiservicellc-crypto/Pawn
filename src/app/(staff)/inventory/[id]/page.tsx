@@ -10,6 +10,7 @@ import {
   purityFromItem,
 } from '@/lib/spot-prices/melt'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isEbayConnected } from '@/lib/ebay/auth'
 import InventoryDetail, {
   type InventoryMeltSummary,
   type InventoryPhotoItem,
@@ -105,13 +106,7 @@ export default async function InventoryItemPage(props: { params: Params }) {
   // detail page can render the eBay publishing panel inline.
   const admin = createAdminClient()
 
-  const { data: credRow } = await admin
-    .from('tenant_ebay_credentials')
-    .select('refresh_token, disconnected_at')
-    .eq('tenant_id', item.tenant_id)
-    .maybeSingle()
-  const ebayConnected =
-    !!credRow?.refresh_token && !credRow.disconnected_at
+  const ebayConnected = await isEbayConnected(item.tenant_id)
 
   const { data: listingRow } = (await admin
     .from('ebay_listings')

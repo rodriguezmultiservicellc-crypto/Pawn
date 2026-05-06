@@ -25,10 +25,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { fetchOrders, syncListing } from '@/lib/ebay/listings'
-import type {
-  EbayListingRow,
-  TenantEbayCredentialsRow,
-} from '@/types/database-aliases'
+import type { EbayListingRow } from '@/types/database-aliases'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,21 +38,28 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient()
   const supa = admin
 
-  // 1) Tenants with usable credentials.
-  const { data: credentialRows } = (await supa
-    .from('tenant_ebay_credentials')
-    .select('tenant_id, refresh_token, disconnected_at')) as {
-    data: Array<
-      Pick<
-        TenantEbayCredentialsRow,
-        'tenant_id' | 'refresh_token' | 'disconnected_at'
-      >
-    > | null
-  }
+  // 1) Tenants with usable credentials. The refresh token lives in
+  // tenant_secrets (vault); the credentials row carries the
+  // disconnected_at marker. Intersect the two: tenant has a vault
+  // refresh_token AND has not been disconnected.
+  const [{ data: secretRows }, { data: credentialRows }] = await Promise.all([
+    supa
+      .from('tenant_secrets')
+      .select('tenant_id')
+      .eq('kind', 'ebay_refresh_token'),
+    supa
+      .from('tenant_ebay_credentials')
+      .select('tenant_id, disconnected_at'),
+  ])
 
-  const tenantIds: string[] = (credentialRows ?? [])
-    .filter((r) => r.refresh_token && !r.disconnected_at)
+  const disconnected = new Set(
+    (credentialRows ?? [])
+      .filter((r) => r.disconnected_at)
+      .map((r) => r.tenant_id),
+  )
+  const tenantIds: string[] = (secretRows ?? [])
     .map((r) => r.tenant_id)
+    .filter((tid): tid is string => typeof tid === 'string' && !disconnected.has(tid))
 
   let synced = 0
   let failed = 0

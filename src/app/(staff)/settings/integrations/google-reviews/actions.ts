@@ -48,9 +48,7 @@ export async function updateGoogleReviewsSettingsAction(
 
   const { data: prior } = await admin
     .from('settings')
-    .select(
-      'google_place_id, google_places_api_key, google_reviews_min_star_floor',
-    )
+    .select('google_place_id, google_reviews_min_star_floor')
     .eq('tenant_id', ctx.tenantId)
     .maybeSingle()
 
@@ -58,25 +56,20 @@ export async function updateGoogleReviewsSettingsAction(
     .from('settings')
     .update({
       google_place_id: v.google_place_id,
-      google_places_api_key: v.google_places_api_key,
       google_reviews_min_star_floor: v.google_reviews_min_star_floor,
     })
     .eq('tenant_id', ctx.tenantId)
   if (error) return { error: error.message }
 
-  // Dual-write the API key into vault. The plaintext column update above
-  // keeps pre-migration read paths working; vault is the new source of
-  // truth for read sites that have cut over.
-  await setTenantSecret(
-    ctx.tenantId,
-    'google_places_api_key',
-    v.google_places_api_key,
-  )
+  // API key secret-field semantics: blank = no change; '__CLEAR__' = clear;
+  // any other non-empty value updates. Vault is the sole store.
+  const apiKeyChange = v.google_places_api_key
+  if (apiKeyChange !== undefined) {
+    await setTenantSecret(ctx.tenantId, 'google_places_api_key', apiKeyChange)
+  }
 
   // If place_id was cleared, drop the cache row so /settings shows
-  // "Not configured" cleanly. (The implicit gate is google_place_id IS
-  // NOT NULL — without this, a stale row with the previous place_id
-  // would linger.)
+  // "Not configured" cleanly.
   if (v.google_place_id === null && prior?.google_place_id) {
     await admin
       .from('tenant_google_reviews')
@@ -93,7 +86,11 @@ export async function updateGoogleReviewsSettingsAction(
     changes: {
       kind: 'google_reviews_settings',
       before: prior,
-      after: v,
+      after: {
+        google_place_id: v.google_place_id,
+        google_reviews_min_star_floor: v.google_reviews_min_star_floor,
+        google_places_api_key_changed: apiKeyChange !== undefined,
+      },
     },
   })
 

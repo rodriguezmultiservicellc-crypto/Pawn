@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadConfiguredSecretKinds } from '@/lib/secrets/vault'
 import SettingsContent, { type SettingsHubView } from './content'
 
 const SETTINGS_ROLES = new Set(['owner', 'chain_admin', 'manager'])
@@ -25,7 +26,7 @@ export default async function SettingsPage() {
 
   const admin = createAdminClient()
 
-  const [tenantRes, settingsRes, billingRes, ebayRes, subRes] = await Promise.all([
+  const [tenantRes, settingsRes, billingRes, ebayRes, subRes, secrets] = await Promise.all([
     admin
       .from('tenants')
       .select(
@@ -36,7 +37,7 @@ export default async function SettingsPage() {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid, twilio_auth_token, resend_api_key, default_loan_interest_rate, default_loan_term_days, abandoned_repair_days, buy_hold_period_days',
+        'twilio_account_sid, default_loan_interest_rate, default_loan_term_days, abandoned_repair_days, buy_hold_period_days',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -47,7 +48,7 @@ export default async function SettingsPage() {
       .maybeSingle(),
     admin
       .from('tenant_ebay_credentials')
-      .select('refresh_token, disconnected_at, environment')
+      .select('disconnected_at, environment')
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
     admin
@@ -57,6 +58,7 @@ export default async function SettingsPage() {
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
+    loadConfiguredSecretKinds(ctx.tenantId),
   ])
 
   const tenant = tenantRes.data
@@ -96,10 +98,10 @@ export default async function SettingsPage() {
         connected: !!(billing?.stripe_account_id && billing.stripe_connected_at),
         billingEnabled: billing?.billing_enabled ?? false,
       },
-      twilio: { connected: !!(settings?.twilio_account_sid && settings.twilio_auth_token) },
-      resend: { connected: !!settings?.resend_api_key },
+      twilio: { connected: !!(settings?.twilio_account_sid && secrets.has('twilio_auth_token')) },
+      resend: { connected: secrets.has('resend_api_key') },
       ebay: {
-        connected: !!(ebay?.refresh_token && !ebay.disconnected_at),
+        connected: secrets.has('ebay_refresh_token') && !ebay?.disconnected_at,
         environment: (ebay?.environment as 'sandbox' | 'production' | null) ?? null,
       },
     },

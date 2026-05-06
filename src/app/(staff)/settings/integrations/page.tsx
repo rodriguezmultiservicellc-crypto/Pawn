@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadConfiguredSecretKinds } from '@/lib/secrets/vault'
 import IntegrationsContent, { type IntegrationsView } from './content'
 
 const SETTINGS_ROLES = new Set(['owner', 'chain_admin', 'manager'])
@@ -12,9 +13,10 @@ const SETTINGS_ROLES = new Set(['owner', 'chain_admin', 'manager'])
  * Connection state is read live from:
  *   stripe_connect    -> tenant_billing_settings.stripe_account_id +
  *                        stripe_connected_at
- *   twilio            -> settings.twilio_account_sid + twilio_auth_token
- *   resend            -> settings.resend_api_key
- *   ebay              -> tenant_ebay_credentials.refresh_token +
+ *   twilio            -> settings.twilio_account_sid +
+ *                        vault has 'twilio_auth_token'
+ *   resend            -> vault has 'resend_api_key'
+ *   ebay              -> vault has 'ebay_refresh_token' +
  *                        !disconnected_at
  *   spot_prices       -> always 'available' (system-wide); per-tenant
  *                        override controls live at /inventory/spot-prices
@@ -29,7 +31,7 @@ export default async function IntegrationsPage() {
 
   const admin = createAdminClient()
 
-  const [billingRes, settingsRes, ebayRes, tenantRes, googleRevRes] = await Promise.all([
+  const [billingRes, settingsRes, ebayRes, tenantRes, googleRevRes, secrets] = await Promise.all([
     admin
       .from('tenant_billing_settings')
       .select(
@@ -40,15 +42,13 @@ export default async function IntegrationsPage() {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid, twilio_auth_token, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_api_key, resend_from_email, google_place_id',
+        'twilio_account_sid, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_from_email, google_place_id',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
     admin
       .from('tenant_ebay_credentials')
-      .select(
-        'refresh_token, disconnected_at, environment, ebay_user_id, connected_at',
-      )
+      .select('disconnected_at, environment, ebay_user_id, connected_at')
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
     admin
@@ -61,6 +61,7 @@ export default async function IntegrationsPage() {
       .select('rating, total_review_count, fetched_at, last_error')
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
+    loadConfiguredSecretKinds(ctx.tenantId),
   ])
 
   const billing = billingRes.data
@@ -83,18 +84,18 @@ export default async function IntegrationsPage() {
       billingEnabled: billing?.billing_enabled ?? false,
     },
     twilio: {
-      connected: !!(settings?.twilio_account_sid && settings.twilio_auth_token),
+      connected: !!(settings?.twilio_account_sid && secrets.has('twilio_auth_token')),
       accountSid: settings?.twilio_account_sid ?? null,
       smsFrom: settings?.twilio_sms_from ?? null,
       whatsappFrom: settings?.twilio_whatsapp_from ?? null,
       messagingServiceSid: settings?.twilio_messaging_service_sid ?? null,
     },
     resend: {
-      connected: !!settings?.resend_api_key,
+      connected: secrets.has('resend_api_key'),
       fromEmail: settings?.resend_from_email ?? null,
     },
     ebay: {
-      connected: !!(ebay?.refresh_token && !ebay.disconnected_at),
+      connected: secrets.has('ebay_refresh_token') && !ebay?.disconnected_at,
       ebayUserId: ebay?.ebay_user_id ?? null,
       environment: (ebay?.environment as 'sandbox' | 'production' | null) ?? null,
       connectedAt: ebay?.connected_at ?? null,

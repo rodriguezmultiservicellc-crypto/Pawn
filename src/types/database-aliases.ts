@@ -380,17 +380,22 @@ export type MessageLogRow    = Database['public']['Tables']['message_log']['Row'
 export type MessageLogInsert = Database['public']['Tables']['message_log']['Insert']
 export type MessageLogUpdate = Database['public']['Tables']['message_log']['Update']
 
-/** Narrow projection over the comms-relevant settings columns. */
+/**
+ * Narrow projection over the comms-relevant settings columns.
+ *
+ * Note: secret values (twilio_auth_token, resend_api_key) are NOT here —
+ * they live in the Vault registry (`tenant_secrets`) and are read via
+ * `getTenantSecret(tenantId, kind)` from `lib/secrets/vault.ts`. A
+ * "configured" check is `tenant_secrets has a row for that kind`.
+ */
 export type SettingsCommsColumns = Pick<
   Database['public']['Tables']['settings']['Row'],
   | 'twilio_account_sid'
-  | 'twilio_auth_token'
   | 'twilio_phone_number'
   | 'twilio_whatsapp_number'
   | 'twilio_messaging_service_sid'
   | 'twilio_sms_from'
   | 'twilio_whatsapp_from'
-  | 'resend_api_key'
   | 'email_from'
   | 'resend_from_email'
   | 'resend_from_name'
@@ -644,13 +649,18 @@ export type EbayListingEventKind =
   | 'sync'
   | 'webhook_received'
 
-/** Hand-written shape for tenant_ebay_credentials.Row until db:types regen. */
+/**
+ * Hand-written shape for tenant_ebay_credentials.Row.
+ *
+ * The actual access_token / refresh_token values live in the Vault
+ * registry (`tenant_secrets`, kinds `ebay_access_token` /
+ * `ebay_refresh_token`). The plaintext columns were dropped during
+ * the Session 25/26 cutover.
+ */
 export type TenantEbayCredentialsRow = {
   tenant_id: string
   ebay_user_id: string | null
-  refresh_token: string | null
   refresh_token_expires_at: string | null
-  access_token: string | null
   access_token_expires_at: string | null
   environment: EbayEnvironment
   site_id: string

@@ -726,178 +726,6 @@ export type Database = {
           },
         ]
       }
-      email_campaign_recipients: {
-        Row: {
-          bounce_reason: string | null
-          bounced_at: string | null
-          campaign_id: string
-          complained_at: string | null
-          created_at: string
-          customer_id: string
-          delivered_at: string | null
-          email: string
-          failed_at: string | null
-          failure_reason: string | null
-          id: string
-          language: string
-          message_log_id: string | null
-          resend_message_id: string | null
-          sent_at: string | null
-          status: Database["public"]["Enums"]["email_campaign_recipient_status"]
-          tenant_id: string
-        }
-        Insert: {
-          bounce_reason?: string | null
-          bounced_at?: string | null
-          campaign_id: string
-          complained_at?: string | null
-          created_at?: string
-          customer_id: string
-          delivered_at?: string | null
-          email: string
-          failed_at?: string | null
-          failure_reason?: string | null
-          id?: string
-          language: string
-          message_log_id?: string | null
-          resend_message_id?: string | null
-          sent_at?: string | null
-          status?: Database["public"]["Enums"]["email_campaign_recipient_status"]
-          tenant_id: string
-        }
-        Update: {
-          bounce_reason?: string | null
-          bounced_at?: string | null
-          campaign_id?: string
-          complained_at?: string | null
-          created_at?: string
-          customer_id?: string
-          delivered_at?: string | null
-          email?: string
-          failed_at?: string | null
-          failure_reason?: string | null
-          id?: string
-          language?: string
-          message_log_id?: string | null
-          resend_message_id?: string | null
-          sent_at?: string | null
-          status?: Database["public"]["Enums"]["email_campaign_recipient_status"]
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_campaign_recipients_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "email_campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_campaign_recipients_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_campaign_recipients_message_log_id_fkey"
-            columns: ["message_log_id"]
-            isOneToOne: false
-            referencedRelation: "message_log"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_campaign_recipients_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      email_campaigns: {
-        Row: {
-          body_html: string
-          body_text: string
-          bounced_count: number
-          complained_count: number
-          created_at: string
-          created_by: string | null
-          delivered_count: number
-          deleted_at: string | null
-          failed_count: number
-          id: string
-          name: string
-          recipient_count: number
-          scheduled_at: string | null
-          segment_language: string | null
-          segment_marketing_opt_in_only: boolean
-          segment_tags: string[]
-          sent_at: string | null
-          status: Database["public"]["Enums"]["email_campaign_status"]
-          subject: string
-          tenant_id: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          body_html: string
-          body_text: string
-          bounced_count?: number
-          complained_count?: number
-          created_at?: string
-          created_by?: string | null
-          delivered_count?: number
-          deleted_at?: string | null
-          failed_count?: number
-          id?: string
-          name: string
-          recipient_count?: number
-          scheduled_at?: string | null
-          segment_language?: string | null
-          segment_marketing_opt_in_only?: boolean
-          segment_tags?: string[]
-          sent_at?: string | null
-          status?: Database["public"]["Enums"]["email_campaign_status"]
-          subject: string
-          tenant_id: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          body_html?: string
-          body_text?: string
-          bounced_count?: number
-          complained_count?: number
-          created_at?: string
-          created_by?: string | null
-          delivered_count?: number
-          deleted_at?: string | null
-          failed_count?: number
-          id?: string
-          name?: string
-          recipient_count?: number
-          scheduled_at?: string | null
-          segment_language?: string | null
-          segment_marketing_opt_in_only?: boolean
-          segment_tags?: string[]
-          sent_at?: string | null
-          status?: Database["public"]["Enums"]["email_campaign_status"]
-          subject?: string
-          tenant_id?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_campaigns_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ebay_listing_events: {
         Row: {
           created_at: string
@@ -1057,6 +885,178 @@ export type Database = {
           },
           {
             foreignKeyName: "ebay_listings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_campaign_recipients: {
+        Row: {
+          bounce_reason: string | null
+          bounced_at: string | null
+          campaign_id: string
+          complained_at: string | null
+          created_at: string
+          customer_id: string
+          delivered_at: string | null
+          email: string
+          failed_at: string | null
+          failure_reason: string | null
+          id: string
+          language: string
+          message_log_id: string | null
+          resend_message_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["email_campaign_recipient_status"]
+          tenant_id: string
+        }
+        Insert: {
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          campaign_id: string
+          complained_at?: string | null
+          created_at?: string
+          customer_id: string
+          delivered_at?: string | null
+          email: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          language: string
+          message_log_id?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_campaign_recipient_status"]
+          tenant_id: string
+        }
+        Update: {
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          campaign_id?: string
+          complained_at?: string | null
+          created_at?: string
+          customer_id?: string
+          delivered_at?: string | null
+          email?: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          language?: string
+          message_log_id?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_campaign_recipient_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_recipients_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_recipients_message_log_id_fkey"
+            columns: ["message_log_id"]
+            isOneToOne: false
+            referencedRelation: "message_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_recipients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_campaigns: {
+        Row: {
+          body_html: string
+          body_text: string
+          bounced_count: number
+          complained_count: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          delivered_count: number
+          failed_count: number
+          id: string
+          name: string
+          recipient_count: number
+          scheduled_at: string | null
+          segment_language: string | null
+          segment_marketing_opt_in_only: boolean
+          segment_tags: string[]
+          sent_at: string | null
+          status: Database["public"]["Enums"]["email_campaign_status"]
+          subject: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body_html: string
+          body_text: string
+          bounced_count?: number
+          complained_count?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          delivered_count?: number
+          failed_count?: number
+          id?: string
+          name: string
+          recipient_count?: number
+          scheduled_at?: string | null
+          segment_language?: string | null
+          segment_marketing_opt_in_only?: boolean
+          segment_tags?: string[]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_campaign_status"]
+          subject: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body_html?: string
+          body_text?: string
+          bounced_count?: number
+          complained_count?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          delivered_count?: number
+          failed_count?: number
+          id?: string
+          name?: string
+          recipient_count?: number
+          scheduled_at?: string | null
+          segment_language?: string | null
+          segment_marketing_opt_in_only?: boolean
+          segment_tags?: string[]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_campaign_status"]
+          subject?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2995,7 +2995,6 @@ export type Database = {
           default_loan_term_days: number
           email_from: string | null
           google_place_id: string | null
-          google_places_api_key: string | null
           google_reviews_daily_quota: number | null
           google_reviews_hidden_review_times: number[]
           google_reviews_min_star_floor: number
@@ -3005,12 +3004,10 @@ export type Database = {
           loyalty_redemption_rate: number
           loyalty_referral_bonus: number
           min_loan_amount: number | null
-          resend_api_key: string | null
           resend_from_email: string | null
           resend_from_name: string | null
           tenant_id: string
           twilio_account_sid: string | null
-          twilio_auth_token: string | null
           twilio_messaging_service_sid: string | null
           twilio_phone_number: string | null
           twilio_sms_from: string | null
@@ -3027,7 +3024,6 @@ export type Database = {
           default_loan_term_days?: number
           email_from?: string | null
           google_place_id?: string | null
-          google_places_api_key?: string | null
           google_reviews_daily_quota?: number | null
           google_reviews_hidden_review_times?: number[]
           google_reviews_min_star_floor?: number
@@ -3037,12 +3033,10 @@ export type Database = {
           loyalty_redemption_rate?: number
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
-          resend_api_key?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
           tenant_id: string
           twilio_account_sid?: string | null
-          twilio_auth_token?: string | null
           twilio_messaging_service_sid?: string | null
           twilio_phone_number?: string | null
           twilio_sms_from?: string | null
@@ -3059,7 +3053,6 @@ export type Database = {
           default_loan_term_days?: number
           email_from?: string | null
           google_place_id?: string | null
-          google_places_api_key?: string | null
           google_reviews_daily_quota?: number | null
           google_reviews_hidden_review_times?: number[]
           google_reviews_min_star_floor?: number
@@ -3069,12 +3062,10 @@ export type Database = {
           loyalty_redemption_rate?: number
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
-          resend_api_key?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
           tenant_id?: string
           twilio_account_sid?: string | null
-          twilio_auth_token?: string | null
           twilio_messaging_service_sid?: string | null
           twilio_phone_number?: string | null
           twilio_sms_from?: string | null
@@ -3302,39 +3293,30 @@ export type Database = {
         Row: {
           billing_enabled: boolean
           created_at: string
-          stripe_access_token: string | null
           stripe_account_id: string | null
           stripe_connected_at: string | null
           stripe_publishable_key: string | null
-          stripe_refresh_token: string | null
           stripe_terminal_location_id: string | null
-          stripe_webhook_secret: string | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
           billing_enabled?: boolean
           created_at?: string
-          stripe_access_token?: string | null
           stripe_account_id?: string | null
           stripe_connected_at?: string | null
           stripe_publishable_key?: string | null
-          stripe_refresh_token?: string | null
           stripe_terminal_location_id?: string | null
-          stripe_webhook_secret?: string | null
           tenant_id: string
           updated_at?: string
         }
         Update: {
           billing_enabled?: boolean
           created_at?: string
-          stripe_access_token?: string | null
           stripe_account_id?: string | null
           stripe_connected_at?: string | null
           stripe_publishable_key?: string | null
-          stripe_refresh_token?: string | null
           stripe_terminal_location_id?: string | null
-          stripe_webhook_secret?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -3379,7 +3361,6 @@ export type Database = {
       }
       tenant_ebay_credentials: {
         Row: {
-          access_token: string | null
           access_token_expires_at: string | null
           connected_at: string | null
           created_at: string
@@ -3389,7 +3370,6 @@ export type Database = {
           fulfillment_policy_id: string | null
           merchant_location_key: string | null
           payment_policy_id: string | null
-          refresh_token: string | null
           refresh_token_expires_at: string | null
           return_policy_id: string | null
           site_id: string
@@ -3397,7 +3377,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          access_token?: string | null
           access_token_expires_at?: string | null
           connected_at?: string | null
           created_at?: string
@@ -3407,7 +3386,6 @@ export type Database = {
           fulfillment_policy_id?: string | null
           merchant_location_key?: string | null
           payment_policy_id?: string | null
-          refresh_token?: string | null
           refresh_token_expires_at?: string | null
           return_policy_id?: string | null
           site_id?: string
@@ -3415,7 +3393,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          access_token?: string | null
           access_token_expires_at?: string | null
           connected_at?: string | null
           created_at?: string
@@ -3425,7 +3402,6 @@ export type Database = {
           fulfillment_policy_id?: string | null
           merchant_location_key?: string | null
           payment_policy_id?: string | null
-          refresh_token?: string | null
           refresh_token_expires_at?: string | null
           return_policy_id?: string | null
           site_id?: string
@@ -3489,41 +3465,6 @@ export type Database = {
           },
         ]
       }
-      tenant_secrets: {
-        Row: {
-          created_at: string
-          id: string
-          kind: string
-          tenant_id: string
-          updated_at: string
-          vault_secret_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          kind: string
-          tenant_id: string
-          updated_at?: string
-          vault_secret_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          kind?: string
-          tenant_id?: string
-          updated_at?: string
-          vault_secret_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tenant_secrets_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tenant_loan_rates: {
         Row: {
           created_at: string
@@ -3573,6 +3514,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_loan_rates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_secrets: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          tenant_id: string
+          updated_at: string
+          vault_secret_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          tenant_id: string
+          updated_at?: string
+          vault_secret_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          tenant_id?: string
+          updated_at?: string
+          vault_secret_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_secrets_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3906,14 +3882,6 @@ export type Database = {
         Args: { p_cap: number; p_place_id: string; p_tenant_id: string }
         Returns: boolean
       }
-      get_tenant_secret: {
-        Args: { p_kind: string; p_tenant_id: string }
-        Returns: string
-      }
-      set_tenant_secret: {
-        Args: { p_kind: string; p_tenant_id: string; p_value: string }
-        Returns: string
-      }
       create_tenant_with_owner: {
         Args: {
           p_address?: string
@@ -3943,6 +3911,10 @@ export type Database = {
         Returns: undefined
       }
       get_my_customer_id: { Args: never; Returns: string }
+      get_tenant_secret: {
+        Args: { p_kind: string; p_tenant_id: string }
+        Returns: string
+      }
       my_accessible_tenant_ids: { Args: never; Returns: string[] }
       my_chain_tenant_ids: { Args: never; Returns: string[] }
       my_is_owner: { Args: { p_tenant_id: string }; Returns: boolean }
@@ -3955,6 +3927,10 @@ export type Database = {
       next_tenant_counter: {
         Args: { p_counter_name: string; p_tenant_id: string }
         Returns: number
+      }
+      set_tenant_secret: {
+        Args: { p_kind: string; p_tenant_id: string; p_value: string }
+        Returns: string
       }
     }
     Enums: {
@@ -3998,6 +3974,20 @@ export type Database = {
         | "ended"
         | "sold"
         | "error"
+      email_campaign_recipient_status:
+        | "queued"
+        | "sent"
+        | "delivered"
+        | "bounced"
+        | "complained"
+        | "failed"
+        | "skipped"
+      email_campaign_status:
+        | "draft"
+        | "scheduled"
+        | "sending"
+        | "sent"
+        | "canceled"
       id_document_type:
         | "drivers_license"
         | "state_id"
@@ -4077,20 +4067,6 @@ export type Database = {
         | "portal_invite"
         | "email_campaign"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
-      email_campaign_status:
-        | "draft"
-        | "scheduled"
-        | "sending"
-        | "sent"
-        | "canceled"
-      email_campaign_recipient_status:
-        | "queued"
-        | "sent"
-        | "delivered"
-        | "bounced"
-        | "complained"
-        | "failed"
-        | "skipped"
       metal_purity:
         | "pure_24k"
         | "22k"
@@ -4362,6 +4338,22 @@ export const Constants = {
         "sold",
         "error",
       ],
+      email_campaign_recipient_status: [
+        "queued",
+        "sent",
+        "delivered",
+        "bounced",
+        "complained",
+        "failed",
+        "skipped",
+      ],
+      email_campaign_status: [
+        "draft",
+        "scheduled",
+        "sending",
+        "sent",
+        "canceled",
+      ],
       id_document_type: [
         "drivers_license",
         "state_id",
@@ -4449,22 +4441,6 @@ export const Constants = {
         "email_campaign",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
-      email_campaign_status: [
-        "draft",
-        "scheduled",
-        "sending",
-        "sent",
-        "canceled",
-      ],
-      email_campaign_recipient_status: [
-        "queued",
-        "sent",
-        "delivered",
-        "bounced",
-        "complained",
-        "failed",
-        "skipped",
-      ],
       metal_purity: [
         "pure_24k",
         "22k",

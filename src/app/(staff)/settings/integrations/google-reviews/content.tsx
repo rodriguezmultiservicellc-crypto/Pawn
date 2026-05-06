@@ -29,7 +29,7 @@ export type GoogleReviewsSettingsReview = {
 
 export type GoogleReviewsSettingsView = {
   placeId: string
-  apiKey: string
+  apiKeyConfigured: boolean
   minStarFloor: number
   cache: {
     rating: number | null
@@ -59,7 +59,7 @@ export default function GoogleReviewsSettingsContent({
     initialTestState,
   )
 
-  const [showAdvanced, setShowAdvanced] = useState(view.apiKey.length > 0)
+  const [showAdvanced, setShowAdvanced] = useState(view.apiKeyConfigured)
 
   return (
     <div className="mx-auto w-full max-w-[640px] px-4 py-8">
@@ -111,21 +111,12 @@ export default function GoogleReviewsSettingsContent({
         </button>
 
         {showAdvanced ? (
-          <Field
-            label="Use my own Google API key"
+          <ApiKeySecretField
             name="google_places_api_key"
-            defaultValue={view.apiKey}
-            help="Leave blank to use the platform default. Provide a Places API key here only if you want to bill Google directly."
-            type="password"
-            fieldErrors={state.fieldErrors}
+            isSet={view.apiKeyConfigured}
+            error={state.fieldErrors?.['google_places_api_key']}
           />
-        ) : (
-          <input
-            type="hidden"
-            name="google_places_api_key"
-            value={view.apiKey}
-          />
-        )}
+        ) : null}
 
         {state.error && state.error !== 'validation_failed' ? (
           <p className="text-sm text-error">{state.error}</p>
@@ -352,6 +343,75 @@ function Field({
         ) : null}
       </p>
       {err ? <p className="mt-1 text-xs text-error">{err}</p> : null}
+    </label>
+  )
+}
+
+function ApiKeySecretField({
+  name,
+  isSet,
+  error,
+}: {
+  name: string
+  isSet: boolean
+  error?: string
+}) {
+  const [editing, setEditing] = useState<boolean>(!isSet)
+  const [clear, setClear] = useState<boolean>(false)
+  const [value, setValue] = useState<string>('')
+
+  return (
+    <label className="block">
+      <span className="flex items-center justify-between gap-2 text-sm font-medium text-ink">
+        <span>Use my own Google API key</span>
+        {isSet ? (
+          <span className="text-xs text-success">Configured</span>
+        ) : (
+          <span className="text-xs text-ash">Not configured</span>
+        )}
+      </span>
+      {editing ? (
+        <input
+          type="password"
+          name={name}
+          value={clear ? '__CLEAR__' : value}
+          onChange={(e) => {
+            setClear(false)
+            setValue(e.target.value)
+          }}
+          placeholder={isSet ? 'Leave blank to keep current key' : ''}
+          className="mt-2 block w-full rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-rausch focus:outline-none"
+        />
+      ) : (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="text"
+            value="••••••••••••••••"
+            readOnly
+            className="block flex-1 rounded-lg border border-hairline bg-cloud/40 px-3 py-2 text-sm text-ash"
+          />
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+          >
+            Update
+          </button>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-ash">
+        Leave blank to use the platform default. Provide a Places API key here only if you want to bill Google directly.
+      </p>
+      {editing && isSet ? (
+        <button
+          type="button"
+          onClick={() => setClear(true)}
+          className="mt-1 text-xs text-error hover:underline"
+        >
+          Clear stored key
+        </button>
+      ) : null}
+      {error ? <p className="mt-1 text-xs text-error">{error}</p> : null}
     </label>
   )
 }

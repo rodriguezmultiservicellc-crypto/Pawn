@@ -2,7 +2,7 @@
 import 'server-only'
 import { after } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveSecret } from '@/lib/secrets/vault'
+import { getTenantSecret } from '@/lib/secrets/vault'
 import { fetchPlaceDetails } from './client'
 import { applyHiddenFilter, applyMinStarFloor, isWidgetRenderable } from './filter'
 import type {
@@ -50,7 +50,7 @@ export async function getCachedReviews(
   const [{ data: settings }, { data: cached }] = await Promise.all([
     admin
       .from('settings')
-      .select('google_place_id, google_places_api_key')
+      .select('google_place_id')
       .eq('tenant_id', tenantId)
       .maybeSingle(),
     admin
@@ -97,24 +97,19 @@ export async function refreshReviews(
 ): Promise<TenantReviewRow | null> {
   const admin = createAdminClient()
 
-  const { data: settings } = await admin
-    .from('settings')
-    .select('google_place_id, google_places_api_key, google_reviews_daily_quota')
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
+  const [{ data: settings }, tenantOverride] = await Promise.all([
+    admin
+      .from('settings')
+      .select('google_place_id, google_reviews_daily_quota')
+      .eq('tenant_id', tenantId)
+      .maybeSingle(),
+    getTenantSecret(tenantId, 'google_places_api_key'),
+  ])
 
   const placeId = settings?.google_place_id ?? null
   if (!placeId) return null
 
-  // Resolution order: per-tenant vault → per-tenant plaintext (during
-  // dual-state migration window) → platform env var. Vault takes
-  // precedence when present so a vault-write supersedes any stale
-  // plaintext column value.
-  const tenantOverride = await resolveSecret(
-    tenantId,
-    'google_places_api_key',
-    settings?.google_places_api_key ?? null,
-  )
+  // Resolution order: per-tenant vault override → platform env var.
   const apiKey = tenantOverride ?? process.env.GOOGLE_PLACES_API_KEY ?? ''
   if (!apiKey) {
     await writeError(tenantId, placeId, 'no_api_key')

@@ -22,7 +22,11 @@
 
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveSecret, setTenantSecret } from '@/lib/secrets/vault'
+import {
+  getTenantSecret,
+  isSecretConfigured,
+  setTenantSecret,
+} from '@/lib/secrets/vault'
 import type {
   EbayEnvironment,
   TenantEbayCredentialsRow,
@@ -186,11 +190,10 @@ export async function persistTokens(args: {
   const admin = createAdminClient()
   const now = new Date().toISOString()
 
+  // Tokens themselves go to vault; the row carries metadata + expiries.
   const update: TenantEbayCredentialsUpdate = {
     ebay_user_id: args.bundle.ebay_user_id ?? null,
-    access_token: args.bundle.access_token ?? null,
     access_token_expires_at: args.bundle.access_token_expires_at ?? null,
-    refresh_token: args.bundle.refresh_token ?? null,
     refresh_token_expires_at: args.bundle.refresh_token_expires_at ?? null,
     environment: args.bundle.environment ?? 'sandbox',
     site_id: args.siteId ?? 'EBAY_US',
@@ -216,9 +219,6 @@ export async function persistTokens(args: {
       .insert({ tenant_id: args.tenantId, ...update })
   }
 
-  // Dual-write tokens to vault. Plaintext column update above keeps
-  // pre-migration read paths working; vault is the source of truth for
-  // read sites that have cut over (resolveCredentials below).
   await setTenantSecret(
     args.tenantId,
     'ebay_access_token',
@@ -237,20 +237,16 @@ export async function persistTokens(args: {
  */
 export async function markDisconnected(tenantId: string): Promise<void> {
   const admin = createAdminClient()
-  const supa = admin
-  await supa
+  await admin
     .from('tenant_ebay_credentials')
     .update({
-      access_token: null,
       access_token_expires_at: null,
-      refresh_token: null,
       refresh_token_expires_at: null,
       disconnected_at: new Date().toISOString(),
     })
     .eq('tenant_id', tenantId)
-  // Clear vault entries too — disconnect should leave no trace of the
-  // tokens anywhere. setTenantSecret with null deletes the registry row
-  // and the underlying vault.secrets row.
+  // setTenantSecret with null deletes the registry row and the
+  // underlying vault.secrets row — disconnect leaves no token residue.
   await setTenantSecret(tenantId, 'ebay_access_token', null)
   await setTenantSecret(tenantId, 'ebay_refresh_token', null)
 }
@@ -263,23 +259,19 @@ export async function resolveCredentials(
   tenantId: string,
 ): Promise<ResolvedEbayCredentials> {
   const admin = createAdminClient()
-  const supa = admin
-  const { data: row } = (await supa
+  const credPromise = admin
     .from('tenant_ebay_credentials')
     .select(
-      'tenant_id, ebay_user_id, refresh_token, refresh_token_expires_at, access_token, access_token_expires_at, environment, site_id, merchant_location_key, fulfillment_policy_id, payment_policy_id, return_policy_id, connected_at, disconnected_at',
+      'tenant_id, ebay_user_id, refresh_token_expires_at, access_token_expires_at, environment, site_id, merchant_location_key, fulfillment_policy_id, payment_policy_id, return_policy_id, connected_at, disconnected_at',
     )
     .eq('tenant_id', tenantId)
-    .maybeSingle()) as { data: TenantEbayCredentialsRow | null }
+    .maybeSingle() as unknown as Promise<{ data: TenantEbayCredentialsRow | null }>
+  const [{ data: row }, refreshToken, accessFromVault] = await Promise.all([
+    credPromise,
+    getTenantSecret(tenantId, 'ebay_refresh_token'),
+    getTenantSecret(tenantId, 'ebay_access_token'),
+  ])
 
-  // Vault-first read for both tokens. Plaintext columns are the
-  // fallback during the dual-state window; once 0034 drops them this
-  // collapses to direct getTenantSecret() calls.
-  const refreshToken = await resolveSecret(
-    tenantId,
-    'ebay_refresh_token',
-    row?.refresh_token ?? null,
-  )
   if (!row || !refreshToken) {
     throw new Error('tenant_ebay_not_connected')
   }
@@ -288,11 +280,6 @@ export async function resolveCredentials(
   const accessExp = row.access_token_expires_at
     ? Date.parse(row.access_token_expires_at)
     : 0
-  const accessFromVault = await resolveSecret(
-    tenantId,
-    'ebay_access_token',
-    row.access_token ?? null,
-  )
   let accessToken = accessFromVault ?? ''
   if (!accessToken || accessExp - now < 60 * 1000) {
     // Refresh — STUB returns fresh stub token.
@@ -331,18 +318,45 @@ export async function resolveCredentials(
   }
 }
 
-/** Read raw credentials row (no refresh). For the settings UI. */
+/**
+ * Read raw credentials row (no refresh). For the settings UI.
+ * Returned shape includes a `refresh_token_configured` flag derived
+ * from vault — callers used to gate "Connected?" on the plaintext
+ * `refresh_token` column being non-null.
+ */
 export async function loadCredentialsRow(
   tenantId: string,
-): Promise<TenantEbayCredentialsRow | null> {
+): Promise<
+  | (TenantEbayCredentialsRow & { refresh_token_configured: boolean })
+  | null
+> {
   const admin = createAdminClient()
-  const supa = admin
-  const { data } = (await supa
+  const rowPromise = admin
     .from('tenant_ebay_credentials')
     .select(
-      'tenant_id, ebay_user_id, refresh_token, refresh_token_expires_at, access_token, access_token_expires_at, environment, site_id, merchant_location_key, fulfillment_policy_id, payment_policy_id, return_policy_id, connected_at, disconnected_at, created_at, updated_at',
+      'tenant_id, ebay_user_id, refresh_token_expires_at, access_token_expires_at, environment, site_id, merchant_location_key, fulfillment_policy_id, payment_policy_id, return_policy_id, connected_at, disconnected_at, created_at, updated_at',
     )
     .eq('tenant_id', tenantId)
-    .maybeSingle()) as { data: TenantEbayCredentialsRow | null }
-  return data ?? null
+    .maybeSingle() as unknown as Promise<{ data: TenantEbayCredentialsRow | null }>
+  const [{ data }, refreshConfigured] = await Promise.all([
+    rowPromise,
+    isSecretConfigured(tenantId, 'ebay_refresh_token'),
+  ])
+  if (!data) return null
+  return { ...data, refresh_token_configured: refreshConfigured }
+}
+
+/** Cheap connection check — any tenant with a vault refresh token + not disconnected. */
+export async function isEbayConnected(tenantId: string): Promise<boolean> {
+  const admin = createAdminClient()
+  const [{ data }, refreshConfigured] = await Promise.all([
+    admin
+      .from('tenant_ebay_credentials')
+      .select('disconnected_at')
+      .eq('tenant_id', tenantId)
+      .maybeSingle(),
+    isSecretConfigured(tenantId, 'ebay_refresh_token'),
+  ])
+  if (!refreshConfigured) return false
+  return !data?.disconnected_at
 }

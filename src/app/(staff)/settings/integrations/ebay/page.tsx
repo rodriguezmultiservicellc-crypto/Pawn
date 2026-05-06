@@ -24,7 +24,7 @@ export default async function EbayIntegrationsPage(props: {
   const row = await loadCredentialsRow(ctx.tenantId)
 
   const view: EbayCredentialsView = {
-    connected: !!(row?.refresh_token && !row.disconnected_at),
+    connected: !!(row?.refresh_token_configured && !row.disconnected_at),
     ebay_user_id: row?.ebay_user_id ?? null,
     environment: row?.environment ?? 'sandbox',
     site_id: row?.site_id ?? 'EBAY_US',
