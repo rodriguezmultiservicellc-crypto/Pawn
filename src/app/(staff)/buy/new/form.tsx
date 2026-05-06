@@ -258,7 +258,7 @@ export default function BuyForm({
       </header>
 
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
+        <h1 className="font-display flex items-center gap-2 text-2xl font-bold">
           <Coins size={22} weight="bold" />
           Buy gold (outright)
         </h1>

@@ -115,7 +115,7 @@ export default function NewPawnLoanForm({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t.pawn.new_.title}</h1>
+        <h1 className="font-display text-2xl font-bold">{t.pawn.new_.title}</h1>
         <Link href="/pawn" className="text-sm text-muted hover:text-foreground">
           {t.pawn.backToList}
         </Link>
@@ -150,7 +150,7 @@ export default function NewPawnLoanForm({
               required
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="flex-1 rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             >
               <option value="">{t.pawn.new_.pickCustomer}</option>
               {customers.map((c) => (
@@ -190,7 +190,7 @@ export default function NewPawnLoanForm({
                 name="principal"
                 required
                 placeholder="0.00"
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
               {minLoanAmount != null ? (
                 <span className="block text-xs text-muted">
@@ -231,7 +231,7 @@ export default function NewPawnLoanForm({
                 <select
                   value={rateChoice}
                   onChange={(e) => setRateChoice(e.target.value)}
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
                 >
                   {rates.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -259,7 +259,7 @@ export default function NewPawnLoanForm({
                   value={customRate}
                   onChange={(e) => setCustomRate(e.target.value)}
                   required
-                  className="mt-2 block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className="mt-2 block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
                 />
               ) : null}
               {selectedRateDescription ? (
@@ -290,7 +290,7 @@ export default function NewPawnLoanForm({
                 required
                 value={termDays}
                 onChange={(e) => setTermDays(e.target.value)}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
             </label>
 
@@ -303,7 +303,7 @@ export default function NewPawnLoanForm({
                 name="issue_date"
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
             </label>
 
@@ -389,7 +389,7 @@ export default function NewPawnLoanForm({
               <textarea
                 name="notes"
                 rows={2}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
             </label>
           </div>

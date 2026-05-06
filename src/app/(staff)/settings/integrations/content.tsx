@@ -73,7 +73,7 @@ export default function IntegrationsContent({
           <span>/</span>
           <span className="text-foreground">Integrations</span>
         </div>
-        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-foreground">
+        <h1 className="font-display mt-1 flex items-center gap-2 text-2xl font-bold text-foreground">
           <Plug size={22} weight="bold" />
           Integrations
         </h1>

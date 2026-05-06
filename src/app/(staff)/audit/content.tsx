@@ -119,7 +119,7 @@ export default function AuditContent({
         <div className="flex items-center gap-3">
           <ClockCounterClockwise size={28} weight="regular" className="text-gold" />
           <div>
-            <h1 className="text-2xl font-bold">{t.audit.title}</h1>
+            <h1 className="font-display text-2xl font-bold">{t.audit.title}</h1>
             <p className="text-sm text-muted">{t.audit.subtitle}</p>
           </div>
         </div>

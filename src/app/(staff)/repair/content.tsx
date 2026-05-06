@@ -103,7 +103,7 @@ export default function RepairContent({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t.repair.title}</h1>
+          <h1 className="font-display text-2xl font-bold">{t.repair.title}</h1>
           <p className="text-sm text-muted">{t.repair.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">

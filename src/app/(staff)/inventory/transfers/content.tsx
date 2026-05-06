@@ -89,7 +89,7 @@ export default function TransfersContent({
         <div>
           <div className="flex items-center gap-2">
             <ArrowsLeftRight size={22} weight="regular" className="text-muted" />
-            <h1 className="text-2xl font-bold">{t.inventory.transfers.list.title}</h1>
+            <h1 className="font-display text-2xl font-bold">{t.inventory.transfers.list.title}</h1>
           </div>
           <p className="mt-1 text-sm text-muted">
             {t.inventory.transfers.list.subtitle}

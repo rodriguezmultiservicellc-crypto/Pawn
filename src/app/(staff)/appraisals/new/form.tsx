@@ -110,7 +110,7 @@ export default function NewAppraisalForm({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t.appraisal.new_.title}</h1>
+        <h1 className="font-display text-2xl font-bold">{t.appraisal.new_.title}</h1>
         <Link
           href="/appraisals"
           className="text-sm text-muted hover:text-foreground"
@@ -144,7 +144,7 @@ export default function NewAppraisalForm({
               <select
                 name="customer_id"
                 defaultValue={presetCustomerId ?? ''}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               >
                 <option value="">—</option>
                 {customers.map((c) => (
@@ -162,7 +162,7 @@ export default function NewAppraisalForm({
                 name="inventory_item_id"
                 value={inventoryId}
                 onChange={onInventoryChange}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               >
                 <option value="">—</option>
                 {inventory.map((i) => (
@@ -207,7 +207,7 @@ export default function NewAppraisalForm({
                 onChange={(e) => setItemDescription(e.target.value)}
                 rows={2}
                 placeholder={t.appraisal.new_.itemDescriptionPlaceholder}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
               {state.fieldErrors?.item_description ? (
                 <span className="text-xs text-danger">
@@ -224,7 +224,7 @@ export default function NewAppraisalForm({
                 name="metal_type"
                 value={metal}
                 onChange={(e) => setMetal(e.target.value)}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               >
                 <option value="">—</option>
                 {METAL_OPTIONS.map((m) => (
@@ -246,7 +246,7 @@ export default function NewAppraisalForm({
                 value={karat}
                 onChange={(e) => setKarat(e.target.value)}
                 placeholder="14"
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
             </label>
 
@@ -261,7 +261,7 @@ export default function NewAppraisalForm({
                 value={weightGrams}
                 onChange={(e) => setWeightGrams(e.target.value)}
                 placeholder="22.000"
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
             </label>
           </div>
@@ -347,7 +347,7 @@ export default function NewAppraisalForm({
                   setPurpose(e.target.value as AppraisalPurpose)
                 }
                 required
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               >
                 {PURPOSES.map((p) => (
                   <option key={p} value={p}>
@@ -370,7 +370,7 @@ export default function NewAppraisalForm({
                 name="appraised_value"
                 required
                 placeholder="0.00"
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
               {state.fieldErrors?.appraised_value ? (
                 <span className="text-xs text-danger">
@@ -388,7 +388,7 @@ export default function NewAppraisalForm({
                 step="0.01"
                 name="replacement_value"
                 placeholder="0.00"
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
               <span className="text-xs text-muted">
                 {t.appraisal.new_.replacementValueHelp}
@@ -409,7 +409,7 @@ export default function NewAppraisalForm({
                 name="valuation_method"
                 rows={2}
                 placeholder={t.appraisal.new_.valuationMethodPlaceholder}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
             </label>
 
@@ -420,7 +420,7 @@ export default function NewAppraisalForm({
               <textarea
                 name="notes"
                 rows={3}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
             </label>
           </div>
@@ -441,7 +441,7 @@ export default function NewAppraisalForm({
                 name="valid_from"
                 required
                 defaultValue={new Date().toISOString().slice(0, 10)}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
               {state.fieldErrors?.valid_from ? (
                 <span className="text-xs text-danger">
@@ -457,7 +457,7 @@ export default function NewAppraisalForm({
               <input
                 type="date"
                 name="valid_until"
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
               <span className="text-xs text-muted">
                 {t.appraisal.new_.validUntilHelp}

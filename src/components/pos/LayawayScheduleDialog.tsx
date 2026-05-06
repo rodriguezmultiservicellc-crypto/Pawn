@@ -84,7 +84,7 @@ export function LayawayScheduleDialog({
               onChange={(e) =>
                 setScheduleKind(e.target.value as LayawayScheduleKind)
               }
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             >
               <option value="weekly">{t.pos.layaway.scheduleWeekly}</option>
               <option value="biweekly">
@@ -105,7 +105,7 @@ export function LayawayScheduleDialog({
               max={1}
               value={cancellationFeePct}
               onChange={(e) => setCancellationFeePct(e.target.value)}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
             <span className="block text-xs text-muted">
               {t.pos.layaway.cancellationFeeHelp}
@@ -122,7 +122,7 @@ export function LayawayScheduleDialog({
               type="date"
               value={firstPaymentDue}
               onChange={(e) => setFirstPaymentDue(e.target.value)}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
           </label>
           <label className="block space-y-1">
@@ -133,7 +133,7 @@ export function LayawayScheduleDialog({
               type="date"
               value={finalDueDate}
               onChange={(e) => setFinalDueDate(e.target.value)}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
           </label>
         </div>
@@ -149,7 +149,7 @@ export function LayawayScheduleDialog({
               min={0}
               value={downPayment}
               onChange={(e) => setDownPayment(e.target.value)}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
           </label>
           <label className="block space-y-1">
@@ -161,7 +161,7 @@ export function LayawayScheduleDialog({
               onChange={(e) =>
                 setDownPaymentMethod(e.target.value as PaymentMethod)
               }
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             >
               <option value="cash">{t.pos.payment.methodCash}</option>
               <option value="card">{t.pos.payment.methodCard}</option>

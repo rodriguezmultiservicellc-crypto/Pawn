@@ -93,7 +93,7 @@ export default function ReportsLanding({
       <div className="flex items-center gap-3">
         <ChartBar size={28} weight="regular" className="text-gold" />
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t.reports.title}</h1>
+          <h1 className="font-display text-2xl font-bold text-foreground">{t.reports.title}</h1>
           <p className="text-sm text-muted">{t.reports.subtitle}</p>
         </div>
       </div>

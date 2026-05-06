@@ -83,7 +83,7 @@ export function AddPartDialog({
           <select
             value={invId}
             onChange={(e) => pickInventoryItem(e.target.value)}
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           >
             <option value="">{t.repair.dialogs.addPart.inventoryItemNone}</option>
             {options.map((o) => (
@@ -101,7 +101,7 @@ export function AddPartDialog({
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           />
         </label>
         <div className="grid grid-cols-3 gap-3">
@@ -115,7 +115,7 @@ export function AddPartDialog({
               min={0}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
           </label>
           <label className="block space-y-1">
@@ -128,7 +128,7 @@ export function AddPartDialog({
               min={0}
               value={unitCost}
               onChange={(e) => setUnitCost(e.target.value)}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
           </label>
           <div className="block space-y-1">
@@ -148,7 +148,7 @@ export function AddPartDialog({
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           />
         </label>
       </div>

@@ -101,7 +101,7 @@ export default function PortalLoanDetail({
         <p className="font-mono text-sm text-muted">
           {t.portal.loans.ticket} {loan.ticketNumber}
         </p>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="font-display text-2xl font-bold text-foreground">
           {t.portal.loans.detailTitle}
         </h1>
       </header>

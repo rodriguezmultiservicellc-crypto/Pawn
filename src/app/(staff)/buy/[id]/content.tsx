@@ -110,7 +110,7 @@ export default function BuyReceiptContent({
 
       <article className="rounded-lg border border-border bg-card p-5 print:border-0 print:p-0">
         <header className="border-b border-border pb-3">
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
+          <h1 className="font-display flex items-center gap-2 text-2xl font-bold text-foreground">
             <Coins size={22} weight="bold" />
             Buy receipt
           </h1>

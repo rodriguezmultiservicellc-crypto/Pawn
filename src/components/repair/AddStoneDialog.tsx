@@ -130,7 +130,7 @@ export function AddStoneDialog({
             onChange={(e) =>
               setSource(e.target.value as 'customer_supplied' | 'shop_supplied')
             }
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           >
             <option value="customer_supplied">
               {t.repair.new_.stoneSourceCustomer}
@@ -146,7 +146,7 @@ export function AddStoneDialog({
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           />
         </label>
       </div>
@@ -196,7 +196,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+        className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
       />
     </label>
   )

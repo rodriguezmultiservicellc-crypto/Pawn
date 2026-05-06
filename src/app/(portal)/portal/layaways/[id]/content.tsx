@@ -115,7 +115,7 @@ export default function PortalLayawayDetail({
         <p className="font-mono text-sm text-muted">
           {t.portal.layaways.layawayNumber} {layaway.layawayNumber}
         </p>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="font-display text-2xl font-bold text-foreground">
           {t.portal.layaways.detailTitle}
         </h1>
       </header>

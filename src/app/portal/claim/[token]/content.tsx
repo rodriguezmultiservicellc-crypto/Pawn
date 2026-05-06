@@ -40,7 +40,7 @@ export default function ClaimContent({
             'rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0',
         }}
       >
-        <h1 className="text-2xl font-bold text-foreground">
+        <h1 className="font-display text-2xl font-bold text-foreground">
           {t.portal.claim.title}
         </h1>
 

@@ -150,7 +150,7 @@ export function Cart({
         <select
           value={customerId ?? ''}
           onChange={(e) => setCustomerId(e.target.value || null)}
-          className="mt-2 block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+          className="mt-2 block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
         >
           <option value="">{t.pos.sale.anonymous}</option>
           {customers.map((c) => (
@@ -304,7 +304,7 @@ export function Cart({
               max={1}
               value={taxRate}
               onChange={(e) => setTaxRate(e.target.value)}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
             <span className="block text-xs text-muted">
               {t.pos.sale.taxRateHelp}
@@ -320,7 +320,7 @@ export function Cart({
               min={0}
               value={discount}
               onChange={(e) => setDiscount(e.target.value)}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
           </label>
         </div>
@@ -350,7 +350,7 @@ export function Cart({
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           />
         </label>
       </fieldset>

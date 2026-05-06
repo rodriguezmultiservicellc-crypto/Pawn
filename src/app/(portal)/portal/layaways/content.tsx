@@ -29,7 +29,7 @@ export default function PortalLayawaysList({
   if (layaways.length === 0) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="font-display text-2xl font-bold text-foreground">
           {t.portal.layaways.title}
         </h1>
         <div className="rounded-xl border border-border bg-card p-8 text-center">
@@ -46,7 +46,7 @@ export default function PortalLayawaysList({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">
+      <h1 className="font-display text-2xl font-bold text-foreground">
         {t.portal.layaways.title}
       </h1>
       <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">

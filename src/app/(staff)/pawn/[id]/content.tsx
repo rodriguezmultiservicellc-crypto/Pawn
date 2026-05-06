@@ -211,7 +211,7 @@ export default function PawnLoanDetail({
             <div className="text-xs uppercase tracking-wide text-muted">
               {t.pawn.detail.ticketLabel}
             </div>
-            <h1 className="font-mono text-2xl font-bold text-foreground">
+            <h1 className="font-display font-mono text-2xl font-bold text-foreground">
               {loan.ticket_number}
             </h1>
           </div>

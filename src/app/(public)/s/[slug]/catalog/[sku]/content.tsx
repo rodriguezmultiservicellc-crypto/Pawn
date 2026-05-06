@@ -148,7 +148,7 @@ export default function CatalogItemContent({
                 {dict.categories[item.category] ?? item.category}
               </span>
             </div>
-            <h1 className="text-2xl font-bold tracking-[-0.01em] text-foreground">
+            <h1 className="font-display text-2xl font-bold text-foreground">
               {item.description}
             </h1>
             {item.brand || item.model ? (

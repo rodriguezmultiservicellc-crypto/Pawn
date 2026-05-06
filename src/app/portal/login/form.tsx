@@ -102,34 +102,34 @@ export default function PortalLoginForm() {
       </div>
 
       {pwError ? (
-        <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+        <div className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           <Warning size={14} weight="bold" />
           <span>{pwError}</span>
         </div>
       ) : null}
 
       {magicState.error ? (
-        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+        <div className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {translateMagicError(magicState.error, t)}
         </div>
       ) : null}
 
       <label className="block space-y-1">
-        <span className="text-sm font-medium text-foreground">{t.auth.email}</span>
+        <span className="text-sm font-semibold text-text-secondary">{t.auth.email}</span>
         <input
           type="email"
           name="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+          className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           autoComplete="email"
           inputMode="email"
         />
       </label>
 
       <label className="block space-y-1">
-        <span className="flex items-center justify-between text-sm font-medium text-foreground">
+        <span className="flex items-center justify-between text-sm font-semibold text-text-secondary">
           <span>
             {t.portal.login.passwordLabel}{' '}
             <span className="text-xs font-normal text-muted">
@@ -148,7 +148,7 @@ export default function PortalLoginForm() {
           type={showPw ? 'text' : 'password'}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+          className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           autoComplete="current-password"
         />
       </label>

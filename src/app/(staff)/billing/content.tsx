@@ -44,7 +44,7 @@ export default function BillingContent({
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-bold text-foreground">Billing</h1>
+        <h1 className="font-display text-2xl font-bold text-foreground">Billing</h1>
         <p className="text-sm text-muted">
           Subscription plan and invoices for{' '}
           <span className="font-medium text-foreground">{tenantName}</span>.

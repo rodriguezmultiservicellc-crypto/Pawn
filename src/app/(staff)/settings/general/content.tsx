@@ -105,7 +105,7 @@ export default function GeneralSettingsContent({
       </div>
 
       <header>
-        <h1 className="text-2xl font-bold text-foreground">Tenant info</h1>
+        <h1 className="font-display text-2xl font-bold text-foreground">Tenant info</h1>
         <p className="mt-1 text-sm text-muted">
           Identity, contact, and compliance settings for this tenant.
           Module flags and police-report format are read-only here —

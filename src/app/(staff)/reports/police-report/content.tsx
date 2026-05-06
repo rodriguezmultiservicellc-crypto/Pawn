@@ -48,7 +48,7 @@ export default function PoliceReportContent({
             <CaretLeft size={14} weight="regular" />
             {t.reports.title}
           </Link>
-          <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-foreground">
+          <h1 className="font-display mt-1 flex items-center gap-2 text-2xl font-bold text-foreground">
             <Shield size={22} weight="regular" className="text-gold" />
             {t.compliance.title}
           </h1>

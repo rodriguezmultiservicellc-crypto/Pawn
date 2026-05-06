@@ -66,7 +66,7 @@ export default function AccountContent({
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">
+        <h1 className="font-display text-2xl font-bold text-foreground">
           {t.portal.account.title}
         </h1>
         <p className="mt-1 text-sm text-muted">{t.portal.account.subtitle}</p>
@@ -132,7 +132,7 @@ export default function AccountContent({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
           </label>
 
@@ -147,7 +147,7 @@ export default function AccountContent({
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               autoComplete="new-password"
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
           </label>
 

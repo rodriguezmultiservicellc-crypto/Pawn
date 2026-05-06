@@ -72,7 +72,7 @@ export function RedeemConfirmDialog({
         <select
           value={method}
           onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+          className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
         >
           <option value="cash">{t.pawn.payment.methodCash}</option>
           <option value="card">{t.pawn.payment.methodCard}</option>

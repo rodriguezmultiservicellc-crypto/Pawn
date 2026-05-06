@@ -84,7 +84,7 @@ export default function NewTransferForm({
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">
+          <h1 className="font-display text-2xl font-bold">
             {t.inventory.transfers.new.title}
           </h1>
           <Link
@@ -110,7 +110,7 @@ export default function NewTransferForm({
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">
+          <h1 className="font-display text-2xl font-bold">
             {t.inventory.transfers.new.title}
           </h1>
           <Link
@@ -143,7 +143,7 @@ export default function NewTransferForm({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ArrowsLeftRight size={22} weight="regular" className="text-muted" />
-          <h1 className="text-2xl font-bold">
+          <h1 className="font-display text-2xl font-bold">
             {t.inventory.transfers.new.title}
           </h1>
         </div>

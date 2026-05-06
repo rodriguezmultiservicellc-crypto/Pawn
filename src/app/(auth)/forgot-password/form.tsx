@@ -49,20 +49,20 @@ export default function ForgotPasswordForm() {
         {t.auth.forgotPassword}
       </h2>
       <label className="block space-y-1">
-        <span className="text-sm font-medium text-foreground">{t.auth.email}</span>
+        <span className="text-sm font-semibold text-text-secondary">{t.auth.email}</span>
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+          className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           autoComplete="email"
         />
       </label>
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-md bg-gold px-4 py-2.5 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
+        className="w-full rounded-xl bg-gold px-4 py-3.5 text-sm font-bold text-navy transition-all hover:bg-gold-2 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none"
       >
         {submitting ? t.common.loading : t.common.confirm}
       </button>

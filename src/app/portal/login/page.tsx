@@ -19,7 +19,7 @@ export default function PortalLoginPage() {
       >
         <div className="mb-6 text-center">
           <h1
-            className="bg-clip-text text-2xl font-bold text-transparent"
+            className="font-display bg-clip-text text-2xl font-bold text-transparent"
             style={{
               backgroundImage:
                 'linear-gradient(90deg, #ff385c 0%, #e00b41 50%, #92174d 100%)',

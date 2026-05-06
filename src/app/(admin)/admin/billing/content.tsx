@@ -27,7 +27,7 @@ export default function BillingContent({
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Billing</h1>
+          <h1 className="font-display text-2xl font-bold text-foreground">Billing</h1>
           <p className="text-sm text-muted">
             Per-tenant subscription state. The webhook keeps these rows in
             sync with Stripe; the manual &ldquo;Set plan&rdquo; controls below are an

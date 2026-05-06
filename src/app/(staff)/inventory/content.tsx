@@ -81,7 +81,7 @@ export default function InventoryContent({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t.inventory.title}</h1>
+        <h1 className="font-display text-2xl font-bold">{t.inventory.title}</h1>
         <Link
           href="/inventory/new"
           className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"

@@ -71,7 +71,7 @@ export default function LandingPageContent({
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:py-14">
         {/* Hero */}
         <section className="mb-10 text-center sm:mb-14">
-          <h1 className="text-3xl font-bold tracking-[-0.01em] text-foreground sm:text-5xl">
+          <h1 className="font-display text-3xl font-bold text-foreground sm:text-5xl">
             {display}
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-base text-muted sm:text-lg">

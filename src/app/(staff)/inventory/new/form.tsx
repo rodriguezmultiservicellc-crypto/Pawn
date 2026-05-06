@@ -96,7 +96,7 @@ export default function NewInventoryItemForm() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t.inventory.new}</h1>
+        <h1 className="font-display text-2xl font-bold">{t.inventory.new}</h1>
         <Link
           href="/inventory"
           className="text-sm text-muted hover:text-foreground"

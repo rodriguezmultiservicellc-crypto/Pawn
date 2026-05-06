@@ -95,7 +95,7 @@ export default function NewRepairTicketForm({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t.repair.new_.title}</h1>
+        <h1 className="font-display text-2xl font-bold">{t.repair.new_.title}</h1>
         <Link href="/repair" className="text-sm text-muted hover:text-foreground">
           {t.repair.backToList}
         </Link>
@@ -124,7 +124,7 @@ export default function NewRepairTicketForm({
             <select
               name="customer_id"
               required
-              className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="flex-1 rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             >
               <option value="">{t.repair.new_.pickCustomer}</option>
               {customers.map((c) => (
@@ -164,7 +164,7 @@ export default function NewRepairTicketForm({
                   setServiceType(e.target.value as ServiceType)
                 }
                 required
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               >
                 <option value="repair">{t.repair.serviceTypes.repair}</option>
                 <option value="stone_setting">
@@ -194,7 +194,7 @@ export default function NewRepairTicketForm({
                 name="title"
                 required
                 placeholder={t.repair.new_.titlePlaceholder}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
               {state.fieldErrors?.title ? (
                 <span className="text-xs text-danger">
@@ -212,7 +212,7 @@ export default function NewRepairTicketForm({
                 required
                 rows={2}
                 placeholder={t.repair.new_.itemDescriptionPlaceholder}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
               {state.fieldErrors?.item_description ? (
                 <span className="text-xs text-danger">
@@ -229,7 +229,7 @@ export default function NewRepairTicketForm({
                 name="description"
                 rows={3}
                 placeholder={t.repair.new_.descriptionPlaceholder}
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
             </label>
 
@@ -240,7 +240,7 @@ export default function NewRepairTicketForm({
               <input
                 type="date"
                 name="promised_date"
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
             </label>
 
@@ -251,7 +251,7 @@ export default function NewRepairTicketForm({
               <select
                 name="assigned_to"
                 defaultValue=""
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               >
                 <option value="">{t.repair.new_.assignedToNone}</option>
                 {technicians.map((tech) => (
@@ -344,7 +344,7 @@ export default function NewRepairTicketForm({
             <textarea
               name="notes_internal"
               rows={2}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             />
           </label>
         </fieldset>

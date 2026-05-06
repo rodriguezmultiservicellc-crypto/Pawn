@@ -254,7 +254,7 @@ export default function InventoryDetail({
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold">{item.description}</h1>
+        <h1 className="font-display text-2xl font-bold">{item.description}</h1>
       </div>
 
       <PhotosPanel itemId={item.id} photos={photos} />

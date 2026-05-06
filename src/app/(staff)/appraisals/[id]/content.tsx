@@ -198,7 +198,7 @@ export default function AppraisalDetail({
           >
             ← {t.appraisal.backToList}
           </Link>
-          <h1 className="mt-1 text-2xl font-bold">
+          <h1 className="font-display mt-1 text-2xl font-bold">
             <span className="font-mono">{appraisal.appraisal_number}</span>
           </h1>
           <p className="text-sm text-muted">{appraisal.item_description}</p>

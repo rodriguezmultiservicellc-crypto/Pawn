@@ -55,7 +55,7 @@ export default function CalculatorContent({
     <div className="mx-auto max-w-4xl space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
+          <h1 className="font-display flex items-center gap-2 text-2xl font-bold text-foreground">
             <Calculator size={22} weight="bold" />
             Loan calculator
           </h1>

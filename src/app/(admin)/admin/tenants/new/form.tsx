@@ -30,7 +30,7 @@ export default function NewTenantForm({
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t.admin.newTenant.title}</h1>
+        <h1 className="font-display text-2xl font-bold">{t.admin.newTenant.title}</h1>
         <Link
           href="/admin/tenants"
           className="text-sm text-muted hover:text-foreground"
@@ -70,7 +70,7 @@ export default function NewTenantForm({
               name="tenant_type"
               value={tenantType}
               onChange={(e) => setTenantType(e.target.value as TenantType)}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             >
               <option value="standalone">
                 {t.admin.tenants.typeStandalone}
@@ -141,7 +141,7 @@ export default function NewTenantForm({
             <select
               name="police_report_format"
               defaultValue="fl_leadsonline"
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             >
               <option value="fl_leadsonline">FL — LeadsOnline</option>
             </select>

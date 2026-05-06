@@ -172,7 +172,7 @@ export default function SaleDetailContent({
             <div className="text-xs uppercase tracking-wide text-muted">
               {t.pos.sale.saleNumber}
             </div>
-            <h1 className="font-mono text-2xl font-bold text-foreground">
+            <h1 className="font-display font-mono text-2xl font-bold text-foreground">
               {sale.sale_number}
             </h1>
             <div className="mt-1 text-xs text-muted">

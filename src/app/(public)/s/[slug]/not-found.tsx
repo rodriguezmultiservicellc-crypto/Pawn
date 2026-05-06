@@ -9,7 +9,7 @@ import Link from 'next/link'
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-[60vh] w-full max-w-xl flex-col items-center justify-center px-4 py-16 text-center">
-      <h1 className="text-3xl font-bold tracking-[-0.01em] text-foreground">
+      <h1 className="font-display text-3xl font-bold text-foreground">
         Not found
       </h1>
       <p className="mt-3 text-sm text-muted">
