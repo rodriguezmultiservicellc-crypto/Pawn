@@ -42,13 +42,7 @@ export function PortalChrome({
       <header className="sticky top-0 z-30 border-b border-border bg-card">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3">
           <Link href="/portal/loans" className="flex flex-col leading-tight">
-            <span
-              className="bg-clip-text text-base font-bold text-transparent"
-              style={{
-                backgroundImage:
-                  'linear-gradient(90deg, #ff385c 0%, #e00b41 50%, #92174d 100%)',
-              }}
-            >
+            <span className="font-display text-lg font-bold text-navy">
               {tenantName}
             </span>
             {customerName ? (
