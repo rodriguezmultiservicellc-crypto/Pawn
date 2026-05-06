@@ -116,7 +116,7 @@ export default function ReportsLanding({
                   </span>
                 </div>
                 <p className="text-xs text-muted">{meta.description}</p>
-                <span className="mt-auto text-xs font-medium text-foreground underline-offset-2 hover:underline">
+                <span className="mt-auto text-xs font-medium text-blue transition-colors hover:text-blue-2">
                   {t.reports.runReport}
                 </span>
               </Link>

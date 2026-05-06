@@ -48,11 +48,11 @@ export function PayoffCalculator({
         />
       </dl>
 
-      <div className="mt-4 flex items-center justify-between rounded-md border border-gold/30 bg-gold/5 px-3 py-2">
+      <div className="mt-4 flex items-center justify-between rounded-lg border border-navy/20 bg-navy/5 px-3 py-2">
         <span className="text-sm font-semibold text-foreground">
           {t.pawn.detail.totalDue}
         </span>
-        <span className="font-mono text-xl font-semibold text-gold">
+        <span className="font-mono text-xl font-bold text-navy">
           {fmt(payoff.payoff)}
         </span>
       </div>

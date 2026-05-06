@@ -87,7 +87,7 @@ export default function LoginForm() {
       <div className="flex items-center justify-between text-sm">
         <Link
           href="/forgot-password"
-          className="text-foreground underline-offset-2 hover:underline"
+          className="text-blue transition-colors hover:text-blue-2"
         >
           {t.auth.forgotPassword}
         </Link>

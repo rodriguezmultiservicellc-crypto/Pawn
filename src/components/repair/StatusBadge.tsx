@@ -10,10 +10,10 @@ const TONE: Record<RepairStatus, { bg: string; text: string }> = {
     bg: 'bg-warning/5 border-warning/30',
     text: 'text-warning',
   },
-  // Routed to a tech but not yet claimed — neutral cool tone signaling
-  // queued work.
-  assigned: { bg: 'bg-gold/5 border-gold/20', text: 'text-gold-2' },
-  in_progress: { bg: 'bg-gold/5 border-gold/30', text: 'text-gold' },
+  // Routed to a tech but not yet claimed — informational, queued work.
+  // Gold is reserved for action color, never status (DESIGN-lunaazul.md §2).
+  assigned: { bg: 'bg-info/5 border-info/20', text: 'text-info' },
+  in_progress: { bg: 'bg-info/10 border-info/30', text: 'text-info' },
   needs_parts: { bg: 'bg-warning/10 border-warning/40', text: 'text-warning' },
   // Final QA pass — uses the same warm tone as ready since it's the
   // last lap, but slightly muted.

@@ -311,7 +311,7 @@ export default function AppraisalDetail({
             {appraisal.customer_id && appraisal.customer_name ? (
               <Link
                 href={`/customers/${appraisal.customer_id}`}
-                className="text-foreground underline-offset-2 hover:underline"
+                className="text-blue transition-colors hover:text-blue-2"
               >
                 {appraisal.customer_name}
               </Link>
@@ -328,7 +328,7 @@ export default function AppraisalDetail({
             {appraisal.inventory_item_id && appraisal.inventory_item_label ? (
               <Link
                 href={`/inventory/${appraisal.inventory_item_id}`}
-                className="text-foreground underline-offset-2 hover:underline"
+                className="text-blue transition-colors hover:text-blue-2"
               >
                 {appraisal.inventory_item_label}
               </Link>

@@ -21,9 +21,9 @@ const TONE: Record<RepairEventType, string> = {
   intake: 'border-border bg-background text-foreground',
   quote_set: 'border-border bg-background text-foreground',
   approved: 'border-success/30 bg-success/5 text-success',
-  started: 'border-gold/30 bg-gold/5 text-gold',
+  started: 'border-info/30 bg-info/5 text-info',
   paused: 'border-border bg-background text-muted',
-  resumed: 'border-gold/30 bg-gold/5 text-gold',
+  resumed: 'border-info/30 bg-info/5 text-info',
   parts_needed: 'border-warning/30 bg-warning/5 text-warning',
   parts_received: 'border-success/30 bg-success/5 text-success',
   completed: 'border-success/30 bg-success/5 text-success',
@@ -32,9 +32,10 @@ const TONE: Record<RepairEventType, string> = {
   void: 'border-danger/30 bg-danger/5 text-danger',
   note: 'border-border bg-background text-foreground',
   photo_added: 'border-border bg-background text-foreground',
-  // Tech workflow events (0023).
-  assigned_to_tech: 'border-gold/30 bg-gold/5 text-gold-2',
-  claimed_by_tech: 'border-gold/30 bg-gold/5 text-gold',
+  // Tech workflow events (0023). Info blue, not gold — gold is the
+  // action color, not a status (DESIGN-lunaazul.md §2).
+  assigned_to_tech: 'border-info/30 bg-info/5 text-info',
+  claimed_by_tech: 'border-info/30 bg-info/5 text-info',
   qa_started: 'border-success/30 bg-success/5 text-success',
   qa_completed: 'border-success/30 bg-success/5 text-success',
   qa_returned: 'border-warning/30 bg-warning/5 text-warning',

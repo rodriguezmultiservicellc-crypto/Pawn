@@ -52,11 +52,11 @@ export function RedeemConfirmDialog({
 
       <p className="mb-3 text-sm text-foreground">{t.pawn.redeem.bodyHelp}</p>
 
-      <div className="mb-4 flex items-center justify-between rounded-md border border-gold/30 bg-gold/5 px-3 py-2">
+      <div className="mb-4 flex items-center justify-between rounded-lg border border-navy/20 bg-navy/5 px-3 py-2">
         <span className="text-sm font-semibold text-foreground">
           {t.pawn.redeem.payoffNow}
         </span>
-        <span className="font-mono text-xl font-semibold text-gold">
+        <span className="font-mono text-xl font-bold text-navy">
           {payoff.toLocaleString('en-US', {
             style: 'currency',
             currency: 'USD',

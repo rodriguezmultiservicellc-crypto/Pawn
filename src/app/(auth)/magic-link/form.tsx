@@ -205,7 +205,7 @@ export default function MagicLinkForm() {
       <div className="flex items-center justify-between text-sm">
         <Link
           href="/login"
-          className="text-foreground underline-offset-2 hover:underline"
+          className="text-blue transition-colors hover:text-blue-2"
         >
           {t.auth.magicLinkPage.backToLogin}
         </Link>

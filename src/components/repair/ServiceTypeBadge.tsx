@@ -3,18 +3,17 @@
 import { useI18n } from '@/lib/i18n/context'
 import type { ServiceType } from '@/types/database-aliases'
 
-const TONE: Record<ServiceType, { dot: string; text: string; bg: string }> = {
-  repair: { dot: 'bg-gold', text: 'text-gold', bg: 'bg-gold/5' },
-  stone_setting: {
-    dot: 'bg-warning',
-    text: 'text-warning',
-    bg: 'bg-warning/5',
-  },
-  sizing: { dot: 'bg-ash', text: 'text-muted', bg: 'bg-background' },
-  restring: { dot: 'bg-background', text: 'text-foreground', bg: 'bg-background/60' },
-  plating: { dot: 'bg-success', text: 'text-success', bg: 'bg-success/5' },
-  engraving: { dot: 'bg-navy', text: 'text-foreground', bg: 'bg-background' },
-  custom: { dot: 'bg-navy', text: 'text-foreground', bg: 'bg-background' },
+// Category badges use neutral surface + a colored dot to distinguish.
+// Status colors (success/warning/danger/info) are reserved for status, never
+// category — DESIGN-lunaazul.md §2. Gold is the action color, never used here.
+const TONE: Record<ServiceType, { dot: string }> = {
+  repair: { dot: 'bg-navy' },
+  stone_setting: { dot: 'bg-blue' },
+  sizing: { dot: 'bg-muted' },
+  restring: { dot: 'bg-muted' },
+  plating: { dot: 'bg-blue' },
+  engraving: { dot: 'bg-muted' },
+  custom: { dot: 'bg-navy' },
 }
 
 export function ServiceTypeBadge({ type }: { type: ServiceType }) {
@@ -30,9 +29,7 @@ export function ServiceTypeBadge({ type }: { type: ServiceType }) {
     custom: t.repair.serviceTypes.custom,
   }
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs font-medium ${tone.bg} ${tone.text}`}
-    >
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold text-foreground">
       <span className={`inline-block h-1.5 w-1.5 rounded-full ${tone.dot}`} />
       {map[type]}
     </span>

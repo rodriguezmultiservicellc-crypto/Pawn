@@ -117,7 +117,7 @@ export default function AuditContent({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <ClockCounterClockwise size={28} weight="regular" className="text-gold" />
+          <ClockCounterClockwise size={28} weight="regular" className="text-muted" />
           <div>
             <h1 className="font-display text-2xl font-bold">{t.audit.title}</h1>
             <p className="text-sm text-muted">{t.audit.subtitle}</p>
@@ -289,7 +289,7 @@ export default function AuditContent({
                         link ? (
                           <Link
                             href={link}
-                            className="font-mono text-xs text-gold hover:underline"
+                            className="font-mono text-xs text-blue transition-colors hover:text-blue-2"
                           >
                             {shortId(ev.record_id)}
                           </Link>
