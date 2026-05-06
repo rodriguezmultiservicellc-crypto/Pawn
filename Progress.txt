@@ -13,313 +13,361 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 25 (2026-05-05, end-of-session)
-                  — Major no-input run: Google Reviews
-                  defense-in-depth (cron warmer + quota
-                  guardrails + per-review hide list),
-                  full email-campaign engine backbone
-                  (migration + dispatch + cron + public
-                  unsubscribe + Resend webhook), and
-                  Supabase Vault encryption-at-rest with
-                  cutovers for resend_api_key,
-                  twilio_auth_token, google_places_api_key,
-                  and eBay access+refresh tokens. Operator
-                  applied SQL migrations 0030/0031/0032/
-                  0033 mid-session, so this push lands
-                  with a green DB. tsc clean, eslint clean,
-                  409 tests still passing.
-  Context budget: medium at save time (long session,
-                  many surfaces).
-  Last worked on: Same 13-item run, by surface:
-                  (A) GOOGLE REVIEWS DEFENSE-IN-DEPTH:
-                  cron warmer at /api/cron/refresh-google-
-                  reviews (every 6h, refreshes any tenant
-                  whose row > 18h old; covers no-traffic
-                  tenants the public-path after() refresh
-                  misses); per-tenant quota guardrails via
-                  consume_google_reviews_quota RPC (atomic
-                  SECURITY DEFINER, rolling 24h window,
-                  50/day platform default with per-tenant
-                  override column); per-review hide list
-                  via settings.google_reviews_hidden_review_
-                  times BIGINT[] + applyHiddenFilter +
-                  hide/unhide UI with EyeSlash/Eye buttons.
-                  (B) EMAIL CAMPAIGNS ENGINE: schema for
-                  email_campaigns + email_campaign_recipients
-                  + customers.email_unsubscribe_token UUID;
-                  message_kind enum + 'email_campaign'; new
-                  email_campaign_status (draft/scheduled/
-                  sending/sent/canceled) and recipient
-                  status enums. Dispatch lib at
-                  lib/email/campaigns.ts with resolveSegment,
-                  snapshotRecipients (lazy unsubscribe-token
-                  generation, ON CONFLICT dedupe), dispatch-
-                  Campaign (re-checks marketing_opt_in at
-                  send time = compliance), recompute-
-                  Aggregates, pickNextCampaign, build-
-                  UnsubscribeUrl. Cron route at /api/cron/
-                  send-email-campaigns runs every 2 min,
-                  picks one campaign, snapshots if
-                  scheduled, dispatches, flips to sent.
-                  Public unsubscribe at /unsubscribe?t=
-                  <uuid> with bilingual content + info-
-                  disclosure-safe error states. Resend
-                  webhook at /api/webhooks/resend with
-                  Svix HMAC verification (no svix
-                  dependency — Node crypto only); handles
-                  delivered/bounced/complained, hard-
-                  bounce + complaint flip marketing_opt_in
-                  off + audit-log. (C) SUPABASE VAULT:
-                  migration 0033 adds tenant_secrets
-                  registry + set/get_tenant_secret RPCs
-                  + backfill of existing plaintext;
-                  TS helper at lib/secrets/vault.ts with
-                  typed SecretKind union; vault-first
-                  reads + dual-writes wired for
-                  resend_api_key (lib/email/send.ts +
-                  settings/communications/actions.ts),
-                  twilio_auth_token (lib/twilio/sms.ts +
-                  same actions.ts), google_places_api_
-                  key (lib/google-reviews/cache.ts +
+  Last session:   Session 26 (2026-05-06, 08:40)
+                  — Recovery + completion of the Vault
+                  cutover that Session 25 only partially
+                  landed. db:types regen at session start
+                  showed a 290-line drift: prod was in a
+                  half-applied state across 0030/0031/0032/
+                  0033, AND the pre-existing plaintext
+                  secret columns had been dropped out-of-
+                  band (effectively the pending 0034
+                  plaintext-drop, but without 0030-0032's
+                  other work). Wrote 0034 as a fully
+                  idempotent superset of all four prior
+                  migrations + the plaintext drop, applied
+                  to prod, then refactored the codebase to
+                  vault-only — no resolveSecret fallback,
+                  no dual-writes. Committed cad2b23 + pushed
+                  to main. tsc clean, eslint clean, 409
+                  tests still passing. db:types regen post-
+                  0034 matches the codebase exactly (only
+                  reordering vs hand edits).
+  Context budget: medium-high (long investigation
+                  + 18-file refactor).
+  Last worked on: Two surfaces:
+                  (A) RECOVERY MIGRATION. Session 25's
+                  RESUME claimed "Operator applied SQL
+                  migrations 0030/0031/0032/0033 mid-
+                  session, so this push lands with a green
+                  DB" — that turned out to be wrong. db:types
+                  regen showed prod was missing
+                  customers.email_unsubscribe_token,
+                  settings.google_reviews_daily_quota,
+                  settings.google_reviews_hidden_review_
+                  times, tenant_google_reviews.quota_
+                  window_start + quota_calls_used, AND the
+                  pre-existing plaintext secret columns
+                  (settings.{resend_api_key, twilio_auth_
+                  token, google_places_api_key};
+                  tenant_billing_settings.{stripe_access_
+                  token, stripe_refresh_token, stripe_
+                  webhook_secret}; tenant_ebay_credentials
+                  .{access_token, refresh_token}). The new
+                  TABLES from 0032/0033 (email_campaigns,
+                  email_campaign_recipients, tenant_secrets)
+                  also did NOT exist (head:true probe
+                  initially mis-read them as present; full
+                  select returned PGRST205). The transactional
+                  migrations would not partial-apply on their
+                  own — most plausible explanation: operator
+                  ran an ad-hoc SQL run that did SOME of
+                  0033's table setup + the plaintext drop
+                  but skipped 0030/0031 + 0032's column +
+                  0033's full structure. Wrote
+                  patches/0034-vault-cutover-resync.sql
+                  as a complete IDEMPOTENT SUPERSET of
+                  0030+0031+0032+0033 plus the plaintext-
+                  column drop (every statement uses IF NOT
+                  EXISTS / CREATE OR REPLACE / DROP-then-
+                  CREATE so it's safe to run regardless of
+                  prod state). First version had the indexes/
+                  policies/triggers but assumed the new
+                  TABLES already existed — operator hit
+                  "relation email_campaigns does not exist".
+                  Rewrote as the full superset including
+                  CREATE TABLE statements. Operator applied;
+                  succeeded. db:types regen post-0034
+                  matches the codebase.
+                  (B) CODEBASE CUTOVER TO VAULT-ONLY. The
+                  resolveSecret() vault-first/plaintext-
+                  fallback helper is gone — replaced with
+                  direct getTenantSecret() calls everywhere.
+                  Added isSecretConfigured() (single-kind
+                  check) + loadConfiguredSecretKinds()
+                  (bulk Set<SecretKind>) helpers in
+                  lib/secrets/vault.ts for the
+                  "is this connected?" badges. All read
+                  paths (lib/email/send.ts,
+                  lib/twilio/sms.ts,
+                  lib/google-reviews/cache.ts,
+                  lib/ebay/auth.ts) read tokens from vault
+                  directly. Write paths (settings/
+                  communications/actions.ts +
                   settings/integrations/google-reviews/
-                  actions.ts), and ebay access+refresh
-                  tokens (lib/ebay/auth.ts —
-                  resolveCredentials reads vault first,
-                  persistTokens dual-writes, mark-
-                  Disconnected clears vault). Stripe
-                  vault cutover is a no-op today —
-                  stripe_*_token columns exist but no
-                  read or write paths use them yet
-                  (Connect onboarding not built; current
-                  Stripe wiring uses platform-level env
-                  vars). Migration 0033 backfills any
-                  data already there for free, helper is
-                  ready when Connect lands.
+                  actions.ts) write to vault only — no
+                  plaintext column update, no dual-write.
+                  Settings UIs (4 page.tsx files +
+                  google-reviews/content.tsx with new
+                  ApiKeySecretField "Configured/Update/
+                  Clear" pattern) derive "configured"
+                  badges from tenant_secrets membership
+                  rather than the dropped plaintext
+                  column. tenant_ebay_credentials reads
+                  use a derived `refresh_token_configured`
+                  flag from loadCredentialsRow() +
+                  isEbayConnected() helper for inventory
+                  page + ebay-sync cron tenant discovery
+                  (joins tenant_secrets kind='ebay_refresh
+                  _token' with tenant_ebay_credentials.
+                  disconnected_at). Validation schemas
+                  updated: communications dropped secret
+                  field keys (handled in actions directly);
+                  google-reviews added a secretField zod
+                  helper with __CLEAR__/blank semantics.
+                  database-aliases.ts dropped the plaintext
+                  Pick keys from SettingsCommsColumns +
+                  the access_token/refresh_token columns
+                  from TenantEbayCredentialsRow.
 
-  ACTIVE FILE(S) at end of session — Session 25
-  (uncommitted at save time, this push ships them):
+  ACTIVE FILE(S) at end of session — Session 26
+  (committed in cad2b23, pushed to main):
 
-    --- GOOGLE REVIEWS DEFENSE-IN-DEPTH (items 232-234) ---
-    - patches/0030-google-reviews-quota.sql NEW
-      (settings.google_reviews_daily_quota INT;
-      tenant_google_reviews + quota_window_start +
-      quota_calls_used; consume_google_reviews_quota
-      SECURITY DEFINER RPC).
-    - patches/0031-google-reviews-hidden-ids.sql NEW
-      (settings.google_reviews_hidden_review_times
-      BIGINT[] NOT NULL DEFAULT '{}').
-    - vercel.json — added /api/cron/refresh-google-
-      reviews schedule '0 */6 * * *'.
-    - src/app/api/cron/refresh-google-reviews/route.ts
-      NEW.
-    - src/lib/google-reviews/cache.ts — quota check
-      via .rpc('consume_google_reviews_quota') before
-      fetchPlaceDetails; degrades open on RPC error;
-      hidden-filter applied before min-star floor in
-      loadPublicReviews.
-    - src/lib/google-reviews/filter.ts — added
-      applyHiddenFilter; filter.test.ts +5 cases
-      (17/17 passing).
-    - src/lib/audit.ts — added 'google_reviews_refresh'
-      audit action.
-    - src/app/(staff)/settings/integrations/google-
-      reviews/page.tsx — loads payload + hidden_times
-      and projects into view.reviews.
-    - src/app/(staff)/settings/integrations/google-
-      reviews/actions.ts — added toggleHideReviewAction
-      with validation + audit + revalidatePath.
-    - src/app/(staff)/settings/integrations/google-
-      reviews/content.tsx — Cached reviews section +
-      ReviewRow component with hide/unhide form.
+    --- RECOVERY MIGRATION ---
+    - patches/0034-vault-cutover-resync.sql NEW
+      (full idempotent superset of 0030+0031+0032+
+      0033 plus the plaintext-column drop. Creates
+      email_campaigns + email_campaign_recipients +
+      tenant_secrets if missing; adds the column
+      additions from 0030/0031/0032; CREATE OR
+      REPLACE for the 3 RPCs; DROP/CREATE for RLS
+      policies + triggers; DROP COLUMN IF EXISTS for
+      the 8 plaintext secret columns. Ends with
+      NOTIFY pgrst, 'reload schema' to refresh
+      PostgREST's stale cache. Applied to prod
+      successfully.)
 
-    --- EMAIL CAMPAIGNS ENGINE (items 235-239) ---
-    - patches/0032-email-campaigns.sql NEW
-      (email_campaigns + email_campaign_recipients +
-      customers.email_unsubscribe_token UUID; new
-      email_campaign_status + recipient status enums;
-      'email_campaign' added to message_kind enum;
-      RLS staff-read-only on both tables, writes admin-
-      only).
-    - src/lib/email/campaigns.ts NEW (resolveSegment,
-      snapshotRecipients, dispatchCampaign,
-      recomputeAggregates, pickNextCampaign,
-      buildUnsubscribeUrl). Re-checks marketing_opt_in
-      at send time so a between-snapshot-and-send
-      unsubscribe doesn't get mailed.
-    - src/app/api/cron/send-email-campaigns/route.ts
-      NEW — picks one campaign per run; resumes
-      'sending' state if a previous run timed out.
-    - vercel.json — schedule '*/2 * * * *'.
-    - src/app/(public)/unsubscribe/page.tsx +
-      content.tsx + actions.ts NEW. Inline EN+ES copy
-      (no i18n catalog needed — one-off public
-      surface). Bad/expired token resolves to
-      identical "invalid" view = no info disclosure.
-    - src/proxy.ts — added '/unsubscribe' to
-      PUBLIC_PATHS.
-    - src/app/api/webhooks/resend/route.ts NEW.
-      Svix HMAC verification via Node crypto; handles
-      email.delivered, email.bounced, email.complained;
-      hard bounce + complaint flip customers.
-      marketing_opt_in to FALSE + audit-log; mirrors
-      delivered_at into message_log too.
-    - src/lib/audit.ts — added email_campaign_*
-      audit actions (create/update/schedule/cancel/
-      dispatch/unsubscribe/bounce/complaint).
-    - src/lib/i18n/{en,es}.ts — added 'email_campaign'
-      to kindLabels + kindDescriptions.
+    --- VAULT HELPER + READ PATHS ---
+    - src/lib/secrets/vault.ts — REWRITTEN.
+      resolveSecret() with plaintext fallback removed.
+      Added isSecretConfigured(tenantId, kind) and
+      loadConfiguredSecretKinds(tenantId) for the
+      "is connected?" badges. Existing
+      getTenantSecret() / setTenantSecret() unchanged.
+    - src/lib/email/send.ts — resolveResendCreds()
+      reads apiKey via getTenantSecret('resend_api_
+      key'); plaintext column reference dropped from
+      the .select() list.
+    - src/lib/twilio/sms.ts — resolveTwilioCreds()
+      reads authToken via getTenantSecret('twilio_
+      auth_token'); plaintext column reference
+      dropped.
+    - src/lib/google-reviews/cache.ts — refreshReviews()
+      reads tenant override via getTenantSecret('google
+      _places_api_key'); google_places_api_key
+      dropped from settings .select() lists in both
+      getCachedReviews() and refreshReviews().
+    - src/lib/ebay/auth.ts — REFACTORED.
+      resolveCredentials() reads both tokens via
+      getTenantSecret(); persistTokens() writes via
+      setTenantSecret() only (no plaintext column
+      update); markDisconnected() clears vault only.
+      loadCredentialsRow() now returns a derived
+      `refresh_token_configured: boolean` flag
+      (combined with isSecretConfigured()) so call
+      sites can check connection without reading the
+      dropped plaintext column. New isEbayConnected()
+      helper for cheap "is connected?" gate.
 
-    --- VAULT (items 240-244) ---
-    - patches/0033-tenant-secrets-vault.sql NEW
-      (public.tenant_secrets registry; set_tenant_
-      secret + get_tenant_secret SECURITY DEFINER
-      RPCs; backfill DO block for all 8 secret
-      kinds; service_role-only EXECUTE grants).
-    - src/lib/secrets/vault.ts NEW (typed SecretKind
-      union; getTenantSecret / setTenantSecret /
-      resolveSecret helpers).
-    - src/lib/email/send.ts — resolveResendCreds
-      uses resolveSecret('resend_api_key', plaintext)
-      with vault-first / plaintext-fallback.
-    - src/lib/twilio/sms.ts — resolveTwilioCreds
-      uses resolveSecret('twilio_auth_token', ...).
-    - src/app/(staff)/settings/communications/
-      actions.ts — dual-writes both tokens to vault
-      after the plaintext settings.update.
-    - src/lib/google-reviews/cache.ts — refreshReviews
-      resolves the api key via vault (per-tenant
-      override) then falls back to env var
-      (platform default).
+    --- WRITE PATHS (vault-only) ---
+    - src/app/(staff)/settings/communications/actions.ts
+      — updateCommsSettingsAction writes secrets via
+      setTenantSecret() only; the settings UPDATE no
+      longer carries twilio_auth_token / resend_api_
+      key columns.
     - src/app/(staff)/settings/integrations/google-
-      reviews/actions.ts — dual-writes
-      google_places_api_key to vault.
-    - src/lib/ebay/auth.ts — persistTokens dual-
-      writes ebay_access_token + ebay_refresh_token;
-      markDisconnected clears both vault entries;
-      resolveCredentials reads vault first.
-    - src/types/database.ts — added tenant_secrets
-      + email_campaigns + email_campaign_recipients
-      + tenant_google_reviews quota cols + settings
-      vault columns + RPCs (consume_google_reviews_
-      quota, get_tenant_secret, set_tenant_secret).
-      Hand-edited; next db:types regen should match.
+      reviews/actions.ts — google_places_api_key
+      writes to vault only via setTenantSecret().
+      Settings UPDATE no longer carries the column.
+
+    --- SETTINGS UI VAULT-DRIVEN BADGES ---
+    - src/app/(staff)/settings/page.tsx — dropped
+      twilio_auth_token / resend_api_key /
+      stripe/ebay token columns from the parallel
+      .select() block; added loadConfiguredSecret-
+      Kinds(); badges now derived from the
+      Set<SecretKind>.
+    - src/app/(staff)/settings/integrations/page.tsx
+      — same pattern; loadConfiguredSecretKinds()
+      gates Twilio/Resend/eBay "Connected" chips.
+    - src/app/(staff)/settings/communications/page.tsx
+      — same pattern. The CredsForm component itself
+      didn't change (it already accepted *_set
+      booleans); only the page-side derivation
+      changed.
+    - src/app/(staff)/settings/integrations/google-
+      reviews/page.tsx — derives apiKeyConfigured
+      via isSecretConfigured('google_places_api_key').
+    - src/app/(staff)/settings/integrations/google-
+      reviews/content.tsx — replaced the plaintext
+      Field with a new ApiKeySecretField sub-component
+      using the secret-field "Configured / Update /
+      Clear stored key" pattern (mirrors
+      CredsForm.SecretField).
+    - src/app/(staff)/settings/integrations/ebay/
+      page.tsx — connected flag derives from the
+      new refresh_token_configured property on the
+      loadCredentialsRow() return shape.
+    - src/app/(staff)/inventory/[id]/page.tsx —
+      ebay panel gate now uses isEbayConnected()
+      instead of reading the dropped refresh_token
+      column.
+    - src/app/api/cron/ebay-sync/route.ts — tenant
+      discovery via two parallel reads (tenant_
+      secrets where kind='ebay_refresh_token' and
+      tenant_ebay_credentials.disconnected_at);
+      intersect to get connected tenants.
+
+    --- VALIDATION SCHEMAS ---
+    - src/lib/validations/communications.ts —
+      commsSettingsSchema dropped twilio_auth_token
+      and resend_api_key keys. Action handler reads
+      those from formData directly with __CLEAR__ /
+      blank / value semantics.
+    - src/lib/validations/google-reviews.ts — added
+      a secretField zod helper with the same
+      semantics; google_places_api_key now uses it
+      (was optionalTrimmedString).
+
+    --- TYPES ---
+    - src/types/database-aliases.ts — dropped
+      twilio_auth_token + resend_api_key from
+      SettingsCommsColumns Pick. Updated
+      TenantEbayCredentialsRow hand-written shape
+      to remove access_token + refresh_token keys.
+    - src/types/database.ts — REGEN post-0034 +
+      0034 application. Matches prod exactly. Diff
+      vs Session 25 hand edits is purely
+      alphabetical reorder of tables — no semantic
+      changes.
 
   RESUME POINT:
-    Operator applied SQL migrations 0030/0031/0032/
-    0033 mid-session — DB is ready for this push.
-    Run db:types when convenient (next regen should
-    match my hand edits to src/types/database.ts).
+    Patches/0034 has been applied to prod and the
+    code refactor is committed (cad2b23) + pushed.
+    db:types regen post-0034 matches prod exactly.
+    Vault is now the sole secret store; every read +
+    write path reads/writes via tenant_secrets RPCs.
 
-    SMOKE TESTS to walk after Vercel deploy completes:
+    SMOKE TESTS to walk on production (carrying
+    Session 25's set, with adjustments for vault-
+    only reality):
 
-    (A) Google Reviews carryover (slice 4 from
-        Session 23, unchanged): GOOGLE_PLACES_API_
-        KEY must be in Vercel env + Places API
-        enabled in GCP. Walk the 9-step smoke from
-        Session 24's resume point.
+    (A) Google Reviews end-to-end: GOOGLE_PLACES_
+        API_KEY must be in Vercel env + Places API
+        enabled in GCP. Visit /s/<slug>; widget
+        renders. /settings/integrations/google-
+        reviews shows the cached-reviews list +
+        hide/unhide flow. Star floor + hide list
+        both filter at render.
 
-    (B) Cron warmer: trigger /api/cron/refresh-
-        google-reviews manually via curl with
-        Authorization: Bearer <CRON_SECRET>; expect
-        JSON {ok, configured, stale, refreshed,
-        failed}. Audit_log row written per tenant
-        with action='google_reviews_refresh'.
+    (B) Cron warmer: curl /api/cron/refresh-google-
+        reviews with Authorization: Bearer
+        <CRON_SECRET>; expect JSON {ok, configured,
+        stale, refreshed, failed}. Audit_log row per
+        tenant with action='google_reviews_refresh'.
 
     (C) Quota guardrails: hit refreshReviews 50+
-        times for one tenant within 24h — call 51+
-        should return cached row + last_error =
-        'quota_exceeded' without a Places API
-        round-trip.
+        times in 24h. Call 51+ returns cached row +
+        last_error='quota_exceeded' without a
+        Places API round-trip.
 
-    (D) Hide list UI: /settings/integrations/google-
-        reviews shows the cached-reviews list with
-        EyeSlash buttons; click hides; widget on
-        /s/<slug> drops the hidden review without
-        changing the aggregate rating.
+    (D) Email campaigns (no UI yet): INSERT a draft
+        into email_campaigns directly via SQL,
+        flip status='scheduled', scheduled_at=NOW().
+        Cron (every 2 min) picks up + dispatches.
+        Watch message_log + email_campaign_
+        recipients + audit_log fill.
 
-    (E) Email campaigns: NO operator UI yet — to
-        smoke, INSERT a draft directly:
-          INSERT INTO email_campaigns (tenant_id,
-            name, subject, body_html, body_text,
-            segment_marketing_opt_in_only,
-            scheduled_at, status)
-          VALUES (...)
-        Flip status='scheduled', scheduled_at=NOW();
-        wait for cron (every 2 min). Watch
-        message_log + email_campaign_recipients +
-        audit_log fill.
-
-    (F) Public unsubscribe: visit /unsubscribe?t=
+    (E) Public unsubscribe: visit /unsubscribe?t=
         <uuid> for a customer with marketing_opt_in
-        TRUE + a token — confirm form renders;
-        click → marketing_opt_in flips false,
-        audit-logged with action='email_campaign_
-        unsubscribe', success state survives
-        refresh.
+        TRUE + a token. Form renders bilingual;
+        click → marketing_opt_in flips FALSE,
+        audit-logged.
 
-    (G) Resend webhook: configure Resend dashboard
+    (F) Resend webhook: configure Resend dashboard
         webhook to ${NEXT_PUBLIC_APP_URL}/api/
         webhooks/resend with RESEND_WEBHOOK_SECRET
         env var. Send a test event from Resend's
         UI; expect 200 + audit-log update if it
         matches a recipient row.
 
-    (H) Vault dual-state: rotate Resend API key in
+    (G) Vault smoke (NEW shape — no fallback):
+        rotate Resend API key in
         /settings/communications. Verify
-        tenant_secrets has a row with kind=
-        'resend_api_key' and updated_at matches.
-        Send a test email — sendEmail reads the
-        vault value (vault-first) and successfully
-        dispatches.
+        tenant_secrets has the row + updated_at
+        matches. The "Configured" badge on
+        /settings/integrations should be lit.
+        Send a test email — sendEmail reads
+        getTenantSecret('resend_api_key') and
+        successfully dispatches.
+
+    (H) Settings UIs sanity: /settings,
+        /settings/integrations,
+        /settings/communications,
+        /settings/integrations/google-reviews,
+        /settings/integrations/ebay all render.
+        "Configured" / "Connected" badges reflect
+        tenant_secrets membership (not the dropped
+        plaintext columns).
+
+    (I) eBay sync cron + inventory page: the
+        tenant_secrets-driven discovery paths
+        (api/cron/ebay-sync route + the inventory
+        detail page's eBay panel gate) work
+        without errors, even with stub eBay
+        tokens.
 
     NEXT MOVES (after smoke):
 
-    (a) Migration 0034 — DROP plaintext columns
-        (twilio_auth_token, resend_api_key,
-        google_places_api_key on settings;
-        ebay access/refresh on tenant_ebay_
-        credentials; stripe_*_tokens on tenant_
-        billing_settings) once you're satisfied
-        the dual-state has run cleanly. Drop the
-        plaintext-fallback in resolveSecret() at
-        the same time → callers can switch to
-        getTenantSecret() directly.
+    (a) Phase 0 punch list — CRON_SECRET +
+        NEXT_PUBLIC_APP_URL + RESEND_WEBHOOK_
+        SECRET + GOOGLE_PLACES_API_KEY +
+        NEXT_PUBLIC_BASE_DOMAIN env vars in
+        Vercel. Three pasted secrets (anon JWT,
+        service-role JWT, sbp_ token) still need
+        rotation. Repo-local git config revert
+        still open.
     (b) Email-campaign UI editor at /settings/
-        communications/campaigns — list + create/
-        edit/schedule/cancel form. Engine works
-        without it (SQL inserts), but campaigns
-        aren't really shippable to operators
-        without a UI.
-    (c) Phase 0 punch list — env vars + secret
-        rotation + git config revert (carrying
-        from Session 24 — unchanged here).
+        communications/campaigns — list +
+        create/edit/schedule/cancel form +
+        segmentation preview ("X recipients will
+        be reached"). Engine works from SQL
+        inserts; UI is what makes it shippable to
+        operators.
+    (c) Stripe-side vault cutover — when Connect
+        onboarding is built. The 3 stripe_* kinds
+        in lib/secrets/vault.ts are typed; just no
+        readers/writers yet. Existing
+        tenant_billing_settings row keeps
+        stripe_account_id / connected_at /
+        publishable_key / terminal_location_id
+        (the non-secret metadata).
     (d) eBay de-stub — flip auth.ts + client.ts +
         listings.ts STUB markers to real Sell API
-        calls. ~840 LOC. Needs your eBay developer
+        calls. ~840 LOC. Needs eBay developer
         account + sandbox vs prod decision +
-        marketplace ID confirmation; deferred.
-    (e) Phase 8 mobile audit — your eyes in browser
-        device-mode (carrying).
+        marketplace ID confirmation.
+    (e) Phase 8 mobile audit — operator's eyes in
+        browser device-mode (carrying).
 
   OPEN ISSUES / BLOCKERS:
-    - All Session 25 work needs production smoke
-      (8 smokes A-H above). Local lint+tsc+409
-      tests are green; production behavior under
-      real Resend / Google / Vercel-cron load is
-      unverified.
+    - Session 25 + Session 26 production smoke
+      not yet walked end-to-end (smokes A-I above).
+      Local lint+tsc+409 tests are green; real
+      Resend / Google / Vercel-cron behavior under
+      vault-only is unverified.
     - Email-campaign engine has NO operator UI
       yet — SQL-insert campaigns to test until the
-      editor lands. Shippable to operators only
-      after that piece.
+      editor lands.
     - Phase 0 punch list — CRON_SECRET +
-      NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN
-      still unset in Vercel; cron routes 401 until
-      CRON_SECRET is set. Three pasted secrets
-      (anon JWT, service-role JWT, sbp_ token)
-      still need rotation. Repo-local git config
-      revert still open.
-    - RESEND_WEBHOOK_SECRET env var not yet set in
-      Vercel; webhook will 401 until it lands.
+      NEXT_PUBLIC_APP_URL + RESEND_WEBHOOK_SECRET +
+      GOOGLE_PLACES_API_KEY + NEXT_PUBLIC_BASE_
+      DOMAIN still unset in Vercel; cron routes
+      401 + webhooks 401 + GR widget renders empty
+      until they land. Three pasted secrets (anon
+      JWT, service-role JWT, sbp_ token) still
+      need rotation. Repo-local git config revert
+      still open.
     - SaaS billing real-money flow + per-tenant
       Stripe Connect + per-tenant Resend not yet
       onboarded for first tenant.
@@ -332,12 +380,14 @@ SEE ALSO (do not duplicate here):
     - WhatsApp Content SIDs NULL until Twilio + Meta
       approval per template per tenant.
     - FL LeadsOnline CSV format still DRAFT.
-    - Migration 0034 (plaintext-column drop) is
-      pending — landing it requires confidence
-      that all read+write paths are on vault, plus
-      revising resolveSecret() to drop the
-      plaintext-fallback parameter and the lib/
-      stripe/ paths once Stripe Connect is wired.
+    - If any tenants had real plaintext secrets at
+      the moment the operator's manual run dropped
+      the plaintext columns BEFORE 0033's backfill
+      ran, those secrets are LOST. Operator must
+      re-enter via the settings UI (which now
+      writes to vault). For RMS pre-launch state
+      this is unlikely to matter, but worth noting
+      if any real creds were entered before today.
 
   OPEN SMALL FOLLOW-UPS (carried, can ride along):
     - Reviewer photos in widget — adding next/image
@@ -353,97 +403,71 @@ SEE ALSO (do not duplicate here):
       kinds in lib/secrets/vault.ts are typed and
       backfilled, just no readers/writers yet.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 25):
-    - VAULT (Supabase Vault) OVER pgsodium-TCE.
-      Supabase deprecated pgsodium-TCE in favor of
-      Vault — same libsodium under the hood but a
-      higher-level + supported API. Hosted Supabase
-      requires Vault.
-    - SEPARATE TENANT_SECRETS REGISTRY rather than
-      per-table secret_id columns. Reasons: single
-      audit surface for every secret read; one
-      RLS policy; business-data tables stay focused
-      on operational state; eventual plaintext-
-      column drop is a one-line ALTER per column
-      instead of a coordinated rename across
-      tables.
-    - DUAL-STATE MIGRATION (vault + plaintext)
-      INSTEAD OF BIG-BANG. resolveSecret() prefers
-      vault, falls back to plaintext column during
-      the transition window. Write paths dual-
-      write. Migration 0034 drops plaintext after
-      operator observes production looking healthy.
-    - KIND IS TEXT, NOT ENUM. Adding a new secret
-      kind shouldn't require ALTER TYPE ADD VALUE.
-      Validation lives in the TS SecretKind union
-      + the RPC.
-    - QUOTA WINDOW IS ROLLING 24H, NOT CALENDAR
-      DAY. Burst-resistant; calendar-day quotas
-      double in cost near midnight UTC. RPC uses
-      FOR UPDATE row lock so concurrent visitors
-      can't all increment past the cap.
-    - QUOTA COUNTS FAILURES TOO. Cap protects
-      against retry storms when a row stays stale-
-      with-error; counting only successes would
-      defeat that.
-    - HIDE-LIST KEYED ON Google review.time
-      (Unix seconds), stored as BIGINT[] on
-      settings. Single column on settings is fine
-      — at most 5 entries (Google returns 5
-      reviews max).
-    - HIDE-LIST FILTERED AT RENDER, NOT FETCH.
-      Lets operator hide a review and see it
-      disappear immediately without a 24h cache
-      cycle.
-    - EMAIL CAMPAIGNS USE A SEPARATE RECIPIENTS
-      TABLE, NOT message_log alone. Per-recipient
-      state (bounced/complained/skipped/queued)
-      is richer than message_log's transactional
-      surface; keeping campaigns out of
-      message_log avoids extending the status enum
-      and rippling through every existing reader.
-    - SEGMENT SNAPSHOT IS STATIC ON SCHEDULE.
-      When a campaign moves draft → scheduled,
-      recipients are frozen. Edits to customer
-      tags / marketing_opt_in / email between
-      schedule and dispatch don't change the
-      audience — but dispatch re-checks
-      marketing_opt_in at send time for compliance
-      (skips if it flipped to false; never charges
-      Resend).
-    - CRON RUNS ONE CAMPAIGN PER TICK, BOUNDED.
-      If dispatch hits Vercel timeout mid-flight,
-      campaign stays in 'sending'; next tick picks
-      it back up. Each tick is bounded by the
-      Resend dispatch loop's natural pace.
-    - SVIX SIGNATURE VERIFICATION INLINE (no svix
-      dependency). HMAC-SHA256 + timing-safe
-      compare via Node crypto; ~30 LOC.
-    - UNSUBSCRIBE LINKS USE A UUID TOKEN ON
-      customers, not an HMAC. Token-on-row gives
-      stable invalidation (delete the row → all
-      links die) and lazy generation (only created
-      on first send). HMAC would require a shared
-      key + couple URL stability to that key's
-      rotation.
-    - UNSUBSCRIBE PAGE INLINES EN+ES COPY (not
-      i18n catalog). One-off public surface;
-      adding a top-level i18n section for ~10
-      strings would be ceremony. Inline copy +
-      useI18n() lang selector is enough.
-    - HARD BOUNCES + COMPLAINTS FLIP MARKETING_
-      OPT_IN OFF. Soft bounces / transient errors
-      do NOT — they're delivery retries. Default
-      to flipping when Resend's classification is
-      ambiguous: protecting platform sender rep
-      outweighs an edge-case false positive.
-    - ALL VAULT RPCs SECURITY DEFINER + service_
-      role-only EXECUTE. authenticated users can
-      never call get_tenant_secret directly even
-      through RLS gymnastics; only service-role
-      admin client can.
+  KEY DECISIONS LOCKED THIS SESSION (Session 26):
+    - SINGLE IDEMPOTENT SUPERSET MIGRATION over
+      restoring 0030/0031/0032/0033 + writing a
+      separate 0034 plaintext-drop. Reasons: (1)
+      The exact subset that landed on prod was
+      unknown. Trying to reconcile would require
+      forensic analysis + risk re-applying parts
+      that DID land. (2) The destination state
+      (vault-only, no plaintext columns) was
+      already locked from Session 25's plan;
+      collapsing 0033 + 0034 into one applied
+      migration just brings the timetable forward.
+      (3) Every statement in 0034 is IF NOT
+      EXISTS / CREATE OR REPLACE / DROP-then-
+      CREATE so it's safe to run regardless of
+      starting state.
+    - VAULT IS THE SOLE SECRET STORE — no
+      plaintext-fallback path remains. The dual-
+      state design from Session 25 (vault-first +
+      plaintext fallback) was always meant to
+      collapse to vault-only at the 0034 cutover;
+      we just collapsed it sooner because prod
+      forced our hand. resolveSecret() with the
+      `plaintextFallback` parameter is gone;
+      callers use getTenantSecret() directly.
+    - "CONFIGURED?" CHECKS USE VAULT REGISTRY
+      MEMBERSHIP, NOT PLAINTEXT-IS-NOT-NULL.
+      isSecretConfigured() and loadConfigured-
+      SecretKinds() do count(*) on tenant_secrets
+      filtered by tenant + kind. No vault
+      decryption round-trip needed for the
+      "Connected" badge. The bulk variant
+      (loadConfiguredSecretKinds) returns a Set
+      so a page rendering 5 badges is one query.
+    - DERIVED `refresh_token_configured` FLAG ON
+      THE EBAY ROW SHAPE rather than calling
+      isSecretConfigured() at every UI site. Keeps
+      the call surface consistent with the
+      previous "row.refresh_token IS NOT NULL"
+      pattern; the helper does the vault check
+      once at the boundary.
+    - APIKEYSECRETFIELD MIRRORS COMMS CREDSFORM
+      SECRETFIELD. Both use the same blank ='no
+      change', '__CLEAR__' = clear, value = update
+      semantics. Operator UX is identical across
+      every secret field in the app (Twilio, Resend,
+      Google, eBay, future Stripe).
+    - 0034 ENDS WITH `NOTIFY pgrst, 'reload
+      schema'`. PostgREST's schema cache is
+      otherwise stale until a Supabase API
+      restart, which would invisibly leave new
+      tables/RPCs unreachable from REST routes.
+      The notify-on-commit pattern is consistent
+      with 0030/0031/0032/0033 already.
+    - FIRST 0034 ATTEMPT FAILED AT
+      "relation email_campaigns does not exist"
+      → REWROTE AS FULL SUPERSET. Initial version
+      assumed the new tables existed (only added
+      missing columns + indexes + policies + RPCs).
+      Lesson: when prod state is unknown, the
+      migration must be self-contained — include
+      every CREATE TABLE / CREATE TYPE statement,
+      not just the deltas.
 
-  (Sessions 13-24 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-25 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -490,8 +514,12 @@ PHASE OVERVIEW
           Session 25: GR defense-in-depth (cron
           warmer + quota + hide list) + email-
           campaign engine backbone + Supabase Vault
-          encryption-at-rest. Email-campaign UI
-          editor still pending its own session.)
+          encryption-at-rest.
+          Session 26: 0034 vault-cutover-resync
+          recovery migration + codebase cutover to
+          vault-only (no plaintext fallback). Email-
+          campaign UI editor still pending its own
+          session.)
   10 (B)  Channel sales                              IN PROGRESS  —
           (eBay scaffold STUBBED.)
 
@@ -1901,6 +1929,178 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
+--- Session 26 (2026-05-06, 08:40) — 0034 vault-cutover-resync recovery migration + codebase cutover to vault-only ---
+
+ 247. PROD HALF-APPLIED STATE DISCOVERED. Started
+     session by running `npm run db:types` per
+     Session 25's RESUME instruction ("next regen
+     should match my hand edits"). Got 290-line
+     drift instead. Investigation via service-role
+     probe of tenant_secrets / email_campaigns /
+     8 plaintext columns confirmed: migrations
+     0030/0031/0032/0033 had NOT actually applied
+     to project kjyaxfwlggxiqijiiuna despite
+     Session 25's note saying so. AND the pre-
+     existing plaintext secret columns (settings.
+     {resend_api_key, twilio_auth_token, google_
+     places_api_key}; tenant_billing_settings.
+     {stripe_access_token, stripe_refresh_token,
+     stripe_webhook_secret}; tenant_ebay_
+     credentials.{access_token, refresh_token})
+     were dropped — equivalent to the pending 0034
+     plaintext-drop. The new tables (email_
+     campaigns, email_campaign_recipients,
+     tenant_secrets) initially showed as present
+     via PostgREST head:true count, but a real
+     SELECT returned PGRST205 — they didn't
+     actually exist. The transactional 0030-0033
+     migrations would not partial-apply on their
+     own; most plausible explanation is the
+     operator ran an ad-hoc SQL run that did
+     SOME of 0033 + the plaintext drop but skipped
+     0030/0031 + 0032's column.
+
+ 248. PATCHES/0034-VAULT-CUTOVER-RESYNC.SQL — full
+     idempotent superset of 0030+0031+0032+0033
+     plus the originally-pending plaintext-column
+     drop. Every statement is IF NOT EXISTS /
+     CREATE OR REPLACE / DROP-then-CREATE. Creates
+     email_campaigns + email_campaign_recipients +
+     tenant_secrets tables (incl. all indexes +
+     RLS policies + triggers); adds the 5 column
+     additions; CREATE OR REPLACE for the 3 RPCs
+     (consume_google_reviews_quota,
+     get_tenant_secret, set_tenant_secret); DROP
+     COLUMN IF EXISTS for the 8 plaintext secret
+     columns; ends with NOTIFY pgrst, 'reload
+     schema'.
+     First version assumed the new tables already
+     existed (only added missing columns + indexes
+     + policies + RPCs). Operator hit "relation
+     email_campaigns does not exist" at the CREATE
+     INDEX line. Rewrote as the full superset
+     including CREATE TABLE statements. Operator
+     applied; succeeded. db:types regen post-0034
+     matches the codebase exactly (only
+     alphabetical reorder vs hand edits).
+
+ 249. SRC/LIB/SECRETS/VAULT.TS — REWRITTEN.
+     resolveSecret(tenantId, kind, plaintextFallback)
+     removed entirely. Added isSecretConfigured
+     (single-kind boolean check via count(*) on
+     tenant_secrets, no decryption) and
+     loadConfiguredSecretKinds (bulk Set<SecretKind>
+     for pages rendering multiple "Connected"
+     badges in one query). Existing
+     getTenantSecret() and setTenantSecret() kept.
+
+ 250. READ-PATH VAULT-ONLY CUTOVER (4 lib modules):
+     - src/lib/email/send.ts — resolveResendCreds()
+       reads apiKey via getTenantSecret('resend_api_
+       key'); plaintext column dropped from
+       settings .select() list.
+     - src/lib/twilio/sms.ts — resolveTwilioCreds()
+       reads authToken via getTenantSecret('twilio_
+       auth_token'); same column drop.
+     - src/lib/google-reviews/cache.ts —
+       refreshReviews() reads tenant override via
+       getTenantSecret('google_places_api_key');
+       column dropped from both .select() lists in
+       getCachedReviews and refreshReviews.
+     - src/lib/ebay/auth.ts — resolveCredentials()
+       reads both ebay_access_token and
+       ebay_refresh_token via getTenantSecret() in
+       parallel with the metadata row read.
+       loadCredentialsRow() now returns derived
+       refresh_token_configured: boolean (combined
+       with isSecretConfigured). New
+       isEbayConnected(tenantId) helper for cheap
+       "is connected?" gate.
+
+ 251. WRITE-PATH VAULT-ONLY CUTOVER (2 server
+     actions):
+     - src/app/(staff)/settings/communications/
+       actions.ts — updateCommsSettingsAction
+       writes secrets via setTenantSecret() only;
+       the settings UPDATE no longer carries
+       twilio_auth_token / resend_api_key. Audit
+       log fields renamed to match.
+     - src/app/(staff)/settings/integrations/
+       google-reviews/actions.ts — google_places_
+       api_key writes to vault only via
+       setTenantSecret(); settings UPDATE no
+       longer carries the column.
+
+ 252. SETTINGS UI VAULT-DRIVEN BADGES (5 pages +
+     1 component):
+     - src/app/(staff)/settings/page.tsx —
+       loadConfiguredSecretKinds() drives Twilio /
+       Resend / eBay "Connected" flags.
+     - src/app/(staff)/settings/integrations/
+       page.tsx — same pattern for the integrations
+       index cards.
+     - src/app/(staff)/settings/communications/
+       page.tsx — same. CredsForm component
+       didn't change (it already accepted *_set
+       booleans); only the page-side derivation.
+     - src/app/(staff)/settings/integrations/
+       google-reviews/page.tsx — derives
+       apiKeyConfigured via isSecretConfigured.
+     - src/app/(staff)/settings/integrations/
+       google-reviews/content.tsx — replaced the
+       plaintext Field with a new ApiKeySecretField
+       sub-component. Mirrors CredsForm.SecretField
+       — "Configured" badge, "Update" button to
+       reveal a password input, "Clear stored key"
+       button under the input, supports __CLEAR__
+       semantics.
+     - src/app/(staff)/settings/integrations/
+       ebay/page.tsx — connected flag from new
+       refresh_token_configured.
+
+ 253. EBAY SYNC CRON + INVENTORY DETAIL —
+     TENANT DISCOVERY VIA TENANT_SECRETS:
+     - src/app/api/cron/ebay-sync/route.ts —
+       tenant discovery via two parallel reads
+       (tenant_secrets where kind=ebay_refresh_
+       token, and tenant_ebay_credentials.
+       disconnected_at). Intersects to get the
+       connected tenant_ids.
+     - src/app/(staff)/inventory/[id]/page.tsx —
+       eBay panel gate uses isEbayConnected()
+       instead of reading the dropped
+       refresh_token column.
+
+ 254. TYPES + VALIDATION SCHEMAS:
+     - src/types/database-aliases.ts — dropped
+       twilio_auth_token + resend_api_key from
+       SettingsCommsColumns Pick. Updated
+       TenantEbayCredentialsRow hand-written
+       shape to remove access_token + refresh_token.
+     - src/types/database.ts — REGEN post-0034.
+       Matches prod exactly.
+     - src/lib/validations/communications.ts —
+       commsSettingsSchema dropped twilio_auth_
+       token + resend_api_key keys. Action handler
+       reads those from formData directly.
+     - src/lib/validations/google-reviews.ts —
+       added secretField zod helper with
+       blank='no change' / '__CLEAR__'=clear /
+       value=update semantics. google_places_api_
+       key uses it.
+
+ 255. SESSION 26 VERIFICATION + COMMIT. tsc clean,
+     eslint clean, 12/12 test files / 409/409 tests
+     passing both before and after the cutover.
+     Throwaway scripts/inspect-cols.mjs (used for
+     prod state diagnosis) deleted. Committed
+     cad2b23 with all 18 src changes + the 0034
+     migration + the database-aliases edit + the
+     post-regen database.ts. Pushed to main —
+     Vercel deploying.
+
+(Session 26 lands items 247-255, 9 items total)
+
 --- Session 25 (2026-05-05, end-of-session) — Phase 10 Path A defense-in-depth + email-campaign engine + Supabase Vault encryption-at-rest ---
 
  232. CRON WARMER FOR GOOGLE REVIEWS. Public-path
@@ -2250,15 +2450,15 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Walk the 8-smoke sequence (A-H) from the RESUME
-    POINT above against production. Migrations
-    0030/0031/0032/0033 are already applied; this
-    session's push deploys the code that uses them.
-    After smokes green, the highest-leverage next
-    move is the Phase 0 punch list (CRON_SECRET +
-    RESEND_WEBHOOK_SECRET + the three secret
-    rotations) — every cron + webhook path blocks
-    on those env vars.
+    Walk the 9-smoke sequence (A-I) from the RESUME
+    POINT above against production. Patches/0034
+    is applied + cad2b23 is deployed; vault is the
+    sole secret store. The biggest blocker for
+    smoke completion is the Phase 0 punch list —
+    CRON_SECRET + RESEND_WEBHOOK_SECRET +
+    GOOGLE_PLACES_API_KEY + the three secret
+    rotations all need to land in Vercel before
+    smokes B/F/A can fully run.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 7 cron paths
@@ -2286,16 +2486,10 @@ PENDING — NEXT UP
     1. Operator setup gates (above) + per-tenant Stripe Connect
        onboarding for first tenant + per-tenant Resend setup at
        /settings/communications.
-    2. Migration 0034 — DROP plaintext secret columns once vault
-       dual-state has run cleanly in production. Targets:
-       settings.{twilio_auth_token, resend_api_key,
-       google_places_api_key}; tenant_billing_settings.{stripe_
-       access_token, stripe_refresh_token, stripe_webhook_secret};
-       tenant_ebay_credentials.{access_token, refresh_token}.
-       Drop the plaintextFallback param from resolveSecret() at
-       the same time → callers can switch to getTenantSecret()
-       directly. Schedule after 1-2 weeks of green prod
-       observability.
+    2. [DONE Session 26] Migration 0034 + plaintext-column drop +
+       resolveSecret fallback removal — collapsed into the
+       single 0034-vault-cutover-resync.sql + cad2b23 cutover.
+       Vault is the sole secret store as of this session.
     3. Email-campaign UI editor at /settings/communications/
        campaigns — list + create/edit/schedule/cancel form +
        segmentation preview ("X recipients will be reached").
