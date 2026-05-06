@@ -36,22 +36,22 @@ export function VoidSaleDialog({
   return (
     <Modal title={t.pos.sale.voidSale} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
       <div className="space-y-4">
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pos.return.reason}
           </span>
           <textarea
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
-          <span className="block text-xs text-ash">
+          <span className="block text-xs text-muted">
             {t.pos.return.reasonHelp}
           </span>
         </label>
@@ -60,7 +60,7 @@ export function VoidSaleDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -68,7 +68,7 @@ export function VoidSaleDialog({
           type="button"
           disabled={pending || reason.trim().length < 10}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-4 py-2 text-sm font-medium text-error hover:bg-error/10 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
         >
           <Prohibit size={14} weight="bold" />
           {t.pos.sale.voidSale}

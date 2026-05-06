@@ -341,11 +341,11 @@ export function InventoryFormFields({
             name="is_hidden_from_catalog"
             value="on"
             defaultChecked={v.is_hidden_from_catalog}
-            className="mt-0.5 h-4 w-4 rounded border-hairline text-rausch focus:ring-rausch"
+            className="mt-0.5 h-4 w-4 rounded border-border text-gold focus:ring-gold"
           />
           <span className="flex flex-col gap-0.5">
-            <span className="font-medium text-ink">Hide from public catalog</span>
-            <span className="text-xs text-ash">
+            <span className="font-medium text-foreground">Hide from public catalog</span>
+            <span className="text-xs text-muted">
               When the tenant catalog is published, this item still won&apos;t
               appear on the public surface. Use for consigned items under
               negotiation, photo retakes pending, or back-room stock.
@@ -353,21 +353,21 @@ export function InventoryFormFields({
           </span>
         </label>
         <div className="mt-3">
-          <span className="block text-sm font-medium text-ink">
+          <span className="block text-sm font-medium text-foreground">
             {t.inventory.tags}
           </span>
-          <p className="mb-1 text-xs text-ash">{t.inventory.tagsHelp}</p>
-          <div className="flex flex-wrap items-center gap-2 rounded-md border border-hairline bg-canvas p-2">
+          <p className="mb-1 text-xs text-muted">{t.inventory.tagsHelp}</p>
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card p-2">
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs text-ink"
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground"
               >
                 {tag}
                 <button
                   type="button"
                   onClick={() => removeTag(tag)}
-                  className="text-ash hover:text-ink"
+                  className="text-muted hover:text-foreground"
                   aria-label={`remove ${tag}`}
                 >
                   ×
@@ -391,7 +391,7 @@ export function InventoryFormFields({
                 }
               }}
               onBlur={addTag}
-              className="min-w-[80px] flex-1 bg-transparent px-1 py-0.5 text-sm text-ink outline-none"
+              className="min-w-[80px] flex-1 bg-transparent px-1 py-0.5 text-sm text-foreground outline-none"
             />
           </div>
           <input type="hidden" name="tags" value={tags.join(',')} />
@@ -409,8 +409,8 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="px-1 text-sm font-semibold text-ink">{label}</legend>
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">{label}</legend>
       <div className="mt-2">{children}</div>
     </fieldset>
   )
@@ -443,7 +443,7 @@ function Field({
 }) {
   return (
     <label className={`block space-y-1 ${className ?? ''}`}>
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       <input
         type={type}
         name={name}
@@ -452,14 +452,14 @@ function Field({
         placeholder={placeholder}
         step={step}
         readOnly={readOnly}
-        className={`block w-full rounded-md border bg-canvas px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+        className={`block w-full rounded-md border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
           error
-            ? 'border-error focus:border-error'
-            : 'border-hairline focus:border-ink'
-        } ${readOnly ? 'bg-cloud text-ash' : ''}`}
+            ? 'border-danger focus:border-danger'
+            : 'border-border focus:border-blue'
+        } ${readOnly ? 'bg-background text-muted' : ''}`}
       />
-      {help ? <span className="text-xs text-ash">{help}</span> : null}
-      {error ? <span className="text-xs text-error">{error}</span> : null}
+      {help ? <span className="text-xs text-muted">{help}</span> : null}
+      {error ? <span className="text-xs text-danger">{error}</span> : null}
     </label>
   )
 }
@@ -481,14 +481,14 @@ function Select({
 }) {
   return (
     <label className={`block space-y-1 ${className ?? ''}`}>
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       <select
         name={name}
         defaultValue={defaultValue}
-        className={`block w-full rounded-md border bg-canvas px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+        className={`block w-full rounded-md border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
           error
-            ? 'border-error focus:border-error'
-            : 'border-hairline focus:border-ink'
+            ? 'border-danger focus:border-danger'
+            : 'border-border focus:border-blue'
         }`}
       >
         {options.map((opt) => (
@@ -497,7 +497,7 @@ function Select({
           </option>
         ))}
       </select>
-      {error ? <span className="text-xs text-error">{error}</span> : null}
+      {error ? <span className="text-xs text-danger">{error}</span> : null}
     </label>
   )
 }
@@ -517,14 +517,14 @@ function Textarea({
 }) {
   return (
     <label className="mb-3 block space-y-1 last:mb-0">
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       <textarea
         name={name}
         rows={rows}
         defaultValue={defaultValue}
-        className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
       />
-      {help ? <span className="text-xs text-ash">{help}</span> : null}
+      {help ? <span className="text-xs text-muted">{help}</span> : null}
     </label>
   )
 }

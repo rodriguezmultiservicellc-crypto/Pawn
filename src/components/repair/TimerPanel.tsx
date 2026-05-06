@@ -84,30 +84,30 @@ export function TimerPanel({
   }, 0)
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas">
-      <header className="flex items-center justify-between border-b border-hairline px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Clock size={14} weight="regular" />
           {t.repair.detail.sectionTimer}
         </h2>
       </header>
       <div className="space-y-3 p-4">
         {error ? (
-          <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs text-error">
+          <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
             {error}
           </div>
         ) : null}
-        <div className="flex items-center justify-between rounded-md border border-hairline bg-cloud/40 px-3 py-2">
+        <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-3 py-2">
           <div>
             {myRunning ? (
-              <div className="font-mono text-2xl text-ink">{elapsed}</div>
+              <div className="font-mono text-2xl text-foreground">{elapsed}</div>
             ) : (
-              <div className="text-sm text-ash">
+              <div className="text-sm text-muted">
                 {fmtTotal(totalMs)} {t.repair.detail.sectionTimer.toLowerCase()}
               </div>
             )}
             {myRunning ? (
-              <div className="text-[11px] text-ash">
+              <div className="text-[11px] text-muted">
                 started {new Date(myRunning.started_at).toLocaleTimeString()}
               </div>
             ) : null}
@@ -117,7 +117,7 @@ export function TimerPanel({
               type="button"
               onClick={stop}
               disabled={pending}
-              className="inline-flex items-center gap-1 rounded-md bg-error px-3 py-2 text-sm text-canvas font-medium hover:bg-error/90 disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-md bg-danger px-3 py-2 text-sm text-white font-medium hover:bg-danger/90 disabled:opacity-50"
             >
               <Stop size={14} weight="bold" />
               {t.repair.actions.stopTimer}
@@ -127,7 +127,7 @@ export function TimerPanel({
               type="button"
               onClick={start}
               disabled={pending}
-              className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-2 text-sm text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
             >
               <Play size={14} weight="bold" />
               {t.repair.actions.startTimer}
@@ -135,7 +135,7 @@ export function TimerPanel({
           )}
         </div>
         {logs.length > 0 ? (
-          <ul className="divide-y divide-hairline rounded-md border border-hairline">
+          <ul className="divide-y divide-border rounded-md border border-border">
             {logs.slice(0, 10).map((l) => {
               const start = new Date(l.started_at).getTime()
               const stop = l.stopped_at
@@ -153,17 +153,17 @@ export function TimerPanel({
                   className="flex items-center justify-between gap-3 px-3 py-2 text-xs"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-ink">
+                    <div className="font-medium text-foreground">
                       {l.technician_name ?? l.technician_id.slice(0, 8)}
                     </div>
-                    <div className="font-mono text-ash">
+                    <div className="font-mono text-muted">
                       {new Date(l.started_at).toLocaleString()}
                       {l.stopped_at
                         ? ` → ${new Date(l.stopped_at).toLocaleTimeString()}`
                         : ' → …'}
                     </div>
                   </div>
-                  <div className="font-mono text-ink">
+                  <div className="font-mono text-foreground">
                     {duration != null ? formatElapsed(duration) : '—'}
                   </div>
                 </li>

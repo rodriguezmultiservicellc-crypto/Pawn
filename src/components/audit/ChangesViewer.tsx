@@ -19,20 +19,20 @@ export function ChangesViewer({ changes }: { changes: unknown }) {
 
   // Empty / null payload — nothing to show.
   if (changes == null) {
-    return <span className="text-ash">—</span>
+    return <span className="text-muted">—</span>
   }
 
   // Plain primitive — render directly without a toggle.
   if (typeof changes !== 'object') {
     return (
-      <span className="font-mono text-xs text-ink">{String(changes)}</span>
+      <span className="font-mono text-xs text-foreground">{String(changes)}</span>
     )
   }
 
   const obj = changes as Record<string, unknown>
   const keys = Object.keys(obj)
   if (keys.length === 0) {
-    return <span className="text-ash">—</span>
+    return <span className="text-muted">—</span>
   }
 
   return (
@@ -40,7 +40,7 @@ export function ChangesViewer({ changes }: { changes: unknown }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 text-left text-xs text-ink hover:text-rausch"
+        className="inline-flex items-center gap-1 text-left text-xs text-foreground hover:text-gold"
       >
         {open ? (
           <CaretDown size={12} weight="bold" />
@@ -54,7 +54,7 @@ export function ChangesViewer({ changes }: { changes: unknown }) {
       </button>
       {open ? (
         <pre
-          className="overflow-x-auto rounded-md border border-hairline bg-cloud p-3 font-mono text-[11px] leading-snug text-ink"
+          className="overflow-x-auto rounded-md border border-border bg-background p-3 font-mono text-[11px] leading-snug text-foreground"
           style={{ fontFamily: 'var(--font-jetbrains-mono, ui-monospace, monospace)' }}
         >
           {JSON.stringify(obj, null, 2)}

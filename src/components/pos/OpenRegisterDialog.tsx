@@ -35,14 +35,14 @@ export function OpenRegisterDialog({
   return (
     <Modal title={t.pos.register.open} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
 
       <div className="space-y-4">
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pos.register.openingCash}
           </span>
           <input
@@ -51,21 +51,21 @@ export function OpenRegisterDialog({
             min={0}
             value={openingCash}
             onChange={(e) => setOpeningCash(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
-          <span className="block text-xs text-ash">
+          <span className="block text-xs text-muted">
             {t.pos.register.openingCashHelp}
           </span>
         </label>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pos.register.notes}
           </span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -74,7 +74,7 @@ export function OpenRegisterDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -82,7 +82,7 @@ export function OpenRegisterDialog({
           type="button"
           disabled={pending}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
         >
           <CashRegister size={14} weight="bold" />
           {pending ? t.pos.register.opening : t.pos.register.open}

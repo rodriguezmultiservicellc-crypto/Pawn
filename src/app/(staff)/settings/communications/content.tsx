@@ -81,16 +81,16 @@ export default function CommunicationsContent({
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-ink">
+        <h1 className="text-2xl font-bold text-foreground">
           {t.comms.settingsTitle}
         </h1>
-        <p className="mt-1 text-sm text-ash">{t.comms.settingsSubtitle}</p>
+        <p className="mt-1 text-sm text-muted">{t.comms.settingsSubtitle}</p>
       </div>
 
       <section className="space-y-3">
         <header className="flex items-center gap-2">
-          <Gear size={16} weight="regular" className="text-ash" />
-          <h2 className="text-lg font-semibold text-ink">
+          <Gear size={16} weight="regular" className="text-muted" />
+          <h2 className="text-lg font-semibold text-foreground">
             {t.comms.credsHeader}
           </h2>
         </header>
@@ -100,15 +100,15 @@ export default function CommunicationsContent({
       <section className="space-y-3">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <PaperPlaneTilt size={16} weight="regular" className="text-ash" />
-            <h2 className="text-lg font-semibold text-ink">
+            <PaperPlaneTilt size={16} weight="regular" className="text-muted" />
+            <h2 className="text-lg font-semibold text-foreground">
               {t.comms.templatesHeader}
             </h2>
           </div>
         </header>
 
         {templates.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-sm text-ash">
+          <div className="rounded-lg border border-dashed border-border bg-card p-6 text-center text-sm text-muted">
             {t.comms.templatesEmpty}
           </div>
         ) : (
@@ -158,20 +158,20 @@ function KindGroup({
 }) {
   const { t } = useI18n()
   return (
-    <div className="overflow-hidden rounded-lg border border-hairline bg-canvas">
-      <header className="flex items-center justify-between border-b border-hairline px-4 py-2">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <header className="flex items-center justify-between border-b border-border px-4 py-2">
         <div>
-          <div className="text-sm font-semibold text-ink">
+          <div className="text-sm font-semibold text-foreground">
             {t.comms.kindLabels[kind]}
           </div>
-          <div className="text-xs text-ash">
+          <div className="text-xs text-muted">
             {t.comms.kindDescriptions[kind]}
           </div>
         </div>
       </header>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ash">
+          <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
             <th className="px-4 py-2">{t.comms.tableLanguage}</th>
             <th className="px-4 py-2">{t.comms.tableChannel}</th>
             <th className="px-4 py-2">{t.comms.tablePreview}</th>
@@ -181,12 +181,12 @@ function KindGroup({
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.id} className="border-b border-hairline last:border-0">
-              <td className="px-4 py-2 text-ink">{r.language === 'en' ? 'EN' : 'ES'}</td>
+            <tr key={r.id} className="border-b border-border last:border-0">
+              <td className="px-4 py-2 text-foreground">{r.language === 'en' ? 'EN' : 'ES'}</td>
               <td className="px-4 py-2">
                 <ChannelBadge channel={r.channel} />
               </td>
-              <td className="px-4 py-2 text-ash">
+              <td className="px-4 py-2 text-muted">
                 <span className="line-clamp-1">{r.body.slice(0, 100)}</span>
               </td>
               <td className="px-4 py-2 text-right">
@@ -196,14 +196,14 @@ function KindGroup({
                 <button
                   type="button"
                   onClick={() => onTest(r)}
-                  className="mr-2 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+                  className="mr-2 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
                 >
                   {t.comms.actionTest}
                 </button>
                 <button
                   type="button"
                   onClick={() => onEdit(r)}
-                  className="rounded-md bg-ink/90 px-2 py-1 text-xs font-medium text-canvas hover:bg-ink"
+                  className="rounded-md bg-navy/90 px-2 py-1 text-xs font-medium text-white hover:bg-navy"
                 >
                   {t.common.edit}
                 </button>
@@ -232,7 +232,7 @@ function ChannelBadge({ channel }: { channel: MessageChannel }) {
     email: {
       icon: <EnvelopeSimple size={12} weight="bold" />,
       label: t.comms.channelEmail,
-      tone: 'border-hairline bg-cloud text-ink',
+      tone: 'border-border bg-background text-foreground',
     },
   }
   const m = meta[channel]
@@ -268,7 +268,7 @@ function ToggleEnabled({ row }: { row: TemplateRowView }) {
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs ${
         enabled
           ? 'bg-success/10 text-success-deep'
-          : 'bg-cloud text-ash'
+          : 'bg-background text-muted'
       }`}
     >
       {enabled ? t.common.yes : t.common.no}

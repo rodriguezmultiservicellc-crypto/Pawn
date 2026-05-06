@@ -4,17 +4,17 @@ import { useI18n } from '@/lib/i18n/context'
 import type { ServiceType } from '@/types/database-aliases'
 
 const TONE: Record<ServiceType, { dot: string; text: string; bg: string }> = {
-  repair: { dot: 'bg-rausch', text: 'text-rausch', bg: 'bg-rausch/5' },
+  repair: { dot: 'bg-gold', text: 'text-gold', bg: 'bg-gold/5' },
   stone_setting: {
     dot: 'bg-warning',
     text: 'text-warning',
     bg: 'bg-warning/5',
   },
-  sizing: { dot: 'bg-ash', text: 'text-ash', bg: 'bg-cloud' },
-  restring: { dot: 'bg-cloud', text: 'text-ink', bg: 'bg-cloud/60' },
+  sizing: { dot: 'bg-ash', text: 'text-muted', bg: 'bg-background' },
+  restring: { dot: 'bg-background', text: 'text-foreground', bg: 'bg-background/60' },
   plating: { dot: 'bg-success', text: 'text-success', bg: 'bg-success/5' },
-  engraving: { dot: 'bg-ink', text: 'text-ink', bg: 'bg-cloud' },
-  custom: { dot: 'bg-ink', text: 'text-ink', bg: 'bg-cloud' },
+  engraving: { dot: 'bg-navy', text: 'text-foreground', bg: 'bg-background' },
+  custom: { dot: 'bg-navy', text: 'text-foreground', bg: 'bg-background' },
 }
 
 export function ServiceTypeBadge({ type }: { type: ServiceType }) {
@@ -31,7 +31,7 @@ export function ServiceTypeBadge({ type }: { type: ServiceType }) {
   }
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border border-hairline px-2 py-0.5 text-xs font-medium ${tone.bg} ${tone.text}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs font-medium ${tone.bg} ${tone.text}`}
     >
       <span className={`inline-block h-1.5 w-1.5 rounded-full ${tone.dot}`} />
       {map[type]}

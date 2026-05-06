@@ -76,22 +76,17 @@ export default async function StaffLayout({
 
   return (
     <I18nProvider initialLang={initialLang}>
-      <div className="flex min-h-screen flex-col bg-cloud">
-        <header className="border-b border-hairline bg-canvas">
-          <div className="flex items-center justify-between px-6 py-3">
+      <div className="flex min-h-screen flex-col bg-background">
+        <header className="h-16 border-b border-border bg-card">
+          <div className="flex h-full items-center justify-between px-6">
             <div className="flex items-center gap-3">
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <span
-                  className="bg-clip-text text-lg font-bold text-transparent"
-                  style={{
-                    backgroundImage:
-                      'linear-gradient(90deg, #ff385c 0%, #e00b41 50%, #92174d 100%)',
-                  }}
-                >
-                  Pawn
-                </span>
+              <Link
+                href="/dashboard"
+                className="font-display text-xl font-bold text-navy"
+              >
+                Pawn
               </Link>
-              <span className="text-ash">·</span>
+              <span className="text-muted">·</span>
               <TenantSwitcher
                 tenants={switcherTenants}
                 activeTenantId={ctx.tenantId}
@@ -101,15 +96,15 @@ export default async function StaffLayout({
               {ctx.globalRole === 'superadmin' ? (
                 <Link
                   href="/admin/tenants"
-                  className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 font-medium text-ink hover:border-ink"
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted transition-all hover:bg-background hover:text-foreground"
                 >
-                  <span className="rounded-full bg-ink px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-canvas">
+                  <span className="rounded-full bg-navy px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                     Admin
                   </span>
                   <span>Console</span>
                 </Link>
               ) : null}
-              <span className="text-ash">
+              <span className="text-text-secondary">
                 {profile?.full_name ?? ctx.email}
               </span>
             </div>

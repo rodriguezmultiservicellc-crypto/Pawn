@@ -7,8 +7,8 @@ import type { ReactNode } from 'react'
  */
 export default function OnboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-1 items-center justify-center bg-cloud px-4">
-      <div className="w-full max-w-md space-y-6 rounded-xl border border-hairline bg-canvas p-8">
+    <div className="flex min-h-screen flex-1 items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-8">
         <div className="text-center">
           <h1
             className="bg-clip-text text-2xl font-bold text-transparent"

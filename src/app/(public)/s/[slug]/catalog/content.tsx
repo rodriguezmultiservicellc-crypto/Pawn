@@ -63,7 +63,7 @@ export default function CatalogListContent({
 
   return (
     <>
-      <header className="sticky top-0 z-10 border-b border-hairline bg-canvas/95 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Link
             href={`/s/${tenant.public_slug}`}
@@ -77,21 +77,21 @@ export default function CatalogListContent({
                 className="h-9 w-9 rounded-md object-cover"
               />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-rausch text-canvas">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gold text-navy">
                 <Storefront size={18} weight="bold" />
               </div>
             )}
             <div className="flex flex-col">
-              <span className="text-base font-semibold tracking-[-0.01em] text-ink">
+              <span className="text-base font-semibold tracking-[-0.01em] text-foreground">
                 {display}
               </span>
-              <span className="text-xs text-ash">{dict.shop}</span>
+              <span className="text-xs text-muted">{dict.shop}</span>
             </div>
           </Link>
           <div className="flex items-center gap-3">
             <Link
               href={`/s/${tenant.public_slug}`}
-              className="inline-flex items-center gap-1 text-xs text-ash hover:text-ink"
+              className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
             >
               <ArrowLeft size={12} weight="bold" />
               {dict.backToHome}
@@ -108,14 +108,14 @@ export default function CatalogListContent({
             <MagnifyingGlass
               size={14}
               weight="bold"
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-ash"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
             />
             <input
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={dict.searchPlaceholder}
-              className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </div>
           {categoriesPresent.length > 1 ? (
@@ -142,7 +142,7 @@ export default function CatalogListContent({
           {(category || query) && !showEmpty ? (
             <Link
               href={`/s/${tenant.public_slug}/catalog`}
-              className="text-xs text-rausch hover:underline"
+              className="text-xs text-gold hover:underline"
             >
               {dict.clearFilters}
             </Link>
@@ -151,13 +151,13 @@ export default function CatalogListContent({
 
         {/* Grid or empty */}
         {showEmpty ? (
-          <div className="rounded-lg border border-dashed border-hairline bg-canvas p-12 text-center text-sm text-ash">
+          <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center text-sm text-muted">
             {showEmptyAll ? dict.emptyAll : dict.empty}
             {!showEmptyAll ? (
               <div className="mt-3">
                 <Link
                   href={`/s/${tenant.public_slug}/catalog`}
-                  className="text-xs font-medium text-rausch hover:underline"
+                  className="text-xs font-medium text-gold hover:underline"
                 >
                   {dict.clearFilters}
                 </Link>
@@ -170,9 +170,9 @@ export default function CatalogListContent({
               <li key={item.id}>
                 <Link
                   href={`/s/${tenant.public_slug}/catalog/${item.sku}`}
-                  className="block overflow-hidden rounded-lg border border-hairline bg-canvas transition hover:border-ink/40"
+                  className="block overflow-hidden rounded-lg border border-border bg-card transition hover:border-foreground/40"
                 >
-                  <div className="aspect-square w-full overflow-hidden bg-cloud">
+                  <div className="aspect-square w-full overflow-hidden bg-background">
                     {item.primary_photo?.signed_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -181,19 +181,19 @@ export default function CatalogListContent({
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-ash">
+                      <div className="flex h-full w-full items-center justify-center text-muted">
                         <Storefront size={28} weight="bold" />
                       </div>
                     )}
                   </div>
                   <div className="space-y-1 p-3">
-                    <p className="line-clamp-2 text-sm font-medium text-ink">
+                    <p className="line-clamp-2 text-sm font-medium text-foreground">
                       {item.description}
                     </p>
-                    <p className="font-mono text-base font-semibold text-ink">
+                    <p className="font-mono text-base font-semibold text-foreground">
                       {formatPrice(item.list_price)}
                     </p>
-                    <p className="text-xs text-ash">
+                    <p className="text-xs text-muted">
                       {dict.categories[item.category] ?? item.category}
                     </p>
                   </div>
@@ -215,7 +215,7 @@ export default function CatalogListContent({
               icon={<CaretLeft size={14} weight="bold" />}
               label={dict.prevPage}
             />
-            <span className="text-xs text-ash">
+            <span className="text-xs text-muted">
               {dict.pageOf
                 .replace('{page}', String(pagination.page))
                 .replace('{total}', String(pagination.totalPages))}
@@ -234,8 +234,8 @@ export default function CatalogListContent({
         ) : null}
       </main>
 
-      <footer className="border-t border-hairline py-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 text-xs text-ash">
+      <footer className="border-t border-border py-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 text-xs text-muted">
           <span>
             © {new Date().getFullYear()} {tenant.name}
           </span>
@@ -266,10 +266,10 @@ function CategoryPill({
   return (
     <Link
       href={`/s/${slug}/catalog${qs ? `?${qs}` : ''}`}
-      className={`rounded-pill border px-3 py-1 text-xs font-medium transition ${
+      className={`rounded-xl border px-3 py-1 text-xs font-medium transition ${
         active
-          ? 'border-rausch bg-rausch text-canvas'
-          : 'border-hairline bg-canvas text-ink hover:border-ink/40'
+          ? 'border-gold bg-gold text-navy'
+          : 'border-border bg-card text-foreground hover:border-foreground/40'
       }`}
     >
       {label}
@@ -298,7 +298,7 @@ function PageLink({
 }) {
   if (disabled) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-md border border-hairline bg-cloud/50 px-3 py-1.5 text-xs text-ash">
+      <span className="inline-flex items-center gap-1 rounded-md border border-border bg-background/50 px-3 py-1.5 text-xs text-muted">
         {right ? null : icon}
         {label}
         {right ? icon : null}
@@ -312,7 +312,7 @@ function PageLink({
   return (
     <Link
       href={`/s/${slug}/catalog?${params.toString()}`}
-      className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-xs font-medium text-ink hover:border-ink/40"
+      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:border-foreground/40"
     >
       {right ? null : icon}
       {label}

@@ -57,26 +57,26 @@ export function LayawayScheduleDialog({
   return (
     <Modal title={t.pos.layaway.new} onClose={onClose} size="lg">
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
 
       <div className="space-y-4">
-        <div className="rounded-md border border-hairline bg-cloud/40 p-3 text-sm text-ink">
+        <div className="rounded-md border border-border bg-background/40 p-3 text-sm text-foreground">
           <div className="flex items-center gap-2">
             <ShoppingBag size={14} weight="bold" />
             <span className="font-medium">{t.pos.sale.total}:</span>
             <span className="font-mono">{fmtMoney(total)}</span>
           </div>
-          <p className="mt-1 text-xs text-ash">
+          <p className="mt-1 text-xs text-muted">
             {t.pos.layaway.itemsHeldHelp}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.layaway.schedule}
             </span>
             <select
@@ -84,7 +84,7 @@ export function LayawayScheduleDialog({
               onChange={(e) =>
                 setScheduleKind(e.target.value as LayawayScheduleKind)
               }
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="weekly">{t.pos.layaway.scheduleWeekly}</option>
               <option value="biweekly">
@@ -95,7 +95,7 @@ export function LayawayScheduleDialog({
             </select>
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.layaway.cancellationFeePct}
             </span>
             <input
@@ -105,9 +105,9 @@ export function LayawayScheduleDialog({
               max={1}
               value={cancellationFeePct}
               onChange={(e) => setCancellationFeePct(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
-            <span className="block text-xs text-ash">
+            <span className="block text-xs text-muted">
               {t.pos.layaway.cancellationFeeHelp}
             </span>
           </label>
@@ -115,32 +115,32 @@ export function LayawayScheduleDialog({
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.layaway.firstPaymentDue}
             </span>
             <input
               type="date"
               value={firstPaymentDue}
               onChange={(e) => setFirstPaymentDue(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.layaway.finalDue}
             </span>
             <input
               type="date"
               value={finalDueDate}
               onChange={(e) => setFinalDueDate(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.layaway.downPayment}
             </span>
             <input
@@ -149,11 +149,11 @@ export function LayawayScheduleDialog({
               min={0}
               value={downPayment}
               onChange={(e) => setDownPayment(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.layaway.downPaymentMethod}
             </span>
             <select
@@ -161,7 +161,7 @@ export function LayawayScheduleDialog({
               onChange={(e) =>
                 setDownPaymentMethod(e.target.value as PaymentMethod)
               }
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="cash">{t.pos.payment.methodCash}</option>
               <option value="card">{t.pos.payment.methodCard}</option>
@@ -176,7 +176,7 @@ export function LayawayScheduleDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -184,7 +184,7 @@ export function LayawayScheduleDialog({
           type="button"
           disabled={pending}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
         >
           <Calendar size={14} weight="bold" />
           {pending

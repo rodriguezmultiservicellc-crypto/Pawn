@@ -27,8 +27,8 @@ export default function BillingContent({
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Billing</h1>
-          <p className="text-sm text-ash">
+          <h1 className="text-2xl font-bold text-foreground">Billing</h1>
+          <p className="text-sm text-muted">
             Per-tenant subscription state. The webhook keeps these rows in
             sync with Stripe; the manual &ldquo;Set plan&rdquo; controls below are an
             override for support cases.
@@ -39,9 +39,9 @@ export default function BillingContent({
 
       <PlanSummary plans={plans} />
 
-      <section className="overflow-hidden rounded-lg border border-hairline bg-canvas">
+      <section className="overflow-hidden rounded-lg border border-border bg-card">
         <table className="w-full text-sm">
-          <thead className="border-b border-hairline bg-cloud text-left text-xs uppercase tracking-wide text-ash">
+          <thead className="border-b border-border bg-background text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">Tenant</th>
               <th className="px-3 py-2">Plan</th>
@@ -52,10 +52,10 @@ export default function BillingContent({
               <th className="px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-hairline">
+          <tbody className="divide-y divide-border">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-ash">
+                <td colSpan={7} className="px-3 py-6 text-center text-muted">
                   No tenants yet.
                 </td>
               </tr>
@@ -86,28 +86,28 @@ function PlanSummary({ plans }: { plans: SubscriptionPlan[] }) {
       {plans.map((p) => (
         <article
           key={p.id}
-          className="rounded-lg border border-hairline bg-canvas p-4"
+          className="rounded-lg border border-border bg-card p-4"
         >
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-ink">{p.name}</h2>
-            <span className="rounded-full bg-cloud px-2 py-0.5 font-mono text-xs text-ash">
+            <h2 className="text-base font-semibold text-foreground">{p.name}</h2>
+            <span className="rounded-full bg-background px-2 py-0.5 font-mono text-xs text-muted">
               {p.code}
             </span>
           </div>
-          <p className="mt-1 text-xs text-ash">{p.description}</p>
-          <p className="mt-3 font-mono text-2xl text-ink">
+          <p className="mt-1 text-xs text-muted">{p.description}</p>
+          <p className="mt-3 font-mono text-2xl text-foreground">
             {formatCents(p.price_monthly_cents)}
-            <span className="ml-1 text-xs text-ash">/ mo</span>
+            <span className="ml-1 text-xs text-muted">/ mo</span>
           </p>
           {p.price_yearly_cents != null ? (
-            <p className="text-xs text-ash">
+            <p className="text-xs text-muted">
               {formatCents(p.price_yearly_cents)} / yr
             </p>
           ) : null}
-          <dl className="mt-3 space-y-0.5 font-mono text-[10px] text-ash">
+          <dl className="mt-3 space-y-0.5 font-mono text-[10px] text-muted">
             <div className="flex justify-between">
               <dt>product</dt>
-              <dd className={p.stripe_product_id ? 'text-ink' : 'text-warning'}>
+              <dd className={p.stripe_product_id ? 'text-foreground' : 'text-warning'}>
                 {p.stripe_product_id ?? 'not synced'}
               </dd>
             </div>
@@ -115,7 +115,7 @@ function PlanSummary({ plans }: { plans: SubscriptionPlan[] }) {
               <dt>price/mo</dt>
               <dd
                 className={
-                  p.stripe_price_monthly_id ? 'text-ink' : 'text-warning'
+                  p.stripe_price_monthly_id ? 'text-foreground' : 'text-warning'
                 }
               >
                 {p.stripe_price_monthly_id ?? 'not synced'}
@@ -125,7 +125,7 @@ function PlanSummary({ plans }: { plans: SubscriptionPlan[] }) {
               <dt>price/yr</dt>
               <dd
                 className={
-                  p.stripe_price_yearly_id ? 'text-ink' : 'text-warning'
+                  p.stripe_price_yearly_id ? 'text-foreground' : 'text-warning'
                 }
               >
                 {p.stripe_price_yearly_id ?? 'not synced'}
@@ -165,7 +165,7 @@ function SyncStripeButton({ plans }: { plans: SubscriptionPlan[] }) {
         type="button"
         onClick={onClick}
         disabled={pending}
-        className="inline-flex items-center gap-2 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:bg-cloud disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background disabled:opacity-50"
         title="Idempotent fetch-or-create of Stripe products + prices for every plan."
       >
         <ArrowsClockwise
@@ -180,7 +180,7 @@ function SyncStripeButton({ plans }: { plans: SubscriptionPlan[] }) {
             : 'Sync Stripe products'}
       </button>
       {state.error ? (
-        <span className="rounded-md border border-error/30 bg-error/5 px-2 py-1 text-xs text-error">
+        <span className="rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs text-danger">
           {state.error}
         </span>
       ) : null}
@@ -225,27 +225,27 @@ function BillingRow({
       : tone === 'warning'
         ? 'bg-warning/10 text-warning'
         : tone === 'error'
-          ? 'bg-error/10 text-error'
-          : 'bg-cloud text-ash'
+          ? 'bg-danger/10 text-danger'
+          : 'bg-background text-muted'
 
   const periodEndsAt = sub?.trial_ends_at ?? sub?.current_period_end ?? null
 
   return (
     <>
-      <tr className="hover:bg-cloud/40">
+      <tr className="hover:bg-background/40">
         <td className="px-3 py-2">
-          <div className="font-medium text-ink">{row.tenant.name}</div>
-          <div className="font-mono text-xs text-ash">
+          <div className="font-medium text-foreground">{row.tenant.name}</div>
+          <div className="font-mono text-xs text-muted">
             {row.tenant.id.slice(0, 8)} · {row.tenant.tenant_type ?? '—'}
           </div>
         </td>
         <td className="px-3 py-2">
           {row.plan ? (
-            <span className="rounded-md bg-cloud px-2 py-0.5 text-xs">
+            <span className="rounded-md bg-background px-2 py-0.5 text-xs">
               {row.plan.name}
             </span>
           ) : (
-            <span className="text-ash">—</span>
+            <span className="text-muted">—</span>
           )}
         </td>
         <td className="px-3 py-2">
@@ -256,21 +256,21 @@ function BillingRow({
               {status.replace(/_/g, ' ')}
             </span>
           ) : (
-            <span className="text-ash">—</span>
+            <span className="text-muted">—</span>
           )}
         </td>
-        <td className="px-3 py-2 text-xs text-ash">
+        <td className="px-3 py-2 text-xs text-muted">
           {sub?.billing_cycle ?? '—'}
         </td>
-        <td className="px-3 py-2 font-mono text-xs text-ink">
+        <td className="px-3 py-2 font-mono text-xs text-foreground">
           {periodEndsAt ? new Date(periodEndsAt).toLocaleDateString() : '—'}
         </td>
-        <td className="px-3 py-2 font-mono text-xs text-ink">
+        <td className="px-3 py-2 font-mono text-xs text-foreground">
           {sub?.last_invoice_amount_cents != null
             ? formatCents(sub.last_invoice_amount_cents)
             : '—'}
           {sub?.last_invoice_paid_at ? (
-            <span className="ml-1 text-ash">
+            <span className="ml-1 text-muted">
               · {new Date(sub.last_invoice_paid_at).toLocaleDateString()}
             </span>
           ) : null}
@@ -279,7 +279,7 @@ function BillingRow({
           <button
             type="button"
             onClick={onToggle}
-            className="inline-flex items-center gap-1 rounded-md border border-hairline px-2 py-1 text-xs text-ink hover:bg-cloud"
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-foreground hover:bg-background"
           >
             {open ? 'Close' : 'Set plan'}
             <CaretDown
@@ -292,7 +292,7 @@ function BillingRow({
       </tr>
       {open ? (
         <tr>
-          <td colSpan={7} className="border-t border-hairline bg-cloud/30 p-4">
+          <td colSpan={7} className="border-t border-border bg-background/30 p-4">
             <SetPlanForm
               tenantId={row.tenant.id}
               currentPlanId={row.plan?.id ?? null}
@@ -345,7 +345,7 @@ function SetPlanForm({
         <select
           name="plan_id"
           defaultValue={currentPlanId ?? plans[0]?.id ?? ''}
-          className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm"
+          className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
           required
         >
           {plans.map((p) => (
@@ -359,7 +359,7 @@ function SetPlanForm({
         <select
           name="status"
           defaultValue={currentStatus}
-          className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm"
+          className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
         >
           <option value="trialing">trialing</option>
           <option value="active">active</option>
@@ -374,7 +374,7 @@ function SetPlanForm({
         <select
           name="billing_cycle"
           defaultValue={currentCycle}
-          className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm"
+          className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
         >
           <option value="monthly">monthly</option>
           <option value="yearly">yearly</option>
@@ -387,14 +387,14 @@ function SetPlanForm({
           min={0}
           max={365}
           defaultValue={14}
-          className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm font-mono"
+          className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm font-mono"
         />
       </Field>
       <div className="flex items-end gap-2">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-rausch px-3 py-1.5 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
         >
           {pending ? 'Saving…' : 'Apply'}
         </button>
@@ -404,7 +404,7 @@ function SetPlanForm({
           </span>
         ) : null}
         {state.error ? (
-          <span className="text-xs text-error">{state.error}</span>
+          <span className="text-xs text-danger">{state.error}</span>
         ) : null}
       </div>
     </form>
@@ -420,7 +420,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs uppercase tracking-wide text-ash">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-muted">{label}</span>
       {children}
     </label>
   )

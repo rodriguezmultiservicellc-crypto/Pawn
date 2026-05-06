@@ -89,7 +89,7 @@ export default function NewTransferForm({
           </h1>
           <Link
             href="/inventory/transfers"
-            className="text-sm text-ash hover:text-ink"
+            className="text-sm text-muted hover:text-foreground"
           >
             {t.inventory.transfers.new.backToList}
           </Link>
@@ -97,7 +97,7 @@ export default function NewTransferForm({
         <div className="rounded-lg border border-warning/30 bg-warning/5 p-6">
           <div className="flex items-start gap-3">
             <Info size={18} weight="regular" className="mt-0.5 text-warning" />
-            <p className="text-sm text-ink">
+            <p className="text-sm text-foreground">
               {t.inventory.transfers.new.noSiblings}
             </p>
           </div>
@@ -115,18 +115,18 @@ export default function NewTransferForm({
           </h1>
           <Link
             href="/inventory/transfers"
-            className="text-sm text-ash hover:text-ink"
+            className="text-sm text-muted hover:text-foreground"
           >
             {t.inventory.transfers.new.backToList}
           </Link>
         </div>
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
           <Package
             size={28}
             weight="regular"
-            className="mx-auto mb-3 text-ash"
+            className="mx-auto mb-3 text-muted"
           />
-          <p className="text-sm text-ash">
+          <p className="text-sm text-muted">
             {t.inventory.transfers.new.noAvailableItems}
           </p>
         </div>
@@ -142,34 +142,34 @@ export default function NewTransferForm({
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ArrowsLeftRight size={22} weight="regular" className="text-ash" />
+          <ArrowsLeftRight size={22} weight="regular" className="text-muted" />
           <h1 className="text-2xl font-bold">
             {t.inventory.transfers.new.title}
           </h1>
         </div>
         <Link
           href="/inventory/transfers"
-          className="text-sm text-ash hover:text-ink"
+          className="text-sm text-muted hover:text-foreground"
         >
           {t.inventory.transfers.new.backToList}
         </Link>
       </div>
 
       {state.error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}
 
       <form action={formAction} className="space-y-6">
-        <div className="rounded-lg border border-hairline bg-canvas p-5">
+        <div className="rounded-lg border border-border bg-card p-5">
           <label
             htmlFor="destination_tenant_id"
-            className="block text-sm font-medium text-ink"
+            className="block text-sm font-medium text-foreground"
           >
             {t.inventory.transfers.new.destinationShop}
           </label>
@@ -179,7 +179,7 @@ export default function NewTransferForm({
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
             required
-            className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="mt-1 block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           >
             <option value="">
               {t.inventory.transfers.new.destinationPlaceholder}
@@ -191,26 +191,26 @@ export default function NewTransferForm({
             ))}
           </select>
           {fieldError('destination_tenant_id') ? (
-            <p className="mt-1 text-xs text-error">
+            <p className="mt-1 text-xs text-danger">
               {fieldError('destination_tenant_id')}
             </p>
           ) : null}
         </div>
 
-        <div className="rounded-lg border border-hairline bg-canvas">
-          <div className="flex items-center justify-between border-b border-hairline px-5 py-3">
+        <div className="rounded-lg border border-border bg-card">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <div>
-              <h2 className="text-sm font-semibold text-ink">
+              <h2 className="text-sm font-semibold text-foreground">
                 {t.inventory.transfers.new.selectItems}
               </h2>
-              <p className="mt-0.5 text-xs text-ash">
+              <p className="mt-0.5 text-xs text-muted">
                 {t.inventory.transfers.new.selectItemsHelp}
               </p>
             </div>
-            <div className="text-xs text-ash">
+            <div className="text-xs text-muted">
               {selected.size} / {availableItems.length}
               {selectedTotal > 0 ? (
-                <span className="ml-3 font-mono text-ink">
+                <span className="ml-3 font-mono text-foreground">
                   {formatMoney(selectedTotal)}
                 </span>
               ) : null}
@@ -219,14 +219,14 @@ export default function NewTransferForm({
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-hairline text-ash">
+              <thead className="border-b border-border text-muted">
                 <tr>
                   <th className="w-10 px-3 py-3">
                     <input
                       type="checkbox"
                       checked={allChecked}
                       onChange={toggleAll}
-                      className="h-4 w-4 rounded border-hairline text-rausch focus:ring-ink/10"
+                      className="h-4 w-4 rounded border-border text-gold focus:ring-blue/10"
                     />
                   </th>
                   <th className="w-14 px-3 py-3" aria-label="thumbnail" />
@@ -250,8 +250,8 @@ export default function NewTransferForm({
                   return (
                     <tr
                       key={item.id}
-                      className={`border-b border-hairline last:border-0 ${
-                        checked ? 'bg-cloud/60' : ''
+                      className={`border-b border-border last:border-0 ${
+                        checked ? 'bg-background/60' : ''
                       }`}
                     >
                       <td className="px-3 py-2">
@@ -261,11 +261,11 @@ export default function NewTransferForm({
                           value={item.id}
                           checked={checked}
                           onChange={() => toggle(item.id)}
-                          className="h-4 w-4 rounded border-hairline text-rausch focus:ring-ink/10"
+                          className="h-4 w-4 rounded border-border text-gold focus:ring-blue/10"
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <div className="relative h-10 w-10 overflow-hidden rounded-md border border-hairline bg-cloud">
+                        <div className="relative h-10 w-10 overflow-hidden rounded-md border border-border bg-background">
                           {item.thumb_url ? (
                             <Image
                               src={item.thumb_url}
@@ -276,29 +276,29 @@ export default function NewTransferForm({
                               className="object-cover"
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center text-ash">
+                            <div className="flex h-full w-full items-center justify-center text-muted">
                               <ImageIcon size={16} />
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-ink">
+                      <td className="px-4 py-3 font-mono text-xs text-foreground">
                         {item.sku}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-ink">
+                        <div className="font-medium text-foreground">
                           {item.description}
                         </div>
                         {item.brand || item.model ? (
-                          <div className="text-xs text-ash">
+                          <div className="text-xs text-muted">
                             {[item.brand, item.model]
                               .filter(Boolean)
                               .join(' · ')}
                           </div>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 text-ink">{item.category}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-ink">
+                      <td className="px-4 py-3 text-foreground">{item.category}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-foreground">
                         {item.list_price != null
                           ? formatMoney(item.list_price)
                           : '—'}
@@ -311,16 +311,16 @@ export default function NewTransferForm({
           </div>
 
           {fieldError('item_ids') ? (
-            <p className="border-t border-hairline px-5 py-2 text-xs text-error">
+            <p className="border-t border-border px-5 py-2 text-xs text-danger">
               {fieldError('item_ids')}
             </p>
           ) : null}
         </div>
 
-        <div className="rounded-lg border border-hairline bg-canvas p-5">
-          <label htmlFor="notes" className="block text-sm font-medium text-ink">
+        <div className="rounded-lg border border-border bg-card p-5">
+          <label htmlFor="notes" className="block text-sm font-medium text-foreground">
             {t.inventory.transfers.new.notes}{' '}
-            <span className="text-ash">({t.common.optional})</span>
+            <span className="text-muted">({t.common.optional})</span>
           </label>
           <textarea
             id="notes"
@@ -329,21 +329,21 @@ export default function NewTransferForm({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={t.inventory.transfers.new.notesPlaceholder}
-            className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="mt-1 block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </div>
 
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/inventory/transfers"
-            className="rounded-md border border-hairline px-4 py-2 text-sm text-ink"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
           >
             {t.common.cancel}
           </Link>
           <button
             type="submit"
             disabled={pending || selected.size === 0 || !destination}
-            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
           >
             {selected.size === 0
               ? t.inventory.transfers.new.submitZero

@@ -40,16 +40,16 @@ export function ReportTable<Row>({
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-lg border border-hairline bg-canvas p-12 text-center text-ash">
+      <div className="rounded-lg border border-border bg-card p-12 text-center text-muted">
         {empty ?? t.reports.empty}
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+    <div className="overflow-x-auto rounded-lg border border-border bg-card">
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-hairline text-ash">
+        <thead className="border-b border-border text-muted">
           <tr>
             {columns.map((c) => (
               <th
@@ -72,7 +72,7 @@ export function ReportTable<Row>({
           {visible.map((r, i) => (
             <tr
               key={i}
-              className="border-b border-hairline last:border-0 hover:bg-cloud"
+              className="border-b border-border last:border-0 hover:bg-background"
             >
               {columns.map((c) => (
                 <td
@@ -93,7 +93,7 @@ export function ReportTable<Row>({
         </tbody>
       </table>
       {truncated ? (
-        <div className="border-t border-hairline px-3 py-2 text-xs text-ash">
+        <div className="border-t border-border px-3 py-2 text-xs text-muted">
           {t.reports.truncated
             .replace('{shown}', String(MAX_DISPLAY))
             .replace('{total}', String(rows.length))}

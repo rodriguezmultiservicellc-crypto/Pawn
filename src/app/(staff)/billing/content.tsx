@@ -44,10 +44,10 @@ export default function BillingContent({
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-bold text-ink">Billing</h1>
-        <p className="text-sm text-ash">
+        <h1 className="text-2xl font-bold text-foreground">Billing</h1>
+        <p className="text-sm text-muted">
           Subscription plan and invoices for{' '}
-          <span className="font-medium text-ink">{tenantName}</span>.
+          <span className="font-medium text-foreground">{tenantName}</span>.
         </p>
       </header>
 
@@ -78,7 +78,7 @@ export default function BillingContent({
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-ink">
+          <h2 className="text-base font-semibold text-foreground">
             {currentPlan ? 'Change plan' : 'Choose a plan'}
           </h2>
           <CycleToggle value={cycle} onChange={setCycle} />
@@ -141,8 +141,8 @@ function CurrentPlanCard({
 }) {
   if (!subscription || !currentPlan) {
     return (
-      <section className="rounded-lg border border-hairline bg-canvas p-5">
-        <p className="text-sm text-ash">
+      <section className="rounded-lg border border-border bg-card p-5">
+        <p className="text-sm text-muted">
           No subscription yet. Pick a plan below to start a Stripe Checkout.
         </p>
       </section>
@@ -156,8 +156,8 @@ function CurrentPlanCard({
       : tone === 'warning'
         ? 'bg-warning/10 text-warning'
         : tone === 'error'
-          ? 'bg-error/10 text-error'
-          : 'bg-cloud text-ash'
+          ? 'bg-danger/10 text-danger'
+          : 'bg-background text-muted'
 
   const trialDays = isTrialing(subscription)
     ? trialDaysRemaining(subscription)
@@ -166,20 +166,20 @@ function CurrentPlanCard({
   const lastInvoice = invoices[0] ?? null
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas p-5">
+    <section className="rounded-lg border border-border bg-card p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-lg font-bold text-ink">{currentPlan.name}</h2>
+        <h2 className="text-lg font-bold text-foreground">{currentPlan.name}</h2>
         <span
           className={`rounded-md px-2 py-0.5 text-xs uppercase tracking-wide ${toneCls}`}
         >
           {subscription.status.replace(/_/g, ' ')}
         </span>
-        <span className="rounded-full bg-cloud px-2 py-0.5 font-mono text-xs text-ash">
+        <span className="rounded-full bg-background px-2 py-0.5 font-mono text-xs text-muted">
           {subscription.billing_cycle}
         </span>
       </div>
 
-      <p className="mt-2 text-sm text-ash">{currentPlan.description}</p>
+      <p className="mt-2 text-sm text-muted">{currentPlan.description}</p>
 
       <dl className="mt-4 grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
         <Stat
@@ -232,10 +232,10 @@ function Stat({
 }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-ash">{label}</dt>
+      <dt className="text-xs uppercase tracking-wide text-muted">{label}</dt>
       <dd
         className={`mt-0.5 font-mono text-sm ${
-          tone === 'warning' ? 'text-warning' : 'text-ink'
+          tone === 'warning' ? 'text-warning' : 'text-foreground'
         }`}
       >
         {value}
@@ -252,14 +252,14 @@ function CycleToggle({
   onChange: (v: 'monthly' | 'yearly') => void
 }) {
   return (
-    <div className="inline-flex rounded-md border border-hairline bg-canvas p-0.5 text-xs">
+    <div className="inline-flex rounded-md border border-border bg-card p-0.5 text-xs">
       <button
         type="button"
         onClick={() => onChange('monthly')}
         className={`rounded px-3 py-1 ${
           value === 'monthly'
-            ? 'bg-ink text-canvas'
-            : 'text-ash hover:text-ink'
+            ? 'bg-navy text-white'
+            : 'text-muted hover:text-foreground'
         }`}
       >
         Monthly
@@ -269,8 +269,8 @@ function CycleToggle({
         onClick={() => onChange('yearly')}
         className={`rounded px-3 py-1 ${
           value === 'yearly'
-            ? 'bg-ink text-canvas'
-            : 'text-ash hover:text-ink'
+            ? 'bg-navy text-white'
+            : 'text-muted hover:text-foreground'
         }`}
       >
         Yearly
@@ -372,29 +372,29 @@ function PlanCard({
   }
 
   const cardCls = isCurrent
-    ? 'border-rausch/40 ring-2 ring-rausch/10'
-    : 'border-hairline'
+    ? 'border-gold/40 ring-2 ring-gold/10'
+    : 'border-border'
 
   return (
     <article
-      className={`flex flex-col rounded-lg border bg-canvas p-4 ${cardCls}`}
+      className={`flex flex-col rounded-lg border bg-card p-4 ${cardCls}`}
     >
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-ink">{plan.name}</h3>
+        <h3 className="text-base font-semibold text-foreground">{plan.name}</h3>
         {isCurrent ? (
-          <span className="rounded-full bg-rausch/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rausch">
+          <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gold">
             Current
           </span>
         ) : null}
       </div>
-      <p className="mt-1 text-xs text-ash">{plan.description}</p>
-      <p className="mt-3 font-mono text-2xl text-ink">
+      <p className="mt-1 text-xs text-muted">{plan.description}</p>
+      <p className="mt-3 font-mono text-2xl text-foreground">
         {priceCents == null ? (
-          <span className="text-base text-ash">unavailable</span>
+          <span className="text-base text-muted">unavailable</span>
         ) : (
           <>
             {formatCents(priceCents)}
-            <span className="ml-1 text-xs text-ash">
+            <span className="ml-1 text-xs text-muted">
               / {cycle === 'monthly' ? 'mo' : 'yr'}
             </span>
           </>
@@ -402,7 +402,7 @@ function PlanCard({
       </p>
 
       {features.length > 0 ? (
-        <ul className="mt-3 space-y-1 text-xs text-ink/80">
+        <ul className="mt-3 space-y-1 text-xs text-foreground/80">
           {features.slice(0, 6).map((f) => (
             <li key={f} className="flex items-center gap-1.5">
               <Check size={12} weight="bold" className="text-success" />
@@ -412,13 +412,13 @@ function PlanCard({
         </ul>
       ) : null}
 
-      <ul className="mt-3 border-t border-hairline pt-3 text-[11px] text-ash space-y-0.5">
+      <ul className="mt-3 border-t border-border pt-3 text-[11px] text-muted space-y-0.5">
         {limits.map((k) => {
           const v = planLimit(plan, k)
           return (
             <li key={k} className="flex justify-between">
               <span>{prettyLimitLabel(k)}</span>
-              <span className="font-mono text-ink">
+              <span className="font-mono text-foreground">
                 {v == null ? 'unlimited' : v}
               </span>
             </li>
@@ -431,7 +431,7 @@ function PlanCard({
           type="button"
           onClick={onChoose}
           disabled={pending || priceCents == null || isExactMatch}
-          className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           title={
             isExactMatch
               ? 'You are already on this plan and cycle.'
@@ -454,7 +454,7 @@ function PlanCard({
           )}
         </button>
         {error ? (
-          <p className="mt-1 text-xs text-error">{error}</p>
+          <p className="mt-1 text-xs text-danger">{error}</p>
         ) : null}
       </div>
     </article>
@@ -467,10 +467,10 @@ function InvoicesSection({ invoices }: { invoices: BillingInvoice[] }) {
   }
   return (
     <section className="space-y-2">
-      <h2 className="text-base font-semibold text-ink">Recent invoices</h2>
-      <div className="overflow-hidden rounded-lg border border-hairline bg-canvas">
+      <h2 className="text-base font-semibold text-foreground">Recent invoices</h2>
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         <table className="w-full text-sm">
-          <thead className="border-b border-hairline bg-cloud text-left text-xs uppercase tracking-wide text-ash">
+          <thead className="border-b border-border bg-background text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">Amount</th>
@@ -479,26 +479,26 @@ function InvoicesSection({ invoices }: { invoices: BillingInvoice[] }) {
               <th className="px-3 py-2 text-right">Receipt</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-hairline">
+          <tbody className="divide-y divide-border">
             {invoices.map((inv) => {
               const tone =
                 inv.status === 'paid'
                   ? 'bg-success/10 text-success'
                   : inv.status === 'open' || inv.status === 'draft'
                     ? 'bg-warning/10 text-warning'
-                    : 'bg-error/10 text-error'
+                    : 'bg-danger/10 text-danger'
               const period =
                 inv.period_start && inv.period_end
                   ? `${new Date(inv.period_start).toLocaleDateString()} – ${new Date(inv.period_end).toLocaleDateString()}`
                   : '—'
               return (
                 <tr key={inv.id}>
-                  <td className="px-3 py-2 font-mono text-xs text-ink">
+                  <td className="px-3 py-2 font-mono text-xs text-foreground">
                     {inv.paid_at
                       ? new Date(inv.paid_at).toLocaleDateString()
                       : new Date(inv.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs text-ink">
+                  <td className="px-3 py-2 font-mono text-xs text-foreground">
                     {formatCents(inv.amount_cents)}
                   </td>
                   <td className="px-3 py-2">
@@ -508,7 +508,7 @@ function InvoicesSection({ invoices }: { invoices: BillingInvoice[] }) {
                       {inv.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs text-ash">
+                  <td className="px-3 py-2 font-mono text-xs text-muted">
                     {period}
                   </td>
                   <td className="px-3 py-2 text-right text-xs">
@@ -517,7 +517,7 @@ function InvoicesSection({ invoices }: { invoices: BillingInvoice[] }) {
                         href={inv.hosted_invoice_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-ink hover:underline"
+                        className="inline-flex items-center gap-1 text-foreground hover:underline"
                       >
                         View <ArrowSquareOut size={11} weight="bold" />
                       </a>
@@ -526,12 +526,12 @@ function InvoicesSection({ invoices }: { invoices: BillingInvoice[] }) {
                         href={inv.invoice_pdf_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-ink hover:underline"
+                        className="text-foreground hover:underline"
                       >
                         PDF
                       </a>
                     ) : (
-                      <span className="text-ash">—</span>
+                      <span className="text-muted">—</span>
                     )}
                   </td>
                 </tr>

@@ -30,8 +30,8 @@ export default async function AdminLayout({
 
   return (
     <I18nProvider initialLang={initialLang}>
-      <div className="flex min-h-screen flex-col bg-cloud">
-        <header className="border-b border-hairline bg-canvas">
+      <div className="flex min-h-screen flex-col bg-background">
+        <header className="border-b border-border bg-card">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
             <Link href="/admin/tenants" className="flex items-center gap-2">
               <span
@@ -43,43 +43,43 @@ export default async function AdminLayout({
               >
                 Pawn
               </span>
-              <span className="rounded-full bg-ink px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-canvas">
+              <span className="rounded-full bg-navy px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
                 Admin
               </span>
             </Link>
             <div className="flex items-center gap-4 text-sm">
               <Link
                 href="/admin/tenants"
-                className="text-ink hover:text-rausch"
+                className="text-foreground hover:text-gold"
               >
                 Tenants
               </Link>
               <Link
                 href="/admin/billing"
-                className="text-ink hover:text-rausch"
+                className="text-foreground hover:text-gold"
               >
                 Billing
               </Link>
               <Link
                 href="/admin/watch-models"
-                className="text-ink hover:text-rausch"
+                className="text-foreground hover:text-gold"
               >
                 Watches
               </Link>
               <Link
                 href="/admin/settings"
-                className="text-ink hover:text-rausch"
+                className="text-foreground hover:text-gold"
               >
                 Settings
               </Link>
               <Link
                 href="/dashboard"
-                className="rounded-md border border-hairline px-3 py-1 text-ink hover:border-ink"
+                className="rounded-md border border-border px-3 py-1 text-foreground hover:border-foreground"
                 title="Return to the staff workspace for the active tenant"
               >
                 Staff →
               </Link>
-              <span className="text-ash">{ctx.email}</span>
+              <span className="text-muted">{ctx.email}</span>
             </div>
           </div>
         </header>

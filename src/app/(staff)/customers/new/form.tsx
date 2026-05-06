@@ -182,7 +182,7 @@ export default function NewCustomerForm({
           <DlScanner onResult={handleScanResult} />
           <Link
             href="/customers"
-            className="text-sm text-ash hover:text-ink"
+            className="text-sm text-muted hover:text-foreground"
           >
             {t.customers.backToList}
           </Link>
@@ -190,11 +190,11 @@ export default function NewCustomerForm({
       </div>
 
       {state.error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}
@@ -223,7 +223,7 @@ export default function NewCustomerForm({
           <input type="hidden" name="dl_raw_payload" value={rawPayload} />
         ) : null}
 
-        <label className="block text-sm text-ink">
+        <label className="block text-sm text-foreground">
           <span className="mb-1 block">Referred by code (optional)</span>
           <input
             key={`referred_by_code-${formGen}`}
@@ -234,15 +234,15 @@ export default function NewCustomerForm({
             autoComplete="off"
             placeholder="e.g. XF4P9Q"
             defaultValue={state.values?.referred_by_code ?? ''}
-            className="w-32 rounded-md border border-hairline px-3 py-2 font-mono uppercase focus:outline-none focus:ring-2 focus:ring-rausch/50"
+            className="w-32 rounded-md border border-border px-3 py-2 font-mono uppercase focus:outline-none focus:ring-2 focus:ring-gold/50"
             style={{ textTransform: 'uppercase' }}
           />
           {fieldError('referred_by_code') ? (
-            <span className="mt-1 block text-xs text-error">
+            <span className="mt-1 block text-xs text-danger">
               {fieldError('referred_by_code')}
             </span>
           ) : (
-            <span className="mt-1 block text-xs text-ash">
+            <span className="mt-1 block text-xs text-muted">
               Customer was referred by another customer? Enter their code (optional).
             </span>
           )}
@@ -251,14 +251,14 @@ export default function NewCustomerForm({
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/customers"
-            className="rounded-md border border-hairline px-4 py-2 text-sm text-ink"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
           >
             {t.common.cancel}
           </Link>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? t.common.creating : t.customers.submitCreate}
           </button>

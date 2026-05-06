@@ -52,15 +52,15 @@ export default function StoneEditor({
 }) {
   const { t } = useI18n()
   return (
-    <div className="rounded-lg border border-hairline bg-cloud/40 p-3">
+    <div className="rounded-lg border border-border bg-background/40 p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-[11px] font-mono text-ink">
+        <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-mono text-foreground">
           {t.appraisal.new_.stonePosition} {index + 1}
         </span>
         <button
           type="button"
           onClick={onRemove}
-          className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-2 py-1 text-xs font-medium text-error hover:bg-error/10"
+          className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10"
         >
           <Trash size={12} weight="bold" />
           {t.appraisal.new_.removeStone}
@@ -120,9 +120,9 @@ export default function StoneEditor({
             name={`stone_${index}_certified`}
             checked={row.certified}
             onChange={(e) => onChange({ certified: e.target.checked })}
-            className="h-4 w-4 rounded border-hairline text-ink focus:ring-ink/20"
+            className="h-4 w-4 rounded border-border text-foreground focus:ring-blue/20"
           />
-          <span className="text-xs font-medium text-ink">
+          <span className="text-xs font-medium text-foreground">
             {t.appraisal.new_.stoneCertified}
           </span>
         </label>
@@ -140,7 +140,7 @@ export default function StoneEditor({
           onChange={(v) => onChange({ cert_number: v })}
         />
         <label className="md:col-span-6 block space-y-1">
-          <span className="text-xs font-medium text-ink">
+          <span className="text-xs font-medium text-foreground">
             {t.appraisal.new_.stoneNotes}
           </span>
           <input
@@ -148,7 +148,7 @@ export default function StoneEditor({
             name={`stone_${index}_notes`}
             value={row.notes}
             onChange={(e) => onChange({ notes: e.target.value })}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -173,13 +173,13 @@ function CertNumberWithVerify({
   return (
     <label className="block space-y-1 md:col-span-2">
       <span className="flex items-center justify-between">
-        <span className="text-xs font-medium text-ink">{label}</span>
+        <span className="text-xs font-medium text-foreground">{label}</span>
         {verify ? (
           <a
             href={verify.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[10px] font-medium text-rausch hover:underline"
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-gold hover:underline"
             title="Opens the lab's report-check page in a new tab"
           >
             {verify.label}
@@ -192,7 +192,7 @@ function CertNumberWithVerify({
         name={`stone_${index}_cert_number`}
         value={number}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
       />
     </label>
   )
@@ -219,14 +219,14 @@ function Input({
     span === 2 ? 'md:col-span-2' : span === 3 ? 'md:col-span-3' : ''
   return (
     <label className={`block space-y-1 ${colSpan}`}>
-      <span className="text-xs font-medium text-ink">{label}</span>
+      <span className="text-xs font-medium text-foreground">{label}</span>
       <input
         type={type}
         step={step}
         name={name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
       />
     </label>
   )

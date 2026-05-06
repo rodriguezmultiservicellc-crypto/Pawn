@@ -245,12 +245,12 @@ export default function InventoryDetail({
       <div className="flex items-center justify-between">
         <Link
           href="/inventory"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.inventory.backToList}
         </Link>
-        <span className="font-mono text-xs text-ash">{item.sku}</span>
+        <span className="font-mono text-xs text-muted">{item.sku}</span>
       </div>
 
       <div>
@@ -262,11 +262,11 @@ export default function InventoryDetail({
       {melt ? <MeltPanel melt={melt} /> : null}
 
       {state.error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}
@@ -295,7 +295,7 @@ export default function InventoryDetail({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? t.common.saving : t.inventory.submitUpdate}
           </button>
@@ -375,8 +375,8 @@ function PhotosPanel({
   }
 
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">
         {t.inventory.sectionPhotos}
       </legend>
       <div className="mt-2 space-y-3">
@@ -388,7 +388,7 @@ function PhotosPanel({
             type="button"
             onClick={onPick}
             disabled={pending}
-            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed border-hairline bg-canvas text-sm font-medium text-ink hover:border-ink disabled:opacity-50"
+            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border bg-card text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50"
           >
             <Upload size={20} weight="bold" />
             <span>{pending ? t.common.uploading : t.inventory.addPhoto}</span>
@@ -401,7 +401,7 @@ function PhotosPanel({
             className="sr-only"
           />
         </div>
-        {error ? <div className="text-xs text-error">{error}</div> : null}
+        {error ? <div className="text-xs text-danger">{error}</div> : null}
       </div>
     </fieldset>
   )
@@ -435,7 +435,7 @@ function PhotoTile({
   }
 
   return (
-    <div className="relative aspect-square overflow-hidden rounded-md border border-hairline bg-cloud">
+    <div className="relative aspect-square overflow-hidden rounded-md border border-border bg-background">
       {photo.signed_url ? (
         <Image
           src={photo.signed_url}
@@ -446,12 +446,12 @@ function PhotoTile({
           className="object-cover"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-ash">
+        <div className="flex h-full w-full items-center justify-center text-muted">
           <ImageIcon size={24} />
         </div>
       )}
       {photo.is_primary ? (
-        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-rausch px-2 py-0.5 text-xs font-medium text-canvas">
+        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gold px-2 py-0.5 text-xs font-medium text-navy">
           <StarFour size={10} weight="fill" />
           {t.inventory.primary}
         </span>
@@ -462,7 +462,7 @@ function PhotoTile({
             type="button"
             onClick={makePrimary}
             disabled={pending}
-            className="rounded-md bg-canvas/90 p-1 text-ink hover:bg-canvas disabled:opacity-50"
+            className="rounded-md bg-card/90 p-1 text-foreground hover:bg-card disabled:opacity-50"
             title={t.inventory.makePrimary}
           >
             <Star size={14} weight="bold" />
@@ -472,7 +472,7 @@ function PhotoTile({
           type="button"
           onClick={remove}
           disabled={pending}
-          className="rounded-md bg-canvas/90 p-1 text-error hover:bg-canvas disabled:opacity-50"
+          className="rounded-md bg-card/90 p-1 text-danger hover:bg-card disabled:opacity-50"
           title={t.common.remove}
         >
           <X size={14} weight="bold" />
@@ -492,15 +492,15 @@ function StonesPanel({
   const { t } = useI18n()
 
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">
         {t.inventory.sectionStones}
       </legend>
       <div className="mt-2 space-y-3">
         {stones.length === 0 ? (
-          <p className="text-sm text-ash">—</p>
+          <p className="text-sm text-muted">—</p>
         ) : (
-          <ul className="divide-y divide-hairline rounded-md border border-hairline">
+          <ul className="divide-y divide-border rounded-md border border-border">
             {stones.map((s) => (
               <li
                 key={s.id}
@@ -544,8 +544,8 @@ function StonesPanel({
 function Cell({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-xs uppercase tracking-wide text-ash">{label}</div>
-      <div className="truncate text-ink">{value}</div>
+      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
+      <div className="truncate text-foreground">{value}</div>
     </div>
   )
 }
@@ -571,7 +571,7 @@ function DeleteStoneButton({
       type="button"
       onClick={onClick}
       disabled={pending}
-      className="shrink-0 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ash hover:text-error disabled:opacity-50"
+      className="shrink-0 rounded-md border border-border bg-card px-2 py-1 text-xs text-muted hover:text-danger disabled:opacity-50"
       aria-label="delete"
     >
       <Trash size={12} weight="bold" />
@@ -604,7 +604,7 @@ function AddStoneForm({ itemId }: { itemId: string }) {
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className="grid grid-cols-2 gap-2 rounded-md border border-dashed border-hairline bg-cloud p-3 md:grid-cols-7"
+      className="grid grid-cols-2 gap-2 rounded-md border border-dashed border-border bg-background p-3 md:grid-cols-7"
     >
       <SmallField
         label={t.inventory.stoneCount}
@@ -624,26 +624,26 @@ function AddStoneForm({ itemId }: { itemId: string }) {
       <SmallField label={t.inventory.stoneColor} name="color" />
       <SmallField label={t.inventory.stoneClarity} name="clarity" />
       <div className="col-span-2 flex items-end justify-between gap-2 md:col-span-1">
-        <label className="flex items-center gap-1 text-xs text-ink">
+        <label className="flex items-center gap-1 text-xs text-foreground">
           <input
             type="checkbox"
             name="is_total_carat"
             value="on"
-            className="h-3 w-3 rounded border-hairline"
+            className="h-3 w-3 rounded border-border"
           />
           {t.inventory.stoneIsTotalCarat}
         </label>
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex items-center gap-1 rounded-md bg-ink px-2 py-1 text-xs text-canvas hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-navy px-2 py-1 text-xs text-white hover:opacity-90 disabled:opacity-50"
         >
           <Plus size={10} weight="bold" />
           {pending ? t.common.saving : t.inventory.addStone}
         </button>
       </div>
       {error ? (
-        <div className="col-span-full text-xs text-error">{error}</div>
+        <div className="col-span-full text-xs text-danger">{error}</div>
       ) : null}
     </form>
   )
@@ -666,7 +666,7 @@ function SmallField({
 }) {
   return (
     <label className="block space-y-0.5">
-      <span className="block text-[10px] uppercase tracking-wide text-ash">
+      <span className="block text-[10px] uppercase tracking-wide text-muted">
         {label}
       </span>
       <input
@@ -675,7 +675,7 @@ function SmallField({
         defaultValue={defaultValue}
         step={step}
         min={min}
-        className="block w-full rounded border border-hairline bg-canvas px-2 py-1 text-sm text-ink focus:border-ink focus:outline-none"
+        className="block w-full rounded border border-border bg-card px-2 py-1 text-sm text-foreground focus:border-blue focus:outline-none"
       />
     </label>
   )
@@ -694,7 +694,7 @@ function DeleteItemButton({
   if (status === 'sold') {
     return (
       <span
-        className="inline-flex items-center gap-1 rounded-md border border-hairline bg-cloud px-3 py-2 text-sm text-ash"
+        className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-muted"
         title={t.inventory.deleteBlockedSold}
       >
         <Trash size={14} weight="bold" />
@@ -717,7 +717,7 @@ function DeleteItemButton({
       type="button"
       onClick={onClick}
       disabled={pending}
-      className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm font-medium text-error hover:bg-error/10 disabled:opacity-50"
+      className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
     >
       <Trash size={14} weight="bold" />
       {pending ? t.common.saving : t.common.delete}
@@ -735,39 +735,39 @@ function MeltPanel({ melt }: { melt: InventoryMeltSummary }) {
       maximumFractionDigits: 2,
     })
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">
         {t.spotPrices.meltPanelTitle}
       </legend>
       <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
-          <div className="text-xs text-ash">{t.spotPrices.estimatedMelt}</div>
-          <div className="font-mono text-lg font-semibold text-ink">
+          <div className="text-xs text-muted">{t.spotPrices.estimatedMelt}</div>
+          <div className="font-mono text-lg font-semibold text-foreground">
             {formatUsd(melt.value)}
           </div>
         </div>
         <div>
-          <div className="text-xs text-ash">{t.spotPrices.spotPerGramLabel}</div>
-          <div className="font-mono text-sm text-ink">
+          <div className="text-xs text-muted">{t.spotPrices.spotPerGramLabel}</div>
+          <div className="font-mono text-sm text-foreground">
             {formatUsd(melt.spot_per_gram)}
           </div>
         </div>
         <div>
-          <div className="text-xs text-ash">{t.spotPrices.payRateMultiplier}</div>
-          <div className="font-mono text-sm text-ink">
+          <div className="text-xs text-muted">{t.spotPrices.payRateMultiplier}</div>
+          <div className="font-mono text-sm text-foreground">
             {(melt.multiplier * 100).toFixed(2)}%
           </div>
         </div>
         <div>
-          <div className="text-xs text-ash">{t.spotPrices.purityResolved}</div>
-          <div className="font-mono text-sm text-ink">
+          <div className="text-xs text-muted">{t.spotPrices.purityResolved}</div>
+          <div className="font-mono text-sm text-foreground">
             {t.spotPrices.purities[melt.purity] ?? melt.purity}
           </div>
         </div>
       </div>
-      <div className="mt-2 text-xs text-ash">
+      <div className="mt-2 text-xs text-muted">
         {t.spotPrices.lastFetched}: {new Date(melt.fetched_at).toLocaleString()}
-        <span className="ml-2 font-mono text-ash/80">({melt.source})</span>
+        <span className="ml-2 font-mono text-muted/80">({melt.source})</span>
       </div>
     </fieldset>
   )

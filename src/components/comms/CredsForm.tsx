@@ -54,10 +54,10 @@ export function CredsForm({ settings, action }: CredsFormProps) {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-5 rounded-lg border border-hairline bg-canvas p-5"
+      className="space-y-5 rounded-lg border border-border bg-card p-5"
     >
       {error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
@@ -69,10 +69,10 @@ export function CredsForm({ settings, action }: CredsFormProps) {
       ) : null}
 
       <fieldset className="space-y-3">
-        <legend className="text-sm font-semibold text-ink">
+        <legend className="text-sm font-semibold text-foreground">
           {t.comms.twilioSection}
         </legend>
-        <p className="text-xs text-ash">{t.comms.twilioHelp}</p>
+        <p className="text-xs text-muted">{t.comms.twilioHelp}</p>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Field
@@ -115,13 +115,13 @@ export function CredsForm({ settings, action }: CredsFormProps) {
         </div>
       </fieldset>
 
-      <hr className="border-hairline" />
+      <hr className="border-border" />
 
       <fieldset className="space-y-3">
-        <legend className="text-sm font-semibold text-ink">
+        <legend className="text-sm font-semibold text-foreground">
           {t.comms.resendSection}
         </legend>
-        <p className="text-xs text-ash">{t.comms.resendHelp}</p>
+        <p className="text-xs text-muted">{t.comms.resendHelp}</p>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <SecretField
@@ -152,7 +152,7 @@ export function CredsForm({ settings, action }: CredsFormProps) {
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
         >
           <FloppyDisk size={14} weight="bold" />
           {pending ? t.common.saving : t.common.save}
@@ -181,18 +181,18 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       <input
         type={type ?? 'text'}
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className={`block w-full rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
-          error ? 'border-error' : 'border-hairline focus:border-ink'
+        className={`block w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+          error ? 'border-danger' : 'border-border focus:border-blue'
         }`}
       />
-      {help ? <span className="block text-xs text-ash">{help}</span> : null}
-      {error ? <span className="block text-xs text-error">{error}</span> : null}
+      {help ? <span className="block text-xs text-muted">{help}</span> : null}
+      {error ? <span className="block text-xs text-danger">{error}</span> : null}
     </label>
   )
 }
@@ -215,7 +215,7 @@ function SecretField({
 
   return (
     <label className="block space-y-1">
-      <span className="flex items-center justify-between gap-2 text-sm font-medium text-ink">
+      <span className="flex items-center justify-between gap-2 text-sm font-medium text-foreground">
         <span>{label}</span>
         {isSet ? (
           <span className="inline-flex items-center gap-1 text-xs text-success-deep">
@@ -223,7 +223,7 @@ function SecretField({
             {t.comms.secretConfigured}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs text-ash">
+          <span className="inline-flex items-center gap-1 text-xs text-muted">
             <LockOpen size={11} weight="bold" />
             {t.comms.secretMissing}
           </span>
@@ -239,8 +239,8 @@ function SecretField({
             setValue(e.target.value)
           }}
           placeholder={isSet ? t.comms.secretLeaveBlank : ''}
-          className={`block w-full rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
-            error ? 'border-error' : 'border-hairline focus:border-ink'
+          className={`block w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+            error ? 'border-danger' : 'border-border focus:border-blue'
           }`}
         />
       ) : (
@@ -249,13 +249,13 @@ function SecretField({
             type="text"
             value="••••••••••••••••"
             readOnly
-            className="block flex-1 rounded-md border border-hairline bg-cloud/40 px-3 py-2 text-sm text-ash"
+            className="block flex-1 rounded-md border border-border bg-background/40 px-3 py-2 text-sm text-muted"
           />
           {/* Hidden name="" so submitting unchanged sends nothing for this field. */}
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
           >
             {t.common.update}
           </button>
@@ -265,12 +265,12 @@ function SecretField({
         <button
           type="button"
           onClick={() => setClear(true)}
-          className="text-xs text-error hover:underline"
+          className="text-xs text-danger hover:underline"
         >
           {t.comms.secretClear}
         </button>
       ) : null}
-      {error ? <span className="block text-xs text-error">{error}</span> : null}
+      {error ? <span className="block text-xs text-danger">{error}</span> : null}
     </label>
   )
 }

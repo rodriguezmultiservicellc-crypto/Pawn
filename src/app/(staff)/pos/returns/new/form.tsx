@@ -47,21 +47,21 @@ export default function NewReturnForm({
       <div className="flex items-center justify-between">
         <Link
           href={`/pos/sales/${sale.id}`}
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.pos.return.backToSale}
         </Link>
-        <h1 className="text-lg font-semibold text-ink">
+        <h1 className="text-lg font-semibold text-foreground">
           {t.pos.return.new}
         </h1>
       </div>
 
-      <div className="rounded-lg border border-hairline bg-canvas p-4">
-        <div className="text-xs uppercase tracking-wide text-ash">
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="text-xs uppercase tracking-wide text-muted">
           {t.pos.return.saleLookup}
         </div>
-        <div className="mt-1 font-mono text-base font-semibold text-ink">
+        <div className="mt-1 font-mono text-base font-semibold text-foreground">
           {sale.sale_number}
         </div>
       </div>

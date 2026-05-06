@@ -82,8 +82,8 @@ export default function TeamContent({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-ink">Team</h1>
-        <p className="mt-1 text-sm text-ash">
+        <h1 className="text-2xl font-bold text-foreground">Team</h1>
+        <p className="mt-1 text-sm text-muted">
           {active.length} active member{active.length === 1 ? '' : 's'}
           {inactive.length > 0
             ? ` · ${inactive.length} deactivated`
@@ -135,47 +135,47 @@ function InvitePanel() {
   }
 
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="flex items-center gap-1 px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="flex items-center gap-1 px-1 text-sm font-semibold text-foreground">
         <UserPlus size={14} weight="bold" />
         <span>Invite a team member</span>
       </legend>
 
       <form action={formAction} className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-12">
         <label className="md:col-span-4 block space-y-1">
-          <span className="text-sm font-medium text-ink">Email *</span>
+          <span className="text-sm font-medium text-foreground">Email *</span>
           <input
             type="email"
             name="email"
             required
             placeholder="staff@yourshop.com"
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             autoComplete="off"
           />
           {state.fieldErrors?.email ? (
-            <span className="block text-xs text-error">
+            <span className="block text-xs text-danger">
               {state.fieldErrors.email}
             </span>
           ) : null}
         </label>
 
         <label className="md:col-span-3 block space-y-1">
-          <span className="text-sm font-medium text-ink">Full name</span>
+          <span className="text-sm font-medium text-foreground">Full name</span>
           <input
             type="text"
             name="full_name"
             placeholder="optional"
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
 
         <label className="md:col-span-3 block space-y-1">
-          <span className="text-sm font-medium text-ink">Role *</span>
+          <span className="text-sm font-medium text-foreground">Role *</span>
           <select
             name="role"
             required
             defaultValue="pawn_clerk"
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           >
             {STAFF_ROLES.map((r) => (
               <option key={r} value={r}>
@@ -184,7 +184,7 @@ function InvitePanel() {
             ))}
           </select>
           {state.fieldErrors?.role ? (
-            <span className="block text-xs text-error">
+            <span className="block text-xs text-danger">
               {state.fieldErrors.role}
             </span>
           ) : null}
@@ -194,7 +194,7 @@ function InvitePanel() {
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           >
             <PaperPlaneTilt size={14} weight="bold" />
             {pending ? 'Inviting…' : 'Send invite'}
@@ -203,7 +203,7 @@ function InvitePanel() {
       </form>
 
       {state.error ? (
-        <div className="mt-3 flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mt-3 flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           <Warning size={14} weight="bold" />
           <span>{translateInviteError(state.error)}</span>
         </div>
@@ -221,18 +221,18 @@ function InvitePanel() {
               readOnly
               value={state.manualLink}
               onFocus={(e) => e.currentTarget.select()}
-              className="block w-full min-w-0 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs text-ink"
+              className="block w-full min-w-0 rounded-md border border-border bg-card px-2 py-1.5 text-xs text-foreground"
             />
             <button
               type="button"
               onClick={() => onCopy(state.manualLink!)}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs font-medium text-ink hover:border-ink"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
             >
               <LinkIcon size={12} weight="bold" />
               {copied ? 'Copied!' : 'Copy link'}
             </button>
           </div>
-          <p className="mt-2 text-[11px] text-ash">
+          <p className="mt-2 text-[11px] text-muted">
             They&apos;ll click the link, sign in, and land on the dashboard.
             If they already had an account on another tenant, this just
             adds them to this tenant.
@@ -240,14 +240,14 @@ function InvitePanel() {
         </div>
       ) : null}
 
-      <details className="mt-3 text-xs text-ash">
-        <summary className="cursor-pointer hover:text-ink">
+      <details className="mt-3 text-xs text-muted">
+        <summary className="cursor-pointer hover:text-foreground">
           Role descriptions
         </summary>
         <dl className="mt-2 space-y-1">
           {STAFF_ROLES.map((r) => (
             <div key={r}>
-              <dt className="inline font-semibold text-ink">
+              <dt className="inline font-semibold text-foreground">
                 {ROLE_LABELS[r]}:
               </dt>{' '}
               <dd className="inline">{ROLE_HELP[r]}</dd>
@@ -270,10 +270,10 @@ function MemberTable({
 }) {
   return (
     <section>
-      <h2 className="mb-2 text-sm font-semibold text-ink">{title}</h2>
-      <div className="overflow-hidden rounded-lg border border-hairline">
+      <h2 className="mb-2 text-sm font-semibold text-foreground">{title}</h2>
+      <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-cloud text-xs text-ash">
+          <thead className="bg-background text-xs text-muted">
             <tr>
               <th className="px-3 py-2 text-left font-medium">Member</th>
               <th className="px-3 py-2 text-left font-medium">Role</th>
@@ -284,7 +284,7 @@ function MemberTable({
               ) : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-hairline">
+          <tbody className="divide-y divide-border">
             {members.map((m) => (
               <MemberRow key={m.id} member={m} canManage={canManage} />
             ))}
@@ -292,7 +292,7 @@ function MemberTable({
               <tr>
                 <td
                   colSpan={canManage ? 5 : 4}
-                  className="px-3 py-6 text-center text-sm text-ash"
+                  className="px-3 py-6 text-center text-sm text-muted"
                 >
                   No members.
                 </td>
@@ -313,18 +313,18 @@ function MemberRow({
   canManage: boolean
 }) {
   return (
-    <tr className={member.isActive ? '' : 'bg-cloud/30 text-ash'}>
+    <tr className={member.isActive ? '' : 'bg-background/30 text-muted'}>
       <td className="px-3 py-2">
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {member.fullName ?? '—'}
             {member.isYou ? (
-              <span className="ml-2 rounded-full bg-cloud px-1.5 py-0.5 text-[10px] font-medium text-ash">
+              <span className="ml-2 rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted">
                 you
               </span>
             ) : null}
           </span>
-          <span className="font-mono text-[11px] text-ash">
+          <span className="font-mono text-[11px] text-muted">
             {member.email ?? '(no email)'}
           </span>
         </div>
@@ -333,17 +333,17 @@ function MemberRow({
         {canManage && member.isActive ? (
           <RoleSelector member={member} />
         ) : (
-          <span className="inline-flex items-center rounded-full bg-cloud px-2 py-0.5 text-xs font-medium text-ink">
+          <span className="inline-flex items-center rounded-full bg-background px-2 py-0.5 text-xs font-medium text-foreground">
             {ROLE_LABELS[member.role]}
           </span>
         )}
       </td>
-      <td className="px-3 py-2 text-xs text-ash">
+      <td className="px-3 py-2 text-xs text-muted">
         {member.lastSignInAt
           ? new Date(member.lastSignInAt).toLocaleDateString()
           : 'never'}
       </td>
-      <td className="px-3 py-2 text-xs text-ash">
+      <td className="px-3 py-2 text-xs text-muted">
         {new Date(member.memberSince).toLocaleDateString()}
       </td>
       {canManage ? (
@@ -368,7 +368,7 @@ function RoleSelector({ member }: { member: TeamMemberRow }) {
         name="role"
         defaultValue={member.role}
         disabled={pending}
-        className="rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 disabled:opacity-50"
+        className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 disabled:opacity-50"
         onChange={(e) => {
           // Auto-submit on change for snappy UX.
           ;(e.currentTarget.form as HTMLFormElement | null)?.requestSubmit()
@@ -381,7 +381,7 @@ function RoleSelector({ member }: { member: TeamMemberRow }) {
         ))}
       </select>
       {state.error ? (
-        <span className="text-[10px] text-error">
+        <span className="text-[10px] text-danger">
           {state.error === 'last_owner'
             ? 'last owner'
             : state.error}
@@ -410,7 +410,7 @@ function ToggleActiveButton({ member }: { member: TeamMemberRow }) {
         disabled={pending || member.isYou}
         className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${
           member.isActive
-            ? 'border-error/30 bg-error/5 text-error hover:bg-error/10'
+            ? 'border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
             : 'border-success/30 bg-success/5 text-success hover:bg-success/10'
         }`}
         title={member.isYou ? 'You cannot deactivate yourself.' : undefined}
@@ -422,7 +422,7 @@ function ToggleActiveButton({ member }: { member: TeamMemberRow }) {
             : 'Reactivate'}
       </button>
       {state.error ? (
-        <span className="text-[10px] text-error">
+        <span className="text-[10px] text-danger">
           {state.error === 'last_owner' ? 'last owner' : state.error}
         </span>
       ) : null}

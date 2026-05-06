@@ -192,72 +192,109 @@ Rules:
 
 ## DESIGN SYSTEM — LOCKED
 
-Visual identity is documented in [DESIGN-airbnb.md](DESIGN-airbnb.md) at
-project root. That doc is the source of truth — never override hex values,
-never substitute fonts, never introduce off-system accent colors. CLAUDE.md
-just records the integration points; everything else lives there.
+Visual identity is documented in [DESIGN-lunaazul.md](DESIGN-lunaazul.md)
+at project root. That doc is the source of truth — never override hex
+values, never substitute fonts, never introduce off-system accent colors.
+CLAUDE.md just records the integration points; everything else lives there.
+
+The system is adapted from the Luna Azul Web SaaS — navy chrome + light
+canvas + gold (action) / blue (link). It replaces the previous Airbnb-
+derived system. If you find references to `bg-rausch`, `text-ink`,
+`bg-cloud`, `border-hairline`, `text-ash`, `text-charcoal`, `rounded-pill`,
+or `shadow-elevation`, those are stale — see DESIGN-lunaazul.md §11 for
+the find/replace map.
 
 ### Integration with our stack
 
-- `src/lib/tokens.ts` exports the palette + brand gradient as TS constants.
-- `globals.css` `@theme` block exposes the same palette as Tailwind tokens
-  (`--color-rausch`, `--color-ink`, `--color-canvas`, `--color-cloud`,
-  `--color-hairline`, `--color-ash`, `--color-error`, `--color-success`,
-  `--color-warning`, etc.).
-- **Fonts** — Airbnb Cereal VF is proprietary, so we ship **Inter** (Google
-  Fonts) as the documented open-source substitute. Apply -0.01em tracking
-  at display sizes (≥20px) to mimic Cereal's compressed display proportions.
-  Body weight is **500** (NOT 400 — that role does not exist in this system).
-  **JetBrains Mono** is retained for tabular numerals (loan amounts, ticket
-  numbers, weights, register totals).
-- **Border radius scale**: 4 / 8 / 14 / 20 / 32 / 50%. Pick from the scale,
-  never invent a value.
-- **Shadow scale**: 3 levels.
-  - 0 — no shadow (default for cards on canvas)
-  - 1 — `rgba(0,0,0,0.08) 0 4px 12px` (active/pressed icon buttons)
-  - 2 — three-layer signature elevation:
-    `rgba(0,0,0,0.02) 0 0 0 1px,
-     rgba(0,0,0,0.04) 0 2px 6px 0,
-     rgba(0,0,0,0.1)  0 4px 8px 0`
-    (sticky panels, modals, dropdowns)
-  Don't collapse Level 2 to a single drop shadow.
+- `src/lib/tokens.ts` exports the palette + radius + shadow scales as TS
+  constants. `reportColors` (charcoal-on-paper for PDFs) is intentionally
+  separate and stays.
+- `globals.css` `@theme` block exposes the palette as Tailwind tokens
+  (`--color-navy`, `--color-gold`, `--color-blue`, `--color-background`,
+  `--color-card`, `--color-border`, `--color-foreground`,
+  `--color-text-secondary`, `--color-muted`, `--color-success`,
+  `--color-warning`, `--color-danger`, `--color-info`, etc.).
+- **Fonts** — `next/font/google` loads three families:
+  - **DM Sans** (`--font-dm-sans` / `font-sans`) — body / UI default,
+    weight 400. Labels: 600. Buttons: 700.
+  - **Playfair Display** (`--font-playfair` / `font-display`) — page
+    titles + display headings only, weight 700/900. Never on body,
+    never on buttons, never below 20px.
+  - **JetBrains Mono** (`--font-jetbrains-mono` / `font-mono`) —
+    tabular numerals (loan principal, ticket numbers, register
+    totals, item SKUs).
+- **Base font size:** `<html>` is `font-size: 17px` (one notch above
+  browser default). Tailwind `text-base` = 17px, `text-sm` ≈ 14.875px.
+- **Border radius scale:** 6 / 8 / 12 / 16 / 9999px. The workhorse is
+  `rounded-xl` (12px) — used for cards, primary buttons, inputs, modals.
+  Pick from the scale, never invent a value.
+- **Shadow scale:** at-rest = none. Hover-lift = `shadow-lg`. Modals and
+  dropdowns also use `shadow-lg`. There is no three-layer signature
+  elevation — Luna Azul uses Tailwind's `shadow-lg` directly.
 
-### Semantic-color extension — LOCKED
+### Semantic colors — Tailwind-aligned
 
-Airbnb's source palette has Error Red `#c13515` and Info Blue `#428bff`
-but no Success Green / Warning Amber. We extend with two semantic tokens
-saturation-matched to Error Red's dusty palette. Documented in
-DESIGN-airbnb.md §2 alongside the Airbnb tokens, marked as project
-extensions.
+Status colors map to Tailwind's defaults:
 
-- **Success Green** `#2D7A4E` (deep variant `#1F5535`) — active loans,
-  paid invoices, redeemed pawn tickets, ready-for-pickup repair tickets,
+- **Success** (`#22c55e` / Tailwind emerald-500) — active loans, paid
+  invoices, redeemed pawn tickets, ready-for-pickup repair tickets,
   in-stock inventory.
-- **Warning Amber** `#B7791F` (deep variant `#8C5A14`) — pending review,
+- **Warning** (`#f59e0b` / Tailwind amber-500) — pending review,
   due-soon loan, repair waiting on parts, layaway falling behind,
   hold-period nearing expiration.
+- **Danger** (`#ef4444` / Tailwind red-500) — form validation errors,
+  destructive actions, banned customer flag, overdue loan past grace,
+  abandoned repair.
+- **Info** (`#3b82f6` / Tailwind blue-500) — informational badges,
+  scheduled / queued status.
 
-Use these strictly semantically. Never decorative. Never for emphasis.
-Never outside status communication.
+Use strictly semantically. Never decorative. Never for emphasis. Never
+outside status communication. Action color is Gold (CTA) or Blue (link
+/ focus) — not Success / Warning / Danger / Info.
 
-### Photography — adapt to our domain
+### Motion budget
 
-Airbnb's photography vocabulary is travel-listing scale (4:3 hero photos,
-14–20px radius, no overlaid text, no gradient scrims). We inherit the
-treatment but ALL imagery is shot for the pawn / jewelry domain:
+Four signature behaviors. CSS-only — no Framer Motion, no Motion
+library:
 
-- **Inventory items** — top-light, neutral seamless background, 4:3,
-  shot at item scale (rings, chains, watches need shallow depth of field;
-  larger items can use full-bleed). Multi-angle carousel with 50% radius
-  arrow buttons per the Airbnb pattern.
-- **Customer ID scans** — locked behind admin-only signed URLs, never
-  rendered at hero scale, never shown in any browse surface. Photo
-  treatment applies only inside the customer-detail panel itself.
-- **Repair "before / in-progress / after" trail** — 1:1 thumbnails in a
-  carousel within the ticket detail; uses listing-card radius and Hairline
-  Gray dividers between angles.
-- **No stock photography** anywhere. The system is a workhorse, not a
-  brochure.
+1. **Card hover lift:** `hover:-translate-y-1` + `hover:shadow-lg` over
+   `transition-all` (~150ms).
+2. **Primary button hover lift:** `hover:-translate-y-0.5` +
+   `hover:shadow-lg` + `hover:bg-gold-2`.
+3. **Sidebar collapse:** `transition-[width] duration-150` between
+   `w-52` and `w-16`. Persisted in localStorage.
+4. **Sidebar group accordion:** chevron rotation via
+   `transition-transform`.
+
+No spring counters, no fade-ins on route transitions, no skeleton
+pulses, no scale-up beyond `hover:scale-[1.01]` (and avoid even that).
+
+### Iconography
+
+**Phosphor Icons** (deviation from Luna Azul, which uses Lucide). Already
+imported in 30+ files; visual difference at 16–20px is small enough that
+Phosphor stays. Phosphor's weight variants (Regular / Bold / Fill /
+Duotone) are useful for state expression.
+
+- Sidebar parent items: 18px. Sidebar child items: 16px.
+- Card icon (in tinted icon box): 18–20px. Inline button icon: 14–16px.
+- Default `text-foreground` on light, `text-white/65` on dark sidebar,
+  `text-gold` on active sidebar item.
+- Phosphor is client-only: `'use client'` components or pass as
+  `ReactNode` from a server component.
+
+### Photography — workhorse, not brochure
+
+- **Inventory items** — top-light, neutral seamless background, 4:3 or
+  1:1. Multi-angle carousel inside the detail panel. Card thumbnails at
+  `rounded-xl` (the same Card shell used everywhere).
+- **Customer ID scans** — never rendered at hero scale, never shown in
+  any browse surface. Locked behind admin-only signed URLs.
+- **Repair before / in-progress / after** — 1:1 thumbnails in a
+  carousel inside the ticket detail. `border-border` dividers between
+  angles.
+- **No stock photography. No marketing imagery.** The system is an ops
+  console.
 
 ---
 

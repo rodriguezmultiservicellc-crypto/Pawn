@@ -50,10 +50,10 @@ export function CloseRegisterDialog({
 
   const varianceTone =
     r4(variance) === 0
-      ? 'text-ink'
+      ? 'text-foreground'
       : variance > 0
         ? 'text-success'
-        : 'text-error'
+        : 'text-danger'
   const varianceLabel =
     variance > 0
       ? t.pos.register.over
@@ -64,7 +64,7 @@ export function CloseRegisterDialog({
   return (
     <Modal title={t.pos.register.close} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
@@ -72,7 +72,7 @@ export function CloseRegisterDialog({
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.register.closingCash}
             </span>
             <input
@@ -81,14 +81,14 @@ export function CloseRegisterDialog({
               min={0}
               value={counted}
               onChange={(e) => setCounted(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
-            <span className="block text-xs text-ash">
+            <span className="block text-xs text-muted">
               {t.pos.register.closingCashHelp}
             </span>
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.register.cardBatchTotal}
             </span>
             <input
@@ -97,27 +97,27 @@ export function CloseRegisterDialog({
               min={0}
               value={cardBatch}
               onChange={(e) => setCardBatch(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
         </div>
 
-        <div className="rounded-md border border-hairline bg-cloud/40 p-3">
+        <div className="rounded-md border border-border bg-background/40 p-3">
           <div className="grid grid-cols-3 gap-2 text-sm">
             <div>
-              <div className="text-xs text-ash">{t.pos.register.expected}</div>
-              <div className="font-mono text-ink">
+              <div className="text-xs text-muted">{t.pos.register.expected}</div>
+              <div className="font-mono text-foreground">
                 {fmtMoney(expectedCash)}
               </div>
             </div>
             <div>
-              <div className="text-xs text-ash">{t.pos.register.counted}</div>
-              <div className="font-mono text-ink">
+              <div className="text-xs text-muted">{t.pos.register.counted}</div>
+              <div className="font-mono text-foreground">
                 {fmtMoney(parseFloat(counted || '0'))}
               </div>
             </div>
             <div>
-              <div className="text-xs text-ash">
+              <div className="text-xs text-muted">
                 {t.pos.register.variance}
               </div>
               <div className={`font-mono ${varianceTone}`}>
@@ -131,14 +131,14 @@ export function CloseRegisterDialog({
         </div>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pos.register.notes}
           </span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -147,7 +147,7 @@ export function CloseRegisterDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -155,7 +155,7 @@ export function CloseRegisterDialog({
           type="button"
           disabled={pending}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
         >
           <CashRegister size={14} weight="bold" />
           {pending ? t.pos.register.closing : t.pos.register.close}

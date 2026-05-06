@@ -13,139 +13,268 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 28 (2026-05-06, ~12:00)
-                  — Dashboard reverted to its pre-
-                  dark-variant state. Operator
-                  didn't like the vibrant dark/
-                  tabbed dashboard with charts +
-                  kanban + activity feed +
-                  search bar. Restored
-                  src/app/(staff)/dashboard/page.tsx
-                  + content.tsx from commit
-                  4f5b13a (Phase 4, last commit
-                  before c0dcca4 introduced the
-                  dark variant) — light Airbnb-
-                  token stat-card layout with
-                  module-gated cards (customers /
-                  inventory / banned / held /
-                  pawn / repair / retail) + recent
-                  customers + recent inventory
-                  lists, Phosphor icons, ~600 LOC
-                  total. Deleted
-                  dashboard/dashboard.css (dark
-                  scoped tokens) and
-                  dashboard/actions.ts (orphaned
-                  searchAcrossModule, only used by
-                  the dark dashboard's search bar).
-                  Restored the dashboard.* i18n
-                  keys in en.ts + es.ts (title,
-                  welcome, placeholder,
-                  customersCard, customersCardSub,
-                  inventoryCard, inventoryCardSub,
-                  bannedCard, heldCard,
-                  recentCustomers, recentInventory,
-                  seeAll, none). tsc clean. NOT
-                  committed yet — pending operator
-                  /dashboard browser verification.
-                  Charts / activity feed / kanban
-                  / DL scanner code still lives in
-                  the repo (data plumbing in
-                  page.tsx aggregations was the
-                  only thing nuked); pieces can be
-                  re-grafted one at a time later
-                  if requested.
-  Context budget: small (one revert, ~6 files).
-  Last worked on: One surface — /dashboard.
-                  Operator pushback on the dark/
-                  tabbed Session 13 redesign:
-                  "I don't like the dashboard now.
-                  Restore it to the original."
-                  Picked the version right BEFORE
-                  the dark variant landed (commit
-                  4f5b13a, Phase 4 / Retail POS
-                  shipped) over the bare Phase 0
-                  skeleton (09db205) — that one
-                  has the module-gated stat cards
-                  the operator already used to
-                  navigate. Pure revert via
-                  `git checkout 4f5b13a -- <files>`,
-                  no behavior changes elsewhere in
-                  the app. Not committed; operator
-                  needs to load /dashboard in a
-                  browser first to confirm before
-                  Vercel ships it.
+  Last session:   Session 29 (2026-05-06, ~14:00)
+                  — DESIGN SYSTEM REPLACED. Airbnb
+                  (Rausch coral + Inter + 14/20px
+                  radii, "marketplace" feel) is
+                  out. Luna Azul (navy chrome +
+                  gold action + DM Sans body +
+                  Playfair Display titles + 12px
+                  radii, "ops console" feel) is
+                  in. The operator's call: "Airbnb
+                  is not what I want, it doesn't
+                  flow." DESIGN-airbnb.md deleted,
+                  DESIGN-lunaazul.md ships in its
+                  place as the locked source of
+                  truth. CLAUDE.md "DESIGN SYSTEM
+                  — LOCKED" section rewritten to
+                  match. Tokens (lib/tokens.ts)
+                  and globals.css both rewritten
+                  with the new palette + new
+                  radius scale (6/8/12/16) +
+                  Tailwind-default semantic
+                  colors (success #22c55e /
+                  warning #f59e0b / danger
+                  #ef4444 / info #3b82f6). Fonts
+                  in app/layout.tsx swapped from
+                  Inter → DM Sans + Playfair
+                  Display, JetBrains Mono kept.
+                  Body weight 500 → 400.
+                  Then a four-pass mechanical
+                  sweep across src/ touched 154
+                  files: rausch → gold, cloud →
+                  background, hairline → border,
+                  ink → foreground/navy, ash/mute/
+                  stone → muted, charcoal →
+                  text-secondary, error → danger,
+                  canvas → card or white,
+                  rounded-pill → rounded-xl,
+                  shadow-elevation → shadow-lg.
+                  Gold buttons specifically had
+                  their text-white flipped to
+                  text-navy (Luna Azul reads gold
+                  with navy text, not white).
+                  Mid-pass artifact (mutedd from
+                  rule-overlap) caught and
+                  cleaned up across 132 files /
+                  811 occurrences. Manual
+                  composition restyles followed:
+                  (staff)/layout.tsx topbar
+                  (gradient wordmark gone, h-16,
+                  Playfair "Pawn" navy on white),
+                  Sidebar.tsx (full dark navy
+                  column, w-52 / w-16 collapse,
+                  white/65 idle text, gold-active
+                  rows with white/10 bg overlay),
+                  dashboard content.tsx (Playfair
+                  page title, stat cards now lift
+                  on hover via -translate-y-1 +
+                  shadow-lg, 12px radius, p-5),
+                  (auth)/layout.tsx (full navy
+                  bg, white centered card with
+                  Playfair "Pawn" wordmark
+                  above). One-shot migration
+                  script (scripts/migrate-tokens-
+                  to-lunaazul.mjs) deleted after
+                  the typecheck passed. tsc
+                  --noEmit exit 0. NOT COMMITTED
+                  yet — operator needs to load
+                  /dashboard, /login, and the
+                  staff routes in a browser to
+                  eyeball the result before the
+                  Vercel push. The Session 28
+                  dashboard revert was effectively
+                  absorbed into this migration —
+                  the dashboard's STRUCTURE is
+                  what was reverted (4f5b13a),
+                  but its STYLING is now Luna
+                  Azul, not Airbnb. End state =
+                  reverted-then-restyled.
+  Context budget: large (whole-codebase sweep,
+                  154 files modified, 6 manual
+                  composition restyles, ~5300
+                  total token replacements + 4
+                  passes).
+  Last worked on: Whole UI surface. Started as
+                  a "study Luna Azul, give me a
+                  delta report" question; the
+                  operator picked option (a)
+                  "lock the delta in, write the
+                  new doc first, then start the
+                  migration." Foundation +
+                  mechanical sweep + manual
+                  composition + typecheck all
+                  done in one session. The plan
+                  proposed a route-group sweep
+                  after the shell + dashboard,
+                  but the mechanical sweep
+                  already covered every route
+                  group's stale token classes —
+                  no separate per-route-group
+                  pass remains.
 
-  ACTIVE FILE(S) at end of session — Session 28
+  ACTIVE FILE(S) at end of session — Session 29
   (pending commit + push, pending operator
   browser verification):
 
-    --- DASHBOARD (REVERTED) ---
-    - src/app/(staff)/dashboard/page.tsx —
-      restored from 4f5b13a. ~110 LOC. Resolves
-      tenant + module flags, runs Promise.all of
-      head:true counts (customers / banned /
-      inventory / held + module-gated counts for
-      pawn / repair / retail) + last-5 customers
-      + last-5 inventory. Module flags + counts
-      threaded into DashboardContent.
+    --- DESIGN SYSTEM (replaced) ---
+    - DESIGN-lunaazul.md (new) — full doc
+      replacing DESIGN-airbnb.md. 12 sections
+      including palette, typography, layout,
+      components, motion budget, photography,
+      print reports, Tailwind token map,
+      migration find/replace map, and
+      deviations (Phosphor over Lucide,
+      JetBrains Mono retained).
+    - DESIGN-airbnb.md DELETED.
+    - CLAUDE.md — "DESIGN SYSTEM — LOCKED"
+      section rewritten to point at
+      DESIGN-lunaazul.md. New token names
+      listed. Motion budget added (4 signature
+      behaviors, CSS-only, no Framer/Motion).
+      Phosphor deviation documented.
+
+    --- TOKENS / CSS / FONTS ---
+    - src/lib/tokens.ts — full rewrite. New
+      `colors` shape: navy / navy2 / navy3 /
+      gold / gold2 / blue / blue2 / background
+      / card / border / foreground /
+      textSecondary / muted / sidebarText /
+      sidebarHoverBg / sidebarActiveBg / success
+      / warning / danger / info. New `radius`:
+      sm 6 / md 8 / lg 8 / xl 12 / 2xl 16 /
+      full 9999. New `shadows`: none / sm / lg
+      / modal. Breakpoints reset to Tailwind
+      defaults (640/768/1024/1280/1536). The
+      `reportColors` block (charcoal-on-paper
+      for PDFs) preserved unchanged.
+    - src/app/globals.css — rewritten @theme
+      block exposing the new palette as
+      Tailwind tokens. font-size: 17px on
+      <html> (was implicit 16). body weight is
+      400 (DM Sans default), was 500 (Inter at
+      Airbnb's body weight). h1/h2/h3 -0.01em
+      tracking compensation removed (Playfair
+      handles its own display proportions).
+    - src/app/layout.tsx — fonts swapped.
+      next/font/google now loads DM_Sans (400/
+      500/600/700) + Playfair_Display (700/900)
+      + JetBrains_Mono (400/500/600). CSS vars:
+      --font-dm-sans, --font-playfair,
+      --font-jetbrains-mono. Body className
+      moved from `bg-canvas text-ink` to
+      `bg-background text-foreground`.
+
+    --- LAYOUT SHELL (composition restyle) ---
+    - src/app/(staff)/layout.tsx — header now
+      h-16 (was py-3 ~ 48px). Brand wordmark
+      simplified from gradient bg-clip-text
+      span to a solid font-display text-navy
+      Link. Tenant-switcher separator color
+      shifted (text-muted). Admin Console pill
+      restyled to the secondary-button shape
+      (rounded-lg, text-xs, font-semibold,
+      hover:bg-background hover:text-foreground).
+      Staff name moved to text-text-secondary.
+    - src/components/layout/Sidebar.tsx — full
+      dark surface restyle. bg-canvas + border-r
+      → bg-navy + no right border. Width
+      reduced from w-56/w-14 → w-52/w-16 to
+      match Luna Azul. Toggle button: text-muted
+      → text-white/65. Each nav row: text-ink/80
+      → text-white/65 idle, hover:bg-cloud →
+      hover:bg-white/5 hover:text-white. Active
+      state: bg-cloud font-medium text-ink →
+      bg-white/10 text-gold (with gold icon).
+      Disabled rows: text-ash/60 → text-white/40.
+      Radius bumped from rounded-md → rounded-lg
+      per the design's button-radius scale on
+      dark surface.
     - src/app/(staff)/dashboard/content.tsx —
-      restored from 4f5b13a. ~290 LOC.
-      'use client'; Phosphor icons; useI18n hook;
-      light Airbnb-token stat cards in a 4-up
-      grid + module-gated row + Recent Customers
-      / Recent Inventory two-column block.
+      Page title: text-2xl font-bold → font-
+      display text-3xl font-bold text-navy
+      (Playfair). StatCard: rounded-lg p-4
+      transition-colors hover:border-foreground
+      → rounded-xl p-5 transition-all hover:
+      -translate-y-1 hover:shadow-lg + tighter
+      uppercase font-semibold label. RevenueCard
+      same treatment. Panel: header p-2 → p-3,
+      title text-sm → text-base font-semibold,
+      seeAll text-muted hover:text-foreground →
+      text-muted hover:text-blue + outer
+      hover:shadow-lg. Card structure
+      unchanged — 4-up stat grid + module-gated
+      cards + 2-column recent panels — that's
+      the Session 28 revert, just re-skinned.
+    - src/app/(auth)/layout.tsx — full navy
+      page background (was bg-background light).
+      White Playfair "Pawn" wordmark above the
+      card (was inside the card as gradient
+      text). Card upgraded to rounded-2xl
+      shadow-lg p-10 max-w-md.
 
-    --- DELETED ---
-    - src/app/(staff)/dashboard/dashboard.css
-      (the dark variant's scoped tokens — no
-      longer referenced after the revert).
-    - src/app/(staff)/dashboard/actions.ts
-      (orphaned searchAcrossModule — only used
-      by the dark dashboard's search bar; not
-      referenced anywhere else in the codebase).
-
-    --- I18N RESTORATION ---
-    - src/lib/i18n/en.ts — `dashboard:` block
-      expanded back from `none`-only to the full
-      pre-redesign set: title, welcome,
-      placeholder, customersCard,
-      customersCardSub, inventoryCard,
-      inventoryCardSub, bannedCard, heldCard,
-      recentCustomers, recentInventory, seeAll,
-      none. Removed the "legacy keys removed
-      after Phase 8" comment.
-    - src/lib/i18n/es.ts — same keys, same shape,
-      Spanish strings (Panel / Bienvenido /
-      Clientes / etc.). Required for Dictionary
-      type = typeof en parity.
+    --- CASCADE EDITS (mechanical sweep) ---
+    - 154 files modified across the bulk
+      migration (full list in `git diff
+      --name-only HEAD`). Every staff route,
+      portal route, public landing, admin
+      console, and component file had at least
+      a few className attribute renames. No
+      logic changes in any of them.
 
   RESUME POINT:
-    Dashboard revert is on disk + tsc clean. NOT
-    committed. Operator needs to refresh
-    /dashboard in a browser (dev server may need
-    restart) and confirm the light stat-card
-    layout is what they want before commit + push.
-    If they want surgical changes instead (keep
-    some piece — e.g., bring back just the
-    activity feed or a single chart, drop the
-    rest), abort the commit and graft from the
-    Session 13 commits (3f7b779, c79ba7d) into
-    the restored content.tsx.
+    Migration is on disk + tsc clean. NOT
+    committed. Operator needs to load these
+    surfaces in a browser and confirm the
+    navy/gold/Playfair look is right before
+    commit + push. Dev server probably needs a
+    restart to pick up the font swap.
 
-    DASHBOARD VERIFY (this session):
-    - Visit /dashboard. Expect light Airbnb-
-      token cards: Customers / Banned customers
-      (count) / Inventory / Items on hold.
-    - Module-gated cards below: pawn (active /
-      due-this-week), repair (active / ready
-      for pickup), retail (today's revenue) —
-      only render if the tenant has the module.
-    - Recent Customers + Recent Inventory two
-      side-by-side lists at the bottom.
-    - No tabs, no charts, no kanban, no DL
-      scanner, no search bar.
-    - i18n flips correctly when language is
-      switched (Panel / Bienvenido / etc.).
+    BROWSER VERIFY (this session, before commit):
+    - /dashboard — page title in serif
+      (Playfair) navy. Stat cards lift 4px on
+      hover with a soft shadow. Cards have
+      12px radius (rounded-xl), 1px #dde6f0
+      border. Module-gated row only renders
+      pawn/repair/retail cards if the tenant
+      has that module. No tabs, no charts, no
+      kanban, no DL scanner.
+    - Sidebar — full dark navy column.
+      Inactive rows white/65 muted. Hovered row
+      slight white/5 overlay + full white text.
+      Active row gold text + white/10 bg
+      overlay + gold icon. Collapse caret in
+      muted white at the top. w-52 expanded,
+      w-16 collapsed.
+    - Topbar — clean white strip, h-16.
+      Solid Playfair "Pawn" navy on the left,
+      next to tenant switcher. Admin Console
+      pill (superadmin only) and user name on
+      the right.
+    - /login — full navy page background.
+      White card centered, max-w-md, rounded-2xl,
+      p-10. White Playfair "Pawn" wordmark
+      above the card. Form uses gold submit
+      button with NAVY text, not white.
+    - Spot-check a few ops routes — /customers,
+      /inventory, /pawn, /repair, /pos,
+      /settings. The mechanical sweep handled
+      every classlist; no logic touched. If
+      something's clearly off (a button still
+      pink, a card still rounded too far, a
+      label using an old grey) name the route
+      and Claude will surgical-fix.
+
+    SHIP IT IF GOOD, FIX IF NOT:
+    - If the look is right, say "ship it" and
+      Claude will commit + push as the Session 29
+      checkpoint. Vercel rebuilds in ~1 min.
+    - If something's off, identify what (route +
+      element). Claude will fix it before the
+      commit. The migration script is gone but
+      everything is still local — re-running
+      the mass sweep is not on the table; case-
+      by-case fixes only.
 
     BACKPAGE SMOKE (carried from Session 27 —
     still open):
@@ -164,10 +293,14 @@ SEE ALSO (do not duplicate here):
       clears, save, status line flips to "Using
       the Florida Ch. 539 default text", next
       print renders default again.
+    Note: PDF templates use `reportColors`
+    (charcoal/muted/divider/ink) which is
+    intentionally separate from the screen
+    palette — the print look is unchanged by
+    this migration.
 
     SMOKE TESTS still open from Session 25/26
     (carrying):
-
     (A) Google Reviews end-to-end: GOOGLE_PLACES_
         API_KEY in Vercel env + Places API
         enabled. Widget renders on /s/<slug>;
@@ -198,12 +331,12 @@ SEE ALSO (do not duplicate here):
         /settings/communications,
         /settings/integrations/google-reviews,
         /settings/integrations/ebay all render
-        with vault-driven badges.
+        with vault-driven badges (and the new
+        Luna Azul styling).
     (I) eBay sync cron + inventory page work
         without errors.
 
     NEXT MOVES (after smoke):
-
     (a) Phase 0 punch list — CRON_SECRET +
         NEXT_PUBLIC_APP_URL + RESEND_WEBHOOK_
         SECRET + GOOGLE_PLACES_API_KEY +
@@ -217,7 +350,10 @@ SEE ALSO (do not duplicate here):
         create/edit/schedule/cancel form +
         segmentation preview. Engine ships from
         Session 25; UI is what makes it operator-
-        usable.
+        usable. Build it on the new design
+        system from day 1 (gold submit, navy
+        sidebar contextual cues, Playfair page
+        title).
     (c) Stripe-side vault cutover — when Connect
         onboarding is built. 3 stripe_* kinds in
         lib/secrets/vault.ts are typed; no
@@ -227,24 +363,24 @@ SEE ALSO (do not duplicate here):
         calls. ~840 LOC. Needs eBay developer
         account + sandbox vs prod decision +
         marketplace ID confirmation.
-    (e) Phase 8 mobile audit — operator's eyes in
-        browser device-mode (carrying).
+    (e) Phase 8 mobile audit — operator's eyes
+        in browser device-mode, now against the
+        new design system.
 
   OPEN ISSUES / BLOCKERS:
-    - Dashboard revert is tsc-verified only —
-      not yet loaded in a browser. Operator
-      review pending before commit.
+    - Migration is tsc-verified only — not yet
+      loaded in a browser. Operator review
+      pending before commit + push.
     - Sessions 25/26/27 production smoke not yet
       walked end-to-end. Local lint+tsc+409 tests
       are green; real Resend / Google / Vercel-
       cron behavior under vault-only is
-      unverified. The new backpage rendering is
+      unverified. Backpage rendering is
       tsc-verified only — needs an actual print
-      to confirm page 2 layout (line wrapping,
-      mono-font handwriting rules, page breaks).
+      to confirm page 2 layout.
     - Email-campaign engine has NO operator UI
-      yet — SQL-insert campaigns to test until the
-      editor lands.
+      yet — SQL-insert campaigns to test until
+      the editor lands.
     - Phase 0 punch list — CRON_SECRET +
       NEXT_PUBLIC_APP_URL + RESEND_WEBHOOK_SECRET +
       GOOGLE_PLACES_API_KEY + NEXT_PUBLIC_BASE_
@@ -258,10 +394,6 @@ SEE ALSO (do not duplicate here):
       Stripe Connect + per-tenant Resend not yet
       onboarded for first tenant.
     - eBay paths still STUBBED (Phase 10 B).
-      12-step real wire-up checklist documented
-      in commit 9b93e235; deferred — needs
-      operator decisions on sandbox vs prod + dev
-      account status.
     - Diamond cert lookup is in stub mode — needs
       IDEX_API_KEY or RAPAPORT_API_KEY in env.
     - WhatsApp Content SIDs NULL until Twilio +
@@ -274,65 +406,90 @@ SEE ALSO (do not duplicate here):
       would enable avatars per review. Defer until
       Eddy explicitly wants them.
     - Email-campaign editor UI at /settings/
-      communications/campaigns — list + create/edit
-      form + segmentation preview. Engine ships
-      without it.
+      communications/campaigns.
     - Stripe-side vault cutover — ready when
-      Connect onboarding is built; the 3 stripe_*
-      kinds in lib/secrets/vault.ts are typed,
-      just no readers/writers yet.
+      Connect onboarding is built.
     - Multi-jurisdiction backpage defaults — when
       a tenant outside Florida onboards, expand
       pawn-ticket-backpage-default.ts to a
       jurisdiction map keyed by
-      tenants.police_report_format (or a new
-      tenants.jurisdiction_code). Per-tenant
-      override on settings still wins regardless.
+      tenants.police_report_format.
+    - Visual polish opportunities revealed by the
+      sweep: any spot that uses bg-success / bg-
+      warning / bg-danger as decoration (rather
+      than status communication) violates the new
+      "strict semantic use" rule and should be
+      remapped to gold/blue/navy. None spotted in
+      tsc, but a visual pass may surface a few.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 28):
-    - REVERT TARGET = 4f5b13a, NOT 09db205.
-      Three candidate "originals" existed: the
-      bare Phase 0 skeleton (09db205 — only had
-      a placeholder card), the last commit
-      before the dark variant (4f5b13a — Phase 4
-      Retail POS shipped, dashboard had the
-      module-gated stat cards already), and the
-      dark variant itself before its data wire-
-      up (c0dcca4 — still on demoBars/PRNG).
-      Picked 4f5b13a because the operator needs
-      the module-gated stat cards as navigation
-      shortcuts; the bare skeleton is too empty
-      for daily use.
-    - SURGICAL REVERT, NOT FULL ROLLBACK. Used
-      `git checkout 4f5b13a -- <2 files>` plus
-      manual delete of dashboard.css and
-      actions.ts. The Session 13–27 work
-      (charts/kanban/activity feed/receipt
-      PDFs/loyalty/Google Reviews/email
-      campaigns/vault/backpage) all stays —
-      none of it depended on the dashboard's
-      structure beyond data plumbing in
-      page.tsx, which we replaced wholesale.
-    - i18n KEYS FULLY RESTORED, NOT MINIMAL-
-      RESTORE. Restored every dashboard.* key
-      from 4f5b13a (title / welcome /
-      placeholder / customersCard /
-      customersCardSub / inventoryCard /
-      inventoryCardSub / bannedCard / heldCard /
-      recentCustomers / recentInventory /
-      seeAll / none) to en.ts + es.ts. Rationale:
-      content.tsx@4f5b13a references all of
-      them; partial restore would tsc-fail.
-    - NOT COMMITTED YET. Per global instructions
-      ("ask before destructive actions"), the
-      revert is on disk + lint-clean but the
-      operator should load /dashboard in the
-      browser before we commit + push. Vercel
-      auto-deploys on push, so this is the
-      visual-confirmation gate before the
-      production rebuild.
+  KEY DECISIONS LOCKED THIS SESSION (Session 29):
+    - DESIGN SYSTEM SOURCE = LUNA AZUL WEB SAAS,
+      NOT NEW. The operator already has a
+      shipped sister app in this aesthetic
+      (LunaAzul Web SaaS at c:\...\LunaAzul Web
+      Sass\); copying that posture saves
+      designing from scratch and keeps the
+      Rodriguez Multi Service portfolio visually
+      coherent.
+    - PHOSPHOR OVER LUCIDE. Luna Azul uses
+      Lucide. Pawn keeps Phosphor. Already
+      imported in 30+ files; visual diff at our
+      sizes is small; weight variants useful for
+      state expression. Documented as a
+      deviation in DESIGN-lunaazul.md §12.
+    - JETBRAINS MONO RETAINED. Luna Azul has
+      no mono family. Pawn keeps it for tabular
+      numerals (loan principal, ticket numbers,
+      register totals, item SKUs).
+    - REPORT TOKENS UNTOUCHED. PDF print
+      tokens (`reportColors`) intentionally
+      stay separate. Paper printing has
+      different contrast budgets than monitor
+      rendering; charcoal-on-white reads
+      better at 600dpi than navy.
+    - SEMANTIC COLORS = TAILWIND DEFAULTS.
+      Replaced the dusty saturation-matched
+      success #2D7A4E / warning #B7791F with
+      Tailwind's emerald-500 / amber-500. The
+      "saturation match to error red" rationale
+      doesn't apply once Rausch leaves. Same
+      Tailwind class names (text-success /
+      bg-warning / etc.) — only the hex shifted,
+      no template edits needed for those.
+    - ACTION COLORS NEVER OVERLAP STATUS
+      COLORS. Gold = primary action. Blue =
+      link / focus. Success / warning / danger
+      / info = strictly status. A "click here"
+      moment never uses success green; a
+      "completed" moment never uses gold.
+    - GOLD BUTTONS GET NAVY TEXT, NOT WHITE.
+      The Luna Azul reference shows gold + navy
+      reads better than gold + white. Mechanical
+      sweep specifically handled this — Pass B
+      flipped text-white → text-navy on every
+      bg-gold button.
+    - MECHANICAL SWEEP, NOT HAND-EDITS. 154
+      files / ~5300 className renames. Doing it
+      by hand would have taken days; the
+      one-shot Node migration script
+      (scripts/migrate-tokens-to-lunaazul.mjs,
+      since deleted) ran four passes and
+      finished in seconds. The "do it right
+      the first time" rule pushed against a
+      compat-alias workaround (e.g., adding
+      bg-rausch as a backwards-compat alias
+      to bg-gold in @theme); rejected, did the
+      full sweep instead.
+    - SESSION 28 REVERT ABSORBED. The
+      uncommitted dashboard revert from
+      Session 28 (4f5b13a) carried into this
+      session; the dashboard's STRUCTURE is
+      what was reverted (4 stat cards +
+      module-gated row + recent lists), but
+      its STYLING is now Luna Azul. End state
+      = reverted-then-restyled, single commit.
 
-  (Sessions 13-27 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-28 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -1794,7 +1951,195 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
---- Session 28 (2026-05-06, ~12:00) — Dashboard reverted to pre-dark-variant state ---
+--- Session 29 (2026-05-06, ~14:00) — Design system replaced: Airbnb → Luna Azul ---
+
+ 266. DESIGN SYSTEM SOURCE OF TRUTH SWAPPED.
+     Operator's call: "Airbnb is not what I want,
+     it doesn't flow." Audited the LunaAzul Web
+     SaaS at c:\Users\rodri\OneDrive\Documents\
+     LunaAzul Web Sass\ — navy chrome (#0d1b2a)
+     + light canvas (#f7f9fc) + gold action
+     (#e8a020) + blue link (#1d6fa4) + DM Sans
+     body / Playfair Display titles + JetBrains
+     Mono mono-numerals. Reads as a professional
+     ops console (financial / agency dashboard),
+     not a marketplace. Decided to port the
+     posture wholesale into Pawn since the
+     pawn-shop daily reality (loans, register,
+     compliance) maps better to "ops console"
+     than to "Airbnb listing site." Wrote
+     DESIGN-lunaazul.md (12 sections — palette,
+     typography, layout, components, motion,
+     photography, print, Tailwind token map,
+     migration find/replace map, deviations).
+     Deleted DESIGN-airbnb.md. Updated CLAUDE.md
+     "DESIGN SYSTEM — LOCKED" section to point
+     at the new doc.
+
+ 267. TOKENS / GLOBALS / FONTS REWRITTEN.
+     - src/lib/tokens.ts — full rewrite. New
+       `colors` (navy/navy2/navy3, gold/gold2,
+       blue/blue2, background/card/border,
+       foreground/textSecondary/muted,
+       sidebarText/HoverBg/ActiveBg, success/
+       warning/danger/info). New `radius` scale
+       6/8/8/12/16/9999 (one workhorse: rounded-
+       xl = 12px). New `shadows`: none/sm/lg/
+       modal — collapsed the previous three-
+       layer "signature elevation" into a single
+       Tailwind shadow-lg. Breakpoints reset to
+       Tailwind defaults (640/768/1024/1280/
+       1536) from the previous custom 550/800/
+       1128/1440/1760. `reportColors` for PDFs
+       intentionally PRESERVED unchanged —
+       paper printing keeps its charcoal/muted/
+       divider/ink palette since 600dpi paper
+       reads better with charcoal than navy.
+     - src/app/globals.css — rewritten @theme
+       block exposes the new palette + radius
+       + shadow + breakpoints as Tailwind
+       tokens. font-size: 17px on <html> (was
+       implicit 16). body weight is 400 (DM
+       Sans default, was Inter 500). h1/h2/h3
+       -0.01em tracking compensation removed
+       (Playfair handles its own display
+       proportions, no Inter/Cereal mimicry
+       needed).
+     - src/app/layout.tsx — fonts swapped.
+       next/font/google now loads DM_Sans
+       (400/500/600/700) + Playfair_Display
+       (700/900) + JetBrains_Mono (kept). CSS
+       vars: --font-dm-sans, --font-playfair,
+       --font-jetbrains-mono. Body className
+       moved from `bg-canvas text-ink` to
+       `bg-background text-foreground`.
+
+ 268. MASS TOKEN-RENAME SWEEP — 154 FILES.
+     Scope was too large to hand-edit (2744 hits
+     / 143 files in the initial grep). Wrote a
+     one-shot Node migration script
+     (scripts/migrate-tokens-to-lunaazul.mjs,
+     since deleted) that walked src/ and rewrote
+     every Tailwind className referencing the
+     old token names. Ran four passes:
+     - Pass 1 (5092 replacements / 148 files):
+       rausch → gold, rausch-deep → gold-2,
+       plus-magenta → gold-2, luxe-purple →
+       navy-2, bg-cloud → bg-background,
+       border-hairline → border-border,
+       bg-canvas → bg-card, text-ink → text-
+       foreground, text-charcoal → text-text-
+       secondary, text-ash/text-mute/text-stone
+       → text-muted, text-error/bg-error →
+       text-danger/bg-danger, text-info-link →
+       text-blue, rounded-pill → rounded-xl,
+       shadow-elevation → shadow-lg, shadow-
+       pressed-icon → shadow-sm, focus:ring-ink
+       /focus:border-ink → focus:ring-blue/
+       focus:border-blue.
+     - Pass 2 (26 files): caught divide-hairline
+       / bg-hairline / text-hairline / ring-
+       hairline prefixes that pass 1's word-
+       boundary missed, mapped to *-border.
+     - Pass 3 (94 files): bg-ink → bg-navy,
+       border-ink → border-navy, text-canvas →
+       text-white, plus literal-string fixups
+       to flip gold-button text from text-white
+       to text-navy in the most common
+       combinations.
+     - Pass 3.5 / cleanup (132 files / 811
+       occurrences): caught a regex-overlap bug
+       where `text-mute` (replaced earlier) was
+       a substring of `text-muted` (the
+       replacement for text-ash), producing
+       `text-mutedd` artifacts. Cleaned up with
+       a targeted .split('mutedd').join('muted')
+       pass.
+     - Pass 4 (56 files / 63 lines): per-line
+       sweep — any line containing both `bg-gold`
+       (full token, not bg-gold-2 or bg-gold/...)
+       AND `text-white` had its text-white
+       flipped to text-navy. Luna Azul reads
+       gold buttons with navy text, never white.
+     Total ~5300 className changes touched 154
+     files. Zero logic edits — every change was
+     a className rename.
+
+ 269. LAYOUT SHELL RESTYLED (composition).
+     - src/app/(staff)/layout.tsx — header
+       went from py-3 (~48px) to h-16 (64px).
+       Killed the bg-clip-text gradient
+       wordmark (linear-gradient(90deg, #ff385c
+       0%, #e00b41 50%, #92174d 100%)), replaced
+       with a solid font-display text-xl font-
+       bold text-navy Link. Tenant-switcher
+       separator color shifted from text-ash to
+       text-muted. Admin Console pill restyled
+       to the secondary-button shape (rounded-
+       lg, text-xs, font-semibold, text-muted,
+       hover:bg-background hover:text-
+       foreground). Staff name moved from
+       text-ash to text-text-secondary.
+     - src/components/layout/Sidebar.tsx — full
+       dark-surface restyle. nav className
+       went from `border-r border-border bg-card`
+       → `bg-navy` (no right border). Width
+       reduced from w-56/w-14 → w-52/w-16 (Luna
+       Azul's collapsed width is 64px not 56px).
+       Toggle button text color: text-muted →
+       text-white/65, hover:bg-background hover:
+       text-foreground → hover:bg-white/5
+       hover:text-white. Each nav row: text-
+       ink/80 → text-white/65 idle, hover:
+       bg-cloud → hover:bg-white/5 hover:text-
+       white. Active state: bg-cloud font-medium
+       text-ink → bg-white/10 text-gold + gold
+       icon. Disabled rows: text-ash/60 →
+       text-white/40. Row radius bumped from
+       rounded-md → rounded-lg per the design's
+       dark-surface scale.
+     - src/app/(staff)/dashboard/content.tsx —
+       Page title h1: text-2xl font-bold →
+       font-display text-3xl font-bold text-
+       navy (Playfair). StatCard: rounded-lg
+       p-4 transition-colors hover:border-
+       foreground → rounded-xl p-5 transition-
+       all hover:-translate-y-1 hover:shadow-lg
+       (the Luna Azul signature card-lift). Label
+       gained font-semibold. RevenueCard same
+       treatment. Panel: header padding p-2 →
+       p-3, title text-sm → text-base font-
+       semibold, seeAll hover color text-
+       foreground → text-blue, outer container
+       gained hover:shadow-lg. Card structure
+       unchanged from the Session 28 revert (4
+       stat cards + module-gated row + Recent
+       Customers / Recent Inventory two-column
+       block) — what changed is the visual
+       skin, not the layout.
+     - src/app/(auth)/layout.tsx — full restyle.
+       Page bg: light bg-background → bg-navy
+       full-bleed. Removed the bg-clip-text
+       gradient "Pawn" inside the card; replaced
+       with a white font-display text-3xl font-
+       bold above the card. Card promoted from
+       rounded-xl border + bg-card p-8 →
+       rounded-2xl bg-card p-10 shadow-lg
+       max-w-md. Matches DESIGN-lunaazul.md §6
+       "Auth Card" spec.
+
+ 270. TYPECHECK + CLEANUP. `npx tsc --noEmit`
+     exit 0. Migration script
+     (scripts/migrate-tokens-to-lunaazul.mjs)
+     deleted — single-use tool, not part of
+     the long-term tooling. Git status: 154
+     files modified + 1 deletion (DESIGN-
+     airbnb.md) + 1 addition (DESIGN-
+     lunaazul.md) + 1 modification (CLAUDE.md).
+     NOT COMMITTED — operator browser-
+     verification gate before Vercel rebuild.
+
+
 
  264. DASHBOARD REVERTED TO COMMIT 4f5b13a (PRE-
      DARK-VARIANT). Operator pushback: "I don't
@@ -2539,29 +2884,46 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Refresh /dashboard in the browser (restart
-    the dev server if it's still running on the
-    pre-revert build) and confirm the light
-    Airbnb-token stat-card layout renders: 4-up
-    grid (Customers / Banned customers /
-    Inventory / Items on hold) → module-gated
-    row → Recent Customers + Recent Inventory
-    two-column block. No tabs, charts, kanban,
-    activity feed, or DL scanner. If it's right,
-    say "ship it" and Claude will commit + push
-    (Vercel auto-deploys in ~1 min). If it's
-    wrong, identify the specific piece (do you
-    miss the activity feed? a single chart? the
-    DL scanner?) and Claude will surgically
-    re-graft from Session 13 commits 3f7b779 +
-    c79ba7d into the restored content.tsx.
+    Restart the dev server (the font swap from
+    Inter → DM Sans + Playfair Display needs a
+    cold rebuild) and walk through the Luna Azul
+    migration in the browser:
+    (1) /dashboard — Playfair page title navy.
+        Stat cards lift on hover with shadow-lg.
+        12px radius. Module-gated row only when
+        tenant has the module.
+    (2) Sidebar — full dark navy column. Idle
+        rows white/65, hover white/5 + full
+        white text, active row gold-text +
+        white/10 bg + gold icon.
+    (3) Topbar — h-16 white strip. Solid
+        Playfair "Pawn" navy, no gradient.
+    (4) /login — full navy bg, white centered
+        card max-w-md rounded-2xl p-10. White
+        Playfair "Pawn" wordmark above. Gold
+        submit with NAVY text.
+    (5) Spot-check ops routes — /customers,
+        /inventory, /pawn, /repair, /pos,
+        /settings — for any straggler that
+        still feels "Airbnb." Mechanical sweep
+        handled every classlist; logic
+        untouched.
+    If it looks right, say "ship it" and Claude
+    will commit + push as the Session 29
+    checkpoint. Vercel rebuilds in ~1 min. If
+    something's off, identify route + element
+    and Claude will surgical-fix before the
+    commit.
     AFTER THAT (carrying from Session 27): walk
     the backpage smoke (print a pawn ticket;
     verify default + custom override + reset
-    paths), then the 9-smoke sequence (A-I) for
-    Google Reviews / cron warmer / quota /
-    email campaigns / unsubscribe / Resend
-    webhook / vault / settings UIs / eBay sync.
+    paths — the PDF print uses reportColors,
+    NOT the screen palette, so the print look
+    is unchanged by this migration), then the
+    9-smoke sequence (A-I) for Google Reviews /
+    cron warmer / quota / email campaigns /
+    unsubscribe / Resend webhook / vault /
+    settings UIs / eBay sync.
     Phase 0 punch list (CRON_SECRET +
     RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY
     + the three secret rotations) is still the

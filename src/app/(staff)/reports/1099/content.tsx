@@ -47,20 +47,20 @@ export default function Form1099Content({
         <div>
           <Link
             href="/reports"
-            className="inline-flex items-center gap-1 text-xs text-ash hover:text-ink"
+            className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
           >
             <CaretLeft size={14} weight="regular" />
             {t.reports.title}
           </Link>
-          <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-ink">
-            <Receipt size={24} weight="regular" className="text-rausch" />
+          <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-foreground">
+            <Receipt size={24} weight="regular" className="text-gold" />
             {f.title}
           </h1>
-          <p className="mt-1 max-w-2xl text-sm text-ash">{f.subtitle}</p>
+          <p className="mt-1 max-w-2xl text-sm text-muted">{f.subtitle}</p>
         </div>
         <a
           href={csvHref}
-          className="inline-flex items-center gap-2 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-cloud"
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background"
         >
           <FileCsv size={16} weight="regular" />
           {f.downloadCsv}
@@ -69,7 +69,7 @@ export default function Form1099Content({
 
       {/* Year selector */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs uppercase tracking-wide text-ash">
+        <span className="text-xs uppercase tracking-wide text-muted">
           {f.taxYear}
         </span>
         {yearOptions.map((y) => {
@@ -80,42 +80,42 @@ export default function Form1099Content({
               href={`/reports/1099?year=${y}`}
               className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'border-ink bg-ink text-canvas'
-                  : 'border-hairline bg-canvas text-ink hover:bg-cloud'
+                  ? 'border-navy bg-navy text-white'
+                  : 'border-border bg-card text-foreground hover:bg-background'
               }`}
             >
               {y}
             </Link>
           )
         })}
-        <span className="ml-2 text-xs text-ash">
+        <span className="ml-2 text-xs text-muted">
           {f.threshold}: <span className="font-mono">{formatMoney(threshold)}</span>
         </span>
       </div>
 
       {/* Headline tiles */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-hairline bg-canvas p-4">
-          <div className="text-xs uppercase tracking-wide text-ash">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted">
             {f.candidatesAboveTile}
           </div>
-          <div className="mt-1 font-mono text-2xl font-bold text-ink">
+          <div className="mt-1 font-mono text-2xl font-bold text-foreground">
             {totalCandidatesAboveThreshold}
           </div>
-          <p className="mt-1 text-xs text-ash">{headlineCandidates}</p>
+          <p className="mt-1 text-xs text-muted">{headlineCandidates}</p>
         </div>
-        <div className="rounded-lg border border-hairline bg-canvas p-4">
-          <div className="text-xs uppercase tracking-wide text-ash">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted">
             {f.totalReportableTile}
           </div>
-          <div className="mt-1 font-mono text-2xl font-bold text-ink">
+          <div className="mt-1 font-mono text-2xl font-bold text-foreground">
             {formatMoney(
               candidates.reduce((acc, c) => acc + c.total_paid, 0),
             )}
           </div>
-          <p className="mt-1 text-xs text-ash">{headlineTotal}</p>
+          <p className="mt-1 text-xs text-muted">{headlineTotal}</p>
           {totalPaidAcrossAll > 0 ? (
-            <p className="mt-1 text-xs text-ash">
+            <p className="mt-1 text-xs text-muted">
               {f.totalAllPayouts.replace(
                 '{amount}',
                 formatMoney(totalPaidAcrossAll),
@@ -132,32 +132,32 @@ export default function Form1099Content({
           weight="regular"
           className="mt-0.5 shrink-0 text-warning"
         />
-        <div className="text-sm text-ink">
+        <div className="text-sm text-foreground">
           <div className="font-medium">{f.tinReminderTitle}</div>
-          <p className="mt-1 text-ash">{f.tinReminderBody}</p>
+          <p className="mt-1 text-muted">{f.tinReminderBody}</p>
         </div>
       </div>
 
       {/* Empty state vs table */}
       {candidates.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
           <HandCoins
             size={32}
             weight="regular"
-            className="mx-auto text-ash/60"
+            className="mx-auto text-muted/60"
           />
-          <p className="mt-3 text-sm text-ash">{f.emptyState}</p>
+          <p className="mt-3 text-sm text-muted">{f.emptyState}</p>
           <Link
             href="/buy/new"
-            className="mt-3 inline-block text-sm font-medium text-rausch hover:underline"
+            className="mt-3 inline-block text-sm font-medium text-gold hover:underline"
           >
             {f.viewBuy}
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-hairline text-ash">
+            <thead className="border-b border-border text-muted">
               <tr>
                 <th className="px-3 py-2 font-medium">{f.customer}</th>
                 <th className="px-3 py-2 text-right font-medium">
@@ -176,28 +176,28 @@ export default function Form1099Content({
               {candidates.map((c, i) => (
                 <tr
                   key={c.customer_id ?? `unknown-${i}`}
-                  className="border-b border-hairline last:border-0 hover:bg-cloud"
+                  className="border-b border-border last:border-0 hover:bg-background"
                 >
                   <td className="px-3 py-2 align-top">
                     {c.customer_id && c.customer_active ? (
                       <Link
                         href={`/customers/${c.customer_id}`}
-                        className="font-medium text-ink hover:underline"
+                        className="font-medium text-foreground hover:underline"
                       >
                         {c.customer_name}
                       </Link>
                     ) : (
-                      <span className="text-ink">{c.customer_name}</span>
+                      <span className="text-foreground">{c.customer_name}</span>
                     )}
                     {c.current_phone || c.current_email ? (
-                      <div className="mt-0.5 text-xs text-ash">
+                      <div className="mt-0.5 text-xs text-muted">
                         {[c.current_phone, c.current_email]
                           .filter(Boolean)
                           .join(' · ')}
                       </div>
                     ) : null}
                     {!c.customer_active && c.customer_id ? (
-                      <div className="mt-0.5 text-xs text-error">
+                      <div className="mt-0.5 text-xs text-danger">
                         {f.customerDeleted}
                       </div>
                     ) : null}
@@ -208,16 +208,16 @@ export default function Form1099Content({
                   <td className="px-3 py-2 text-right align-top font-mono">
                     {c.transaction_count}
                   </td>
-                  <td className="px-3 py-2 align-top text-ash">
+                  <td className="px-3 py-2 align-top text-muted">
                     {shortDate(c.first_payment_date)}
                   </td>
-                  <td className="px-3 py-2 align-top text-ash">
+                  <td className="px-3 py-2 align-top text-muted">
                     {shortDate(c.last_payment_date)}
                   </td>
-                  <td className="px-3 py-2 align-top font-mono text-xs text-ash">
+                  <td className="px-3 py-2 align-top font-mono text-xs text-muted">
                     {c.id_number ?? '—'}
                   </td>
-                  <td className="px-3 py-2 align-top text-xs text-ash">
+                  <td className="px-3 py-2 align-top text-xs text-muted">
                     {c.address || '—'}
                   </td>
                 </tr>

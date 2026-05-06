@@ -40,16 +40,16 @@ export default function PortalLoansList({
   if (loans.length === 0) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight text-ink">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {t.portal.loans.title}
         </h1>
-        <div className="rounded-xl border border-hairline bg-canvas p-8 text-center">
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
           <Coins
             size={32}
             weight="regular"
-            className="mx-auto mb-3 text-ash"
+            className="mx-auto mb-3 text-muted"
           />
-          <p className="text-sm text-ash">{t.portal.loans.empty}</p>
+          <p className="text-sm text-muted">{t.portal.loans.empty}</p>
         </div>
       </div>
     )
@@ -57,30 +57,30 @@ export default function PortalLoansList({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight text-ink">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         {t.portal.loans.title}
       </h1>
-      <ul className="divide-y divide-hairline overflow-hidden rounded-xl border border-hairline bg-canvas">
+      <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
         {loans.map((l) => (
           <li key={l.id}>
             <Link
               href={`/portal/loans/${l.id}`}
-              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-cloud"
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-background"
             >
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm text-ink">
+                  <span className="font-mono text-sm text-foreground">
                     {l.ticketNumber}
                   </span>
                   <PillBadge pill={l.statusPill} />
                 </div>
-                <div className="truncate text-sm text-ash">
+                <div className="truncate text-sm text-muted">
                   {l.collateralLine}
                 </div>
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs text-ash">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs text-muted">
                   <span>
                     {t.portal.loans.payoff}:{' '}
-                    <span className="font-mono text-sm font-medium text-ink">
+                    <span className="font-mono text-sm font-medium text-foreground">
                       {formatMoney(l.payoff)}
                     </span>
                   </span>
@@ -89,7 +89,7 @@ export default function PortalLoansList({
                   </span>
                 </div>
               </div>
-              <CaretRight size={16} weight="regular" className="text-ash" />
+              <CaretRight size={16} weight="regular" className="text-muted" />
             </Link>
           </li>
         ))}
@@ -111,19 +111,19 @@ function PillBadge({ pill }: { pill: LoanStatusPill }) {
     },
     past_due: {
       label: t.portal.loans.statusPastDue,
-      className: 'bg-error/10 text-error',
+      className: 'bg-danger/10 text-danger',
     },
     redeemed: {
       label: t.portal.loans.statusRedeemed,
-      className: 'bg-cloud text-ash',
+      className: 'bg-background text-muted',
     },
     forfeited: {
       label: t.portal.loans.statusForfeited,
-      className: 'bg-cloud text-ash',
+      className: 'bg-background text-muted',
     },
     voided: {
       label: t.portal.loans.statusVoided,
-      className: 'bg-cloud text-ash',
+      className: 'bg-background text-muted',
     },
     extended: {
       label: t.portal.loans.statusExtended,

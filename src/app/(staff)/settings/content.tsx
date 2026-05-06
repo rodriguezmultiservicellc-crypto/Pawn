@@ -67,11 +67,11 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-ink">Settings</h1>
-        <p className="text-sm text-ash">
-          Configure <span className="font-medium text-ink">{view.tenantName}</span>
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <p className="text-sm text-muted">
+          Configure <span className="font-medium text-foreground">{view.tenantName}</span>
           {view.tenantType !== 'standalone' ? (
-            <span className="ml-1 rounded-full bg-cloud px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-ash">
+            <span className="ml-1 rounded-full bg-background px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted">
               {view.tenantType.replace('_', ' ')}
             </span>
           ) : null}
@@ -177,11 +177,11 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
               view.addressFilled ? 'address ✓' : 'no address',
             ].join(' · ')}
           >
-            <p className="mt-2 text-xs text-ash">
+            <p className="mt-2 text-xs text-muted">
               Tenant name, address, phone, modules. Owner-only edit at{' '}
               <span className="font-mono">/settings/general</span>.
             </p>
-            <div className="mt-2 text-[11px] text-ash">
+            <div className="mt-2 text-[11px] text-muted">
               Modules:{' '}
               {enabledModules.length ? enabledModules.join(' · ') : 'none'}
             </div>
@@ -239,7 +239,7 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
               enabled={view.modules.retail}
             />
           </ul>
-          <p className="mt-2 text-[11px] text-ash">
+          <p className="mt-2 text-[11px] text-muted">
             Module flags are set when the tenant is provisioned. Toggle from
             the platform admin console.
           </p>
@@ -267,22 +267,22 @@ function Card({
   return (
     <Link
       href={href}
-      className="group flex flex-col rounded-lg border border-hairline bg-canvas p-4 transition hover:border-ink/30 hover:shadow-sm"
+      className="group flex flex-col rounded-lg border border-border bg-card p-4 transition hover:border-foreground/30 hover:shadow-sm"
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-ink">{icon}</span>
+        <span className="text-foreground">{icon}</span>
         <StatusPill status={status} />
       </div>
-      <h2 className="mt-3 flex items-center justify-between gap-1 text-sm font-semibold text-ink">
+      <h2 className="mt-3 flex items-center justify-between gap-1 text-sm font-semibold text-foreground">
         {title}
         <ArrowRight
           size={14}
           weight="bold"
-          className="text-ash transition-transform group-hover:translate-x-0.5 group-hover:text-ink"
+          className="text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
         />
       </h2>
-      <p className="mt-1 flex-1 text-xs text-ash">{description}</p>
-      <p className="mt-2 truncate text-[10px] font-mono text-ink/70">
+      <p className="mt-1 flex-1 text-xs text-muted">{description}</p>
+      <p className="mt-2 truncate text-[10px] font-mono text-foreground/70">
         {statusDetail}
       </p>
     </Link>
@@ -303,13 +303,13 @@ function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <article className="flex flex-col rounded-lg border border-hairline bg-canvas p-4">
+    <article className="flex flex-col rounded-lg border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-2">
-        <span className="text-ink">{icon}</span>
+        <span className="text-foreground">{icon}</span>
         <StatusPill status={status} />
       </div>
-      <h2 className="mt-3 text-sm font-semibold text-ink">{title}</h2>
-      <p className="mt-0.5 text-[10px] font-mono text-ink/70">{statusDetail}</p>
+      <h2 className="mt-3 text-sm font-semibold text-foreground">{title}</h2>
+      <p className="mt-0.5 text-[10px] font-mono text-foreground/70">{statusDetail}</p>
       <div className="flex-1">{children}</div>
     </article>
   )
@@ -337,7 +337,7 @@ function StatusPill({
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-cloud px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ash">
+    <span className="inline-flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">
       <WarningCircle size={10} weight="bold" />
       Needs setup
     </span>
@@ -355,9 +355,9 @@ function ModuleLine({
 }) {
   return (
     <li
-      className={`flex items-center gap-1.5 ${enabled ? 'text-ink' : 'text-ash/60'}`}
+      className={`flex items-center gap-1.5 ${enabled ? 'text-foreground' : 'text-muted/60'}`}
     >
-      <span className={enabled ? 'text-success' : 'text-ash/40'}>{icon}</span>
+      <span className={enabled ? 'text-success' : 'text-muted/40'}>{icon}</span>
       <span>{name}</span>
       <span className="ml-auto font-mono">
         {enabled ? 'on' : 'off'}
@@ -369,8 +369,8 @@ function ModuleLine({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-ash">{label}</dt>
-      <dd className="font-mono text-ink">{value}</dd>
+      <dt className="text-muted">{label}</dt>
+      <dd className="font-mono text-foreground">{value}</dd>
     </div>
   )
 }

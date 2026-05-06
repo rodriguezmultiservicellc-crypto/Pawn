@@ -41,17 +41,17 @@ export default function EbayListingsListContent({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{t.ebay.listingsTitle}</h1>
-          <p className="text-sm text-ash">{t.ebay.listingsSubtitle}</p>
+          <p className="text-sm text-muted">{t.ebay.listingsSubtitle}</p>
         </div>
         <Link
           href="/settings/integrations/ebay"
-          className="text-sm text-ash hover:text-ink"
+          className="text-sm text-muted hover:text-foreground"
         >
           {t.ebay.openSettingsLink} →
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-hairline">
+      <div className="flex flex-wrap gap-1 border-b border-border">
         {TABS.map((s) => {
           const active = s === status
           const label =
@@ -63,8 +63,8 @@ export default function EbayListingsListContent({
               onClick={() => router.push(`/inventory/listings/ebay?status=${s}`)}
               className={`-mb-px border-b-2 px-3 py-2 text-sm ${
                 active
-                  ? 'border-rausch font-medium text-ink'
-                  : 'border-transparent text-ash hover:text-ink'
+                  ? 'border-gold font-medium text-foreground'
+                  : 'border-transparent text-muted hover:text-foreground'
               }`}
             >
               {label}
@@ -74,13 +74,13 @@ export default function EbayListingsListContent({
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
-          <p className="text-ash">{t.ebay.listingsEmpty}</p>
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-muted">{t.ebay.listingsEmpty}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-hairline text-ash">
+            <thead className="border-b border-border text-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">{t.ebay.sku}</th>
                 <th className="px-4 py-3 font-medium">{t.ebay.titleColumn}</th>
@@ -102,19 +102,19 @@ export default function EbayListingsListContent({
                 return (
                   <tr
                     key={r.id}
-                    className="cursor-pointer border-b border-hairline transition-colors last:border-0 hover:bg-cloud"
+                    className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-background"
                     onClick={() =>
                       router.push(`/inventory/${r.inventory_item_id}#ebay`)
                     }
                   >
-                    <td className="px-4 py-3 font-mono text-xs text-ink">
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {r.ebay_sku ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-ink">{r.title}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-ink">
+                    <td className="px-4 py-3 text-foreground">{r.title}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {fmtMoney(r.list_price, r.currency)}
                     </td>
-                    <td className="px-4 py-3 text-ink">
+                    <td className="px-4 py-3 text-foreground">
                       {r.format === 'AUCTION'
                         ? t.ebay.formatAuction
                         : t.ebay.formatFixed}
@@ -122,11 +122,11 @@ export default function EbayListingsListContent({
                     <td className="px-4 py-3">
                       <EbayStatusPill status={r.status} />
                     </td>
-                    <td className="px-4 py-3 text-ink">{r.view_count ?? '—'}</td>
-                    <td className="px-4 py-3 text-ink">
+                    <td className="px-4 py-3 text-foreground">{r.view_count ?? '—'}</td>
+                    <td className="px-4 py-3 text-foreground">
                       {r.watcher_count ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-xs text-ash">
+                    <td className="px-4 py-3 text-xs text-muted">
                       {r.last_synced_at
                         ? new Date(r.last_synced_at).toLocaleString()
                         : '—'}
@@ -138,7 +138,7 @@ export default function EbayListingsListContent({
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="font-medium text-rausch hover:underline"
+                          className="font-medium text-gold hover:underline"
                         >
                           {t.ebay.viewOnEbay} ↗
                         </a>

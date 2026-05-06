@@ -42,7 +42,7 @@ export function AddInventoryItemDialog({
           <MagnifyingGlass
             size={14}
             weight="bold"
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
           />
           <input
             type="search"
@@ -50,16 +50,16 @@ export function AddInventoryItemDialog({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             autoFocus
-            className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-8 pr-3 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card py-2 pl-8 pr-3 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </div>
 
         {filtered.length === 0 ? (
-          <div className="rounded-md border border-hairline bg-cloud/40 p-6 text-center text-sm text-ash">
+          <div className="rounded-md border border-border bg-background/40 p-6 text-center text-sm text-muted">
             {t.inventory.emptyForFilter}
           </div>
         ) : (
-          <ul className="max-h-96 divide-y divide-hairline overflow-auto rounded-md border border-hairline">
+          <ul className="max-h-96 divide-y divide-border overflow-auto rounded-md border border-border">
             {filtered.slice(0, 100).map((it) => (
               <li key={it.id}>
                 <button
@@ -68,22 +68,22 @@ export function AddInventoryItemDialog({
                     onPick(it)
                     onClose()
                   }}
-                  className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-cloud"
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-background"
                 >
                   <Package
                     size={20}
                     weight="regular"
-                    className="shrink-0 text-ash"
+                    className="shrink-0 text-muted"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium text-ink">
+                    <div className="truncate font-medium text-foreground">
                       {it.description}
                     </div>
-                    <div className="truncate font-mono text-xs text-ash">
+                    <div className="truncate font-mono text-xs text-muted">
                       {it.sku}
                     </div>
                   </div>
-                  <div className="shrink-0 font-mono text-sm text-ink">
+                  <div className="shrink-0 font-mono text-sm text-foreground">
                     {it.list_price == null
                       ? '—'
                       : it.list_price.toLocaleString('en-US', {
@@ -92,7 +92,7 @@ export function AddInventoryItemDialog({
                           minimumFractionDigits: 2,
                         })}
                   </div>
-                  <Plus size={14} weight="bold" className="shrink-0 text-ash" />
+                  <Plus size={14} weight="bold" className="shrink-0 text-muted" />
                 </button>
               </li>
             ))}
@@ -104,7 +104,7 @@ export function AddInventoryItemDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.close}
         </button>

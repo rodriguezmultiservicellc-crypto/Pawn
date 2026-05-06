@@ -9,16 +9,16 @@ import Link from 'next/link'
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-[60vh] w-full max-w-xl flex-col items-center justify-center px-4 py-16 text-center">
-      <h1 className="text-3xl font-bold tracking-[-0.01em] text-ink">
+      <h1 className="text-3xl font-bold tracking-[-0.01em] text-foreground">
         Not found
       </h1>
-      <p className="mt-3 text-sm text-ash">
+      <p className="mt-3 text-sm text-muted">
         We couldn&rsquo;t find a shop at this address. The link may be
         outdated or the shop may have moved.
       </p>
       <Link
         href="/"
-        className="mt-6 rounded-md border border-hairline bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-cloud"
+        className="mt-6 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-background"
       >
         Back to home
       </Link>

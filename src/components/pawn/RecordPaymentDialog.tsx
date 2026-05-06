@@ -85,7 +85,7 @@ export function RecordPaymentDialog({
   return (
     <Modal title={t.pawn.payment.title} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
@@ -93,7 +93,7 @@ export function RecordPaymentDialog({
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pawn.payment.amount}
             </span>
             <input
@@ -102,17 +102,17 @@ export function RecordPaymentDialog({
               min={0}
               value={amountStr}
               onChange={(e) => setAmountStr(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pawn.payment.paymentMethod}
             </span>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="cash">{t.pawn.payment.methodCash}</option>
               <option value="card">{t.pawn.payment.methodCard}</option>
@@ -122,20 +122,20 @@ export function RecordPaymentDialog({
           </label>
         </div>
 
-        <div className="rounded-md border border-hairline bg-cloud/40 p-3">
+        <div className="rounded-md border border-border bg-background/40 p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold text-ink">
+            <span className="text-xs font-semibold text-foreground">
               {manual ? t.pawn.payment.manualSplit : t.pawn.payment.autoSplit}
             </span>
             <button
               type="button"
               onClick={toggleManual}
-              className="rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+              className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
             >
               {manual ? t.pawn.payment.autoSplit : t.pawn.payment.manualSplit}
             </button>
           </div>
-          <p className="mb-2 text-xs text-ash">{t.pawn.payment.splitTooltip}</p>
+          <p className="mb-2 text-xs text-muted">{t.pawn.payment.splitTooltip}</p>
           <div className="grid grid-cols-3 gap-2">
             <SplitField
               label={t.pawn.payment.interestPaid}
@@ -157,21 +157,21 @@ export function RecordPaymentDialog({
             />
           </div>
           {splitMismatch ? (
-            <div className="mt-2 text-xs text-error">
+            <div className="mt-2 text-xs text-danger">
               {t.pawn.payment.splitMismatch}
             </div>
           ) : null}
         </div>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pawn.new_.notes}
           </span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -180,7 +180,7 @@ export function RecordPaymentDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -188,7 +188,7 @@ export function RecordPaymentDialog({
           type="button"
           disabled={pending || splitMismatch || !(amount > 0)}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
         >
           <CashRegister size={14} weight="bold" />
           {pending ? t.pawn.payment.submitting : t.pawn.payment.submit}
@@ -211,7 +211,7 @@ function SplitField({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-medium text-ink">{label}</span>
+      <span className="text-xs font-medium text-foreground">{label}</span>
       <input
         type="number"
         step="0.01"
@@ -219,10 +219,10 @@ function SplitField({
         value={value}
         readOnly={readOnly}
         onChange={(e) => onChange(e.target.value)}
-        className={`block w-full rounded-md border bg-canvas px-3 py-1.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+        className={`block w-full rounded-md border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
           readOnly
-            ? 'border-hairline bg-cloud/60 text-ash'
-            : 'border-hairline focus:border-ink'
+            ? 'border-border bg-background/60 text-muted'
+            : 'border-border focus:border-blue'
         }`}
       />
     </label>
@@ -240,17 +240,17 @@ export function Modal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-lg rounded-lg border border-hairline bg-canvas p-5 shadow-lg">
+      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-5 shadow-lg">
         <header className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-ink">{title}</h3>
+          <h3 className="text-base font-semibold text-foreground">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-ash hover:bg-cloud hover:text-ink"
+            className="rounded-md p-1 text-muted hover:bg-background hover:text-foreground"
             aria-label="close"
           >
             <X size={16} weight="bold" />

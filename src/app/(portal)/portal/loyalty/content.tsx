@@ -64,34 +64,34 @@ export default function LoyaltyPortalContent({
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <header>
-        <div className="flex items-center gap-2 text-rausch">
+        <div className="flex items-center gap-2 text-gold">
           <Trophy size={22} weight="fill" />
-          <h1 className="text-2xl font-semibold text-ink">{t.loyalty.title}</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t.loyalty.title}</h1>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="rounded-lg border border-hairline bg-canvas p-6">
-        <p className="mb-1 text-sm uppercase tracking-wide text-ash">
+      <section className="rounded-lg border border-border bg-card p-6">
+        <p className="mb-1 text-sm uppercase tracking-wide text-muted">
           {t.loyalty.yourPoints}
         </p>
-        <div className="font-mono text-5xl font-bold text-ink">
+        <div className="font-mono text-5xl font-bold text-foreground">
           {customer.balance.toLocaleString()}
         </div>
-        <p className="mt-2 text-sm text-ash">
+        <p className="mt-2 text-sm text-muted">
           {t.loyalty.storeCreditEquiv
             .replace('{value}', equiv.toFixed(2))
             .replace('{tenant}', tenantDba)}
         </p>
-        <p className="mt-3 text-sm text-ink">{t.loyalty.heroSubtitle}</p>
+        <p className="mt-3 text-sm text-foreground">{t.loyalty.heroSubtitle}</p>
       </section>
 
       {/* Earn rules */}
-      <section className="rounded-lg border border-hairline bg-canvas p-6">
-        <h2 className="mb-3 text-base font-semibold text-ink">
+      <section className="rounded-lg border border-border bg-card p-6">
+        <h2 className="mb-3 text-base font-semibold text-foreground">
           {t.loyalty.howYouEarn}
         </h2>
-        <ul className="space-y-1 text-sm text-ink">
+        <ul className="space-y-1 text-sm text-foreground">
           <li>
             • {t.loyalty.earnRetail.replace('{rate}', String(settings.earnRetail))}
           </li>
@@ -107,26 +107,26 @@ export default function LoyaltyPortalContent({
             )}
           </li>
         </ul>
-        <h2 className="mb-2 mt-4 text-base font-semibold text-ink">
+        <h2 className="mb-2 mt-4 text-base font-semibold text-foreground">
           {t.loyalty.howYouRedeem}
         </h2>
-        <p className="text-sm text-ink">{t.loyalty.redemptionInstructions}</p>
+        <p className="text-sm text-foreground">{t.loyalty.redemptionInstructions}</p>
       </section>
 
       {/* Refer a friend */}
-      <section className="rounded-lg border border-hairline bg-canvas p-6">
-        <h2 className="mb-3 text-base font-semibold text-ink">
+      <section className="rounded-lg border border-border bg-card p-6">
+        <h2 className="mb-3 text-base font-semibold text-foreground">
           {t.loyalty.referAFriend}
         </h2>
         <div className="mb-3 flex items-center gap-2">
-          <span className="text-sm text-ash">{t.loyalty.yourCode}:</span>
-          <code className="rounded bg-cloud px-3 py-1.5 font-mono text-base text-ink">
+          <span className="text-sm text-muted">{t.loyalty.yourCode}:</span>
+          <code className="rounded bg-background px-3 py-1.5 font-mono text-base text-foreground">
             {code}
           </code>
           <button
             type="button"
             onClick={copy}
-            className="rounded p-2 text-ash hover:bg-cloud hover:text-ink"
+            className="rounded p-2 text-muted hover:bg-background hover:text-foreground"
             title={t.loyalty.copyCode}
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
@@ -139,7 +139,7 @@ export default function LoyaltyPortalContent({
         <div className="flex flex-wrap gap-2">
           <a
             href={`sms:?body=${encodeURIComponent(shareText)}`}
-            className="rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:bg-cloud"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background"
           >
             {t.loyalty.shareSms}
           </a>
@@ -147,19 +147,19 @@ export default function LoyaltyPortalContent({
             href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
             target="_blank"
             rel="noreferrer noopener"
-            className="rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:bg-cloud"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background"
           >
             {t.loyalty.shareWhatsapp}
           </a>
           <a
             href={`mailto:?subject=${encodeURIComponent(tenantDba)}&body=${encodeURIComponent(shareText)}`}
-            className="rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:bg-cloud"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background"
           >
             {t.loyalty.shareEmail}
           </a>
         </div>
 
-        <p className="mt-3 text-sm text-ash">
+        <p className="mt-3 text-sm text-muted">
           {friendsReferred > 0
             ? t.loyalty.friendsReferred.replace('{count}', String(friendsReferred))
             : t.loyalty.friendsReferredZero}
@@ -167,23 +167,23 @@ export default function LoyaltyPortalContent({
       </section>
 
       {/* Activity */}
-      <section className="rounded-lg border border-hairline bg-canvas p-6">
-        <h2 className="mb-3 text-base font-semibold text-ink">
+      <section className="rounded-lg border border-border bg-card p-6">
+        <h2 className="mb-3 text-base font-semibold text-foreground">
           {t.loyalty.activity}
         </h2>
         {activity.length === 0 ? (
-          <p className="text-sm text-ash">{t.loyalty.emptyActivity}</p>
+          <p className="text-sm text-muted">{t.loyalty.emptyActivity}</p>
         ) : (
           <ul className="space-y-1 text-sm">
             {activity.map((e) => (
               <li
                 key={e.id}
-                className="flex items-center justify-between gap-2 border-b border-hairline py-1.5 last:border-b-0"
+                className="flex items-center justify-between gap-2 border-b border-border py-1.5 last:border-b-0"
               >
-                <span className="text-ink">{t.loyalty.kinds[e.kind]}</span>
+                <span className="text-foreground">{t.loyalty.kinds[e.kind]}</span>
                 <span
                   className={`font-mono ${
-                    e.points_delta >= 0 ? 'text-success' : 'text-error'
+                    e.points_delta >= 0 ? 'text-success' : 'text-danger'
                   }`}
                 >
                   {e.points_delta >= 0 ? '+' : ''}

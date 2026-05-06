@@ -91,10 +91,10 @@ export default function ReportsLanding({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <ChartBar size={28} weight="regular" className="text-rausch" />
+        <ChartBar size={28} weight="regular" className="text-gold" />
         <div>
-          <h1 className="text-2xl font-bold text-ink">{t.reports.title}</h1>
-          <p className="text-sm text-ash">{t.reports.subtitle}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t.reports.title}</h1>
+          <p className="text-sm text-muted">{t.reports.subtitle}</p>
         </div>
       </div>
 
@@ -107,16 +107,16 @@ export default function ReportsLanding({
               <Link
                 key={c.href}
                 href={c.href}
-                className="flex flex-col gap-3 rounded-lg border border-hairline bg-canvas p-5 transition-colors hover:border-ink"
+                className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-colors hover:border-foreground"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-rausch">{c.icon}</span>
-                  <span className="text-sm font-medium text-ink">
+                  <span className="text-gold">{c.icon}</span>
+                  <span className="text-sm font-medium text-foreground">
                     {meta.title}
                   </span>
                 </div>
-                <p className="text-xs text-ash">{meta.description}</p>
-                <span className="mt-auto text-xs font-medium text-ink underline-offset-2 hover:underline">
+                <p className="text-xs text-muted">{meta.description}</p>
+                <span className="mt-auto text-xs font-medium text-foreground underline-offset-2 hover:underline">
                   {t.reports.runReport}
                 </span>
               </Link>

@@ -94,9 +94,9 @@ const STATUS_BADGE: Record<LoanStatus, { bg: string; text: string }> = {
   active: { bg: 'bg-success/10 border-success/30', text: 'text-success' },
   extended: { bg: 'bg-success/10 border-success/30', text: 'text-success' },
   partial_paid: { bg: 'bg-warning/10 border-warning/30', text: 'text-warning' },
-  redeemed: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
-  forfeited: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
-  voided: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+  redeemed: { bg: 'bg-background border-border', text: 'text-muted' },
+  forfeited: { bg: 'bg-background border-border', text: 'text-muted' },
+  voided: { bg: 'bg-background border-border', text: 'text-muted' },
 }
 
 type DialogKind = 'payment' | 'extend' | 'redeem' | 'forfeit' | 'void' | null
@@ -154,7 +154,7 @@ export default function PawnLoanDetail({
       <div className="flex items-center justify-between">
         <Link
           href="/pawn"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.pawn.backToList}
@@ -163,12 +163,12 @@ export default function PawnLoanDetail({
           <button
             type="button"
             onClick={() => setShowReminder(true)}
-            className="rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+            className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
           >
             {t.comms.sendReminderButton}
           </button>
           {loan.is_printed ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs font-medium text-ink">
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-xs font-medium text-foreground">
               <Lock size={12} weight="bold" />
               {t.pawn.detail.printedBadge}
             </span>
@@ -205,43 +205,43 @@ export default function PawnLoanDetail({
       ) : null}
 
       {/* Header */}
-      <div className="rounded-lg border border-hairline bg-canvas p-4">
+      <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pawn.detail.ticketLabel}
             </div>
-            <h1 className="font-mono text-2xl font-bold text-ink">
+            <h1 className="font-mono text-2xl font-bold text-foreground">
               {loan.ticket_number}
             </h1>
           </div>
           <div className="min-w-[200px]">
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pawn.detail.customerLabel}
             </div>
             <Link
               href={`/customers/${loan.customer_id}`}
-              className="text-base font-semibold text-ink hover:underline"
+              className="text-base font-semibold text-foreground hover:underline"
             >
               {loan.customer_name}
             </Link>
-            <div className="text-xs text-ash">
+            <div className="text-xs text-muted">
               {[loan.customer_phone, loan.customer_email]
                 .filter(Boolean)
                 .join(' · ') || '—'}
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pawn.detail.issuedOn}
             </div>
-            <div className="font-mono text-sm text-ink">{loan.issue_date}</div>
+            <div className="font-mono text-sm text-foreground">{loan.issue_date}</div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pawn.detail.dueOn}
             </div>
-            <div className="font-mono text-sm text-ink">{loan.due_date}</div>
+            <div className="font-mono text-sm text-foreground">{loan.due_date}</div>
           </div>
         </div>
       </div>
@@ -256,7 +256,7 @@ export default function PawnLoanDetail({
         isPrinted={loan.is_printed}
       />
       {printToast ? (
-        <div className="rounded-md border border-hairline bg-cloud px-3 py-2 text-sm text-ink">
+        <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
           {printToast}
         </div>
       ) : null}
@@ -275,7 +275,7 @@ export default function PawnLoanDetail({
               href={loan.signature_signed_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+              className="mt-3 inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
             >
               {t.pawn.detail.signatureView}
             </a>
@@ -424,15 +424,15 @@ function ActionButton({
     'inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50'
   if (primary) {
     cls +=
-      ' border-rausch bg-rausch text-canvas hover:bg-rausch-deep disabled:hover:bg-rausch'
+      ' border-gold bg-gold text-navy hover:bg-gold-2 disabled:hover:bg-gold'
   } else if (tone === 'success') {
     cls += ' border-success/30 bg-success/5 text-success hover:bg-success/10'
   } else if (tone === 'warning') {
     cls += ' border-warning/30 bg-warning/5 text-warning hover:bg-warning/10'
   } else if (tone === 'error') {
-    cls += ' border-error/30 bg-error/5 text-error hover:bg-error/10'
+    cls += ' border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
   } else {
-    cls += ' border-hairline bg-canvas text-ink hover:border-ink'
+    cls += ' border-border bg-card text-foreground hover:border-foreground'
   }
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={cls}>
@@ -445,20 +445,20 @@ function ActionButton({
 function CollateralPanel({ collateral }: { collateral: LoanCollateralView[] }) {
   const { t } = useI18n()
   return (
-    <section className="rounded-lg border border-hairline bg-canvas p-4">
-      <h2 className="mb-3 text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card p-4">
+      <h2 className="mb-3 text-sm font-semibold text-foreground">
         {t.pawn.detail.collateralPanelTitle}
       </h2>
       {collateral.length === 0 ? (
-        <p className="text-sm text-ash">—</p>
+        <p className="text-sm text-muted">—</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {collateral.map((c) => (
             <div
               key={c.id}
-              className="flex gap-3 rounded-md border border-hairline bg-cloud/30 p-3"
+              className="flex gap-3 rounded-md border border-border bg-background/30 p-3"
             >
-              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md border border-hairline bg-cloud">
+              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md border border-border bg-background">
                 {c.photo_signed_url ? (
                   <Image
                     src={c.photo_signed_url}
@@ -469,14 +469,14 @@ function CollateralPanel({ collateral }: { collateral: LoanCollateralView[] }) {
                     className="object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-ash">
+                  <div className="flex h-full w-full items-center justify-center text-muted">
                     <ImageIcon size={20} />
                   </div>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="font-medium text-ink">{c.description}</div>
-                <div className="mt-1 text-xs text-ash">
+                <div className="font-medium text-foreground">{c.description}</div>
+                <div className="mt-1 text-xs text-muted">
                   {[
                     c.category,
                     c.metal_type,
@@ -486,7 +486,7 @@ function CollateralPanel({ collateral }: { collateral: LoanCollateralView[] }) {
                     .filter(Boolean)
                     .join(' · ')}
                 </div>
-                <div className="mt-1 font-mono text-xs text-ink">
+                <div className="mt-1 font-mono text-xs text-foreground">
                   Est. {fmtMoney(c.est_value)}
                 </div>
               </div>
@@ -502,71 +502,71 @@ function EventLogPanel({ events }: { events: LoanEventView[] }) {
   const { t } = useI18n()
   if (events.length === 0) {
     return (
-      <section className="rounded-lg border border-hairline bg-canvas p-4">
-        <h2 className="mb-3 text-sm font-semibold text-ink">
+      <section className="rounded-lg border border-border bg-card p-4">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
           {t.pawn.detail.eventLogTitle}
         </h2>
-        <p className="text-sm text-ash">—</p>
+        <p className="text-sm text-muted">—</p>
       </section>
     )
   }
   return (
-    <section className="rounded-lg border border-hairline bg-canvas">
-      <header className="border-b border-hairline px-4 py-3">
-        <h2 className="text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="border-b border-border px-4 py-3">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.pawn.detail.eventLogTitle}
         </h2>
       </header>
-      <ul className="divide-y divide-hairline">
+      <ul className="divide-y divide-border">
         {events.map((e) => (
           <li key={e.id} className="px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <EventTypeBadge type={e.event_type} />
                 {e.payment_method ? (
-                  <span className="rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs text-ink">
+                  <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground">
                     {e.payment_method}
                   </span>
                 ) : null}
               </div>
-              <div className="font-mono text-xs text-ash">
+              <div className="font-mono text-xs text-muted">
                 {new Date(e.occurred_at).toLocaleString()}
               </div>
             </div>
             <div className="mt-1 grid grid-cols-3 gap-3 text-xs">
               {e.amount != null ? (
-                <span className="text-ink">
+                <span className="text-foreground">
                   {t.pawn.payment.amount}:{' '}
                   <span className="font-mono">{fmtMoney(e.amount)}</span>
                 </span>
               ) : null}
               {e.principal_paid > 0 ? (
-                <span className="text-ink">
+                <span className="text-foreground">
                   {t.pawn.payment.principalPaid}:{' '}
                   <span className="font-mono">{fmtMoney(e.principal_paid)}</span>
                 </span>
               ) : null}
               {e.interest_paid > 0 ? (
-                <span className="text-ink">
+                <span className="text-foreground">
                   {t.pawn.payment.interestPaid}:{' '}
                   <span className="font-mono">{fmtMoney(e.interest_paid)}</span>
                 </span>
               ) : null}
               {e.fees_paid > 0 ? (
-                <span className="text-ink">
+                <span className="text-foreground">
                   {t.pawn.payment.feesPaid}:{' '}
                   <span className="font-mono">{fmtMoney(e.fees_paid)}</span>
                 </span>
               ) : null}
               {e.new_due_date ? (
-                <span className="text-ink">
+                <span className="text-foreground">
                   {t.pawn.extension.newDueDate}:{' '}
                   <span className="font-mono">{e.new_due_date}</span>
                 </span>
               ) : null}
             </div>
             {e.notes ? (
-              <div className="mt-1 text-xs text-ash">{e.notes}</div>
+              <div className="mt-1 text-xs text-muted">{e.notes}</div>
             ) : null}
           </li>
         ))}
@@ -580,7 +580,7 @@ function EventTypeBadge({ type }: { type: LoanEventType }) {
   const map: Record<LoanEventType, { label: string; cls: string }> = {
     issued: {
       label: t.pawn.detail.eventIssued,
-      cls: 'border-hairline bg-cloud text-ink',
+      cls: 'border-border bg-background text-foreground',
     },
     payment: {
       label: t.pawn.detail.eventPayment,
@@ -600,7 +600,7 @@ function EventTypeBadge({ type }: { type: LoanEventType }) {
     },
     void: {
       label: t.pawn.detail.eventVoid,
-      cls: 'border-error/30 bg-error/5 text-error',
+      cls: 'border-danger/30 bg-danger/5 text-danger',
     },
   }
   const m = map[type]

@@ -41,9 +41,9 @@ export function PartsPanel({
   const totalCost = parts.reduce((sum, p) => sum + (p.total_cost || 0), 0)
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas">
-      <header className="flex items-center justify-between border-b border-hairline px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Hammer size={14} weight="regular" />
           {t.repair.detail.sectionParts}
         </h2>
@@ -51,7 +51,7 @@ export function PartsPanel({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs font-medium text-ink hover:border-ink"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:border-foreground"
           >
             <Plus size={12} weight="bold" />
             {t.repair.actions.addPart}
@@ -59,12 +59,12 @@ export function PartsPanel({
         ) : null}
       </header>
       {parts.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-ash">
+        <div className="px-4 py-6 text-center text-sm text-muted">
           {t.repair.detail.noParts}
         </div>
       ) : (
         <>
-          <ul className="divide-y divide-hairline">
+          <ul className="divide-y divide-border">
             {parts.map((p) => (
               <PartRow
                 key={p.id}
@@ -74,9 +74,9 @@ export function PartsPanel({
               />
             ))}
           </ul>
-          <footer className="border-t border-hairline bg-cloud/40 px-4 py-2 text-right text-xs">
-            <span className="text-ash">{t.inventory.costBasis}: </span>
-            <span className="font-mono text-ink">{fmtMoney(totalCost)}</span>
+          <footer className="border-t border-border bg-background/40 px-4 py-2 text-right text-xs">
+            <span className="text-muted">{t.inventory.costBasis}: </span>
+            <span className="font-mono text-foreground">{fmtMoney(totalCost)}</span>
           </footer>
         </>
       )}
@@ -117,36 +117,36 @@ function PartRow({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-ink">{part.description}</span>
+            <span className="font-medium text-foreground">{part.description}</span>
             {part.inventory_item_id ? (
               <Link
                 href={`/inventory/${part.inventory_item_id}`}
-                className="rounded-full border border-hairline bg-cloud px-2 py-0.5 text-[10px] text-ink hover:border-ink"
+                className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] text-foreground hover:border-foreground"
               >
                 {t.inventory.title}
               </Link>
             ) : null}
           </div>
-          <div className="mt-1 grid grid-cols-3 gap-3 text-xs text-ash">
+          <div className="mt-1 grid grid-cols-3 gap-3 text-xs text-muted">
             <span>
               {t.repair.dialogs.addPart.quantity}:{' '}
-              <span className="font-mono text-ink">{part.quantity}</span>
+              <span className="font-mono text-foreground">{part.quantity}</span>
             </span>
             <span>
               {t.repair.dialogs.addPart.unitCost}:{' '}
-              <span className="font-mono text-ink">
+              <span className="font-mono text-foreground">
                 {fmtMoney(part.unit_cost)}
               </span>
             </span>
             <span>
               {t.repair.dialogs.addPart.totalCost}:{' '}
-              <span className="font-mono text-ink">
+              <span className="font-mono text-foreground">
                 {fmtMoney(part.total_cost)}
               </span>
             </span>
           </div>
           {part.notes ? (
-            <div className="mt-1 text-xs text-ink">{part.notes}</div>
+            <div className="mt-1 text-xs text-foreground">{part.notes}</div>
           ) : null}
         </div>
         {!readOnly ? (
@@ -154,7 +154,7 @@ function PartRow({
             type="button"
             onClick={remove}
             disabled={pending}
-            className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-2 py-1 text-xs font-medium text-error hover:bg-error/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
           >
             <Trash size={12} weight="bold" />
             {t.repair.actions.removePart}

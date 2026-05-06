@@ -244,18 +244,18 @@ export function Sidebar({
     },
   ]
 
-  const widthClass = collapsed ? 'w-14' : 'w-56'
+  const widthClass = collapsed ? 'w-16' : 'w-52'
   const itemPadX = collapsed ? 'px-0 justify-center' : 'px-3'
 
   return (
     <nav
-      className={`flex ${widthClass} shrink-0 flex-col gap-0.5 border-r border-hairline bg-canvas px-2 py-4 transition-[width] duration-150`}
+      className={`flex ${widthClass} shrink-0 flex-col gap-0.5 bg-navy px-2 py-4 transition-[width] duration-150`}
       aria-label="Primary"
     >
       <button
         type="button"
         onClick={toggle}
-        className="mb-2 flex h-8 items-center justify-center rounded-md text-ash hover:bg-cloud hover:text-ink focus:outline-none focus:ring-2 focus:ring-rausch/50"
+        className="mb-2 flex h-8 items-center justify-center rounded-md text-white/65 hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-gold/50"
         title={collapsed ? t.common.expandSidebar : t.common.collapseSidebar}
         aria-label={collapsed ? t.common.expandSidebar : t.common.collapseSidebar}
         aria-expanded={!collapsed}
@@ -276,11 +276,11 @@ export function Sidebar({
             return (
               <span
                 key={it.href}
-                className={`flex cursor-not-allowed items-center gap-2 rounded-md ${itemPadX} py-2 text-sm text-ash/60`}
+                className={`flex cursor-not-allowed items-center gap-2 rounded-lg ${itemPadX} py-2 text-sm text-white/40`}
                 aria-disabled
                 title={collapsed ? it.label : `${it.label} — coming soon`}
               >
-                <span className="text-ash/60">{it.icon}</span>
+                <span className="text-white/40">{it.icon}</span>
                 {collapsed ? null : <span className="truncate">{it.label}</span>}
               </span>
             )
@@ -289,15 +289,15 @@ export function Sidebar({
             <Link
               key={it.href}
               href={it.href}
-              className={`flex items-center gap-2 rounded-md ${itemPadX} py-2 text-sm transition-colors ${
+              className={`flex items-center gap-2 rounded-lg ${itemPadX} py-2 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-cloud font-medium text-ink'
-                  : 'text-ink/80 hover:bg-cloud'
+                  ? 'bg-white/10 text-gold'
+                  : 'text-white/65 hover:bg-white/5 hover:text-white'
               }`}
               title={collapsed ? it.label : undefined}
               aria-label={collapsed ? it.label : undefined}
             >
-              <span className={isActive ? 'text-rausch' : 'text-ash'}>
+              <span className={isActive ? 'text-gold' : 'text-white/65'}>
                 {it.icon}
               </span>
               {collapsed ? null : <span className="truncate">{it.label}</span>}

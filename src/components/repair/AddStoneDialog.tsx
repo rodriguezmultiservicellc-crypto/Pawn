@@ -62,11 +62,11 @@ export function AddStoneDialog({
   return (
     <Modal title={t.repair.dialogs.addStone.title} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
-      <p className="mb-3 text-sm text-ash">{t.repair.dialogs.addStone.body}</p>
+      <p className="mb-3 text-sm text-muted">{t.repair.dialogs.addStone.body}</p>
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <Field
@@ -122,7 +122,7 @@ export function AddStoneDialog({
           />
         </div>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.repair.new_.stoneSource}
           </span>
           <select
@@ -130,7 +130,7 @@ export function AddStoneDialog({
             onChange={(e) =>
               setSource(e.target.value as 'customer_supplied' | 'shop_supplied')
             }
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           >
             <option value="customer_supplied">
               {t.repair.new_.stoneSourceCustomer}
@@ -139,14 +139,14 @@ export function AddStoneDialog({
           </select>
         </label>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.repair.new_.stoneNotes}
           </span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -154,7 +154,7 @@ export function AddStoneDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -162,7 +162,7 @@ export function AddStoneDialog({
           type="button"
           disabled={pending || !canSubmit}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
         >
           <Plus size={14} weight="bold" />
           {pending ? t.common.saving : t.repair.actions.addStone}
@@ -189,14 +189,14 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       <input
         type={type}
         step={step}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
       />
     </label>
   )

@@ -48,14 +48,14 @@ export function ExtendLoanDialog({
   return (
     <Modal title={t.pawn.extension.title} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
 
       <div className="space-y-4">
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pawn.extension.newTermDays}
           </span>
           <input
@@ -64,13 +64,13 @@ export function ExtendLoanDialog({
             max={180}
             value={newTermDays}
             onChange={(e) => setNewTermDays(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pawn.extension.interestCollectedNow}
             </span>
             <input
@@ -79,17 +79,17 @@ export function ExtendLoanDialog({
               min={0}
               value={interestNow}
               onChange={(e) => setInterestNow(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pawn.extension.paymentMethod}
             </span>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="cash">{t.pawn.payment.methodCash}</option>
               <option value="card">{t.pawn.payment.methodCard}</option>
@@ -100,29 +100,29 @@ export function ExtendLoanDialog({
         </div>
 
         {previewDueDate ? (
-          <div className="rounded-md border border-hairline bg-cloud/40 p-3 text-sm">
-            <div className="flex items-center gap-2 text-ink">
+          <div className="rounded-md border border-border bg-background/40 p-3 text-sm">
+            <div className="flex items-center gap-2 text-foreground">
               <Calendar size={14} weight="bold" />
               <span className="font-medium">
                 {t.pawn.extension.newDueDate}:
               </span>
               <span className="font-mono">{previewDueDate}</span>
             </div>
-            <p className="mt-1 text-xs text-ash">
+            <p className="mt-1 text-xs text-muted">
               {t.pawn.extension.newDueDateHelp}
             </p>
           </div>
         ) : null}
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pawn.new_.notes}
           </span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -131,7 +131,7 @@ export function ExtendLoanDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -139,7 +139,7 @@ export function ExtendLoanDialog({
           type="button"
           disabled={pending || termInt <= 0}
           onClick={submit}
-          className="rounded-md bg-rausch px-4 py-2 text-sm text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+          className="rounded-md bg-gold px-4 py-2 text-sm text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
         >
           {pending ? t.pawn.extension.submitting : t.pawn.extension.submit}
         </button>

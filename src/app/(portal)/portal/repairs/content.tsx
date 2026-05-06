@@ -35,16 +35,16 @@ export default function PortalRepairsList({
   if (tickets.length === 0) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight text-ink">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {t.portal.repairs.title}
         </h1>
-        <div className="rounded-xl border border-hairline bg-canvas p-8 text-center">
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
           <Wrench
             size={32}
             weight="regular"
-            className="mx-auto mb-3 text-ash"
+            className="mx-auto mb-3 text-muted"
           />
-          <p className="text-sm text-ash">{t.portal.repairs.empty}</p>
+          <p className="text-sm text-muted">{t.portal.repairs.empty}</p>
         </div>
       </div>
     )
@@ -52,7 +52,7 @@ export default function PortalRepairsList({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight text-ink">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         {t.portal.repairs.title}
       </h1>
       <ul className="space-y-3">
@@ -72,21 +72,21 @@ function RepairCard({ tk }: { tk: PortalRepairView }) {
   const isPickedUp = tk.status === 'picked_up'
 
   return (
-    <li className="overflow-hidden rounded-xl border border-hairline bg-canvas">
+    <li className="overflow-hidden rounded-xl border border-border bg-card">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-cloud"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-background"
       >
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-sm text-ink">{tk.ticketNumber}</span>
+            <span className="font-mono text-sm text-foreground">{tk.ticketNumber}</span>
             <StatusPill status={tk.status} />
           </div>
           {tk.title ? (
-            <div className="truncate text-sm text-ink">{tk.title}</div>
+            <div className="truncate text-sm text-foreground">{tk.title}</div>
           ) : null}
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs text-ash">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs text-muted">
             <span>{serviceTypeLabel(tk.serviceType, t)}</span>
             {tk.promisedDate ? (
               <span>
@@ -96,20 +96,20 @@ function RepairCard({ tk }: { tk: PortalRepairView }) {
           </div>
         </div>
         {open ? (
-          <CaretDown size={16} weight="regular" className="text-ash" />
+          <CaretDown size={16} weight="regular" className="text-muted" />
         ) : (
-          <CaretRight size={16} weight="regular" className="text-ash" />
+          <CaretRight size={16} weight="regular" className="text-muted" />
         )}
       </button>
       {open ? (
-        <div className="space-y-4 border-t border-hairline px-4 py-4">
+        <div className="space-y-4 border-t border-border px-4 py-4">
           {isReady ? (
             <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
               {t.portal.repairs.readyHelp}
             </div>
           ) : null}
           {isPickedUp ? (
-            <div className="rounded-md border border-hairline bg-cloud px-3 py-2 text-sm text-ash">
+            <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted">
               {t.portal.repairs.pickedUpHelp}
             </div>
           ) : null}
@@ -117,50 +117,50 @@ function RepairCard({ tk }: { tk: PortalRepairView }) {
           <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
             {tk.itemDescription ? (
               <div className="space-y-0.5 sm:col-span-2">
-                <dt className="text-xs uppercase tracking-wide text-ash">
+                <dt className="text-xs uppercase tracking-wide text-muted">
                   {t.portal.repairs.itemDescription}
                 </dt>
-                <dd className="text-ink">{tk.itemDescription}</dd>
+                <dd className="text-foreground">{tk.itemDescription}</dd>
               </div>
             ) : null}
             {tk.workNeeded ? (
               <div className="space-y-0.5 sm:col-span-2">
-                <dt className="text-xs uppercase tracking-wide text-ash">
+                <dt className="text-xs uppercase tracking-wide text-muted">
                   {t.portal.repairs.workNeeded}
                 </dt>
-                <dd className="text-ink">{tk.workNeeded}</dd>
+                <dd className="text-foreground">{tk.workNeeded}</dd>
               </div>
             ) : null}
             <div className="space-y-0.5">
-              <dt className="text-xs uppercase tracking-wide text-ash">
+              <dt className="text-xs uppercase tracking-wide text-muted">
                 {t.portal.repairs.depositCollected}
               </dt>
-              <dd className="font-mono text-ink">
+              <dd className="font-mono text-foreground">
                 {formatMoney(tk.depositPaid)}
               </dd>
             </div>
             <div className="space-y-0.5">
-              <dt className="text-xs uppercase tracking-wide text-ash">
+              <dt className="text-xs uppercase tracking-wide text-muted">
                 {t.portal.repairs.balanceDue}
               </dt>
-              <dd className="font-mono text-ink">
+              <dd className="font-mono text-foreground">
                 {formatMoney(tk.balanceDue)}
               </dd>
             </div>
             <div className="space-y-0.5">
-              <dt className="text-xs uppercase tracking-wide text-ash">
+              <dt className="text-xs uppercase tracking-wide text-muted">
                 {t.portal.repairs.created}
               </dt>
-              <dd className="text-ink">{formatDateTime(tk.createdAt)}</dd>
+              <dd className="text-foreground">{formatDateTime(tk.createdAt)}</dd>
             </div>
           </dl>
 
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ash">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
               {t.portal.repairs.photosTitle}
             </h3>
             {tk.photoUrls.length === 0 ? (
-              <p className="text-sm text-ash">{t.portal.repairs.noPhotos}</p>
+              <p className="text-sm text-muted">{t.portal.repairs.noPhotos}</p>
             ) : (
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {tk.photoUrls.map((url) => (
@@ -169,7 +169,7 @@ function RepairCard({ tk }: { tk: PortalRepairView }) {
                     key={url}
                     src={url}
                     alt=""
-                    className="aspect-square w-full rounded-md border border-hairline object-cover"
+                    className="aspect-square w-full rounded-md border border-border object-cover"
                   />
                 ))}
               </div>
@@ -188,10 +188,10 @@ function StatusPill({ status }: { status: RepairStatus }) {
     status === 'ready'
       ? 'bg-success/10 text-success'
       : status === 'picked_up' || status === 'voided' || status === 'abandoned'
-      ? 'bg-cloud text-ash'
+      ? 'bg-background text-muted'
       : status === 'needs_parts' || status === 'awaiting_approval'
       ? 'bg-warning/10 text-warning'
-      : 'bg-cloud text-ink'
+      : 'bg-background text-foreground'
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}

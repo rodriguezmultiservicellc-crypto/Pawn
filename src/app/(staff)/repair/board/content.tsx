@@ -192,24 +192,24 @@ export default function BoardContent({
           <div>
             <Link
               href="/repair"
-              className="mb-1 inline-flex items-center gap-1 text-xs text-ash hover:text-ink"
+              className="mb-1 inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
             >
               <ArrowLeft size={12} weight="bold" />
               {t.repair.board.backToList}
             </Link>
             <h1 className="text-2xl font-bold">{t.repair.board.title}</h1>
-            <p className="text-sm text-ash">{t.repair.board.subtitle}</p>
+            <p className="text-sm text-muted">{t.repair.board.subtitle}</p>
           </div>
           <div className="text-right">
-            <div className="font-mono text-2xl font-semibold text-ink">
+            <div className="font-mono text-2xl font-semibold text-foreground">
               {totalCards}
             </div>
-            <div className="text-[11px] text-ash">{t.repair.board.totalActive}</div>
+            <div className="text-[11px] text-muted">{t.repair.board.totalActive}</div>
           </div>
         </div>
 
         {moveError ? (
-          <div className="flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
             <Warning size={14} weight="bold" />
             <span>{moveError}</span>
           </div>
@@ -243,13 +243,13 @@ export default function BoardContent({
 
         {/* Service type filter */}
         <div className="flex items-center gap-2">
-          <label className="text-xs text-ash">
+          <label className="text-xs text-muted">
             {t.repair.list.serviceType}:
           </label>
           <select
             value={serviceTypeFilter}
             onChange={(e) => pushParams({ serviceType: e.target.value })}
-            className="rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           >
             <option value="">{t.common.all}</option>
             <option value="repair">{t.repair.serviceTypes.repair}</option>
@@ -261,7 +261,7 @@ export default function BoardContent({
             <option value="custom">{t.repair.serviceTypes.custom}</option>
           </select>
           {pending || movePending ? (
-            <span className="text-[11px] text-ash">
+            <span className="text-[11px] text-muted">
               {movePending ? t.repair.board.moveSaving : t.common.loading}
             </span>
           ) : null}
@@ -323,25 +323,25 @@ function Column({
   const dropClass = isOver
     ? isLegalTarget
       ? 'border-success bg-success/5'
-      : 'border-error bg-error/5'
+      : 'border-danger bg-danger/5'
     : isLegalTarget
       ? 'border-success/40'
       : isIllegalTarget
         ? 'opacity-50'
-        : 'border-hairline'
+        : 'border-border'
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col rounded-lg border bg-cloud/40 transition-colors ${dropClass}`}
+      className={`flex flex-col rounded-lg border bg-background/40 transition-colors ${dropClass}`}
     >
-      <div className="flex items-center justify-between border-b border-hairline px-3 py-2">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <StatusBadge status={status} />
-        <span className="font-mono text-xs text-ash">{cards.length}</span>
+        <span className="font-mono text-xs text-muted">{cards.length}</span>
       </div>
       <div className="flex flex-col gap-2 p-2 min-h-[3rem]">
         {cards.length === 0 ? (
-          <div className="px-2 py-6 text-center text-[11px] text-ash">
+          <div className="px-2 py-6 text-center text-[11px] text-muted">
             {t.repair.board.columnEmpty}
           </div>
         ) : (
@@ -400,20 +400,20 @@ function CardBody({ card, today }: { card: BoardCard; today: string }) {
   const isDueSoon = days != null && days >= 0 && days <= 7
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-md border border-hairline bg-canvas p-2.5 text-left transition-colors hover:border-ink">
+    <div className="flex flex-col gap-1.5 rounded-md border border-border bg-card p-2.5 text-left transition-colors hover:border-foreground">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[11px] text-ash">
+        <span className="font-mono text-[11px] text-muted">
           {card.ticket_number}
         </span>
         <ServiceTypeBadge type={card.service_type} />
       </div>
-      <div className="text-sm font-medium text-ink line-clamp-2">
+      <div className="text-sm font-medium text-foreground line-clamp-2">
         {card.title}
       </div>
-      <div className="text-xs text-ink">{card.customer_name}</div>
+      <div className="text-xs text-foreground">{card.customer_name}</div>
 
-      <div className="mt-1 flex items-center justify-between gap-2 border-t border-hairline pt-1.5 text-[11px]">
-        <span className="inline-flex items-center gap-1 text-ash">
+      <div className="mt-1 flex items-center justify-between gap-2 border-t border-border pt-1.5 text-[11px]">
+        <span className="inline-flex items-center gap-1 text-muted">
           <User size={10} weight="bold" />
           {card.assigned_to_name ?? t.repair.board.cardUnassigned}
         </span>
@@ -421,10 +421,10 @@ function CardBody({ card, today }: { card: BoardCard; today: string }) {
           <span
             className={`font-mono ${
               isOverdue
-                ? 'text-error'
+                ? 'text-danger'
                 : isDueSoon
                   ? 'text-warning'
-                  : 'text-ash'
+                  : 'text-muted'
             }`}
           >
             {isOverdue
@@ -457,8 +457,8 @@ function TechChip({
   const toneClass =
     tone === 'warning'
       ? 'border-warning/30 text-warning hover:bg-warning/5'
-      : 'border-hairline text-ink hover:bg-cloud'
-  const activeRing = active ? 'ring-2 ring-ink/20 bg-cloud' : 'bg-canvas'
+      : 'border-border text-foreground hover:bg-background'
+  const activeRing = active ? 'ring-2 ring-ink/20 bg-background' : 'bg-card'
   return (
     <button
       type="button"
@@ -467,7 +467,7 @@ function TechChip({
     >
       {label}
       {count != null ? (
-        <span className="rounded-full bg-canvas/60 px-1.5 py-0.5 text-[10px] font-mono text-ash">
+        <span className="rounded-full bg-card/60 px-1.5 py-0.5 text-[10px] font-mono text-muted">
           {count}
         </span>
       ) : null}

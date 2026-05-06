@@ -55,11 +55,11 @@ export default function CalculatorContent({
     <div className="mx-auto max-w-4xl space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <Calculator size={22} weight="bold" />
             Loan calculator
           </h1>
-          <p className="text-sm text-ash">
+          <p className="text-sm text-muted">
             Quick estimate combining melt, appraised, and operator-entered
             values. The system picks the highest available basis per row,
             then applies the LTV.
@@ -74,7 +74,7 @@ export default function CalculatorContent({
           {rows.map((row, idx) => (
             <article
               key={row.id}
-              className="rounded-lg border border-hairline bg-canvas p-3"
+              className="rounded-lg border border-border bg-card p-3"
             >
               <input
                 type="hidden"
@@ -104,7 +104,7 @@ export default function CalculatorContent({
 
               <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
                 <Field label="Item">
-                  <span className="block py-1.5 font-mono text-sm text-ash">
+                  <span className="block py-1.5 font-mono text-sm text-muted">
                     #{idx + 1}
                   </span>
                 </Field>
@@ -112,7 +112,7 @@ export default function CalculatorContent({
                   <select
                     value={row.metal}
                     onChange={(e) => patchRow(row.id, { metal: e.target.value })}
-                    className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm"
+                    className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
                   >
                     <option value="gold">gold</option>
                     <option value="silver">silver</option>
@@ -129,7 +129,7 @@ export default function CalculatorContent({
                     value={row.karat}
                     onChange={(e) => patchRow(row.id, { karat: e.target.value })}
                     placeholder="14"
-                    className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm font-mono"
+                    className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm font-mono"
                   />
                 </Field>
                 <Field label="Weight (g)">
@@ -141,7 +141,7 @@ export default function CalculatorContent({
                       patchRow(row.id, { weight_grams: e.target.value })
                     }
                     placeholder="0.00"
-                    className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm font-mono"
+                    className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm font-mono"
                   />
                 </Field>
                 <Field label="Est. value $">
@@ -153,7 +153,7 @@ export default function CalculatorContent({
                       patchRow(row.id, { est_value: e.target.value })
                     }
                     placeholder="0"
-                    className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm font-mono"
+                    className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm font-mono"
                   />
                 </Field>
                 <Field label="Appraised $">
@@ -165,7 +165,7 @@ export default function CalculatorContent({
                       patchRow(row.id, { appraised_value: e.target.value })
                     }
                     placeholder="0"
-                    className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm font-mono"
+                    className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm font-mono"
                   />
                 </Field>
               </div>
@@ -175,7 +175,7 @@ export default function CalculatorContent({
                   type="button"
                   onClick={() => removeRow(row.id)}
                   disabled={rows.length === 1}
-                  className="inline-flex items-center gap-1 text-xs text-ash hover:text-error disabled:opacity-30"
+                  className="inline-flex items-center gap-1 text-xs text-muted hover:text-danger disabled:opacity-30"
                 >
                   <Trash size={12} weight="bold" />
                   Remove
@@ -188,14 +188,14 @@ export default function CalculatorContent({
             type="button"
             onClick={addRow}
             disabled={rows.length >= 20}
-            className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline px-3 py-2 text-sm text-ink hover:bg-cloud disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-3 py-2 text-sm text-foreground hover:bg-background disabled:opacity-50"
           >
             <Plus size={14} weight="bold" />
             Add item
           </button>
         </section>
 
-        <section className="rounded-lg border border-hairline bg-canvas p-3">
+        <section className="rounded-lg border border-border bg-card p-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Field label="LTV %">
               <input
@@ -206,9 +206,9 @@ export default function CalculatorContent({
                 step={1}
                 value={ltv}
                 onChange={(e) => setLtv(e.target.value)}
-                className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm font-mono"
+                className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm font-mono"
               />
-              <p className="mt-1 text-[10px] text-ash">
+              <p className="mt-1 text-[10px] text-muted">
                 Loan-to-value as a percent of the value basis. 50% is the
                 typical FL pawn default.
               </p>
@@ -217,7 +217,7 @@ export default function CalculatorContent({
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+                className="rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
               >
                 {pending ? 'Computing…' : 'Calculate'}
               </button>
@@ -228,7 +228,7 @@ export default function CalculatorContent({
 
       <Result state={state} />
 
-      <p className="text-[11px] text-ash">
+      <p className="text-[11px] text-muted">
         Tenant: <span className="font-mono">{tenantId.slice(0, 8)}…</span>
       </p>
     </div>
@@ -244,7 +244,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-[11px] uppercase tracking-wide text-ash">
+      <span className="text-[11px] uppercase tracking-wide text-muted">
         {label}
       </span>
       {children}
@@ -256,22 +256,22 @@ function Result({ state }: { state: CalculatorState }) {
   if (state.status === 'idle') return null
   if (state.status === 'error') {
     return (
-      <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+      <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
         {state.error}
       </div>
     )
   }
   const r = state.result
   return (
-    <section className="rounded-lg border border-hairline bg-canvas p-4">
-      <div className="grid grid-cols-1 gap-4 border-b border-hairline pb-3 md:grid-cols-3">
+    <section className="rounded-lg border border-border bg-card p-4">
+      <div className="grid grid-cols-1 gap-4 border-b border-border pb-3 md:grid-cols-3">
         <Stat label="Suggested principal" value={fmt(r.totalSuggestedPrincipal)} highlight />
         <Stat label="Total value basis" value={fmt(r.totalValueBasis)} />
         <Stat label="LTV applied" value={`${r.ltvPercent}%`} />
       </div>
 
       <table className="mt-3 w-full text-sm">
-        <thead className="text-left text-xs uppercase tracking-wide text-ash">
+        <thead className="text-left text-xs uppercase tracking-wide text-muted">
           <tr>
             <th className="px-2 py-1">#</th>
             <th className="px-2 py-1">Melt</th>
@@ -281,28 +281,28 @@ function Result({ state }: { state: CalculatorState }) {
             <th className="px-2 py-1 text-right">Suggested</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-hairline">
+        <tbody className="divide-y divide-border">
           {r.rows.map((row, i) => (
             <tr key={i}>
-              <td className="px-2 py-1 font-mono text-xs text-ash">{i + 1}</td>
+              <td className="px-2 py-1 font-mono text-xs text-muted">{i + 1}</td>
               <td className="px-2 py-1 font-mono text-xs">
-                {row.meltValue == null ? <span className="text-ash">—</span> : fmt(row.meltValue)}
+                {row.meltValue == null ? <span className="text-muted">—</span> : fmt(row.meltValue)}
               </td>
               <td className="px-2 py-1 font-mono text-xs">
                 {row.appraisedValue == null ? (
-                  <span className="text-ash">—</span>
+                  <span className="text-muted">—</span>
                 ) : (
                   fmt(row.appraisedValue)
                 )}
               </td>
               <td className="px-2 py-1 font-mono text-xs">
-                {row.estValue == null ? <span className="text-ash">—</span> : fmt(row.estValue)}
+                {row.estValue == null ? <span className="text-muted">—</span> : fmt(row.estValue)}
               </td>
               <td className="px-2 py-1 text-xs">
-                <span className="rounded-md bg-cloud px-1.5 py-0.5 font-mono">
+                <span className="rounded-md bg-background px-1.5 py-0.5 font-mono">
                   {fmt(row.valueBasis)}
                 </span>
-                <span className="ml-1 text-[10px] text-ash">
+                <span className="ml-1 text-[10px] text-muted">
                   {row.valueBasisSource}
                 </span>
                 {row.warnings.length > 0 ? (
@@ -333,10 +333,10 @@ function Stat({
 }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wide text-ash">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
       <div
         className={`mt-0.5 font-mono ${
-          highlight ? 'text-2xl text-ink' : 'text-base text-ink'
+          highlight ? 'text-2xl text-foreground' : 'text-base text-foreground'
         }`}
       >
         {value}

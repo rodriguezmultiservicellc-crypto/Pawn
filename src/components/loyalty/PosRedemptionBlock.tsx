@@ -53,13 +53,13 @@ export default function PosRedemptionBlock({
       : 0
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas p-4">
-      <h3 className="mb-3 text-sm font-semibold text-ink">Loyalty</h3>
+    <section className="rounded-lg border border-border bg-card p-4">
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Loyalty</h3>
 
       {balance > 0 && (
-        <p className="mb-3 text-sm text-ash">
+        <p className="mb-3 text-sm text-muted">
           {customerFirstName} has{' '}
-          <span className="font-mono text-ink">{balance.toLocaleString()}</span>{' '}
+          <span className="font-mono text-foreground">{balance.toLocaleString()}</span>{' '}
           points (≈ ${(balance / redemptionRate).toFixed(2)})
         </p>
       )}
@@ -67,7 +67,7 @@ export default function PosRedemptionBlock({
       {balance > 0 && (
         <form action={redeemAction} className="mb-4 flex items-end gap-3">
           <input type="hidden" name="sale_id" value={saleId} />
-          <label className="text-sm text-ink">
+          <label className="text-sm text-foreground">
             <span className="mb-1 block">Redeem points</span>
             <input
               type="number"
@@ -77,16 +77,16 @@ export default function PosRedemptionBlock({
               step="1"
               value={points}
               onChange={(e) => setPoints(e.target.value)}
-              className="w-32 rounded-md border border-hairline px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-rausch/50"
+              className="w-32 rounded-md border border-border px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-gold/50"
             />
           </label>
-          <span className="pb-2 text-sm text-ash">
+          <span className="pb-2 text-sm text-muted">
             → ${previewDiscount.toFixed(2)} discount
           </span>
           <button
             type="submit"
             disabled={pointsNum <= 0 || pointsNum > balance}
-            className="rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch/90 disabled:opacity-60"
+            className="rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold/90 disabled:opacity-60"
           >
             Apply redemption
           </button>
@@ -94,7 +94,7 @@ export default function PosRedemptionBlock({
       )}
 
       {redeemState.error && (
-        <p className="mb-3 text-sm text-error" role="alert">
+        <p className="mb-3 text-sm text-danger" role="alert">
           {redeemState.error}
         </p>
       )}
@@ -108,9 +108,9 @@ export default function PosRedemptionBlock({
             return (
               <div
                 key={r.id}
-                className="flex items-center justify-between rounded-md bg-cloud px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-md bg-background px-3 py-2 text-sm"
               >
-                <span className="text-ink">
+                <span className="text-foreground">
                   Redeemed{' '}
                   <span className="font-mono">
                     {Math.abs(r.points_delta).toLocaleString()}
@@ -123,7 +123,7 @@ export default function PosRedemptionBlock({
                     <input type="hidden" name="event_id" value={r.id} />
                     <button
                       type="submit"
-                      className="text-xs text-ash underline hover:text-ink"
+                      className="text-xs text-muted underline hover:text-foreground"
                     >
                       Undo
                     </button>

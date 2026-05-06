@@ -63,10 +63,10 @@ export default function GoogleReviewsSettingsContent({
 
   return (
     <div className="mx-auto w-full max-w-[640px] px-4 py-8">
-      <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">
+      <h1 className="text-2xl font-semibold tracking-[-0.01em] text-foreground">
         Google Reviews
       </h1>
-      <p className="mt-1 text-sm text-ash">
+      <p className="mt-1 text-sm text-muted">
         Show your Google rating and recent reviews on your public landing page.
       </p>
 
@@ -105,7 +105,7 @@ export default function GoogleReviewsSettingsContent({
         <button
           type="button"
           onClick={() => setShowAdvanced((s) => !s)}
-          className="text-sm font-medium text-rausch hover:underline"
+          className="text-sm font-medium text-gold hover:underline"
         >
           Advanced (optional) {showAdvanced ? '▴' : '▾'}
         </button>
@@ -119,14 +119,14 @@ export default function GoogleReviewsSettingsContent({
         ) : null}
 
         {state.error && state.error !== 'validation_failed' ? (
-          <p className="text-sm text-error">{state.error}</p>
+          <p className="text-sm text-danger">{state.error}</p>
         ) : null}
 
         <div className="flex items-center gap-3">
           <button
             type="submit"
             disabled={pending}
-            className="rounded-lg bg-rausch px-4 py-2 text-sm font-semibold text-canvas hover:bg-rausch/90 disabled:opacity-50"
+            className="rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-navy hover:bg-gold/90 disabled:opacity-50"
           >
             {pending ? 'Save…' : 'Save'}
           </button>
@@ -137,12 +137,12 @@ export default function GoogleReviewsSettingsContent({
         </div>
       </form>
 
-      <div className="mt-8 border-t border-hairline pt-6">
+      <div className="mt-8 border-t border-border pt-6">
         <form action={testAction}>
           <button
             type="submit"
             disabled={testing || !view.placeId}
-            className="rounded-lg border border-hairline bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-cloud disabled:opacity-50"
+            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-background disabled:opacity-50"
           >
             {testing ? 'Test connection…' : 'Test connection'}
           </button>
@@ -154,7 +154,7 @@ export default function GoogleReviewsSettingsContent({
             Synced — {testState.rating ?? '—'} ★ · {testState.totalReviewCount ?? 0} reviews
           </p>
         ) : testState.error ? (
-          <p className="mt-3 inline-flex items-center gap-2 text-sm text-error">
+          <p className="mt-3 inline-flex items-center gap-2 text-sm text-danger">
             <Warning size={16} weight="fill" />
             Failed: {testState.error}
           </p>
@@ -162,11 +162,11 @@ export default function GoogleReviewsSettingsContent({
       </div>
 
       {view.reviews.length > 0 ? (
-        <div className="mt-8 border-t border-hairline pt-6">
-          <h2 className="text-base font-semibold tracking-[-0.01em] text-ink">
+        <div className="mt-8 border-t border-border pt-6">
+          <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">
             Cached reviews
           </h2>
-          <p className="mt-1 text-sm text-ash">
+          <p className="mt-1 text-sm text-muted">
             Hide an individual review without changing the star floor. Hidden
             reviews still count in the aggregate rating Google shows.
           </p>
@@ -189,13 +189,13 @@ function ReviewRow({ review }: { review: GoogleReviewsSettingsReview }) {
 
   return (
     <li
-      className={`rounded-lg border border-hairline p-3 ${
-        review.hidden ? 'bg-cloud opacity-60' : 'bg-canvas'
+      className={`rounded-lg border border-border p-3 ${
+        review.hidden ? 'bg-background opacity-60' : 'bg-card'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 text-sm font-medium text-ink">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
             <span className="truncate">{review.authorName}</span>
             <span className="inline-flex items-center gap-0.5 text-warning">
               <Star size={12} weight="fill" />
@@ -203,9 +203,9 @@ function ReviewRow({ review }: { review: GoogleReviewsSettingsReview }) {
             </span>
           </div>
           {review.text ? (
-            <p className="mt-1 line-clamp-2 text-sm text-ash">{review.text}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-muted">{review.text}</p>
           ) : (
-            <p className="mt-1 text-sm italic text-ash">No comment</p>
+            <p className="mt-1 text-sm italic text-muted">No comment</p>
           )}
         </div>
         <form action={toggleAction} className="flex-shrink-0">
@@ -218,7 +218,7 @@ function ReviewRow({ review }: { review: GoogleReviewsSettingsReview }) {
           <button
             type="submit"
             disabled={toggling}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-cloud disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-background disabled:opacity-50"
           >
             {review.hidden ? (
               <>
@@ -277,13 +277,13 @@ function Chip({
   children: React.ReactNode
 }) {
   const colorMap = {
-    ash: 'border-hairline bg-cloud text-ash',
-    success: 'border-hairline bg-cloud text-success',
-    error: 'border-hairline bg-cloud text-error',
+    ash: 'border-border bg-background text-muted',
+    success: 'border-border bg-background text-success',
+    error: 'border-border bg-background text-danger',
   }
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-pill border px-3 py-1 text-xs font-medium ${colorMap[color]}`}
+      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1 text-xs font-medium ${colorMap[color]}`}
     >
       {icon}
       {children}
@@ -319,14 +319,14 @@ function Field({
   const err = fieldErrors?.[name]
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-ink">{label}</span>
+      <span className="block text-sm font-medium text-foreground">{label}</span>
       <input
         type={type}
         name={name}
         defaultValue={defaultValue}
-        className="mt-2 block w-full rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-rausch focus:outline-none"
+        className="mt-2 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
       />
-      <p className="mt-2 text-xs text-ash">
+      <p className="mt-2 text-xs text-muted">
         {help}
         {helpLink ? (
           <>
@@ -335,14 +335,14 @@ function Field({
               href={helpLink.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-info-link hover:underline"
+              className="text-blue hover:underline"
             >
               {helpLink.label}
             </a>
           </>
         ) : null}
       </p>
-      {err ? <p className="mt-1 text-xs text-error">{err}</p> : null}
+      {err ? <p className="mt-1 text-xs text-danger">{err}</p> : null}
     </label>
   )
 }
@@ -362,12 +362,12 @@ function ApiKeySecretField({
 
   return (
     <label className="block">
-      <span className="flex items-center justify-between gap-2 text-sm font-medium text-ink">
+      <span className="flex items-center justify-between gap-2 text-sm font-medium text-foreground">
         <span>Use my own Google API key</span>
         {isSet ? (
           <span className="text-xs text-success">Configured</span>
         ) : (
-          <span className="text-xs text-ash">Not configured</span>
+          <span className="text-xs text-muted">Not configured</span>
         )}
       </span>
       {editing ? (
@@ -380,7 +380,7 @@ function ApiKeySecretField({
             setValue(e.target.value)
           }}
           placeholder={isSet ? 'Leave blank to keep current key' : ''}
-          className="mt-2 block w-full rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-rausch focus:outline-none"
+          className="mt-2 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
         />
       ) : (
         <div className="mt-2 flex items-center gap-2">
@@ -388,30 +388,30 @@ function ApiKeySecretField({
             type="text"
             value="••••••••••••••••"
             readOnly
-            className="block flex-1 rounded-lg border border-hairline bg-cloud/40 px-3 py-2 text-sm text-ash"
+            className="block flex-1 rounded-lg border border-border bg-background/40 px-3 py-2 text-sm text-muted"
           />
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
           >
             Update
           </button>
         </div>
       )}
-      <p className="mt-2 text-xs text-ash">
+      <p className="mt-2 text-xs text-muted">
         Leave blank to use the platform default. Provide a Places API key here only if you want to bill Google directly.
       </p>
       {editing && isSet ? (
         <button
           type="button"
           onClick={() => setClear(true)}
-          className="mt-1 text-xs text-error hover:underline"
+          className="mt-1 text-xs text-danger hover:underline"
         >
           Clear stored key
         </button>
       ) : null}
-      {error ? <p className="mt-1 text-xs text-error">{error}</p> : null}
+      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </label>
   )
 }
@@ -434,11 +434,11 @@ function SelectField({
   const err = fieldErrors?.[name]
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-ink">{label}</span>
+      <span className="block text-sm font-medium text-foreground">{label}</span>
       <select
         name={name}
         defaultValue={defaultValue}
-        className="mt-2 block w-full rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-rausch focus:outline-none"
+        className="mt-2 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -446,8 +446,8 @@ function SelectField({
           </option>
         ))}
       </select>
-      <p className="mt-2 text-xs text-ash">{help}</p>
-      {err ? <p className="mt-1 text-xs text-error">{err}</p> : null}
+      <p className="mt-2 text-xs text-muted">{help}</p>
+      {err ? <p className="mt-1 text-xs text-danger">{err}</p> : null}
     </label>
   )
 }

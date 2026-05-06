@@ -35,7 +35,7 @@ export default function CatalogItemContent({
 
   return (
     <>
-      <header className="sticky top-0 z-10 border-b border-hairline bg-canvas/95 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Link
             href={`/s/${tenant.public_slug}`}
@@ -49,18 +49,18 @@ export default function CatalogItemContent({
                 className="h-9 w-9 rounded-md object-cover"
               />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-rausch text-canvas">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gold text-navy">
                 <Storefront size={18} weight="bold" />
               </div>
             )}
-            <span className="text-base font-semibold tracking-[-0.01em] text-ink">
+            <span className="text-base font-semibold tracking-[-0.01em] text-foreground">
               {display}
             </span>
           </Link>
           <div className="flex items-center gap-3">
             <Link
               href={`/s/${tenant.public_slug}/catalog`}
-              className="inline-flex items-center gap-1 text-xs text-ash hover:text-ink"
+              className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
             >
               <ArrowLeft size={12} weight="bold" />
               {dict.backToAll}
@@ -74,7 +74,7 @@ export default function CatalogItemContent({
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           {/* Photos */}
           <div className="space-y-3">
-            <div className="aspect-square w-full overflow-hidden rounded-lg bg-cloud">
+            <div className="aspect-square w-full overflow-hidden rounded-lg bg-background">
               {photo?.signed_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -83,7 +83,7 @@ export default function CatalogItemContent({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-ash">
+                <div className="flex h-full w-full items-center justify-center text-muted">
                   <Storefront size={64} weight="bold" />
                 </div>
               )}
@@ -97,7 +97,7 @@ export default function CatalogItemContent({
                       i <= 0 ? photos.length - 1 : i - 1,
                     )
                   }
-                  className="rounded-full border border-hairline bg-canvas p-1.5 hover:border-ink/40"
+                  className="rounded-full border border-border bg-card p-1.5 hover:border-foreground/40"
                   aria-label={dict.prevPage}
                 >
                   <CaretLeft size={14} weight="bold" />
@@ -110,8 +110,8 @@ export default function CatalogItemContent({
                       onClick={() => setActivePhoto(i)}
                       className={`h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border ${
                         i === activePhoto
-                          ? 'border-rausch'
-                          : 'border-hairline'
+                          ? 'border-gold'
+                          : 'border-border'
                       }`}
                     >
                       {p.signed_url ? (
@@ -132,7 +132,7 @@ export default function CatalogItemContent({
                       i >= photos.length - 1 ? 0 : i + 1,
                     )
                   }
-                  className="rounded-full border border-hairline bg-canvas p-1.5 hover:border-ink/40"
+                  className="rounded-full border border-border bg-card p-1.5 hover:border-foreground/40"
                   aria-label={dict.nextPage}
                 >
                   <CaretRight size={14} weight="bold" />
@@ -144,22 +144,22 @@ export default function CatalogItemContent({
           {/* Right column */}
           <div className="space-y-4">
             <div>
-              <span className="rounded-pill border border-hairline bg-cloud px-2 py-1 text-xs font-medium text-ink">
+              <span className="rounded-xl border border-border bg-background px-2 py-1 text-xs font-medium text-foreground">
                 {dict.categories[item.category] ?? item.category}
               </span>
             </div>
-            <h1 className="text-2xl font-bold tracking-[-0.01em] text-ink">
+            <h1 className="text-2xl font-bold tracking-[-0.01em] text-foreground">
               {item.description}
             </h1>
             {item.brand || item.model ? (
-              <p className="text-sm text-ash">
+              <p className="text-sm text-muted">
                 {[item.brand, item.model].filter(Boolean).join(' · ')}
               </p>
             ) : null}
-            <p className="font-mono text-3xl font-semibold text-ink">
+            <p className="font-mono text-3xl font-semibold text-foreground">
               {formatPrice(item.list_price)}
             </p>
-            <p className="font-mono text-xs text-ash">
+            <p className="font-mono text-xs text-muted">
               {dict.specs.sku}: {item.sku}
             </p>
 
@@ -176,7 +176,7 @@ export default function CatalogItemContent({
               {tenant.phone ? (
                 <a
                   href={`tel:${tenant.phone.replace(/\s/g, '')}`}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-rausch px-4 py-2.5 text-sm font-medium text-canvas hover:bg-rausch-deep"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gold px-4 py-2.5 text-sm font-medium text-navy hover:bg-gold-2"
                 >
                   <Phone size={14} weight="bold" />
                   {dict.inquireByPhone}
@@ -187,7 +187,7 @@ export default function CatalogItemContent({
                   href={`mailto:${tenant.email}?subject=${encodeURIComponent(
                     `Inquiry: ${item.description} (${item.sku})`,
                   )}`}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-hairline bg-canvas px-4 py-2.5 text-sm font-medium text-ink hover:border-ink/40"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:border-foreground/40"
                 >
                   <EnvelopeSimple size={14} weight="bold" />
                   {dict.inquireByEmail}
@@ -198,8 +198,8 @@ export default function CatalogItemContent({
         </div>
       </main>
 
-      <footer className="border-t border-hairline py-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 text-xs text-ash">
+      <footer className="border-t border-border py-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 text-xs text-muted">
           <span>
             © {new Date().getFullYear()} {tenant.name}
           </span>
@@ -234,11 +234,11 @@ function SpecTable({
   }
   if (rows.length === 0) return null
   return (
-    <dl className="space-y-1.5 rounded-lg border border-hairline bg-canvas p-4 text-sm">
+    <dl className="space-y-1.5 rounded-lg border border-border bg-card p-4 text-sm">
       {rows.map(([k, v]) => (
         <div key={k} className="flex items-baseline justify-between gap-3">
-          <dt className="text-ash">{k}</dt>
-          <dd className="font-medium text-ink">{v}</dd>
+          <dt className="text-muted">{k}</dt>
+          <dd className="font-medium text-foreground">{v}</dd>
         </div>
       ))}
     </dl>
@@ -254,10 +254,10 @@ function StonesTable({
 }) {
   return (
     <div>
-      <p className="mb-2 text-sm font-semibold text-ink">{dict.specs.stones}</p>
-      <div className="overflow-x-auto rounded-lg border border-hairline">
+      <p className="mb-2 text-sm font-semibold text-foreground">{dict.specs.stones}</p>
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-xs">
-          <thead className="bg-cloud text-ash">
+          <thead className="bg-background text-muted">
             <tr>
               <th className="px-2 py-1.5 text-left font-medium">
                 {dict.stonesTable.count}
@@ -281,7 +281,7 @@ function StonesTable({
           </thead>
           <tbody>
             {stones.map((s, i) => (
-              <tr key={i} className="border-t border-hairline">
+              <tr key={i} className="border-t border-border">
                 <td className="px-2 py-1.5">{s.count}</td>
                 <td className="px-2 py-1.5">{s.stone_type ?? '—'}</td>
                 <td className="px-2 py-1.5">{s.cut ?? '—'}</td>
@@ -290,7 +290,7 @@ function StonesTable({
                     <>
                       {s.carat}
                       {s.is_total_carat ? (
-                        <span className="ml-1 text-ash">
+                        <span className="ml-1 text-muted">
                           {dict.stonesTable.totalCarat}
                         </span>
                       ) : null}

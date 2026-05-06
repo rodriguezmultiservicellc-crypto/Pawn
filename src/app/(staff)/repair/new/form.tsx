@@ -96,35 +96,35 @@ export default function NewRepairTicketForm({
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t.repair.new_.title}</h1>
-        <Link href="/repair" className="text-sm text-ash hover:text-ink">
+        <Link href="/repair" className="text-sm text-muted hover:text-foreground">
           {t.repair.backToList}
         </Link>
       </div>
 
       {state.error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}
 
       <form action={formAction} className="space-y-6">
         {/* Customer */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.repair.new_.sectionCustomer}
           </legend>
-          <p className="mt-1 text-xs text-ash">
+          <p className="mt-1 text-xs text-muted">
             {t.repair.new_.pickCustomerHelp}
           </p>
           <div className="mt-2 flex items-center gap-2">
             <select
               name="customer_id"
               required
-              className="flex-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="">{t.repair.new_.pickCustomer}</option>
               {customers.map((c) => (
@@ -135,26 +135,26 @@ export default function NewRepairTicketForm({
             </select>
             <Link
               href="/customers/new?return=/repair/new"
-              className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
             >
               {t.repair.new_.newCustomer}
             </Link>
           </div>
           {state.fieldErrors?.customer_id ? (
-            <div className="mt-1 text-xs text-error">
+            <div className="mt-1 text-xs text-danger">
               {state.fieldErrors.customer_id}
             </div>
           ) : null}
         </fieldset>
 
         {/* Item & service */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.repair.new_.sectionItem}
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.repair.new_.serviceType} *
               </span>
               <select
@@ -164,7 +164,7 @@ export default function NewRepairTicketForm({
                   setServiceType(e.target.value as ServiceType)
                 }
                 required
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               >
                 <option value="repair">{t.repair.serviceTypes.repair}</option>
                 <option value="stone_setting">
@@ -180,13 +180,13 @@ export default function NewRepairTicketForm({
                 </option>
                 <option value="custom">{t.repair.serviceTypes.custom}</option>
               </select>
-              <span className="text-xs text-ash">
+              <span className="text-xs text-muted">
                 {t.repair.new_.serviceTypeHelp}
               </span>
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.repair.new_.titleField} *
               </span>
               <input
@@ -194,17 +194,17 @@ export default function NewRepairTicketForm({
                 name="title"
                 required
                 placeholder={t.repair.new_.titlePlaceholder}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
               {state.fieldErrors?.title ? (
-                <span className="text-xs text-error">
+                <span className="text-xs text-danger">
                   {state.fieldErrors.title}
                 </span>
               ) : null}
             </label>
 
             <label className="block space-y-1 md:col-span-2">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.repair.new_.itemDescription} *
               </span>
               <textarea
@@ -212,46 +212,46 @@ export default function NewRepairTicketForm({
                 required
                 rows={2}
                 placeholder={t.repair.new_.itemDescriptionPlaceholder}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
               {state.fieldErrors?.item_description ? (
-                <span className="text-xs text-error">
+                <span className="text-xs text-danger">
                   {state.fieldErrors.item_description}
                 </span>
               ) : null}
             </label>
 
             <label className="block space-y-1 md:col-span-2">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.repair.new_.description}
               </span>
               <textarea
                 name="description"
                 rows={3}
                 placeholder={t.repair.new_.descriptionPlaceholder}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.repair.new_.promisedDate}
               </span>
               <input
                 type="date"
                 name="promised_date"
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.repair.new_.assignedTo}
               </span>
               <select
                 name="assigned_to"
                 defaultValue=""
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               >
                 <option value="">{t.repair.new_.assignedToNone}</option>
                 {technicians.map((tech) => (
@@ -266,8 +266,8 @@ export default function NewRepairTicketForm({
 
         {/* Stones (gated by service_type) */}
         {showStones ? (
-          <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-            <legend className="px-1 text-sm font-semibold text-ink">
+          <fieldset className="rounded-lg border border-border bg-card p-4">
+            <legend className="px-1 text-sm font-semibold text-foreground">
               {t.repair.new_.sectionStones}
             </legend>
             <input type="hidden" name="stone_count" value={stones.length} />
@@ -284,7 +284,7 @@ export default function NewRepairTicketForm({
               <button
                 type="button"
                 onClick={addStone}
-                className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+                className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
               >
                 <Plus size={14} weight="bold" />
                 {t.repair.new_.addStone}
@@ -294,18 +294,18 @@ export default function NewRepairTicketForm({
         ) : null}
 
         {/* Intake photos */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.repair.new_.sectionPhotos}
           </legend>
-          <p className="mt-1 text-xs text-ash">
+          <p className="mt-1 text-xs text-muted">
             {t.repair.new_.photoUploadHelp}
           </p>
           <div className="mt-2">
             <button
               type="button"
               onClick={() => photoInputRef.current?.click()}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
             >
               <Upload size={14} weight="bold" />
               {t.repair.new_.photoUpload}
@@ -320,7 +320,7 @@ export default function NewRepairTicketForm({
               className="sr-only"
             />
             {photoNames.length > 0 ? (
-              <ul className="mt-2 space-y-1 text-xs text-ash">
+              <ul className="mt-2 space-y-1 text-xs text-muted">
                 {photoNames.map((n, i) => (
                   <li key={i}>{n}</li>
                 ))}
@@ -330,21 +330,21 @@ export default function NewRepairTicketForm({
         </fieldset>
 
         {/* Internal notes */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.repair.new_.sectionStaff}
           </legend>
           <label className="mt-2 block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.repair.new_.notesInternal}
             </span>
-            <p className="text-xs text-ash">
+            <p className="text-xs text-muted">
               {t.repair.new_.notesInternalHelp}
             </p>
             <textarea
               name="notes_internal"
               rows={2}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
         </fieldset>
@@ -352,14 +352,14 @@ export default function NewRepairTicketForm({
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/repair"
-            className="rounded-md border border-hairline px-4 py-2 text-sm text-ink"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
           >
             {t.common.cancel}
           </Link>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? t.repair.new_.submitting : t.repair.new_.submit}
           </button>
@@ -382,15 +382,15 @@ function StoneRowEditor({
 }) {
   const { t } = useI18n()
   return (
-    <div className="rounded-lg border border-hairline bg-cloud/40 p-3">
+    <div className="rounded-lg border border-border bg-background/40 p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-[11px] font-mono text-ink">
+        <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-mono text-foreground">
           {t.repair.new_.stoneIndex} {index + 1}
         </span>
         <button
           type="button"
           onClick={onRemove}
-          className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-2 py-1 text-xs font-medium text-error hover:bg-error/10"
+          className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10"
         >
           <Trash size={12} weight="bold" />
           {t.repair.new_.removeStone}
@@ -453,7 +453,7 @@ function StoneRowEditor({
           onChange={(v) => onChange({ mounting_position: v })}
         />
         <label className="md:col-span-2 block space-y-1">
-          <span className="text-xs font-medium text-ink">
+          <span className="text-xs font-medium text-foreground">
             {t.repair.new_.stoneSource}
           </span>
           <select
@@ -464,7 +464,7 @@ function StoneRowEditor({
                 source: e.target.value as 'customer_supplied' | 'shop_supplied',
               })
             }
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           >
             <option value="customer_supplied">
               {t.repair.new_.stoneSourceCustomer}
@@ -475,7 +475,7 @@ function StoneRowEditor({
           </select>
         </label>
         <label className="md:col-span-6 block space-y-1">
-          <span className="text-xs font-medium text-ink">
+          <span className="text-xs font-medium text-foreground">
             {t.repair.new_.stoneNotes}
           </span>
           <input
@@ -483,7 +483,7 @@ function StoneRowEditor({
             name={`stone_${index}_notes`}
             value={row.notes}
             onChange={(e) => onChange({ notes: e.target.value })}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -516,7 +516,7 @@ function Input({
     span === 2 ? 'md:col-span-2' : span === 3 ? 'md:col-span-3' : ''
   return (
     <label className={`block space-y-1 ${colSpan}`}>
-      <span className="text-xs font-medium text-ink">{label}</span>
+      <span className="text-xs font-medium text-foreground">{label}</span>
       <input
         type={type}
         step={step}
@@ -525,7 +525,7 @@ function Input({
         required={required}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
       />
     </label>
   )

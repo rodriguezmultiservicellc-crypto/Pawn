@@ -117,7 +117,7 @@ export function ReturnPicker({
 
   if (!remainingAny) {
     return (
-      <div className="rounded-md border border-hairline bg-cloud/40 p-6 text-center text-sm text-ash">
+      <div className="rounded-md border border-border bg-background/40 p-6 text-center text-sm text-muted">
         {t.pos.return.noEligibleItems}
       </div>
     )
@@ -126,19 +126,19 @@ export function ReturnPicker({
   return (
     <div className="space-y-5">
       {error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
 
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
+        <legend className="px-1 text-sm font-semibold text-foreground">
           {t.pos.return.selectItems}
         </legend>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ash">
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-2 py-2">{t.pos.cart.itemDescription}</th>
                 <th className="px-2 py-2 text-right">{t.pos.cart.qty}</th>
                 <th className="px-2 py-2 text-right">{t.pos.return.quantity}</th>
@@ -157,15 +157,15 @@ export function ReturnPicker({
                 const eff = Math.min(q, remaining)
                 const lineTotal = r4(eff * it.unit_price)
                 return (
-                  <tr key={it.id} className="border-b border-hairline/60">
+                  <tr key={it.id} className="border-b border-border/60">
                     <td className="px-2 py-2">
-                      <div className="font-medium text-ink">
+                      <div className="font-medium text-foreground">
                         {it.description}
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-right font-mono text-ink">
+                    <td className="px-2 py-2 text-right font-mono text-foreground">
                       {it.quantity}
-                      <span className="ml-1 text-xs text-ash">
+                      <span className="ml-1 text-xs text-muted">
                         (−{it.returned_qty})
                       </span>
                     </td>
@@ -180,13 +180,13 @@ export function ReturnPicker({
                           update(it.id, { quantity: e.target.value })
                         }
                         disabled={remaining <= 0}
-                        className="block w-20 rounded-md border border-hairline bg-canvas px-2 py-1 text-right text-sm font-mono text-ink focus:border-ink focus:outline-none disabled:opacity-50"
+                        className="block w-20 rounded-md border border-border bg-card px-2 py-1 text-right text-sm font-mono text-foreground focus:border-blue focus:outline-none disabled:opacity-50"
                       />
                     </td>
-                    <td className="px-2 py-2 text-right font-mono text-ink">
+                    <td className="px-2 py-2 text-right font-mono text-foreground">
                       {fmtMoney(it.unit_price)}
                     </td>
-                    <td className="px-2 py-2 text-right font-mono text-ink">
+                    <td className="px-2 py-2 text-right font-mono text-foreground">
                       {fmtMoney(lineTotal)}
                     </td>
                     <td className="px-2 py-2 text-center">
@@ -197,7 +197,7 @@ export function ReturnPicker({
                           update(it.id, { restock: e.target.checked })
                         }
                         disabled={!it.has_inventory}
-                        className="h-4 w-4 rounded border-hairline"
+                        className="h-4 w-4 rounded border-border"
                       />
                     </td>
                   </tr>
@@ -208,13 +208,13 @@ export function ReturnPicker({
         </div>
       </fieldset>
 
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
+        <legend className="px-1 text-sm font-semibold text-foreground">
           {t.pos.return.refundSummary}
         </legend>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.return.refundMethod}
             </span>
             <select
@@ -222,7 +222,7 @@ export function ReturnPicker({
               onChange={(e) =>
                 setRefundMethod(e.target.value as PaymentMethod)
               }
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="cash">{t.pos.payment.methodCash}</option>
               <option value="card">{t.pos.payment.methodCard}</option>
@@ -230,26 +230,26 @@ export function ReturnPicker({
               <option value="other">{t.pos.payment.methodOther}</option>
             </select>
           </label>
-          <div className="rounded-md border border-hairline bg-cloud/40 p-3 text-sm">
-            <div className="text-xs text-ash">
+          <div className="rounded-md border border-border bg-background/40 p-3 text-sm">
+            <div className="text-xs text-muted">
               {t.pos.return.refundTotal}
             </div>
-            <div className="font-mono text-base font-semibold text-ink">
+            <div className="font-mono text-base font-semibold text-foreground">
               {fmtMoney(totals.total)}
             </div>
           </div>
         </div>
         <label className="mt-3 block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pos.return.reason}
           </span>
           <textarea
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
-          <span className="block text-xs text-ash">
+          <span className="block text-xs text-muted">
             {t.pos.return.reasonHelp}
           </span>
         </label>
@@ -260,7 +260,7 @@ export function ReturnPicker({
           type="button"
           disabled={pending || totals.total <= 0}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
         >
           <ArrowsClockwise size={14} weight="bold" />
           {pending ? t.pos.return.submitting : t.pos.return.submit}

@@ -39,7 +39,7 @@ export function PortalChrome({
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-hairline bg-canvas">
+      <header className="sticky top-0 z-30 border-b border-border bg-card">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3">
           <Link href="/portal/loans" className="flex flex-col leading-tight">
             <span
@@ -52,14 +52,14 @@ export function PortalChrome({
               {tenantName}
             </span>
             {customerName ? (
-              <span className="truncate text-xs text-ash">{customerName}</span>
+              <span className="truncate text-xs text-muted">{customerName}</span>
             ) : null}
           </Link>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
-              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-ash hover:bg-cloud hover:text-ink"
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-muted hover:bg-background hover:text-foreground"
               aria-label={t.lang.toggle}
             >
               <Translate size={16} weight="regular" />
@@ -71,7 +71,7 @@ export function PortalChrome({
                 void handleSignOut()
                 router.refresh()
               }}
-              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-ash hover:bg-cloud hover:text-ink"
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-muted hover:bg-background hover:text-foreground"
             >
               <SignOut size={16} weight="regular" />
               <span className="hidden sm:inline">
@@ -81,7 +81,7 @@ export function PortalChrome({
           </div>
         </div>
         {/* Tablet/desktop secondary nav */}
-        <nav className="hidden border-t border-hairline bg-canvas sm:block">
+        <nav className="hidden border-t border-border bg-card sm:block">
           <div className="mx-auto flex max-w-4xl items-center gap-2 px-4">
             <PortalTopLink
               href="/portal/loans"
@@ -112,7 +112,7 @@ export function PortalChrome({
       </header>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-canvas sm:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card sm:hidden">
         <div className="mx-auto flex max-w-4xl items-stretch">
           <PortalBottomLink
             href="/portal/loans"
@@ -160,11 +160,11 @@ function PortalTopLink({
       href={href}
       className={`flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors ${
         active
-          ? 'border-rausch font-medium text-ink'
-          : 'border-transparent text-ash hover:text-ink'
+          ? 'border-gold font-medium text-foreground'
+          : 'border-transparent text-muted hover:text-foreground'
       }`}
     >
-      <span className={active ? 'text-rausch' : 'text-ash'}>{icon}</span>
+      <span className={active ? 'text-gold' : 'text-muted'}>{icon}</span>
       <span>{label}</span>
     </Link>
   )
@@ -185,7 +185,7 @@ function PortalBottomLink({
     <Link
       href={href}
       className={`flex flex-1 flex-col items-center gap-0.5 px-1 py-2 text-xs transition-colors ${
-        active ? 'text-rausch' : 'text-ash hover:text-ink'
+        active ? 'text-gold' : 'text-muted hover:text-foreground'
       }`}
     >
       <span>{icon}</span>

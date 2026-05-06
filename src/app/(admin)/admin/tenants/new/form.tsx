@@ -33,19 +33,19 @@ export default function NewTenantForm({
         <h1 className="text-2xl font-bold">{t.admin.newTenant.title}</h1>
         <Link
           href="/admin/tenants"
-          className="text-sm text-ash hover:text-ink"
+          className="text-sm text-muted hover:text-foreground"
         >
           {t.common.back}
         </Link>
       </div>
 
       {state.error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
         </div>
       ) : null}
 
-      <form action={formAction} className="space-y-6 rounded-lg border border-hairline bg-canvas p-6">
+      <form action={formAction} className="space-y-6 rounded-lg border border-border bg-card p-6">
         {/* Identity */}
         <fieldset className="space-y-3">
           <Field
@@ -63,14 +63,14 @@ export default function NewTenantForm({
         {/* Type + parent */}
         <fieldset className="space-y-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.admin.newTenant.tenantType}
             </span>
             <select
               name="tenant_type"
               value={tenantType}
               onChange={(e) => setTenantType(e.target.value as TenantType)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="standalone">
                 {t.admin.tenants.typeStandalone}
@@ -82,16 +82,16 @@ export default function NewTenantForm({
 
           {tenantType === 'shop' ? (
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.admin.newTenant.parent}
               </span>
               <select
                 name="parent_tenant_id"
                 required
-                className={`block w-full rounded-md border bg-canvas px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+                className={`block w-full rounded-md border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
                   fieldError('parent_tenant_id')
-                    ? 'border-error'
-                    : 'border-hairline focus:border-ink'
+                    ? 'border-danger'
+                    : 'border-border focus:border-blue'
                 }`}
               >
                 <option value="">{t.admin.newTenant.noParent}</option>
@@ -102,7 +102,7 @@ export default function NewTenantForm({
                 ))}
               </select>
               {fieldError('parent_tenant_id') ? (
-                <span className="text-xs text-error">
+                <span className="text-xs text-danger">
                   {t.common.requiredField}
                 </span>
               ) : null}
@@ -112,7 +112,7 @@ export default function NewTenantForm({
 
         {/* Modules */}
         <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-ink">
+          <legend className="text-sm font-medium text-foreground">
             {t.admin.newTenant.modules}
           </legend>
           <ModuleCheckbox
@@ -135,13 +135,13 @@ export default function NewTenantForm({
         {/* Compliance */}
         <fieldset>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.admin.newTenant.policeReportFormat}
             </span>
             <select
               name="police_report_format"
               defaultValue="fl_leadsonline"
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="fl_leadsonline">FL — LeadsOnline</option>
             </select>
@@ -161,14 +161,14 @@ export default function NewTenantForm({
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/admin/tenants"
-            className="rounded-md border border-hairline px-4 py-2 text-sm text-ink"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
           >
             {t.common.cancel}
           </Link>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? t.common.saving : t.admin.newTenant.submit}
           </button>
@@ -195,20 +195,20 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       <input
         type={type}
         name={name}
         required={required}
         defaultValue={defaultValue}
-        className={`block w-full rounded-md border bg-canvas px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+        className={`block w-full rounded-md border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
           error
-            ? 'border-error focus:border-error'
-            : 'border-hairline focus:border-ink'
+            ? 'border-danger focus:border-danger'
+            : 'border-border focus:border-blue'
         }`}
       />
       {error ? (
-        <span className="text-xs text-error">required</span>
+        <span className="text-xs text-danger">required</span>
       ) : null}
     </label>
   )
@@ -224,12 +224,12 @@ function ModuleCheckbox({
   defaultChecked?: boolean
 }) {
   return (
-    <label className="flex items-center gap-2 text-sm text-ink">
+    <label className="flex items-center gap-2 text-sm text-foreground">
       <input
         type="checkbox"
         name={name}
         defaultChecked={defaultChecked}
-        className="h-4 w-4 rounded border-hairline text-rausch focus:ring-ink/10"
+        className="h-4 w-4 rounded border-border text-gold focus:ring-blue/10"
       />
       <span>{label}</span>
     </label>

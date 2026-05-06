@@ -66,48 +66,48 @@ export default function AccountContent({
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-ink">
+        <h1 className="text-2xl font-bold text-foreground">
           {t.portal.account.title}
         </h1>
-        <p className="mt-1 text-sm text-ash">{t.portal.account.subtitle}</p>
+        <p className="mt-1 text-sm text-muted">{t.portal.account.subtitle}</p>
       </div>
 
       {/* Identity card — read-only. */}
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
+        <legend className="px-1 text-sm font-semibold text-foreground">
           {t.portal.account.identity}
         </legend>
         <dl className="mt-2 grid grid-cols-3 gap-x-3 gap-y-2 text-sm">
-          <dt className="text-ash">{t.portal.account.name}</dt>
-          <dd className="col-span-2 text-ink">
+          <dt className="text-muted">{t.portal.account.name}</dt>
+          <dd className="col-span-2 text-foreground">
             {customerName || (
-              <span className="italic text-ash">
+              <span className="italic text-muted">
                 {t.portal.account.noNameOnFile}
               </span>
             )}
           </dd>
-          <dt className="text-ash">{t.portal.account.email}</dt>
-          <dd className="col-span-2 break-all font-mono text-xs text-ink">
+          <dt className="text-muted">{t.portal.account.email}</dt>
+          <dd className="col-span-2 break-all font-mono text-xs text-foreground">
             {email}
           </dd>
         </dl>
-        <p className="mt-2 text-xs text-ash">
+        <p className="mt-2 text-xs text-muted">
           {t.portal.account.emailReadOnlyHelp}
         </p>
       </fieldset>
 
       {/* Password card. */}
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-        <legend className="flex items-center gap-1 px-1 text-sm font-semibold text-ink">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
+        <legend className="flex items-center gap-1 px-1 text-sm font-semibold text-foreground">
           <Key size={14} weight="bold" />
           <span>{t.portal.account.passwordTitle}</span>
         </legend>
-        <p className="mt-1 text-xs text-ash">
+        <p className="mt-1 text-xs text-muted">
           {t.portal.account.passwordHelp}
         </p>
 
         {error ? (
-          <div className="mt-3 flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
             <Warning size={14} weight="bold" />
             <span>{error}</span>
           </div>
@@ -122,7 +122,7 @@ export default function AccountContent({
 
         <form onSubmit={onSubmit} className="mt-3 space-y-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.portal.account.newPassword}
             </span>
             <input
@@ -132,12 +132,12 @@ export default function AccountContent({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
 
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.portal.account.confirmPassword}
             </span>
             <input
@@ -147,14 +147,14 @@ export default function AccountContent({
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               autoComplete="new-password"
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
 
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-md bg-rausch px-4 py-2.5 font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50 sm:w-auto"
+            className="w-full rounded-md bg-gold px-4 py-2.5 font-medium text-navy hover:bg-gold-2 disabled:opacity-50 sm:w-auto"
           >
             {busy ? t.common.saving : t.portal.account.savePassword}
           </button>

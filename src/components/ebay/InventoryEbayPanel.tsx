@@ -65,14 +65,14 @@ export default function InventoryEbayPanel(props: InventoryEbayPanelProps) {
 
   if (!props.ebayConnected) {
     return (
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
+        <legend className="px-1 text-sm font-semibold text-foreground">
           {t.ebay.panelTitle}
         </legend>
-        <p className="mt-2 text-sm text-ash">{t.ebay.notConnected}</p>
+        <p className="mt-2 text-sm text-muted">{t.ebay.notConnected}</p>
         <a
           href="/settings/integrations/ebay"
-          className="mt-2 inline-block text-sm font-medium text-rausch hover:underline"
+          className="mt-2 inline-block text-sm font-medium text-gold hover:underline"
         >
           {t.ebay.connectCta} →
         </a>
@@ -88,15 +88,15 @@ export default function InventoryEbayPanel(props: InventoryEbayPanelProps) {
   // No listing yet → "Create eBay listing" button.
   if (!props.listing && !showForm) {
     return (
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
+        <legend className="px-1 text-sm font-semibold text-foreground">
           {t.ebay.panelTitle}
         </legend>
-        <p className="mt-2 text-sm text-ash">{t.ebay.noDraft}</p>
+        <p className="mt-2 text-sm text-muted">{t.ebay.noDraft}</p>
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="mt-2 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep"
+          className="mt-2 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2"
         >
           {t.ebay.createDraft}
         </button>
@@ -126,13 +126,13 @@ export default function InventoryEbayPanel(props: InventoryEbayPanelProps) {
     : props.createDraftAction
 
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">
         {t.ebay.panelTitle}
       </legend>
 
       {listing ? (
-        <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-ash">
+        <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-muted">
           <EbayStatusPill status={listing.status} />
           {listing.ebay_sku ? (
             <span>
@@ -155,7 +155,7 @@ export default function InventoryEbayPanel(props: InventoryEbayPanelProps) {
       ) : null}
 
       {error ? (
-        <div className="mb-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs text-error">
+        <div className="mb-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
           {error}
         </div>
       ) : null}
@@ -207,7 +207,7 @@ export default function InventoryEbayPanel(props: InventoryEbayPanelProps) {
             onClick={() => {
               startTransition(() => setShowForm(false))
             }}
-            className="text-xs text-ash hover:text-ink"
+            className="text-xs text-muted hover:text-foreground"
           >
             {t.common.cancel}
           </button>

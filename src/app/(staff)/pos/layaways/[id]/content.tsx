@@ -82,7 +82,7 @@ export default function LayawayDetailContent({
       <div className="flex items-center justify-between">
         <Link
           href="/pos/layaways"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.pos.layaway.backToList}
@@ -91,41 +91,41 @@ export default function LayawayDetailContent({
       </div>
 
       {/* Header */}
-      <div className="rounded-lg border border-hairline bg-canvas p-4">
+      <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pos.layaway.layawayNumber}
             </div>
-            <h1 className="font-mono text-2xl font-bold text-ink">
+            <h1 className="font-mono text-2xl font-bold text-foreground">
               {layaway.layaway_number}
             </h1>
             <Link
               href={`/pos/sales/${layaway.sale_id}`}
-              className="mt-1 inline-block text-xs text-ash underline"
+              className="mt-1 inline-block text-xs text-muted underline"
             >
               {t.pos.sale.saleNumber} →
             </Link>
           </div>
           <div className="min-w-[200px]">
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pos.sale.customer}
             </div>
             <Link
               href={`/customers/${layaway.customer_id}`}
-              className="text-base font-semibold text-ink hover:underline"
+              className="text-base font-semibold text-foreground hover:underline"
             >
               {layaway.customer_name}
             </Link>
-            <div className="text-xs text-ash">
+            <div className="text-xs text-muted">
               {layaway.customer_phone ?? '—'}
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pos.layaway.created}
             </div>
-            <div className="font-mono text-sm text-ink">
+            <div className="font-mono text-sm text-foreground">
               {new Date(layaway.created_at).toLocaleString()}
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function LayawayDetailContent({
           <button
             type="button"
             onClick={() => setShowPay(true)}
-            className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep"
+            className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2"
           >
             <CashRegister size={14} weight="bold" />
             {t.pos.layaway.addPayment}
@@ -147,7 +147,7 @@ export default function LayawayDetailContent({
         <button
           type="button"
           onClick={() => setShowReminder(true)}
-          className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.comms.sendReminderButton}
         </button>
@@ -155,7 +155,7 @@ export default function LayawayDetailContent({
           <button
             type="button"
             onClick={() => setShowCancel(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm font-medium text-error hover:bg-error/10"
+            className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10"
           >
             <Prohibit size={14} weight="bold" />
             {t.pos.layaway.cancel}
@@ -184,7 +184,7 @@ export default function LayawayDetailContent({
       ) : null}
 
       {/* Totals */}
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-hairline bg-canvas p-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-4 lg:grid-cols-4">
         <Stat label={t.pos.sale.total} value={fmtMoney(layaway.total_due)} />
         <Stat
           label={t.pos.layaway.paidTotal}
@@ -203,35 +203,35 @@ export default function LayawayDetailContent({
       </div>
 
       {/* Schedule preview */}
-      <section className="rounded-lg border border-hairline bg-canvas p-4">
+      <section className="rounded-lg border border-border bg-card p-4">
         <header className="mb-2 flex items-center gap-2">
-          <Calendar size={14} weight="regular" className="text-ash" />
-          <h2 className="text-sm font-semibold text-ink">
+          <Calendar size={14} weight="regular" className="text-muted" />
+          <h2 className="text-sm font-semibold text-foreground">
             {t.pos.layaway.schedulePreview}
           </h2>
         </header>
         <dl className="grid grid-cols-2 gap-3 text-xs lg:grid-cols-4">
           <div>
-            <dt className="text-ash">{t.pos.layaway.schedule}</dt>
-            <dd className="text-ink">
+            <dt className="text-muted">{t.pos.layaway.schedule}</dt>
+            <dd className="text-foreground">
               {scheduleLabel(layaway.schedule_kind, t)}
             </dd>
           </div>
           <div>
-            <dt className="text-ash">{t.pos.layaway.downPayment}</dt>
-            <dd className="font-mono text-ink">
+            <dt className="text-muted">{t.pos.layaway.downPayment}</dt>
+            <dd className="font-mono text-foreground">
               {fmtMoney(layaway.down_payment)}
             </dd>
           </div>
           <div>
-            <dt className="text-ash">{t.pos.layaway.finalDue}</dt>
-            <dd className="font-mono text-ink">
+            <dt className="text-muted">{t.pos.layaway.finalDue}</dt>
+            <dd className="font-mono text-foreground">
               {layaway.final_due_date ?? '—'}
             </dd>
           </div>
           <div>
-            <dt className="text-ash">{t.pos.layaway.cancellationFeePct}</dt>
-            <dd className="font-mono text-ink">
+            <dt className="text-muted">{t.pos.layaway.cancellationFeePct}</dt>
+            <dd className="font-mono text-foreground">
               {(layaway.cancellation_fee_pct * 100).toFixed(2)}%
             </dd>
           </div>
@@ -239,16 +239,16 @@ export default function LayawayDetailContent({
       </section>
 
       {/* Items */}
-      <section className="overflow-hidden rounded-lg border border-hairline bg-canvas">
-        <header className="border-b border-hairline px-3 py-2">
-          <h2 className="text-sm font-semibold text-ink">
+      <section className="overflow-hidden rounded-lg border border-border bg-card">
+        <header className="border-b border-border px-3 py-2">
+          <h2 className="text-sm font-semibold text-foreground">
             {t.pos.sale.itemsTitle}
           </h2>
-          <p className="text-xs text-ash">{t.pos.layaway.itemsHeldHelp}</p>
+          <p className="text-xs text-muted">{t.pos.layaway.itemsHeldHelp}</p>
         </header>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ash">
+            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-3 py-2">{t.pos.cart.itemDescription}</th>
               <th className="px-3 py-2 text-right">{t.pos.cart.qty}</th>
               <th className="px-3 py-2 text-right">{t.pos.cart.unitPrice}</th>
@@ -257,15 +257,15 @@ export default function LayawayDetailContent({
           </thead>
           <tbody>
             {items.map((it) => (
-              <tr key={it.id} className="border-b border-hairline/60">
-                <td className="px-3 py-2 text-ink">{it.description}</td>
-                <td className="px-3 py-2 text-right font-mono text-ink">
+              <tr key={it.id} className="border-b border-border/60">
+                <td className="px-3 py-2 text-foreground">{it.description}</td>
+                <td className="px-3 py-2 text-right font-mono text-foreground">
                   {it.quantity}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-ink">
+                <td className="px-3 py-2 text-right font-mono text-foreground">
                   {fmtMoney(it.unit_price)}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-ink">
+                <td className="px-3 py-2 text-right font-mono text-foreground">
                   {fmtMoney(it.line_total)}
                 </td>
               </tr>
@@ -275,18 +275,18 @@ export default function LayawayDetailContent({
       </section>
 
       {/* Payments */}
-      <section className="overflow-hidden rounded-lg border border-hairline bg-canvas">
-        <header className="border-b border-hairline px-3 py-2">
-          <h2 className="text-sm font-semibold text-ink">
+      <section className="overflow-hidden rounded-lg border border-border bg-card">
+        <header className="border-b border-border px-3 py-2">
+          <h2 className="text-sm font-semibold text-foreground">
             {t.pos.layaway.paymentsHistory}
           </h2>
         </header>
         {payments.length === 0 ? (
-          <div className="px-3 py-6 text-center text-sm text-ash">
+          <div className="px-3 py-6 text-center text-sm text-muted">
             {t.pos.sale.noPayments}
           </div>
         ) : (
-          <ul className="divide-y divide-hairline">
+          <ul className="divide-y divide-border">
             {payments.map((p) => (
               <li
                 key={p.id}
@@ -294,18 +294,18 @@ export default function LayawayDetailContent({
               >
                 <div className="flex-1">
                   <div
-                    className={`font-mono ${p.amount < 0 ? 'text-error' : 'text-ink'}`}
+                    className={`font-mono ${p.amount < 0 ? 'text-danger' : 'text-foreground'}`}
                   >
                     {fmtMoney(p.amount)}
                   </div>
-                  <div className="text-xs text-ash">
+                  <div className="text-xs text-muted">
                     {new Date(p.occurred_at).toLocaleString()}
                   </div>
                   {p.notes ? (
-                    <div className="text-xs text-ash">{p.notes}</div>
+                    <div className="text-xs text-muted">{p.notes}</div>
                   ) : null}
                 </div>
-                <span className="rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs text-ink">
+                <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground">
                   {p.payment_method}
                 </span>
               </li>
@@ -362,10 +362,10 @@ function Stat({
   bold?: boolean
   tone?: 'neutral' | 'warning'
 }) {
-  const tn = tone === 'warning' ? 'text-warning' : 'text-ink'
+  const tn = tone === 'warning' ? 'text-warning' : 'text-foreground'
   return (
     <div>
-      <div className="text-xs uppercase tracking-wide text-ash">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
       <div
         className={`font-mono ${bold ? 'text-base font-semibold' : 'text-sm'} ${tn}`}
       >

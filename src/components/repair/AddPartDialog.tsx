@@ -70,20 +70,20 @@ export function AddPartDialog({
   return (
     <Modal title={t.repair.dialogs.addPart.title} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
-      <p className="mb-3 text-sm text-ash">{t.repair.dialogs.addPart.body}</p>
+      <p className="mb-3 text-sm text-muted">{t.repair.dialogs.addPart.body}</p>
       <div className="space-y-3">
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.repair.dialogs.addPart.inventoryItem}
           </span>
           <select
             value={invId}
             onChange={(e) => pickInventoryItem(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           >
             <option value="">{t.repair.dialogs.addPart.inventoryItemNone}</option>
             {options.map((o) => (
@@ -94,19 +94,19 @@ export function AddPartDialog({
           </select>
         </label>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.repair.dialogs.addPart.description} *
           </span>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
         <div className="grid grid-cols-3 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.repair.dialogs.addPart.quantity}
             </span>
             <input
@@ -115,11 +115,11 @@ export function AddPartDialog({
               min={0}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.repair.dialogs.addPart.unitCost}
             </span>
             <input
@@ -128,27 +128,27 @@ export function AddPartDialog({
               min={0}
               value={unitCost}
               onChange={(e) => setUnitCost(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
           <div className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.repair.dialogs.addPart.totalCost}
             </span>
-            <div className="flex h-[42px] items-center rounded-md border border-hairline bg-cloud/40 px-3 font-mono text-sm text-ink">
+            <div className="flex h-[42px] items-center rounded-md border border-border bg-background/40 px-3 font-mono text-sm text-foreground">
               {totalCost.toFixed(4)}
             </div>
           </div>
         </div>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.repair.new_.stoneNotes}
           </span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -156,7 +156,7 @@ export function AddPartDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -164,7 +164,7 @@ export function AddPartDialog({
           type="button"
           disabled={pending || !canSubmit}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
         >
           <Plus size={14} weight="bold" />
           {pending ? t.common.saving : t.repair.actions.addPart}

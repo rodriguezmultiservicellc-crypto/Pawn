@@ -120,7 +120,7 @@ export default function SpotPricesContent({
       <div className="flex items-center justify-between">
         <Link
           href="/inventory"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.spotPrices.backToInventory}
@@ -130,7 +130,7 @@ export default function SpotPricesContent({
 
       <div>
         <h1 className="text-2xl font-bold">{t.spotPrices.title}</h1>
-        <p className="mt-1 text-sm text-ash">{t.spotPrices.subtitle}</p>
+        <p className="mt-1 text-sm text-muted">{t.spotPrices.subtitle}</p>
       </div>
 
       {headline ? <HeadlinePanel card={headline} /> : null}
@@ -169,17 +169,17 @@ function HeadlinePanel({ card }: { card: SpotPriceCard }) {
   const overrideActive = isFinite(multiplier) && multiplier !== 1
 
   return (
-    <div className="overflow-hidden rounded-xl border border-hairline bg-gradient-to-br from-canvas to-cloud/40 p-6">
+    <div className="overflow-hidden rounded-xl border border-border bg-gradient-to-br from-canvas to-cloud/40 p-6">
       <div className="flex flex-col items-center text-center">
-        <div className="text-xs font-bold uppercase tracking-widest text-ash">
+        <div className="text-xs font-bold uppercase tracking-widest text-muted">
           {t.spotPrices.metals.gold ?? 'Gold'}
           {' · '}
           {t.spotPrices.purities.pure_24k ?? '24K'}
         </div>
-        <div className="mt-2 font-mono text-5xl font-bold tabular-nums text-ink md:text-6xl">
+        <div className="mt-2 font-mono text-5xl font-bold tabular-nums text-foreground md:text-6xl">
           {perOz == null ? '—' : formatMoney(perOz)}
         </div>
-        <div className="mt-1 text-sm text-ash">
+        <div className="mt-1 text-sm text-muted">
           {t.spotPrices.perOz}
           {perGram != null ? (
             <span className="ml-3 font-mono text-xs">
@@ -187,7 +187,7 @@ function HeadlinePanel({ card }: { card: SpotPriceCard }) {
             </span>
           ) : null}
         </div>
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-ash">
+        <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
           {card.fetched_at ? (
             <span>
               {t.spotPrices.lastFetched}: {shortDateTime(card.fetched_at)}
@@ -196,7 +196,7 @@ function HeadlinePanel({ card }: { card: SpotPriceCard }) {
             <span>{t.spotPrices.neverFetched}</span>
           )}
           {card.source ? (
-            <span className="font-mono text-ash/80">({card.source})</span>
+            <span className="font-mono text-muted/80">({card.source})</span>
           ) : null}
           {overrideActive ? (
             <span className="rounded-md bg-warning/10 px-2 py-0.5 font-mono text-warning">
@@ -220,18 +220,18 @@ function HiddenPanel({
 }) {
   const { t } = useI18n()
   return (
-    <div className="rounded-lg border border-dashed border-hairline bg-canvas/60 p-3">
+    <div className="rounded-lg border border-dashed border-border bg-card/60 p-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-xs text-ash">
+        <div className="text-xs text-muted">
           {cards.length} hidden{' '}
-          <span className="text-ash/60">
+          <span className="text-muted/60">
             (click to show)
           </span>
         </div>
         <button
           type="button"
           onClick={onShowAll}
-          className="text-xs font-medium text-rausch hover:underline"
+          className="text-xs font-medium text-gold hover:underline"
         >
           Show all
         </button>
@@ -244,10 +244,10 @@ function HiddenPanel({
               key={key}
               type="button"
               onClick={() => onUnhide(key)}
-              className="inline-flex items-center gap-1 rounded-full border border-hairline bg-canvas px-2 py-0.5 text-[11px] text-ink hover:bg-cloud"
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[11px] text-foreground hover:bg-background"
               title="Show this card"
             >
-              <Eye size={10} weight="bold" className="text-ash" />
+              <Eye size={10} weight="bold" className="text-muted" />
               {t.spotPrices.metals[c.metal_type] ?? c.metal_type}
               {' · '}
               {t.spotPrices.purities[c.purity] ?? c.purity}
@@ -270,13 +270,13 @@ function RefreshNowButton() {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex items-center gap-2 rounded-md bg-rausch px-3 py-1.5 text-sm text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-md bg-gold px-3 py-1.5 text-sm text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
       >
         <ArrowClockwise size={14} weight="bold" />
         {pending ? t.spotPrices.refreshing : t.spotPrices.refreshNow}
       </button>
       {state.summary ? (
-        <span className="font-mono text-xs text-ash">
+        <span className="font-mono text-xs text-muted">
           {state.summary.ok
             ? t.spotPrices.refreshOk
                 .replace('{inserted}', String(state.summary.inserted))
@@ -314,7 +314,7 @@ function SpotGrid({
         />
       ))}
       {cards.length === 0 ? (
-        <div className="col-span-full rounded-lg border border-hairline bg-canvas p-6 text-center text-sm text-ash">
+        <div className="col-span-full rounded-lg border border-border bg-card p-6 text-center text-sm text-muted">
           {t.spotPrices.noPrices}
         </div>
       ) : null}
@@ -346,11 +346,11 @@ function SpotCard({
   const perOz = card.price_per_troy_oz ? Number(card.price_per_troy_oz) : null
 
   return (
-    <div className="group relative rounded-lg border border-hairline bg-canvas p-4">
+    <div className="group relative rounded-lg border border-border bg-card p-4">
       <button
         type="button"
         onClick={onToggleHidden}
-        className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-ash/50 opacity-0 transition hover:bg-cloud hover:text-ink focus:opacity-100 group-hover:opacity-100"
+        className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted/50 opacity-0 transition hover:bg-background hover:text-foreground focus:opacity-100 group-hover:opacity-100"
         title={isHidden ? 'Show this card' : 'Hide this card'}
         aria-label={isHidden ? 'Show this card' : 'Hide this card'}
       >
@@ -363,10 +363,10 @@ function SpotCard({
 
       <div className="flex items-baseline justify-between pr-6">
         <div>
-          <div className="text-xs uppercase tracking-wide text-ash">
+          <div className="text-xs uppercase tracking-wide text-muted">
             {t.spotPrices.metals[card.metal_type] ?? card.metal_type}
           </div>
-          <div className="text-base font-semibold text-ink">
+          <div className="text-base font-semibold text-foreground">
             {t.spotPrices.purities[card.purity] ?? card.purity}
           </div>
         </div>
@@ -378,25 +378,25 @@ function SpotCard({
       </div>
 
       <div className="mt-3">
-        <div className="font-mono text-2xl font-semibold text-ink">
+        <div className="font-mono text-2xl font-semibold text-foreground">
           {perGram == null ? '—' : formatMoney(perGram)}
-          <span className="ml-1 text-xs font-normal text-ash">
+          <span className="ml-1 text-xs font-normal text-muted">
             {t.spotPrices.perGram}
           </span>
         </div>
-        <div className="font-mono text-xs text-ash">
+        <div className="font-mono text-xs text-muted">
           {perOz == null ? '—' : formatMoney(perOz)} {t.spotPrices.perOz}
         </div>
       </div>
 
       <Sparkline points={points} />
 
-      <div className="mt-2 text-xs text-ash">
+      <div className="mt-2 text-xs text-muted">
         {card.fetched_at
           ? `${t.spotPrices.lastFetched}: ${shortDateTime(card.fetched_at)}`
           : t.spotPrices.neverFetched}
         {card.source ? (
-          <span className="ml-2 font-mono text-ash/80">({card.source})</span>
+          <span className="ml-2 font-mono text-muted/80">({card.source})</span>
         ) : null}
       </div>
     </div>
@@ -411,7 +411,7 @@ function SpotCard({
 function Sparkline({ points }: { points: SpotPriceHistoryPoint[] }) {
   if (points.length < 2) {
     return (
-      <div className="mt-3 h-8 rounded border border-hairline bg-cloud" />
+      <div className="mt-3 h-8 rounded border border-border bg-background" />
     )
   }
   const values = points.map((p) => Number(p.price_per_gram))
@@ -440,7 +440,7 @@ function Sparkline({ points }: { points: SpotPriceHistoryPoint[] }) {
         fill="none"
         stroke="currentColor"
         strokeWidth={1.5}
-        className="text-rausch"
+        className="text-gold"
       />
     </svg>
   )
@@ -453,11 +453,11 @@ function OverridesPanel({
 }) {
   const { t } = useI18n()
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">
         {t.spotPrices.overridesTitle}
       </legend>
-      <p className="mt-1 text-xs text-ash">{t.spotPrices.overridesHelp}</p>
+      <p className="mt-1 text-xs text-muted">{t.spotPrices.overridesHelp}</p>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {overrides.map((o) => (
           <OverrideRow
@@ -493,11 +493,11 @@ function OverrideRow({
   })
 
   return (
-    <form action={action} className="rounded-md border border-hairline bg-cloud/40 p-3">
+    <form action={action} className="rounded-md border border-border bg-background/40 p-3">
       <input type="hidden" name="metal_type" value={metalType} />
       <input type="hidden" name="purity" value={purity} />
-      <div className="mb-2 text-xs text-ash">
-        <span className="font-medium text-ink">
+      <div className="mb-2 text-xs text-muted">
+        <span className="font-medium text-foreground">
           {t.spotPrices.metals[metalType] ?? metalType}
         </span>
         {' · '}
@@ -513,20 +513,20 @@ function OverrideRow({
           max="200"
           value={pct}
           onChange={(e) => setPct(e.target.value)}
-          className="h-8 w-20 rounded-md border border-hairline bg-canvas px-2 font-mono text-sm text-ink focus:border-ink focus:outline-none"
+          className="h-8 w-20 rounded-md border border-border bg-card px-2 font-mono text-sm text-foreground focus:border-blue focus:outline-none"
           aria-label={t.spotPrices.multiplierLabel}
         />
-        <span className="text-xs text-ash">%</span>
+        <span className="text-xs text-muted">%</span>
         <button
           type="submit"
           disabled={pending}
-          className="ml-auto rounded-md border border-hairline bg-canvas px-3 py-1 text-xs font-medium text-ink hover:bg-cloud disabled:opacity-50"
+          className="ml-auto rounded-md border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-background disabled:opacity-50"
         >
           {pending ? t.common.saving : t.common.save}
         </button>
       </div>
       {state.error ? (
-        <div className="mt-1 text-xs text-error">{state.error}</div>
+        <div className="mt-1 text-xs text-danger">{state.error}</div>
       ) : null}
       {state.ok ? (
         <div className="mt-1 text-xs text-success">{t.common.save} ✓</div>

@@ -25,19 +25,19 @@ export default function GoogleReviewsWidget({
     data.totalReviewCount === 1 ? dict.count.one : dict.count.other
 
   return (
-    <section className="mb-10 rounded-lg border border-hairline bg-canvas p-5">
+    <section className="mb-10 rounded-lg border border-border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-base font-semibold tracking-[-0.01em] text-ink">
+          <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">
             {dict.title}
           </h2>
           <div className="flex items-center gap-2">
             <Stars rating={Math.round(data.rating)} size={14} />
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {data.rating.toFixed(1)}
             </span>
-            <span className="text-sm text-ash">·</span>
-            <span className="text-sm text-ash">
+            <span className="text-sm text-muted">·</span>
+            <span className="text-sm text-muted">
               {data.totalReviewCount} {countLabel}
             </span>
           </div>
@@ -47,7 +47,7 @@ export default function GoogleReviewsWidget({
             href={data.placeUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-sm font-medium text-info-link hover:underline"
+            className="inline-flex items-center gap-1 text-sm font-medium text-blue hover:underline"
           >
             {dict.seeAll}
             <ArrowUpRight size={14} weight="bold" />
@@ -59,21 +59,21 @@ export default function GoogleReviewsWidget({
         {data.reviews.map((r, i) => (
           <li
             key={`${r.time}-${i}`}
-            className="rounded-lg border border-hairline bg-cloud p-4"
+            className="rounded-lg border border-border bg-background p-4"
           >
             <div className="flex items-center gap-2">
               <Stars rating={Math.round(r.rating)} size={12} />
             </div>
             <div className="mt-2 flex items-baseline justify-between gap-2">
-              <span className="truncate text-sm font-medium text-ink">
+              <span className="truncate text-sm font-medium text-foreground">
                 {r.author_name?.trim() || dict.anonymous}
               </span>
-              <span className="text-xs text-ash">
+              <span className="text-xs text-muted">
                 {formatRelativeTime(r.time, lang)}
               </span>
             </div>
             {r.text ? (
-              <p className="mt-2 text-sm leading-relaxed text-charcoal">
+              <p className="mt-2 text-sm leading-relaxed text-text-secondary">
                 {truncateExcerpt(r.text, 140)}
               </p>
             ) : null}
@@ -82,7 +82,7 @@ export default function GoogleReviewsWidget({
                 href={r.author_url ?? data.placeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-info-link hover:underline"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-blue hover:underline"
               >
                 {dict.readFull}
                 <ArrowUpRight size={12} weight="bold" />
@@ -104,7 +104,7 @@ function Stars({ rating, size }: { rating: number; size: number }) {
           key={i}
           size={size}
           weight="fill"
-          className={filled ? 'text-ink' : 'text-hairline'}
+          className={filled ? 'text-foreground' : 'text-border'}
         />
       ))}
     </span>

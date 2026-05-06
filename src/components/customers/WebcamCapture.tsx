@@ -163,7 +163,7 @@ export default function WebcamCapture({
       disabled={disabled}
       className={
         className ||
-        'inline-flex items-center gap-1.5 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink disabled:opacity-50'
+        'inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50'
       }
     >
       <Camera size={14} weight="bold" />
@@ -183,31 +183,31 @@ export default function WebcamCapture({
       {button}
       {createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
           onClick={close}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="w-full max-w-2xl rounded-lg border border-hairline bg-canvas p-5 shadow-lg"
+            className="w-full max-w-2xl rounded-lg border border-border bg-card p-5 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <header className="mb-4 flex items-center justify-between">
-              <h3 className="inline-flex items-center gap-2 text-base font-semibold text-ink">
+              <h3 className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
                 <Camera size={16} weight="bold" />
                 {label ?? t.dlScanner.captureFront}
               </h3>
               <button
                 type="button"
                 onClick={close}
-                className="rounded-md p-1 text-ash hover:bg-cloud hover:text-ink"
+                className="rounded-md p-1 text-muted hover:bg-background hover:text-foreground"
                 aria-label="close"
               >
                 <X size={16} weight="bold" />
               </button>
             </header>
 
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md border border-hairline bg-ink">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md border border-border bg-navy">
               {previewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -229,7 +229,7 @@ export default function WebcamCapture({
             </div>
 
             {error ? (
-              <div className="mt-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs text-error">
+              <div className="mt-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
                 {error}
               </div>
             ) : null}
@@ -238,7 +238,7 @@ export default function WebcamCapture({
               <button
                 type="button"
                 onClick={close}
-                className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+                className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
               >
                 {t.dlScanner.captureCancel}
               </button>
@@ -248,7 +248,7 @@ export default function WebcamCapture({
                     type="button"
                     onClick={retake}
                     disabled={pending}
-                    className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
                   >
                     <ArrowsClockwise size={14} weight="bold" />
                     {t.dlScanner.captureRetake}
@@ -257,7 +257,7 @@ export default function WebcamCapture({
                     type="button"
                     onClick={confirm}
                     disabled={pending}
-                    className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
                   >
                     <Check size={14} weight="bold" />
                     {pending
@@ -270,7 +270,7 @@ export default function WebcamCapture({
                   type="button"
                   onClick={snap}
                   disabled={!!error}
-                  className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
                 >
                   <Camera size={14} weight="bold" />
                   {t.dlScanner.button}

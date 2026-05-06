@@ -31,8 +31,8 @@ export type InventoryListRow = {
 const STATUS_BADGE: Record<InventoryStatus, { bg: string; text: string }> = {
   available: { bg: 'bg-success/10 border-success/30', text: 'text-success' },
   held: { bg: 'bg-warning/10 border-warning/30', text: 'text-warning' },
-  sold: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
-  scrapped: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+  sold: { bg: 'bg-background border-border', text: 'text-muted' },
+  scrapped: { bg: 'bg-background border-border', text: 'text-muted' },
   // 'transferred' rows are mid-transfer (held by a pending request).
   // Use warning amber to make the lock obvious; the row links to its
   // related transfer rather than the item detail.
@@ -84,7 +84,7 @@ export default function InventoryContent({
         <h1 className="text-2xl font-bold">{t.inventory.title}</h1>
         <Link
           href="/inventory/new"
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
         >
           <Plus size={16} weight="bold" />
           <span>{t.inventory.new}</span>
@@ -99,20 +99,20 @@ export default function InventoryContent({
           <div className="relative flex-1">
             <MagnifyingGlass
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
             />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t.inventory.searchPlaceholder}
-              className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </div>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
           >
             {t.common.search}
           </button>
@@ -121,7 +121,7 @@ export default function InventoryContent({
         <select
           value={statusFilter}
           onChange={(e) => pushParams({ status: e.target.value })}
-          className="sm:col-span-2 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="sm:col-span-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="">{t.common.all} — {t.inventory.statusColumn}</option>
           <option value="available">{t.inventory.statusAvailable}</option>
@@ -135,7 +135,7 @@ export default function InventoryContent({
         <select
           value={sourceFilter}
           onChange={(e) => pushParams({ source: e.target.value })}
-          className="sm:col-span-2 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="sm:col-span-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="">{t.common.all} — {t.inventory.sourceColumn}</option>
           <option value="bought">{t.inventory.sourceBought}</option>
@@ -151,7 +151,7 @@ export default function InventoryContent({
         <select
           value={categoryFilter}
           onChange={(e) => pushParams({ category: e.target.value })}
-          className="sm:col-span-2 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="sm:col-span-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="">
             {t.common.all} — {t.inventory.categoryColumn}
@@ -179,7 +179,7 @@ export default function InventoryContent({
               setSearchInput('')
               pushParams({ q: null, status: null, source: null, category: null })
             }}
-            className="sm:col-span-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+            className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
           >
             {t.common.clear}
           </button>
@@ -187,15 +187,15 @@ export default function InventoryContent({
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
-          <p className="text-ash">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-muted">
             {hasFilter ? t.inventory.emptyForFilter : t.inventory.empty}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-hairline text-ash">
+            <thead className="border-b border-border text-muted">
               <tr>
                 <th className="w-16 px-3 py-3" aria-label="thumbnail" />
                 <th className="px-4 py-3 font-medium">
@@ -225,11 +225,11 @@ export default function InventoryContent({
                 return (
                   <tr
                     key={it.id}
-                    className="cursor-pointer border-b border-hairline transition-colors last:border-0 hover:bg-cloud"
+                    className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-background"
                     onClick={() => router.push(`/inventory/${it.id}`)}
                   >
                     <td className="px-3 py-2">
-                      <div className="relative h-10 w-10 overflow-hidden rounded-md border border-hairline bg-cloud">
+                      <div className="relative h-10 w-10 overflow-hidden rounded-md border border-border bg-background">
                         {it.thumb_url ? (
                           <Image
                             src={it.thumb_url}
@@ -240,29 +240,29 @@ export default function InventoryContent({
                             className="object-cover"
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-ash">
+                          <div className="flex h-full w-full items-center justify-center text-muted">
                             <ImageIcon size={16} />
                           </div>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-ink">
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {it.sku}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-ink">{it.description}</div>
+                      <div className="font-medium text-foreground">{it.description}</div>
                       {it.brand || it.model || it.serial_number ? (
-                        <div className="text-xs text-ash">
+                        <div className="text-xs text-muted">
                           {[it.brand, it.model, it.serial_number]
                             .filter(Boolean)
                             .join(' · ')}
                         </div>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 text-ink">
+                    <td className="px-4 py-3 text-foreground">
                       {labelForCategory(it.category, t)}
                     </td>
-                    <td className="px-4 py-3 text-ink">
+                    <td className="px-4 py-3 text-foreground">
                       {labelForSource(it.source, t)}
                     </td>
                     <td className="px-4 py-3">
@@ -272,7 +272,7 @@ export default function InventoryContent({
                         {labelForStatus(it.status, t)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-ink">
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {price != null ? formatMoney(price) : '—'}
                     </td>
                   </tr>

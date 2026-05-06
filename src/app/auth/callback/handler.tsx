@@ -76,8 +76,8 @@ export default function CallbackHandler() {
   }, [params, router])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cloud">
-      <p className="text-ash">Signing you in…</p>
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <p className="text-muted">Signing you in…</p>
     </div>
   )
 }

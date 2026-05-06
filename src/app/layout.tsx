@@ -1,17 +1,26 @@
 import type { Metadata } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { DM_Sans, Playfair_Display, JetBrains_Mono } from 'next/font/google'
 import VersionFooter from '@/components/version-footer'
 import './globals.css'
 
 /**
- * Inter substitutes the proprietary Airbnb Cereal VF (DESIGN-airbnb.md §3).
- * Body weight is 500, with 600/700 reserved for emphasis. We declare only
- * the weights we actually use to keep the font payload trim.
+ * Font stack — DESIGN-lunaazul.md §3.
+ *   - DM Sans: body / UI default. Weights 400 (default), 500, 600, 700.
+ *   - Playfair Display: page titles + display headings only. 700, 900.
+ *   - JetBrains Mono: tabular numerals (loan principal, ticket numbers,
+ *     register totals, item SKUs). Retained from previous system.
  */
-const inter = Inter({
-  variable: '--font-inter',
+const dmSans = DM_Sans({
+  variable: '--font-dm-sans',
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+})
+
+const playfair = Playfair_Display({
+  variable: '--font-playfair',
+  subsets: ['latin'],
+  weight: ['700', '900'],
   display: 'swap',
 })
 
@@ -36,9 +45,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full`}
+      className={`${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col bg-canvas text-ink">
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
         <VersionFooter />
       </body>

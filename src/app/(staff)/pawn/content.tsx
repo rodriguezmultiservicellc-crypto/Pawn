@@ -37,9 +37,9 @@ const STATUS_BADGE: Record<LoanStatus, { bg: string; text: string }> = {
   active: { bg: 'bg-success/10 border-success/30', text: 'text-success' },
   extended: { bg: 'bg-success/10 border-success/30', text: 'text-success' },
   partial_paid: { bg: 'bg-warning/10 border-warning/30', text: 'text-warning' },
-  redeemed: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
-  forfeited: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
-  voided: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+  redeemed: { bg: 'bg-background border-border', text: 'text-muted' },
+  forfeited: { bg: 'bg-background border-border', text: 'text-muted' },
+  voided: { bg: 'bg-background border-border', text: 'text-muted' },
 }
 
 export default function PawnContent({
@@ -93,7 +93,7 @@ export default function PawnContent({
         <h1 className="text-2xl font-bold">{t.pawn.title}</h1>
         <Link
           href="/pawn/new"
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
         >
           <Plus size={16} weight="bold" />
           <span>{t.pawn.new}</span>
@@ -156,20 +156,20 @@ export default function PawnContent({
           <div className="relative flex-1">
             <MagnifyingGlass
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
             />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t.pawn.list.searchPlaceholder}
-              className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </div>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
           >
             {t.common.search}
           </button>
@@ -178,7 +178,7 @@ export default function PawnContent({
         <select
           value={dueWindow}
           onChange={(e) => pushParams({ due: e.target.value })}
-          className="sm:col-span-4 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="sm:col-span-4 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="all">{t.pawn.list.dueWindowAll}</option>
           <option value="overdue">{t.pawn.list.dueWindowOverdue}</option>
@@ -198,7 +198,7 @@ export default function PawnContent({
                 customer: null,
               })
             }}
-            className="sm:col-span-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+            className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
           >
             {t.common.clear}
           </button>
@@ -206,16 +206,16 @@ export default function PawnContent({
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
-          <Coins size={32} weight="light" className="mx-auto mb-3 text-ash" />
-          <p className="text-ash">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <Coins size={32} weight="light" className="mx-auto mb-3 text-muted" />
+          <p className="text-muted">
             {hasFilter ? t.pawn.list.emptyForFilter : t.pawn.list.empty}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-hairline text-ash">
+            <thead className="border-b border-border text-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">{t.pawn.list.ticket}</th>
                 <th className="px-4 py-3 font-medium">{t.pawn.list.customer}</th>
@@ -238,39 +238,39 @@ export default function PawnContent({
                 return (
                   <tr
                     key={r.id}
-                    className="cursor-pointer border-b border-hairline transition-colors last:border-0 hover:bg-cloud"
+                    className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-background"
                     onClick={() => router.push(`/pawn/${r.id}`)}
                   >
-                    <td className="px-4 py-3 font-mono text-xs text-ink">
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {r.ticket_number}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-ink">
+                      <div className="font-medium text-foreground">
                         {r.customer_name}
                       </div>
                       {r.customer_phone ? (
-                        <div className="text-xs text-ash">
+                        <div className="text-xs text-muted">
                           {r.customer_phone}
                         </div>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-ink">
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {fmtMoney(r.principal)}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-ink">
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {r.due_date}
                     </td>
                     <td className="px-4 py-3 text-xs">
                       {isTerminal ? (
-                        <span className="text-ash">—</span>
+                        <span className="text-muted">—</span>
                       ) : isOverdue ? (
-                        <span className="text-error">
+                        <span className="text-danger">
                           {t.pawn.list.daysOverdue}: {Math.abs(days)}
                         </span>
                       ) : isDueSoon ? (
                         <span className="text-warning">{days}</span>
                       ) : (
-                        <span className="text-ink">{days}</span>
+                        <span className="text-foreground">{days}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -308,16 +308,16 @@ function Chip({
     'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors'
   const toneBg =
     tone === 'error'
-      ? 'border-error/30 text-error hover:bg-error/5'
+      ? 'border-danger/30 text-danger hover:bg-danger/5'
       : tone === 'warning'
       ? 'border-warning/30 text-warning hover:bg-warning/5'
-      : 'border-hairline text-ink hover:bg-cloud'
-  const activeRing = active ? 'ring-2 ring-ink/20 bg-cloud' : 'bg-canvas'
+      : 'border-border text-foreground hover:bg-background'
+  const activeRing = active ? 'ring-2 ring-ink/20 bg-background' : 'bg-card'
   return (
     <button type="button" onClick={onClick} className={`${base} ${toneBg} ${activeRing}`}>
       {label}
       {count != null ? (
-        <span className="rounded-full bg-canvas/60 px-1.5 py-0.5 text-[10px] font-mono text-ash">
+        <span className="rounded-full bg-card/60 px-1.5 py-0.5 text-[10px] font-mono text-muted">
           {count}
         </span>
       ) : null}

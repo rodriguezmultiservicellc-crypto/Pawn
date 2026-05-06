@@ -7,10 +7,10 @@
  */
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-canvas text-ink p-8">
+    <div className="flex flex-col flex-1 items-center justify-center bg-card text-foreground p-8">
       <div className="max-w-md text-center space-y-6">
         <h1 className="text-3xl font-bold">Pawn</h1>
-        <p className="text-ash">
+        <p className="text-muted">
           Multi-tenant pawn / jewelry / repair / retail SaaS.
         </p>
       </div>

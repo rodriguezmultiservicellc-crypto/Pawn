@@ -84,24 +84,24 @@ export function SendReminderDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-md rounded-lg border border-hairline bg-canvas p-5 shadow-lg">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg">
         <header className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-semibold text-ink">
+            <h3 className="text-base font-semibold text-foreground">
               {t.comms.sendDialogTitle}
             </h3>
             {customerName ? (
-              <p className="text-xs text-ash">{customerName}</p>
+              <p className="text-xs text-muted">{customerName}</p>
             ) : null}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-ash hover:bg-cloud hover:text-ink"
+            className="rounded-md p-1 text-muted hover:bg-background hover:text-foreground"
             aria-label="close"
           >
             <X size={16} weight="bold" />
@@ -109,7 +109,7 @@ export function SendReminderDialog({
         </header>
 
         {error ? (
-          <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
             {error}
           </div>
         ) : null}
@@ -123,13 +123,13 @@ export function SendReminderDialog({
 
         <div className="space-y-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.comms.sendDialogKind}
             </span>
             <select
               value={kind}
               onChange={(e) => setKind(e.target.value as MessageKind)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               {kinds.map((k) => (
                 <option key={k} value={k}>
@@ -140,13 +140,13 @@ export function SendReminderDialog({
           </label>
 
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.comms.sendDialogChannel}
             </span>
             <select
               value={channel}
               onChange={(e) => setChannel(e.target.value as MessageChannel | '')}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="">{t.comms.sendDialogChannelDefault}</option>
               <option value="sms">{t.comms.channelSms}</option>
@@ -155,14 +155,14 @@ export function SendReminderDialog({
             </select>
           </label>
 
-          <p className="text-xs text-ash">{t.comms.sendDialogHelp}</p>
+          <p className="text-xs text-muted">{t.comms.sendDialogHelp}</p>
         </div>
 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+            className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
           >
             {t.common.close}
           </button>
@@ -170,7 +170,7 @@ export function SendReminderDialog({
             type="button"
             disabled={pending}
             onClick={submit}
-            className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           >
             <PaperPlaneTilt size={14} weight="bold" />
             {pending ? t.common.saving : t.comms.sendDialogSubmit}

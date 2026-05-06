@@ -26,19 +26,19 @@ export function Modal({
         : 'max-w-lg'
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`w-full ${widthCls} rounded-lg border border-hairline bg-canvas p-5 shadow-lg`}
+        className={`w-full ${widthCls} rounded-lg border border-border bg-card p-5 shadow-lg`}
       >
         <header className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-ink">{title}</h3>
+          <h3 className="text-base font-semibold text-foreground">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-ash hover:bg-cloud hover:text-ink"
+            className="rounded-md p-1 text-muted hover:bg-background hover:text-foreground"
             aria-label="close"
           >
             <X size={16} weight="bold" />

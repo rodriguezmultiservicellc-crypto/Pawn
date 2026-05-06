@@ -59,14 +59,14 @@ export default function PosHomeContent({
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t.pos.title}</h1>
-          <p className="text-sm text-ash">{t.pos.subtitle}</p>
+          <p className="text-sm text-muted">{t.pos.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           {openSession ? (
             <>
               <Link
                 href="/pos/sales/new"
-                className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep"
+                className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2"
               >
                 <Plus size={14} weight="bold" />
                 {t.pos.register.newSale}
@@ -74,7 +74,7 @@ export default function PosHomeContent({
               <button
                 type="button"
                 onClick={() => setShowClose(true)}
-                className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
               >
                 <CashRegister size={14} weight="bold" />
                 {t.pos.register.closeSession}
@@ -84,7 +84,7 @@ export default function PosHomeContent({
             <button
               type="button"
               onClick={() => setShowOpen(true)}
-              className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep"
+              className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2"
             >
               <CashRegister size={14} weight="bold" />
               {t.pos.register.open}
@@ -92,7 +92,7 @@ export default function PosHomeContent({
           )}
           <Link
             href="/pos/layaways"
-            className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
           >
             <ShoppingBag size={14} weight="bold" />
             {t.pos.layaway.list}
@@ -129,9 +129,9 @@ export default function PosHomeContent({
 function SessionPanel({ session }: { session: PosHomeOpenSession }) {
   const { t } = useI18n()
   return (
-    <section className="rounded-lg border border-hairline bg-canvas p-4">
+    <section className="rounded-lg border border-border bg-card p-4">
       <header className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <CashRegister size={16} weight="regular" />
           {t.pos.register.title}
         </h2>
@@ -160,7 +160,7 @@ function SessionPanel({ session }: { session: PosHomeOpenSession }) {
         />
       </div>
       {session.cash_refunds > 0 ? (
-        <p className="mt-2 text-xs text-ash">
+        <p className="mt-2 text-xs text-muted">
           {t.pos.register.cashRefunds}: {fmtMoney(session.cash_refunds)}
         </p>
       ) : null}
@@ -177,14 +177,14 @@ function NoSessionPanel({ onOpen }: { onOpen: () => void }) {
         weight="regular"
         className="mx-auto text-warning"
       />
-      <h2 className="mt-2 text-base font-semibold text-ink">
+      <h2 className="mt-2 text-base font-semibold text-foreground">
         {t.pos.register.notOpen}
       </h2>
-      <p className="mt-1 text-sm text-ash">{t.pos.register.notOpenBody}</p>
+      <p className="mt-1 text-sm text-muted">{t.pos.register.notOpenBody}</p>
       <button
         type="button"
         onClick={onOpen}
-        className="mt-4 inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep"
+        className="mt-4 inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2"
       >
         <CashRegister size={14} weight="bold" />
         {t.pos.register.openSession}
@@ -196,19 +196,19 @@ function NoSessionPanel({ onOpen }: { onOpen: () => void }) {
 function RecentSalesPanel({ rows }: { rows: PosHomeRecentSale[] }) {
   const { t } = useI18n()
   return (
-    <section className="overflow-hidden rounded-lg border border-hairline bg-canvas">
-      <header className="flex items-center justify-between border-b border-hairline px-3 py-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <header className="flex items-center justify-between border-b border-border px-3 py-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <ArrowsClockwise size={14} weight="regular" />
           {t.pos.register.todaySales}
         </h2>
       </header>
       {rows.length === 0 ? (
-        <div className="px-3 py-6 text-center text-sm text-ash">
+        <div className="px-3 py-6 text-center text-sm text-muted">
           {t.dashboard.none}
         </div>
       ) : (
-        <ul className="divide-y divide-hairline">
+        <ul className="divide-y divide-border">
           {rows.map((r) => (
             <li key={r.id}>
               <Link
@@ -217,13 +217,13 @@ function RecentSalesPanel({ rows }: { rows: PosHomeRecentSale[] }) {
                     ? `/pos/sales/${r.id}`
                     : `/pos/sales/${r.id}`
                 }
-                className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-cloud"
+                className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-background"
               >
-                <div className="font-mono text-xs text-ink">{r.sale_number}</div>
-                <div className="min-w-0 flex-1 truncate text-xs text-ash">
+                <div className="font-mono text-xs text-foreground">{r.sale_number}</div>
+                <div className="min-w-0 flex-1 truncate text-xs text-muted">
                   {r.customer_name ?? t.pos.sale.anonymous}
                 </div>
-                <div className="font-mono text-xs text-ink">
+                <div className="font-mono text-xs text-foreground">
                   {fmtMoney(r.total)}
                 </div>
                 <SaleStatusBadge status={r.status} />
@@ -239,8 +239,8 @@ function RecentSalesPanel({ rows }: { rows: PosHomeRecentSale[] }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wide text-ash">{label}</div>
-      <div className="font-mono text-sm text-ink">{value}</div>
+      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
+      <div className="font-mono text-sm text-foreground">{value}</div>
     </div>
   )
 }

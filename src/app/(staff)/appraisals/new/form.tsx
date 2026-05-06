@@ -113,14 +113,14 @@ export default function NewAppraisalForm({
         <h1 className="text-2xl font-bold">{t.appraisal.new_.title}</h1>
         <Link
           href="/appraisals"
-          className="text-sm text-ash hover:text-ink"
+          className="text-sm text-muted hover:text-foreground"
         >
           {t.appraisal.backToList}
         </Link>
       </div>
 
       {state.error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.appraisal.errors[
             state.error as keyof typeof t.appraisal.errors
           ] ?? state.error}
@@ -129,22 +129,22 @@ export default function NewAppraisalForm({
 
       <form action={formAction} className="space-y-6">
         {/* Subject */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionSubject}
           </legend>
-          <p className="mt-1 text-xs text-ash">
+          <p className="mt-1 text-xs text-muted">
             {t.appraisal.new_.pickCustomerHelp}
           </p>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.pickCustomer}
               </span>
               <select
                 name="customer_id"
                 defaultValue={presetCustomerId ?? ''}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               >
                 <option value="">—</option>
                 {customers.map((c) => (
@@ -155,14 +155,14 @@ export default function NewAppraisalForm({
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.pickInventory}
               </span>
               <select
                 name="inventory_item_id"
                 value={inventoryId}
                 onChange={onInventoryChange}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               >
                 <option value="">—</option>
                 {inventory.map((i) => (
@@ -176,14 +176,14 @@ export default function NewAppraisalForm({
         </fieldset>
 
         {/* Item */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionItem}
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
             <label className="block space-y-1 md:col-span-3">
               <span className="flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">
+                <span className="text-sm font-medium text-foreground">
                   {t.appraisal.new_.itemDescription} *
                 </span>
                 {itemDescription.trim().length >= 3 ? (
@@ -193,7 +193,7 @@ export default function NewAppraisalForm({
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[11px] font-medium text-rausch hover:underline"
+                    className="text-[11px] font-medium text-gold hover:underline"
                     title="Open Chrono24 search in a new tab — useful for watches"
                   >
                     Search Chrono24 ↗
@@ -207,24 +207,24 @@ export default function NewAppraisalForm({
                 onChange={(e) => setItemDescription(e.target.value)}
                 rows={2}
                 placeholder={t.appraisal.new_.itemDescriptionPlaceholder}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
               {state.fieldErrors?.item_description ? (
-                <span className="text-xs text-error">
+                <span className="text-xs text-danger">
                   {state.fieldErrors.item_description}
                 </span>
               ) : null}
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.metal}
               </span>
               <select
                 name="metal_type"
                 value={metal}
                 onChange={(e) => setMetal(e.target.value)}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               >
                 <option value="">—</option>
                 {METAL_OPTIONS.map((m) => (
@@ -236,7 +236,7 @@ export default function NewAppraisalForm({
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.karat}
               </span>
               <input
@@ -246,12 +246,12 @@ export default function NewAppraisalForm({
                 value={karat}
                 onChange={(e) => setKarat(e.target.value)}
                 placeholder="14"
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.weightGrams}
               </span>
               <input
@@ -261,15 +261,15 @@ export default function NewAppraisalForm({
                 value={weightGrams}
                 onChange={(e) => setWeightGrams(e.target.value)}
                 placeholder="22.000"
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
           </div>
         </fieldset>
 
         {/* Stones */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionStones}
           </legend>
           <input type="hidden" name="stone_count" value={stones.length} />
@@ -286,7 +286,7 @@ export default function NewAppraisalForm({
             <button
               type="button"
               onClick={addStone}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
             >
               <Plus size={14} weight="bold" />
               {t.appraisal.new_.addStone}
@@ -295,18 +295,18 @@ export default function NewAppraisalForm({
         </fieldset>
 
         {/* Photos */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionPhotos}
           </legend>
-          <p className="mt-1 text-xs text-ash">
+          <p className="mt-1 text-xs text-muted">
             {t.appraisal.new_.photoUploadHelp}
           </p>
           <div className="mt-2">
             <button
               type="button"
               onClick={() => photoInputRef.current?.click()}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
             >
               <Upload size={14} weight="bold" />
               {t.appraisal.new_.photoUpload}
@@ -321,7 +321,7 @@ export default function NewAppraisalForm({
               className="sr-only"
             />
             {photoNames.length > 0 ? (
-              <ul className="mt-2 space-y-1 text-xs text-ash">
+              <ul className="mt-2 space-y-1 text-xs text-muted">
                 {photoNames.map((n, i) => (
                   <li key={i}>{n}</li>
                 ))}
@@ -331,13 +331,13 @@ export default function NewAppraisalForm({
         </fieldset>
 
         {/* Valuation */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionValuation}
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
             <label className="block space-y-1 md:col-span-3">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.purpose} *
               </span>
               <select
@@ -347,7 +347,7 @@ export default function NewAppraisalForm({
                   setPurpose(e.target.value as AppraisalPurpose)
                 }
                 required
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               >
                 {PURPOSES.map((p) => (
                   <option key={p} value={p}>
@@ -355,13 +355,13 @@ export default function NewAppraisalForm({
                   </option>
                 ))}
               </select>
-              <span className="text-xs text-ash">
+              <span className="text-xs text-muted">
                 {t.appraisal.new_.purposeHelp}
               </span>
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.appraisedValue} *
               </span>
               <input
@@ -370,17 +370,17 @@ export default function NewAppraisalForm({
                 name="appraised_value"
                 required
                 placeholder="0.00"
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
               {state.fieldErrors?.appraised_value ? (
-                <span className="text-xs text-error">
+                <span className="text-xs text-danger">
                   {state.fieldErrors.appraised_value}
                 </span>
               ) : null}
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.replacementValue}
               </span>
               <input
@@ -388,52 +388,52 @@ export default function NewAppraisalForm({
                 step="0.01"
                 name="replacement_value"
                 placeholder="0.00"
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
-              <span className="text-xs text-ash">
+              <span className="text-xs text-muted">
                 {t.appraisal.new_.replacementValueHelp}
               </span>
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.common.optional}
               </span>
             </label>
 
             <label className="block space-y-1 md:col-span-3">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.valuationMethod}
               </span>
               <textarea
                 name="valuation_method"
                 rows={2}
                 placeholder={t.appraisal.new_.valuationMethodPlaceholder}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
 
             <label className="block space-y-1 md:col-span-3">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.notes}
               </span>
               <textarea
                 name="notes"
                 rows={3}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
           </div>
         </fieldset>
 
         {/* Validity */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.appraisal.new_.sectionValidity}
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.validFrom} *
               </span>
               <input
@@ -441,25 +441,25 @@ export default function NewAppraisalForm({
                 name="valid_from"
                 required
                 defaultValue={new Date().toISOString().slice(0, 10)}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
               {state.fieldErrors?.valid_from ? (
-                <span className="text-xs text-error">
+                <span className="text-xs text-danger">
                   {state.fieldErrors.valid_from}
                 </span>
               ) : null}
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.validUntil}
               </span>
               <input
                 type="date"
                 name="valid_until"
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
-              <span className="text-xs text-ash">
+              <span className="text-xs text-muted">
                 {t.appraisal.new_.validUntilHelp}
               </span>
             </label>
@@ -469,14 +469,14 @@ export default function NewAppraisalForm({
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/appraisals"
-            className="rounded-md border border-hairline px-4 py-2 text-sm text-ink"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
           >
             {t.common.cancel}
           </Link>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
           >
             {pending
               ? t.appraisal.new_.submitting

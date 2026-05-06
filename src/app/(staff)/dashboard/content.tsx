@@ -73,7 +73,9 @@ export default function DashboardContent({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t.dashboard.title}</h1>
+      <h1 className="font-display text-3xl font-bold text-navy">
+        {t.dashboard.title}
+      </h1>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
@@ -183,22 +185,22 @@ export default function DashboardContent({
           {recentCustomers.length === 0 ? (
             <Empty>{t.dashboard.none}</Empty>
           ) : (
-            <ul className="divide-y divide-hairline">
+            <ul className="divide-y divide-border">
               {recentCustomers.map((c) => (
                 <li key={c.id}>
                   <Link
                     href={`/customers/${c.id}`}
-                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-background"
                   >
                     <div className="min-w-0">
-                      <div className="truncate font-medium text-ink">
+                      <div className="truncate font-medium text-foreground">
                         {c.last_name}, {c.first_name}
                       </div>
-                      <div className="truncate text-xs text-ash">
+                      <div className="truncate text-xs text-muted">
                         {c.phone ?? '—'}
                       </div>
                     </div>
-                    <div className="shrink-0 text-xs text-ash">
+                    <div className="shrink-0 text-xs text-muted">
                       {relativeDate(c.created_at)}
                     </div>
                   </Link>
@@ -216,27 +218,27 @@ export default function DashboardContent({
           {recentItems.length === 0 ? (
             <Empty>{t.dashboard.none}</Empty>
           ) : (
-            <ul className="divide-y divide-hairline">
+            <ul className="divide-y divide-border">
               {recentItems.map((it) => (
                 <li key={it.id}>
                   <Link
                     href={`/inventory/${it.id}`}
-                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-background"
                   >
                     <div className="min-w-0">
-                      <div className="truncate font-medium text-ink">
+                      <div className="truncate font-medium text-foreground">
                         {it.description}
                       </div>
-                      <div className="truncate font-mono text-xs text-ash">
+                      <div className="truncate font-mono text-xs text-muted">
                         {it.sku}
                       </div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <div className="text-xs text-ash">
+                      <div className="text-xs text-muted">
                         {relativeDate(it.created_at)}
                       </div>
                       {it.list_price != null ? (
-                        <div className="font-mono text-xs text-ink">
+                        <div className="font-mono text-xs text-foreground">
                           {formatMoney(it.list_price)}
                         </div>
                       ) : null}
@@ -269,26 +271,28 @@ function StatCard({
 }) {
   const accent =
     tone === 'error'
-      ? 'border-error/40 bg-error/5'
+      ? 'border-danger/40 bg-danger/5'
       : tone === 'warning'
       ? 'border-warning/40 bg-warning/5'
-      : 'border-hairline bg-canvas'
+      : 'border-border bg-card'
   const valueColor =
-    tone === 'error' ? 'text-error' : tone === 'warning' ? 'text-warning' : 'text-ink'
+    tone === 'error' ? 'text-danger' : tone === 'warning' ? 'text-warning' : 'text-foreground'
 
   return (
     <Link
       href={href}
-      className={`flex flex-col gap-1 rounded-lg border p-4 transition-colors hover:border-ink ${accent}`}
+      className={`flex flex-col gap-2 rounded-xl border p-5 transition-all hover:-translate-y-1 hover:shadow-lg ${accent}`}
     >
-      <div className="flex items-center justify-between text-ash">
-        <span className="text-xs uppercase tracking-wide">{label}</span>
+      <div className="flex items-center justify-between text-muted">
+        <span className="text-xs font-semibold uppercase tracking-wide">
+          {label}
+        </span>
         {icon}
       </div>
-      <div className={`font-mono text-3xl font-semibold ${valueColor}`}>
+      <div className={`font-mono text-3xl font-bold ${valueColor}`}>
         {value}
       </div>
-      <div className="text-xs text-ash">{sub}</div>
+      <div className="text-xs text-muted">{sub}</div>
     </Link>
   )
 }
@@ -314,16 +318,18 @@ function RevenueCard({
   return (
     <Link
       href={href}
-      className="flex flex-col gap-1 rounded-lg border border-hairline bg-canvas p-4 transition-colors hover:border-ink"
+      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-1 hover:shadow-lg"
     >
-      <div className="flex items-center justify-between text-ash">
-        <span className="text-xs uppercase tracking-wide">{label}</span>
+      <div className="flex items-center justify-between text-muted">
+        <span className="text-xs font-semibold uppercase tracking-wide">
+          {label}
+        </span>
         {icon}
       </div>
-      <div className="font-mono text-2xl font-semibold text-ink">
+      <div className="font-mono text-2xl font-bold text-foreground">
         {formatted}
       </div>
-      <div className="text-xs text-ash">{sub}</div>
+      <div className="text-xs text-muted">{sub}</div>
     </Link>
   )
 }
@@ -340,12 +346,12 @@ function Panel({
   children: React.ReactNode
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-hairline bg-canvas">
-      <header className="flex items-center justify-between border-b border-hairline px-3 py-2">
-        <h2 className="text-sm font-semibold text-ink">{title}</h2>
+    <section className="overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-lg">
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
         <Link
           href={seeAllHref}
-          className="inline-flex items-center gap-1 text-xs text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-muted transition-colors hover:text-blue"
         >
           {seeAllLabel}
           <ArrowRight size={10} weight="bold" />
@@ -357,7 +363,7 @@ function Panel({
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="px-3 py-6 text-center text-sm text-ash">{children}</div>
+  return <div className="px-3 py-6 text-center text-sm text-muted">{children}</div>
 }
 
 function relativeDate(iso: string): string {

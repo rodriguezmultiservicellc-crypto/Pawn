@@ -194,14 +194,14 @@ export default function AppraisalDetail({
         <div>
           <Link
             href="/appraisals"
-            className="text-xs text-ash hover:text-ink"
+            className="text-xs text-muted hover:text-foreground"
           >
             ← {t.appraisal.backToList}
           </Link>
           <h1 className="mt-1 text-2xl font-bold">
             <span className="font-mono">{appraisal.appraisal_number}</span>
           </h1>
-          <p className="text-sm text-ash">{appraisal.item_description}</p>
+          <p className="text-sm text-muted">{appraisal.item_description}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={appraisal.status} />
@@ -210,7 +210,7 @@ export default function AppraisalDetail({
               type="button"
               onClick={onFinalize}
               disabled={pending}
-              className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-1.5 text-xs font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-1.5 text-xs font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
             >
               <CheckCircle size={14} weight="bold" />
               {pending
@@ -223,7 +223,7 @@ export default function AppraisalDetail({
               href={`/api/appraisals/${appraisal.id}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
             >
               <Printer size={14} weight="bold" />
               {t.appraisal.detail.printPdf}
@@ -233,7 +233,7 @@ export default function AppraisalDetail({
             <button
               type="button"
               onClick={() => setShowVoid((v) => !v)}
-              className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-3 py-1.5 text-xs font-medium text-error hover:bg-error/10"
+              className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10"
             >
               <Prohibit size={14} weight="bold" />
               {t.appraisal.detail.voidBtn}
@@ -243,7 +243,7 @@ export default function AppraisalDetail({
       </div>
 
       {errorMsg ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {errorMsg}
         </div>
       ) : null}
@@ -255,10 +255,10 @@ export default function AppraisalDetail({
       ) : null}
 
       {isVoided ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           <strong>{t.appraisal.detail.voidedNotice}</strong>
           {appraisal.void_reason ? (
-            <div className="mt-1 text-xs text-ash">{appraisal.void_reason}</div>
+            <div className="mt-1 text-xs text-muted">{appraisal.void_reason}</div>
           ) : null}
         </div>
       ) : null}
@@ -266,10 +266,10 @@ export default function AppraisalDetail({
       {showVoid && !isVoided ? (
         <form
           onSubmit={onVoidSubmit}
-          className="space-y-2 rounded-lg border border-error/30 bg-error/5 p-4"
+          className="space-y-2 rounded-lg border border-danger/30 bg-danger/5 p-4"
         >
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-error">
+            <span className="text-sm font-medium text-danger">
               {t.appraisal.detail.voidReasonLabel}
             </span>
             <textarea
@@ -277,21 +277,21 @@ export default function AppraisalDetail({
               onChange={(e) => setVoidReason(e.target.value)}
               rows={3}
               required
-              className="block w-full rounded-md border border-error/30 bg-canvas px-3 py-2 text-sm text-ink"
+              className="block w-full rounded-md border border-danger/30 bg-card px-3 py-2 text-sm text-foreground"
             />
           </label>
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setShowVoid(false)}
-              className="rounded-md border border-hairline bg-canvas px-3 py-1.5 text-xs"
+              className="rounded-md border border-border bg-card px-3 py-1.5 text-xs"
             >
               {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={pending}
-              className="rounded-md bg-error px-3 py-1.5 text-xs font-medium text-canvas hover:bg-error/90 disabled:opacity-50"
+              className="rounded-md bg-danger px-3 py-1.5 text-xs font-medium text-white hover:bg-danger/90 disabled:opacity-50"
             >
               {pending
                 ? t.appraisal.detail.voidSubmitting
@@ -302,8 +302,8 @@ export default function AppraisalDetail({
       ) : null}
 
       {/* Subject */}
-      <section className="space-y-3 rounded-lg border border-hairline bg-canvas p-4">
-        <h2 className="text-sm font-semibold text-ink">
+      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.appraisal.detail.sectionSubject}
         </h2>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 text-sm">
@@ -311,15 +311,15 @@ export default function AppraisalDetail({
             {appraisal.customer_id && appraisal.customer_name ? (
               <Link
                 href={`/customers/${appraisal.customer_id}`}
-                className="text-ink underline-offset-2 hover:underline"
+                className="text-foreground underline-offset-2 hover:underline"
               >
                 {appraisal.customer_name}
               </Link>
             ) : (
-              <span className="text-ash">—</span>
+              <span className="text-muted">—</span>
             )}
             {appraisal.customer_phone ? (
-              <span className="ml-2 text-xs text-ash">
+              <span className="ml-2 text-xs text-muted">
                 {appraisal.customer_phone}
               </span>
             ) : null}
@@ -328,23 +328,23 @@ export default function AppraisalDetail({
             {appraisal.inventory_item_id && appraisal.inventory_item_label ? (
               <Link
                 href={`/inventory/${appraisal.inventory_item_id}`}
-                className="text-ink underline-offset-2 hover:underline"
+                className="text-foreground underline-offset-2 hover:underline"
               >
                 {appraisal.inventory_item_label}
               </Link>
             ) : (
-              <span className="text-ash">—</span>
+              <span className="text-muted">—</span>
             )}
           </Field>
         </div>
       </section>
 
       {/* Item */}
-      <section className="space-y-3 rounded-lg border border-hairline bg-canvas p-4">
-        <h2 className="text-sm font-semibold text-ink">
+      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.appraisal.detail.sectionItem}
         </h2>
-        <p className="text-sm text-ink whitespace-pre-wrap">
+        <p className="text-sm text-foreground whitespace-pre-wrap">
           {appraisal.item_description}
         </p>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3 text-sm">
@@ -367,9 +367,9 @@ export default function AppraisalDetail({
       </section>
 
       {/* Photos */}
-      <section className="space-y-3 rounded-lg border border-hairline bg-canvas p-4">
+      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink">
+          <h2 className="text-sm font-semibold text-foreground">
             {t.appraisal.detail.sectionPhotos}
           </h2>
           {!isLocked ? (
@@ -377,13 +377,13 @@ export default function AppraisalDetail({
           ) : null}
         </div>
         {photos.length === 0 ? (
-          <p className="text-sm text-ash">{t.appraisal.detail.noPhotos}</p>
+          <p className="text-sm text-muted">{t.appraisal.detail.noPhotos}</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {photos.map((p) => (
               <div
                 key={p.id}
-                className="overflow-hidden rounded-lg border border-hairline bg-cloud"
+                className="overflow-hidden rounded-lg border border-border bg-background"
               >
                 <div className="relative aspect-square">
                   {p.signed_url ? (
@@ -396,7 +396,7 @@ export default function AppraisalDetail({
                   ) : null}
                 </div>
                 <div className="flex items-center justify-between gap-2 p-2 text-xs">
-                  <span className="truncate text-ash">
+                  <span className="truncate text-muted">
                     {t.appraisal.photoKinds[p.kind]}
                     {p.caption ? ` · ${p.caption}` : ''}
                   </span>
@@ -404,7 +404,7 @@ export default function AppraisalDetail({
                     <button
                       type="button"
                       onClick={() => onRemovePhoto(p.id)}
-                      className="text-error hover:opacity-80"
+                      className="text-danger hover:opacity-80"
                       title={t.common.remove}
                     >
                       <Trash size={12} weight="bold" />
@@ -418,16 +418,16 @@ export default function AppraisalDetail({
       </section>
 
       {/* Stones */}
-      <section className="space-y-3 rounded-lg border border-hairline bg-canvas p-4">
+      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink">
+          <h2 className="text-sm font-semibold text-foreground">
             {t.appraisal.detail.sectionStones}
           </h2>
           {!isLocked ? (
             <button
               type="button"
               onClick={() => setShowAddStone((v) => !v)}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-2 py-1 text-xs font-medium text-ink hover:border-ink"
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:border-foreground"
             >
               <Plus size={12} weight="bold" />
               {t.appraisal.detail.addStone}
@@ -445,11 +445,11 @@ export default function AppraisalDetail({
         ) : null}
 
         {stones.length === 0 ? (
-          <p className="text-sm text-ash">{t.appraisal.detail.noStones}</p>
+          <p className="text-sm text-muted">{t.appraisal.detail.noStones}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-ash">
+              <thead className="text-muted">
                 <tr>
                   <th className="px-2 py-2">#</th>
                   <th className="px-2 py-2">
@@ -472,7 +472,7 @@ export default function AppraisalDetail({
                 {stones.map((s) => (
                   <tr
                     key={s.id}
-                    className="border-t border-hairline text-ink"
+                    className="border-t border-border text-foreground"
                   >
                     <td className="px-2 py-2 font-mono">{s.position}</td>
                     <td className="px-2 py-2 font-mono">{s.count}</td>
@@ -494,7 +494,7 @@ export default function AppraisalDetail({
                         <button
                           type="button"
                           onClick={() => onRemoveStone(s.id)}
-                          className="text-error hover:opacity-80"
+                          className="text-danger hover:opacity-80"
                           title={t.common.remove}
                         >
                           <Trash size={12} weight="bold" />
@@ -510,8 +510,8 @@ export default function AppraisalDetail({
       </section>
 
       {/* Valuation */}
-      <section className="space-y-3 rounded-lg border border-hairline bg-canvas p-4">
-        <h2 className="text-sm font-semibold text-ink">
+      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.appraisal.detail.sectionValuation}
         </h2>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 text-sm">
@@ -519,7 +519,7 @@ export default function AppraisalDetail({
             {t.appraisal.purposes[appraisal.purpose]}
           </Field>
           <Field label={t.appraisal.detail.appraisedValue}>
-            <span className="font-mono text-base font-semibold text-ink">
+            <span className="font-mono text-base font-semibold text-foreground">
               {formatAppraisalMoney(appraisal.appraised_value)}
             </span>
           </Field>
@@ -534,18 +534,18 @@ export default function AppraisalDetail({
         </div>
         {appraisal.notes ? (
           <div className="text-sm">
-            <span className="text-xs text-ash">
+            <span className="text-xs text-muted">
               {t.appraisal.new_.notes}:{' '}
             </span>
-            <span className="text-ink">{appraisal.notes}</span>
+            <span className="text-foreground">{appraisal.notes}</span>
           </div>
         ) : null}
       </section>
 
       {/* Validity + Appraiser */}
       <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="space-y-3 rounded-lg border border-hairline bg-canvas p-4">
-          <h2 className="text-sm font-semibold text-ink">
+        <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+          <h2 className="text-sm font-semibold text-foreground">
             {t.appraisal.detail.sectionValidity}
           </h2>
           <div className="text-sm">
@@ -559,8 +559,8 @@ export default function AppraisalDetail({
             </Field>
           </div>
         </div>
-        <div className="space-y-3 rounded-lg border border-hairline bg-canvas p-4">
-          <h2 className="text-sm font-semibold text-ink">
+        <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+          <h2 className="text-sm font-semibold text-foreground">
             {t.appraisal.detail.sectionAppraiser}
           </h2>
           <div className="text-sm">
@@ -603,8 +603,8 @@ function StatusBadge({ status }: { status: AppraisalStatus }) {
     status === 'finalized'
       ? 'border-success/30 bg-success/5 text-success'
       : status === 'voided'
-      ? 'border-error/30 bg-error/5 text-error'
-      : 'border-hairline bg-cloud text-ink'
+      ? 'border-danger/30 bg-danger/5 text-danger'
+      : 'border-border bg-background text-foreground'
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${tone}`}
@@ -623,10 +623,10 @@ function Field({
 }) {
   return (
     <div className="mb-1.5">
-      <div className="text-[11px] uppercase tracking-wider text-ash">
+      <div className="text-[11px] uppercase tracking-wider text-muted">
         {label}
       </div>
-      <div className="text-ink">{children}</div>
+      <div className="text-foreground">{children}</div>
     </div>
   )
 }
@@ -655,7 +655,7 @@ function PhotoUploader({
       <button
         type="button"
         onClick={() => setShow(true)}
-        className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-2 py-1 text-xs font-medium text-ink hover:border-ink"
+        className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:border-foreground"
       >
         <UploadSimple size={12} weight="bold" />
         {t.appraisal.detail.addPhoto}
@@ -669,7 +669,7 @@ function PhotoUploader({
         name="kind"
         value={kind}
         onChange={(e) => setKind(e.target.value as AppraisalPhotoKind)}
-        className="rounded-md border border-hairline bg-canvas px-2 py-1 text-xs"
+        className="rounded-md border border-border bg-card px-2 py-1 text-xs"
       >
         {PHOTO_KINDS.map((k) => (
           <option key={k} value={k}>
@@ -687,14 +687,14 @@ function PhotoUploader({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-rausch px-2 py-1 text-xs font-medium text-canvas disabled:opacity-50"
+        className="rounded-md bg-gold px-2 py-1 text-xs font-medium text-navy disabled:opacity-50"
       >
         {pending ? t.common.uploading : t.common.upload}
       </button>
       <button
         type="button"
         onClick={() => setShow(false)}
-        className="rounded-md border border-hairline bg-canvas px-2 py-1 text-xs"
+        className="rounded-md border border-border bg-card px-2 py-1 text-xs"
       >
         {t.common.cancel}
       </button>
@@ -724,7 +724,7 @@ function AddStoneInline({
   return (
     <form
       onSubmit={handle}
-      className="space-y-2 rounded-lg border border-dashed border-hairline bg-cloud/40 p-3"
+      className="space-y-2 rounded-lg border border-dashed border-border bg-background/40 p-3"
     >
       <input type="hidden" name="position" value={nextPosition} />
       <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
@@ -767,14 +767,14 @@ function AddStoneInline({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-md border border-hairline bg-canvas px-3 py-1 text-xs"
+          className="rounded-md border border-border bg-card px-3 py-1 text-xs"
         >
           {t.common.cancel}
         </button>
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-ink px-3 py-1 text-xs font-medium text-canvas disabled:opacity-50"
+          className="rounded-md bg-navy px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
         >
           {pending ? t.common.saving : t.common.save}
         </button>
@@ -802,7 +802,7 @@ function Inline({
     colSpan === 2 ? 'md:col-span-2' : colSpan === 3 ? 'md:col-span-3' : ''
   return (
     <label className={`block space-y-0.5 ${colSpanClass}`}>
-      <span className="text-[11px] uppercase tracking-wider text-ash">
+      <span className="text-[11px] uppercase tracking-wider text-muted">
         {label}
       </span>
       <input
@@ -810,7 +810,7 @@ function Inline({
         type={type}
         step={step}
         defaultValue={defaultValue}
-        className="block w-full rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink focus:border-ink focus:outline-none"
+        className="block w-full rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground focus:border-blue focus:outline-none"
       />
     </label>
   )

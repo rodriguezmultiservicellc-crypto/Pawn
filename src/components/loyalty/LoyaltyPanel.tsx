@@ -56,8 +56,8 @@ export default function LoyaltyPanel({
 
   if (!enabled) {
     return (
-      <section className="rounded-lg border border-hairline bg-canvas p-4">
-        <div className="flex items-center gap-2 text-sm text-ash">
+      <section className="rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center gap-2 text-sm text-muted">
           <Trophy size={18} weight="regular" />
           <span>Loyalty disabled for this shop. Enable in /settings/loyalty.</span>
         </div>
@@ -80,17 +80,17 @@ export default function LoyaltyPanel({
   }
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas p-4">
+    <section className="rounded-lg border border-border bg-card p-4">
       <div className="mb-4 flex items-center gap-2">
-        <Trophy size={20} weight="fill" className="text-rausch" />
-        <h2 className="text-lg font-semibold text-ink">Loyalty</h2>
+        <Trophy size={20} weight="fill" className="text-gold" />
+        <h2 className="text-lg font-semibold text-foreground">Loyalty</h2>
       </div>
 
       <div className="mb-4">
-        <div className="font-mono text-3xl font-bold text-ink">
+        <div className="font-mono text-3xl font-bold text-foreground">
           {customer.loyalty_points_balance.toLocaleString()}
         </div>
-        <div className="text-sm text-ash">
+        <div className="text-sm text-muted">
           ≈ ${equivDollars.toFixed(2)} in store credit
         </div>
       </div>
@@ -98,14 +98,14 @@ export default function LoyaltyPanel({
       {code && (
         <div className="mb-4 space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-ash">Referral code:</span>
-            <code className="rounded bg-cloud px-2 py-1 font-mono text-sm text-ink">
+            <span className="text-sm text-muted">Referral code:</span>
+            <code className="rounded bg-background px-2 py-1 font-mono text-sm text-foreground">
               {code}
             </code>
             <button
               type="button"
               onClick={copyCode}
-              className="rounded p-1 text-ash hover:bg-cloud hover:text-ink"
+              className="rounded p-1 text-muted hover:bg-background hover:text-foreground"
               title="Copy"
               aria-label="Copy code"
             >
@@ -115,7 +115,7 @@ export default function LoyaltyPanel({
               <button
                 type="button"
                 onClick={() => setConfirmReset(true)}
-                className="rounded p-1 text-ash hover:bg-cloud hover:text-ink"
+                className="rounded p-1 text-muted hover:bg-background hover:text-foreground"
                 title="Reset code"
                 aria-label="Reset code"
               >
@@ -133,20 +133,20 @@ export default function LoyaltyPanel({
         </div>
       )}
 
-      <h3 className="mb-2 text-sm font-medium text-ink">Recent activity</h3>
+      <h3 className="mb-2 text-sm font-medium text-foreground">Recent activity</h3>
       {recentEvents.length === 0 ? (
-        <p className="text-sm text-ash">No activity yet.</p>
+        <p className="text-sm text-muted">No activity yet.</p>
       ) : (
         <ul className="space-y-1 text-sm">
           {recentEvents.map((e) => (
             <li
               key={e.id}
-              className="flex items-center justify-between gap-2 border-b border-hairline py-1.5 last:border-b-0"
+              className="flex items-center justify-between gap-2 border-b border-border py-1.5 last:border-b-0"
             >
-              <span className="text-ink">{KIND_LABEL[e.kind]}</span>
+              <span className="text-foreground">{KIND_LABEL[e.kind]}</span>
               <span
                 className={`font-mono ${
-                  e.points_delta >= 0 ? 'text-success' : 'text-error'
+                  e.points_delta >= 0 ? 'text-success' : 'text-danger'
                 }`}
               >
                 {e.points_delta >= 0 ? '+' : ''}
@@ -161,7 +161,7 @@ export default function LoyaltyPanel({
         <button
           type="button"
           onClick={() => setShowModal(true)}
-          className="mt-4 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:bg-cloud"
+          className="mt-4 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background"
         >
           Adjust points
         </button>

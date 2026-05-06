@@ -97,7 +97,7 @@ export default function GeneralSettingsContent({
       <div className="flex items-center justify-between">
         <Link
           href="/settings"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           Back to settings
@@ -105,8 +105,8 @@ export default function GeneralSettingsContent({
       </div>
 
       <header>
-        <h1 className="text-2xl font-bold text-ink">Tenant info</h1>
-        <p className="mt-1 text-sm text-ash">
+        <h1 className="text-2xl font-bold text-foreground">Tenant info</h1>
+        <p className="mt-1 text-sm text-muted">
           Identity, contact, and compliance settings for this tenant.
           Module flags and police-report format are read-only here —
           they&apos;re set when the tenant is provisioned by the platform
@@ -115,13 +115,13 @@ export default function GeneralSettingsContent({
       </header>
 
       {state.error ? (
-        <div className="flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           <Warning size={14} weight="bold" />
           <span>{state.error}</span>
         </div>
       ) : null}
       {state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}
@@ -133,8 +133,8 @@ export default function GeneralSettingsContent({
       ) : null}
 
       <form action={formAction} key={formGen} className="space-y-6">
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             Identity
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -155,8 +155,8 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             Contact
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -179,8 +179,8 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             Address
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-6">
@@ -225,8 +225,8 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             Compliance
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -245,11 +245,11 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             Public landing page
           </legend>
-          <p className="mt-1 px-1 text-xs text-ash">
+          <p className="mt-1 px-1 text-xs text-muted">
             Customer-facing landing rendered at{' '}
             <code className="font-mono text-[11px]">/s/&lt;slug&gt;</code> and
             (when wildcard DNS is configured) at
@@ -273,9 +273,9 @@ export default function GeneralSettingsContent({
                 name="public_landing_enabled"
                 value="on"
                 defaultChecked={tenant.public_landing_enabled}
-                className="h-4 w-4 rounded border-hairline text-rausch focus:ring-rausch"
+                className="h-4 w-4 rounded border-border text-gold focus:ring-gold"
               />
-              <span className="font-medium text-ink">Publish landing page</span>
+              <span className="font-medium text-foreground">Publish landing page</span>
             </label>
             <label className="flex items-start gap-3 self-end pb-2 text-sm md:col-span-2">
               <input
@@ -284,11 +284,11 @@ export default function GeneralSettingsContent({
                 value="on"
                 defaultChecked={tenant.public_catalog_enabled}
                 disabled={!tenant.has_retail}
-                className="mt-0.5 h-4 w-4 rounded border-hairline text-rausch focus:ring-rausch disabled:opacity-50"
+                className="mt-0.5 h-4 w-4 rounded border-border text-gold focus:ring-gold disabled:opacity-50"
               />
               <span className="flex flex-col gap-0.5">
-                <span className="font-medium text-ink">Publish public catalog</span>
-                <span className="text-xs text-ash">
+                <span className="font-medium text-foreground">Publish public catalog</span>
+                <span className="text-xs text-muted">
                   {tenant.has_retail
                     ? 'Auto-publishes available items with a list price at /s/<slug>/catalog. Per-item Hide flag overrides.'
                     : 'Retail module disabled — catalog unavailable.'}
@@ -297,22 +297,22 @@ export default function GeneralSettingsContent({
             </label>
             <div className="md:col-span-2">
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-ink">About</span>
+                <span className="text-sm font-medium text-foreground">About</span>
                 <textarea
                   name="public_about"
                   defaultValue={initial.public_about ?? ''}
                   rows={4}
                   maxLength={2000}
-                  className={`block w-full rounded-md border bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
-                    fe('public_about') ? 'border-error/60' : 'border-hairline'
+                  className={`block w-full rounded-md border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+                    fe('public_about') ? 'border-danger/60' : 'border-border'
                   }`}
                 />
                 {fe('public_about') ? (
-                  <span className="block text-xs text-error">
+                  <span className="block text-xs text-danger">
                     {fe('public_about')}
                   </span>
                 ) : (
-                  <span className="block text-xs text-ash">
+                  <span className="block text-xs text-muted">
                     Optional. Plain text shown under the contact info. 2,000
                     characters max.
                   </span>
@@ -322,13 +322,13 @@ export default function GeneralSettingsContent({
           </div>
 
           <div className="mt-4">
-            <p className="px-1 text-sm font-medium text-ink">Hours</p>
-            <p className="mt-1 px-1 text-xs text-ash">
+            <p className="px-1 text-sm font-medium text-foreground">Hours</p>
+            <p className="mt-1 px-1 text-xs text-muted">
               24-hour format (e.g. 09:00, 18:00). Tick Closed to hide a day.
               Leave blank to render as Closed.
             </p>
             {fe('public_hours') ? (
-              <p className="mt-1 px-1 text-xs text-error">
+              <p className="mt-1 px-1 text-xs text-danger">
                 {fe('public_hours')}
               </p>
             ) : null}
@@ -342,33 +342,33 @@ export default function GeneralSettingsContent({
                 return (
                   <div
                     key={key}
-                    className="grid grid-cols-12 items-center gap-2 rounded-md border border-hairline px-3 py-2"
+                    className="grid grid-cols-12 items-center gap-2 rounded-md border border-border px-3 py-2"
                   >
-                    <span className="col-span-2 text-sm font-medium text-ink">
+                    <span className="col-span-2 text-sm font-medium text-foreground">
                       {label}
                     </span>
                     <input
                       type="time"
                       name={`hours_${key}_open`}
                       defaultValue={day.open}
-                      className="col-span-3 rounded-md border border-hairline bg-canvas px-2 py-1 font-mono text-xs text-ink focus:border-ink focus:outline-none"
+                      className="col-span-3 rounded-md border border-border bg-card px-2 py-1 font-mono text-xs text-foreground focus:border-blue focus:outline-none"
                     />
-                    <span className="col-span-1 text-center text-xs text-ash">
+                    <span className="col-span-1 text-center text-xs text-muted">
                       –
                     </span>
                     <input
                       type="time"
                       name={`hours_${key}_close`}
                       defaultValue={day.close}
-                      className="col-span-3 rounded-md border border-hairline bg-canvas px-2 py-1 font-mono text-xs text-ink focus:border-ink focus:outline-none"
+                      className="col-span-3 rounded-md border border-border bg-card px-2 py-1 font-mono text-xs text-foreground focus:border-blue focus:outline-none"
                     />
-                    <label className="col-span-3 flex items-center gap-2 text-xs text-ink">
+                    <label className="col-span-3 flex items-center gap-2 text-xs text-foreground">
                       <input
                         type="checkbox"
                         name={`hours_${key}_closed`}
                         value="on"
                         defaultChecked={day.closed}
-                        className="h-3.5 w-3.5 rounded border-hairline text-rausch focus:ring-rausch"
+                        className="h-3.5 w-3.5 rounded border-border text-gold focus:ring-gold"
                       />
                       Closed
                     </label>
@@ -379,8 +379,8 @@ export default function GeneralSettingsContent({
           </div>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             Modules (read-only)
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -403,7 +403,7 @@ export default function GeneralSettingsContent({
               />
             ) : null}
           </div>
-          <p className="mt-3 text-xs text-ash">
+          <p className="mt-3 text-xs text-muted">
             To change modules, plan, or police-report format, contact the
             platform admin.
           </p>
@@ -413,7 +413,7 @@ export default function GeneralSettingsContent({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-rausch px-4 py-2.5 font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2.5 font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? t.common.saving : 'Save changes'}
           </button>
@@ -478,7 +478,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-sm font-medium text-ink">
+      <span className="text-sm font-medium text-foreground">
         {label}
         {required ? ' *' : null}
       </span>
@@ -490,14 +490,14 @@ function Field({
         autoComplete={autoComplete}
         maxLength={maxLength}
         placeholder={placeholder}
-        className={`block w-full rounded-md border bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
-          error ? 'border-error/60' : 'border-hairline'
+        className={`block w-full rounded-md border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+          error ? 'border-danger/60' : 'border-border'
         }`}
       />
       {error ? (
-        <span className="block text-xs text-error">{error}</span>
+        <span className="block text-xs text-danger">{error}</span>
       ) : hint ? (
-        <span className="block text-xs text-ash">{hint}</span>
+        <span className="block text-xs text-muted">{hint}</span>
       ) : null}
     </label>
   )
@@ -514,9 +514,9 @@ function ReadOnly({
 }) {
   return (
     <div className="block space-y-1">
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       <div
-        className={`block w-full rounded-md border border-hairline bg-cloud/50 px-3 py-2 text-ash ${
+        className={`block w-full rounded-md border border-border bg-background/50 px-3 py-2 text-muted ${
           mono ? 'font-mono text-xs' : ''
         }`}
       >

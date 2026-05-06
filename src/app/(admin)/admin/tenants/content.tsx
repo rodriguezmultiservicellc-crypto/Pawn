@@ -78,7 +78,7 @@ export default function TenantsContent({
         <h1 className="text-2xl font-bold">{t.admin.tenants.title}</h1>
         <Link
           href="/admin/tenants/new"
-          className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep"
+          className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
         >
           {t.admin.tenants.newTenant}
         </Link>
@@ -91,7 +91,7 @@ export default function TenantsContent({
               <div className="text-sm font-semibold text-success">
                 {t.admin.newTenant.successTitle} — {flash.tenantName}
               </div>
-              <p className="mt-1 text-sm text-ink/90">
+              <p className="mt-1 text-sm text-foreground/90">
                 {t.admin.newTenant.successBody}
               </p>
             </div>
@@ -99,33 +99,33 @@ export default function TenantsContent({
               type="button"
               onClick={() => openTenant(flash.tenantId)}
               disabled={pendingTenantId === flash.tenantId}
-              className="shrink-0 rounded-md bg-ink px-3 py-1.5 text-canvas text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              className="shrink-0 rounded-md bg-navy px-3 py-1.5 text-white text-sm font-medium hover:opacity-90 disabled:opacity-50"
             >
               {pendingTenantId === flash.tenantId
                 ? t.common.opening
                 : t.common.open}
             </button>
           </div>
-          <div className="mt-3 rounded-md bg-canvas border border-hairline p-3 font-mono text-xs break-all">
+          <div className="mt-3 rounded-md bg-card border border-border p-3 font-mono text-xs break-all">
             {onboardUrl}
           </div>
         </div>
       ) : null}
 
       {openError ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {openError}
         </div>
       ) : null}
 
       {tenants.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
-          <p className="text-ash">{t.admin.tenants.empty}</p>
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-muted">{t.admin.tenants.empty}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-hairline text-ash">
+            <thead className="border-b border-border text-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">{t.admin.newTenant.name}</th>
                 <th className="px-4 py-3 font-medium">
@@ -142,21 +142,21 @@ export default function TenantsContent({
             </thead>
             <tbody>
               {tenants.map((tn) => (
-                <tr key={tn.id} className="border-b border-hairline last:border-0">
+                <tr key={tn.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-ink">{tn.name}</div>
+                    <div className="font-medium text-foreground">{tn.name}</div>
                     {tn.dba ? (
-                      <div className="text-xs text-ash">{tn.dba}</div>
+                      <div className="text-xs text-muted">{tn.dba}</div>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 text-ink">
+                  <td className="px-4 py-3 text-foreground">
                     {tn.tenant_type === 'chain_hq'
                       ? t.admin.tenants.typeChainHq
                       : tn.tenant_type === 'shop'
                       ? t.admin.tenants.typeShop
                       : t.admin.tenants.typeStandalone}
                   </td>
-                  <td className="px-4 py-3 text-ink">
+                  <td className="px-4 py-3 text-foreground">
                     <div className="flex flex-wrap gap-1">
                       {tn.has_pawn ? (
                         <ModuleChip label={t.admin.tenants.pawn} />
@@ -169,7 +169,7 @@ export default function TenantsContent({
                       ) : null}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-ash">
+                  <td className="px-4 py-3 text-muted">
                     {new Date(tn.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -177,7 +177,7 @@ export default function TenantsContent({
                       type="button"
                       onClick={() => openTenant(tn.id)}
                       disabled={pendingTenantId === tn.id}
-                      className="rounded-md border border-hairline bg-canvas px-3 py-1 text-sm text-ink hover:border-ink disabled:opacity-50"
+                      className="rounded-md border border-border bg-card px-3 py-1 text-sm text-foreground hover:border-foreground disabled:opacity-50"
                     >
                       {pendingTenantId === tn.id
                         ? t.common.opening
@@ -196,7 +196,7 @@ export default function TenantsContent({
 
 function ModuleChip({ label }: { label: string }) {
   return (
-    <span className="rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs text-ink">
+    <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground">
       {label}
     </span>
   )

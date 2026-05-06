@@ -98,26 +98,26 @@ export function InlinePawnCalculator({
   }
 
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas">
+    <fieldset className="rounded-lg border border-border bg-card">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
       >
-        <span className="flex items-center gap-2 text-sm font-semibold text-ink">
-          <Calculator size={16} weight="bold" className="text-rausch" />
+        <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Calculator size={16} weight="bold" className="text-gold" />
           {t.pawn.inlineCalc.title}
         </span>
-        <span className="text-xs text-ash">
+        <span className="text-xs text-muted">
           {open ? <CaretUp size={14} /> : <CaretDown size={14} />}
         </span>
       </button>
 
       {open ? (
-        <div className="border-t border-hairline p-4">
+        <div className="border-t border-border p-4">
           <WatchLookupSection onAddToCollateral={onAddWatchToCollateral} />
 
-          <p className="mb-3 mt-4 text-xs text-ash">
+          <p className="mb-3 mt-4 text-xs text-muted">
             {t.pawn.inlineCalc.help}
           </p>
 
@@ -127,7 +127,7 @@ export function InlinePawnCalculator({
             className="flex flex-wrap items-end gap-3"
           >
             <label className="block space-y-1">
-              <span className="text-xs font-medium text-ink">
+              <span className="text-xs font-medium text-foreground">
                 {t.pawn.inlineCalc.ltvLabel}
               </span>
               <div className="flex items-center gap-1">
@@ -138,16 +138,16 @@ export function InlinePawnCalculator({
                   max={100}
                   value={ltv}
                   onChange={(e) => setLtv(e.target.value)}
-                  className="w-20 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                  className="w-20 rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
                 />
-                <span className="text-sm text-ash">%</span>
+                <span className="text-sm text-muted">%</span>
               </div>
             </label>
 
             <button
               type="submit"
               disabled={pending}
-              className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
             >
               <Lightning size={14} weight="bold" />
               {pending
@@ -157,7 +157,7 @@ export function InlinePawnCalculator({
           </form>
 
           {state.status === 'error' ? (
-            <div className="mt-3 flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs text-error">
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
               <Warning size={12} weight="bold" />
               <span>{translateError(state.error, t)}</span>
             </div>
@@ -199,13 +199,13 @@ function SuggestionResult({
     <div className="mt-3 rounded-lg border border-success/30 bg-success/5 p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <div className="text-xs text-ash">
+          <div className="text-xs text-muted">
             {t.pawn.inlineCalc.suggestedLabel}
           </div>
           <div className="font-mono text-2xl font-bold text-success">
             {usd(result.totalSuggestedPrincipal)}
           </div>
-          <div className="mt-1 text-[11px] text-ash">
+          <div className="mt-1 text-[11px] text-muted">
             {t.pawn.inlineCalc.basisLabel}: {usd(result.totalValueBasis)} ·{' '}
             LTV {result.ltvPercent}%
           </div>
@@ -214,7 +214,7 @@ function SuggestionResult({
           type="button"
           onClick={() => onApply(result.totalSuggestedPrincipal)}
           disabled={result.totalSuggestedPrincipal <= 0}
-          className="rounded-md border border-success/30 bg-canvas px-3 py-2 text-xs font-medium text-success hover:bg-success/10 disabled:opacity-50"
+          className="rounded-md border border-success/30 bg-card px-3 py-2 text-xs font-medium text-success hover:bg-success/10 disabled:opacity-50"
         >
           {t.pawn.inlineCalc.useAmount}
         </button>
@@ -222,19 +222,19 @@ function SuggestionResult({
 
       {result.rows.length > 1 ? (
         <details className="mt-3">
-          <summary className="cursor-pointer text-[11px] text-ash hover:text-ink">
+          <summary className="cursor-pointer text-[11px] text-muted hover:text-foreground">
             {t.pawn.inlineCalc.perRowBreakdown}
           </summary>
           <ul className="mt-2 space-y-1 text-[11px]">
             {result.rows.map((r, idx) => (
               <li
                 key={idx}
-                className="flex items-center justify-between rounded border border-hairline bg-canvas px-2 py-1"
+                className="flex items-center justify-between rounded border border-border bg-card px-2 py-1"
               >
-                <span className="text-ink">
+                <span className="text-foreground">
                   #{idx + 1} · {r.valueBasisSource}
                 </span>
-                <span className="font-mono text-ink">
+                <span className="font-mono text-foreground">
                   {usd(r.suggestedPrincipal)}
                 </span>
               </li>
@@ -375,9 +375,9 @@ function WatchLookupSection({
   }
 
   return (
-    <section className="rounded-md border border-hairline bg-cloud/40 p-3">
-      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-ink">
-        <Watch size={14} weight="bold" className="text-rausch" />
+    <section className="rounded-md border border-border bg-background/40 p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-foreground">
+        <Watch size={14} weight="bold" className="text-gold" />
         {t.pawn.inlineCalc.watchLookup.title}
       </div>
 
@@ -395,50 +395,50 @@ function WatchLookupSection({
           <div className="relative">
             <MagnifyingGlass
               size={14}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
             />
             <input
               type="text"
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               placeholder={t.pawn.inlineCalc.watchLookup.placeholder}
-              className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </div>
 
           {loading ? (
-            <div className="text-[11px] text-ash">{t.common.loading}</div>
+            <div className="text-[11px] text-muted">{t.common.loading}</div>
           ) : null}
           {errored ? (
-            <div className="flex items-center gap-1 text-[11px] text-error">
+            <div className="flex items-center gap-1 text-[11px] text-danger">
               <Warning size={12} weight="bold" />
               {t.pawn.inlineCalc.watchLookup.errFetch}
             </div>
           ) : null}
           {!loading && !errored && query.trim().length >= 2 && results.length === 0 ? (
-            <div className="text-[11px] text-ash">
+            <div className="text-[11px] text-muted">
               {t.pawn.inlineCalc.watchLookup.noMatches}
             </div>
           ) : null}
 
           {results.length > 0 ? (
-            <ul className="max-h-56 overflow-y-auto rounded-md border border-hairline bg-canvas">
+            <ul className="max-h-56 overflow-y-auto rounded-md border border-border bg-card">
               {results.map((m) => (
                 <li key={m.id}>
                   <button
                     type="button"
                     onClick={() => pickResult(m)}
-                    className="flex w-full flex-col items-start gap-0.5 border-b border-hairline px-3 py-2 text-left last:border-0 hover:bg-cloud"
+                    className="flex w-full flex-col items-start gap-0.5 border-b border-border px-3 py-2 text-left last:border-0 hover:bg-background"
                   >
-                    <span className="text-sm font-medium text-ink">
+                    <span className="text-sm font-medium text-foreground">
                       {m.brand} {m.model}
                       {m.nickname ? (
-                        <span className="ml-1 text-ash">
+                        <span className="ml-1 text-muted">
                           “{m.nickname}”
                         </span>
                       ) : null}
                     </span>
-                    <span className="font-mono text-[11px] text-ash">
+                    <span className="font-mono text-[11px] text-muted">
                       ref {m.reference_no} · {m.year_start}
                       {m.year_end !== m.year_start ? `–${m.year_end}` : ''}
                       {' · '}
@@ -451,7 +451,7 @@ function WatchLookupSection({
           ) : null}
 
           {query.trim().length < 2 ? (
-            <p className="text-[10px] text-ash">
+            <p className="text-[10px] text-muted">
               {t.pawn.inlineCalc.watchLookup.minLengthHint}
             </p>
           ) : null}
@@ -486,23 +486,23 @@ function SelectedWatchCard({
       ? `${match.year_start}`
       : `${match.year_start}–${match.year_end}`
   return (
-    <div className="rounded-md border border-rausch/20 bg-canvas p-3">
+    <div className="rounded-md border border-gold/20 bg-card p-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-sm font-semibold text-ink">
+          <div className="text-sm font-semibold text-foreground">
             {match.brand} {match.model}
             {match.nickname ? (
-              <span className="ml-1 text-ash">“{match.nickname}”</span>
+              <span className="ml-1 text-muted">“{match.nickname}”</span>
             ) : null}
           </div>
-          <div className="mt-0.5 font-mono text-[11px] text-ash">
+          <div className="mt-0.5 font-mono text-[11px] text-muted">
             ref {match.reference_no} · {yearLabel}
           </div>
         </div>
         <button
           type="button"
           onClick={onClear}
-          className="rounded p-1 text-ash hover:bg-cloud hover:text-ink"
+          className="rounded p-1 text-muted hover:bg-background hover:text-foreground"
           aria-label={t.common.clear}
         >
           <X size={12} weight="bold" />
@@ -530,7 +530,7 @@ function SelectedWatchCard({
           <button
             type="button"
             onClick={onAddToCollateral}
-            className="inline-flex items-center gap-1 rounded-md border border-rausch/40 bg-rausch/5 px-2 py-1 text-[11px] font-medium text-rausch hover:bg-rausch/10"
+            className="inline-flex items-center gap-1 rounded-md border border-gold/40 bg-gold/5 px-2 py-1 text-[11px] font-medium text-gold hover:bg-gold/10"
           >
             {added ? (
               <>
@@ -548,7 +548,7 @@ function SelectedWatchCard({
         <button
           type="button"
           onClick={onCopy}
-          className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-[11px] font-medium text-ink hover:bg-cloud"
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground hover:bg-background"
         >
           {copied ? (
             <>
@@ -563,7 +563,7 @@ function SelectedWatchCard({
           )}
         </button>
       </div>
-      <p className="mt-2 text-[10px] text-ash">
+      <p className="mt-2 text-[10px] text-muted">
         {t.pawn.inlineCalc.watchLookup.disclaimer}
       </p>
     </div>
@@ -584,11 +584,11 @@ function Stat({
       className={`rounded-md border px-2 py-1.5 ${
         accent
           ? 'border-success/30 bg-success/5 text-success'
-          : 'border-hairline bg-cloud text-ink'
+          : 'border-border bg-background text-foreground'
       }`}
     >
       <div className="font-mono text-sm font-semibold">{value}</div>
-      <div className="text-[9px] uppercase tracking-wide text-ash">{label}</div>
+      <div className="text-[9px] uppercase tracking-wide text-muted">{label}</div>
     </div>
   )
 }

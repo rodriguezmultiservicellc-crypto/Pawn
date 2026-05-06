@@ -183,18 +183,18 @@ export default function NewSaleForm({
       <div className="flex items-center justify-between">
         <Link
           href="/pos"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.pos.backToList}
         </Link>
-        <h1 className="text-lg font-semibold text-ink">
+        <h1 className="text-lg font-semibold text-foreground">
           {t.pos.sale.new}
         </h1>
       </div>
 
       {!error && fieldErrors && Object.keys(fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}

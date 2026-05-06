@@ -246,14 +246,14 @@ export default function BuyForm({
         <div className="flex items-center gap-3">
           <Link
             href="/inventory"
-            className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+            className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
           >
             <ArrowLeft size={14} weight="bold" />
             {t.inventory.backToList}
           </Link>
         </div>
-        <div className="text-xs text-ash">
-          Hold period: <span className="font-mono text-ink">{buyHoldDays}d</span>
+        <div className="text-xs text-muted">
+          Hold period: <span className="font-mono text-foreground">{buyHoldDays}d</span>
         </div>
       </header>
 
@@ -262,7 +262,7 @@ export default function BuyForm({
           <Coins size={22} weight="bold" />
           Buy gold (outright)
         </h1>
-        <p className="text-sm text-ash">
+        <p className="text-sm text-muted">
           Buy items from a customer for cash. Each item enters inventory
           marked status=held for {buyHoldDays} days, then becomes available
           for sale. A police-report compliance row is written automatically.
@@ -270,24 +270,24 @@ export default function BuyForm({
       </div>
 
       {state.error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}
 
       <form action={formAction} className="space-y-6" key={formGen}>
         {/* Customer */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             Customer
           </legend>
           <div className="mt-2">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">Customer ID</span>
+              <span className="text-sm font-medium text-foreground">Customer ID</span>
               <input
                 type="text"
                 name="customer_id"
@@ -295,23 +295,23 @@ export default function BuyForm({
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
                 placeholder="Paste a customer UUID or use the picker (TBD)"
-                className={`block w-full rounded-md border bg-canvas px-3 py-2 font-mono text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+                className={`block w-full rounded-md border bg-card px-3 py-2 font-mono text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
                   fieldError('customer_id')
-                    ? 'border-error focus:border-error'
-                    : 'border-hairline focus:border-ink'
+                    ? 'border-danger focus:border-danger'
+                    : 'border-border focus:border-blue'
                 }`}
               />
               {fieldError('customer_id') ? (
-                <span className="text-xs text-error">
+                <span className="text-xs text-danger">
                   {fieldError('customer_id')}
                 </span>
               ) : null}
-              <p className="text-[11px] text-ash">
+              <p className="text-[11px] text-muted">
                 Customer must be in this tenant&apos;s records (FL pawn law
                 requires customer ID for buy-outright). Create one at{' '}
                 <Link
                   href="/customers/new"
-                  className="text-rausch hover:underline"
+                  className="text-gold hover:underline"
                 >
                   /customers/new
                 </Link>{' '}
@@ -323,7 +323,7 @@ export default function BuyForm({
 
         {/* Items */}
         <fieldset className="space-y-3">
-          <legend className="text-sm font-semibold text-ink">
+          <legend className="text-sm font-semibold text-foreground">
             Items ({items.length})
           </legend>
           <input type="hidden" name="item_count" value={items.length} />
@@ -345,7 +345,7 @@ export default function BuyForm({
             type="button"
             onClick={addItem}
             disabled={items.length >= 20}
-            className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline px-3 py-2 text-sm text-ink hover:bg-cloud disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-3 py-2 text-sm text-foreground hover:bg-background disabled:opacity-50"
           >
             <Plus size={14} weight="bold" />
             Add item
@@ -353,15 +353,15 @@ export default function BuyForm({
         </fieldset>
 
         {/* Totals + payment */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             Payout
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
             <Stat label="Total melt" value={fmt(totalMelt)} />
             <Stat label="Total payout" value={fmt(totalPayout)} highlight />
             <label className="block space-y-1">
-              <span className="text-xs uppercase tracking-wide text-ash">
+              <span className="text-xs uppercase tracking-wide text-muted">
                 Payment method
               </span>
               <select
@@ -372,7 +372,7 @@ export default function BuyForm({
                     e.target.value as 'cash' | 'card' | 'check' | 'other',
                   )
                 }
-                className="w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm"
+                className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
               >
                 <option value="cash">Cash</option>
                 <option value="card">Card</option>
@@ -382,7 +382,7 @@ export default function BuyForm({
             </label>
           </div>
           <label className="mt-3 block space-y-1">
-            <span className="text-xs uppercase tracking-wide text-ash">
+            <span className="text-xs uppercase tracking-wide text-muted">
               Notes
             </span>
             <textarea
@@ -390,7 +390,7 @@ export default function BuyForm({
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
         </fieldset>
@@ -398,14 +398,14 @@ export default function BuyForm({
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/inventory"
-            className="rounded-md border border-hairline px-4 py-2 text-sm text-ink"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
           >
             {t.common.cancel}
           </Link>
           <button
             type="submit"
             disabled={pending || items.length === 0}
-            className="inline-flex items-center gap-2 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? (
               t.common.saving
@@ -459,16 +459,16 @@ function ItemCard({
   const errPrefix = `items.${idx}.`
 
   return (
-    <article className="rounded-lg border border-hairline bg-canvas p-3">
+    <article className="rounded-lg border border-border bg-card p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="rounded-full border border-hairline bg-cloud px-2 py-0.5 text-[11px] font-mono text-ink">
+        <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-mono text-foreground">
           Item {idx + 1}
         </span>
         {canRemove ? (
           <button
             type="button"
             onClick={onRemove}
-            className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-2 py-1 text-xs font-medium text-error hover:bg-error/10"
+            className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10"
           >
             <Trash size={12} weight="bold" />
             Remove
@@ -527,25 +527,25 @@ function ItemCard({
         />
         <div className="md:col-span-3">
           <label className="block space-y-1">
-            <span className="text-xs font-medium text-ink">Photo</span>
+            <span className="text-xs font-medium text-foreground">Photo</span>
             <input
               type="file"
               name={`item_${idx}_photo`}
               accept="image/jpeg,image/png,image/webp,image/heic"
               onChange={onPhotoChange}
-              className="block w-full text-xs text-ink file:mr-2 file:rounded-md file:border-0 file:bg-cloud file:px-3 file:py-1 file:text-xs file:text-ink"
+              className="block w-full text-xs text-foreground file:mr-2 file:rounded-md file:border-0 file:bg-background file:px-3 file:py-1 file:text-xs file:text-foreground"
             />
           </label>
         </div>
       </div>
 
-      <div className="mt-3 rounded-md border border-hairline bg-cloud/40 p-2">
+      <div className="mt-3 rounded-md border border-border bg-background/40 p-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs">
-            <Calculator size={14} weight="bold" className="text-ash" />
-            <span className="font-medium text-ink">Melt:</span>
+            <Calculator size={14} weight="bold" className="text-muted" />
+            <span className="font-medium text-foreground">Melt:</span>
             {meltInfo.meltValue == null ? (
-              <span className="text-ash">
+              <span className="text-muted">
                 {meltInfo.perGram == null
                   ? meltInfo.purity == null
                     ? 'add metal + karat'
@@ -553,7 +553,7 @@ function ItemCard({
                   : 'add weight'}
               </span>
             ) : (
-              <span className="font-mono text-ink">
+              <span className="font-mono text-foreground">
                 {fmt(meltInfo.meltValue)}
               </span>
             )}
@@ -563,14 +563,14 @@ function ItemCard({
               </span>
             ) : null}
             {meltInfo.purity ? (
-              <span className="text-[10px] text-ash">
+              <span className="text-[10px] text-muted">
                 ({meltInfo.purity})
               </span>
             ) : null}
           </div>
           <div className="flex items-center gap-2">
             <label className="block text-xs">
-              <span className="block text-[10px] uppercase tracking-wide text-ash">
+              <span className="block text-[10px] uppercase tracking-wide text-muted">
                 Payout *
               </span>
               <input
@@ -584,17 +584,17 @@ function ItemCard({
                 }
                 onFocus={() => onChange({ payoutAuto: false })}
                 required
-                className={`block w-32 rounded-md border bg-canvas px-2 py-1 text-right font-mono text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+                className={`block w-32 rounded-md border bg-card px-2 py-1 text-right font-mono text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
                   fieldError(`${errPrefix}payout`)
-                    ? 'border-error focus:border-error'
-                    : 'border-hairline focus:border-ink'
+                    ? 'border-danger focus:border-danger'
+                    : 'border-border focus:border-blue'
                 }`}
               />
             </label>
           </div>
         </div>
         {fieldError(`${errPrefix}payout`) ? (
-          <p className="mt-1 text-[11px] text-error">
+          <p className="mt-1 text-[11px] text-danger">
             {fieldError(`${errPrefix}payout`)}
           </p>
         ) : null}
@@ -606,7 +606,7 @@ function ItemCard({
           <img
             src={row.photoPreview}
             alt=""
-            className="h-20 w-20 rounded-md border border-hairline object-cover"
+            className="h-20 w-20 rounded-md border border-border object-cover"
           />
         </div>
       ) : null}
@@ -645,7 +645,7 @@ function Field({
         : ''
   return (
     <label className={`block space-y-1 ${colSpan}`}>
-      <span className="text-xs font-medium text-ink">{label}</span>
+      <span className="text-xs font-medium text-foreground">{label}</span>
       <input
         type={type}
         step={step}
@@ -654,13 +654,13 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className={`block w-full rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+        className={`block w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
           error
-            ? 'border-error focus:border-error'
-            : 'border-hairline focus:border-ink'
+            ? 'border-danger focus:border-danger'
+            : 'border-border focus:border-blue'
         }`}
       />
-      {error ? <span className="text-[11px] text-error">{error}</span> : null}
+      {error ? <span className="text-[11px] text-danger">{error}</span> : null}
     </label>
   )
 }
@@ -682,15 +682,15 @@ function Select({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-medium text-ink">{label}</span>
+      <span className="text-xs font-medium text-foreground">{label}</span>
       <select
         name={name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`block w-full rounded-md border bg-canvas px-2 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+        className={`block w-full rounded-md border bg-card px-2 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
           error
-            ? 'border-error focus:border-error'
-            : 'border-hairline focus:border-ink'
+            ? 'border-danger focus:border-danger'
+            : 'border-border focus:border-blue'
         }`}
       >
         {options.map((o) => (
@@ -699,7 +699,7 @@ function Select({
           </option>
         ))}
       </select>
-      {error ? <span className="text-[11px] text-error">{error}</span> : null}
+      {error ? <span className="text-[11px] text-danger">{error}</span> : null}
     </label>
   )
 }
@@ -715,10 +715,10 @@ function Stat({
 }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wide text-ash">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
       <div
         className={`mt-0.5 font-mono ${
-          highlight ? 'text-2xl text-ink' : 'text-sm text-ink'
+          highlight ? 'text-2xl text-foreground' : 'text-sm text-foreground'
         }`}
       >
         {value}

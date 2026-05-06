@@ -77,25 +77,25 @@ export function TemplateEditor({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-3xl rounded-lg border border-hairline bg-canvas p-5 shadow-lg">
+      <div className="w-full max-w-3xl rounded-lg border border-border bg-card p-5 shadow-lg">
         <header className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-semibold text-ink">
+            <h3 className="text-base font-semibold text-foreground">
               {t.comms.kindLabels[template.kind]}{' '}
-              <span className="text-ash">
+              <span className="text-muted">
                 · {template.language === 'en' ? 'EN' : 'ES'} · {template.channel}
               </span>
             </h3>
-            <p className="text-xs text-ash">{t.comms.editorHelp}</p>
+            <p className="text-xs text-muted">{t.comms.editorHelp}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-ash hover:bg-cloud hover:text-ink"
+            className="rounded-md p-1 text-muted hover:bg-background hover:text-foreground"
             aria-label="close"
           >
             <X size={16} weight="bold" />
@@ -103,7 +103,7 @@ export function TemplateEditor({
         </header>
 
         {error ? (
-          <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
             {error}
           </div>
         ) : null}
@@ -112,21 +112,21 @@ export function TemplateEditor({
           <div className="space-y-3">
             {template.channel === 'email' ? (
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-ink">
+                <span className="text-sm font-medium text-foreground">
                   {t.comms.editorSubject}
                 </span>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
                 />
               </label>
             ) : null}
 
             {template.channel === 'whatsapp' ? (
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-ink">
+                <span className="text-sm font-medium text-foreground">
                   {t.comms.editorContentSid}
                 </span>
                 <input
@@ -134,30 +134,30 @@ export function TemplateEditor({
                   value={contentSid}
                   onChange={(e) => setContentSid(e.target.value)}
                   placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 font-mono text-xs text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 font-mono text-xs text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
                 />
-                <span className="block text-xs text-ash">
+                <span className="block text-xs text-muted">
                   {t.comms.editorContentSidHelp}
                 </span>
               </label>
             ) : null}
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.comms.editorBody}
               </span>
               <textarea
                 rows={10}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
-              <span className="block text-xs text-ash">
+              <span className="block text-xs text-muted">
                 {t.comms.editorBodyHelp}
               </span>
             </label>
 
-            <label className="flex items-center gap-2 text-sm text-ink">
+            <label className="flex items-center gap-2 text-sm text-foreground">
               <input
                 type="checkbox"
                 checked={isEnabled}
@@ -167,23 +167,23 @@ export function TemplateEditor({
             </label>
           </div>
 
-          <div className="space-y-2 rounded-md border border-hairline bg-cloud/30 p-3">
-            <div className="flex items-center gap-1 text-xs font-semibold text-ink">
+          <div className="space-y-2 rounded-md border border-border bg-background/30 p-3">
+            <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
               <Eye size={12} weight="bold" />
               {t.comms.previewHeader}
             </div>
             {template.channel === 'email' ? (
               <div className="text-sm">
-                <div className="text-xs text-ash">
+                <div className="text-xs text-muted">
                   {t.comms.editorSubject}
                 </div>
-                <div className="font-medium text-ink">{subjectPreview || '—'}</div>
+                <div className="font-medium text-foreground">{subjectPreview || '—'}</div>
               </div>
             ) : null}
-            <div className="whitespace-pre-wrap rounded-md border border-hairline bg-canvas p-3 text-sm text-ink">
+            <div className="whitespace-pre-wrap rounded-md border border-border bg-card p-3 text-sm text-foreground">
               {preview || '—'}
             </div>
-            <div className="text-xs text-ash">{t.comms.previewVarsHelp}</div>
+            <div className="text-xs text-muted">{t.comms.previewVarsHelp}</div>
           </div>
         </div>
 
@@ -191,7 +191,7 @@ export function TemplateEditor({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+            className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
           >
             {t.common.cancel}
           </button>
@@ -199,7 +199,7 @@ export function TemplateEditor({
             type="button"
             disabled={pending}
             onClick={submit}
-            className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           >
             <FloppyDisk size={14} weight="bold" />
             {pending ? t.common.saving : t.common.save}

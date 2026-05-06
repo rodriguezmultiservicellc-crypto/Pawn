@@ -62,27 +62,27 @@ export function RecordPickupDialog({
   return (
     <Modal title={t.repair.dialogs.recordPickup.title} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
-      <p className="mb-3 text-sm text-ash">
+      <p className="mb-3 text-sm text-muted">
         {t.repair.dialogs.recordPickup.body}
       </p>
       <div className="space-y-4">
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.repair.dialogs.recordPickup.pickupBy} *
           </span>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.repair.dialogs.recordPickup.idCheck}
           </span>
           <input
@@ -90,13 +90,13 @@ export function RecordPickupDialog({
             value={idCheck}
             onChange={(e) => setIdCheck(e.target.value)}
             placeholder={t.repair.dialogs.recordPickup.idCheckPlaceholder}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.repair.dialogs.recordPickup.amount}
             </span>
             <input
@@ -105,17 +105,17 @@ export function RecordPickupDialog({
               min={0}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.repair.dialogs.recordPickup.method}
             </span>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="cash">{t.pawn.payment.methodCash}</option>
               <option value="card">{t.pawn.payment.methodCard}</option>
@@ -126,16 +126,16 @@ export function RecordPickupDialog({
         </div>
 
         <div>
-          <span className="block text-sm font-medium text-ink">
+          <span className="block text-sm font-medium text-foreground">
             {t.repair.dialogs.recordPickup.signature}
           </span>
-          <p className="mb-1 text-xs text-ash">
+          <p className="mb-1 text-xs text-muted">
             {t.repair.dialogs.recordPickup.signatureHelp}
           </p>
           <button
             type="button"
             onClick={() => sigRef.current?.click()}
-            className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+            className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
           >
             <Upload size={14} weight="bold" />
             {sigFileName ?? t.common.upload}
@@ -150,14 +150,14 @@ export function RecordPickupDialog({
         </div>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.repair.dialogs.recordPickup.notes}
           </span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -165,7 +165,7 @@ export function RecordPickupDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -173,7 +173,7 @@ export function RecordPickupDialog({
           type="button"
           disabled={pending || !canSubmit}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md bg-success px-4 py-2 text-sm text-canvas font-medium hover:bg-success-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-success px-4 py-2 text-sm text-white font-medium hover:bg-success-deep disabled:opacity-50"
         >
           <CheckCircle size={14} weight="bold" />
           {pending ? t.common.saving : t.repair.actions.recordPickup}

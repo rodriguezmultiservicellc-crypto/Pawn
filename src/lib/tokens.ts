@@ -1,101 +1,92 @@
 /**
- * Design tokens — locked. See DESIGN-airbnb.md at project root for the full
- * system, component specs, and rationale. Don't override hex values, don't
- * substitute fonts, don't introduce off-system accent colors.
+ * Design tokens — locked. See DESIGN-lunaazul.md at project root for the
+ * full system, component specs, and rationale. Don't override hex values,
+ * don't substitute fonts, don't introduce off-system accent colors.
  *
- * Two extensions over the Airbnb-extracted palette:
- *   - successGreen / successDeep (#2D7A4E / #1F5535)
- *   - warningAmber / warningDeep (#B7791F / #8C5A14)
- * Saturation matched to Error Red's #c13515. Strictly semantic — never
- * decorative, never for emphasis, never outside status communication.
+ * The system: navy chrome + light canvas + gold (action) / blue (link).
+ * Status colors are Tailwind defaults (emerald-500 / amber-500 / red-500
+ * / blue-500). Don't reintroduce the dusty saturation-matched extensions
+ * from the previous Airbnb-derived system.
  */
 
 export const colors = {
   // Brand
-  rausch: '#ff385c',
-  rauschDeep: '#e00b41',
-  plusMagenta: '#92174d',
-  luxePurple: '#460479',
+  navy: '#0d1b2a', // primary chrome, body text on light, sidebar bg
+  navy2: '#1a2f45', // hovered nav row / panel header lift
+  navy3: '#243b55', // nested panel surface
+
+  // Accent
+  gold: '#e8a020', // primary CTA, active sidebar item text
+  gold2: '#f5b942', // primary button hover variant
+  blue: '#1d6fa4', // links, focused form fields
+  blue2: '#2589c8', // blue hover variant
 
   // Surface
-  canvas: '#ffffff',
-  cloud: '#f7f7f7',
-  hairline: '#dddddd',
+  background: '#f7f9fc', // page canvas (light blue-gray)
+  card: '#ffffff', // card / modal / panel surface
+  border: '#dde6f0', // 1px workhorse border
 
   // Text
-  ink: '#222222',
-  charcoal: '#3f3f3f',
-  ash: '#6a6a6a',
-  mute: '#929292',
-  stone: '#c1c1c1',
+  foreground: '#0d1b2a', // default text — same hex as navy by design
+  textSecondary: '#3d5166', // one step muted
+  muted: '#7a90a8', // tertiary metadata, placeholder
 
-  // Semantic — from Airbnb
-  error: '#c13515',
-  errorDeep: '#b32505',
-  infoLink: '#428bff',
+  // Sidebar (dark surface) — see DESIGN-lunaazul.md §6
+  sidebarText: 'rgba(255, 255, 255, 0.65)', // idle nav item
+  sidebarHoverBg: 'rgba(255, 255, 255, 0.05)', // hover bg overlay
+  sidebarActiveBg: 'rgba(255, 255, 255, 0.10)', // active bg overlay
 
-  // Semantic — project extensions (financial state)
-  success: '#2D7A4E',
-  successDeep: '#1F5535',
-  warning: '#B7791F',
-  warningDeep: '#8C5A14',
-
-  // Misc
-  translucentBlack: 'rgba(0, 0, 0, 0.24)',
+  // Semantic — Tailwind-aligned, status-only
+  success: '#22c55e',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  info: '#3b82f6',
 } as const
 
 export type ColorToken = keyof typeof colors
 
-/** The Rausch → magenta sweep — only used on the wordmark and the branded
- *  search button. Never as a full surface. */
-export const brandGradient =
-  'linear-gradient(90deg, #ff385c 0%, #e00b41 50%, #92174d 100%)'
-
-/** Border radius scale. Pick from this set, never invent a value. */
+/** Border radius scale. One radius for almost everything (12px). */
 export const radius = {
-  sm: '4px', // chips, inline tags
-  md: '8px', // text buttons, dropdowns
-  lg: '14px', // listing/inventory card photography, generic containers
-  xl: '20px', // pill buttons, large images, booking-panel-style cards
-  pill: '32px', // search bar pill, extra-large containers
-  full: '9999px', // every circular icon button + every avatar
+  sm: '6px', // chips, small badges
+  md: '8px', // secondary buttons, dropdown rows
+  lg: '8px', // alias kept for transition; same as md
+  xl: '12px', // cards, primary buttons, inputs, modals — the workhorse
+  '2xl': '16px', // auth card, oversized hero panels
+  full: '9999px', // pills + circular icon buttons + avatars
 } as const
 
-/** Shadow scale. Three levels.
- *  - level 0: no shadow (default for cards on canvas — listing cards, body)
- *  - level 1: active/pressed icon button lift
- *  - level 2: signature three-layer elevation (sticky panels, modals, dropdowns)
- *
- *  The level-2 shadow is intentionally three stacked low-opacity shadows.
- *  Don't collapse to a single drop shadow — the multi-layer anti-aliasing
- *  is the visual signature.
+/** Shadow scale.
+ *  - none: default for cards at rest
+ *  - sm: subtle lift for hovered secondary surfaces
+ *  - lg: the hover shadow used everywhere (cards lift, buttons lift)
+ *  - modal: standalone modal/dropdown panel
  */
 export const shadows = {
   none: 'none',
-  pressedIcon: 'rgba(0, 0, 0, 0.08) 0 4px 12px',
-  elevation:
-    'rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0',
-  focusRing: '0 0 0 2px #222222',
-  whiteSeparatorRing: 'rgb(255, 255, 255) 0 0 0 4px',
+  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+  lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
+  modal:
+    '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.15)',
 } as const
 
-/** Responsive breakpoints (pixel widths). Mirrors DESIGN-airbnb.md §8 with
- *  the most useful subset for our staff + portal surfaces. Tailwind v4
- *  reads these via the @theme block in globals.css. */
+/** Responsive breakpoints — Tailwind defaults. Luna Azul tracks Tailwind
+ *  rather than carrying custom breakpoints. */
 export const breakpoints = {
-  sm: '550px', // small tablet / phone landscape
-  md: '800px', // tablet
-  lg: '1128px', // desktop
-  xl: '1440px', // desktop XL
-  '2xl': '1760px', // ultra-wide
+  sm: '640px',
+  md: '768px',
+  lg: '1024px',
+  xl: '1280px',
+  '2xl': '1536px',
 } as const
 
 /** Report tokens — for printable PDFs (loan tickets, repair tickets,
  *  receipts, daily register). Charcoal body for high-contrast on paper.
- *  These are intentionally separate from the UI tokens above. */
+ *  Intentionally separate from the UI tokens above — paper printing has
+ *  different contrast budgets than monitor rendering. Don't migrate these
+ *  to the navy/gold palette. */
 export const reportColors = {
   body: '#3f3f3f', // Charcoal
   muted: '#808080', // Footer / disclaimer
-  divider: '#dddddd', // Hairline Gray
+  divider: '#dddddd', // Hairline gray
   ink: '#222222', // Headings, totals
 } as const

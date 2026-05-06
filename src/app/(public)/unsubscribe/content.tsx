@@ -71,7 +71,7 @@ export default function UnsubscribeContent({
 
   return (
     <main className="mx-auto w-full max-w-[480px] px-4 py-16">
-      <div className="rounded-2xl border border-hairline bg-canvas p-8 shadow-sm">
+      <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
         {state.kind === 'confirm' ? (
           <ConfirmView state={state} copy={copy} />
         ) : state.kind === 'success' ? (
@@ -95,23 +95,23 @@ function ConfirmView({
 }) {
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-hairline pb-4">
-        <EnvelopeSimple size={24} className="text-rausch" weight="duotone" />
-        <h1 className="text-lg font-semibold tracking-[-0.01em] text-ink">
+      <header className="flex items-center gap-3 border-b border-border pb-4">
+        <EnvelopeSimple size={24} className="text-gold" weight="duotone" />
+        <h1 className="text-lg font-semibold tracking-[-0.01em] text-foreground">
           {copy.title}
         </h1>
       </header>
-      <h2 className="mt-6 text-base font-semibold text-ink">
+      <h2 className="mt-6 text-base font-semibold text-foreground">
         {copy.confirmHeading(state.firstName)}
       </h2>
-      <p className="mt-3 text-sm leading-relaxed text-ash">
+      <p className="mt-3 text-sm leading-relaxed text-muted">
         {copy.confirmBody}
       </p>
       <form action={unsubscribeAction} className="mt-6">
         <input type="hidden" name="token" value={state.token} />
         <button
           type="submit"
-          className="w-full rounded-lg bg-rausch px-4 py-2.5 text-sm font-semibold text-canvas hover:bg-rausch/90"
+          className="w-full rounded-lg bg-gold px-4 py-2.5 text-sm font-semibold text-navy hover:bg-gold/90"
         >
           {copy.confirmButton}
         </button>
@@ -123,13 +123,13 @@ function ConfirmView({
 function SuccessView({ copy }: { copy: (typeof COPY)['en'] }) {
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-hairline pb-4">
+      <header className="flex items-center gap-3 border-b border-border pb-4">
         <CheckCircle size={24} className="text-success" weight="fill" />
-        <h1 className="text-lg font-semibold tracking-[-0.01em] text-ink">
+        <h1 className="text-lg font-semibold tracking-[-0.01em] text-foreground">
           {copy.successTitle}
         </h1>
       </header>
-      <p className="mt-6 text-sm leading-relaxed text-ash">
+      <p className="mt-6 text-sm leading-relaxed text-muted">
         {copy.successBody}
       </p>
     </>
@@ -145,13 +145,13 @@ function AlreadyView({
 }) {
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-hairline pb-4">
+      <header className="flex items-center gap-3 border-b border-border pb-4">
         <CheckCircle size={24} className="text-success" weight="fill" />
-        <h1 className="text-lg font-semibold tracking-[-0.01em] text-ink">
+        <h1 className="text-lg font-semibold tracking-[-0.01em] text-foreground">
           {copy.alreadyTitle}
         </h1>
       </header>
-      <p className="mt-6 text-sm leading-relaxed text-ash">
+      <p className="mt-6 text-sm leading-relaxed text-muted">
         {copy.alreadyBody(state.firstName)}
       </p>
     </>
@@ -161,13 +161,13 @@ function AlreadyView({
 function InvalidView({ copy }: { copy: (typeof COPY)['en'] }) {
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-hairline pb-4">
-        <EnvelopeSimple size={24} className="text-ash" weight="duotone" />
-        <h1 className="text-lg font-semibold tracking-[-0.01em] text-ink">
+      <header className="flex items-center gap-3 border-b border-border pb-4">
+        <EnvelopeSimple size={24} className="text-muted" weight="duotone" />
+        <h1 className="text-lg font-semibold tracking-[-0.01em] text-foreground">
           {copy.invalidTitle}
         </h1>
       </header>
-      <p className="mt-6 text-sm leading-relaxed text-ash">
+      <p className="mt-6 text-sm leading-relaxed text-muted">
         {copy.invalidBody}
       </p>
     </>

@@ -44,34 +44,34 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <h2 className="text-xl font-semibold text-ink">{t.auth.signIn}</h2>
+      <h2 className="text-xl font-semibold text-foreground">{t.auth.signIn}</h2>
 
       {error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
 
       <label className="block space-y-1">
-        <span className="text-sm font-medium text-ink">{t.auth.email}</span>
+        <span className="text-sm font-medium text-foreground">{t.auth.email}</span>
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           autoComplete="email"
         />
       </label>
 
       <label className="block space-y-1">
-        <span className="text-sm font-medium text-ink">{t.auth.password}</span>
+        <span className="text-sm font-medium text-foreground">{t.auth.password}</span>
         <input
           type="password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           autoComplete="current-password"
         />
       </label>
@@ -79,7 +79,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-md bg-rausch px-4 py-2.5 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+        className="w-full rounded-md bg-gold px-4 py-2.5 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
       >
         {submitting ? t.common.loading : t.auth.signIn}
       </button>
@@ -87,14 +87,14 @@ export default function LoginForm() {
       <div className="flex items-center justify-between text-sm">
         <Link
           href="/forgot-password"
-          className="text-ink underline-offset-2 hover:underline"
+          className="text-foreground underline-offset-2 hover:underline"
         >
           {t.auth.forgotPassword}
         </Link>
         <button
           type="button"
           onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
-          className="text-ash hover:text-ink"
+          className="text-muted hover:text-foreground"
         >
           {lang === 'en' ? t.lang.es : t.lang.en}
         </button>

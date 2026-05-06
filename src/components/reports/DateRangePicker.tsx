@@ -85,30 +85,30 @@ export function DateRangePicker({
   return (
     <form
       onSubmit={onSubmit}
-      className="flex flex-wrap items-end gap-3 rounded-md border border-hairline bg-canvas p-4"
+      className="flex flex-wrap items-end gap-3 rounded-md border border-border bg-card p-4"
     >
-      <label className="flex flex-col gap-1 text-xs text-ash">
+      <label className="flex flex-col gap-1 text-xs text-muted">
         <span>{t.reports.range.from}</span>
         <input
           type="date"
           value={localFrom}
           onChange={(e) => setLocalFrom(e.target.value)}
-          className="rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-ash">
+      <label className="flex flex-col gap-1 text-xs text-muted">
         <span>{t.reports.range.to}</span>
         <input
           type="date"
           value={localTo}
           onChange={(e) => setLocalTo(e.target.value)}
-          className="rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+        className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
       >
         {t.reports.range.apply}
       </button>
@@ -127,7 +127,7 @@ export function DateRangePicker({
             type="button"
             onClick={() => applyPreset(key)}
             disabled={pending}
-            className="rounded-full border border-hairline bg-canvas px-3 py-1 text-xs text-ink hover:border-ink disabled:opacity-50"
+            className="rounded-full border border-border bg-card px-3 py-1 text-xs text-foreground hover:border-foreground disabled:opacity-50"
           >
             {label}
           </button>

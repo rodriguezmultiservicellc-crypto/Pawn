@@ -18,23 +18,23 @@ export type RepairEventItem = {
 }
 
 const TONE: Record<RepairEventType, string> = {
-  intake: 'border-hairline bg-cloud text-ink',
-  quote_set: 'border-hairline bg-cloud text-ink',
+  intake: 'border-border bg-background text-foreground',
+  quote_set: 'border-border bg-background text-foreground',
   approved: 'border-success/30 bg-success/5 text-success',
-  started: 'border-rausch/30 bg-rausch/5 text-rausch',
-  paused: 'border-hairline bg-cloud text-ash',
-  resumed: 'border-rausch/30 bg-rausch/5 text-rausch',
+  started: 'border-gold/30 bg-gold/5 text-gold',
+  paused: 'border-border bg-background text-muted',
+  resumed: 'border-gold/30 bg-gold/5 text-gold',
   parts_needed: 'border-warning/30 bg-warning/5 text-warning',
   parts_received: 'border-success/30 bg-success/5 text-success',
   completed: 'border-success/30 bg-success/5 text-success',
   pickup: 'border-success/30 bg-success/5 text-success',
-  abandoned_conversion: 'border-error/30 bg-error/5 text-error',
-  void: 'border-error/30 bg-error/5 text-error',
-  note: 'border-hairline bg-cloud text-ink',
-  photo_added: 'border-hairline bg-cloud text-ink',
+  abandoned_conversion: 'border-danger/30 bg-danger/5 text-danger',
+  void: 'border-danger/30 bg-danger/5 text-danger',
+  note: 'border-border bg-background text-foreground',
+  photo_added: 'border-border bg-background text-foreground',
   // Tech workflow events (0023).
-  assigned_to_tech: 'border-rausch/30 bg-rausch/5 text-rausch-deep',
-  claimed_by_tech: 'border-rausch/30 bg-rausch/5 text-rausch',
+  assigned_to_tech: 'border-gold/30 bg-gold/5 text-gold-2',
+  claimed_by_tech: 'border-gold/30 bg-gold/5 text-gold',
   qa_started: 'border-success/30 bg-success/5 text-success',
   qa_completed: 'border-success/30 bg-success/5 text-success',
   qa_returned: 'border-warning/30 bg-warning/5 text-warning',
@@ -44,28 +44,28 @@ export function TimelinePanel({ events }: { events: RepairEventItem[] }) {
   const { t } = useI18n()
   if (events.length === 0) {
     return (
-      <section className="rounded-lg border border-hairline bg-canvas">
-        <header className="flex items-center justify-between border-b border-hairline px-4 py-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+      <section className="rounded-lg border border-border bg-card">
+        <header className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <ClockCounterClockwise size={14} weight="regular" />
             {t.repair.detail.sectionEvents}
           </h2>
         </header>
-        <div className="px-4 py-6 text-center text-sm text-ash">
+        <div className="px-4 py-6 text-center text-sm text-muted">
           {t.repair.detail.noEvents}
         </div>
       </section>
     )
   }
   return (
-    <section className="rounded-lg border border-hairline bg-canvas">
-      <header className="flex items-center justify-between border-b border-hairline px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <ClockCounterClockwise size={14} weight="regular" />
           {t.repair.detail.sectionEvents}
         </h2>
       </header>
-      <ul className="divide-y divide-hairline">
+      <ul className="divide-y divide-border">
         {events.map((e) => (
           <li key={e.id} className="px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-3">
@@ -76,12 +76,12 @@ export function TimelinePanel({ events }: { events: RepairEventItem[] }) {
                   {labelForEvent(e.event_type, t)}
                 </span>
                 {e.amount != null ? (
-                  <span className="font-mono text-xs text-ink">
+                  <span className="font-mono text-xs text-foreground">
                     {fmtMoney(e.amount)}
                   </span>
                 ) : null}
               </div>
-              <div className="flex items-center gap-2 text-xs text-ash">
+              <div className="flex items-center gap-2 text-xs text-muted">
                 <span>{relative(e.occurred_at, t)}</span>
                 <span className="font-mono">
                   {new Date(e.occurred_at).toLocaleString()}
@@ -89,9 +89,9 @@ export function TimelinePanel({ events }: { events: RepairEventItem[] }) {
               </div>
             </div>
             {e.notes ? (
-              <div className="mt-1 text-xs text-ink">{e.notes}</div>
+              <div className="mt-1 text-xs text-foreground">{e.notes}</div>
             ) : null}
-            <div className="mt-1 text-[11px] text-ash">
+            <div className="mt-1 text-[11px] text-muted">
               {e.performed_by_name ?? t.repair.timeline.noActor}
             </div>
           </li>

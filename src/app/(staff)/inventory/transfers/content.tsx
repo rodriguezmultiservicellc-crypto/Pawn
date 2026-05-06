@@ -42,12 +42,12 @@ const STATUS_BADGE: Record<
 > = {
   pending: { bg: 'bg-warning/10 border-warning/30', text: 'text-warning' },
   accepted: { bg: 'bg-success/10 border-success/30', text: 'text-success' },
-  rejected: { bg: 'bg-error/10 border-error/30', text: 'text-error' },
-  cancelled: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+  rejected: { bg: 'bg-danger/10 border-danger/30', text: 'text-danger' },
+  cancelled: { bg: 'bg-background border-border', text: 'text-muted' },
   // Legacy values from 0003 — never written by the v1 UI but visible
   // if older rows are still around.
-  in_transit: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
-  received: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+  in_transit: { bg: 'bg-background border-border', text: 'text-muted' },
+  received: { bg: 'bg-background border-border', text: 'text-muted' },
 }
 
 export default function TransfersContent({
@@ -88,16 +88,16 @@ export default function TransfersContent({
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <ArrowsLeftRight size={22} weight="regular" className="text-ash" />
+            <ArrowsLeftRight size={22} weight="regular" className="text-muted" />
             <h1 className="text-2xl font-bold">{t.inventory.transfers.list.title}</h1>
           </div>
-          <p className="mt-1 text-sm text-ash">
+          <p className="mt-1 text-sm text-muted">
             {t.inventory.transfers.list.subtitle}
           </p>
         </div>
         <Link
           href="/inventory/transfers/new"
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
         >
           <Plus size={16} weight="bold" />
           <span>{t.inventory.transfers.list.new}</span>
@@ -139,13 +139,13 @@ export default function TransfersContent({
           disabled={pending}
         />
 
-        <span className="mx-2 h-5 w-px bg-hairline" />
+        <span className="mx-2 h-5 w-px bg-border" />
 
         <select
           value={directionFilter}
           onChange={(e) => pushParams({ direction: e.target.value })}
           disabled={pending}
-          className="rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="">{t.inventory.transfers.filters.directionAll}</option>
           <option value="incoming">
@@ -160,7 +160,7 @@ export default function TransfersContent({
           <button
             type="button"
             onClick={() => pushParams({ status: null, direction: null })}
-            className="ml-auto rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:border-ink"
+            className="ml-auto rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:border-foreground"
           >
             {t.common.clear}
           </button>
@@ -168,17 +168,17 @@ export default function TransfersContent({
       </div>
 
       {transfers.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
-          <p className="text-ash">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-muted">
             {hasFilter
               ? t.inventory.transfers.list.emptyForFilter
               : t.inventory.transfers.list.empty}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-hairline text-ash">
+            <thead className="border-b border-border text-muted">
               <tr>
                 <th className="w-12 px-3 py-3" aria-label="direction" />
                 <th className="px-4 py-3 font-medium">
@@ -210,28 +210,28 @@ export default function TransfersContent({
                 return (
                   <tr
                     key={row.id}
-                    className="cursor-pointer border-b border-hairline transition-colors last:border-0 hover:bg-cloud"
+                    className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-background"
                     onClick={() =>
                       router.push(`/inventory/transfers/${row.id}`)
                     }
                   >
                     <td className="px-3 py-2 text-center">
                       {row.direction === 'outgoing' ? (
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-cloud text-ash">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-background text-muted">
                           <ArrowRight size={14} weight="bold" />
                         </span>
                       ) : (
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-cloud text-ash">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-background text-muted">
                           <ArrowLeft size={14} weight="bold" />
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-ink">{row.from_shop_label}</td>
-                    <td className="px-4 py-3 text-ink">{row.to_shop_label}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-ink">
+                    <td className="px-4 py-3 text-foreground">{row.from_shop_label}</td>
+                    <td className="px-4 py-3 text-foreground">{row.to_shop_label}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {row.item_count}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-ink">
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {row.total_value > 0
                         ? formatMoney(row.total_value)
                         : '—'}
@@ -243,12 +243,12 @@ export default function TransfersContent({
                         {labelForStatus(row.status, t)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-ash">
+                    <td className="px-4 py-3 text-xs text-muted">
                       {row.requested_at
                         ? formatRelative(row.requested_at)
                         : '—'}
                     </td>
-                    <td className="px-4 py-3 text-xs text-ash">
+                    <td className="px-4 py-3 text-xs text-muted">
                       {row.requested_by_label ?? '—'}
                     </td>
                   </tr>
@@ -281,9 +281,9 @@ function FilterChip({
       : tone === 'warning'
       ? 'bg-warning/10 border-warning/40 text-warning'
       : tone === 'error'
-      ? 'bg-error/10 border-error/40 text-error'
-      : 'bg-ink text-canvas border-ink'
-    : 'border-hairline bg-canvas text-ink hover:border-ink'
+      ? 'bg-danger/10 border-danger/40 text-danger'
+      : 'bg-navy text-white border-navy'
+    : 'border-border bg-card text-foreground hover:border-foreground'
 
   return (
     <button

@@ -83,7 +83,7 @@ const PALETTE = {
   body: reportColors.body,
   muted: reportColors.muted,
   divider: reportColors.divider,
-  rausch: '#ff385c',
+  gold: '#ff385c',
   cloud: '#f7f7f7',
 } as const
 
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrains Mono',
     fontSize: 18,
     fontWeight: 700,
-    color: PALETTE.rausch,
+    color: PALETTE.gold,
     marginTop: 2,
   },
   statusPill: {

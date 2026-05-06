@@ -68,8 +68,8 @@ export function TenantSwitcher({
   // Single-tenant: render as a static chip.
   if (single) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm">
-        <span className="text-ink font-medium">{activeLabel}</span>
+      <span className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm">
+        <span className="text-foreground font-medium">{activeLabel}</span>
       </span>
     )
   }
@@ -108,18 +108,18 @@ export function TenantSwitcher({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm hover:border-ink"
+        className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-foreground"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="text-ink font-medium">{activeLabel}</span>
+        <span className="text-foreground font-medium">{activeLabel}</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className={`h-4 w-4 text-ash transition-transform ${
+          className={`h-4 w-4 text-muted transition-transform ${
             open ? 'rotate-180' : ''
           }`}
         >
@@ -130,7 +130,7 @@ export function TenantSwitcher({
       {open ? (
         <div
           role="listbox"
-          className="absolute right-0 z-20 mt-1 w-72 overflow-hidden rounded-lg border border-hairline bg-canvas"
+          className="absolute right-0 z-20 mt-1 w-72 overflow-hidden rounded-lg border border-border bg-card"
           style={{
             boxShadow:
               'rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0',
@@ -149,15 +149,15 @@ export function TenantSwitcher({
                     aria-selected={isActive}
                     disabled={isPending}
                     onClick={() => onSwitch(t.id)}
-                    className={`flex w-full items-start justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-cloud disabled:opacity-50 ${
-                      isActive ? 'bg-cloud' : ''
+                    className={`flex w-full items-start justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-background disabled:opacity-50 ${
+                      isActive ? 'bg-background' : ''
                     }`}
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium text-ink">
+                      <span className="block truncate font-medium text-foreground">
                         {label}
                       </span>
-                      <span className="block truncate text-xs text-ash">
+                      <span className="block truncate text-xs text-muted">
                         {TYPE_LABEL[t.tenant_type]}
                       </span>
                     </span>
@@ -168,7 +168,7 @@ export function TenantSwitcher({
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="2"
-                        className="mt-0.5 h-4 w-4 text-rausch"
+                        className="mt-0.5 h-4 w-4 text-gold"
                       >
                         <path d="M20 6 9 17l-5-5" />
                       </svg>
@@ -179,7 +179,7 @@ export function TenantSwitcher({
             })}
           </ul>
           {error ? (
-            <div className="border-t border-hairline bg-error/5 px-3 py-2 text-xs text-error">
+            <div className="border-t border-border bg-danger/5 px-3 py-2 text-xs text-danger">
               {error}
             </div>
           ) : null}

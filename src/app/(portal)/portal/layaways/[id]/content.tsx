@@ -104,7 +104,7 @@ export default function PortalLayawayDetail({
       <div className="flex items-center gap-2">
         <Link
           href="/portal/layaways"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={16} weight="regular" />
           <span>{t.portal.common.backToList}</span>
@@ -112,49 +112,49 @@ export default function PortalLayawayDetail({
       </div>
 
       <header className="space-y-1">
-        <p className="font-mono text-sm text-ash">
+        <p className="font-mono text-sm text-muted">
           {t.portal.layaways.layawayNumber} {layaway.layawayNumber}
         </p>
-        <h1 className="text-2xl font-bold tracking-tight text-ink">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {t.portal.layaways.detailTitle}
         </h1>
       </header>
 
       {banner ? <PaymentBanner kind={banner} /> : null}
 
-      <section className="space-y-4 rounded-xl border border-hairline bg-canvas p-5">
+      <section className="space-y-4 rounded-xl border border-border bg-card p-5">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-sm text-ash">{t.portal.layaways.balance}</span>
-          <span className="font-mono text-2xl font-bold text-ink">
+          <span className="text-sm text-muted">{t.portal.layaways.balance}</span>
+          <span className="font-mono text-2xl font-bold text-foreground">
             {formatMoney(layaway.balanceRemaining)}
           </span>
         </div>
         <dl className="grid grid-cols-2 gap-y-1 text-sm">
-          <dt className="text-ash">{t.portal.layaways.paid}</dt>
-          <dd className="text-right font-mono text-ink">
+          <dt className="text-muted">{t.portal.layaways.paid}</dt>
+          <dd className="text-right font-mono text-foreground">
             {formatMoney(layaway.paidTotal)}
           </dd>
-          <dt className="text-ash">{t.portal.layaways.total}</dt>
-          <dd className="text-right font-mono text-ink">
+          <dt className="text-muted">{t.portal.layaways.total}</dt>
+          <dd className="text-right font-mono text-foreground">
             {formatMoney(layaway.totalDue)}
           </dd>
-          <dt className="text-ash">{t.portal.layaways.schedule}</dt>
-          <dd className="text-right text-ink">
+          <dt className="text-muted">{t.portal.layaways.schedule}</dt>
+          <dd className="text-right text-foreground">
             {t.portal.layaways.scheduleBadges[layaway.scheduleKind] ??
               layaway.scheduleKind}
           </dd>
           {layaway.firstPaymentDue ? (
             <>
-              <dt className="text-ash">{t.portal.layaways.nextDue}</dt>
-              <dd className="text-right text-ink">
+              <dt className="text-muted">{t.portal.layaways.nextDue}</dt>
+              <dd className="text-right text-foreground">
                 {formatDateUtc(layaway.firstPaymentDue)}
               </dd>
             </>
           ) : null}
           {layaway.finalDueDate ? (
             <>
-              <dt className="text-ash">{t.portal.layaways.finalDue}</dt>
-              <dd className="text-right text-ink">
+              <dt className="text-muted">{t.portal.layaways.finalDue}</dt>
+              <dd className="text-right text-foreground">
                 {formatDateUtc(layaway.finalDueDate)}
               </dd>
             </>
@@ -162,13 +162,13 @@ export default function PortalLayawayDetail({
         </dl>
 
         {payEnabled ? (
-          <div className="space-y-3 border-t border-hairline pt-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-ash">
+          <div className="space-y-3 border-t border-border pt-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">
               {t.portal.layaways.payNow}
             </h3>
-            <p className="text-xs text-ash">{t.portal.layaways.payAmountHelp}</p>
+            <p className="text-xs text-muted">{t.portal.layaways.payAmountHelp}</p>
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.portal.layaways.payAmountLabel}
               </span>
               <input
@@ -179,20 +179,20 @@ export default function PortalLayawayDetail({
                 max={layaway.balanceRemaining}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 font-mono text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 font-mono text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
             <button
               type="button"
               onClick={onPayClick}
               disabled={submitDisabled}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-rausch px-4 py-2.5 font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-gold px-4 py-2.5 font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
             >
               <CreditCard size={18} weight="regular" />
               {pending ? t.portal.layaways.paying : t.portal.layaways.payNow}
             </button>
             {error ? (
-              <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+              <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
                 {error}
               </div>
             ) : null}
@@ -204,17 +204,17 @@ export default function PortalLayawayDetail({
         ) : null}
       </section>
 
-      <section className="space-y-3 rounded-xl border border-hairline bg-canvas p-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-ash">
+      <section className="space-y-3 rounded-xl border border-border bg-card p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
           {t.portal.layaways.paymentsHistory}
         </h2>
         {payments.length === 0 ? (
-          <p className="text-sm text-ash">{t.portal.layaways.noPayments}</p>
+          <p className="text-sm text-muted">{t.portal.layaways.noPayments}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-ash">
+                <tr className="text-left text-xs uppercase tracking-wide text-muted">
                   <th className="pb-2 pr-3 font-medium">
                     {t.portal.loans.paymentsTableDate}
                   </th>
@@ -226,16 +226,16 @@ export default function PortalLayawayDetail({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-hairline">
+              <tbody className="divide-y divide-border">
                 {payments.map((p) => (
                   <tr key={p.id}>
-                    <td className="py-2 pr-3 text-ink">
+                    <td className="py-2 pr-3 text-foreground">
                       {formatDateTime(p.occurredAt)}
                     </td>
-                    <td className="py-2 pr-3 text-right font-mono text-ink">
+                    <td className="py-2 pr-3 text-right font-mono text-foreground">
                       {formatMoney(p.amount)}
                     </td>
-                    <td className="py-2 text-ash">
+                    <td className="py-2 text-muted">
                       {paymentMethodLabel(p.paymentMethod, t)}
                     </td>
                   </tr>
@@ -277,7 +277,7 @@ function PaymentBanner({
       ? 'border-success/30 bg-success/5 text-success'
       : kind === 'cancelled'
       ? 'border-warning/30 bg-warning/5 text-warning'
-      : 'border-hairline bg-cloud text-ink'
+      : 'border-border bg-background text-foreground'
   const msg =
     kind === 'success'
       ? t.portal.layaways.successBanner

@@ -43,20 +43,20 @@ export default function PoliceReportContent({
         <div>
           <Link
             href="/reports"
-            className="inline-flex items-center gap-1 text-xs text-ash hover:text-ink"
+            className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
           >
             <CaretLeft size={14} weight="regular" />
             {t.reports.title}
           </Link>
-          <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-ink">
-            <Shield size={22} weight="regular" className="text-rausch" />
+          <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-foreground">
+            <Shield size={22} weight="regular" className="text-gold" />
             {t.compliance.title}
           </h1>
-          <p className="max-w-2xl text-sm text-ash">{t.compliance.subtitle}</p>
+          <p className="max-w-2xl text-sm text-muted">{t.compliance.subtitle}</p>
         </div>
         <a
           href={`/api/reports/police-report/csv?${params.toString()}`}
-          className="inline-flex items-center gap-2 rounded-md border border-ink bg-ink px-3 py-2 text-sm text-canvas hover:bg-ink/90"
+          className="inline-flex items-center gap-2 rounded-md border border-navy bg-navy px-3 py-2 text-sm text-white hover:bg-navy/90"
         >
           <FileCsv size={16} weight="regular" />
           {t.compliance.downloadCsv}
@@ -73,7 +73,7 @@ export default function PoliceReportContent({
       <DateRangePicker from={from} to={to} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label className="flex flex-col gap-1 text-xs text-ash">
+        <label className="flex flex-col gap-1 text-xs text-muted">
           <span>{t.compliance.formatLabel}</span>
           <select
             value={format}
@@ -82,7 +82,7 @@ export default function PoliceReportContent({
               next.set('format', e.target.value)
               window.location.search = next.toString()
             }}
-            className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           >
             {SUPPORTED_FORMATS.map((f) => (
               <option key={f} value={f}>
@@ -91,15 +91,15 @@ export default function PoliceReportContent({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs text-ash sm:col-span-2">
+        <label className="flex flex-col gap-1 text-xs text-muted sm:col-span-2">
           <span>{t.compliance.storeIdLabel}</span>
           <input
             type="text"
             value={storeId}
             readOnly
-            className="rounded-md border border-hairline bg-cloud px-3 py-2 font-mono text-xs text-ink"
+            className="rounded-md border border-border bg-background px-3 py-2 font-mono text-xs text-foreground"
           />
-          <span className="text-xs text-ash">{t.compliance.storeIdHelp}</span>
+          <span className="text-xs text-muted">{t.compliance.storeIdHelp}</span>
         </label>
       </div>
 
@@ -111,22 +111,22 @@ export default function PoliceReportContent({
       </div>
 
       <div>
-        <h2 className="mb-2 text-sm font-medium text-ink">
+        <h2 className="mb-2 text-sm font-medium text-foreground">
           {t.compliance.preview.title}
         </h2>
-        <p className="mb-2 text-xs text-ash">
+        <p className="mb-2 text-xs text-muted">
           {t.compliance.preview.rowCount
             .replace('{rows}', String(complianceRowCount))
             .replace('{flattened}', String(flattenedRowCount))}
         </p>
         {previewRows.length === 0 ? (
-          <div className="rounded-lg border border-hairline bg-canvas p-12 text-center text-ash">
+          <div className="rounded-lg border border-border bg-card p-12 text-center text-muted">
             {t.reports.empty}
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-hairline text-ash">
+              <thead className="border-b border-border text-muted">
                 <tr>
                   <th className="px-3 py-2 font-medium">Date</th>
                   <th className="px-3 py-2 font-medium">Type</th>
@@ -142,7 +142,7 @@ export default function PoliceReportContent({
                 {previewRows.map((r, i) => (
                   <tr
                     key={i}
-                    className="border-b border-hairline last:border-0 hover:bg-cloud"
+                    className="border-b border-border last:border-0 hover:bg-background"
                   >
                     <td className="px-3 py-2 font-mono text-xs">
                       {r.transaction_date}
@@ -181,9 +181,9 @@ export default function PoliceReportContent({
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-hairline bg-canvas p-4">
-      <div className="text-xs uppercase tracking-wide text-ash">{label}</div>
-      <div className="mt-1 font-mono text-lg font-bold text-ink">{value}</div>
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
+      <div className="mt-1 font-mono text-lg font-bold text-foreground">{value}</div>
     </div>
   )
 }

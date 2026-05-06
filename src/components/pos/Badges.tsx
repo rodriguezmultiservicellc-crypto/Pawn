@@ -11,9 +11,9 @@ import type {
 const SALE_TONE: Record<SaleStatus, string> = {
   open: 'border-warning/30 bg-warning/5 text-warning',
   completed: 'border-success/30 bg-success/5 text-success',
-  voided: 'border-error/30 bg-error/5 text-error',
+  voided: 'border-danger/30 bg-danger/5 text-danger',
   partial_returned: 'border-warning/30 bg-warning/5 text-warning',
-  fully_returned: 'border-cloud border-hairline bg-cloud text-ash',
+  fully_returned: 'border-cloud border-border bg-background text-muted',
 }
 
 export function SaleStatusBadge({ status }: { status: SaleStatus }) {
@@ -30,8 +30,8 @@ export function SaleStatusBadge({ status }: { status: SaleStatus }) {
 
 const LAYAWAY_TONE: Record<LayawayStatus, string> = {
   active: 'border-success/30 bg-success/5 text-success',
-  completed: 'border-cloud border-hairline bg-cloud text-ash',
-  cancelled: 'border-error/30 bg-error/5 text-error',
+  completed: 'border-cloud border-border bg-background text-muted',
+  cancelled: 'border-danger/30 bg-danger/5 text-danger',
   defaulted: 'border-warning/30 bg-warning/5 text-warning',
 }
 
@@ -49,8 +49,8 @@ export function LayawayStatusBadge({ status }: { status: LayawayStatus }) {
 
 const REGISTER_TONE: Record<RegisterSessionStatus, string> = {
   open: 'border-success/30 bg-success/5 text-success',
-  closed: 'border-cloud border-hairline bg-cloud text-ash',
-  reconciled: 'border-cloud border-hairline bg-cloud text-ink',
+  closed: 'border-cloud border-border bg-background text-muted',
+  reconciled: 'border-cloud border-border bg-background text-foreground',
 }
 
 export function RegisterStatusBadge({
@@ -70,11 +70,11 @@ export function RegisterStatusBadge({
 }
 
 const CARD_TONE: Record<CardPresentStatus, string> = {
-  not_used: 'border-cloud border-hairline bg-cloud text-ash',
+  not_used: 'border-cloud border-border bg-background text-muted',
   pending: 'border-warning/30 bg-warning/5 text-warning',
   succeeded: 'border-success/30 bg-success/5 text-success',
-  failed: 'border-error/30 bg-error/5 text-error',
-  refunded: 'border-cloud border-hairline bg-cloud text-ash',
+  failed: 'border-danger/30 bg-danger/5 text-danger',
+  refunded: 'border-cloud border-border bg-background text-muted',
 }
 
 export function CardPresentBadge({

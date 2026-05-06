@@ -47,7 +47,7 @@ export function AddPaymentDialog({
   return (
     <Modal title={t.pos.payment.title} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
@@ -55,7 +55,7 @@ export function AddPaymentDialog({
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.payment.amount}
             </span>
             <input
@@ -64,17 +64,17 @@ export function AddPaymentDialog({
               min={0}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.payment.method}
             </span>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="cash">{t.pos.payment.methodCash}</option>
               <option value="card">{t.pos.payment.methodCard}</option>
@@ -85,14 +85,14 @@ export function AddPaymentDialog({
         </div>
 
         {isCard ? (
-          <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-ink">
+          <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-foreground">
             <div className="mb-1 flex items-center gap-1 font-semibold text-warning">
               <Flask size={12} weight="bold" />
               {t.pos.terminal.stubBannerTitle}
             </div>
-            <p className="text-ash">{t.pos.terminal.stubBannerBody}</p>
+            <p className="text-muted">{t.pos.terminal.stubBannerBody}</p>
             <label className="mt-3 block space-y-1">
-              <span className="text-xs font-medium text-ink">
+              <span className="text-xs font-medium text-foreground">
                 {t.pos.terminal.readerLabel}
               </span>
               <input
@@ -100,21 +100,21 @@ export function AddPaymentDialog({
                 placeholder={t.pos.payment.readerNotConnected}
                 value={readerId}
                 onChange={(e) => setReaderId(e.target.value)}
-                className="block w-full rounded-md border border-hairline bg-canvas px-2 py-1 text-sm text-ink focus:border-ink focus:outline-none"
+                className="block w-full rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground focus:border-blue focus:outline-none"
               />
             </label>
           </div>
         ) : null}
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pos.payment.noteLabel}
           </span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
@@ -123,7 +123,7 @@ export function AddPaymentDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -131,7 +131,7 @@ export function AddPaymentDialog({
           type="button"
           disabled={pending || parseFloat(amount || '0') <= 0}
           onClick={submit}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
         >
           {isCard ? (
             <CreditCard size={14} weight="bold" />

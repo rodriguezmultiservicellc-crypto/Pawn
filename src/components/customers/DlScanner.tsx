@@ -83,7 +83,7 @@ export default function DlScanner({
       onClick={() => setOpen(true)}
       className={
         className ||
-        'inline-flex items-center gap-1.5 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink'
+        'inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground'
       }
     >
       <Scan size={14} weight="bold" />
@@ -98,31 +98,31 @@ export default function DlScanner({
       {button}
       {createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
           onClick={() => setOpen(false)}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="w-full max-w-lg rounded-lg border border-hairline bg-canvas p-5 shadow-lg"
+            className="w-full max-w-lg rounded-lg border border-border bg-card p-5 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <header className="mb-4 flex items-center justify-between">
-              <h3 className="inline-flex items-center gap-2 text-base font-semibold text-ink">
+              <h3 className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
                 <Scan size={16} weight="bold" />
                 {t.dlScanner.modalTitle}
               </h3>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-md p-1 text-ash hover:bg-cloud hover:text-ink"
+                className="rounded-md p-1 text-muted hover:bg-background hover:text-foreground"
                 aria-label="close"
               >
                 <X size={16} weight="bold" />
               </button>
             </header>
 
-            <p className="mb-3 text-xs text-ash">{t.dlScanner.help}</p>
+            <p className="mb-3 text-xs text-muted">{t.dlScanner.help}</p>
 
             <textarea
               ref={taRef}
@@ -130,11 +130,11 @@ export default function DlScanner({
               onChange={(e) => setBuffer(e.target.value)}
               rows={6}
               placeholder={t.dlScanner.placeholder}
-              className="block w-full resize-none rounded-md border border-hairline bg-canvas px-3 py-2 font-mono text-xs text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full resize-none rounded-md border border-border bg-card px-3 py-2 font-mono text-xs text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
 
             {error ? (
-              <div className="mt-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs text-error">
+              <div className="mt-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
                 {error}
               </div>
             ) : null}
@@ -143,7 +143,7 @@ export default function DlScanner({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+                className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
               >
                 {t.common.cancel}
               </button>
@@ -151,7 +151,7 @@ export default function DlScanner({
                 type="button"
                 onClick={() => handleParse(buffer)}
                 disabled={!buffer.trim()}
-                className="rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+                className="rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
               >
                 {t.dlScanner.parse}
               </button>

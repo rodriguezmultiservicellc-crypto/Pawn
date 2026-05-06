@@ -21,27 +21,27 @@ export default function NoTenantContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-1 items-center justify-center bg-cloud px-4">
-      <div className="w-full max-w-md space-y-6 rounded-xl border border-hairline bg-canvas p-8">
+    <div className="flex min-h-screen flex-1 items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-8">
         <div className="space-y-2 text-center">
           <div className="mx-auto h-12 w-12 rounded-full bg-warning/15 text-warning flex items-center justify-center text-2xl font-bold">
             !
           </div>
-          <h1 className="text-xl font-semibold text-ink">
+          <h1 className="text-xl font-semibold text-foreground">
             {t.noTenant.title}
           </h1>
-          <p className="text-sm text-ash">{t.noTenant.body}</p>
+          <p className="text-sm text-muted">{t.noTenant.body}</p>
         </div>
         <div className="flex flex-col items-stretch gap-2">
           <button
             onClick={onSignOut}
-            className="w-full rounded-md bg-ink px-4 py-2.5 text-canvas font-medium"
+            className="w-full rounded-md bg-navy px-4 py-2.5 text-white font-medium"
           >
             {t.noTenant.signOut}
           </button>
           <button
             onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
-            className="text-sm text-ash hover:text-ink"
+            className="text-sm text-muted hover:text-foreground"
           >
             {lang === 'en' ? t.lang.es : t.lang.en}
           </button>

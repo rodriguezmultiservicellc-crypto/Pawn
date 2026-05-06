@@ -136,21 +136,21 @@ export function Cart({
   return (
     <div className="space-y-5">
       {error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
 
       {/* Customer picker */}
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-        <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
+        <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
           <User size={14} weight="bold" />
           {t.pos.sale.customer}
         </legend>
         <select
           value={customerId ?? ''}
           onChange={(e) => setCustomerId(e.target.value || null)}
-          className="mt-2 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="mt-2 block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="">{t.pos.sale.anonymous}</option>
           {customers.map((c) => (
@@ -163,21 +163,21 @@ export function Cart({
       </fieldset>
 
       {/* Cart lines */}
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-        <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
+        <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
           <ShoppingBag size={14} weight="bold" />
           {t.pos.sale.cart}
         </legend>
 
         {lines.length === 0 ? (
-          <div className="mt-3 rounded-md border border-dashed border-hairline bg-cloud/40 p-6 text-center text-sm text-ash">
+          <div className="mt-3 rounded-md border border-dashed border-border bg-background/40 p-6 text-center text-sm text-muted">
             {t.pos.cart.empty}
           </div>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ash">
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-2 py-2">{t.pos.cart.itemDescription}</th>
                   <th className="px-2 py-2">{t.pos.cart.qty}</th>
                   <th className="px-2 py-2">{t.pos.cart.unitPrice}</th>
@@ -196,7 +196,7 @@ export function Cart({
                     line_discount: l.line_discount,
                   })
                   return (
-                    <tr key={i} className="border-b border-hairline/60">
+                    <tr key={i} className="border-b border-border/60">
                       <td className="px-2 py-2">
                         <input
                           type="text"
@@ -205,10 +205,10 @@ export function Cart({
                             updateLine(i, { description: e.target.value })
                           }
                           placeholder={t.pos.cart.itemDescription}
-                          className="block w-full rounded-md border border-hairline bg-canvas px-2 py-1 text-sm text-ink focus:border-ink focus:outline-none"
+                          className="block w-full rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground focus:border-blue focus:outline-none"
                         />
                         {l.sku ? (
-                          <div className="mt-1 font-mono text-[10px] text-ash">
+                          <div className="mt-1 font-mono text-[10px] text-muted">
                             {l.sku}
                           </div>
                         ) : null}
@@ -222,7 +222,7 @@ export function Cart({
                           onChange={(e) =>
                             updateLine(i, { quantity: e.target.value })
                           }
-                          className="block w-20 rounded-md border border-hairline bg-canvas px-2 py-1 text-right text-sm font-mono text-ink focus:border-ink focus:outline-none"
+                          className="block w-20 rounded-md border border-border bg-card px-2 py-1 text-right text-sm font-mono text-foreground focus:border-blue focus:outline-none"
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -234,7 +234,7 @@ export function Cart({
                           onChange={(e) =>
                             updateLine(i, { unit_price: e.target.value })
                           }
-                          className="block w-24 rounded-md border border-hairline bg-canvas px-2 py-1 text-right text-sm font-mono text-ink focus:border-ink focus:outline-none"
+                          className="block w-24 rounded-md border border-border bg-card px-2 py-1 text-right text-sm font-mono text-foreground focus:border-blue focus:outline-none"
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -246,17 +246,17 @@ export function Cart({
                           onChange={(e) =>
                             updateLine(i, { line_discount: e.target.value })
                           }
-                          className="block w-24 rounded-md border border-hairline bg-canvas px-2 py-1 text-right text-sm font-mono text-ink focus:border-ink focus:outline-none"
+                          className="block w-24 rounded-md border border-border bg-card px-2 py-1 text-right text-sm font-mono text-foreground focus:border-blue focus:outline-none"
                         />
                       </td>
-                      <td className="px-2 py-2 text-right font-mono text-ink">
+                      <td className="px-2 py-2 text-right font-mono text-foreground">
                         {fmtMoney(lineTotal)}
                       </td>
                       <td className="px-2 py-2 text-right">
                         <button
                           type="button"
                           onClick={() => removeLine(i)}
-                          className="rounded-md p-1 text-ash hover:bg-error/10 hover:text-error"
+                          className="rounded-md p-1 text-muted hover:bg-danger/10 hover:text-danger"
                           aria-label={t.pos.sale.removeItem}
                         >
                           <Trash size={14} weight="bold" />
@@ -274,7 +274,7 @@ export function Cart({
           <button
             type="button"
             onClick={() => setShowInventoryPicker(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm font-medium text-ink hover:border-ink"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:border-foreground"
           >
             <Plus size={14} weight="bold" />
             {t.pos.sale.addItem}
@@ -282,7 +282,7 @@ export function Cart({
           <button
             type="button"
             onClick={addCustomLine}
-            className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:border-ink"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:border-foreground"
           >
             <Plus size={14} weight="bold" />
             {t.pos.sale.addCustomLine}
@@ -291,10 +291,10 @@ export function Cart({
       </fieldset>
 
       {/* Totals */}
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.sale.taxRate}
             </span>
             <input
@@ -304,14 +304,14 @@ export function Cart({
               max={1}
               value={taxRate}
               onChange={(e) => setTaxRate(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
-            <span className="block text-xs text-ash">
+            <span className="block text-xs text-muted">
               {t.pos.sale.taxRateHelp}
             </span>
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.pos.sale.discount}
             </span>
             <input
@@ -320,37 +320,37 @@ export function Cart({
               min={0}
               value={discount}
               onChange={(e) => setDiscount(e.target.value)}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
         </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-3 rounded-md border border-hairline bg-cloud/40 p-3 text-sm">
+        <div className="mt-3 grid grid-cols-3 gap-3 rounded-md border border-border bg-background/40 p-3 text-sm">
           <div>
-            <div className="text-xs text-ash">{t.pos.sale.subtotal}</div>
-            <div className="font-mono text-ink">{fmtMoney(totals.subtotal)}</div>
+            <div className="text-xs text-muted">{t.pos.sale.subtotal}</div>
+            <div className="font-mono text-foreground">{fmtMoney(totals.subtotal)}</div>
           </div>
           <div>
-            <div className="text-xs text-ash">{t.pos.sale.tax}</div>
-            <div className="font-mono text-ink">{fmtMoney(totals.tax)}</div>
+            <div className="text-xs text-muted">{t.pos.sale.tax}</div>
+            <div className="font-mono text-foreground">{fmtMoney(totals.tax)}</div>
           </div>
           <div>
-            <div className="text-xs text-ash">{t.pos.sale.total}</div>
-            <div className="font-mono text-base font-semibold text-ink">
+            <div className="text-xs text-muted">{t.pos.sale.total}</div>
+            <div className="font-mono text-base font-semibold text-foreground">
               {fmtMoney(totals.total)}
             </div>
           </div>
         </div>
 
         <label className="mt-3 block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.pos.sale.noteLabel}
           </span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </fieldset>
@@ -362,7 +362,7 @@ export function Cart({
           onClick={() =>
             onSaveAsLayaway(customerId, lines, taxRate, discount, notes)
           }
-          className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-4 py-2 text-sm font-medium text-ink hover:border-ink disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50"
         >
           {t.pos.sale.saveAsLayaway}
         </button>
@@ -372,7 +372,7 @@ export function Cart({
           onClick={() =>
             onSubmitSale(customerId, lines, taxRate, discount, notes)
           }
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
         >
           <CashRegister size={14} weight="bold" />
           {t.pos.sale.completeSale}

@@ -55,8 +55,8 @@ export default function SettingsContent({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-ink">Platform settings</h1>
-        <p className="mt-1 text-sm text-ash">
+        <h1 className="text-2xl font-bold text-foreground">Platform settings</h1>
+        <p className="mt-1 text-sm text-muted">
           Read-only platform health overview. Edit subscription plans on{' '}
           <Link href="/admin/billing" className="underline">
             /admin/billing
@@ -78,12 +78,12 @@ export default function SettingsContent({
                 {requiredMissing.length} required env var
                 {requiredMissing.length === 1 ? '' : 's'} missing
               </div>
-              <ul className="mt-1 text-xs font-mono text-ink">
+              <ul className="mt-1 text-xs font-mono text-foreground">
                 {requiredMissing.map((name) => (
                   <li key={name}>• {name}</li>
                 ))}
               </ul>
-              <p className="mt-2 text-xs text-ash">
+              <p className="mt-2 text-xs text-muted">
                 Set these in Vercel Project Settings → Environment Variables
                 → Production. Some platform behaviors will silently no-op
                 until they are configured.
@@ -105,13 +105,13 @@ export default function SettingsContent({
           <DefRow label="Chain HQ" value={stats.tenantsByType.chain_hq.toString()} />
           <DefRow label="Shops (under chain)" value={stats.tenantsByType.shop.toString()} />
           <DefRow label="Standalone" value={stats.tenantsByType.standalone.toString()} />
-          <hr className="my-2 border-hairline" />
+          <hr className="my-2 border-border" />
           <DefRow label="With pawn module" value={stats.moduleCounts.pawn.toString()} />
           <DefRow label="With repair module" value={stats.moduleCounts.repair.toString()} />
           <DefRow label="With retail module" value={stats.moduleCounts.retail.toString()} />
           <Link
             href="/admin/tenants"
-            className="mt-2 inline-block text-xs text-rausch hover:text-rausch-deep"
+            className="mt-2 inline-block text-xs text-gold hover:text-gold-2"
           >
             Manage tenants →
           </Link>
@@ -122,7 +122,7 @@ export default function SettingsContent({
             label="Active or trialing"
             value={stats.activeSubscriptions.toString()}
           />
-          <hr className="my-2 border-hairline" />
+          <hr className="my-2 border-border" />
           {stats.plans.map((p) => (
             <DefRow
               key={p.code}
@@ -132,7 +132,7 @@ export default function SettingsContent({
           ))}
           <Link
             href="/admin/billing"
-            className="mt-2 inline-block text-xs text-rausch hover:text-rausch-deep"
+            className="mt-2 inline-block text-xs text-gold hover:text-gold-2"
           >
             Open billing console →
           </Link>
@@ -147,7 +147,7 @@ export default function SettingsContent({
             label="Audit events"
             value={stats.auditEventsLast24h.toString()}
           />
-          <p className="mt-2 text-xs text-ash">
+          <p className="mt-2 text-xs text-muted">
             Detailed audit log per tenant on the staff side at{' '}
             <span className="font-mono">/audit</span>.
           </p>
@@ -174,22 +174,22 @@ export default function SettingsContent({
           icon={<Database size={16} weight="regular" />}
           className="md:col-span-2"
         >
-          <p className="text-xs text-ash">
+          <p className="text-xs text-muted">
             {migrations.length} migrations checked into{' '}
             <span className="font-mono">patches/</span>. All migrations in
             this list have been applied to the linked Supabase project.
           </p>
-          <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto rounded-md border border-hairline p-2">
+          <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto rounded-md border border-border p-2">
             {migrations.map((m) => (
               <li
                 key={m}
-                className="font-mono text-[11px] text-ink"
+                className="font-mono text-[11px] text-foreground"
               >
                 {m}
               </li>
             ))}
             {migrations.length === 0 ? (
-              <li className="italic text-ash text-xs">No migrations found.</li>
+              <li className="italic text-muted text-xs">No migrations found.</li>
             ) : null}
           </ul>
         </Card>
@@ -220,10 +220,10 @@ export default function SettingsContent({
 
       {/* Env presence — full table */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-ink">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
           Environment variables
         </h2>
-        <p className="mb-3 text-xs text-ash">
+        <p className="mb-3 text-xs text-muted">
           Values are never displayed — only whether the variable is set.
           Required vars are flagged with a red badge if missing.
         </p>
@@ -231,10 +231,10 @@ export default function SettingsContent({
           {envPresence.map((g) => (
             <div
               key={g.group}
-              className="rounded-lg border border-hairline bg-canvas p-3"
+              className="rounded-lg border border-border bg-card p-3"
             >
-              <div className="mb-2 flex items-center gap-1 text-xs font-semibold text-ink">
-                <Envelope size={12} weight="regular" className="text-ash" />
+              <div className="mb-2 flex items-center gap-1 text-xs font-semibold text-foreground">
+                <Envelope size={12} weight="regular" className="text-muted" />
                 <span>{g.group}</span>
               </div>
               <ul className="space-y-1 text-[11px]">
@@ -243,7 +243,7 @@ export default function SettingsContent({
                     key={v.name}
                     className="flex items-center justify-between gap-2"
                   >
-                    <span className="truncate font-mono text-ink">
+                    <span className="truncate font-mono text-foreground">
                       {v.name}
                     </span>
                     <EnvBadge varEntry={v} />
@@ -257,11 +257,11 @@ export default function SettingsContent({
 
       {/* Pre-flight reminders */}
       <section>
-        <h2 className="mb-3 flex items-center gap-1 text-sm font-semibold text-ink">
+        <h2 className="mb-3 flex items-center gap-1 text-sm font-semibold text-foreground">
           <Wrench size={14} weight="regular" />
           <span>Operator pre-flight reminders</span>
         </h2>
-        <ul className="space-y-2 text-sm text-ink">
+        <ul className="space-y-2 text-sm text-foreground">
           <Reminder
             label="Stripe SaaS webhook configured?"
             help="dashboard.stripe.com → Webhooks → endpoint /api/stripe/saas/webhook → events: customer.subscription.{created,updated,deleted,trial_will_end} + invoice.{paid,payment_failed}"
@@ -297,10 +297,10 @@ function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border border-hairline bg-canvas p-4 ${className}`}
+      className={`rounded-xl border border-border bg-card p-4 ${className}`}
     >
-      <h2 className="mb-2 flex items-center gap-1 text-sm font-semibold text-ink">
-        <span className="text-rausch">{icon}</span>
+      <h2 className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground">
+        <span className="text-gold">{icon}</span>
         <span>{title}</span>
       </h2>
       {children}
@@ -319,8 +319,8 @@ function DefRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-2 text-xs">
-      <span className="text-ash">{label}</span>
-      <span className={`text-right text-ink ${mono ? 'font-mono' : ''}`}>
+      <span className="text-muted">{label}</span>
+      <span className={`text-right text-foreground ${mono ? 'font-mono' : ''}`}>
         {value}
       </span>
     </div>
@@ -338,14 +338,14 @@ function EnvBadge({ varEntry }: { varEntry: EnvVar }) {
   }
   if (varEntry.required) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-error/10 px-1.5 py-0.5 text-[10px] font-medium text-error">
+      <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-danger">
         <XCircle size={10} weight="bold" />
         required
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center rounded-full bg-cloud px-1.5 py-0.5 text-[10px] font-medium text-ash">
+    <span className="inline-flex items-center rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted">
       not set
     </span>
   )
@@ -365,19 +365,19 @@ function ExtLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="block rounded-md border border-hairline px-3 py-2 text-xs hover:border-ink"
+      className="block rounded-md border border-border px-3 py-2 text-xs hover:border-foreground"
     >
-      <div className="font-medium text-ink">{label} ↗</div>
-      <div className="text-ash">{hint}</div>
+      <div className="font-medium text-foreground">{label} ↗</div>
+      <div className="text-muted">{hint}</div>
     </a>
   )
 }
 
 function Reminder({ label, help }: { label: string; help: string }) {
   return (
-    <li className="rounded-md border border-hairline bg-canvas p-3">
-      <div className="font-medium text-ink">{label}</div>
-      <p className="mt-1 text-xs text-ash">{help}</p>
+    <li className="rounded-md border border-border bg-card p-3">
+      <div className="font-medium text-foreground">{label}</div>
+      <p className="mt-1 text-xs text-muted">{help}</p>
     </li>
   )
 }

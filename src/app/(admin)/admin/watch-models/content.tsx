@@ -52,11 +52,11 @@ export default function WatchModelsContent({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <Watch size={22} weight="bold" />
             Watch models
           </h1>
-          <p className="mt-1 text-sm text-ash">
+          <p className="mt-1 text-sm text-muted">
             Curated reference table used by the suggested-loan
             calculator. Pre-owned wholesale floor ranges in USD —
             operators see these in the typeahead at intake.
@@ -65,7 +65,7 @@ export default function WatchModelsContent({
         <button
           type="button"
           onClick={() => setEditing('new')}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2"
         >
           <Plus size={14} weight="bold" />
           Add model
@@ -77,12 +77,12 @@ export default function WatchModelsContent({
         placeholder="Filter by brand, model, ref…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="w-full max-w-sm rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="w-full max-w-sm rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
       />
 
-      <div className="overflow-hidden rounded-lg border border-hairline">
+      <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-cloud text-xs text-ash">
+          <thead className="bg-background text-xs text-muted">
             <tr>
               <th className="px-3 py-2 text-left font-medium">Brand</th>
               <th className="px-3 py-2 text-left font-medium">Model</th>
@@ -92,30 +92,30 @@ export default function WatchModelsContent({
               <th className="px-3 py-2 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-hairline">
+          <tbody className="divide-y divide-border">
             {filtered.map((r) => (
               <tr key={r.id}>
-                <td className="px-3 py-2 font-medium text-ink">{r.brand}</td>
-                <td className="px-3 py-2 text-ink">{r.model}</td>
+                <td className="px-3 py-2 font-medium text-foreground">{r.brand}</td>
+                <td className="px-3 py-2 text-foreground">{r.model}</td>
                 <td className="px-3 py-2 text-xs">
                   {r.reference_no ? (
-                    <span className="font-mono text-ink">{r.reference_no}</span>
+                    <span className="font-mono text-foreground">{r.reference_no}</span>
                   ) : null}
                   {r.nickname ? (
-                    <span className="ml-2 italic text-ash">{r.nickname}</span>
+                    <span className="ml-2 italic text-muted">{r.nickname}</span>
                   ) : null}
                 </td>
-                <td className="px-3 py-2 text-xs text-ash">
+                <td className="px-3 py-2 text-xs text-muted">
                   {r.year_start ?? '—'}{' – '}{r.year_end ?? 'present'}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-ink">
+                <td className="px-3 py-2 text-right font-mono text-xs text-foreground">
                   {usd(r.est_value_min)} – {usd(r.est_value_max)}
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button
                     type="button"
                     onClick={() => setEditing(r)}
-                    className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
                   >
                     <PencilSimple size={11} weight="bold" />
                     Edit
@@ -127,7 +127,7 @@ export default function WatchModelsContent({
               <tr>
                 <td
                   colSpan={6}
-                  className="px-3 py-6 text-center text-sm text-ash"
+                  className="px-3 py-6 text-center text-sm text-muted"
                 >
                   No models match.
                 </td>
@@ -174,17 +174,17 @@ function EditDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
     >
-      <div className="w-full max-w-2xl rounded-lg border border-hairline bg-canvas p-5 shadow-lg">
+      <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-5 shadow-lg">
         <header className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-ink">
+          <h3 className="text-base font-semibold text-foreground">
             {row ? 'Edit watch model' : 'Add watch model'}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-ash hover:bg-cloud hover:text-ink"
+            className="rounded-md p-1 text-muted hover:bg-background hover:text-foreground"
             aria-label="close"
           >
             ×
@@ -192,7 +192,7 @@ function EditDialog({
         </header>
 
         {state.error || delState.error ? (
-          <div className="mb-3 flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          <div className="mb-3 flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
             <Warning size={14} weight="bold" />
             <span>{state.error ?? delState.error}</span>
           </div>
@@ -266,12 +266,12 @@ function EditDialog({
             />
           </div>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">Notes</span>
+            <span className="text-sm font-medium text-foreground">Notes</span>
             <textarea
               name="notes"
               rows={3}
               defaultValue={row?.notes ?? ''}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
 
@@ -282,7 +282,7 @@ function EditDialog({
                 <button
                   type="submit"
                   disabled={delPending}
-                  className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs font-medium text-error hover:bg-error/10 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
                 >
                   <Trash size={12} weight="bold" />
                   {delPending ? 'Deleting…' : 'Delete'}
@@ -295,14 +295,14 @@ function EditDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md border border-hairline px-3 py-2 text-sm text-ink hover:border-ink"
+                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:border-foreground"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+                className="rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
               >
                 {pending ? 'Saving…' : 'Save'}
               </button>
@@ -333,7 +333,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-medium text-ink">
+      <span className="text-xs font-medium text-foreground">
         {label}
         {required ? ' *' : null}
       </span>
@@ -342,14 +342,14 @@ function Field({
         name={name}
         required={required}
         defaultValue={defaultValue}
-        className={`block w-full rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
-          error ? 'border-error/60' : 'border-hairline'
+        className={`block w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+          error ? 'border-danger/60' : 'border-border'
         }`}
       />
       {error ? (
-        <span className="block text-[10px] text-error">{error}</span>
+        <span className="block text-[10px] text-danger">{error}</span>
       ) : hint ? (
-        <span className="block text-[10px] text-ash">{hint}</span>
+        <span className="block text-[10px] text-muted">{hint}</span>
       ) : null}
     </label>
   )

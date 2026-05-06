@@ -24,9 +24,9 @@ export function PayoffCalculator({
   const isOverdue = days < 0
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas p-4">
+    <section className="rounded-lg border border-border bg-card p-4">
       <header className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-ink">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.pawn.detail.payoffPanelTitle}
         </h2>
         <DueBadge days={days} isOverdue={isOverdue} />
@@ -48,11 +48,11 @@ export function PayoffCalculator({
         />
       </dl>
 
-      <div className="mt-4 flex items-center justify-between rounded-md border border-rausch/30 bg-rausch/5 px-3 py-2">
-        <span className="text-sm font-semibold text-ink">
+      <div className="mt-4 flex items-center justify-between rounded-md border border-gold/30 bg-gold/5 px-3 py-2">
+        <span className="text-sm font-semibold text-foreground">
           {t.pawn.detail.totalDue}
         </span>
-        <span className="font-mono text-xl font-semibold text-rausch">
+        <span className="font-mono text-xl font-semibold text-gold">
           {fmt(payoff.payoff)}
         </span>
       </div>
@@ -63,8 +63,8 @@ export function PayoffCalculator({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <>
-      <dt className="text-ash">{label}</dt>
-      <dd className="text-right font-mono text-ink">{value}</dd>
+      <dt className="text-muted">{label}</dt>
+      <dd className="text-right font-mono text-foreground">{value}</dd>
     </>
   )
 }
@@ -73,13 +73,13 @@ function DueBadge({ days, isOverdue }: { days: number; isOverdue: boolean }) {
   const { t } = useI18n()
   if (isOverdue) {
     return (
-      <span className="inline-flex items-center rounded-full border border-error/30 bg-error/5 px-2 py-0.5 text-xs font-medium text-error">
+      <span className="inline-flex items-center rounded-full border border-danger/30 bg-danger/5 px-2 py-0.5 text-xs font-medium text-danger">
         {t.pawn.detail.daysOverdue}: {Math.abs(days)}
       </span>
     )
   }
   const tone =
-    days <= 7 ? 'border-warning/30 bg-warning/5 text-warning' : 'border-hairline bg-cloud text-ash'
+    days <= 7 ? 'border-warning/30 bg-warning/5 text-warning' : 'border-border bg-background text-muted'
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${tone}`}>
       {t.pawn.detail.daysToDue}: {days}

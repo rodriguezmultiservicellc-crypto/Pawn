@@ -9,9 +9,9 @@ import PortalLoginForm from './form'
  */
 export default function PortalLoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cloud px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div
-        className="w-full max-w-md rounded-2xl border border-hairline bg-canvas p-8"
+        className="w-full max-w-md rounded-2xl border border-border bg-card p-8"
         style={{
           boxShadow:
             'rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0',

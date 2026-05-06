@@ -56,7 +56,7 @@ export default function LoanRatesContent({
       <div>
         <Link
           href="/settings"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.common.back}
@@ -65,17 +65,17 @@ export default function LoanRatesContent({
 
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-ink">
+          <h1 className="text-2xl font-bold text-foreground">
             {t.settingsLoanRates.title}
           </h1>
-          <p className="mt-1 text-sm text-ash">
+          <p className="mt-1 text-sm text-muted">
             {t.settingsLoanRates.subtitle}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setEditing('new')}
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2"
         >
           <Plus size={14} weight="bold" />
           {t.settingsLoanRates.add}
@@ -124,21 +124,21 @@ function PolicyCard({ initial }: { initial: number | null }) {
   const fe = state.fieldErrors?.['min_loan_amount']
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas p-4">
-      <h2 className="text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card p-4">
+      <h2 className="text-sm font-semibold text-foreground">
         {t.settingsLoanRates.policyTitle}
       </h2>
-      <p className="mt-1 text-xs text-ash">
+      <p className="mt-1 text-xs text-muted">
         {t.settingsLoanRates.policySubtitle}
       </p>
 
       <form action={formAction} className="mt-3 flex flex-wrap items-end gap-3">
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.settingsLoanRates.minLoanAmountLabel}
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-ash">$</span>
+            <span className="text-sm text-muted">$</span>
             <input
               type="number"
               name="min_loan_amount"
@@ -146,15 +146,15 @@ function PolicyCard({ initial }: { initial: number | null }) {
               min={0}
               defaultValue={initial == null ? '' : initial.toString()}
               placeholder={t.settingsLoanRates.minLoanAmountPlaceholder}
-              className={`block w-40 rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
-                fe ? 'border-error/60' : 'border-hairline'
+              className={`block w-40 rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+                fe ? 'border-danger/60' : 'border-border'
               }`}
             />
           </div>
           {fe ? (
-            <span className="block text-xs text-error">{fe}</span>
+            <span className="block text-xs text-danger">{fe}</span>
           ) : (
-            <span className="block text-xs text-ash">
+            <span className="block text-xs text-muted">
               {t.settingsLoanRates.minLoanAmountHint}
             </span>
           )}
@@ -162,7 +162,7 @@ function PolicyCard({ initial }: { initial: number | null }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+          className="rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
         >
           {pending ? t.common.saving : t.common.save}
         </button>
@@ -173,7 +173,7 @@ function PolicyCard({ initial }: { initial: number | null }) {
           </span>
         ) : null}
         {state.error ? (
-          <span className="inline-flex items-center gap-1 text-xs text-error">
+          <span className="inline-flex items-center gap-1 text-xs text-danger">
             <Warning size={12} weight="bold" />
             {state.error}
           </span>
@@ -193,11 +193,11 @@ function BackpageCard({ initial }: { initial: string | null }) {
   const usingDefault = value.trim().length === 0
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas p-4">
-      <h2 className="text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card p-4">
+      <h2 className="text-sm font-semibold text-foreground">
         {t.settingsLoanRates.backpageTitle}
       </h2>
-      <p className="mt-1 text-xs text-ash">
+      <p className="mt-1 text-xs text-muted">
         {t.settingsLoanRates.backpageSubtitle}
       </p>
 
@@ -208,11 +208,11 @@ function BackpageCard({ initial }: { initial: string | null }) {
           onChange={(e) => setValue(e.target.value)}
           rows={16}
           spellCheck={false}
-          className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 font-mono text-xs text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="block w-full rounded-md border border-border bg-card px-3 py-2 font-mono text-xs text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           placeholder={PAWN_TICKET_BACKPAGE_DEFAULT}
         />
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-ash">
+          <span className="text-xs text-muted">
             {usingDefault
               ? t.settingsLoanRates.backpageUsingDefault
               : t.settingsLoanRates.backpageUsingCustom}
@@ -222,7 +222,7 @@ function BackpageCard({ initial }: { initial: string | null }) {
               <button
                 type="button"
                 onClick={() => setValue('')}
-                className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
               >
                 {t.settingsLoanRates.backpageReset}
               </button>
@@ -230,7 +230,7 @@ function BackpageCard({ initial }: { initial: string | null }) {
             <button
               type="submit"
               disabled={pending}
-              className="rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+              className="rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
             >
               {pending ? t.common.saving : t.common.save}
             </button>
@@ -241,7 +241,7 @@ function BackpageCard({ initial }: { initial: string | null }) {
               </span>
             ) : null}
             {state.error ? (
-              <span className="inline-flex items-center gap-1 text-xs text-error">
+              <span className="inline-flex items-center gap-1 text-xs text-danger">
                 <Warning size={12} weight="bold" />
                 {state.error}
               </span>
@@ -267,14 +267,14 @@ function RateTable({
   const { t } = useI18n()
   return (
     <section>
-      <h2 className="mb-2 text-sm font-semibold text-ink">{title}</h2>
+      <h2 className="mb-2 text-sm font-semibold text-foreground">{title}</h2>
       <div
-        className={`overflow-hidden rounded-lg border border-hairline ${
+        className={`overflow-hidden rounded-lg border border-border ${
           dim ? 'opacity-60' : ''
         }`}
       >
         <table className="w-full text-sm">
-          <thead className="bg-cloud text-xs text-ash">
+          <thead className="bg-background text-xs text-muted">
             <tr>
               <th className="w-16 px-3 py-2 text-left font-medium" />
               <th className="px-3 py-2 text-right font-medium">
@@ -291,7 +291,7 @@ function RateTable({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-hairline">
+          <tbody className="divide-y divide-border">
             {rows.map((r) => (
               <tr key={r.id}>
                 <td className="px-3 py-2 text-center">
@@ -299,15 +299,15 @@ function RateTable({
                     <Star
                       size={14}
                       weight="fill"
-                      className="inline text-rausch"
+                      className="inline text-gold"
                       aria-label={t.settingsLoanRates.defaultBadge}
                     />
                   ) : null}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-ink">
+                <td className="px-3 py-2 text-right font-mono text-foreground">
                   <div>{(r.rateMonthly * 100).toFixed(2)}% / mo</div>
                   {r.minMonthlyCharge != null ? (
-                    <div className="text-xs text-ash">
+                    <div className="text-xs text-muted">
                       {t.settingsLoanRates.minMonthlyChargeShort.replace(
                         '{amount}',
                         `$${r.minMonthlyCharge.toFixed(2)}`,
@@ -315,15 +315,15 @@ function RateTable({
                     </div>
                   ) : null}
                 </td>
-                <td className="px-3 py-2 text-ink">{r.label}</td>
-                <td className="px-3 py-2 text-xs text-ash">
+                <td className="px-3 py-2 text-foreground">{r.label}</td>
+                <td className="px-3 py-2 text-xs text-muted">
                   {r.description ?? '—'}
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button
                     type="button"
                     onClick={() => onEdit(r)}
-                    className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
                   >
                     <PencilSimple size={11} weight="bold" />
                     {t.common.edit}
@@ -335,7 +335,7 @@ function RateTable({
               <tr>
                 <td
                   colSpan={5}
-                  className="px-3 py-6 text-center text-sm text-ash"
+                  className="px-3 py-6 text-center text-sm text-muted"
                 >
                   {t.settingsLoanRates.empty}
                 </td>
@@ -381,17 +381,17 @@ function EditDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
     >
-      <div className="w-full max-w-lg rounded-lg border border-hairline bg-canvas p-5 shadow-lg">
+      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-5 shadow-lg">
         <header className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-ink">
+          <h3 className="text-base font-semibold text-foreground">
             {row ? t.settingsLoanRates.editTitle : t.settingsLoanRates.addTitle}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-ash hover:bg-cloud hover:text-ink"
+            className="rounded-md p-1 text-muted hover:bg-background hover:text-foreground"
             aria-label="close"
           >
             ×
@@ -399,7 +399,7 @@ function EditDialog({
         </header>
 
         {state.error || delState.error ? (
-          <div className="mb-3 flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          <div className="mb-3 flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
             <Warning size={14} weight="bold" />
             <span>
               {translateError(state.error ?? delState.error ?? '', t)}
@@ -417,7 +417,7 @@ function EditDialog({
           {row ? <input type="hidden" name="id" value={row.id} /> : null}
 
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.settingsLoanRates.fieldRate} *
             </span>
             <div className="flex items-center gap-2">
@@ -429,27 +429,27 @@ function EditDialog({
                 min={0}
                 max={0.25}
                 defaultValue={row?.rateMonthly?.toString() ?? '0.10'}
-                className={`block w-32 rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
-                  fe('rate_monthly') ? 'border-error/60' : 'border-hairline'
+                className={`block w-32 rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+                  fe('rate_monthly') ? 'border-danger/60' : 'border-border'
                 }`}
               />
-              <span className="text-xs text-ash">
+              <span className="text-xs text-muted">
                 {t.settingsLoanRates.fieldRateHint}
               </span>
             </div>
             {fe('rate_monthly') ? (
-              <span className="block text-xs text-error">
+              <span className="block text-xs text-danger">
                 {fe('rate_monthly')}
               </span>
             ) : null}
           </label>
 
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.settingsLoanRates.fieldMinMonthlyCharge}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-ash">$</span>
+              <span className="text-sm text-muted">$</span>
               <input
                 type="number"
                 name="min_monthly_charge"
@@ -463,25 +463,25 @@ function EditDialog({
                 placeholder={
                   t.settingsLoanRates.fieldMinMonthlyChargePlaceholder
                 }
-                className={`block w-32 rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
+                className={`block w-32 rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 ${
                   fe('min_monthly_charge')
-                    ? 'border-error/60'
-                    : 'border-hairline'
+                    ? 'border-danger/60'
+                    : 'border-border'
                 }`}
               />
-              <span className="text-xs text-ash">
+              <span className="text-xs text-muted">
                 {t.settingsLoanRates.fieldMinMonthlyChargeHint}
               </span>
             </div>
             {fe('min_monthly_charge') ? (
-              <span className="block text-xs text-error">
+              <span className="block text-xs text-danger">
                 {fe('min_monthly_charge')}
               </span>
             ) : null}
           </label>
 
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.settingsLoanRates.fieldLabel} *
             </span>
             <input
@@ -491,17 +491,17 @@ function EditDialog({
               maxLength={80}
               defaultValue={row?.label ?? ''}
               placeholder={t.settingsLoanRates.fieldLabelPlaceholder}
-              className={`block w-full rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 ${
-                fe('label') ? 'border-error/60' : 'border-hairline'
+              className={`block w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+                fe('label') ? 'border-danger/60' : 'border-border'
               }`}
             />
             {fe('label') ? (
-              <span className="block text-xs text-error">{fe('label')}</span>
+              <span className="block text-xs text-danger">{fe('label')}</span>
             ) : null}
           </label>
 
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-sm font-medium text-foreground">
               {t.settingsLoanRates.fieldDescription}
             </span>
             <textarea
@@ -509,13 +509,13 @@ function EditDialog({
               rows={2}
               maxLength={500}
               defaultValue={row?.description ?? ''}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.settingsLoanRates.fieldSortOrder}
               </span>
               <input
@@ -524,14 +524,14 @@ function EditDialog({
                 min={0}
                 max={9999}
                 defaultValue={row?.sortOrder?.toString() ?? '100'}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
-              <span className="block text-xs text-ash">
+              <span className="block text-xs text-muted">
                 {t.settingsLoanRates.fieldSortOrderHint}
               </span>
             </label>
             <div className="flex flex-col gap-2 pt-6">
-              <label className="inline-flex items-center gap-2 text-sm text-ink">
+              <label className="inline-flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
                   name="is_default"
@@ -539,7 +539,7 @@ function EditDialog({
                 />
                 <span>{t.settingsLoanRates.fieldIsDefault}</span>
               </label>
-              <label className="inline-flex items-center gap-2 text-sm text-ink">
+              <label className="inline-flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
                   name="is_active"
@@ -551,7 +551,7 @@ function EditDialog({
           </div>
 
           {wouldReplaceDefault ? (
-            <p className="text-xs text-ash">
+            <p className="text-xs text-muted">
               {t.settingsLoanRates.replaceDefaultNote}
             </p>
           ) : null}
@@ -563,7 +563,7 @@ function EditDialog({
                 <button
                   type="submit"
                   disabled={delPending}
-                  className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs font-medium text-error hover:bg-error/10 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
                 >
                   <Trash size={12} weight="bold" />
                   {delPending
@@ -578,14 +578,14 @@ function EditDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md border border-hairline px-3 py-2 text-sm text-ink hover:border-ink"
+                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:border-foreground"
               >
                 {t.common.cancel}
               </button>
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+                className="rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
               >
                 {pending ? t.common.saving : t.common.save}
               </button>

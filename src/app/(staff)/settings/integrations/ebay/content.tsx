@@ -95,7 +95,7 @@ export default function EbaySettingsContent({
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{t.ebay.settingsTitle}</h1>
-        <p className="text-sm text-ash">{t.ebay.settingsSubtitle}</p>
+        <p className="text-sm text-muted">{t.ebay.settingsSubtitle}</p>
       </div>
 
       <div className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
@@ -109,7 +109,7 @@ export default function EbaySettingsContent({
         </div>
       ) : null}
       {errorParam ? (
-        <div className="flex items-center gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="flex items-center gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           <Warning size={16} weight="fill" />
           {t.ebay.errorPrefix}: {errorParam}
         </div>
@@ -119,7 +119,7 @@ export default function EbaySettingsContent({
           className={`rounded-md border px-3 py-2 text-sm ${
             message.kind === 'ok'
               ? 'border-success/30 bg-success/5 text-success'
-              : 'border-error/30 bg-error/5 text-error'
+              : 'border-danger/30 bg-danger/5 text-danger'
           }`}
         >
           {message.text}
@@ -127,8 +127,8 @@ export default function EbaySettingsContent({
       ) : null}
 
       {/* Connection card */}
-      <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
+        <legend className="px-1 text-sm font-semibold text-foreground">
           {t.ebay.connectionTitle}
         </legend>
 
@@ -138,7 +138,7 @@ export default function EbaySettingsContent({
               <PlugsConnected size={16} weight="fill" />
               <span>{t.ebay.connected}</span>
             </div>
-            <div className="grid grid-cols-1 gap-2 text-ash sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 text-muted sm:grid-cols-2">
               <Field
                 label={t.ebay.ebayUserId}
                 value={view.ebay_user_id ?? '—'}
@@ -162,7 +162,7 @@ export default function EbaySettingsContent({
                 type="button"
                 disabled={pending}
                 onClick={onSync}
-                className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
               >
                 <ArrowsClockwise size={14} weight="bold" />
                 {t.ebay.runSyncNow}
@@ -171,7 +171,7 @@ export default function EbaySettingsContent({
                 type="button"
                 disabled={pending}
                 onClick={onDisconnect}
-                className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm font-medium text-error hover:bg-error/10 disabled:opacity-50"
+                className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
               >
                 {t.ebay.disconnect}
               </button>
@@ -179,18 +179,18 @@ export default function EbaySettingsContent({
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-ash">{t.ebay.notConnectedHelp}</p>
+            <p className="text-sm text-muted">{t.ebay.notConnectedHelp}</p>
             <div className="flex flex-wrap items-center gap-2">
               <Link
                 href="/api/ebay/oauth/start?env=sandbox"
-                className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep"
+                className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
               >
                 <Plug size={14} weight="bold" />
                 {t.ebay.connectSandbox}
               </Link>
               <Link
                 href="/api/ebay/oauth/start?env=production"
-                className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-4 py-2 text-ink hover:border-ink"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 text-foreground hover:border-foreground"
               >
                 <Plug size={14} weight="bold" />
                 {t.ebay.connectProduction}
@@ -202,11 +202,11 @@ export default function EbaySettingsContent({
 
       {/* Config card — only when connected. */}
       {view.connected ? (
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.ebay.configTitle}
           </legend>
-          <p className="text-xs text-ash">{t.ebay.configHelp}</p>
+          <p className="text-xs text-muted">{t.ebay.configHelp}</p>
 
           <form onSubmit={onSubmitConfig} className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
             <ConfigField
@@ -240,7 +240,7 @@ export default function EbaySettingsContent({
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+                className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
               >
                 {pending ? t.common.saving : t.common.save}
               </button>
@@ -252,7 +252,7 @@ export default function EbaySettingsContent({
       <div>
         <Link
           href="/inventory/listings/ebay"
-          className="text-sm font-medium text-rausch hover:underline"
+          className="text-sm font-medium text-gold hover:underline"
         >
           {t.ebay.openListingsLink} →
         </Link>
@@ -264,8 +264,8 @@ export default function EbaySettingsContent({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide text-ash">{label}</div>
-      <div className="truncate text-ink">{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-muted">{label}</div>
+      <div className="truncate text-foreground">{value}</div>
     </div>
   )
 }
@@ -283,17 +283,17 @@ function ConfigField({
 }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium uppercase tracking-wide text-ash">
+      <span className="block text-xs font-medium uppercase tracking-wide text-muted">
         {label}
       </span>
       <input
         type="text"
         name={name}
         defaultValue={defaultValue}
-        className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="mt-1 block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
       />
       {help ? (
-        <span className="mt-0.5 block text-[11px] text-ash">{help}</span>
+        <span className="mt-0.5 block text-[11px] text-muted">{help}</span>
       ) : null}
     </label>
   )

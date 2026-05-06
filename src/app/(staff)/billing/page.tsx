@@ -50,7 +50,7 @@ export default async function StaffBillingPage() {
       : null
 
   return (
-    <Suspense fallback={<div className="text-sm text-ash">Loading…</div>}>
+    <Suspense fallback={<div className="text-sm text-muted">Loading…</div>}>
       <BillingContent
         tenantId={ctx.tenantId}
         tenantName={tenantRes.data?.dba ?? tenantRes.data?.name ?? ''}

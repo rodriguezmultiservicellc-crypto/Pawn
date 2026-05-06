@@ -28,39 +28,39 @@ export default function LoyaltySettingsContent({
   const [enabled, setEnabled] = useState(initial.loyalty_enabled)
 
   const inputClass =
-    'w-32 rounded-md border border-hairline bg-canvas px-3 py-2 text-ink shadow-sm focus:outline-none focus:ring-2 focus:ring-rausch/50 disabled:cursor-not-allowed disabled:opacity-60'
+    'w-32 rounded-md border border-border bg-card px-3 py-2 text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-gold/50 disabled:cursor-not-allowed disabled:opacity-60'
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-2 text-2xl font-semibold text-ink">Loyalty &amp; Referrals</h1>
-      <p className="mb-6 text-sm text-ash">
+      <h1 className="mb-2 text-2xl font-semibold text-foreground">Loyalty &amp; Referrals</h1>
+      <p className="mb-6 text-sm text-muted">
         Configure point earn / redemption rates and referral bonuses for this shop.
         When disabled, no new earn / redeem / referral events fire — existing balances persist.
       </p>
 
       <form action={formAction} className="space-y-6">
-        <fieldset className="rounded-lg border border-hairline p-4">
-          <legend className="px-2 text-sm font-medium text-ink">Enable</legend>
-          <label className="flex items-center gap-2 text-sm text-ink">
+        <fieldset className="rounded-lg border border-border p-4">
+          <legend className="px-2 text-sm font-medium text-foreground">Enable</legend>
+          <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
               name="loyalty_enabled"
               checked={enabled}
               onChange={(e) => setEnabled(e.target.checked)}
-              className="h-4 w-4 rounded border-hairline text-rausch focus:ring-rausch/50"
+              className="h-4 w-4 rounded border-border text-gold focus:ring-gold/50"
             />
             Enable loyalty for this shop
           </label>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-hairline p-4 space-y-4">
-          <legend className="px-2 text-sm font-medium text-ink">Earn rates</legend>
-          <p className="text-xs text-ash">
+        <fieldset className="rounded-lg border border-border p-4 space-y-4">
+          <legend className="px-2 text-sm font-medium text-foreground">Earn rates</legend>
+          <p className="text-xs text-muted">
             {enabled
               ? 'Points awarded per dollar of activity.'
               : 'Enable loyalty above to configure rates.'}
           </p>
-          <label className="flex items-center justify-between gap-4 text-sm text-ink">
+          <label className="flex items-center justify-between gap-4 text-sm text-foreground">
             <span>Retail sales — points per $1 of subtotal</span>
             <input
               type="number"
@@ -73,7 +73,7 @@ export default function LoyaltySettingsContent({
               className={inputClass}
             />
           </label>
-          <label className="flex items-center justify-between gap-4 text-sm text-ink">
+          <label className="flex items-center justify-between gap-4 text-sm text-foreground">
             <span>Loan interest paid — points per $1</span>
             <input
               type="number"
@@ -88,9 +88,9 @@ export default function LoyaltySettingsContent({
           </label>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-hairline p-4 space-y-4">
-          <legend className="px-2 text-sm font-medium text-ink">Redemption</legend>
-          <label className="flex items-center justify-between gap-4 text-sm text-ink">
+        <fieldset className="rounded-lg border border-border p-4 space-y-4">
+          <legend className="px-2 text-sm font-medium text-foreground">Redemption</legend>
+          <label className="flex items-center justify-between gap-4 text-sm text-foreground">
             <span>Points required per $1 of discount</span>
             <input
               type="number"
@@ -103,14 +103,14 @@ export default function LoyaltySettingsContent({
               className={inputClass}
             />
           </label>
-          <p className="text-xs text-ash">
+          <p className="text-xs text-muted">
             Default 100 = 1 point is worth $0.01.
           </p>
         </fieldset>
 
-        <fieldset className="rounded-lg border border-hairline p-4 space-y-4">
-          <legend className="px-2 text-sm font-medium text-ink">Referral bonus</legend>
-          <label className="flex items-center justify-between gap-4 text-sm text-ink">
+        <fieldset className="rounded-lg border border-border p-4 space-y-4">
+          <legend className="px-2 text-sm font-medium text-foreground">Referral bonus</legend>
+          <label className="flex items-center justify-between gap-4 text-sm text-foreground">
             <span>Points awarded to referrer on first qualifying transaction</span>
             <input
               type="number"
@@ -126,7 +126,7 @@ export default function LoyaltySettingsContent({
         </fieldset>
 
         {state.error && (
-          <p className="text-sm text-error" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {state.error}
           </p>
         )}
@@ -139,7 +139,7 @@ export default function LoyaltySettingsContent({
         <div className="flex justify-end">
           <button
             type="submit"
-            className="rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch/90 focus:outline-none focus:ring-2 focus:ring-rausch/50"
+            className="rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold/90 focus:outline-none focus:ring-2 focus:ring-gold/50"
           >
             Save
           </button>

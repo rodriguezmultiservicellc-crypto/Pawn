@@ -22,7 +22,7 @@ export default async function PublicLayout({
   const initialLang = await detectInitialLanguage()
   return (
     <I18nProvider initialLang={initialLang} persistRemote={false}>
-      <div className="flex min-h-screen flex-col bg-canvas">{children}</div>
+      <div className="flex min-h-screen flex-col bg-card">{children}</div>
     </I18nProvider>
   )
 }

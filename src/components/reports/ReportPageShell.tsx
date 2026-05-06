@@ -36,12 +36,12 @@ export function ReportPageShell({
         <div>
           <Link
             href="/reports"
-            className="inline-flex items-center gap-1 text-xs text-ash hover:text-ink"
+            className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
           >
             <CaretLeft size={14} weight="regular" />
             {t.reports.title}
           </Link>
-          <h1 className="mt-1 text-2xl font-bold text-ink">{title}</h1>
+          <h1 className="mt-1 text-2xl font-bold text-foreground">{title}</h1>
         </div>
         <ExportButtons slug={slug} from={from} to={to} extra={exportExtra} />
       </div>
@@ -53,12 +53,12 @@ export function ReportPageShell({
           {totals.map((t, i) => (
             <div
               key={i}
-              className="rounded-lg border border-hairline bg-canvas p-4"
+              className="rounded-lg border border-border bg-card p-4"
             >
-              <div className="text-xs uppercase tracking-wide text-ash">
+              <div className="text-xs uppercase tracking-wide text-muted">
                 {t.label}
               </div>
-              <div className="mt-1 font-mono text-lg font-bold text-ink">
+              <div className="mt-1 font-mono text-lg font-bold text-foreground">
                 {t.value}
               </div>
             </div>

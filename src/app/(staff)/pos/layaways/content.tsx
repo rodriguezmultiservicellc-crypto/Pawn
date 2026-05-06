@@ -79,12 +79,12 @@ export default function LayawayListContent({
       <div className="flex items-center justify-between">
         <Link
           href="/pos"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.pos.backToList}
         </Link>
-        <h1 className="text-lg font-semibold text-ink">{t.pos.layaway.title}</h1>
+        <h1 className="text-lg font-semibold text-foreground">{t.pos.layaway.title}</h1>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -94,8 +94,8 @@ export default function LayawayListContent({
             href={buildHref({ status: chip.key, due: dueWindow })}
             className={`rounded-full border px-3 py-1 text-xs ${
               chip.active
-                ? 'border-rausch bg-rausch text-canvas'
-                : 'border-hairline bg-canvas text-ink hover:border-ink'
+                ? 'border-gold bg-gold text-navy'
+                : 'border-border bg-card text-foreground hover:border-foreground'
             }`}
           >
             {chip.label}
@@ -106,7 +106,7 @@ export default function LayawayListContent({
           className={`rounded-full border px-3 py-1 text-xs ${
             dueWindow === 'dueSoon7'
               ? 'border-warning bg-warning/10 text-warning'
-              : 'border-hairline bg-canvas text-ink hover:border-ink'
+              : 'border-border bg-card text-foreground hover:border-foreground'
           }`}
         >
           {t.pos.layaway.filtersDueSoon}
@@ -114,16 +114,16 @@ export default function LayawayListContent({
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-hairline bg-cloud/40 p-12 text-center text-sm text-ash">
+        <div className="rounded-lg border border-dashed border-border bg-background/40 p-12 text-center text-sm text-muted">
           {statusFilter === 'all' && dueWindow === 'all'
             ? t.pos.layaway.empty
             : t.pos.layaway.emptyForFilter}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ash">
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-3 py-2">{t.pos.layaway.layawayNumber}</th>
                 <th className="px-3 py-2">{t.pos.sale.customer}</th>
                 <th className="px-3 py-2 text-right">{t.pos.sale.total}</th>
@@ -139,8 +139,8 @@ export default function LayawayListContent({
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-b border-hairline/60">
-                  <td className="px-3 py-2 font-mono text-xs text-ink">
+                <tr key={r.id} className="border-b border-border/60">
+                  <td className="px-3 py-2 font-mono text-xs text-foreground">
                     <Link
                       href={`/pos/layaways/${r.id}`}
                       className="hover:underline"
@@ -148,7 +148,7 @@ export default function LayawayListContent({
                       {r.layaway_number}
                     </Link>
                   </td>
-                  <td className="px-3 py-2 text-ink">
+                  <td className="px-3 py-2 text-foreground">
                     <Link
                       href={`/customers/${r.customer_id}`}
                       className="hover:underline"
@@ -156,16 +156,16 @@ export default function LayawayListContent({
                       {r.customer_name}
                     </Link>
                   </td>
-                  <td className="px-3 py-2 text-right font-mono text-ink">
+                  <td className="px-3 py-2 text-right font-mono text-foreground">
                     {fmtMoney(r.total_due)}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono text-ink">
+                  <td className="px-3 py-2 text-right font-mono text-foreground">
                     {fmtMoney(r.paid_total)}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono text-ink">
+                  <td className="px-3 py-2 text-right font-mono text-foreground">
                     {fmtMoney(r.balance_remaining)}
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs text-ash">
+                  <td className="px-3 py-2 font-mono text-xs text-muted">
                     {r.first_payment_due ?? '—'}
                   </td>
                   <td className="px-3 py-2">

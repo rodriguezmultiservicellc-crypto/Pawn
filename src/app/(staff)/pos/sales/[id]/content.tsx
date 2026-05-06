@@ -144,14 +144,14 @@ export default function SaleDetailContent({
       <div className="flex items-center justify-between">
         <Link
           href="/pos"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.pos.backToList}
         </Link>
         <div className="flex items-center gap-2">
           {sale.is_locked ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs font-medium text-ink">
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-xs font-medium text-foreground">
               <Lock size={12} weight="bold" />
               {t.repair.detail.lockedBadge}
             </span>
@@ -166,16 +166,16 @@ export default function SaleDetailContent({
       </div>
 
       {/* Header */}
-      <div className="rounded-lg border border-hairline bg-canvas p-4">
+      <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pos.sale.saleNumber}
             </div>
-            <h1 className="font-mono text-2xl font-bold text-ink">
+            <h1 className="font-mono text-2xl font-bold text-foreground">
               {sale.sale_number}
             </h1>
-            <div className="mt-1 text-xs text-ash">
+            <div className="mt-1 text-xs text-muted">
               {sale.sale_kind === 'layaway' ? t.pos.layaway.detail : null}
               {layawayId ? (
                 <Link
@@ -188,41 +188,41 @@ export default function SaleDetailContent({
             </div>
           </div>
           <div className="min-w-[200px]">
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pos.sale.customer}
             </div>
             {sale.customer_id ? (
               <Link
                 href={`/customers/${sale.customer_id}`}
-                className="text-base font-semibold text-ink hover:underline"
+                className="text-base font-semibold text-foreground hover:underline"
               >
                 {sale.customer_name ?? '—'}
               </Link>
             ) : (
-              <div className="text-base font-semibold text-ash">
+              <div className="text-base font-semibold text-muted">
                 {t.pos.sale.anonymous}
               </div>
             )}
-            <div className="text-xs text-ash">
+            <div className="text-xs text-muted">
               {[sale.customer_phone, sale.customer_email]
                 .filter(Boolean)
                 .join(' · ') || '—'}
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.pos.sale.issuedOn}
             </div>
-            <div className="font-mono text-sm text-ink">
+            <div className="font-mono text-sm text-foreground">
               {new Date(sale.created_at).toLocaleString()}
             </div>
           </div>
           {sale.completed_at ? (
             <div>
-              <div className="text-xs uppercase tracking-wide text-ash">
+              <div className="text-xs uppercase tracking-wide text-muted">
                 {t.pos.sale.completedOn}
               </div>
-              <div className="font-mono text-sm text-ink">
+              <div className="font-mono text-sm text-foreground">
                 {new Date(sale.completed_at).toLocaleString()}
               </div>
             </div>
@@ -231,7 +231,7 @@ export default function SaleDetailContent({
       </div>
 
       {error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
@@ -259,7 +259,7 @@ export default function SaleDetailContent({
         {isCompleted && !isFullyReturned ? (
           <Link
             href={`/pos/returns/new?sale=${sale.id}`}
-            className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
           >
             <ArrowsClockwise size={14} weight="bold" />
             {t.pos.sale.issueReturn}
@@ -277,7 +277,7 @@ export default function SaleDetailContent({
           <button
             type="button"
             onClick={printReceipt}
-            className="ml-auto inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+            className="ml-auto inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
           >
             <Printer size={14} weight="bold" />
             {t.pos.sale.receiptCopy}
@@ -286,7 +286,7 @@ export default function SaleDetailContent({
       </div>
 
       {/* Totals */}
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-hairline bg-canvas p-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-4 lg:grid-cols-5">
         <Stat label={t.pos.sale.subtotal} value={fmtMoney(sale.subtotal)} />
         <Stat
           label={t.pos.sale.discount}
@@ -341,20 +341,20 @@ export default function SaleDetailContent({
 function ItemsPanel({ items }: { items: SaleDetailItem[] }) {
   const { t } = useI18n()
   return (
-    <section className="overflow-hidden rounded-lg border border-hairline bg-canvas">
-      <header className="border-b border-hairline px-3 py-2">
-        <h2 className="text-sm font-semibold text-ink">
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <header className="border-b border-border px-3 py-2">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.pos.sale.itemsTitle}
         </h2>
       </header>
       {items.length === 0 ? (
-        <div className="px-3 py-6 text-center text-sm text-ash">
+        <div className="px-3 py-6 text-center text-sm text-muted">
           {t.pos.sale.noItems}
         </div>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ash">
+            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-3 py-2">{t.pos.cart.itemDescription}</th>
               <th className="px-3 py-2 text-right">{t.pos.cart.qty}</th>
               <th className="px-3 py-2 text-right">{t.pos.cart.unitPrice}</th>
@@ -366,11 +366,11 @@ function ItemsPanel({ items }: { items: SaleDetailItem[] }) {
           </thead>
           <tbody>
             {items.map((it) => (
-              <tr key={it.id} className="border-b border-hairline/60">
+              <tr key={it.id} className="border-b border-border/60">
                 <td className="px-3 py-2">
-                  <div className="font-medium text-ink">{it.description}</div>
+                  <div className="font-medium text-foreground">{it.description}</div>
                   {it.returned_qty > 0 ? (
-                    <div className="text-xs text-ash">
+                    <div className="text-xs text-muted">
                       {t.pos.cart.qty}{' '}
                       <span className="font-mono">
                         −{it.returned_qty}
@@ -379,16 +379,16 @@ function ItemsPanel({ items }: { items: SaleDetailItem[] }) {
                     </div>
                   ) : null}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-ink">
+                <td className="px-3 py-2 text-right font-mono text-foreground">
                   {it.quantity}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-ink">
+                <td className="px-3 py-2 text-right font-mono text-foreground">
                   {fmtMoney(it.unit_price)}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-ink">
+                <td className="px-3 py-2 text-right font-mono text-foreground">
                   {fmtMoney(it.line_discount)}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-ink">
+                <td className="px-3 py-2 text-right font-mono text-foreground">
                   {fmtMoney(it.line_total)}
                 </td>
               </tr>
@@ -409,30 +409,30 @@ function PaymentsPanel({
 }) {
   const { t } = useI18n()
   return (
-    <section className="overflow-hidden rounded-lg border border-hairline bg-canvas">
-      <header className="border-b border-hairline px-3 py-2">
-        <h2 className="text-sm font-semibold text-ink">
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <header className="border-b border-border px-3 py-2">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.pos.sale.paymentsTitle}
         </h2>
       </header>
       {payments.length === 0 ? (
-        <div className="px-3 py-6 text-center text-sm text-ash">
+        <div className="px-3 py-6 text-center text-sm text-muted">
           {t.pos.sale.noPayments}
         </div>
       ) : (
-        <ul className="divide-y divide-hairline">
+        <ul className="divide-y divide-border">
           {payments.map((p) => (
             <li
               key={p.id}
               className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm"
             >
               <div className="flex-1">
-                <div className="font-mono text-ink">{fmtMoney(p.amount)}</div>
-                <div className="text-xs text-ash">
+                <div className="font-mono text-foreground">{fmtMoney(p.amount)}</div>
+                <div className="text-xs text-muted">
                   {new Date(p.occurred_at).toLocaleString()}
                 </div>
               </div>
-              <span className="rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs text-ink">
+              <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground">
                 {p.payment_method}
               </span>
               {p.payment_method === 'card' ? (
@@ -476,17 +476,17 @@ function ActionButton({
   let cls =
     'inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50'
   if (primary && tone === 'success') {
-    cls += ' border-success bg-success text-canvas hover:bg-success-deep'
+    cls += ' border-success bg-success text-white hover:bg-success-deep'
   } else if (primary) {
-    cls += ' border-rausch bg-rausch text-canvas hover:bg-rausch-deep'
+    cls += ' border-gold bg-gold text-navy hover:bg-gold-2'
   } else if (tone === 'success') {
     cls += ' border-success/30 bg-success/5 text-success hover:bg-success/10'
   } else if (tone === 'warning') {
     cls += ' border-warning/30 bg-warning/5 text-warning hover:bg-warning/10'
   } else if (tone === 'error') {
-    cls += ' border-error/30 bg-error/5 text-error hover:bg-error/10'
+    cls += ' border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
   } else {
-    cls += ' border-hairline bg-canvas text-ink hover:border-ink'
+    cls += ' border-border bg-card text-foreground hover:border-foreground'
   }
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={cls}>
@@ -507,10 +507,10 @@ function Stat({
   bold?: boolean
   tone?: 'neutral' | 'warning'
 }) {
-  const tn = tone === 'warning' ? 'text-warning' : 'text-ink'
+  const tn = tone === 'warning' ? 'text-warning' : 'text-foreground'
   return (
     <div>
-      <div className="text-xs uppercase tracking-wide text-ash">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
       <div
         className={`font-mono ${bold ? 'text-base font-semibold' : 'text-sm'} ${tn}`}
       >

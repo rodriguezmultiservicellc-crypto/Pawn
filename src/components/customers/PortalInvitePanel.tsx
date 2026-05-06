@@ -75,23 +75,23 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
   }
 
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">
         {t.customers.portalInvite.title}
       </legend>
 
       <div className="mt-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <StatusPill status={status} />
-          <div className="mt-2 text-sm text-ink">
+          <div className="mt-2 text-sm text-foreground">
             {props.customerEmail ?? (
-              <span className="italic text-ash">
+              <span className="italic text-muted">
                 {t.customers.portalInvite.noEmailOnFile}
               </span>
             )}
           </div>
           {props.lastInvite ? (
-            <div className="mt-1 text-xs text-ash">
+            <div className="mt-1 text-xs text-muted">
               {props.lastInvite.consumedAt ? (
                 <>
                   {t.customers.portalInvite.claimedOn}{' '}
@@ -118,7 +118,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
             <button
               type="submit"
               disabled={sendPending || !props.customerEmail}
-              className="inline-flex items-center gap-1 rounded-md bg-rausch px-3 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
               title={
                 props.customerEmail
                   ? undefined
@@ -137,13 +137,13 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
       </div>
 
       {sendState.error ? (
-        <div className="mt-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mt-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           <div className="flex items-start gap-2">
             <Warning size={14} weight="bold" />
             <span>{translateError(sendState.error, t)}</span>
           </div>
           {sendState.details ? (
-            <div className="mt-1 ml-5 font-mono text-[11px] text-error/80">
+            <div className="mt-1 ml-5 font-mono text-[11px] text-danger/80">
               {sendState.details}
             </div>
           ) : null}
@@ -171,12 +171,12 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
                   readOnly
                   value={sendState.manualLink}
                   onFocus={(e) => e.currentTarget.select()}
-                  className="block w-full min-w-0 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs text-ink"
+                  className="block w-full min-w-0 rounded-md border border-border bg-card px-2 py-1.5 text-xs text-foreground"
                 />
                 <button
                   type="button"
                   onClick={() => onCopy(sendState.manualLink!, 'manual')}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs font-medium text-ink hover:border-ink"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
                 >
                   <LinkIcon size={12} weight="bold" />
                   {copied === 'manual'
@@ -190,8 +190,8 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
       ) : null}
 
       {/* Always-visible: portal sign-in URL — operator can copy + share. */}
-      <div className="mt-3 border-t border-hairline pt-3">
-        <div className="text-xs font-medium text-ink">
+      <div className="mt-3 border-t border-border pt-3">
+        <div className="text-xs font-medium text-foreground">
           {t.customers.portalInvite.signInUrlLabel}
         </div>
         <div className="mt-1 flex items-stretch gap-2">
@@ -200,12 +200,12 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
             readOnly
             value={props.portalLoginUrl}
             onFocus={(e) => e.currentTarget.select()}
-            className="block w-full min-w-0 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs text-ink"
+            className="block w-full min-w-0 rounded-md border border-border bg-card px-2 py-1.5 text-xs text-foreground"
           />
           <button
             type="button"
             onClick={() => onCopy(props.portalLoginUrl, 'portal')}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs font-medium text-ink hover:border-ink"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
           >
             <LinkIcon size={12} weight="bold" />
             {copied === 'portal'
@@ -213,7 +213,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
               : t.customers.portalInvite.copy}
           </button>
         </div>
-        <p className="mt-1 text-[11px] text-ash">
+        <p className="mt-1 text-[11px] text-muted">
           {t.customers.portalInvite.signInUrlHelp}
         </p>
       </div>
@@ -221,13 +221,13 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
       {/* When the customer has already claimed: let the operator mint a
           fresh one-time sign-in link for in-store assists. */}
       {props.canManage && status === 'active' ? (
-        <div className="mt-3 border-t border-hairline pt-3">
+        <div className="mt-3 border-t border-border pt-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-xs font-medium text-ink">
+              <div className="text-xs font-medium text-foreground">
                 {t.customers.portalInvite.tempSignInTitle}
               </div>
-              <p className="mt-0.5 text-[11px] text-ash">
+              <p className="mt-0.5 text-[11px] text-muted">
                 {t.customers.portalInvite.tempSignInHelp}
               </p>
             </div>
@@ -240,7 +240,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
               <button
                 type="submit"
                 disabled={signInPending || !props.customerEmail}
-                className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-xs font-medium text-ink hover:border-ink disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:border-foreground disabled:opacity-50"
               >
                 <Key size={12} weight="bold" />
                 {signInPending
@@ -250,13 +250,13 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
             </form>
           </div>
           {signInState.error ? (
-            <div className="mt-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs text-error">
+            <div className="mt-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
               <div className="flex items-start gap-2">
                 <Warning size={12} weight="bold" />
                 <span>{translateError(signInState.error, t)}</span>
               </div>
               {signInState.details ? (
-                <div className="mt-1 ml-4 font-mono text-[10px] text-error/80">
+                <div className="mt-1 ml-4 font-mono text-[10px] text-danger/80">
                   {signInState.details}
                 </div>
               ) : null}
@@ -275,12 +275,12 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
                   readOnly
                   value={signInState.magicLink}
                   onFocus={(e) => e.currentTarget.select()}
-                  className="block w-full min-w-0 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs text-ink"
+                  className="block w-full min-w-0 rounded-md border border-border bg-card px-2 py-1.5 text-xs text-foreground"
                 />
                 <button
                   type="button"
                   onClick={() => onCopy(signInState.magicLink!, 'signin')}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-xs font-medium text-ink hover:border-ink"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:border-foreground"
                 >
                   <LinkIcon size={12} weight="bold" />
                   {copied === 'signin'
@@ -288,7 +288,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
                     : t.customers.portalInvite.copy}
                 </button>
               </div>
-              <p className="mt-1 text-[10px] text-ash">
+              <p className="mt-1 text-[10px] text-muted">
                 {t.customers.portalInvite.tempSignInExpires}
               </p>
             </div>
@@ -297,13 +297,13 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
       ) : null}
 
       {props.canManage && status === 'pending' ? (
-        <div className="mt-3 border-t border-hairline pt-3">
+        <div className="mt-3 border-t border-border pt-3">
           <form action={revokeAction}>
             <input type="hidden" name="customer_id" value={props.customerId} />
             <button
               type="submit"
               disabled={revokePending}
-              className="text-xs text-ash hover:text-error disabled:opacity-50"
+              className="text-xs text-muted hover:text-danger disabled:opacity-50"
             >
               {revokePending
                 ? t.common.saving
@@ -311,7 +311,7 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
             </button>
           </form>
           {revokeState.error ? (
-            <div className="mt-1 text-xs text-error">
+            <div className="mt-1 text-xs text-danger">
               {translateError(revokeState.error, t)}
             </div>
           ) : null}
@@ -354,13 +354,13 @@ function StatusPill({ status }: { status: Status }) {
     },
     expired: {
       label: t.customers.portalInvite.statusExpired,
-      bg: 'bg-cloud border-hairline',
-      text: 'text-ash',
+      bg: 'bg-background border-border',
+      text: 'text-muted',
     },
     never: {
       label: t.customers.portalInvite.statusNever,
-      bg: 'bg-cloud border-hairline',
-      text: 'text-ash',
+      bg: 'bg-background border-border',
+      text: 'text-muted',
     },
   }
   const { label, bg, text } = map[status]

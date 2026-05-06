@@ -220,7 +220,7 @@ export const CollateralItemsList = forwardRef<CollateralListHandle>(
         <button
           type="button"
           onClick={addRow}
-          className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+          className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
         >
           <Plus size={14} weight="bold" />
           {t.pawn.new_.addItem}
@@ -262,17 +262,17 @@ function CollateralRow({
   }
 
   return (
-    <div className="rounded-lg border border-hairline bg-canvas p-3">
+    <div className="rounded-lg border border-border bg-card p-3">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
         {/* Photo */}
         <div className="md:col-span-2">
-          <span className="mb-1 block text-xs font-medium text-ink">
+          <span className="mb-1 block text-xs font-medium text-foreground">
             {t.pawn.new_.itemPhoto}
           </span>
           <button
             type="button"
             onClick={() => photoInputRef.current?.click()}
-            className="group relative flex h-24 w-full items-center justify-center overflow-hidden rounded-md border border-dashed border-hairline bg-cloud hover:border-ink"
+            className="group relative flex h-24 w-full items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-background hover:border-foreground"
             aria-label={t.pawn.new_.itemPhoto}
           >
             {row.photoPreview ? (
@@ -285,7 +285,7 @@ function CollateralRow({
                 className="object-cover"
               />
             ) : (
-              <span className="flex flex-col items-center gap-1 text-ash">
+              <span className="flex flex-col items-center gap-1 text-muted">
                 <Camera size={20} weight="regular" />
                 <span className="text-[10px]">{t.common.upload}</span>
               </span>
@@ -304,7 +304,7 @@ function CollateralRow({
         {/* Fields */}
         <div className="md:col-span-10 grid grid-cols-1 gap-3 md:grid-cols-6">
           <label className="md:col-span-3 block space-y-1">
-            <span className="text-xs font-medium text-ink">
+            <span className="text-xs font-medium text-foreground">
               {t.pawn.new_.itemDescription} *
             </span>
             <input
@@ -314,12 +314,12 @@ function CollateralRow({
               value={row.description}
               onChange={(e) => onChange({ description: e.target.value })}
               placeholder="14k gold rope chain, 22 inches"
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
 
           <label className="md:col-span-3 block space-y-1">
-            <span className="text-xs font-medium text-ink">
+            <span className="text-xs font-medium text-foreground">
               {t.pawn.new_.itemCategory}
             </span>
             <select
@@ -328,7 +328,7 @@ function CollateralRow({
               onChange={(e) =>
                 onChange({ category: e.target.value as InventoryCategory })
               }
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               {CATEGORY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -339,7 +339,7 @@ function CollateralRow({
           </label>
 
           <label className="md:col-span-2 block space-y-1">
-            <span className="text-xs font-medium text-ink">
+            <span className="text-xs font-medium text-foreground">
               {t.pawn.new_.itemMetalType}
             </span>
             <select
@@ -348,7 +348,7 @@ function CollateralRow({
               onChange={(e) =>
                 onChange({ metal_type: e.target.value as MetalType | '' })
               }
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="">—</option>
               {METAL_OPTIONS.map((opt) => (
@@ -360,7 +360,7 @@ function CollateralRow({
           </label>
 
           <label className="md:col-span-1 block space-y-1">
-            <span className="text-xs font-medium text-ink">
+            <span className="text-xs font-medium text-foreground">
               {t.pawn.new_.itemKarat}
             </span>
             <input
@@ -371,12 +371,12 @@ function CollateralRow({
               name={`collateral_${index}_karat`}
               value={row.karat}
               onChange={(e) => onChange({ karat: e.target.value })}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
 
           <label className="md:col-span-1 block space-y-1">
-            <span className="text-xs font-medium text-ink">
+            <span className="text-xs font-medium text-foreground">
               {t.pawn.new_.itemWeightGrams}
             </span>
             <input
@@ -386,12 +386,12 @@ function CollateralRow({
               name={`collateral_${index}_weight_grams`}
               value={row.weight_grams}
               onChange={(e) => onChange({ weight_grams: e.target.value })}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
 
           <label className="md:col-span-2 block space-y-1">
-            <span className="text-xs font-medium text-ink">
+            <span className="text-xs font-medium text-foreground">
               {t.pawn.new_.itemEstValue}
             </span>
             <input
@@ -401,7 +401,7 @@ function CollateralRow({
               name={`collateral_${index}_est_value`}
               value={row.est_value}
               onChange={(e) => onChange({ est_value: e.target.value })}
-              className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
         </div>
@@ -412,7 +412,7 @@ function CollateralRow({
           <button
             type="button"
             onClick={onRemove}
-            className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-2 py-1 text-xs font-medium text-error hover:bg-error/10"
+            className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10"
             aria-label={`${t.pawn.new_.removeItem} ${index + 1}`}
             data-row-id={fieldId}
           >

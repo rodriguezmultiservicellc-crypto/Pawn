@@ -40,36 +40,36 @@ export function VoidLoanDialog({
   return (
     <Modal title={t.pawn.voidLoan.title} onClose={onClose}>
       {error ? (
-        <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       ) : null}
 
-      <div className="rounded-md border border-error/30 bg-error/5 p-3 text-sm text-ink">
+      <div className="rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-foreground">
         <div className="flex items-start gap-2">
-          <Warning size={16} weight="bold" className="mt-0.5 text-error" />
+          <Warning size={16} weight="bold" className="mt-0.5 text-danger" />
           <p>{t.pawn.voidLoan.bodyWarning}</p>
         </div>
       </div>
 
       <label className="mt-4 block space-y-1">
-        <span className="text-sm font-medium text-ink">
+        <span className="text-sm font-medium text-foreground">
           {t.pawn.voidLoan.reason} *
         </span>
         <textarea
           rows={4}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         />
-        <span className="text-xs text-ash">{t.pawn.voidLoan.reasonHelp}</span>
+        <span className="text-xs text-muted">{t.pawn.voidLoan.reasonHelp}</span>
       </label>
 
       <Footer>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
         >
           {t.common.cancel}
         </button>
@@ -77,7 +77,7 @@ export function VoidLoanDialog({
           type="button"
           disabled={pending || reason.trim().length < 10}
           onClick={submit}
-          className="rounded-md border border-error/40 bg-error/10 px-4 py-2 text-sm font-medium text-error hover:bg-error/20 disabled:opacity-50"
+          className="rounded-md border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-50"
         >
           {pending ? t.pawn.voidLoan.submitting : t.pawn.voidLoan.submit}
         </button>

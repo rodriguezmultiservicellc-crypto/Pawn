@@ -117,13 +117,13 @@ export default function AuditContent({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <ClockCounterClockwise size={28} weight="regular" className="text-rausch" />
+          <ClockCounterClockwise size={28} weight="regular" className="text-gold" />
           <div>
             <h1 className="text-2xl font-bold">{t.audit.title}</h1>
-            <p className="text-sm text-ash">{t.audit.subtitle}</p>
+            <p className="text-sm text-muted">{t.audit.subtitle}</p>
           </div>
         </div>
-        <div className="text-sm text-ash">
+        <div className="text-sm text-muted">
           {total === 0
             ? '0'
             : `${start.toLocaleString()}–${end.toLocaleString()} / ${total.toLocaleString()}`}
@@ -138,20 +138,20 @@ export default function AuditContent({
           <div className="relative flex-1">
             <MagnifyingGlass
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
             />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t.audit.filters.search}
-              className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </div>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
           >
             {t.common.search}
           </button>
@@ -160,7 +160,7 @@ export default function AuditContent({
         <select
           value={userFilter}
           onChange={(e) => pushParams({ user: e.target.value })}
-          className="sm:col-span-3 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="sm:col-span-3 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="">{t.audit.filters.allUsers}</option>
           {facetUsers.map((u) => (
@@ -173,7 +173,7 @@ export default function AuditContent({
         <select
           value={tableFilter}
           onChange={(e) => pushParams({ table: e.target.value })}
-          className="sm:col-span-2 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="sm:col-span-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="">{t.audit.filters.allTables}</option>
           {facetTables.map((tbl) => (
@@ -186,7 +186,7 @@ export default function AuditContent({
         <select
           value={actionPrefixFilter}
           onChange={(e) => pushParams({ actionPrefix: e.target.value })}
-          className="sm:col-span-2 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="sm:col-span-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="">{t.audit.filters.allActions}</option>
           {facetActionPrefixes.map((a) => (
@@ -200,7 +200,7 @@ export default function AuditContent({
           <button
             type="button"
             onClick={clearAll}
-            className="sm:col-span-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+            className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
           >
             {t.common.clear}
           </button>
@@ -208,34 +208,34 @@ export default function AuditContent({
           <span className="sm:col-span-1" />
         )}
 
-        <label className="sm:col-span-2 flex items-center gap-2 text-xs text-ash">
+        <label className="sm:col-span-2 flex items-center gap-2 text-xs text-muted">
           <span className="shrink-0">{t.audit.filters.from}</span>
           <input
             type="date"
             value={fromFilter}
             onChange={(e) => pushParams({ from: e.target.value })}
-            className="block w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
-        <label className="sm:col-span-2 flex items-center gap-2 text-xs text-ash">
+        <label className="sm:col-span-2 flex items-center gap-2 text-xs text-muted">
           <span className="shrink-0">{t.audit.filters.to}</span>
           <input
             type="date"
             value={toFilter}
             onChange={(e) => pushParams({ to: e.target.value })}
-            className="block w-full rounded-md border border-hairline bg-canvas px-2 py-1.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
       </div>
 
       {events.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
-          <p className="text-ash">{t.audit.empty}</p>
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-muted">{t.audit.empty}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-hairline text-ash">
+            <thead className="border-b border-border text-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">{t.audit.columns.time}</th>
                 <th className="px-4 py-3 font-medium">{t.audit.columns.user}</th>
@@ -255,9 +255,9 @@ export default function AuditContent({
                 return (
                   <tr
                     key={ev.id}
-                    className="border-b border-hairline align-top last:border-0 hover:bg-cloud"
+                    className="border-b border-border align-top last:border-0 hover:bg-background"
                   >
-                    <td className="whitespace-nowrap px-4 py-3 text-ash">
+                    <td className="whitespace-nowrap px-4 py-3 text-muted">
                       <span title={absoluteTimestamp(ev.created_at)}>
                         {relativeTime(ev.created_at)}
                       </span>
@@ -265,23 +265,23 @@ export default function AuditContent({
                     <td className="px-4 py-3">
                       {ev.user ? (
                         <div className="min-w-0">
-                          <div className="truncate font-medium text-ink">
+                          <div className="truncate font-medium text-foreground">
                             {ev.user.full_name ?? ev.user.email ?? ev.user.id}
                           </div>
                           {ev.user.email && ev.user.full_name ? (
-                            <div className="truncate text-xs text-ash">
+                            <div className="truncate text-xs text-muted">
                               {ev.user.email}
                             </div>
                           ) : null}
                         </div>
                       ) : (
-                        <span className="text-ash">—</span>
+                        <span className="text-muted">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-ink">
+                    <td className="px-4 py-3 text-foreground">
                       {formatAuditAction(ev.action, ev.table_name, t)}
                     </td>
-                    <td className="px-4 py-3 text-ink">
+                    <td className="px-4 py-3 text-foreground">
                       {formatAuditTable(ev.table_name, t)}
                     </td>
                     <td className="px-4 py-3">
@@ -289,17 +289,17 @@ export default function AuditContent({
                         link ? (
                           <Link
                             href={link}
-                            className="font-mono text-xs text-rausch hover:underline"
+                            className="font-mono text-xs text-gold hover:underline"
                           >
                             {shortId(ev.record_id)}
                           </Link>
                         ) : (
-                          <span className="font-mono text-xs text-ash">
+                          <span className="font-mono text-xs text-muted">
                             {shortId(ev.record_id)}
                           </span>
                         )
                       ) : (
-                        <span className="text-ash">—</span>
+                        <span className="text-muted">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -320,16 +320,16 @@ export default function AuditContent({
             pushParams({ page: page > 2 ? String(page - 1) : null })
           }
           disabled={page <= 1 || pending}
-          className="rounded-md border border-hairline bg-canvas px-3 py-2 text-ink hover:border-ink disabled:opacity-40"
+          className="rounded-md border border-border bg-card px-3 py-2 text-foreground hover:border-foreground disabled:opacity-40"
         >
           {t.audit.pagination.previous}
         </button>
-        <span className="text-ash">{pageOfLabel}</span>
+        <span className="text-muted">{pageOfLabel}</span>
         <button
           type="button"
           onClick={() => pushParams({ page: String(page + 1) })}
           disabled={page >= totalPages || pending}
-          className="rounded-md border border-hairline bg-canvas px-3 py-2 text-ink hover:border-ink disabled:opacity-40"
+          className="rounded-md border border-border bg-card px-3 py-2 text-foreground hover:border-foreground disabled:opacity-40"
         >
           {t.audit.pagination.next}
         </button>

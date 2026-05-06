@@ -61,7 +61,7 @@ export default function CustomersContent({
         <h1 className="text-2xl font-bold">{t.customers.title}</h1>
         <Link
           href="/customers/new"
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
         >
           <Plus size={16} weight="bold" />
           <span>{t.customers.new}</span>
@@ -73,47 +73,47 @@ export default function CustomersContent({
           <div className="relative flex-1">
             <MagnifyingGlass
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
             />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t.customers.searchPlaceholder}
-              className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </div>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
           >
             {t.common.search}
           </button>
         </form>
-        <label className="inline-flex shrink-0 items-center gap-2 text-sm text-ink">
+        <label className="inline-flex shrink-0 items-center gap-2 text-sm text-foreground">
           <input
             type="checkbox"
             checked={onlyBanned}
             onChange={(e) => pushParams({ banned: e.target.checked })}
-            className="h-4 w-4 rounded border-hairline text-rausch focus:ring-ink/10"
+            className="h-4 w-4 rounded border-border text-gold focus:ring-blue/10"
           />
           <span>{t.customers.bannedBadge}</span>
         </label>
       </div>
 
       {customers.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
-          <p className="text-ash">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-muted">
             {query || onlyBanned
               ? t.customers.emptyForFilter
               : t.customers.empty}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-hairline text-ash">
+            <thead className="border-b border-border text-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">
                   {t.customers.nameColumn}
@@ -136,29 +136,29 @@ export default function CustomersContent({
               {customers.map((c) => (
                 <tr
                   key={c.id}
-                  className="cursor-pointer border-b border-hairline transition-colors last:border-0 hover:bg-cloud"
+                  className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-background"
                   onClick={() => router.push(`/customers/${c.id}`)}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-ink">
+                      <span className="font-medium text-foreground">
                         {c.last_name}, {c.first_name}
                       </span>
                       {c.is_banned ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-error/30 bg-error/5 px-2 py-0.5 text-xs text-error">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-danger/30 bg-danger/5 px-2 py-0.5 text-xs text-danger">
                           <Prohibit size={12} weight="bold" />
                           {t.customers.bannedBadge}
                         </span>
                       ) : null}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-ink">
-                    <div>{c.phone ?? <span className="text-ash">—</span>}</div>
+                  <td className="px-4 py-3 text-foreground">
+                    <div>{c.phone ?? <span className="text-muted">—</span>}</div>
                     {c.email ? (
-                      <div className="text-xs text-ash">{c.email}</div>
+                      <div className="text-xs text-muted">{c.email}</div>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 text-ink">
+                  <td className="px-4 py-3 text-foreground">
                     {c.id_number ? (
                       <div>
                         <span className="font-mono text-xs">
@@ -166,7 +166,7 @@ export default function CustomersContent({
                         </span>
                       </div>
                     ) : (
-                      <span className="text-ash">—</span>
+                      <span className="text-muted">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -175,22 +175,22 @@ export default function CustomersContent({
                         {c.tags.slice(0, 3).map((tag) => (
                           <span
                             key={tag}
-                            className="rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs text-ink"
+                            className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground"
                           >
                             {tag}
                           </span>
                         ))}
                         {c.tags.length > 3 ? (
-                          <span className="text-xs text-ash">
+                          <span className="text-xs text-muted">
                             +{c.tags.length - 3}
                           </span>
                         ) : null}
                       </div>
                     ) : (
-                      <span className="text-ash">—</span>
+                      <span className="text-muted">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-ash">
+                  <td className="px-4 py-3 text-muted">
                     {new Date(c.created_at).toLocaleDateString()}
                   </td>
                 </tr>

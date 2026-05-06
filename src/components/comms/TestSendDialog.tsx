@@ -47,29 +47,29 @@ export function TestSendDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-md rounded-lg border border-hairline bg-canvas p-5 shadow-lg">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg">
         <header className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-ink">
+          <h3 className="text-base font-semibold text-foreground">
             {t.comms.testSendTitle}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-ash hover:bg-cloud hover:text-ink"
+            className="rounded-md p-1 text-muted hover:bg-background hover:text-foreground"
             aria-label="close"
           >
             <X size={16} weight="bold" />
           </button>
         </header>
 
-        <p className="mb-3 text-xs text-ash">{t.comms.testSendBody}</p>
+        <p className="mb-3 text-xs text-muted">{t.comms.testSendBody}</p>
 
         {error ? (
-          <div className="mb-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+          <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
             {error}
           </div>
         ) : null}
@@ -82,7 +82,7 @@ export function TestSendDialog({
         ) : null}
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink">
+          <span className="text-sm font-medium text-foreground">
             {t.comms.testSendTo}
           </span>
           <input
@@ -90,7 +90,7 @@ export function TestSendDialog({
             value={to}
             onChange={(e) => setTo(e.target.value)}
             placeholder={placeholder}
-            className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
           />
         </label>
 
@@ -98,7 +98,7 @@ export function TestSendDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm text-ink hover:border-ink"
+            className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:border-foreground"
           >
             {t.common.close}
           </button>
@@ -106,7 +106,7 @@ export function TestSendDialog({
             type="button"
             disabled={pending || !to.trim()}
             onClick={submit}
-            className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-sm font-medium text-canvas hover:bg-rausch-deep disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           >
             <PaperPlaneTilt size={14} weight="bold" />
             {pending ? t.common.saving : t.comms.testSendSubmit}

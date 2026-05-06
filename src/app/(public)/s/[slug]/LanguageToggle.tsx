@@ -16,7 +16,7 @@ export default function LanguageToggle() {
     <div
       role="group"
       aria-label="Language"
-      className="inline-flex items-center rounded-pill border border-hairline bg-canvas p-0.5"
+      className="inline-flex items-center rounded-xl border border-border bg-card p-0.5"
     >
       {LANGUAGES.map((code) => (
         <button
@@ -24,10 +24,10 @@ export default function LanguageToggle() {
           type="button"
           onClick={() => setLang(code)}
           aria-pressed={lang === code}
-          className={`rounded-pill px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${
+          className={`rounded-xl px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${
             lang === code
-              ? 'bg-ink text-canvas'
-              : 'text-ash hover:text-ink'
+              ? 'bg-navy text-white'
+              : 'text-muted hover:text-foreground'
           }`}
         >
           {labelFor(code)}

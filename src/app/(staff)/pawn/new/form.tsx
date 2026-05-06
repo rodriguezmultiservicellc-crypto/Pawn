@@ -116,17 +116,17 @@ export default function NewPawnLoanForm({
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t.pawn.new_.title}</h1>
-        <Link href="/pawn" className="text-sm text-ash hover:text-ink">
+        <Link href="/pawn" className="text-sm text-muted hover:text-foreground">
           {t.pawn.backToList}
         </Link>
       </div>
 
       {state.error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}
@@ -137,11 +137,11 @@ export default function NewPawnLoanForm({
         className="space-y-6"
       >
         {/* Customer */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.pawn.new_.sectionCustomer}
           </legend>
-          <p className="mt-1 text-xs text-ash">
+          <p className="mt-1 text-xs text-muted">
             {t.pawn.new_.pickCustomerHelp}
           </p>
           <div className="mt-2 flex items-center gap-2">
@@ -150,7 +150,7 @@ export default function NewPawnLoanForm({
               required
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              className="flex-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             >
               <option value="">{t.pawn.new_.pickCustomer}</option>
               {customers.map((c) => (
@@ -161,26 +161,26 @@ export default function NewPawnLoanForm({
             </select>
             <Link
               href="/customers/new?return=/pawn/new"
-              className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
             >
               {t.pawn.new_.newCustomer}
             </Link>
           </div>
           {state.fieldErrors?.customer_id ? (
-            <div className="mt-1 text-xs text-error">
+            <div className="mt-1 text-xs text-danger">
               {state.fieldErrors.customer_id}
             </div>
           ) : null}
         </fieldset>
 
         {/* Terms */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.pawn.new_.sectionTerms}
           </legend>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.pawn.new_.principal} *
               </span>
               <input
@@ -190,10 +190,10 @@ export default function NewPawnLoanForm({
                 name="principal"
                 required
                 placeholder="0.00"
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
               {minLoanAmount != null ? (
-                <span className="block text-xs text-ash">
+                <span className="block text-xs text-muted">
                   {t.pawn.new_.principalMinHint.replace(
                     '{amount}',
                     `$${minLoanAmount.toFixed(2)}`,
@@ -201,14 +201,14 @@ export default function NewPawnLoanForm({
                 </span>
               ) : null}
               {state.fieldErrors?.principal ? (
-                <span className="text-xs text-error">
+                <span className="text-xs text-danger">
                   {state.fieldErrors.principal}
                 </span>
               ) : null}
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.pawn.new_.interestRate} *
               </span>
               {/* Hidden field carries the actual rate value submitted
@@ -231,7 +231,7 @@ export default function NewPawnLoanForm({
                 <select
                   value={rateChoice}
                   onChange={(e) => setRateChoice(e.target.value)}
-                  className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
                 >
                   {rates.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -259,27 +259,27 @@ export default function NewPawnLoanForm({
                   value={customRate}
                   onChange={(e) => setCustomRate(e.target.value)}
                   required
-                  className="mt-2 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                  className="mt-2 block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
                 />
               ) : null}
               {selectedRateDescription ? (
-                <span className="block text-xs text-ash">
+                <span className="block text-xs text-muted">
                   {selectedRateDescription}
                 </span>
               ) : (
-                <span className="block text-xs text-ash">
+                <span className="block text-xs text-muted">
                   {t.pawn.new_.interestRateHelp}
                 </span>
               )}
               {rates.length === 0 ? (
-                <span className="block text-xs text-ash">
+                <span className="block text-xs text-muted">
                   {t.pawn.new_.rateNoneConfigured}
                 </span>
               ) : null}
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.pawn.new_.termDays} *
               </span>
               <input
@@ -290,12 +290,12 @@ export default function NewPawnLoanForm({
                 required
                 value={termDays}
                 onChange={(e) => setTermDays(e.target.value)}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.pawn.new_.issueDate}
               </span>
               <input
@@ -303,14 +303,14 @@ export default function NewPawnLoanForm({
                 name="issue_date"
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
 
             <label className="block space-y-1 md:col-span-2">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.pawn.new_.dueDate}{' '}
-                <span className="text-xs text-ash">
+                <span className="text-xs text-muted">
                   {t.pawn.new_.dueDateAuto}
                 </span>
               </span>
@@ -322,18 +322,18 @@ export default function NewPawnLoanForm({
                   /* allow override but the auto value tracks term/issue */
                 }}
                 readOnly
-                className="block w-full rounded-md border border-hairline bg-cloud/50 px-3 py-2 text-ash"
+                className="block w-full rounded-md border border-border bg-background/50 px-3 py-2 text-muted"
               />
             </label>
           </div>
         </fieldset>
 
         {/* Collateral */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.pawn.new_.sectionCollateral}
           </legend>
-          <p className="mt-1 text-xs text-ash">{t.pawn.new_.itemMinOne}</p>
+          <p className="mt-1 text-xs text-muted">{t.pawn.new_.itemMinOne}</p>
           <div className="mt-2">
             <CollateralItemsList ref={collateralRef} />
           </div>
@@ -352,22 +352,22 @@ export default function NewPawnLoanForm({
         />
 
         {/* Signature & notes */}
-        <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-          <legend className="px-1 text-sm font-semibold text-ink">
+        <fieldset className="rounded-lg border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {t.pawn.new_.sectionSignature}
           </legend>
           <div className="mt-2 space-y-3">
             <div>
-              <span className="block text-sm font-medium text-ink">
+              <span className="block text-sm font-medium text-foreground">
                 {t.pawn.new_.signature}
               </span>
-              <p className="mb-1 text-xs text-ash">
+              <p className="mb-1 text-xs text-muted">
                 {t.pawn.new_.signatureHelp}
               </p>
               <button
                 type="button"
                 onClick={() => sigInputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+                className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-foreground"
               >
                 <Upload size={14} weight="bold" />
                 {sigPreview ?? t.common.upload}
@@ -383,13 +383,13 @@ export default function NewPawnLoanForm({
             </div>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.pawn.new_.notes}
               </span>
               <textarea
                 name="notes"
                 rows={2}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
           </div>
@@ -398,14 +398,14 @@ export default function NewPawnLoanForm({
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/pawn"
-            className="rounded-md border border-hairline px-4 py-2 text-sm text-ink"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
           >
             {t.common.cancel}
           </Link>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? t.pawn.new_.submitting : t.pawn.new_.submit}
           </button>

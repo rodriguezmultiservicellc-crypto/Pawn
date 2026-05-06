@@ -66,18 +66,18 @@ export default function IntegrationsContent({
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <div className="flex items-center gap-2 text-sm text-ash">
-          <Link href="/settings" className="hover:text-ink">
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <Link href="/settings" className="hover:text-foreground">
             Settings
           </Link>
           <span>/</span>
-          <span className="text-ink">Integrations</span>
+          <span className="text-foreground">Integrations</span>
         </div>
-        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-ink">
+        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-foreground">
           <Plug size={22} weight="bold" />
           Integrations
         </h1>
-        <p className="text-sm text-ash">
+        <p className="text-sm text-muted">
           Connect external services. Each integration uses per-tenant
           credentials — RMS never sees your secrets, and disconnecting one
           service has no effect on the others.
@@ -127,7 +127,7 @@ export default function IntegrationsContent({
               ]}
             />
           ) : (
-            <p className="mt-2 text-xs text-ash">
+            <p className="mt-2 text-xs text-muted">
               Required for in-store card payments and online customer
               payoffs. Each tenant connects its own Stripe account; charges
               land in your bank, not RMS&apos;s.
@@ -166,7 +166,7 @@ export default function IntegrationsContent({
               ]}
             />
           ) : (
-            <p className="mt-2 text-xs text-ash">
+            <p className="mt-2 text-xs text-muted">
               Configure your Twilio account SID + auth token + sender numbers
               to enable SMS and WhatsApp reminder cron jobs.
             </p>
@@ -189,7 +189,7 @@ export default function IntegrationsContent({
               ]}
             />
           ) : (
-            <p className="mt-2 text-xs text-ash">
+            <p className="mt-2 text-xs text-muted">
               Add a Resend API key + verified From address to enable email
               reminders.
             </p>
@@ -222,7 +222,7 @@ export default function IntegrationsContent({
                 ]}
               />
             ) : (
-              <p className="mt-2 text-xs text-ash">
+              <p className="mt-2 text-xs text-muted">
                 Listings are scaffolded but real publish requires production
                 eBay developer approval. See the eBay setup page for the
                 12-step go-live checklist.
@@ -265,11 +265,11 @@ export default function IntegrationsContent({
               ]}
             />
           ) : view.googleReviews.configured && view.googleReviews.lastError ? (
-            <p className="text-sm text-error">
+            <p className="text-sm text-danger">
               Last sync failed: {view.googleReviews.lastError}
             </p>
           ) : (
-            <p className="text-sm text-ash">Not connected</p>
+            <p className="text-sm text-muted">Not connected</p>
           )}
         </Card>
 
@@ -281,7 +281,7 @@ export default function IntegrationsContent({
           actionHref="/inventory/spot-prices"
           actionLabel="Manage overrides"
         >
-          <p className="mt-2 text-xs text-ash">
+          <p className="mt-2 text-xs text-muted">
             Spot prices are pulled platform-wide on a cron — every tenant
             sees the same source-of-truth values. Configure your shop&apos;s
             pay-rate multiplier (e.g. 0.85 of spot) on the spot-prices
@@ -315,14 +315,14 @@ function Card({
   children?: React.ReactNode
 }) {
   return (
-    <article className="rounded-lg border border-hairline bg-canvas p-4">
+    <article className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 text-ink">{icon}</span>
+        <span className="mt-0.5 text-foreground">{icon}</span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h2 className="text-base font-semibold text-ink">{title}</h2>
-              <p className="text-xs text-ash">{tagline}</p>
+              <h2 className="text-base font-semibold text-foreground">{title}</h2>
+              <p className="text-xs text-muted">{tagline}</p>
             </div>
             <StatusPill status={status} />
           </div>
@@ -331,7 +331,7 @@ function Card({
         <div className="shrink-0">
           {actionDisabled ? (
             <span
-              className="inline-flex items-center gap-1 rounded-md border border-hairline px-3 py-1.5 text-xs text-ash/70"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs text-muted/70"
               title={actionDisabledReason ?? 'Disabled'}
             >
               {actionLabel}
@@ -339,7 +339,7 @@ function Card({
           ) : (
             <Link
               href={actionHref}
-              className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-xs font-medium text-ink hover:bg-cloud"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-background"
             >
               {actionLabel}
               <ArrowRight size={11} weight="bold" />
@@ -373,13 +373,13 @@ function StatusPill({
       )
     case 'available':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-cloud px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ash">
+        <span className="inline-flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">
           Available
         </span>
       )
     default:
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-cloud px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ash">
+        <span className="inline-flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">
           <WarningCircle size={10} weight="bold" />
           Disconnected
         </span>
@@ -396,9 +396,9 @@ function KvList({
     <dl className="mt-2 grid grid-cols-1 gap-1 text-[11px] sm:grid-cols-2">
       {rows.map((r, i) => (
         <div key={i} className="flex items-center gap-1.5">
-          <dt className="text-ash">{r.k}:</dt>
-          <dd className="flex items-center gap-1 truncate font-mono text-ink">
-            {r.icon ? <span className="text-ash">{r.icon}</span> : null}
+          <dt className="text-muted">{r.k}:</dt>
+          <dd className="flex items-center gap-1 truncate font-mono text-foreground">
+            {r.icon ? <span className="text-muted">{r.icon}</span> : null}
             <span className="truncate">{r.v}</span>
           </dd>
         </div>

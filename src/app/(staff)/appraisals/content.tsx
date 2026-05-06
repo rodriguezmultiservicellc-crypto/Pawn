@@ -82,11 +82,11 @@ export default function AppraisalListContent({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{t.appraisal.title}</h1>
-          <p className="text-sm text-ash">{t.appraisal.subtitle}</p>
+          <p className="text-sm text-muted">{t.appraisal.subtitle}</p>
         </div>
         <Link
           href="/appraisals/new"
-          className="inline-flex items-center gap-1 rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep"
+          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
         >
           <Plus size={16} weight="bold" />
           <span>{t.appraisal.new}</span>
@@ -131,20 +131,20 @@ export default function AppraisalListContent({
           <div className="relative flex-1">
             <MagnifyingGlass
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
             />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t.appraisal.list.searchPlaceholder}
-              className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+              className="block w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </div>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
           >
             {t.common.search}
           </button>
@@ -153,7 +153,7 @@ export default function AppraisalListContent({
         <select
           value={purposeFilter}
           onChange={(e) => pushParams({ purpose: e.target.value })}
-          className="sm:col-span-4 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="sm:col-span-4 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         >
           <option value="">{t.common.all}</option>
           <option value="insurance">
@@ -184,7 +184,7 @@ export default function AppraisalListContent({
                 customer: null,
               })
             }}
-            className="sm:col-span-1 rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink"
+            className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground"
           >
             {t.common.clear}
           </button>
@@ -192,22 +192,22 @@ export default function AppraisalListContent({
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-canvas p-12 text-center">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
           <Certificate
             size={32}
             weight="light"
-            className="mx-auto mb-3 text-ash"
+            className="mx-auto mb-3 text-muted"
           />
-          <p className="text-ash">
+          <p className="text-muted">
             {hasFilter
               ? t.appraisal.list.emptyForFilter
               : t.appraisal.list.empty}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-hairline bg-canvas">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-hairline text-ash">
+            <thead className="border-b border-border text-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">
                   {t.appraisal.list.number}
@@ -239,35 +239,35 @@ export default function AppraisalListContent({
               {rows.map((r) => (
                 <tr
                   key={r.id}
-                  className="cursor-pointer border-b border-hairline transition-colors last:border-0 hover:bg-cloud"
+                  className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-background"
                   onClick={() => router.push(`/appraisals/${r.id}`)}
                 >
-                  <td className="px-4 py-3 font-mono text-xs text-ink">
+                  <td className="px-4 py-3 font-mono text-xs text-foreground">
                     {r.appraisal_number}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-ink">
+                    <div className="font-medium text-foreground">
                       {r.customer_name}
                     </div>
                     {r.customer_phone ? (
-                      <div className="text-xs text-ash">
+                      <div className="text-xs text-muted">
                         {r.customer_phone}
                       </div>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 text-ink">
+                  <td className="px-4 py-3 text-foreground">
                     <span className="line-clamp-1">{r.item_description}</span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-ink">
+                  <td className="px-4 py-3 text-xs text-foreground">
                     {t.appraisal.purposes[r.purpose]}
                   </td>
-                  <td className="px-4 py-3 text-xs text-ink">
+                  <td className="px-4 py-3 text-xs text-foreground">
                     {r.appraiser_name ?? '—'}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-ink">
+                  <td className="px-4 py-3 font-mono text-xs text-foreground">
                     {r.valid_from}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-ink">
+                  <td className="px-4 py-3 text-right font-mono text-xs text-foreground">
                     {fmtMoney(r.appraised_value)}
                   </td>
                   <td className="px-4 py-3">
@@ -300,13 +300,13 @@ function Chip({
     'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors'
   const toneBg =
     tone === 'error'
-      ? 'border-error/30 text-error hover:bg-error/5'
+      ? 'border-danger/30 text-danger hover:bg-danger/5'
       : tone === 'warning'
       ? 'border-warning/30 text-warning hover:bg-warning/5'
       : tone === 'success'
       ? 'border-success/30 text-success hover:bg-success/5'
-      : 'border-hairline text-ink hover:bg-cloud'
-  const activeRing = active ? 'ring-2 ring-ink/20 bg-cloud' : 'bg-canvas'
+      : 'border-border text-foreground hover:bg-background'
+  const activeRing = active ? 'ring-2 ring-ink/20 bg-background' : 'bg-card'
   return (
     <button
       type="button"
@@ -315,7 +315,7 @@ function Chip({
     >
       {label}
       {count != null ? (
-        <span className="rounded-full bg-canvas/60 px-1.5 py-0.5 text-[10px] font-mono text-ash">
+        <span className="rounded-full bg-card/60 px-1.5 py-0.5 text-[10px] font-mono text-muted">
           {count}
         </span>
       ) : null}
@@ -329,8 +329,8 @@ function StatusBadge({ status }: { status: AppraisalStatus }) {
     status === 'finalized'
       ? 'border-success/30 bg-success/5 text-success'
       : status === 'voided'
-      ? 'border-error/30 bg-error/5 text-error'
-      : 'border-hairline bg-cloud text-ink'
+      ? 'border-danger/30 bg-danger/5 text-danger'
+      : 'border-border bg-background text-foreground'
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${tone}`}

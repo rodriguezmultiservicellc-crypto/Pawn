@@ -314,7 +314,7 @@ export default function CustomerDetail({
         <div className="flex items-center gap-3">
           <Link
             href="/customers"
-            className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+            className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
           >
             <ArrowLeft size={14} weight="bold" />
             {t.customers.backToList}
@@ -322,7 +322,7 @@ export default function CustomerDetail({
         </div>
         <div className="flex items-center gap-2">
           {customer.is_banned ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-error/30 bg-error/5 px-2 py-1 text-xs font-medium text-error">
+            <span className="inline-flex items-center gap-1 rounded-full border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger">
               <Prohibit size={12} weight="bold" />
               {t.customers.bannedBadge}
             </span>
@@ -341,7 +341,7 @@ export default function CustomerDetail({
             {customer.middle_name ? ` ${customer.middle_name}` : ''}
           </h1>
           {customer.phone || customer.email ? (
-            <div className="mt-1 text-sm text-ash">
+            <div className="mt-1 text-sm text-muted">
               {[customer.phone, customer.email].filter(Boolean).join(' · ')}
             </div>
           ) : null}
@@ -349,11 +349,11 @@ export default function CustomerDetail({
       </div>
 
       {state.error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}
@@ -383,7 +383,7 @@ export default function CustomerDetail({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? t.common.saving : t.customers.submitUpdate}
           </button>
@@ -454,39 +454,39 @@ function CustomerSalesPanel({
 }) {
   const { t } = useI18n()
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
         <span>{t.pos.customerSales.title}</span>
         <Link
           href={`/pos/sales?customer=${customerId}`}
-          className="text-xs font-normal text-ash hover:text-ink"
+          className="text-xs font-normal text-muted hover:text-foreground"
         >
           {t.pos.customerSales.viewAll}
         </Link>
       </legend>
       {sales.length === 0 ? (
-        <p className="mt-2 text-sm text-ash">
+        <p className="mt-2 text-sm text-muted">
           {t.pos.customerSales.empty}
         </p>
       ) : (
-        <ul className="mt-2 divide-y divide-hairline rounded-md border border-hairline">
+        <ul className="mt-2 divide-y divide-border rounded-md border border-border">
           {sales.map((s) => (
             <li key={s.id}>
               <Link
                 href={`/pos/sales/${s.id}`}
-                className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+                className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-background"
               >
-                <div className="font-mono text-xs text-ink">
+                <div className="font-mono text-xs text-foreground">
                   {s.sale_number}
                 </div>
-                <div className="flex-1 px-3 font-mono text-xs text-ink">
+                <div className="flex-1 px-3 font-mono text-xs text-foreground">
                   {s.total.toLocaleString('en-US', {
                     style: 'currency',
                     currency: 'USD',
                     minimumFractionDigits: 2,
                   })}
                 </div>
-                <div className="font-mono text-xs text-ash">
+                <div className="font-mono text-xs text-muted">
                   {(s.completed_at ?? s.created_at).slice(0, 10)}
                 </div>
                 <SaleStatusBadge status={s.status} />
@@ -508,39 +508,39 @@ function CustomerLayawaysPanel({
 }) {
   const { t } = useI18n()
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
         <span>{t.pos.customerLayaways.title}</span>
         <Link
           href={`/pos/layaways?customer=${customerId}`}
-          className="text-xs font-normal text-ash hover:text-ink"
+          className="text-xs font-normal text-muted hover:text-foreground"
         >
           {t.pos.customerLayaways.viewAll}
         </Link>
       </legend>
       {layaways.length === 0 ? (
-        <p className="mt-2 text-sm text-ash">
+        <p className="mt-2 text-sm text-muted">
           {t.pos.customerLayaways.empty}
         </p>
       ) : (
-        <ul className="mt-2 divide-y divide-hairline rounded-md border border-hairline">
+        <ul className="mt-2 divide-y divide-border rounded-md border border-border">
           {layaways.map((l) => (
             <li key={l.id}>
               <Link
                 href={`/pos/layaways/${l.id}`}
-                className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+                className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-background"
               >
-                <div className="font-mono text-xs text-ink">
+                <div className="font-mono text-xs text-foreground">
                   {l.layaway_number}
                 </div>
-                <div className="flex-1 px-3 font-mono text-xs text-ink">
+                <div className="flex-1 px-3 font-mono text-xs text-foreground">
                   {l.balance_remaining.toLocaleString('en-US', {
                     style: 'currency',
                     currency: 'USD',
                     minimumFractionDigits: 2,
                   })}
                 </div>
-                <div className="font-mono text-xs text-ash">
+                <div className="font-mono text-xs text-muted">
                   {l.first_payment_due ?? '—'}
                 </div>
                 <LayawayStatusBadge status={l.status} />
@@ -562,37 +562,37 @@ function CustomerRepairsPanel({
 }) {
   const { t } = useI18n()
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
         <span>{t.repair.customerTickets.title}</span>
         <Link
           href={`/repair?customer=${customerId}`}
-          className="text-xs font-normal text-ash hover:text-ink"
+          className="text-xs font-normal text-muted hover:text-foreground"
         >
           {t.repair.customerTickets.viewAll}
         </Link>
       </legend>
       {repairs.length === 0 ? (
-        <p className="mt-2 text-sm text-ash">{t.repair.customerTickets.empty}</p>
+        <p className="mt-2 text-sm text-muted">{t.repair.customerTickets.empty}</p>
       ) : (
-        <ul className="mt-2 divide-y divide-hairline rounded-md border border-hairline">
+        <ul className="mt-2 divide-y divide-border rounded-md border border-border">
           {repairs.map((r) => (
             <li key={r.id}>
               <Link
                 href={`/repair/${r.id}`}
-                className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+                className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-background"
               >
-                <div className="font-mono text-xs text-ink">
+                <div className="font-mono text-xs text-foreground">
                   {r.ticket_number}
                 </div>
                 <ServiceTypeBadge type={r.service_type} />
-                <div className="flex-1 px-2 text-xs text-ink line-clamp-1">
+                <div className="flex-1 px-2 text-xs text-foreground line-clamp-1">
                   {r.title}
                 </div>
-                <div className="font-mono text-xs text-ash">
+                <div className="font-mono text-xs text-muted">
                   {r.promised_date ?? '—'}
                 </div>
-                <div className="font-mono text-xs text-ink">
+                <div className="font-mono text-xs text-foreground">
                   {r.balance_due == null
                     ? '—'
                     : r.balance_due.toLocaleString('en-US', {
@@ -626,9 +626,9 @@ function CustomerLoansPanel({
       bg: 'bg-warning/10 border-warning/30',
       text: 'text-warning',
     },
-    redeemed: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
-    forfeited: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
-    voided: { bg: 'bg-cloud border-hairline', text: 'text-ash' },
+    redeemed: { bg: 'bg-background border-border', text: 'text-muted' },
+    forfeited: { bg: 'bg-background border-border', text: 'text-muted' },
+    voided: { bg: 'bg-background border-border', text: 'text-muted' },
   }
   const STATUS_LABEL: Record<LoanStatus, string> = {
     active: t.pawn.statusActive,
@@ -639,39 +639,39 @@ function CustomerLoansPanel({
     voided: t.pawn.statusVoided,
   }
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
         <span>{t.pawn.customerLoans.title}</span>
         <Link
           href={`/pawn?customer=${customerId}`}
-          className="text-xs font-normal text-ash hover:text-ink"
+          className="text-xs font-normal text-muted hover:text-foreground"
         >
           {t.pawn.customerLoans.viewAll}
         </Link>
       </legend>
       {loans.length === 0 ? (
-        <p className="mt-2 text-sm text-ash">{t.pawn.customerLoans.empty}</p>
+        <p className="mt-2 text-sm text-muted">{t.pawn.customerLoans.empty}</p>
       ) : (
-        <ul className="mt-2 divide-y divide-hairline rounded-md border border-hairline">
+        <ul className="mt-2 divide-y divide-border rounded-md border border-border">
           {loans.map((l) => {
             const badge = STATUS_BADGE[l.status]
             return (
               <li key={l.id}>
                 <Link
                   href={`/pawn/${l.id}`}
-                  className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-cloud"
+                  className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-background"
                 >
-                  <div className="font-mono text-xs text-ink">
+                  <div className="font-mono text-xs text-foreground">
                     {l.ticket_number}
                   </div>
-                  <div className="flex-1 px-3 font-mono text-xs text-ink">
+                  <div className="flex-1 px-3 font-mono text-xs text-foreground">
                     {l.principal.toLocaleString('en-US', {
                       style: 'currency',
                       currency: 'USD',
                       minimumFractionDigits: 2,
                     })}
                   </div>
-                  <div className="font-mono text-xs text-ash">{l.due_date}</div>
+                  <div className="font-mono text-xs text-muted">{l.due_date}</div>
                   <span
                     className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${badge.bg} ${badge.text}`}
                   >
@@ -722,7 +722,7 @@ function PhotoBlock({
         type="button"
         onClick={onPick}
         disabled={pending}
-        className="group relative h-24 w-24 overflow-hidden rounded-full border border-hairline bg-cloud disabled:opacity-50"
+        className="group relative h-24 w-24 overflow-hidden rounded-full border border-border bg-background disabled:opacity-50"
         title="Upload photo"
       >
         {signedUrl ? (
@@ -735,12 +735,12 @@ function PhotoBlock({
             className="object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-ash">
+          <div className="flex h-full w-full items-center justify-center text-muted">
             <User size={36} weight="light" />
           </div>
         )}
-        <div className="absolute inset-0 flex items-center justify-center bg-ink/40 opacity-0 transition-opacity group-hover:opacity-100">
-          <Camera size={20} weight="bold" className="text-canvas" />
+        <div className="absolute inset-0 flex items-center justify-center bg-navy/40 opacity-0 transition-opacity group-hover:opacity-100">
+          <Camera size={20} weight="bold" className="text-white" />
         </div>
       </button>
       <input
@@ -750,7 +750,7 @@ function PhotoBlock({
         onChange={onChange}
         className="sr-only"
       />
-      {error ? <div className="mt-1 text-xs text-error">{error}</div> : null}
+      {error ? <div className="mt-1 text-xs text-danger">{error}</div> : null}
     </div>
   )
 }
@@ -779,27 +779,27 @@ function BanSection({
   }
 
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">
         {t.customers.sectionBan}
       </legend>
       <div className="mt-2 space-y-3">
         {isBanned ? (
-          <div className="rounded-md border border-error/30 bg-error/5 p-3 text-sm text-ink">
+          <div className="rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-foreground">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-medium text-error">
+                <div className="font-medium text-danger">
                   {t.customers.isBanned}
                 </div>
                 {bannedReason ? (
-                  <div className="mt-1 text-ink">{bannedReason}</div>
+                  <div className="mt-1 text-foreground">{bannedReason}</div>
                 ) : null}
               </div>
               <button
                 type="button"
                 onClick={toggleBan}
                 disabled={pending}
-                className="shrink-0 rounded-md border border-hairline bg-canvas px-3 py-1 text-sm text-ink hover:border-ink disabled:opacity-50"
+                className="shrink-0 rounded-md border border-border bg-card px-3 py-1 text-sm text-foreground hover:border-foreground disabled:opacity-50"
               >
                 {pending ? t.common.saving : t.common.remove}
               </button>
@@ -808,21 +808,21 @@ function BanSection({
         ) : (
           <div className="space-y-2">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-ink">
+              <span className="text-sm font-medium text-foreground">
                 {t.customers.bannedReason}
               </span>
               <input
                 type="text"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
               />
             </label>
             <button
               type="button"
               onClick={toggleBan}
               disabled={pending}
-              className="rounded-md border border-error/30 bg-error/5 px-3 py-1.5 text-sm font-medium text-error hover:bg-error/10 disabled:opacity-50"
+              className="rounded-md border border-danger/30 bg-danger/5 px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
             >
               {pending ? t.common.saving : t.customers.isBanned}
             </button>
@@ -851,7 +851,7 @@ function DeleteCustomerButton({ customerId }: { customerId: string }) {
       type="button"
       onClick={onClick}
       disabled={pending}
-      className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm font-medium text-error hover:bg-error/10 disabled:opacity-50"
+      className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
     >
       <Trash size={14} weight="bold" />
       {pending ? t.common.saving : t.common.delete}
@@ -877,8 +877,8 @@ function DocumentsPanel({
   const { t } = useI18n()
 
   return (
-    <fieldset className="rounded-lg border border-hairline bg-canvas p-4">
-      <legend className="px-1 text-sm font-semibold text-ink">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">
         {t.customers.sectionDocuments}
       </legend>
       <div className="mt-2 space-y-4">
@@ -907,27 +907,27 @@ function DocumentsPanel({
         </div>
 
         {documents.length === 0 ? (
-          <p className="text-sm text-ash">{t.customers.documentNone}</p>
+          <p className="text-sm text-muted">{t.customers.documentNone}</p>
         ) : (
-          <ul className="divide-y divide-hairline rounded-md border border-hairline">
+          <ul className="divide-y divide-border rounded-md border border-border">
             {documents.map((doc) => (
               <li
                 key={doc.id}
                 className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
               >
                 <div className="min-w-0">
-                  <div className="font-medium text-ink">
+                  <div className="font-medium text-foreground">
                     {doc.kind === 'id_scan'
                       ? t.customers.documentIdScan
                       : t.customers.documentSignature}
                     {doc.id_type ? (
-                      <span className="ml-2 text-xs text-ash">
+                      <span className="ml-2 text-xs text-muted">
                         {labelForIdType(doc.id_type, t)}
                         {doc.id_state ? ` · ${doc.id_state}` : ''}
                       </span>
                     ) : null}
                   </div>
-                  <div className="text-xs text-ash">
+                  <div className="text-xs text-muted">
                     {t.customers.capturedOn}{' '}
                     {new Date(doc.created_at).toLocaleString()}
                   </div>
@@ -938,7 +938,7 @@ function DocumentsPanel({
                       href={doc.signed_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
                     >
                       <Eye size={12} weight="bold" />
                       {t.customers.viewDocument}
@@ -1031,7 +1031,7 @@ function UploadButton({
         type="button"
         onClick={onClick}
         disabled={pending}
-        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-3 text-sm font-medium text-ink hover:border-ink disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-3 text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50"
       >
         <Upload size={14} weight="bold" />
         {pending ? t.common.uploading : label}
@@ -1044,7 +1044,7 @@ function UploadButton({
         className="sr-only"
       />
       {error ? (
-        <div className="mt-1 text-xs text-error">{error}</div>
+        <div className="mt-1 text-xs text-danger">{error}</div>
       ) : null}
     </div>
   )
@@ -1099,9 +1099,9 @@ function WebcamCaptureForId({
       <WebcamCapture
         onCapture={onCapture}
         disabled={pending}
-        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-hairline bg-canvas px-3 py-3 text-sm font-medium text-ink hover:border-ink disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-3 text-sm font-medium text-foreground hover:border-foreground disabled:opacity-50"
       />
-      {error ? <div className="mt-1 text-xs text-error">{error}</div> : null}
+      {error ? <div className="mt-1 text-xs text-danger">{error}</div> : null}
     </div>
   )
 }
@@ -1127,7 +1127,7 @@ function DeleteDocumentButton({
       type="button"
       onClick={onClick}
       disabled={pending}
-      className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ash hover:text-error disabled:opacity-50"
+      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-muted hover:text-danger disabled:opacity-50"
       aria-label="delete"
     >
       <Trash size={12} weight="bold" />

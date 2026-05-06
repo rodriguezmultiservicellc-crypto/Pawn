@@ -71,7 +71,7 @@ export default async function PortalLayout({
 
   return (
     <I18nProvider initialLang={initialLang}>
-      <div className="flex min-h-screen flex-col bg-cloud">
+      <div className="flex min-h-screen flex-col bg-background">
         <PortalChrome
           tenantName={tenant.dba ?? tenant.name}
           customerName={customerName}

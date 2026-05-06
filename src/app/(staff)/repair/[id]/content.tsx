@@ -299,7 +299,7 @@ export default function RepairTicketDetail({
       <div className="flex items-center justify-between">
         <Link
           href="/repair"
-          className="inline-flex items-center gap-1 text-sm text-ash hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.repair.backToList}
@@ -308,12 +308,12 @@ export default function RepairTicketDetail({
           <button
             type="button"
             onClick={() => setShowReminder(true)}
-            className="rounded-md border border-hairline bg-canvas px-2 py-1 text-xs text-ink hover:border-ink"
+            className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:border-foreground"
           >
             {t.comms.sendReminderButton}
           </button>
           {ticket.is_locked ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-cloud px-2 py-0.5 text-xs font-medium text-ink">
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-xs font-medium text-foreground">
               <Lock size={12} weight="bold" />
               {t.repair.detail.lockedBadge}
             </span>
@@ -342,46 +342,46 @@ export default function RepairTicketDetail({
       ) : null}
 
       {/* Header */}
-      <div className="rounded-lg border border-hairline bg-canvas p-4">
+      <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.repair.detail.ticketLabel}
             </div>
-            <h1 className="font-mono text-2xl font-bold text-ink">
+            <h1 className="font-mono text-2xl font-bold text-foreground">
               {ticket.ticket_number}
             </h1>
-            <div className="mt-1 text-base text-ink">{ticket.title}</div>
+            <div className="mt-1 text-base text-foreground">{ticket.title}</div>
           </div>
           <div className="min-w-[200px]">
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.repair.detail.customerLabel}
             </div>
             <Link
               href={`/customers/${ticket.customer_id}`}
-              className="text-base font-semibold text-ink hover:underline"
+              className="text-base font-semibold text-foreground hover:underline"
             >
               {ticket.customer_name}
             </Link>
-            <div className="text-xs text-ash">
+            <div className="text-xs text-muted">
               {[ticket.customer_phone, ticket.customer_email]
                 .filter(Boolean)
                 .join(' · ') || '—'}
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.repair.detail.promisedLabel}
             </div>
-            <div className="font-mono text-sm text-ink">
+            <div className="font-mono text-sm text-foreground">
               {ticket.promised_date ?? '—'}
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wide text-ash">
+            <div className="text-xs uppercase tracking-wide text-muted">
               {t.repair.detail.createdLabel}
             </div>
-            <div className="font-mono text-sm text-ink">
+            <div className="font-mono text-sm text-foreground">
               {new Date(ticket.created_at).toLocaleDateString()}
             </div>
           </div>
@@ -528,7 +528,7 @@ export default function RepairTicketDetail({
       </div>
 
       {error ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {readableError(error, t)}
         </div>
       ) : null}
@@ -635,46 +635,46 @@ export default function RepairTicketDetail({
 function OverviewPanel({ ticket }: { ticket: RepairTicketView }) {
   const { t } = useI18n()
   return (
-    <section className="rounded-lg border border-hairline bg-canvas">
-      <header className="border-b border-hairline px-4 py-3">
-        <h2 className="text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="border-b border-border px-4 py-3">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.repair.detail.sectionOverview}
         </h2>
       </header>
       <dl className="grid grid-cols-2 gap-3 p-4 text-sm">
         <div>
-          <dt className="text-xs text-ash">{t.repair.detail.quote}</dt>
-          <dd className="font-mono text-ink">
+          <dt className="text-xs text-muted">{t.repair.detail.quote}</dt>
+          <dd className="font-mono text-foreground">
             {ticket.quote_amount == null
               ? t.repair.detail.quotePending
               : fmtMoney(ticket.quote_amount)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-ash">{t.repair.detail.deposit}</dt>
-          <dd className="font-mono text-ink">{fmtMoney(ticket.deposit_amount)}</dd>
+          <dt className="text-xs text-muted">{t.repair.detail.deposit}</dt>
+          <dd className="font-mono text-foreground">{fmtMoney(ticket.deposit_amount)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-ash">{t.repair.detail.paid}</dt>
-          <dd className="font-mono text-ink">{fmtMoney(ticket.paid_amount)}</dd>
+          <dt className="text-xs text-muted">{t.repair.detail.paid}</dt>
+          <dd className="font-mono text-foreground">{fmtMoney(ticket.paid_amount)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-ash">{t.repair.detail.balance}</dt>
-          <dd className="font-mono text-ink">
+          <dt className="text-xs text-muted">{t.repair.detail.balance}</dt>
+          <dd className="font-mono text-foreground">
             {ticket.balance_due == null ? '—' : fmtMoney(ticket.balance_due)}
           </dd>
         </div>
         {ticket.pickup_by_name ? (
           <div className="col-span-2">
-            <dt className="text-xs text-ash">{t.repair.detail.pickupBy}</dt>
-            <dd className="text-ink">
+            <dt className="text-xs text-muted">{t.repair.detail.pickupBy}</dt>
+            <dd className="text-foreground">
               {ticket.pickup_by_name}
               {ticket.picked_up_at
                 ? ` · ${new Date(ticket.picked_up_at).toLocaleString()}`
                 : null}
             </dd>
             {ticket.pickup_id_check ? (
-              <dd className="text-xs text-ash">
+              <dd className="text-xs text-muted">
                 {t.repair.detail.idCheck}: {ticket.pickup_id_check}
               </dd>
             ) : null}
@@ -683,7 +683,7 @@ function OverviewPanel({ ticket }: { ticket: RepairTicketView }) {
                 href={ticket.pickup_signature_signed_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-1 inline-block text-xs text-rausch hover:underline"
+                className="mt-1 inline-block text-xs text-gold hover:underline"
               >
                 {t.repair.detail.pickupSignatureView}
               </a>
@@ -698,24 +698,24 @@ function OverviewPanel({ ticket }: { ticket: RepairTicketView }) {
 function ItemPanel({ ticket }: { ticket: RepairTicketView }) {
   const { t } = useI18n()
   return (
-    <section className="rounded-lg border border-hairline bg-canvas">
-      <header className="border-b border-hairline px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="border-b border-border px-4 py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Wrench size={14} weight="regular" />
           {t.repair.detail.sectionItem}
         </h2>
       </header>
       <div className="space-y-3 p-4 text-sm">
         <div>
-          <div className="text-xs text-ash">
+          <div className="text-xs text-muted">
             {t.repair.detail.itemDescription}
           </div>
-          <div className="text-ink">{ticket.item_description}</div>
+          <div className="text-foreground">{ticket.item_description}</div>
         </div>
         {ticket.description ? (
           <div>
-            <div className="text-xs text-ash">{t.repair.detail.workNeeded}</div>
-            <div className="text-ink whitespace-pre-wrap">
+            <div className="text-xs text-muted">{t.repair.detail.workNeeded}</div>
+            <div className="text-foreground whitespace-pre-wrap">
               {ticket.description}
             </div>
           </div>
@@ -725,7 +725,7 @@ function ItemPanel({ ticket }: { ticket: RepairTicketView }) {
             <div className="text-xs text-warning">
               {t.repair.detail.notesInternalLabel}
             </div>
-            <div className="text-ink whitespace-pre-wrap">
+            <div className="text-foreground whitespace-pre-wrap">
               {ticket.notes_internal}
             </div>
           </div>
@@ -760,9 +760,9 @@ function AssignmentPanel({
   }
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas">
-      <header className="border-b border-hairline px-4 py-3">
-        <h2 className="text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="border-b border-border px-4 py-3">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.repair.detail.assignedTechnician}
         </h2>
       </header>
@@ -771,7 +771,7 @@ function AssignmentPanel({
           value={ticket.assigned_to ?? ''}
           disabled={disabled || pending}
           onChange={(e) => onChange(e.target.value)}
-          className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 disabled:opacity-50"
+          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 disabled:opacity-50"
         >
           <option value="">{t.repair.detail.noTechnician}</option>
           {technicians.map((tech) => (
@@ -780,7 +780,7 @@ function AssignmentPanel({
             </option>
           ))}
         </select>
-        {error ? <div className="text-xs text-error">{error}</div> : null}
+        {error ? <div className="text-xs text-danger">{error}</div> : null}
       </div>
     </section>
   )
@@ -806,9 +806,9 @@ function AddNoteForm({ ticketId }: { ticketId: string }) {
   }
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas">
-      <header className="border-b border-hairline px-4 py-3">
-        <h2 className="text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="border-b border-border px-4 py-3">
+        <h2 className="text-sm font-semibold text-foreground">
           {t.repair.actions.addNote}
         </h2>
       </header>
@@ -818,17 +818,17 @@ function AddNoteForm({ ticketId }: { ticketId: string }) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder={t.repair.dialogs.addNote.notes}
-          className="block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         />
         <div className="flex items-center justify-end gap-2">
           {error ? (
-            <span className="text-xs text-error">{error}</span>
+            <span className="text-xs text-danger">{error}</span>
           ) : null}
           <button
             type="button"
             onClick={submit}
             disabled={pending || !notes.trim()}
-            className="rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink hover:border-ink disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:border-foreground disabled:opacity-50"
           >
             {pending ? t.common.saving : t.repair.actions.addNote}
           </button>
@@ -857,15 +857,15 @@ function ActionButton({
     'inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50'
   if (primary) {
     cls +=
-      ' border-rausch bg-rausch text-canvas hover:bg-rausch-deep disabled:hover:bg-rausch'
+      ' border-gold bg-gold text-navy hover:bg-gold-2 disabled:hover:bg-gold'
   } else if (tone === 'success') {
     cls += ' border-success/30 bg-success/5 text-success hover:bg-success/10'
   } else if (tone === 'warning') {
     cls += ' border-warning/30 bg-warning/5 text-warning hover:bg-warning/10'
   } else if (tone === 'error') {
-    cls += ' border-error/30 bg-error/5 text-error hover:bg-error/10'
+    cls += ' border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
   } else {
-    cls += ' border-hairline bg-canvas text-ink hover:border-ink'
+    cls += ' border-border bg-card text-foreground hover:border-foreground'
   }
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={cls}>

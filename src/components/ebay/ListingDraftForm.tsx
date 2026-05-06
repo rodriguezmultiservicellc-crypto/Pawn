@@ -79,19 +79,19 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-4 rounded-lg border border-hairline bg-canvas p-4"
+      className="space-y-4 rounded-lg border border-border bg-card p-4"
     >
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-ink">{t.ebay.formTitle}</h3>
-          <p className="text-xs text-ash">{t.ebay.formHelp}</p>
+          <h3 className="text-sm font-semibold text-foreground">{t.ebay.formTitle}</h3>
+          <p className="text-xs text-muted">{t.ebay.formHelp}</p>
         </div>
         {props.ebayListingUrl ? (
           <a
             href={props.ebayListingUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-medium text-rausch hover:underline"
+            className="text-xs font-medium text-gold hover:underline"
           >
             {t.ebay.viewOnEbay} ↗
           </a>
@@ -99,7 +99,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
       </div>
 
       {props.errorText ? (
-        <div className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-xs text-error">
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
           {props.errorText}
         </div>
       ) : null}
@@ -109,7 +109,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
           className={`rounded-md border px-3 py-2 text-xs ${
             actionMessage.kind === 'ok'
               ? 'border-success/30 bg-success/5 text-success'
-              : 'border-error/30 bg-error/5 text-error'
+              : 'border-danger/30 bg-danger/5 text-danger'
           }`}
         >
           {actionMessage.text}
@@ -162,36 +162,36 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
       </div>
 
       <div>
-        <label className="block text-xs font-medium uppercase tracking-wide text-ash">
+        <label className="block text-xs font-medium uppercase tracking-wide text-muted">
           {t.ebay.description}
         </label>
         <textarea
           name="description"
           defaultValue={initial.description}
           rows={6}
-          className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="mt-1 block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-medium uppercase tracking-wide text-ash">
+        <label className="block text-xs font-medium uppercase tracking-wide text-muted">
           {t.ebay.marketingMessage}
         </label>
         <input
           name="marketing_message"
           defaultValue={initial.marketing_message ?? ''}
-          className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          className="mt-1 block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
         />
       </div>
 
-      <fieldset className="rounded-md border border-hairline bg-cloud p-3">
-        <legend className="px-1 text-xs font-semibold text-ink">
+      <fieldset className="rounded-md border border-border bg-background p-3">
+        <legend className="px-1 text-xs font-semibold text-foreground">
           {t.ebay.photos}
         </legend>
-        <p className="text-xs text-ash">{t.ebay.photosHelp}</p>
+        <p className="text-xs text-muted">{t.ebay.photosHelp}</p>
         <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
           {photoChoices.length === 0 ? (
-            <div className="col-span-full text-xs text-ash">
+            <div className="col-span-full text-xs text-muted">
               {t.ebay.photosEmpty}
             </div>
           ) : null}
@@ -201,8 +201,8 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
               <label
                 key={p.id}
                 className={`relative block aspect-square cursor-pointer overflow-hidden rounded-md border ${
-                  checked ? 'border-rausch ring-2 ring-rausch/30' : 'border-hairline'
-                } bg-canvas`}
+                  checked ? 'border-gold ring-2 ring-gold/30' : 'border-border'
+                } bg-card`}
               >
                 <input
                   type="checkbox"
@@ -217,7 +217,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
                   className="h-full w-full object-cover"
                 />
                 {p.is_primary ? (
-                  <span className="absolute left-1 top-1 rounded-full bg-rausch px-1.5 py-0.5 text-[10px] font-medium text-canvas">
+                  <span className="absolute left-1 top-1 rounded-full bg-gold px-1.5 py-0.5 text-[10px] font-medium text-navy">
                     1°
                   </span>
                 ) : null}
@@ -243,7 +243,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
                 }
               })
             }}
-            className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
           >
             {t.ebay.syncNow}
           </button>
@@ -265,7 +265,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
                 }
               })
             }}
-            className="rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm font-medium text-error hover:bg-error/10 disabled:opacity-50"
+            className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
           >
             {t.ebay.endListing}
           </button>
@@ -274,7 +274,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink hover:border-ink disabled:opacity-50"
+          className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-foreground disabled:opacity-50"
         >
           {pending ? t.common.saving : t.common.save}
         </button>
@@ -295,7 +295,7 @@ export function ListingDraftForm(props: ListingDraftFormProps) {
                 }
               })
             }}
-            className="rounded-md bg-rausch px-4 py-2 text-canvas font-medium hover:bg-rausch-deep disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
           >
             {t.ebay.publish}
           </button>
@@ -324,7 +324,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium uppercase tracking-wide text-ash">
+      <span className="block text-xs font-medium uppercase tracking-wide text-muted">
         {label}
       </span>
       <input
@@ -333,9 +333,9 @@ function Field({
         defaultValue={defaultValue}
         step={step}
         min={min}
-        className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="mt-1 block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
       />
-      {help ? <span className="mt-0.5 block text-[11px] text-ash">{help}</span> : null}
+      {help ? <span className="mt-0.5 block text-[11px] text-muted">{help}</span> : null}
     </label>
   )
 }
@@ -353,13 +353,13 @@ function SelectField({
 }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium uppercase tracking-wide text-ash">
+      <span className="block text-xs font-medium uppercase tracking-wide text-muted">
         {label}
       </span>
       <select
         name={name}
         defaultValue={defaultValue}
-        className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="mt-1 block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

@@ -42,7 +42,7 @@ export default function LandingPageContent({
 
   return (
     <>
-      <header className="sticky top-0 z-10 border-b border-hairline bg-canvas/95 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             {tenant.logo_url ? (
@@ -56,11 +56,11 @@ export default function LandingPageContent({
                 className="h-9 w-9 rounded-md object-cover"
               />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-rausch text-canvas">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gold text-navy">
                 <Storefront size={18} weight="bold" />
               </div>
             )}
-            <span className="text-base font-semibold tracking-[-0.01em] text-ink">
+            <span className="text-base font-semibold tracking-[-0.01em] text-foreground">
               {display}
             </span>
           </div>
@@ -71,10 +71,10 @@ export default function LandingPageContent({
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:py-14">
         {/* Hero */}
         <section className="mb-10 text-center sm:mb-14">
-          <h1 className="text-3xl font-bold tracking-[-0.01em] text-ink sm:text-5xl">
+          <h1 className="text-3xl font-bold tracking-[-0.01em] text-foreground sm:text-5xl">
             {display}
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-base text-ash sm:text-lg">
+          <p className="mx-auto mt-3 max-w-2xl text-base text-muted sm:text-lg">
             {tenant.city && tenant.state
               ? dict.heroWithCity
                   .replace('{city}', tenant.city)
@@ -91,18 +91,18 @@ export default function LandingPageContent({
             <CardTitle icon={<MapPin size={18} weight="bold" />}>
               {dict.visit}
             </CardTitle>
-            <div className="mt-3 space-y-2 text-sm text-ink">
+            <div className="mt-3 space-y-2 text-sm text-foreground">
               {addressLine ? (
                 <p className="leading-snug">{addressLine}</p>
               ) : (
-                <p className="text-ash">{dict.addressUnavailable}</p>
+                <p className="text-muted">{dict.addressUnavailable}</p>
               )}
               {mapLink ? (
                 <a
                   href={mapLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-info-link hover:underline"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-blue hover:underline"
                 >
                   {dict.openInMaps}
                   <ArrowUpRight size={14} weight="bold" />
@@ -110,10 +110,10 @@ export default function LandingPageContent({
               ) : null}
               {tenant.phone ? (
                 <p className="flex items-center gap-2 pt-2">
-                  <Phone size={14} weight="bold" className="text-ash" />
+                  <Phone size={14} weight="bold" className="text-muted" />
                   <a
                     href={`tel:${tenant.phone.replace(/\s/g, '')}`}
-                    className="font-mono text-sm text-ink hover:underline"
+                    className="font-mono text-sm text-foreground hover:underline"
                   >
                     {tenant.phone}
                   </a>
@@ -124,11 +124,11 @@ export default function LandingPageContent({
                   <EnvelopeSimple
                     size={14}
                     weight="bold"
-                    className="text-ash"
+                    className="text-muted"
                   />
                   <a
                     href={`mailto:${tenant.email}`}
-                    className="text-sm text-ink hover:underline"
+                    className="text-sm text-foreground hover:underline"
                   >
                     {tenant.email}
                   </a>
@@ -147,11 +147,11 @@ export default function LandingPageContent({
 
         {/* About */}
         {tenant.public_about ? (
-          <section className="mb-10 rounded-lg border border-hairline bg-canvas p-6">
-            <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">
+          <section className="mb-10 rounded-lg border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold tracking-[-0.01em] text-foreground">
               {dict.about}
             </h2>
-            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-charcoal">
+            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-text-secondary">
               {tenant.public_about}
             </p>
           </section>
@@ -179,15 +179,15 @@ export default function LandingPageContent({
           {tenant.has_retail && tenant.public_catalog_enabled ? (
             <Link
               href={`/s/${tenant.public_slug}/catalog`}
-              className="inline-flex items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm font-medium text-ink transition hover:bg-cloud"
+              className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-background"
             >
               <span className="inline-flex items-center gap-2">
-                <span className="text-rausch">
+                <span className="text-gold">
                   <ShoppingBag size={18} weight="bold" />
                 </span>
                 {dict.ctas.shopInventory}
               </span>
-              <ArrowUpRight size={14} weight="bold" className="text-ash" />
+              <ArrowUpRight size={14} weight="bold" className="text-muted" />
             </Link>
           ) : tenant.has_retail ? (
             <CTAPlaceholder
@@ -198,19 +198,19 @@ export default function LandingPageContent({
           ) : null}
           <Link
             href="/portal/login"
-            className="inline-flex items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm font-medium text-ink transition hover:bg-cloud"
+            className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-background"
           >
             <span className="inline-flex items-center gap-2">
-              <span className="text-rausch">●</span>
+              <span className="text-gold">●</span>
               {dict.ctas.portalLogin}
             </span>
-            <ArrowUpRight size={14} weight="bold" className="text-ash" />
+            <ArrowUpRight size={14} weight="bold" className="text-muted" />
           </Link>
         </section>
       </main>
 
-      <footer className="border-t border-hairline py-6">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-4 text-xs text-ash sm:flex-row">
+      <footer className="border-t border-border py-6">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-4 text-xs text-muted sm:flex-row">
           <span>
             © {new Date().getFullYear()} {tenant.name}
           </span>
@@ -225,7 +225,7 @@ export default function LandingPageContent({
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-hairline bg-canvas p-5">
+    <div className="rounded-lg border border-border bg-card p-5">
       {children}
     </div>
   )
@@ -239,8 +239,8 @@ function CardTitle({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex items-center gap-2 text-sm font-semibold text-ink">
-      <span className="text-rausch">{icon}</span>
+    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+      <span className="text-gold">{icon}</span>
       <span>{children}</span>
     </div>
   )
@@ -282,7 +282,7 @@ function ServiceBadges({
       {items.map((it) => (
         <span
           key={it.label}
-          className="inline-flex items-center gap-1.5 rounded-pill border border-hairline bg-cloud px-3 py-1 text-xs font-medium text-ink"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1 text-xs font-medium text-foreground"
         >
           {it.icon}
           {it.label}
@@ -310,7 +310,7 @@ function HoursList({
   dict: ReturnType<typeof useI18n>['t']['landing']
 }) {
   if (!hours) {
-    return <p className="mt-3 text-sm text-ash">{dict.hoursUnavailable}</p>
+    return <p className="mt-3 text-sm text-muted">{dict.hoursUnavailable}</p>
   }
   return (
     <dl className="mt-3 space-y-1.5 text-sm">
@@ -318,8 +318,8 @@ function HoursList({
         const day = hours[d]
         return (
           <div key={d} className="flex items-baseline justify-between gap-3">
-            <dt className="text-charcoal">{dict.days[d]}</dt>
-            <dd className="font-mono text-xs text-ink">
+            <dt className="text-text-secondary">{dict.days[d]}</dt>
+            <dd className="font-mono text-xs text-foreground">
               {formatDay(day, dict)}
             </dd>
           </div>
@@ -347,12 +347,12 @@ function CTAPlaceholder({
   hint: string
 }) {
   return (
-    <div className="rounded-lg border border-hairline bg-cloud/50 px-4 py-3">
-      <div className="flex items-center gap-2 text-sm font-medium text-ink">
-        <span className="text-rausch">{icon}</span>
+    <div className="rounded-lg border border-border bg-background/50 px-4 py-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <span className="text-gold">{icon}</span>
         {label}
       </div>
-      <p className="mt-1 text-xs text-ash">{hint}</p>
+      <p className="mt-1 text-xs text-muted">{hint}</p>
     </div>
   )
 }

@@ -44,9 +44,9 @@ export function StonesPanel({
     stones.reduce((max, s) => (s.stone_index > max ? s.stone_index : max), 0) + 1
 
   return (
-    <section className="rounded-lg border border-hairline bg-canvas">
-      <header className="flex items-center justify-between border-b border-hairline px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Diamond size={14} weight="regular" />
           {t.repair.detail.sectionStones}
         </h2>
@@ -54,7 +54,7 @@ export function StonesPanel({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2 py-1 text-xs font-medium text-ink hover:border-ink"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:border-foreground"
           >
             <Plus size={12} weight="bold" />
             {t.repair.actions.addStone}
@@ -62,11 +62,11 @@ export function StonesPanel({
         ) : null}
       </header>
       {stones.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-ash">
+        <div className="px-4 py-6 text-center text-sm text-muted">
           {t.repair.detail.noStones}
         </div>
       ) : (
-        <ul className="divide-y divide-hairline">
+        <ul className="divide-y divide-border">
           {stones.map((s) => (
             <StoneRow
               key={s.id}
@@ -119,15 +119,15 @@ function StoneRow({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="rounded-full border border-hairline bg-cloud px-2 py-0.5 text-[10px] font-mono text-ink">
+            <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-mono text-foreground">
               #{stone.stone_index}
             </span>
-            <span className="font-medium text-ink">{stone.stone_type}</span>
-            <span className="rounded-full border border-hairline bg-cloud px-2 py-0.5 text-[10px] text-ash">
+            <span className="font-medium text-foreground">{stone.stone_type}</span>
+            <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] text-muted">
               {sourceLabel}
             </span>
           </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ash">
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
             {stone.shape ? <span>{stone.shape}</span> : null}
             {stone.size_mm != null ? <span>{stone.size_mm}mm</span> : null}
             {stone.weight_carats != null ? (
@@ -141,7 +141,7 @@ function StoneRow({
             ) : null}
           </div>
           {stone.notes ? (
-            <div className="mt-1 text-xs text-ink">{stone.notes}</div>
+            <div className="mt-1 text-xs text-foreground">{stone.notes}</div>
           ) : null}
         </div>
         {!readOnly ? (
@@ -149,7 +149,7 @@ function StoneRow({
             type="button"
             onClick={remove}
             disabled={pending}
-            className="inline-flex items-center gap-1 rounded-md border border-error/30 bg-error/5 px-2 py-1 text-xs font-medium text-error hover:bg-error/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
           >
             <Trash size={12} weight="bold" />
             {t.repair.actions.removeStone}
