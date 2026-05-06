@@ -2,8 +2,9 @@
 import 'server-only'
 import { after } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveSecret } from '@/lib/secrets/vault'
 import { fetchPlaceDetails } from './client'
-import { applyMinStarFloor, isWidgetRenderable } from './filter'
+import { applyHiddenFilter, applyMinStarFloor, isWidgetRenderable } from './filter'
 import type {
   PlaceDetails,
   RenderableReviews,
@@ -11,6 +12,19 @@ import type {
 } from './types'
 
 const TTL_MS = 24 * 60 * 60 * 1000 // 24h
+
+/**
+ * Platform-default cap on Places API calls per tenant per rolling 24h
+ * window. Per-tenant override via `settings.google_reviews_daily_quota`
+ * (NULL → use this default). Counts both successes and failures so the
+ * cap protects against retry storms when a row stays stale-with-error.
+ *
+ * 50 covers normal traffic comfortably: cron warmer + organic public
+ * page hits typically resolve to 1–2 fetches per tenant per 24h thanks
+ * to the cache TTL. This cap exists for misconfiguration / API outage
+ * edge cases, not for steady-state traffic shaping.
+ */
+const PLATFORM_DAILY_QUOTA = 50
 
 /**
  * Returns the cache row for a tenant — fresh, stale, or null.
@@ -85,17 +99,47 @@ export async function refreshReviews(
 
   const { data: settings } = await admin
     .from('settings')
-    .select('google_place_id, google_places_api_key')
+    .select('google_place_id, google_places_api_key, google_reviews_daily_quota')
     .eq('tenant_id', tenantId)
     .maybeSingle()
 
   const placeId = settings?.google_place_id ?? null
   if (!placeId) return null
 
-  const apiKey =
-    settings?.google_places_api_key ?? process.env.GOOGLE_PLACES_API_KEY ?? ''
+  // Resolution order: per-tenant vault → per-tenant plaintext (during
+  // dual-state migration window) → platform env var. Vault takes
+  // precedence when present so a vault-write supersedes any stale
+  // plaintext column value.
+  const tenantOverride = await resolveSecret(
+    tenantId,
+    'google_places_api_key',
+    settings?.google_places_api_key ?? null,
+  )
+  const apiKey = tenantOverride ?? process.env.GOOGLE_PLACES_API_KEY ?? ''
   if (!apiKey) {
     await writeError(tenantId, placeId, 'no_api_key')
+    return loadCachedRow(tenantId)
+  }
+
+  // Quota guardrail. consume_google_reviews_quota is an atomic SECURITY
+  // DEFINER RPC that locks the cache row, resets the rolling 24h window
+  // if elapsed, increments calls_used, and returns FALSE when the cap is
+  // hit. We charge the call before fetching so retry storms during a
+  // Google outage cannot blow past the cap.
+  const cap = settings?.google_reviews_daily_quota ?? PLATFORM_DAILY_QUOTA
+  const { data: allowed, error: quotaErr } = await admin.rpc(
+    'consume_google_reviews_quota',
+    { p_tenant_id: tenantId, p_place_id: placeId, p_cap: cap },
+  )
+  if (quotaErr) {
+    // RPC error itself — log + degrade open. Failing closed on a quota
+    // service hiccup would silently break public widgets for everyone.
+    console.error(
+      '[google-reviews.cache] quota RPC failed; allowing call',
+      quotaErr.message,
+    )
+  } else if (allowed === false) {
+    await writeError(tenantId, placeId, 'quota_exceeded')
     return loadCachedRow(tenantId)
   }
 
@@ -158,7 +202,9 @@ export async function loadPublicReviews(
   const [{ data: settings }, row] = await Promise.all([
     admin
       .from('settings')
-      .select('google_reviews_min_star_floor')
+      .select(
+        'google_reviews_min_star_floor, google_reviews_hidden_review_times',
+      )
       .eq('tenant_id', tenantId)
       .maybeSingle(),
     getCachedReviews(tenantId),
@@ -167,11 +213,16 @@ export async function loadPublicReviews(
   if (!row) return null
 
   const minStarFloor = settings?.google_reviews_min_star_floor ?? 4
+  const hiddenTimes = settings?.google_reviews_hidden_review_times ?? []
 
-  const filteredReviews = applyMinStarFloor(
+  // Apply hidden filter before star-floor — hidden takes precedence and
+  // shrinking the array first is faster on larger inputs (no-op for the
+  // 3-to-5 review payloads we actually see).
+  const visibleReviews = applyHiddenFilter(
     row.payload.reviews ?? [],
-    minStarFloor,
+    hiddenTimes,
   )
+  const filteredReviews = applyMinStarFloor(visibleReviews, minStarFloor)
   const renderable = isWidgetRenderable({
     fetchedAt: new Date(row.fetched_at),
     filteredReviews,

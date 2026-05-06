@@ -6,13 +6,26 @@ import {
   CheckCircle,
   Warning,
   Circle,
+  EyeSlash,
+  Eye,
+  Star,
 } from '@phosphor-icons/react'
 import {
   updateGoogleReviewsSettingsAction,
   testGoogleReviewsConnectionAction,
+  toggleHideReviewAction,
   type UpdateGoogleReviewsSettingsState,
   type TestConnectionState,
+  type ToggleHideReviewState,
 } from './actions'
+
+export type GoogleReviewsSettingsReview = {
+  time: number
+  authorName: string
+  rating: number
+  text: string | null
+  hidden: boolean
+}
 
 export type GoogleReviewsSettingsView = {
   placeId: string
@@ -25,10 +38,12 @@ export type GoogleReviewsSettingsView = {
     lastError: string | null
     lastErrorAt: string | null
   } | null
+  reviews: GoogleReviewsSettingsReview[]
 }
 
 const initialState: UpdateGoogleReviewsSettingsState = {}
 const initialTestState: TestConnectionState = {}
+const initialToggleState: ToggleHideReviewState = {}
 
 export default function GoogleReviewsSettingsContent({
   view,
@@ -154,7 +169,81 @@ export default function GoogleReviewsSettingsContent({
           </p>
         ) : null}
       </div>
+
+      {view.reviews.length > 0 ? (
+        <div className="mt-8 border-t border-hairline pt-6">
+          <h2 className="text-base font-semibold tracking-[-0.01em] text-ink">
+            Cached reviews
+          </h2>
+          <p className="mt-1 text-sm text-ash">
+            Hide an individual review without changing the star floor. Hidden
+            reviews still count in the aggregate rating Google shows.
+          </p>
+          <ul className="mt-4 space-y-3">
+            {view.reviews.map((review) => (
+              <ReviewRow key={review.time} review={review} />
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
+  )
+}
+
+function ReviewRow({ review }: { review: GoogleReviewsSettingsReview }) {
+  const [, toggleAction, toggling] = useActionState(
+    toggleHideReviewAction,
+    initialToggleState,
+  )
+
+  return (
+    <li
+      className={`rounded-lg border border-hairline p-3 ${
+        review.hidden ? 'bg-cloud opacity-60' : 'bg-canvas'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-sm font-medium text-ink">
+            <span className="truncate">{review.authorName}</span>
+            <span className="inline-flex items-center gap-0.5 text-warning">
+              <Star size={12} weight="fill" />
+              {review.rating}
+            </span>
+          </div>
+          {review.text ? (
+            <p className="mt-1 line-clamp-2 text-sm text-ash">{review.text}</p>
+          ) : (
+            <p className="mt-1 text-sm italic text-ash">No comment</p>
+          )}
+        </div>
+        <form action={toggleAction} className="flex-shrink-0">
+          <input type="hidden" name="time" value={review.time} />
+          <input
+            type="hidden"
+            name="action"
+            value={review.hidden ? 'unhide' : 'hide'}
+          />
+          <button
+            type="submit"
+            disabled={toggling}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-cloud disabled:opacity-50"
+          >
+            {review.hidden ? (
+              <>
+                <Eye size={12} />
+                Unhide
+              </>
+            ) : (
+              <>
+                <EyeSlash size={12} />
+                Hide
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </li>
   )
 }
 

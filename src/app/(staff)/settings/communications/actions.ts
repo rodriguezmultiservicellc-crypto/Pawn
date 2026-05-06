@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireOwner, requireStaff } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { setTenantSecret } from '@/lib/secrets/vault'
 import { logAudit } from '@/lib/audit'
 import { dispatchMessage } from '@/lib/comms/dispatch'
 import { renderEmailTemplate, renderTemplate } from '@/lib/comms/render'
@@ -100,6 +101,18 @@ export async function updateCommsSettingsAction(
     .update(update)
     .eq('tenant_id', ctx.tenantId)
   if (error) return { error: error.message }
+
+  // Dual-write secrets to vault. Plaintext column update above keeps
+  // pre-migration read paths working; this writes the same value into
+  // tenant_secrets so vault-first read paths see the latest. Once all
+  // read paths flip to vault-only and migration 0034 drops the
+  // plaintext columns, this dual-write becomes the single write.
+  if ('twilio_auth_token' in update) {
+    await setTenantSecret(ctx.tenantId, 'twilio_auth_token', update.twilio_auth_token ?? null)
+  }
+  if ('resend_api_key' in update) {
+    await setTenantSecret(ctx.tenantId, 'resend_api_key', update.resend_api_key ?? null)
+  }
 
   await logAudit({
     tenantId: ctx.tenantId,

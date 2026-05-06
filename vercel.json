@@ -28,6 +28,14 @@
     {
       "path": "/api/cron/ebay-sync",
       "schedule": "0,30 13-21 * * 1-5"
+    },
+    {
+      "path": "/api/cron/refresh-google-reviews",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/send-email-campaigns",
+      "schedule": "*/2 * * * *"
     }
   ]
 }

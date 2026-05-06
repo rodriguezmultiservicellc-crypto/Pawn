@@ -21,6 +21,7 @@
 
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveSecret } from '@/lib/secrets/vault'
 import type {
   MessageKind,
   MessageLogInsert,
@@ -200,9 +201,16 @@ export async function resolveTwilioCreds(tenantId: string): Promise<{
     .maybeSingle<SettingsCommsColumns>()
 
   const row = data ?? null
+  // Vault-first read for the auth token. Plaintext fallback during the
+  // dual-state window — see lib/secrets/vault.ts.
+  const authToken = await resolveSecret(
+    tenantId,
+    'twilio_auth_token',
+    row?.twilio_auth_token ?? null,
+  )
   return {
     accountSid: row?.twilio_account_sid ?? null,
-    authToken: row?.twilio_auth_token ?? null,
+    authToken,
     smsFrom: row?.twilio_sms_from ?? row?.twilio_phone_number ?? null,
     whatsappFrom:
       row?.twilio_whatsapp_from ?? row?.twilio_whatsapp_number ?? null,

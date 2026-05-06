@@ -572,6 +572,7 @@ export type Database = {
           deleted_at: string | null
           dl_raw_payload: string | null
           email: string | null
+          email_unsubscribe_token: string | null
           eye_color: string | null
           first_name: string
           hair_color: string | null
@@ -622,6 +623,7 @@ export type Database = {
           deleted_at?: string | null
           dl_raw_payload?: string | null
           email?: string | null
+          email_unsubscribe_token?: string | null
           eye_color?: string | null
           first_name: string
           hair_color?: string | null
@@ -672,6 +674,7 @@ export type Database = {
           deleted_at?: string | null
           dl_raw_payload?: string | null
           email?: string | null
+          email_unsubscribe_token?: string | null
           eye_color?: string | null
           first_name?: string
           hair_color?: string | null
@@ -716,6 +719,178 @@ export type Database = {
           },
           {
             foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_campaign_recipients: {
+        Row: {
+          bounce_reason: string | null
+          bounced_at: string | null
+          campaign_id: string
+          complained_at: string | null
+          created_at: string
+          customer_id: string
+          delivered_at: string | null
+          email: string
+          failed_at: string | null
+          failure_reason: string | null
+          id: string
+          language: string
+          message_log_id: string | null
+          resend_message_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["email_campaign_recipient_status"]
+          tenant_id: string
+        }
+        Insert: {
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          campaign_id: string
+          complained_at?: string | null
+          created_at?: string
+          customer_id: string
+          delivered_at?: string | null
+          email: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          language: string
+          message_log_id?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_campaign_recipient_status"]
+          tenant_id: string
+        }
+        Update: {
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          campaign_id?: string
+          complained_at?: string | null
+          created_at?: string
+          customer_id?: string
+          delivered_at?: string | null
+          email?: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          language?: string
+          message_log_id?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_campaign_recipient_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_recipients_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_recipients_message_log_id_fkey"
+            columns: ["message_log_id"]
+            isOneToOne: false
+            referencedRelation: "message_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_recipients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_campaigns: {
+        Row: {
+          body_html: string
+          body_text: string
+          bounced_count: number
+          complained_count: number
+          created_at: string
+          created_by: string | null
+          delivered_count: number
+          deleted_at: string | null
+          failed_count: number
+          id: string
+          name: string
+          recipient_count: number
+          scheduled_at: string | null
+          segment_language: string | null
+          segment_marketing_opt_in_only: boolean
+          segment_tags: string[]
+          sent_at: string | null
+          status: Database["public"]["Enums"]["email_campaign_status"]
+          subject: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body_html: string
+          body_text: string
+          bounced_count?: number
+          complained_count?: number
+          created_at?: string
+          created_by?: string | null
+          delivered_count?: number
+          deleted_at?: string | null
+          failed_count?: number
+          id?: string
+          name: string
+          recipient_count?: number
+          scheduled_at?: string | null
+          segment_language?: string | null
+          segment_marketing_opt_in_only?: boolean
+          segment_tags?: string[]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_campaign_status"]
+          subject: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body_html?: string
+          body_text?: string
+          bounced_count?: number
+          complained_count?: number
+          created_at?: string
+          created_by?: string | null
+          delivered_count?: number
+          deleted_at?: string | null
+          failed_count?: number
+          id?: string
+          name?: string
+          recipient_count?: number
+          scheduled_at?: string | null
+          segment_language?: string | null
+          segment_marketing_opt_in_only?: boolean
+          segment_tags?: string[]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_campaign_status"]
+          subject?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2821,6 +2996,8 @@ export type Database = {
           email_from: string | null
           google_place_id: string | null
           google_places_api_key: string | null
+          google_reviews_daily_quota: number | null
+          google_reviews_hidden_review_times: number[]
           google_reviews_min_star_floor: number
           loyalty_earn_rate_loan_interest: number
           loyalty_earn_rate_retail: number
@@ -2851,6 +3028,8 @@ export type Database = {
           email_from?: string | null
           google_place_id?: string | null
           google_places_api_key?: string | null
+          google_reviews_daily_quota?: number | null
+          google_reviews_hidden_review_times?: number[]
           google_reviews_min_star_floor?: number
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
@@ -2881,6 +3060,8 @@ export type Database = {
           email_from?: string | null
           google_place_id?: string | null
           google_places_api_key?: string | null
+          google_reviews_daily_quota?: number | null
+          google_reviews_hidden_review_times?: number[]
           google_reviews_min_star_floor?: number
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
@@ -3268,6 +3449,8 @@ export type Database = {
           last_error_at: string | null
           payload: Json
           place_id: string
+          quota_calls_used: number
+          quota_window_start: string | null
           rating: number | null
           tenant_id: string
           total_review_count: number | null
@@ -3278,6 +3461,8 @@ export type Database = {
           last_error_at?: string | null
           payload: Json
           place_id: string
+          quota_calls_used?: number
+          quota_window_start?: string | null
           rating?: number | null
           tenant_id: string
           total_review_count?: number | null
@@ -3288,6 +3473,8 @@ export type Database = {
           last_error_at?: string | null
           payload?: Json
           place_id?: string
+          quota_calls_used?: number
+          quota_window_start?: string | null
           rating?: number | null
           tenant_id?: string
           total_review_count?: number | null
@@ -3297,6 +3484,41 @@ export type Database = {
             foreignKeyName: "tenant_google_reviews_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_secrets: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          tenant_id: string
+          updated_at: string
+          vault_secret_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          tenant_id: string
+          updated_at?: string
+          vault_secret_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          tenant_id?: string
+          updated_at?: string
+          vault_secret_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_secrets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -3680,6 +3902,18 @@ export type Database = {
         Args: { p_license_key: string; p_user_id: string }
         Returns: string
       }
+      consume_google_reviews_quota: {
+        Args: { p_cap: number; p_place_id: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      get_tenant_secret: {
+        Args: { p_kind: string; p_tenant_id: string }
+        Returns: string
+      }
+      set_tenant_secret: {
+        Args: { p_kind: string; p_tenant_id: string; p_value: string }
+        Returns: string
+      }
       create_tenant_with_owner: {
         Args: {
           p_address?: string
@@ -3841,7 +4075,22 @@ export type Database = {
         | "saas_payment_recovered"
         | "saas_subscription_cancelled"
         | "portal_invite"
+        | "email_campaign"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
+      email_campaign_status:
+        | "draft"
+        | "scheduled"
+        | "sending"
+        | "sent"
+        | "canceled"
+      email_campaign_recipient_status:
+        | "queued"
+        | "sent"
+        | "delivered"
+        | "bounced"
+        | "complained"
+        | "failed"
+        | "skipped"
       metal_purity:
         | "pure_24k"
         | "22k"
@@ -4197,8 +4446,25 @@ export const Constants = {
         "saas_payment_recovered",
         "saas_subscription_cancelled",
         "portal_invite",
+        "email_campaign",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
+      email_campaign_status: [
+        "draft",
+        "scheduled",
+        "sending",
+        "sent",
+        "canceled",
+      ],
+      email_campaign_recipient_status: [
+        "queued",
+        "sent",
+        "delivered",
+        "bounced",
+        "complained",
+        "failed",
+        "skipped",
+      ],
       metal_purity: [
         "pure_24k",
         "22k",

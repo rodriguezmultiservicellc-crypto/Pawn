@@ -100,6 +100,8 @@ export type AuditAction =
   // Spot prices
   | 'spot_price_refresh'
   | 'spot_price_override_change'
+  // Google Reviews (Phase 10 A)
+  | 'google_reviews_refresh'
   // eBay listing publisher (Phase 10, Path B)
   | 'ebay_oauth_connected'
   | 'ebay_oauth_disconnected'
@@ -112,6 +114,15 @@ export type AuditAction =
   | 'portal_invite_sent'
   | 'portal_invites_revoked'
   | 'portal_invite_consumed'
+  // Email campaigns (Phase 10 A)
+  | 'email_campaign_create'
+  | 'email_campaign_update'
+  | 'email_campaign_schedule'
+  | 'email_campaign_cancel'
+  | 'email_campaign_dispatch'
+  | 'email_campaign_unsubscribe'
+  | 'email_campaign_bounce'
+  | 'email_campaign_complaint'
 
 export async function logAudit(args: {
   tenantId: string

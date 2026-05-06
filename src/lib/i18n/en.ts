@@ -1978,6 +1978,7 @@ export const en = {
       saas_payment_recovered: 'Payment recovered (platform)',
       saas_subscription_cancelled: 'Subscription cancelled (platform)',
       portal_invite: 'Customer portal invite',
+      email_campaign: 'Email campaign',
     },
     kindDescriptions: {
       loan_maturity_t7: 'Sent automatically 7 days before a loan due date.',
@@ -2002,6 +2003,8 @@ export const en = {
         'Platform-sent: Pawn (RMS) confirms the tenant subscription has been cancelled.',
       portal_invite:
         'Sent when staff invites a customer to the customer portal. Not configurable per tenant — uses a built-in bilingual template.',
+      email_campaign:
+        'Operator-authored bulk email blast. Composed and scheduled from the Campaigns page; not template-keyed.',
     },
     editorHelp:
       'Use {{variable}} placeholders. Available variables: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, portal_link.',

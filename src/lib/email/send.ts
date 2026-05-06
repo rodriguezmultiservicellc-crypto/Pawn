@@ -11,6 +11,7 @@
 
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveSecret } from '@/lib/secrets/vault'
 import type {
   MessageKind,
   MessageLogInsert,
@@ -183,8 +184,13 @@ export async function resolveResendCreds(tenantId: string): Promise<{
     .maybeSingle<SettingsCommsColumns>()
 
   const row = data ?? null
+  // Vault-first read for the API key. Plaintext column is the fallback
+  // during the dual-state migration window (see lib/secrets/vault.ts);
+  // once all write paths dual-write reliably this can drop to a direct
+  // getTenantSecret() call.
+  const apiKey = await resolveSecret(tenantId, 'resend_api_key', row?.resend_api_key ?? null)
   return {
-    apiKey: row?.resend_api_key ?? null,
+    apiKey,
     fromEmail: row?.resend_from_email ?? row?.email_from ?? null,
     fromName: row?.resend_from_name ?? null,
   }

@@ -22,6 +22,7 @@
 
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveSecret, setTenantSecret } from '@/lib/secrets/vault'
 import type {
   EbayEnvironment,
   TenantEbayCredentialsRow,
@@ -214,6 +215,20 @@ export async function persistTokens(args: {
       .from('tenant_ebay_credentials')
       .insert({ tenant_id: args.tenantId, ...update })
   }
+
+  // Dual-write tokens to vault. Plaintext column update above keeps
+  // pre-migration read paths working; vault is the source of truth for
+  // read sites that have cut over (resolveCredentials below).
+  await setTenantSecret(
+    args.tenantId,
+    'ebay_access_token',
+    args.bundle.access_token ?? null,
+  )
+  await setTenantSecret(
+    args.tenantId,
+    'ebay_refresh_token',
+    args.bundle.refresh_token ?? null,
+  )
 }
 
 /**
@@ -233,6 +248,11 @@ export async function markDisconnected(tenantId: string): Promise<void> {
       disconnected_at: new Date().toISOString(),
     })
     .eq('tenant_id', tenantId)
+  // Clear vault entries too — disconnect should leave no trace of the
+  // tokens anywhere. setTenantSecret with null deletes the registry row
+  // and the underlying vault.secrets row.
+  await setTenantSecret(tenantId, 'ebay_access_token', null)
+  await setTenantSecret(tenantId, 'ebay_refresh_token', null)
 }
 
 /**
@@ -252,7 +272,15 @@ export async function resolveCredentials(
     .eq('tenant_id', tenantId)
     .maybeSingle()) as { data: TenantEbayCredentialsRow | null }
 
-  if (!row || !row.refresh_token) {
+  // Vault-first read for both tokens. Plaintext columns are the
+  // fallback during the dual-state window; once 0034 drops them this
+  // collapses to direct getTenantSecret() calls.
+  const refreshToken = await resolveSecret(
+    tenantId,
+    'ebay_refresh_token',
+    row?.refresh_token ?? null,
+  )
+  if (!row || !refreshToken) {
     throw new Error('tenant_ebay_not_connected')
   }
 
@@ -260,12 +288,17 @@ export async function resolveCredentials(
   const accessExp = row.access_token_expires_at
     ? Date.parse(row.access_token_expires_at)
     : 0
-  let accessToken = row.access_token ?? ''
+  const accessFromVault = await resolveSecret(
+    tenantId,
+    'ebay_access_token',
+    row.access_token ?? null,
+  )
+  let accessToken = accessFromVault ?? ''
   if (!accessToken || accessExp - now < 60 * 1000) {
     // Refresh — STUB returns fresh stub token.
     const refreshed = await refreshAccessToken({
       tenantId,
-      currentRefreshToken: row.refresh_token,
+      currentRefreshToken: refreshToken,
       environment: row.environment,
     })
     accessToken = refreshed.access_token
@@ -273,7 +306,7 @@ export async function resolveCredentials(
       tenantId,
       bundle: {
         ebay_user_id: row.ebay_user_id ?? undefined,
-        refresh_token: row.refresh_token,
+        refresh_token: refreshToken,
         refresh_token_expires_at: row.refresh_token_expires_at ?? undefined,
         access_token: refreshed.access_token,
         access_token_expires_at: refreshed.access_token_expires_at,

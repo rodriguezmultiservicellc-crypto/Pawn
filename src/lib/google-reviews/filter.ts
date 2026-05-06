@@ -4,6 +4,23 @@ import type { GoogleReview } from './types'
 const MAX_VISIBLE = 3
 
 /**
+ * Drop reviews whose `time` (Unix seconds, used as the closest thing
+ * to a stable identifier in Google's payload) is in the operator's
+ * hidden list. Pure function. Defensive against undefined / null.
+ */
+export function applyHiddenFilter(
+  reviews: GoogleReview[] | undefined | null,
+  hiddenTimes: number[] | undefined | null,
+): GoogleReview[] {
+  if (!Array.isArray(reviews)) return []
+  if (!Array.isArray(hiddenTimes) || hiddenTimes.length === 0) {
+    return reviews
+  }
+  const hiddenSet = new Set(hiddenTimes)
+  return reviews.filter((r) => !hiddenSet.has(r.time))
+}
+
+/**
  * Filter reviews by min-star floor, sort newest-first, cap at 3.
  *
  * Pure function. No mutation of inputs. Defensive against undefined / NaN.

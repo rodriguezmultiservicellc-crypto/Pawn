@@ -30,6 +30,7 @@ const PUBLIC_PATHS = [
   '/auth/callback',
   '/portal/login',
   '/s', // public tenant landing — /s/<slug>
+  '/unsubscribe', // email-campaign unsubscribe link target
 ]
 
 const STAFF_PATH_PREFIXES = [

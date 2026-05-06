@@ -1987,6 +1987,7 @@ export const es: Dictionary = {
       saas_payment_recovered: 'Pago recuperado (plataforma)',
       saas_subscription_cancelled: 'Suscripción cancelada (plataforma)',
       portal_invite: 'Invitación al portal del cliente',
+      email_campaign: 'Campaña de correo',
     },
     kindDescriptions: {
       loan_maturity_t7: 'Se envía automáticamente 7 días antes del vencimiento.',
@@ -2012,6 +2013,8 @@ export const es: Dictionary = {
         'Enviado por la plataforma: Pawn (RMS) confirma que la suscripción del inquilino fue cancelada.',
       portal_invite:
         'Se envía cuando el personal invita a un cliente al portal. No es configurable por inquilino — usa una plantilla bilingüe integrada.',
+      email_campaign:
+        'Envío masivo de correo redactado por el operador. Se compone y programa desde la página de Campañas; no usa plantillas.',
     },
     editorHelp:
       'Usa marcadores {{variable}}. Disponibles: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, portal_link.',

@@ -1,6 +1,6 @@
 // src/lib/google-reviews/filter.test.ts
 import { describe, it, expect } from 'vitest'
-import { applyMinStarFloor, isWidgetRenderable } from './filter'
+import { applyHiddenFilter, applyMinStarFloor, isWidgetRenderable } from './filter'
 import type { GoogleReview } from './types'
 
 function r(rating: number, time: number, text = 'x'): GoogleReview {
@@ -52,6 +52,32 @@ describe('applyMinStarFloor', () => {
   it('clamps non-finite ratings as if they fail the filter', () => {
     const reviews = [r(NaN as unknown as number, 1), r(5, 2)]
     expect(applyMinStarFloor(reviews, 4)).toEqual([r(5, 2)])
+  })
+})
+
+describe('applyHiddenFilter', () => {
+  it('drops reviews whose time is in the hidden list', () => {
+    const reviews = [r(5, 100), r(5, 200), r(5, 300)]
+    expect(applyHiddenFilter(reviews, [200])).toEqual([r(5, 100), r(5, 300)])
+  })
+
+  it('returns input unchanged when hidden list is empty', () => {
+    const reviews = [r(5, 100), r(5, 200)]
+    expect(applyHiddenFilter(reviews, [])).toEqual(reviews)
+  })
+
+  it('returns input unchanged when hidden list is null', () => {
+    const reviews = [r(5, 100)]
+    expect(applyHiddenFilter(reviews, null)).toEqual(reviews)
+  })
+
+  it('returns empty when reviews input is undefined', () => {
+    expect(applyHiddenFilter(undefined, [100])).toEqual([])
+  })
+
+  it('drops all reviews when every time is hidden', () => {
+    const reviews = [r(5, 100), r(5, 200)]
+    expect(applyHiddenFilter(reviews, [100, 200])).toEqual([])
   })
 })
 

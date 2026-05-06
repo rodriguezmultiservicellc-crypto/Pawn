@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { setTenantSecret } from '@/lib/secrets/vault'
 import { logAudit } from '@/lib/audit'
 import { googleReviewsSettingsSchema } from '@/lib/validations/google-reviews'
 import { refreshReviews } from '@/lib/google-reviews/cache'
@@ -63,6 +64,15 @@ export async function updateGoogleReviewsSettingsAction(
     .eq('tenant_id', ctx.tenantId)
   if (error) return { error: error.message }
 
+  // Dual-write the API key into vault. The plaintext column update above
+  // keeps pre-migration read paths working; vault is the new source of
+  // truth for read sites that have cut over.
+  await setTenantSecret(
+    ctx.tenantId,
+    'google_places_api_key',
+    v.google_places_api_key,
+  )
+
   // If place_id was cleared, drop the cache row so /settings shows
   // "Not configured" cleanly. (The implicit gate is google_place_id IS
   // NOT NULL — without this, a stale row with the previous place_id
@@ -89,6 +99,77 @@ export async function updateGoogleReviewsSettingsAction(
 
   revalidatePath('/settings/integrations')
   revalidatePath('/settings/integrations/google-reviews')
+  return { ok: true }
+}
+
+/**
+ * Toggle the per-review hide list. Operators use this to suppress an
+ * individual review (profanity, off-topic, etc.) on the public widget
+ * without raising the min-star floor for everyone.
+ *
+ * Hide is keyed on the Google review's `time` field — the closest
+ * thing to a stable identifier in the Places Details payload.
+ */
+export type ToggleHideReviewState = {
+  ok?: boolean
+  error?: string
+}
+
+export async function toggleHideReviewAction(
+  _prev: ToggleHideReviewState,
+  formData: FormData,
+): Promise<ToggleHideReviewState> {
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
+
+  await requireRoleInTenant(ctx.tenantId, SETTINGS_ROLES)
+
+  const rawTime = formData.get('time')
+  const action = formData.get('action')
+  const time = typeof rawTime === 'string' ? Number.parseInt(rawTime, 10) : NaN
+  if (!Number.isFinite(time)) return { error: 'invalid_time' }
+  if (action !== 'hide' && action !== 'unhide') return { error: 'invalid_action' }
+
+  const admin = createAdminClient()
+
+  const { data: prior } = await admin
+    .from('settings')
+    .select('google_reviews_hidden_review_times')
+    .eq('tenant_id', ctx.tenantId)
+    .maybeSingle()
+
+  const current = prior?.google_reviews_hidden_review_times ?? []
+  const next =
+    action === 'hide'
+      ? Array.from(new Set([...current, time]))
+      : current.filter((t) => t !== time)
+
+  const { error } = await admin
+    .from('settings')
+    .update({ google_reviews_hidden_review_times: next })
+    .eq('tenant_id', ctx.tenantId)
+  if (error) return { error: error.message }
+
+  await logAudit({
+    tenantId: ctx.tenantId,
+    userId: ctx.userId,
+    action: 'update',
+    tableName: 'settings',
+    recordId: ctx.tenantId,
+    changes: {
+      kind: 'google_reviews_hidden_review_times',
+      action,
+      time,
+      before: current,
+      after: next,
+    },
+  })
+
+  revalidatePath('/settings/integrations/google-reviews')
+  // Public landing renders this filter — bust both ES and EN.
+  revalidatePath('/s/[slug]', 'page')
+
   return { ok: true }
 }
 
