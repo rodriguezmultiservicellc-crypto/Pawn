@@ -129,11 +129,18 @@ export const en = {
   },
 
   dashboard: {
-    // Most legacy keys removed after Phase 8 dashboard wire-up — they were
-    // for an earlier card-grid layout that's now driven by the standalone
-    // design kit (English-only, see content.tsx i18n TODO). `none` is the
-    // last survivor because pos/content.tsx still references it as the
-    // empty-state label.
+    title: 'Dashboard',
+    welcome: 'Welcome',
+    placeholder: 'Phase 0 skeleton — full dashboard ships in Phase 1.',
+    customersCard: 'Customers',
+    customersCardSub: 'Active records',
+    inventoryCard: 'Inventory',
+    inventoryCardSub: 'On the floor',
+    bannedCard: 'Banned customers',
+    heldCard: 'Items on hold',
+    recentCustomers: 'Recently added customers',
+    recentInventory: 'Recently added inventory',
+    seeAll: 'See all',
     none: 'Nothing yet.',
   },
 

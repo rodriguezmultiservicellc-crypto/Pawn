@@ -13,150 +13,142 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 27 (2026-05-06, ~11:00)
-                  — Pawn ticket backpage policy
-                  text. Adds a per-tenant override
-                  for the legal/disclosure block
-                  printed on the back of every pawn
-                  ticket. patches/0035 adds
-                  settings.pawn_ticket_backpage TEXT
-                  NULL (idempotent IF NOT EXISTS +
-                  NOTIFY pgrst); applied to prod.
-                  PDF renderer adds a second <Page>
-                  with paragraph parsing (\n\n =
-                  paragraphs, "--" lines = horizontal
-                  rules, lines with 3+ underscores
-                  switch to JetBrains Mono so
-                  handwriting rules print
-                  continuously). Default text shipped
-                  in src/lib/pdf/pawn-ticket-backpage-
-                  default.ts is the FL Ch. 539
-                  standard pawn ticket reverse the
-                  operator pasted in (forfeiture +
-                  service charge breakdown + ID rules
-                  + false-ID felony language + lost-
-                  ticket procedure + receipt
-                  acknowledgment + redeemer ID +
-                  thumbprint area). Settings field
-                  NULL/empty → fall back to default;
-                  populate it to override (English
-                  only by operator policy — the
-                  ticket is a legal document). UI:
-                  /settings/loan-rates gains a "Pawn
-                  ticket backpage" section with a
-                  16-row mono textarea, FL default
-                  as placeholder, "Reset to default"
-                  button, status line showing
-                  whether default or custom is
-                  active. tsc clean, eslint clean,
-                  409 tests still passing. db:types
-                  regen post-0035 matches prod
-                  exactly.
-  Context budget: medium (one feature, ~10 files).
-  Last worked on: One surface — pawn ticket
-                  reverse-side ("backpage") legal
-                  disclosure, per-tenant overridable
-                  through /settings/loan-rates with
-                  a Florida Ch. 539 default shipped
-                  with the renderer. Operator
-                  context: the pawn ticket is a
-                  legal document (FL Ch. 539
-                  governs the language); the front
-                  of the ticket still renders
-                  bilingually but the back is
-                  English-only — deliberate
-                  exception to CLAUDE.md Rule 6.
-                  Resolves the existing TODO in
-                  PawnTicketPDF.tsx:18-24 ("Add a
-                  per-tenant override field on
-                  tenants (or settings) when we
-                  land the second jurisdiction").
+  Last session:   Session 28 (2026-05-06, ~12:00)
+                  — Dashboard reverted to its pre-
+                  dark-variant state. Operator
+                  didn't like the vibrant dark/
+                  tabbed dashboard with charts +
+                  kanban + activity feed +
+                  search bar. Restored
+                  src/app/(staff)/dashboard/page.tsx
+                  + content.tsx from commit
+                  4f5b13a (Phase 4, last commit
+                  before c0dcca4 introduced the
+                  dark variant) — light Airbnb-
+                  token stat-card layout with
+                  module-gated cards (customers /
+                  inventory / banned / held /
+                  pawn / repair / retail) + recent
+                  customers + recent inventory
+                  lists, Phosphor icons, ~600 LOC
+                  total. Deleted
+                  dashboard/dashboard.css (dark
+                  scoped tokens) and
+                  dashboard/actions.ts (orphaned
+                  searchAcrossModule, only used by
+                  the dark dashboard's search bar).
+                  Restored the dashboard.* i18n
+                  keys in en.ts + es.ts (title,
+                  welcome, placeholder,
+                  customersCard, customersCardSub,
+                  inventoryCard, inventoryCardSub,
+                  bannedCard, heldCard,
+                  recentCustomers, recentInventory,
+                  seeAll, none). tsc clean. NOT
+                  committed yet — pending operator
+                  /dashboard browser verification.
+                  Charts / activity feed / kanban
+                  / DL scanner code still lives in
+                  the repo (data plumbing in
+                  page.tsx aggregations was the
+                  only thing nuked); pieces can be
+                  re-grafted one at a time later
+                  if requested.
+  Context budget: small (one revert, ~6 files).
+  Last worked on: One surface — /dashboard.
+                  Operator pushback on the dark/
+                  tabbed Session 13 redesign:
+                  "I don't like the dashboard now.
+                  Restore it to the original."
+                  Picked the version right BEFORE
+                  the dark variant landed (commit
+                  4f5b13a, Phase 4 / Retail POS
+                  shipped) over the bare Phase 0
+                  skeleton (09db205) — that one
+                  has the module-gated stat cards
+                  the operator already used to
+                  navigate. Pure revert via
+                  `git checkout 4f5b13a -- <files>`,
+                  no behavior changes elsewhere in
+                  the app. Not committed; operator
+                  needs to load /dashboard in a
+                  browser first to confirm before
+                  Vercel ships it.
 
-  ACTIVE FILE(S) at end of session — Session 27
-  (pending commit + push):
+  ACTIVE FILE(S) at end of session — Session 28
+  (pending commit + push, pending operator
+  browser verification):
 
-    --- DB MIGRATION ---
-    - patches/0035-pawn-ticket-backpage.sql NEW
-      (single ALTER TABLE adding
-      settings.pawn_ticket_backpage TEXT NULL with
-      a COMMENT documenting the default-fallback
-      contract. Idempotent — IF NOT EXISTS. Ends
-      with NOTIFY pgrst, 'reload schema' for the
-      PostgREST cache. Applied to prod.)
+    --- DASHBOARD (REVERTED) ---
+    - src/app/(staff)/dashboard/page.tsx —
+      restored from 4f5b13a. ~110 LOC. Resolves
+      tenant + module flags, runs Promise.all of
+      head:true counts (customers / banned /
+      inventory / held + module-gated counts for
+      pawn / repair / retail) + last-5 customers
+      + last-5 inventory. Module flags + counts
+      threaded into DashboardContent.
+    - src/app/(staff)/dashboard/content.tsx —
+      restored from 4f5b13a. ~290 LOC.
+      'use client'; Phosphor icons; useI18n hook;
+      light Airbnb-token stat cards in a 4-up
+      grid + module-gated row + Recent Customers
+      / Recent Inventory two-column block.
 
-    --- PDF RENDERER ---
-    - src/lib/pdf/pawn-ticket-backpage-default.ts
-      NEW. Exports PAWN_TICKET_BACKPAGE_DEFAULT —
-      the FL Ch. 539 standard reverse text the
-      operator pasted in verbatim. Sections
-      separated by `--`, paragraphs by blank lines,
-      form-field lines use long underscore runs
-      (parser detects 3+ consecutive underscores
-      and switches to mono).
-    - src/lib/pdf/PawnTicketPDF.tsx — added
-      backpage_text: string to PawnTicketData;
-      new backpage style block (smaller font 7.5pt,
-      tighter line-height, mono variant for form
-      lines); parseBackpageBlocks() helper splits
-      paragraphs, detects horizontal rules, flags
-      monospace blocks; new <Page> after the front
-      renders the parsed blocks with a fixed footer
-      reusing the existing page-of-total template.
-    - src/lib/pdf/render-loan-ticket.tsx — fetches
-      settings.pawn_ticket_backpage in parallel
-      with the tenant query (Promise.all of two
-      .maybeSingle() calls); falls back to
-      PAWN_TICKET_BACKPAGE_DEFAULT when override is
-      NULL/whitespace. Threads backpage_text into
-      the assembled PawnTicketData.
+    --- DELETED ---
+    - src/app/(staff)/dashboard/dashboard.css
+      (the dark variant's scoped tokens — no
+      longer referenced after the revert).
+    - src/app/(staff)/dashboard/actions.ts
+      (orphaned searchAcrossModule — only used
+      by the dark dashboard's search bar; not
+      referenced anywhere else in the codebase).
 
-    --- SETTINGS UI ---
-    - src/app/(staff)/settings/loan-rates/page.tsx
-      — adds pawn_ticket_backpage to the
-      .select() block; threads ticketBackpage prop
-      into LoanRatesContent.
-    - src/app/(staff)/settings/loan-rates/content
-      .tsx — new BackpageCard section between the
-      tenant-policy card and the rate table.
-      16-row mono textarea, FL default as
-      placeholder, status line showing
-      default-vs-custom, "Reset to default"
-      button (clears the textarea), Save button
-      with pending/ok/error states.
-    - src/app/(staff)/settings/loan-rates/actions
-      .ts — new saveTicketBackpageAction with
-      backpageSchema (max 20 000 chars; empty/
-      whitespace → null). Audit-logged with
-      kind='pawn_ticket_backpage' + length.
-
-    --- I18N ---
-    - src/lib/i18n/en.ts — added
-      pawn.print.backpage.header ("Terms and
-      Conditions — Reverse Side") and
-      settingsLoanRates.{backpageTitle,
-      backpageSubtitle, backpageUsingDefault,
-      backpageUsingCustom, backpageReset}.
-    - src/lib/i18n/es.ts — same keys for
-      structural parity (the PDF only reads from
-      en at render time per operator policy, but
-      Dictionary type = typeof en so es.ts must
-      mirror the shape).
-
-    --- TYPES ---
-    - src/types/database.ts — REGENERATED via
-      `npm run db:types` after operator applied
-      0035. Row + Insert + Update all carry
-      pawn_ticket_backpage: string | null. Diff vs
-      pre-regen hand stub is structurally
-      identical.
+    --- I18N RESTORATION ---
+    - src/lib/i18n/en.ts — `dashboard:` block
+      expanded back from `none`-only to the full
+      pre-redesign set: title, welcome,
+      placeholder, customersCard,
+      customersCardSub, inventoryCard,
+      inventoryCardSub, bannedCard, heldCard,
+      recentCustomers, recentInventory, seeAll,
+      none. Removed the "legacy keys removed
+      after Phase 8" comment.
+    - src/lib/i18n/es.ts — same keys, same shape,
+      Spanish strings (Panel / Bienvenido /
+      Clientes / etc.). Required for Dictionary
+      type = typeof en parity.
 
   RESUME POINT:
-    patches/0035 applied. Code compiles + lints +
-    409 tests pass. db:types regen post-0035
-    matches prod exactly. Ready to commit + push;
-    Vercel will rebuild on push.
+    Dashboard revert is on disk + tsc clean. NOT
+    committed. Operator needs to refresh
+    /dashboard in a browser (dev server may need
+    restart) and confirm the light stat-card
+    layout is what they want before commit + push.
+    If they want surgical changes instead (keep
+    some piece — e.g., bring back just the
+    activity feed or a single chart, drop the
+    rest), abort the commit and graft from the
+    Session 13 commits (3f7b779, c79ba7d) into
+    the restored content.tsx.
 
-    BACKPAGE SMOKE (new this session):
+    DASHBOARD VERIFY (this session):
+    - Visit /dashboard. Expect light Airbnb-
+      token cards: Customers / Banned customers
+      (count) / Inventory / Items on hold.
+    - Module-gated cards below: pawn (active /
+      due-this-week), repair (active / ready
+      for pickup), retail (today's revenue) —
+      only render if the tenant has the module.
+    - Recent Customers + Recent Inventory two
+      side-by-side lists at the bottom.
+    - No tabs, no charts, no kanban, no DL
+      scanner, no search bar.
+    - i18n flips correctly when language is
+      switched (Panel / Bienvenido / etc.).
+
+    BACKPAGE SMOKE (carried from Session 27 —
+    still open):
     - Print a pawn ticket from /pawn/[id] and
       verify page 2 renders the FL Ch. 539
       default with a "Terms and Conditions —
@@ -239,6 +231,9 @@ SEE ALSO (do not duplicate here):
         browser device-mode (carrying).
 
   OPEN ISSUES / BLOCKERS:
+    - Dashboard revert is tsc-verified only —
+      not yet loaded in a browser. Operator
+      review pending before commit.
     - Sessions 25/26/27 production smoke not yet
       walked end-to-end. Local lint+tsc+409 tests
       are green; real Resend / Google / Vercel-
@@ -294,61 +289,50 @@ SEE ALSO (do not duplicate here):
       tenants.jurisdiction_code). Per-tenant
       override on settings still wins regardless.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 27):
-    - DEFAULT-IN-CODE, NOT BACKFILLED-IN-DB. The
-      FL Ch. 539 standard text ships as a
-      TypeScript constant in src/lib/pdf/pawn-
-      ticket-backpage-default.ts; the renderer
-      falls back to it when settings.pawn_ticket_
-      backpage is NULL/whitespace. Reasons:
-      (1) Tenants who never customize ALWAYS see
-      the latest version of the default — if we
-      improve the wording, every uncustomized
-      tenant gets the update on next print, no
-      backfill migration needed. (2) Operator
-      can still override per tenant by typing
-      into the settings textarea. (3) An empty
-      textarea = "use the default" is the
-      simplest mental model — no checkbox, no
-      "are you sure you want to reset" prompt.
-    - ENGLISH ONLY ON THE BACKPAGE — DELIBERATE
-      EXCEPTION TO CLAUDE.md RULE 6 (BILINGUAL).
-      The pawn ticket is a legal document; the
-      operator confirmed it must print English
-      regardless of customer language preference.
-      The front of the ticket still renders
-      bilingually (customer fields, terms,
-      collateral table, signature lines). Only
-      the reverse-side legal disclosure is
-      English-only. ES dictionary still carries
-      pawn.print.backpage.header for type-shape
-      parity, but it's never read at render time.
-    - PARSE BACKPAGE TEXT AT RENDER TIME, NOT AT
-      INPUT TIME. Operator types/pastes plain
-      text with paragraph breaks (\n\n) and `--`
-      separators; parseBackpageBlocks() converts
-      that to PDF blocks. Lines with 3+
-      consecutive underscores switch to JetBrains
-      Mono so handwriting rules ("Pledgor _____")
-      print as continuous lines (Inter would
-      render with kerning gaps). Operator never
-      edits structured JSON or block markers —
-      just plain text.
-    - 20 000-CHAR CAP ON THE FIELD. The default
-      FL text is ~5.5 KB; multi-state operators
-      who concatenate 2-3 disclosures might run
-      ~15 KB. 20 KB headroom is enough for any
-      realistic legal block while still bounding
-      DB row size and PDF render time.
-    - LIVES ON /settings/loan-rates, NOT
-      /settings/general. The audience for "edit
-      pawn ticket disclosure" matches the
-      audience for "edit loan rates" (owner /
-      chain_admin / manager) and the page is
-      already pawn-context. No new page or
-      sidebar entry needed.
+  KEY DECISIONS LOCKED THIS SESSION (Session 28):
+    - REVERT TARGET = 4f5b13a, NOT 09db205.
+      Three candidate "originals" existed: the
+      bare Phase 0 skeleton (09db205 — only had
+      a placeholder card), the last commit
+      before the dark variant (4f5b13a — Phase 4
+      Retail POS shipped, dashboard had the
+      module-gated stat cards already), and the
+      dark variant itself before its data wire-
+      up (c0dcca4 — still on demoBars/PRNG).
+      Picked 4f5b13a because the operator needs
+      the module-gated stat cards as navigation
+      shortcuts; the bare skeleton is too empty
+      for daily use.
+    - SURGICAL REVERT, NOT FULL ROLLBACK. Used
+      `git checkout 4f5b13a -- <2 files>` plus
+      manual delete of dashboard.css and
+      actions.ts. The Session 13–27 work
+      (charts/kanban/activity feed/receipt
+      PDFs/loyalty/Google Reviews/email
+      campaigns/vault/backpage) all stays —
+      none of it depended on the dashboard's
+      structure beyond data plumbing in
+      page.tsx, which we replaced wholesale.
+    - i18n KEYS FULLY RESTORED, NOT MINIMAL-
+      RESTORE. Restored every dashboard.* key
+      from 4f5b13a (title / welcome /
+      placeholder / customersCard /
+      customersCardSub / inventoryCard /
+      inventoryCardSub / bannedCard / heldCard /
+      recentCustomers / recentInventory /
+      seeAll / none) to en.ts + es.ts. Rationale:
+      content.tsx@4f5b13a references all of
+      them; partial restore would tsc-fail.
+    - NOT COMMITTED YET. Per global instructions
+      ("ask before destructive actions"), the
+      revert is on disk + lint-clean but the
+      operator should load /dashboard in the
+      browser before we commit + push. Vercel
+      auto-deploys on push, so this is the
+      visual-confirmation gate before the
+      production rebuild.
 
-  (Sessions 13-26 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-27 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -1810,6 +1794,57 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
+--- Session 28 (2026-05-06, ~12:00) — Dashboard reverted to pre-dark-variant state ---
+
+ 264. DASHBOARD REVERTED TO COMMIT 4f5b13a (PRE-
+     DARK-VARIANT). Operator pushback: "I don't
+     like the dashboard now." Investigated git
+     history — three candidate "originals":
+     09db205 (Phase 0 skeleton, placeholder
+     only), 4f5b13a (Phase 4, last commit BEFORE
+     c0dcca4 introduced the dark variant), and
+     c0dcca4 itself (dark variant on demoBars
+     PRNG, before Session 13's data wire-up).
+     Picked 4f5b13a — module-gated stat cards
+     already shipped, light Airbnb-token theme,
+     ~600 LOC, used as a navigation surface in
+     daily ops.
+     Method: `git checkout 4f5b13a -- src/app/
+     (staff)/dashboard/page.tsx src/app/(staff)/
+     dashboard/content.tsx`. Then `rm src/app/
+     (staff)/dashboard/dashboard.css` (dark
+     scoped tokens, no longer referenced) and
+     `rm src/app/(staff)/dashboard/actions.ts`
+     (orphaned — searchAcrossModule was only
+     used by the dark dashboard's search bar;
+     verified via grep across src/ before
+     deletion). The Session 13–27 work
+     (charts/kanban/activity feed/receipt PDFs/
+     loyalty/Google Reviews/email campaigns/
+     vault/backpage) all stays — that work
+     didn't depend on the dashboard's structure
+     beyond the data plumbing inside the
+     dashboard/page.tsx aggregations, which got
+     replaced wholesale. No commit yet — the
+     operator needs to load /dashboard in a
+     browser before Vercel ships it.
+
+ 265. DASHBOARD i18n KEYS RESTORED. The Session 13
+     redesign stripped en.ts + es.ts dashboard:
+     blocks down to `none` only (with a comment
+     "Most legacy keys removed after Phase 8
+     dashboard wire-up"). Reverted content.tsx
+     references title / welcome / placeholder /
+     customersCard / customersCardSub /
+     inventoryCard / inventoryCardSub /
+     bannedCard / heldCard / recentCustomers /
+     recentInventory / seeAll / none — partial
+     restore would tsc-fail at the page boundary.
+     Pulled the full dashboard: block from
+     4f5b13a's en.ts + es.ts and dropped it back
+     in place of the `none`-only stub. Type-check
+     passes (`npx tsc --noEmit` exit 0).
+
 --- Session 27 (2026-05-06, ~11:00) — Pawn ticket backpage policy text (per-tenant override + FL Ch. 539 default) ---
 
  256. PATCHES/0035-PAWN-TICKET-BACKPAGE.SQL —
@@ -2504,26 +2539,33 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Print a real pawn ticket (any active loan in
-    /pawn) and verify the new page-2 backpage:
-    FL Ch. 539 default renders cleanly, paragraph
-    spacing reads, "Pledgor _____" form lines are
-    continuous in JetBrains Mono not gappy in
-    Inter, page-of-total footer counts both pages.
-    Then go to /settings/loan-rates, paste a
-    custom override into the textarea, save,
-    print again — verify the override replaces
-    the default. Click "Reset to default", save,
-    print again — verify default is restored.
-    AFTER THAT: walk the 9-smoke sequence (A-I)
-    from the RESUME POINT carried from Session 26
-    (Google Reviews, cron warmer, quota, email
-    campaigns, unsubscribe, Resend webhook, vault
-    smoke, settings UIs, eBay sync). Phase 0
-    punch list (CRON_SECRET + RESEND_WEBHOOK_
-    SECRET + GOOGLE_PLACES_API_KEY + the three
-    secret rotations) is still the biggest
-    blocker for smokes B/F/A.
+    Refresh /dashboard in the browser (restart
+    the dev server if it's still running on the
+    pre-revert build) and confirm the light
+    Airbnb-token stat-card layout renders: 4-up
+    grid (Customers / Banned customers /
+    Inventory / Items on hold) → module-gated
+    row → Recent Customers + Recent Inventory
+    two-column block. No tabs, charts, kanban,
+    activity feed, or DL scanner. If it's right,
+    say "ship it" and Claude will commit + push
+    (Vercel auto-deploys in ~1 min). If it's
+    wrong, identify the specific piece (do you
+    miss the activity feed? a single chart? the
+    DL scanner?) and Claude will surgically
+    re-graft from Session 13 commits 3f7b779 +
+    c79ba7d into the restored content.tsx.
+    AFTER THAT (carrying from Session 27): walk
+    the backpage smoke (print a pawn ticket;
+    verify default + custom override + reset
+    paths), then the 9-smoke sequence (A-I) for
+    Google Reviews / cron warmer / quota /
+    email campaigns / unsubscribe / Resend
+    webhook / vault / settings UIs / eBay sync.
+    Phase 0 punch list (CRON_SECRET +
+    RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY
+    + the three secret rotations) is still the
+    biggest blocker for smokes B/F/A.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 7 cron paths
