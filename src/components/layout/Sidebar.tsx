@@ -126,17 +126,27 @@ export function Sidebar({
   const canSeeTransfers =
     tenant?.tenant_type === 'shop' && !!tenant.parent_tenant_id
 
-  const items: Array<{
+  type NavItem = {
+    kind: 'item'
     href: string
     label: string
     icon: React.ReactNode
     disabled?: boolean
     visible?: boolean
-  }> = [
-    { href: '/dashboard', label: t.nav.dashboard, icon: <House size={18} weight="regular" /> },
-    { href: '/customers', label: t.nav.customers, icon: <Users size={18} weight="regular" /> },
-    { href: '/inventory', label: t.nav.inventory, icon: <Package size={18} weight="regular" /> },
+  }
+  type NavSection = {
+    /** Visual divider between groups. Renders as a hairline (collapsed)
+     *  or a hairline + uppercase muted label (expanded). */
+    kind: 'section'
+  }
+
+  const items: Array<NavItem | NavSection> = [
+    // Operations — top-level day-to-day navigation, no section label.
+    { kind: 'item', href: '/dashboard', label: t.nav.dashboard, icon: <House size={18} weight="regular" /> },
+    { kind: 'item', href: '/customers', label: t.nav.customers, icon: <Users size={18} weight="regular" /> },
+    { kind: 'item', href: '/inventory', label: t.nav.inventory, icon: <Package size={18} weight="regular" /> },
     {
+      kind: 'item',
       href: '/inventory/transfers',
       label: t.nav.transfers,
       icon: <ArrowsLeftRight size={18} weight="regular" />,
@@ -146,59 +156,75 @@ export function Sidebar({
     // items being published. Settings/integrations entry is owner-only and
     // users will navigate there from the per-listing UI.
     {
+      kind: 'item',
       href: '/inventory/listings/ebay',
       label: t.nav.ebayListings,
       icon: <Storefront size={18} weight="regular" />,
       visible: modules.has_retail,
     },
     {
+      kind: 'item',
       href: '/inventory/spot-prices',
       label: t.nav.spotPrices,
       icon: <Scales size={18} weight="regular" />,
       visible: canSeeSettings || modules.has_pawn || modules.has_retail,
     },
+
+    // Modules — gated per tenant.has_pawn / has_repair / has_retail.
+    { kind: 'section' },
     {
+      kind: 'item',
       href: '/pawn',
       label: t.nav.pawn,
       icon: <Coins size={18} weight="regular" />,
       visible: modules.has_pawn,
     },
     {
+      kind: 'item',
       href: '/pawn/calculator',
       label: t.nav.loanCalculator,
       icon: <Calculator size={18} weight="regular" />,
       visible: modules.has_pawn,
     },
     {
+      kind: 'item',
       href: '/buy/new',
       label: t.nav.buyOutright,
       icon: <HandCoins size={18} weight="regular" />,
       visible: modules.has_pawn,
     },
     {
+      kind: 'item',
       href: '/repair',
       label: t.nav.repair,
       icon: <Wrench size={18} weight="regular" />,
       visible: modules.has_repair,
     },
     {
+      kind: 'item',
       href: '/pos',
       label: t.nav.pos,
       icon: <CashRegister size={18} weight="regular" />,
       visible: modules.has_retail,
     },
+
+    // Reporting + records.
+    { kind: 'section' },
     {
+      kind: 'item',
       href: '/appraisals',
       label: t.nav.appraisals,
       icon: <Certificate size={18} weight="regular" />,
     },
-    { href: '/reports', label: t.nav.reports, icon: <ChartBar size={18} weight="regular" /> },
+    { kind: 'item', href: '/reports', label: t.nav.reports, icon: <ChartBar size={18} weight="regular" /> },
     {
+      kind: 'item',
       href: '/reports/police-report',
       label: t.nav.compliance,
       icon: <Shield size={18} weight="regular" />,
     },
     {
+      kind: 'item',
       href: '/reports/1099',
       label: t.nav.form1099,
       icon: <Receipt size={18} weight="regular" />,
@@ -207,36 +233,45 @@ export function Sidebar({
       visible: canSeeAudit,
     },
     {
+      kind: 'item',
       href: '/audit',
       label: t.nav.audit,
       icon: <ClockCounterClockwise size={18} weight="regular" />,
       visible: canSeeAudit,
     },
+
+    // Admin.
+    { kind: 'section' },
     {
+      kind: 'item',
       href: '/team',
       label: t.nav.team,
       icon: <UsersThree size={18} weight="regular" />,
       visible: canSeeAudit, // owner / chain_admin / manager
     },
     {
+      kind: 'item',
       href: '/settings/communications',
       label: t.nav.communications,
       icon: <ChatCircleText size={18} weight="regular" />,
       visible: canSeeSettings,
     },
     {
+      kind: 'item',
       href: '/settings/loyalty',
       label: t.nav.loyalty,
       icon: <Trophy size={18} weight="regular" />,
       visible: canSeeLoyalty,
     },
     {
+      kind: 'item',
       href: '/billing',
       label: t.nav.billing,
       icon: <CreditCard size={18} weight="regular" />,
       visible: canSeeBilling,
     },
     {
+      kind: 'item',
       href: '/settings',
       label: t.nav.settings,
       icon: <Gear size={18} weight="regular" />,
@@ -268,8 +303,33 @@ export function Sidebar({
       </button>
 
       {items
-        .filter((it) => it.visible !== false)
-        .map((it) => {
+        .filter((it) => it.kind === 'section' || it.visible !== false)
+        // Drop a section divider whose group is empty (all items filtered
+        // out by visibility) or that lands at the end of the list. Two
+        // passes:
+        //   - reduce: never push a section if the previous accepted entry
+        //     is also a section (collapses adjacent dividers from a
+        //     fully-hidden group).
+        //   - then drop a trailing section if the list ends with one.
+        .reduce<Array<NavItem | NavSection>>((acc, it) => {
+          if (it.kind === 'section') {
+            const last = acc[acc.length - 1]
+            if (!last || last.kind === 'section') return acc
+          }
+          acc.push(it)
+          return acc
+        }, [])
+        .filter((it, idx, arr) => !(it.kind === 'section' && idx === arr.length - 1))
+        .map((it, idx) => {
+          if (it.kind === 'section') {
+            return (
+              <div
+                key={`sep-${idx}`}
+                role="separator"
+                className="my-2 border-t border-white/10"
+              />
+            )
+          }
           const isActive =
             pathname === it.href || pathname.startsWith(it.href + '/')
           if (it.disabled) {
