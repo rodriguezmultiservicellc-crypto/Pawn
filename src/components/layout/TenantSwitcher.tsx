@@ -68,8 +68,8 @@ export function TenantSwitcher({
   // Single-tenant: render as a static chip.
   if (single) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm">
-        <span className="text-foreground font-medium">{activeLabel}</span>
+      <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground">
+        {activeLabel}
       </span>
     )
   }
@@ -108,11 +108,11 @@ export function TenantSwitcher({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-background hover:text-foreground"
+        className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-background"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="text-foreground font-medium">{activeLabel}</span>
+        <span>{activeLabel}</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -130,11 +130,7 @@ export function TenantSwitcher({
       {open ? (
         <div
           role="listbox"
-          className="absolute right-0 z-20 mt-1 w-72 overflow-hidden rounded-xl border border-border bg-card"
-          style={{
-            boxShadow:
-              'rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0',
-          }}
+          className="absolute right-0 z-20 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
         >
           <ul className="max-h-80 overflow-y-auto py-1">
             {tenants.map((t) => {
@@ -168,7 +164,7 @@ export function TenantSwitcher({
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="2"
-                        className="mt-0.5 h-4 w-4 text-gold"
+                        className="mt-0.5 h-4 w-4 text-blue"
                       >
                         <path d="M20 6 9 17l-5-5" />
                       </svg>

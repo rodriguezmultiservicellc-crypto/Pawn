@@ -32,14 +32,8 @@ export default function ClaimContent({
   >(claimPortalAction, {})
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <div
-        className="w-full max-w-md rounded-2xl border border-border bg-card p-8"
-        style={{
-          boxShadow:
-            'rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0',
-        }}
-      >
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-navy px-4 py-12">
+      <div className="w-full max-w-md rounded-2xl bg-card p-10 shadow-lg">
         <h1 className="font-display text-2xl font-bold text-foreground">
           {t.portal.claim.title}
         </h1>
