@@ -13,70 +13,191 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 30 (2026-05-06, ~14:30)
-                  — Layout shell follow-up to
-                  Session 29's design migration.
-                  Operator feedback after seeing
-                  the production build: "the menu
-                  doesn't go all the way to the
-                  top, the header is in the way."
-                  Root cause: (staff)/layout.tsx
-                  wrapped the whole shell in `flex
-                  flex-col` with the topbar as the
-                  first child and a `flex flex-1`
-                  row below it — so the navy
-                  sidebar started below the white
-                  header instead of hugging the
-                  full left edge. Fix: restructured
-                  to the Luna Azul reference shape
-                  — outer `flex min-h-screen` with
-                  Sidebar on the left at full
-                  height, plus a `flex flex-1
-                  flex-col` right column holding
-                  the header (h-16) + main. Sidebar
-                  now spans the entire viewport
-                  height, topbar only spans the
-                  right portion next to it. tsc
-                  clean. Committed + pushed as a
-                  follow-up to Session 29.
-                  Session 29 context (DESIGN SYSTEM
-                  REPLACED, Airbnb → Luna Azul,
-                  navy chrome + gold action + DM
-                  Sans / Playfair Display, 154
-                  files / ~5300 className renames,
-                  4-pass mechanical sweep + manual
-                  composition restyles for the
-                  shell / sidebar / dashboard /
-                  auth) is preserved in the
-                  SESSION HISTORY LOG below — see
-                  Session 29 entry for the full
-                  migration record.
-  Context budget: small (one file restructured,
-                  layout shell composition only).
-  Last worked on: One surface — (staff)/layout.tsx
-                  shell. Operator browser-verified
-                  the Session 29 migration after
-                  it shipped, and the only call-out
-                  was the sidebar / topbar
-                  stacking. Pure composition fix,
-                  no token changes, no logic
-                  changes elsewhere.
+  Last session:   Session 31 (2026-05-06, ~16:00)
+                  — Luna Azul design pass: six
+                  follow-up commits cleaning up
+                  after the Session 29 mechanical
+                  sweep + Session 30 layout fix.
+                  Each commit hit a different
+                  pattern that the className-only
+                  sweep couldn't reach or that
+                  needed composition tuning to
+                  match Luna Azul's spec. Cumulative
+                  blast radius across the six
+                  commits: ~250+ files touched, all
+                  visual / className-level, zero
+                  logic changes. tsc clean
+                  throughout. All shipped.
 
-  ACTIVE FILE(S) modified this session — Session 30
-  (committed + pushed):
+                  Six commits:
+                  - 929d072: form inputs (30 files)
+                    + page-title h1s (64 across
+                    59 files) + auth/portal form
+                    label & button shape
+                  - e301f67: card containers (79
+                    files, rounded-lg → rounded-xl)
+                    + secondary-button hover (70
+                    files / 119 hits, hover-border-
+                    darken → hover-bg-shift)
+                  - 1ae17cc: links (text-foreground
+                    underline → text-blue) + status
+                    badges (gold-as-status purged
+                    in StatusBadge, ServiceTypeBadge,
+                    TimelinePanel) + emphasis pills
+                    (PayoffCalculator,
+                    RedeemConfirmDialog gold → navy)
+                    + audit page hero/link
+                  - e49574d: stale Rausch gradients
+                    in 4 inline style={{}} props
+                    (portal/login/page.tsx, onboard/
+                    layout.tsx, PortalChrome.tsx,
+                    (admin)/layout.tsx) — none of
+                    these were caught by the
+                    Session 29 className sweep
+                  - 05b92f0: tab active states
+                    (border-gold → border-blue on
+                    light surfaces; dark-sidebar
+                    keeps gold-on-active per design)
+                    + StatCard / RevenueCard icon
+                    chips (w-9 h-9 colored boxes)
+                  - 5036698: TenantSwitcher
+                    secondary-button shape + gold
+                    checkmark → blue + dropdown
+                    shadow shifted from the retired
+                    3-layer signature to shadow-lg.
+                    portal/claim restyled to match
+                    auth-card pattern (full navy bg,
+                    white card). Last inline 3-
+                    layer signature shadow gone.
 
-    - src/app/(staff)/layout.tsx — outer wrapper
-      changed from `flex min-h-screen flex-col`
-      → `flex min-h-screen` (no flex-col). Sidebar
-      moved to be the FIRST child (full-height
-      left column). The right side is a new
-      `flex flex-1 flex-col` wrapper that contains
-      the header (h-16) followed by main. Result:
-      navy sidebar runs from y=0 to bottom-of-
-      viewport; white topbar only spans the right
-      portion. No content / no styling changes
-      elsewhere — header markup, sidebar markup,
-      main padding all unchanged.
+                  Session 29 + 30 context preserved
+                  in the SESSION HISTORY LOG.
+  Context budget: medium (~250 files across 6
+                  commits, all className-level).
+  Last worked on: Iterative design polish across
+                  the whole staff + portal + admin
+                  + auth surface. User cadence was
+                  "continue" — no specific target,
+                  so each pass picked the next-
+                  most-visible Airbnb-era pattern
+                  (form inputs, then page titles,
+                  then card radii, then secondary
+                  button hovers, then status-color
+                  discipline, then stale gradient
+                  cleanup, then tab states + icon
+                  chips, then dropdown chrome).
+                  Reached natural stopping point
+                  when remaining work became
+                  per-page composition tuning that
+                  needs operator's eyes in the
+                  browser.
+
+  ACTIVE FILE(S) modified this session — Session 31
+  (all six commits live on production):
+
+    --- COMMIT 929d072 — form inputs + page titles ---
+    - 30 files: input pattern bumped from
+      `rounded-md border border-border bg-card
+      px-3 py-2 ... focus:ring-2 focus:ring-blue/10`
+      to Luna Azul `rounded-xl border-2 border-
+      border bg-background px-4 py-3 text-sm ...
+      focus:border-blue` (no ring, border color
+      shift on focus).
+    - 5 auth/portal form files: labels font-medium
+      foreground → font-semibold text-secondary;
+      primary buttons gained hover:-translate-y-0.5
+      hover:shadow-lg lift.
+    - 59 files / 64 page-title h1s: added
+      font-display (Playfair). Stripped
+      tracking-tight + tracking-[-0.01em]
+      compensation rules left over from the
+      Inter-mimicking-Cereal era.
+
+    --- COMMIT e301f67 — card radius + hover ---
+    - 79 files: bumped `rounded-lg border
+      border-border bg-card` → `rounded-xl border
+      border-border bg-card` so card containers
+      use the workhorse 12px radius. (Side effect:
+      Admin Console pill in (staff)/layout.tsx
+      bumped to 12px since it shares the className
+      substring; flagged to operator.)
+    - 70 files / 119 hits: hover:border-foreground
+      → hover:bg-background hover:text-foreground.
+      Luna Azul reads secondary-button hover as a
+      bg+text shift, not a border darken.
+
+    --- COMMIT 1ae17cc — gold-as-status purge ---
+    - 5 files: text-foreground underline-offset-2
+      hover:underline → text-blue
+      transition-colors hover:text-blue-2.
+    - StatusBadge: assigned + in_progress states
+      gold-tinted → info-blue.
+    - ServiceTypeBadge: rewrite. Was using gold
+      (action color) and success/warning (status
+      colors) for category labels — neither
+      correct per design. Now uniform neutral
+      surface (bg-background border-border
+      text-foreground) with a colored DOT (navy
+      / blue / muted) to distinguish category.
+      bg-ash was a stale Airbnb-era token.
+    - TimelinePanel: started/resumed/assigned_
+      to_tech/claimed_by_tech all gold-tinted →
+      info-blue.
+    - PayoffCalculator + RedeemConfirmDialog
+      "Total Due" / "Payoff Now" emphasis pills:
+      gold-tinted → navy-tinted (display values,
+      not interactive, can't use action color).
+    - audit/content.tsx: hero ClockCounterClockwise
+      icon text-gold → text-muted; record-id
+      link text-gold hover:underline → text-blue
+      transition-colors hover:text-blue-2.
+
+    --- COMMIT e49574d — stale Rausch gradients ---
+    - 4 chrome surfaces still had the old Rausch
+      → magenta gradient buried in inline
+      style={{ backgroundImage: ... }} props the
+      Session 29 className sweep couldn't reach:
+      portal/login/page.tsx, onboard/layout.tsx,
+      PortalChrome.tsx, (admin)/layout.tsx. All
+      restyled to solid Playfair-Display navy
+      (light surfaces) or white (navy-bg auth
+      cards). (admin)/layout.tsx nav links also
+      bumped from text-foreground hover:text-gold
+      → text-text-secondary hover:text-blue (gold
+      not allowed for navigation hover); Staff →
+      button promoted to Luna Azul secondary
+      shape.
+
+    --- COMMIT 05b92f0 — tabs + dashboard chips ---
+    - eBay listings tab buttons + portal nav top
+      + portal nav bottom: border-gold/text-gold
+      active state → border-blue/text-blue. Per
+      design, gold is action only; light-surface
+      navigation underlines use Blue. (Dark-
+      sidebar gold-on-active stays — that's the
+      documented exception.)
+    - StatCard + RevenueCard icon chip: bare icon
+      in the corner → w-9 h-9 rounded-lg colored
+      chip. Tone-driven: navy/5 + navy text for
+      neutral, danger/10 for error tone, warning/
+      10 for warning tone. RevenueCard uses
+      success/10 + success text (revenue is a
+      "good-standing money-in" signal). Matches
+      Luna Azul module-card icon-box pattern.
+
+    --- COMMIT 5036698 — TenantSwitcher + claim ---
+    - TenantSwitcher trigger button + single-
+      tenant chip: rounded-md text-sm font-medium
+      → rounded-lg text-xs font-semibold (Luna
+      Azul secondary-button shape). Active-
+      tenant checkmark text-gold → text-blue.
+      Dropdown panel: dropped the inline 3-layer
+      "signature elevation" shadow for shadow-lg.
+    - portal/claim/[token]/content.tsx: full
+      restyle to navy bg + white centered card
+      (matches auth-card pattern). Drops the last
+      inline 3-layer shadow in the codebase. The
+      Airbnb signature shadow is fully retired.
 
   PRIOR-SESSION ACTIVE FILE(S) — Session 29
   (committed in 1d57110, on production):
@@ -187,65 +308,63 @@ SEE ALSO (do not duplicate here):
       logic changes in any of them.
 
   RESUME POINT:
-    Layout shell fix is on production (Session 30
-    follow-up commit). Sidebar now hugs the full
-    left edge top-to-bottom; topbar only spans
-    the right portion. Operator should refresh
-    /dashboard and confirm the column reaches
-    y=0 with no white strip above it. Once that
-    looks right, walk the rest of the
-    Session 29 migration verification (browser
-    spot-checks of /login, /customers, /inventory,
-    /pawn, /repair, /pos, /settings) and flag
-    anything that still feels Airbnb-era — the
-    Session 29 mechanical sweep covered every
-    classlist but a visual pass may still surface
-    a few orphan stat-pill colors or a hover
-    state that didn't translate cleanly.
+    The Luna Azul migration + design pass is on
+    production through commit 5036698. Six commits
+    landed this session covering form inputs, page
+    titles, card radii, hover states, status-color
+    discipline, gradient cleanup, tab states,
+    dashboard icon chips, and the TenantSwitcher /
+    portal-claim chrome. tsc --noEmit clean
+    throughout. Vercel auto-deployed each.
 
-    BROWSER VERIFY (carrying from Session 29 —
-    the sidebar concern is fixed; the rest is
-    still open):
+    Remaining work has hit diminishing returns
+    from static analysis — the design pass has
+    touched every architecturally distinct surface.
+    What's left is per-page composition tuning
+    that needs operator's eyes in the browser.
+    Pull up the production URL, walk through the
+    routes below, and call out by route + element
+    anything that still feels Airbnb-era. Each
+    finding becomes a small surgical commit, no
+    more mass sweeps.
+
+    BROWSER WALKTHROUGH (in priority order):
     - /dashboard — Playfair page title navy.
       Stat cards lift 4px on hover with shadow-
-      lg. Cards have 12px radius (rounded-xl),
-      1px #dde6f0 border. Module-gated row only
-      renders pawn/repair/retail cards if the
-      tenant has that module. No tabs, charts,
-      kanban, DL scanner.
+      lg, 12px radius, w-9 h-9 colored icon
+      chips. Module-gated row only renders
+      pawn/repair/retail when tenant has that
+      module.
     - Sidebar — full dark navy column TOP TO
-      BOTTOM (Session 30 fix). Inactive rows
-      white/65 muted. Hovered row slight white/5
-      overlay + full white text. Active row gold
-      text + white/10 bg overlay + gold icon.
-      Collapse caret in muted white at the top.
-      w-52 expanded, w-16 collapsed.
-    - Topbar — clean white strip, h-16, on the
-      RIGHT side only (next to the sidebar, not
-      above it). Solid Playfair "Pawn" navy on
-      the left of the topbar, next to tenant
-      switcher. Admin Console pill (superadmin
-      only) + user name on the right.
-    - /login — full navy page background. White
-      card centered, max-w-md, rounded-2xl, p-10.
-      White Playfair "Pawn" wordmark above the
-      card. Gold submit with NAVY text, not white.
-    - Spot-check ops routes — /customers,
-      /inventory, /pawn, /repair, /pos, /settings.
-      Mechanical sweep handled every classlist;
-      no logic touched. If something's clearly
-      off (a button still pink, a card still
-      rounded too far, a label using an old grey)
-      name the route and Claude will surgical-fix.
+      BOTTOM. Active row gold text + white/10
+      overlay + gold icon. w-52 expanded /
+      w-16 collapsed. Collapse caret muted
+      white at top.
+    - Topbar — h-16 white strip on the RIGHT
+      side only. Solid Playfair "Pawn" navy
+      next to tenant switcher.
+    - /login, /portal/login, /onboard,
+      /portal/claim — all four navy-bg auth
+      cards with rounded-2xl + shadow-lg + white
+      Playfair wordmark above. Gold submit
+      buttons with NAVY text + lift on hover.
+    - /customers, /inventory, /pawn, /repair,
+      /pos, /settings — page titles in Playfair,
+      forms with 2px borders + focus:border-blue
+      (no ring), buttons rounded-lg with
+      bg-shift hover, links text-blue.
+    - Open a dialog (e.g. record-payment, add-
+      stone) — modal panel rounded-xl border
+      shadow-lg, navy/40 backdrop.
+    - /pawn/[id] — backpage smoke still open
+      from Session 27 (carried below).
 
     SHIP-AS-YOU-GO:
-    - Session 29 + 30 are already on production
-      (commits 1d57110 + Session 30 follow-up).
-      Vercel auto-deployed both. Any further
-      visual fix gets its own commit + push as
-      operator finds them. The migration script
-      is gone — case-by-case fixes only, no
-      mass-sweep encore.
+    - Each operator finding becomes its own
+      surgical commit. No more mechanical
+      sweeps; the Session 29 migration script
+      was deleted on purpose to force per-case
+      thinking.
 
     BACKPAGE SMOKE (carried from Session 27 —
     still open):
@@ -339,14 +458,13 @@ SEE ALSO (do not duplicate here):
         new design system.
 
   OPEN ISSUES / BLOCKERS:
-    - Session 29 migration shipped (commit
-      1d57110). Session 30 sidebar fix shipped.
-      Operator browser verification of the
-      remaining staff routes (/customers,
-      /inventory, /pawn, /repair, /pos,
-      /settings) still open — anything that
-      reads "Airbnb-era" gets a surgical
-      follow-up commit.
+    - Sessions 29 + 30 + 31 design migration
+      (eight commits total: 1d57110 / 8b13560 /
+      929d072 / e301f67 / 1ae17cc / e49574d /
+      05b92f0 / 5036698) all shipped. Operator
+      browser walkthrough of the production URL
+      still open — Airbnb-era stragglers get
+      surgical follow-up commits as found.
     - Sessions 25/26/27 production smoke not yet
       walked end-to-end. Local lint+tsc+409 tests
       are green; real Resend / Google / Vercel-
@@ -398,7 +516,70 @@ SEE ALSO (do not duplicate here):
       remapped to gold/blue/navy. None spotted in
       tsc, but a visual pass may surface a few.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 30):
+  KEY DECISIONS LOCKED THIS SESSION (Session 31):
+    - GOLD IS ACTION ONLY, ENFORCED EVERYWHERE.
+      The Session 29 mechanical sweep migrated
+      tokens but didn't enforce the design rule
+      that gold is the action color, never used
+      for status / decoration / navigation. This
+      session purged the misuses found:
+      assigned/in_progress repair status badges,
+      timeline events, ServiceTypeBadge category
+      tints, light-surface tab active borders,
+      TenantSwitcher active checkmark, audit-page
+      hero icon, audit record-id link, payoff /
+      redeem emphasis pills. Dark-sidebar gold-
+      on-active stays — that's documented in
+      DESIGN-lunaazul.md §6 as the exception.
+    - LIGHT-SURFACE NAV USES BLUE, NOT GOLD.
+      Tabs, dropdown active rows, breadcrumb
+      separators, focus rings, link colors —
+      all blue (#1d6fa4) on light surface. Dark
+      sidebar uses gold. Two distinct
+      "I'm-here / I'm-active" treatments per
+      surface type.
+    - INLINE STYLE GRADIENTS / SHADOWS WERE
+      INVISIBLE TO THE className SWEEP. Four
+      Rausch gradients hid in inline style={{}}
+      props (portal/login, onboard, PortalChrome,
+      admin layout) and survived the Session 29
+      mass migration. One inline 3-layer Airbnb
+      shadow hid in portal/claim. All caught
+      this session via grep for hex literals.
+      Lesson: future migrations should grep for
+      both className tokens AND hex literals in
+      inline styles.
+    - CARD WORKHORSE RADIUS IS 12PX.
+      `rounded-lg border border-border bg-card`
+      patterns (8px) bumped to `rounded-xl
+      border border-border bg-card` (12px). The
+      design's "one card radius" rule.
+    - HOVER FEEL IS BG-SHIFT, NOT BORDER-DARKEN.
+      Old `hover:border-foreground` (single
+      pixel of border darkens) replaced with
+      `hover:bg-background hover:text-
+      foreground` (whole row warms slightly).
+      This is the single biggest interaction-
+      feel change after the migration — cards
+      and buttons feel softer / more inviting.
+    - STAT CARD HAS A COLORED ICON CHIP. Bare
+      icons in the corner moved to w-9 h-9
+      colored boxes per Luna Azul module-card
+      reference. Chip color follows the tone
+      prop: navy/5 + navy text for neutral,
+      danger/10 for error, warning/10 for
+      warning. RevenueCard uses success/10 +
+      success text since revenue is a
+      good-standing money-in signal.
+    - SHIP-AS-YOU-GO, NO MORE SWEEPS. The
+      one-shot migration script was deleted at
+      the end of Session 29. From this session
+      forward, every visual fix gets its own
+      commit + push so Vercel ships it
+      individually, and so any regression has a
+      clean bisect target.
+
+  KEY DECISIONS LOCKED LAST SESSION (Session 30):
     - SIDEBAR-FIRST LAYOUT, NOT HEADER-FIRST.
       The Session 29 staff layout had the topbar
       as the first child (above the sidebar/main
@@ -1947,6 +2128,159 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
+--- Session 31 (2026-05-06, ~16:00) — Luna Azul design pass: 6-commit polish + gold-misuse purge ---
+
+ 272. FORM INPUTS + AUTH/PORTAL FORMS + PAGE
+     TITLES (commit 929d072). Three-pronged
+     mechanical sweep:
+     - 30 files: input pattern bumped from
+       `rounded-md border border-border bg-card
+       px-3 py-2 ... focus:ring-2
+       focus:ring-blue/10` to Luna Azul
+       `rounded-xl border-2 border-border
+       bg-background px-4 py-3 text-sm ...
+       focus:border-blue` (no ring, border
+       color shift on focus). Compact px-2 py-1
+       variant scaled down accordingly to
+       rounded-lg / px-3 py-2.
+     - 5 auth/portal form files (login, magic-
+       link, forgot-password, set-password,
+       portal/login): labels font-medium
+       foreground → font-semibold text-text-
+       secondary; primary buttons gained
+       hover:-translate-y-0.5 hover:shadow-lg
+       lift per the design's primary-button
+       spec.
+     - 59 files / 64 page-title h1s: added
+       font-display (Playfair). Stripped
+       tracking-tight + tracking-[-0.01em]
+       compensation that was left over from
+       the Inter-mimicking-Cereal era of the
+       Airbnb system. Playfair self-tunes
+       display proportions.
+
+ 273. CARD RADIUS + SECONDARY BUTTON HOVER
+     (commit e301f67):
+     - 79 files: `rounded-lg border border-
+       border bg-card` → `rounded-xl border
+       border-border bg-card`. Per the design,
+       the workhorse card radius is 12px
+       (rounded-xl); 8px (rounded-lg) is
+       reserved for buttons and dropdown rows.
+       Side effect: Admin Console pill in
+       (staff)/layout.tsx bumped to 12px since
+       it shared the className substring;
+       flagged to operator, kept as-is.
+     - 70 files / 119 hits: hover:border-
+       foreground → hover:bg-background
+       hover:text-foreground. Luna Azul reads
+       secondary-button hover as a bg+text
+       shift, not a border darken. Single
+       biggest interaction-feel change after
+       the migration.
+
+ 274. STATUS-COLOR DISCIPLINE + LINK CLEANUP
+     (commit 1ae17cc). Gold is action only,
+     never status / decoration. Purged in:
+     - 5 files: text-foreground underline-
+       offset-2 hover:underline → text-blue
+       transition-colors hover:text-blue-2
+       (Luna Azul link spec).
+     - StatusBadge.tsx: `assigned` +
+       `in_progress` repair states gold-tinted
+       → info-blue.
+     - ServiceTypeBadge.tsx: rewrite. Was
+       using gold (action) and success/warning
+       (status) for category labels — neither
+       correct per design. Now uniform neutral
+       surface (bg-background border-border
+       text-foreground) with a colored DOT
+       (navy / blue / muted) to distinguish
+       category. bg-ash dot was a stale
+       Airbnb-era token.
+     - TimelinePanel.tsx: started / resumed /
+       assigned_to_tech / claimed_by_tech all
+       gold-tinted → info-blue.
+     - PayoffCalculator + RedeemConfirmDialog
+       "Total Due" / "Payoff Now" emphasis
+       pills: gold-tinted → navy-tinted (display
+       values, not interactive — can't use the
+       action color).
+     - audit/content.tsx: hero
+       ClockCounterClockwise icon text-gold →
+       text-muted; record-id link text-gold
+       hover:underline → text-blue
+       transition-colors hover:text-blue-2.
+
+ 275. STALE RAUSCH GRADIENTS NUKED (commit
+     e49574d). The Session 29 className-only
+     mechanical sweep couldn't see the Rausch
+     coral → magenta gradient because four
+     chrome surfaces had it buried in inline
+     style={{ backgroundImage: ... }} props.
+     Caught via grep for hex literals
+     (#ff385c). All four restyled:
+     - portal/login/page.tsx — full restyle to
+       navy bg + white card (matches
+       (auth)/layout.tsx).
+     - onboard/layout.tsx — same auth-card
+       treatment.
+     - PortalChrome.tsx — tenant name on portal
+       topbar, gradient → solid Playfair navy.
+     - (admin)/layout.tsx — admin chrome
+       wordmark; nav links also bumped from
+       text-foreground hover:text-gold →
+       text-text-secondary hover:text-blue
+       (gold not allowed for navigation hover);
+       Staff → button promoted to Luna Azul
+       secondary shape.
+     Confirmed via grep: no more
+     linear-gradient #ff385c references and
+     no bg-clip-text usages anywhere in src/.
+
+ 276. TAB ACTIVE STATES + DASHBOARD ICON CHIPS
+     (commit 05b92f0):
+     - eBay listings tab buttons + portal nav
+       top + portal nav bottom: border-gold +
+       text-gold active state →
+       border-blue / text-blue (font-semibold,
+       transition-colors). Per the design, gold
+       is action only; light-surface navigation
+       underlines use Blue. Dark-sidebar
+       gold-on-active stays — that's the
+       documented exception in
+       DESIGN-lunaazul.md §6.
+     - StatCard + RevenueCard icon chip: bare
+       icon in the corner → w-9 h-9 rounded-lg
+       colored chip. Tone-driven: navy/5 +
+       navy text for neutral, danger/10 +
+       danger for error, warning/10 +
+       warning for warning. RevenueCard uses
+       success/10 + success since revenue is a
+       "good-standing money-in" signal. Matches
+       Luna Azul module-card icon-box pattern
+       from the audit.
+
+ 277. TENANTSWITCHER + PORTAL/CLAIM CHROME
+     (commit 5036698):
+     - TenantSwitcher trigger button +
+       single-tenant chip: rounded-md text-sm
+       font-medium → rounded-lg text-xs
+       font-semibold (Luna Azul secondary-
+       button shape). Active-tenant checkmark
+       text-gold → text-blue. Dropdown panel:
+       dropped the inline 3-layer "signature
+       elevation" shadow (retired with the
+       Airbnb system) for shadow-lg.
+     - portal/claim/[token]/content.tsx: full
+       restyle to navy bg + white centered card
+       max-w-md rounded-2xl p-10 shadow-lg
+       (matches the auth-card pattern).
+     Confirmed via grep: no more
+     `rgba(0, 0, 0, 0.02) 0 0 0 1px` references
+     in src/. The Airbnb signature shadow is
+     fully retired.
+
 --- Session 30 (2026-05-06, ~14:30) — Layout shell follow-up: sidebar full-height ---
 
  271. SIDEBAR FULL-HEIGHT LAYOUT FIX. Operator
@@ -2910,30 +3244,26 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Refresh /dashboard. The navy sidebar should
-    now run from the very top of the viewport
-    to the bottom (Session 30 fix). The white
-    topbar lives only on the right portion next
-    to the sidebar, not stacked above it. If
-    that looks right, walk the rest of the
-    Session 29 migration verification — spot-
-    check /login, /customers, /inventory, /pawn,
-    /repair, /pos, /settings for any element
-    that still feels Airbnb-era (a button still
-    pink, a card with too-large radius, a label
-    in an old gray). Each finding gets a
-    surgical commit + push (Vercel auto-deploys
-    in ~1 min).
-    AFTER THAT (carrying from Session 27): walk
-    the backpage smoke (print a pawn ticket;
-    verify default + custom override + reset
-    paths — the PDF print uses reportColors,
-    NOT the screen palette, so the print look
-    is unchanged by the Luna Azul migration),
-    then the 9-smoke sequence (A-I) for Google
-    Reviews / cron warmer / quota / email
-    campaigns / unsubscribe / Resend webhook /
-    vault / settings UIs / eBay sync.
+    Pull up the production URL. The Luna Azul
+    migration + design pass is fully shipped
+    through commit 5036698. Walk the routes in
+    the RESUME POINT browser-walkthrough above
+    (dashboard, sidebar, topbar, auth pages,
+    main staff routes, a dialog) and call out
+    by route + element anything that still
+    feels Airbnb-era. Each finding gets a
+    small surgical commit. The mass sweeps
+    are done — no more grep-driven changes.
+    AFTER THE BROWSER PASS (carrying from
+    Session 27): walk the backpage smoke (print
+    a pawn ticket; verify default + custom
+    override + reset paths — PDF print uses
+    reportColors, NOT the screen palette, so
+    the print look is unchanged by the
+    migration), then the 9-smoke sequence (A-I)
+    for Google Reviews / cron warmer / quota /
+    email campaigns / unsubscribe / Resend
+    webhook / vault / settings UIs / eBay sync.
     Phase 0 punch list (CRON_SECRET +
     RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY
     + the three secret rotations) is still the
