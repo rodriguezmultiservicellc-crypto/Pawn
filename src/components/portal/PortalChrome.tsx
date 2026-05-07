@@ -154,11 +154,11 @@ function PortalTopLink({
       href={href}
       className={`flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors ${
         active
-          ? 'border-gold font-medium text-foreground'
+          ? 'border-blue font-semibold text-foreground'
           : 'border-transparent text-muted hover:text-foreground'
       }`}
     >
-      <span className={active ? 'text-gold' : 'text-muted'}>{icon}</span>
+      <span className={active ? 'text-blue' : 'text-muted'}>{icon}</span>
       <span>{label}</span>
     </Link>
   )
@@ -179,7 +179,7 @@ function PortalBottomLink({
     <Link
       href={href}
       className={`flex flex-1 flex-col items-center gap-0.5 px-1 py-2 text-xs transition-colors ${
-        active ? 'text-gold' : 'text-muted hover:text-foreground'
+        active ? 'text-blue font-semibold' : 'text-muted hover:text-foreground'
       }`}
     >
       <span>{icon}</span>

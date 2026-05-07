@@ -61,9 +61,9 @@ export default function EbayListingsListContent({
               key={s}
               type="button"
               onClick={() => router.push(`/inventory/listings/ebay?status=${s}`)}
-              className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+              className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
                 active
-                  ? 'border-gold font-medium text-foreground'
+                  ? 'border-blue font-semibold text-foreground'
                   : 'border-transparent text-muted hover:text-foreground'
               }`}
             >

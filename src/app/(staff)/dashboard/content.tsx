@@ -277,17 +277,25 @@ function StatCard({
       : 'border-border bg-card'
   const valueColor =
     tone === 'error' ? 'text-danger' : tone === 'warning' ? 'text-warning' : 'text-foreground'
+  const iconChip =
+    tone === 'error'
+      ? 'bg-danger/10 text-danger'
+      : tone === 'warning'
+      ? 'bg-warning/10 text-warning'
+      : 'bg-navy/5 text-navy'
 
   return (
     <Link
       href={href}
       className={`flex flex-col gap-2 rounded-xl border p-5 transition-all hover:-translate-y-1 hover:shadow-lg ${accent}`}
     >
-      <div className="flex items-center justify-between text-muted">
-        <span className="text-xs font-semibold uppercase tracking-wide">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted">
           {label}
         </span>
-        {icon}
+        <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconChip}`}>
+          {icon}
+        </span>
       </div>
       <div className={`font-mono text-3xl font-bold ${valueColor}`}>
         {value}
@@ -320,11 +328,13 @@ function RevenueCard({
       href={href}
       className="flex flex-col gap-2 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-1 hover:shadow-lg"
     >
-      <div className="flex items-center justify-between text-muted">
-        <span className="text-xs font-semibold uppercase tracking-wide">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted">
           {label}
         </span>
-        {icon}
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10 text-success">
+          {icon}
+        </span>
       </div>
       <div className="font-mono text-2xl font-bold text-foreground">
         {formatted}
