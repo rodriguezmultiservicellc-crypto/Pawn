@@ -118,6 +118,7 @@ export default function DashboardContent({
             value={activeLoanCount}
             icon={<Coins size={20} weight="regular" />}
             href="/pawn?status=active"
+            module="pawn"
           />
           <StatCard
             label={t.pawn.dashboardCards.dueThisWeekCard}
@@ -126,6 +127,7 @@ export default function DashboardContent({
             icon={<Calendar size={20} weight="regular" />}
             href="/pawn?status=active&due=dueSoon7"
             tone={dueThisWeekCount > 0 ? 'warning' : 'neutral'}
+            module="pawn"
           />
         </div>
       ) : null}
@@ -138,6 +140,7 @@ export default function DashboardContent({
             value={activeRepairCount}
             icon={<Wrench size={20} weight="regular" />}
             href="/repair?status=active"
+            module="repair"
           />
           <StatCard
             label={t.repair.dashboardCards.readyForPickupCard}
@@ -146,6 +149,7 @@ export default function DashboardContent({
             icon={<CheckCircle size={20} weight="regular" />}
             href="/repair?status=ready"
             tone={readyForPickupCount > 0 ? 'warning' : 'neutral'}
+            module="repair"
           />
         </div>
       ) : null}
@@ -158,6 +162,7 @@ export default function DashboardContent({
             value={todaySalesCount}
             icon={<CashRegister size={20} weight="regular" />}
             href="/pos"
+            module="retail"
           />
           <RevenueCard
             label={t.pos.dashboardCards.todayRevenueCard}
@@ -172,6 +177,7 @@ export default function DashboardContent({
             value={activeLayawayCount}
             icon={<ShoppingBag size={20} weight="regular" />}
             href="/pos/layaways?status=active"
+            module="retail"
           />
         </div>
       ) : null}
@@ -254,6 +260,9 @@ export default function DashboardContent({
   )
 }
 
+type StatTone = 'neutral' | 'warning' | 'error'
+type ModuleAccent = 'pawn' | 'repair' | 'retail'
+
 function StatCard({
   label,
   sub,
@@ -261,13 +270,19 @@ function StatCard({
   icon,
   href,
   tone = 'neutral',
+  module,
 }: {
   label: string
   sub: string
   value: number
   icon: React.ReactNode
   href: string
-  tone?: 'neutral' | 'warning' | 'error'
+  tone?: StatTone
+  /** When set, overrides the neutral icon-chip tint to a per-module
+   *  identity color so the pawn / repair / retail rows visually
+   *  cluster on the dashboard. tone='warning' / 'error' still wins
+   *  (a due-soon loan should look amber regardless of module). */
+  module?: ModuleAccent
 }) {
   const accent =
     tone === 'error'
@@ -277,11 +292,18 @@ function StatCard({
       : 'border-border bg-card'
   const valueColor =
     tone === 'error' ? 'text-danger' : tone === 'warning' ? 'text-warning' : 'text-foreground'
+  const moduleChip: Record<ModuleAccent, string> = {
+    pawn: 'bg-gold/10 text-gold',
+    repair: 'bg-blue/10 text-blue',
+    retail: 'bg-success/10 text-success',
+  }
   const iconChip =
     tone === 'error'
       ? 'bg-danger/10 text-danger'
       : tone === 'warning'
       ? 'bg-warning/10 text-warning'
+      : module
+      ? moduleChip[module]
       : 'bg-navy/5 text-navy'
 
   return (
