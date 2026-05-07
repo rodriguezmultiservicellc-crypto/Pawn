@@ -13,6 +13,51 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
+  Last session:   Session 32 (2026-05-06, ~17:00)
+                  — DESIGN MIGRATION CLOSED OUT.
+                  Final audit + production build +
+                  closing commit. Operator's call:
+                  "finish the design migration to
+                  call it a day." Three steps:
+                  (1) Stale-token audit across src/
+                  for 30 patterns from the Airbnb
+                  era (rausch / cloud / hairline /
+                  ink / charcoal / ash / mute /
+                  stone / canvas / pill / elevation
+                  / pressed-icon / info-link /
+                  plus-magenta / luxe-purple / error
+                  / mutedd / hover:border-foreground
+                  / linear-gradient ff385c / 3-layer
+                  shadow / bg-clip-text). All zero.
+                  (2) Production build: npx next
+                  build compiled in 6.3s, generated
+                  60/60 static pages, all 80+ routes
+                  registered. (3) This Progress.txt
+                  update + commit. PHASE OVERVIEW
+                  gains a "Design migration COMPLETE"
+                  entry. The Luna Azul restyle is
+                  now an officially-closed phase,
+                  not an ongoing initiative.
+
+                  Two things remain that AREN'T
+                  design (kept open in the backlog):
+                  - Operator browser walkthrough +
+                    any per-page composition
+                    findings → small surgical
+                    follow-up commits.
+                  - Phase 8 mobile audit (already
+                    in backlog from Session 24).
+
+                  Migration arc, for posterity:
+                  Sessions 29-32 took Pawn from
+                  Airbnb (Rausch coral, Inter,
+                  marketplace feel) to Luna Azul
+                  (navy chrome, gold action, DM
+                  Sans + Playfair, ops console
+                  feel). 14 commits, ~250+ files
+                  touched, 0 logic changes, zero
+                  stale tokens remaining.
+
   Last session:   Session 31 (2026-05-06, ~16:00)
                   — Luna Azul design pass: six
                   follow-up commits cleaning up
@@ -721,6 +766,10 @@ PHASE OVERVIEW
           session.)
   10 (B)  Channel sales                              IN PROGRESS  —
           (eBay scaffold STUBBED.)
+  11      Design migration: Airbnb → Luna Azul       COMPLETE    2026-05-06
+          (Sessions 29-32. 14 commits, ~250+ files
+          touched, 0 logic changes. Final audit
+          and production build green.)
 
 ================================================================================
 SESSION HISTORY LOG
@@ -2127,6 +2176,94 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 32 (2026-05-06, ~17:00) — Design migration closed out ---
+
+ 278. STALE-TOKEN AUDIT — ZERO HITS. Ran a 30-
+     pattern grep across src/ for every Airbnb-
+     era token + every retired stylistic
+     artifact: rausch, cloud-*, hairline (border/
+     divide/bg/text/ring), ink (text/bg), canvas
+     (text/bg), charcoal, ash, mute (the
+     standalone `text-mute`, not `text-muted`),
+     stone, rounded-pill, shadow-elevation,
+     shadow-pressed-icon, info-link,
+     plus-magenta, luxe-purple, error (text/bg/
+     border/ring — not danger-renamed), mutedd
+     artifact from the Session 29 regex overlap,
+     hover:border-foreground (old hover pattern),
+     linear-gradient ff385c (the Rausch sweep),
+     rgba(0, 0, 0, 0.02) 0 0 0 1px (the 3-layer
+     signature shadow), bg-clip-text. All zero
+     occurrences. Migration is verifiably
+     complete at the className + inline-style
+     level.
+
+ 279. PRODUCTION BUILD GREEN. `npx next build`
+     compiled successfully in 6.3s, generated
+     60/60 static pages with 15 workers in
+     426ms, registered all 80+ dynamic routes
+     including the design-touched
+     auth/portal/admin/staff route groups and
+     the public landing /s/<slug> + catalog
+     surfaces. tsc --noEmit also exit 0. The
+     Luna Azul system is runtime-validated, not
+     just type-checked.
+
+ 280. PHASE OVERVIEW UPDATED. Added phase 11
+     "Design migration: Airbnb → Luna Azul" with
+     status COMPLETE / 2026-05-06. The Luna Azul
+     restyle is now an officially-closed phase,
+     not an ongoing initiative — future visual
+     finds against the production app will be
+     handled as small surgical follow-ups in
+     existing phases (typically Phase 8 polish).
+
+ 281. MIGRATION ARC SUMMARY (Sessions 29-32):
+     - Session 29 (commit 1d57110): tokens.ts
+       + globals.css + app/layout.tsx fonts +
+       DESIGN-lunaazul.md + CLAUDE.md lock
+       section + 4-pass mechanical sweep across
+       src/ (5300+ className renames in 154
+       files) + manual composition restyle for
+       (staff)/layout.tsx + Sidebar.tsx +
+       dashboard/content.tsx + (auth)/layout.tsx.
+     - Session 30 (commit 8b13560): layout
+       shell fix — sidebar moved to be the first
+       child of the staff shell so it hugs the
+       full left edge top-to-bottom; topbar now
+       only spans the right portion. One-file
+       composition fix.
+     - Session 31 (six commits): form inputs
+       (929d072), card radius + hover (e301f67),
+       link color + status badges + emphasis
+       (1ae17cc), 4 stale Rausch gradients in
+       inline style props (e49574d), tab active
+       states + dashboard icon chips (05b92f0),
+       TenantSwitcher + portal/claim chrome
+       (5036698). Closed out with checkpoint
+       commit c0fe364.
+     - This session adds two more visual upgrades
+       (commits 6b684ec dashboard module-card
+       identity tints, d2f18b6 sidebar section
+       grouping with hairline separators) plus
+       this closing commit.
+     Total: 14 design commits, ~250+ files
+     touched, zero logic changes, zero stale
+     tokens or retired patterns remaining,
+     production build green.
+
+ 282. WHAT'S OUT OF SCOPE FOR THIS PHASE.
+     Operator browser walkthrough still
+     pending — that's the ship-as-you-go
+     follow-up surface, not a migration item.
+     Phase 8 mobile audit is its own pre-
+     existing backlog item (Session 24)
+     unrelated to this migration. Per-page
+     composition tuning ("move this thing
+     here, that thing there") is also future
+     surgical work. The migration AS A PLAN
+     is closed.
 
 --- Session 31 (2026-05-06, ~16:00) — Luna Azul design pass: 6-commit polish + gold-misuse purge ---
 
