@@ -819,6 +819,24 @@ export const es: Dictionary = {
       itemMinOne: 'Agrega al menos un artículo de prenda.',
       submit: 'Emitir boleto',
       submitting: 'Emitiendo…',
+      voice: {
+        start: 'Iniciar intake por voz',
+        stop: 'Detener y llenar',
+        transcribing: 'Transcribiendo…',
+        greeting: '¿En qué te puedo ayudar?',
+        confirmExisting:
+          'Llené el formulario para {name}. Por favor revisa antes de enviar.',
+        confirmCreated:
+          'Creé un nuevo registro para {name} y llené el formulario. Por favor verifica los datos del cliente antes de enviar.',
+        confirmEmpty:
+          'No logré identificar los datos del empeño. Intenta de nuevo e incluye el nombre del cliente y el monto del préstamo.',
+        hint:
+          'Presiona y di el nombre del cliente, el monto del préstamo y el artículo — por ejemplo “María Fernández, doscientos dólares por un anillo de catorce quilates de 2.3 gramos”.',
+        heard: 'Escuché',
+        micDenied: 'Acceso al micrófono denegado. Permite el micrófono en tu navegador para usar la intake por voz.',
+        notSupported: 'La intake por voz no está disponible en este navegador. Usa Chrome, Edge o Safari.',
+        serverError: 'La intake por voz falló. Intenta de nuevo o llena el formulario manualmente.',
+      },
     },
     detail: {
       ticketLabel: 'Boleto',

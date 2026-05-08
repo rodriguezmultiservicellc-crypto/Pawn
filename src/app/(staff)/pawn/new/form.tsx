@@ -10,6 +10,9 @@ import {
   type CollateralListHandle,
 } from '@/components/pawn/CollateralItemsList'
 import { InlinePawnCalculator } from '@/components/pawn/InlinePawnCalculator'
+import VoicePawnButton, {
+  type PawnVoiceData,
+} from '@/components/pawn/VoicePawnButton'
 import {
   createLoanAction,
   type CreateLoanState,
@@ -54,6 +57,16 @@ export default function NewPawnLoanForm({
   const [issueDate, setIssueDate] = useState<string>(today)
   const [termDays, setTermDays] = useState<string>('30')
   const [customerId, setCustomerId] = useState<string>('')
+  // Customer dropdown options are lifted so /api/ai/voice/pawn-intake
+  // can inject a freshly-created customer (match-or-create branch)
+  // without a full page reload — the new option is appended at the
+  // top so it's visible above the alphabetical list.
+  const [customerOptions, setCustomerOptions] =
+    useState<CustomerOption[]>(customers)
+  // Principal is controlled so voice intake can pre-fill it. The
+  // server action reads `principal` off FormData on submit, so the
+  // controlled <input> still serializes correctly.
+  const [principal, setPrincipal] = useState<string>('')
 
   // Default rate selection: the configured default rate, OR the first
   // active rate, OR the literal "custom" sentinel when no rates exist
@@ -112,6 +125,36 @@ export default function NewPawnLoanForm({
     setSigPreview(file.name)
   }
 
+  // Voice intake fills three things: customer (match-or-create on the
+  // server returns the resolved id + label), principal, and one
+  // collateral row pushed via the imperative handle. Term/rate are
+  // intentionally NOT touched — operator picks those, voice only
+  // covers the high-frequency intake fields.
+  function handleVoiceData(data: PawnVoiceData) {
+    if (data.customer) {
+      const next: CustomerOption = {
+        id: data.customer.id,
+        label: data.customer.label,
+      }
+      if (data.customer.isNew) {
+        setCustomerOptions((prev) =>
+          prev.some((c) => c.id === next.id) ? prev : [next, ...prev],
+        )
+      } else if (!customerOptions.some((c) => c.id === next.id)) {
+        // Existing customer outside the first-500 page — inject so the
+        // dropdown can render the selection.
+        setCustomerOptions((prev) => [next, ...prev])
+      }
+      setCustomerId(data.customer.id)
+    }
+    if (data.principal != null) {
+      setPrincipal(data.principal.toString())
+    }
+    if (data.collateral) {
+      collateralRef.current?.addExtractedRow(data.collateral)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
@@ -120,6 +163,8 @@ export default function NewPawnLoanForm({
           {t.pawn.backToList}
         </Link>
       </div>
+
+      <VoicePawnButton onDataExtracted={handleVoiceData} />
 
       {state.error ? (
         <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -153,7 +198,7 @@ export default function NewPawnLoanForm({
               className="flex-1 rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             >
               <option value="">{t.pawn.new_.pickCustomer}</option>
-              {customers.map((c) => (
+              {customerOptions.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
                 </option>
@@ -190,6 +235,8 @@ export default function NewPawnLoanForm({
                 name="principal"
                 required
                 placeholder="0.00"
+                value={principal}
+                onChange={(e) => setPrincipal(e.target.value)}
                 className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               />
               {minLoanAmount != null ? (

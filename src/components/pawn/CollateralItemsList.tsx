@@ -31,6 +31,20 @@ import type {
  */
 export type CollateralListHandle = {
   addWatchRow: (match: WatchModelMatch) => void
+  /**
+   * Append (or replace the pristine seed row with) a row populated from
+   * voice-extracted collateral data. Same in-place-replace behavior as
+   * addWatchRow so the typical "operator opens form, voice fills it"
+   * path keeps the row count at 1.
+   */
+  addExtractedRow: (extracted: {
+    description: string
+    category: InventoryCategory
+    metal_type: MetalType | ''
+    karat: string
+    weight_grams: string
+    est_value: string
+  }) => void
 }
 
 /**
@@ -183,6 +197,23 @@ export const CollateralItemsList = forwardRef<CollateralListHandle>(
           if (prev.length === 1 && isPristineRow(prev[0])) {
             // Replace the seed row in place so the row count stays at 1
             // for the typical "operator opens form, picks a watch" path.
+            return [{ ...built, uid: prev[0].uid }]
+          }
+          return [...prev, built]
+        })
+      },
+      addExtractedRow(extracted) {
+        const built: Row = {
+          ...newRow(),
+          description: extracted.description,
+          category: extracted.category,
+          metal_type: extracted.metal_type,
+          karat: extracted.karat,
+          weight_grams: extracted.weight_grams,
+          est_value: extracted.est_value || '0',
+        }
+        setRows((prev) => {
+          if (prev.length === 1 && isPristineRow(prev[0])) {
             return [{ ...built, uid: prev[0].uid }]
           }
           return [...prev, built]

@@ -646,6 +646,9 @@ DATABASE_URL=                     # postgres.<ref>@aws-1-us-east-1.pooler.supaba
 # Anthropic
 ANTHROPIC_API_KEY=
 
+# OpenAI (Whisper transcription for /api/ai/voice/pawn-intake)
+OPENAI_API_KEY=
+
 # Stripe (platform-level)
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=

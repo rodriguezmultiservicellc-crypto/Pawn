@@ -817,6 +817,37 @@ export const en = {
       itemMinOne: 'Add at least one collateral item.',
       submit: 'Issue pawn ticket',
       submitting: 'Issuing…',
+      voice: {
+        // Voice-driven intake: operator presses the button, the browser
+        // greets them, captures speech, ships it to Whisper + Claude on
+        // the server, and the form pre-fills. Feature lives behind
+        // OPENAI_API_KEY + ANTHROPIC_API_KEY — the button hides if the
+        // server reports the keys aren't configured.
+        start: 'Start voice intake',
+        stop: 'Stop & fill form',
+        transcribing: 'Transcribing…',
+        // Spoken aloud the moment the operator presses Start.
+        greeting: 'What can I help you with today?',
+        // Spoken after the form pre-fills with an existing customer.
+        // {name} = "Maria Fernandez".
+        confirmExisting:
+          'I filled in the form for {name}. Please review before submitting.',
+        // Spoken after the form pre-fills with a newly-created customer.
+        confirmCreated:
+          'I created a new record for {name} and filled in the form. Please verify the customer details before submitting.',
+        // Spoken when nothing useful was extracted.
+        confirmEmpty:
+          "I could not pick out pawn details. Try again, and please include the customer's name and loan amount.",
+        // Hint sentence printed below the button explaining what to say.
+        hint:
+          "Press, then say the customer's name, the loan amount, and the item — e.g. “Maria Fernandez, two hundred dollars for a fourteen karat wedding ring weighing 2.3 grams”.",
+        // Inline echo of the transcript after parse.
+        heard: 'Heard',
+        // Errors surfaced inline.
+        micDenied: 'Microphone access denied. Allow microphone in your browser to use voice intake.',
+        notSupported: 'Voice intake is not supported in this browser. Use Chrome, Edge, or Safari.',
+        serverError: 'Voice intake failed. Try again or fill the form manually.',
+      },
     },
     detail: {
       ticketLabel: 'Ticket',
