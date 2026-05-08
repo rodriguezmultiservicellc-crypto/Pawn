@@ -256,7 +256,13 @@ export async function POST(req: NextRequest) {
     transcript = result.text.trim()
   } catch (e) {
     console.error('[voice/pawn-intake] whisper failed', e)
-    return bad(502, 'Transcription failed.')
+    // Surface the upstream error message so the operator (and Claude
+    // debugging the next round of failures) can tell apart auth /
+    // rate-limit / bad-audio / network. Truncated for safety; we're
+    // not at risk of leaking secrets — error.message from the OpenAI
+    // SDK does not include the API key.
+    const detail = e instanceof Error ? e.message : 'unknown error'
+    return bad(502, `Transcription failed: ${detail.slice(0, 300)}`)
   }
   if (!transcript) return bad(422, 'Empty transcription.')
 
@@ -279,7 +285,8 @@ export async function POST(req: NextRequest) {
     extracted = JSON.parse(text) as ExtractedJson
   } catch (e) {
     console.error('[voice/pawn-intake] claude/json failed', e)
-    return bad(502, 'Extraction failed.')
+    const detail = e instanceof Error ? e.message : 'unknown error'
+    return bad(502, `Extraction failed: ${detail.slice(0, 300)}`)
   }
 
   // Normalize collateral enums — Claude is well-behaved but JSON.parse
