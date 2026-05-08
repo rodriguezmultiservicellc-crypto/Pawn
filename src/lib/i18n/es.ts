@@ -820,10 +820,9 @@ export const es: Dictionary = {
       submit: 'Emitir boleto',
       submitting: 'Emitiendo…',
       voice: {
-        start: 'Iniciar intake por voz',
-        stop: 'Detener y llenar',
+        start: 'Mantén presionado para hablar',
+        listening: 'Escuchando… suelta para llenar',
         transcribing: 'Transcribiendo…',
-        greeting: '¿En qué te puedo ayudar?',
         confirmExisting:
           'Llené el formulario para {name}. Por favor revisa antes de enviar.',
         confirmCreated:
@@ -831,7 +830,7 @@ export const es: Dictionary = {
         confirmEmpty:
           'No logré identificar los datos del empeño. Intenta de nuevo e incluye el nombre del cliente y el monto del préstamo.',
         hint:
-          'Presiona y di el nombre del cliente, el monto del préstamo y el artículo — por ejemplo “María Fernández, doscientos dólares por un anillo de catorce quilates de 2.3 gramos”.',
+          'Mantén presionado, di el nombre del cliente, el monto del préstamo y el artículo, y suelta — por ejemplo “María Fernández, doscientos dólares por un anillo de catorce quilates de 2.3 gramos”.',
         heard: 'Escuché',
         micDenied: 'Acceso al micrófono denegado. Permite el micrófono en tu navegador para usar la intake por voz.',
         notSupported: 'La intake por voz no está disponible en este navegador. Usa Chrome, Edge o Safari.',

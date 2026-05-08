@@ -1,17 +1,27 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Microphone, Stop, CircleNotch } from '@phosphor-icons/react'
+import { Microphone, CircleNotch } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type {
   InventoryCategory,
   MetalType,
 } from '@/types/database-aliases'
 
+function pickMimeType(): string | undefined {
+  if (typeof MediaRecorder === 'undefined') return undefined
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg;codecs=opus',
+  ]
+  return candidates.find((c) => MediaRecorder.isTypeSupported(c))
+}
+
 function isVoiceSupported(): boolean {
   if (typeof window === 'undefined') return false
   return (
-    typeof window.speechSynthesis !== 'undefined' &&
     typeof window.MediaRecorder !== 'undefined' &&
     typeof window.MediaRecorder.isTypeSupported === 'function' &&
     pickMimeType() != null
@@ -51,7 +61,11 @@ type ApiResponse = {
   data: PawnVoiceData
 }
 
-type Phase = 'idle' | 'active' | 'processing'
+// idle      — at-rest, gold button.
+// arming    — pointer down, mic permission resolving (first press only).
+// active    — recording, red pulsing button. Release to submit.
+// processing — recorder stopped, waiting on Whisper + Claude.
+type Phase = 'idle' | 'arming' | 'active' | 'processing'
 
 type Props = {
   onDataExtracted: (data: PawnVoiceData) => void
@@ -59,8 +73,9 @@ type Props = {
 
 /**
  * Speak text via the browser's Speech Synthesis API. Resolves when the
- * utterance finishes OR a fallback timer fires (Safari occasionally
- * drops `onend` after a getUserMedia call earlier in the same gesture).
+ * utterance finishes OR a fallback timer fires. Used only for the
+ * post-fill confirmation; the recording flow itself is silent so the
+ * push-to-talk gesture stays predictable.
  */
 function speak(text: string, lang: string): Promise<void> {
   if (typeof window === 'undefined' || !window.speechSynthesis) {
@@ -78,24 +93,11 @@ function speak(text: string, lang: string): Promise<void> {
     }
     utterance.onend = finish
     utterance.onerror = finish
-    // Fallback: estimate at ~14 chars/sec + 800ms padding so a dropped
-    // onend can't hang the recording flow.
     const fallbackMs = 800 + Math.ceil(text.length * 70)
     setTimeout(finish, fallbackMs)
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
   })
-}
-
-function pickMimeType(): string | undefined {
-  if (typeof MediaRecorder === 'undefined') return undefined
-  const candidates = [
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/mp4',
-    'audio/ogg;codecs=opus',
-  ]
-  return candidates.find((c) => MediaRecorder.isTypeSupported(c))
 }
 
 export default function VoicePawnButton({ onDataExtracted }: Props) {
@@ -107,10 +109,10 @@ export default function VoicePawnButton({ onDataExtracted }: Props) {
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chunks = useRef<Blob[]>([])
-  // True between Start press and either: greeting still playing OR
-  // recorder hasn't started yet. Pressing Stop in this window cancels
-  // without sending audio.
-  const armedRef = useRef(false)
+  // Set when arming starts. The pointer-up handler flips `aborted=true`
+  // if the operator releases before mic permission resolves; the start
+  // path checks the flag and bails out cleanly.
+  const armingRef = useRef<{ aborted: boolean } | null>(null)
 
   const ttsLang = lang === 'es' ? 'es-MX' : 'en-US'
   const sttLang = lang === 'es' ? 'es' : 'en'
@@ -126,43 +128,47 @@ export default function VoicePawnButton({ onDataExtracted }: Props) {
     }
   }, [])
 
-  async function start() {
-    setError(null)
-    setTranscript('')
+  async function handlePress(e: React.PointerEvent<HTMLButtonElement>) {
+    if (phase !== 'idle') return
 
-    // Feature-detect at click time. Done here (instead of useEffect on
-    // mount) so server/client first paint match — the button always
-    // renders, and unsupported browsers see the notSupported message
-    // only after they actually try to use it.
     if (!isVoiceSupported()) {
       setError(t.pawn.new_.voice.notSupported)
       return
     }
 
-    armedRef.current = true
-    setPhase('active')
+    setError(null)
+    setTranscript('')
 
-    // Request mic FIRST (triggers permission prompt) so the greeting
-    // plays without interruption AND the same MediaStream is reused
-    // for recording — avoids a second prompt.
+    // Capture the pointer so a release outside the button still fires
+    // pointerup on the button. Important for mouse "drag off and let
+    // go" — without capture the up event lands on whatever is under
+    // the cursor and we'd never stop the recorder.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // Older browsers without setPointerCapture — pointerup fallback
+      // handlers cover the common case.
+    }
+
+    const arming = { aborted: false }
+    armingRef.current = arming
+    setPhase('arming')
+
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     } catch {
-      armedRef.current = false
+      armingRef.current = null
       setPhase('idle')
       setError(t.pawn.new_.voice.micDenied)
       return
     }
-    streamRef.current = stream
 
-    await speak(t.pawn.new_.voice.greeting, ttsLang)
-
-    // Operator may have pressed Stop during the greeting. Bail out
-    // cleanly without firing up the recorder.
-    if (!armedRef.current) {
+    // User released the button before the mic permission prompt
+    // resolved — abort cleanly.
+    if (arming.aborted) {
       stream.getTracks().forEach((tr) => tr.stop())
-      streamRef.current = null
+      armingRef.current = null
       setPhase('idle')
       return
     }
@@ -173,16 +179,16 @@ export default function VoicePawnButton({ onDataExtracted }: Props) {
       mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
     } catch {
       stream.getTracks().forEach((tr) => tr.stop())
-      streamRef.current = null
-      armedRef.current = false
+      armingRef.current = null
       setPhase('idle')
       setError(t.pawn.new_.voice.notSupported)
       return
     }
 
+    streamRef.current = stream
     chunks.current = []
-    mr.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.current.push(e.data)
+    mr.ondataavailable = (event) => {
+      if (event.data.size > 0) chunks.current.push(event.data)
     }
     mr.onstop = () => {
       stream.getTracks().forEach((tr) => tr.stop())
@@ -192,25 +198,33 @@ export default function VoicePawnButton({ onDataExtracted }: Props) {
       })
       void send(blob)
     }
-
     recorderRef.current = mr
     mr.start()
+    armingRef.current = null
+    setPhase('active')
   }
 
-  function stop() {
-    armedRef.current = false
-    const mr = recorderRef.current
-    if (!mr) {
-      // Greeting was still playing — we already armedRef-cancel above.
-      // Tear down the stream and reset.
-      streamRef.current?.getTracks().forEach((tr) => tr.stop())
-      streamRef.current = null
-      setPhase('idle')
+  function handleRelease(e: React.PointerEvent<HTMLButtonElement>) {
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      /* not captured / already released */
+    }
+
+    // Released during the mic-permission window. Mark for abort; the
+    // start path will tear down on its own.
+    if (armingRef.current) {
+      armingRef.current.aborted = true
       return
     }
-    if (mr.state !== 'inactive') mr.stop()
-    recorderRef.current = null
-    setPhase('processing')
+
+    // Released while recording. Stop and submit.
+    const mr = recorderRef.current
+    if (mr && mr.state !== 'inactive') {
+      mr.stop()
+      recorderRef.current = null
+      setPhase('processing')
+    }
   }
 
   async function send(blob: Blob) {
@@ -243,46 +257,54 @@ export default function VoicePawnButton({ onDataExtracted }: Props) {
                 customer.name,
               )
       await speak(confirmation, ttsLang)
-    } catch (e) {
+    } catch (err) {
       setError(
-        e instanceof Error ? e.message : t.pawn.new_.voice.serverError,
+        err instanceof Error ? err.message : t.pawn.new_.voice.serverError,
       )
     } finally {
       setPhase('idle')
     }
   }
 
+  const isHeld = phase === 'arming' || phase === 'active'
+  const isProcessing = phase === 'processing'
+
+  const label = isProcessing
+    ? t.pawn.new_.voice.transcribing
+    : phase === 'active'
+      ? t.pawn.new_.voice.listening
+      : t.pawn.new_.voice.start
+
+  const buttonClass = isProcessing
+    ? 'inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-muted opacity-70'
+    : isHeld
+      ? 'inline-flex items-center gap-2 rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white transition-colors select-none touch-none motion-safe:animate-pulse'
+      : 'inline-flex items-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-navy transition-all select-none touch-none hover:-translate-y-0.5 hover:bg-gold-2 hover:shadow-lg'
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-3">
-        {phase === 'idle' ? (
-          <button
-            type="button"
-            onClick={start}
-            className="inline-flex items-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-navy transition-all hover:-translate-y-0.5 hover:bg-gold-2 hover:shadow-lg"
-          >
-            <Microphone size={16} weight="bold" />
-            {t.pawn.new_.voice.start}
-          </button>
-        ) : phase === 'active' ? (
-          <button
-            type="button"
-            onClick={stop}
-            className="inline-flex items-center gap-2 rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-danger/90 motion-safe:animate-pulse"
-          >
-            <Stop size={16} weight="fill" />
-            {t.pawn.new_.voice.stop}
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-muted opacity-70"
-          >
+        <button
+          type="button"
+          disabled={isProcessing}
+          onPointerDown={handlePress}
+          onPointerUp={handleRelease}
+          onPointerCancel={handleRelease}
+          // Stop double-firing on browsers that emit both pointer + click
+          // for the same gesture (Edge in some versions).
+          onClick={(e) => e.preventDefault()}
+          // Prevent the default press-hold behaviors (text selection,
+          // context menu, drag image) so the gesture stays clean.
+          onContextMenu={(e) => e.preventDefault()}
+          className={buttonClass}
+        >
+          {isProcessing ? (
             <CircleNotch size={16} weight="bold" className="animate-spin" />
-            {t.pawn.new_.voice.transcribing}
-          </button>
-        )}
+          ) : (
+            <Microphone size={16} weight={isHeld ? 'fill' : 'bold'} />
+          )}
+          {label}
+        </button>
         <span className="text-xs text-muted">{t.pawn.new_.voice.hint}</span>
       </div>
 

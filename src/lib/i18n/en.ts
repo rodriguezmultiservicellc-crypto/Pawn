@@ -818,16 +818,14 @@ export const en = {
       submit: 'Issue pawn ticket',
       submitting: 'Issuing…',
       voice: {
-        // Voice-driven intake: operator presses the button, the browser
-        // greets them, captures speech, ships it to Whisper + Claude on
+        // Push-to-talk voice intake: operator holds the button down to
+        // record, releases to ship the audio to Whisper + Claude on
         // the server, and the form pre-fills. Feature lives behind
-        // OPENAI_API_KEY + ANTHROPIC_API_KEY — the button hides if the
-        // server reports the keys aren't configured.
-        start: 'Start voice intake',
-        stop: 'Stop & fill form',
+        // OPENAI_API_KEY + ANTHROPIC_API_KEY — the route returns 503
+        // if either key is missing.
+        start: 'Hold to talk',
+        listening: 'Listening… release to fill',
         transcribing: 'Transcribing…',
-        // Spoken aloud the moment the operator presses Start.
-        greeting: 'What can I help you with today?',
         // Spoken after the form pre-fills with an existing customer.
         // {name} = "Maria Fernandez".
         confirmExisting:
@@ -838,9 +836,9 @@ export const en = {
         // Spoken when nothing useful was extracted.
         confirmEmpty:
           "I could not pick out pawn details. Try again, and please include the customer's name and loan amount.",
-        // Hint sentence printed below the button explaining what to say.
+        // Hint sentence printed next to the button explaining what to say.
         hint:
-          "Press, then say the customer's name, the loan amount, and the item — e.g. “Maria Fernandez, two hundred dollars for a fourteen karat wedding ring weighing 2.3 grams”.",
+          "Press and hold, say the customer's name, the loan amount, and the item, then release — e.g. “Maria Fernandez, two hundred dollars for a fourteen karat wedding ring weighing 2.3 grams”.",
         // Inline echo of the transcript after parse.
         heard: 'Heard',
         // Errors surfaced inline.
