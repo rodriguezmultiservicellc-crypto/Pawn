@@ -13,705 +13,227 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 32 (2026-05-06, ~17:00)
-                  — DESIGN MIGRATION CLOSED OUT.
-                  Final audit + production build +
-                  closing commit. Operator's call:
-                  "finish the design migration to
-                  call it a day." Three steps:
-                  (1) Stale-token audit across src/
-                  for 30 patterns from the Airbnb
-                  era (rausch / cloud / hairline /
-                  ink / charcoal / ash / mute /
-                  stone / canvas / pill / elevation
-                  / pressed-icon / info-link /
-                  plus-magenta / luxe-purple / error
-                  / mutedd / hover:border-foreground
-                  / linear-gradient ff385c / 3-layer
-                  shadow / bg-clip-text). All zero.
-                  (2) Production build: npx next
-                  build compiled in 6.3s, generated
-                  60/60 static pages, all 80+ routes
-                  registered. (3) This Progress.txt
-                  update + commit. PHASE OVERVIEW
-                  gains a "Design migration COMPLETE"
-                  entry. The Luna Azul restyle is
-                  now an officially-closed phase,
-                  not an ongoing initiative.
+  Last session:   Session 33 (2026-05-08, mid-afternoon)
+                  — VOICE PAWN INTAKE FEATURE.
+                  Built voice-driven pawn intake on
+                  /pawn/new: press and hold the gold
+                  mic, speak ("Maria Fernandez, $200
+                  for a 14k wedding ring, 2.3 grams"),
+                  release, the form pre-fills.
 
-                  Two things remain that AREN'T
-                  design (kept open in the backlog):
-                  - Operator browser walkthrough +
-                    any per-page composition
-                    findings → small surgical
-                    follow-up commits.
-                  - Phase 8 mobile audit (already
-                    in backlog from Session 24).
+                  Two commits:
+                  - 16e6d43: initial click-to-start /
+                    click-to-stop flow + greeting TTS.
+                  - 103e641: rewired to push-to-talk
+                    per operator feedback. Hold = record,
+                    release = submit. Greeting TTS dropped
+                    (operator's gesture is self-
+                    explanatory). setPointerCapture on
+                    press so a drag-off-button release
+                    still fires pointerup on the button.
 
-                  Migration arc, for posterity:
-                  Sessions 29-32 took Pawn from
-                  Airbnb (Rausch coral, Inter,
-                  marketplace feel) to Luna Azul
-                  (navy chrome, gold action, DM
-                  Sans + Playfair, ops console
-                  feel). 14 commits, ~250+ files
-                  touched, 0 logic changes, zero
-                  stale tokens remaining.
+                  Pipeline: Whisper (whisper-1) for
+                  transcription with EN/ES language hint
+                  from i18n; Claude Haiku 4.5
+                  (claude-haiku-4-5-20251001) for
+                  strict-JSON extraction (customer name +
+                  DOB, principal, one collateral row with
+                  category / metal / karat / weight /
+                  est_value); match-or-create on
+                  customers (case-insensitive ilike on
+                  first + last, narrowed by date_of_birth
+                  when extracted); audit-logged with
+                  changes.source='voice_intake' on
+                  create. Module-gated on
+                  tenants.has_pawn, role-gated to owner |
+                  chain_admin | manager | pawn_clerk.
 
-  Last session:   Session 31 (2026-05-06, ~16:00)
-                  — Luna Azul design pass: six
-                  follow-up commits cleaning up
-                  after the Session 29 mechanical
-                  sweep + Session 30 layout fix.
-                  Each commit hit a different
-                  pattern that the className-only
-                  sweep couldn't reach or that
-                  needed composition tuning to
-                  match Luna Azul's spec. Cumulative
-                  blast radius across the six
-                  commits: ~250+ files touched, all
-                  visual / className-level, zero
-                  logic changes. tsc clean
-                  throughout. All shipped.
+                  New deps: openai, @anthropic-ai/sdk.
+                  New env: OPENAI_API_KEY (added to
+                  CLAUDE.md, gates 503 fallback when
+                  missing).
 
-                  Six commits:
-                  - 929d072: form inputs (30 files)
-                    + page-title h1s (64 across
-                    59 files) + auth/portal form
-                    label & button shape
-                  - e301f67: card containers (79
-                    files, rounded-lg → rounded-xl)
-                    + secondary-button hover (70
-                    files / 119 hits, hover-border-
-                    darken → hover-bg-shift)
-                  - 1ae17cc: links (text-foreground
-                    underline → text-blue) + status
-                    badges (gold-as-status purged
-                    in StatusBadge, ServiceTypeBadge,
-                    TimelinePanel) + emphasis pills
-                    (PayoffCalculator,
-                    RedeemConfirmDialog gold → navy)
-                    + audit page hero/link
-                  - e49574d: stale Rausch gradients
-                    in 4 inline style={{}} props
-                    (portal/login/page.tsx, onboard/
-                    layout.tsx, PortalChrome.tsx,
-                    (admin)/layout.tsx) — none of
-                    these were caught by the
-                    Session 29 className sweep
-                  - 05b92f0: tab active states
-                    (border-gold → border-blue on
-                    light surfaces; dark-sidebar
-                    keeps gold-on-active per design)
-                    + StatCard / RevenueCard icon
-                    chips (w-9 h-9 colored boxes)
-                  - 5036698: TenantSwitcher
-                    secondary-button shape + gold
-                    checkmark → blue + dropdown
-                    shadow shifted from the retired
-                    3-layer signature to shadow-lg.
-                    portal/claim restyled to match
-                    auth-card pattern (full navy bg,
-                    white card). Last inline 3-
-                    layer signature shadow gone.
+  Context budget: ~70% at save time.
+  Last worked on: Operator hit a 503 "Voice intake is
+                  not configured on this deployment"
+                  error after the push-to-talk push.
+                  Diagnosis sent: either OPENAI_API_KEY
+                  or ANTHROPIC_API_KEY isn't loaded at
+                  the route's runtime — needs to be in
+                  .env.local for dev OR set + scope-
+                  correct + redeployed in Vercel for
+                  production. Awaiting operator
+                  confirmation of which environment.
 
-                  Session 29 + 30 context preserved
-                  in the SESSION HISTORY LOG.
-  Context budget: medium (~250 files across 6
-                  commits, all className-level).
-  Last worked on: Iterative design polish across
-                  the whole staff + portal + admin
-                  + auth surface. User cadence was
-                  "continue" — no specific target,
-                  so each pass picked the next-
-                  most-visible Airbnb-era pattern
-                  (form inputs, then page titles,
-                  then card radii, then secondary
-                  button hovers, then status-color
-                  discipline, then stale gradient
-                  cleanup, then tab states + icon
-                  chips, then dropdown chrome).
-                  Reached natural stopping point
-                  when remaining work became
-                  per-page composition tuning that
-                  needs operator's eyes in the
-                  browser.
+  ACTIVE FILE(S) modified this session — Session 33
+  (both commits live, gated on env vars):
 
-  ACTIVE FILE(S) modified this session — Session 31
-  (all six commits live on production):
+    --- COMMIT 16e6d43 — initial voice intake ---
+    - src/components/pawn/VoicePawnButton.tsx (new)
+    - src/app/api/ai/voice/pawn-intake/route.ts (new)
+    - src/components/pawn/CollateralItemsList.tsx
+      (added addExtractedRow to CollateralListHandle)
+    - src/app/(staff)/pawn/new/form.tsx
+      (lifted customers + principal to state, wired
+       VoicePawnButton with handleVoiceData callback)
+    - src/lib/i18n/en.ts + es.ts
+      (pawn.new_.voice block: start / listening /
+       transcribing / confirmExisting / confirmCreated /
+       confirmEmpty / hint / heard / micDenied /
+       notSupported / serverError)
+    - CLAUDE.md (OPENAI_API_KEY env var documented)
+    - package.json + package-lock.json (openai +
+      @anthropic-ai/sdk)
 
-    --- COMMIT 929d072 — form inputs + page titles ---
-    - 30 files: input pattern bumped from
-      `rounded-md border border-border bg-card
-      px-3 py-2 ... focus:ring-2 focus:ring-blue/10`
-      to Luna Azul `rounded-xl border-2 border-
-      border bg-background px-4 py-3 text-sm ...
-      focus:border-blue` (no ring, border color
-      shift on focus).
-    - 5 auth/portal form files: labels font-medium
-      foreground → font-semibold text-secondary;
-      primary buttons gained hover:-translate-y-0.5
-      hover:shadow-lg lift.
-    - 59 files / 64 page-title h1s: added
-      font-display (Playfair). Stripped
-      tracking-tight + tracking-[-0.01em]
-      compensation rules left over from the
-      Inter-mimicking-Cereal era.
-
-    --- COMMIT e301f67 — card radius + hover ---
-    - 79 files: bumped `rounded-lg border
-      border-border bg-card` → `rounded-xl border
-      border-border bg-card` so card containers
-      use the workhorse 12px radius. (Side effect:
-      Admin Console pill in (staff)/layout.tsx
-      bumped to 12px since it shares the className
-      substring; flagged to operator.)
-    - 70 files / 119 hits: hover:border-foreground
-      → hover:bg-background hover:text-foreground.
-      Luna Azul reads secondary-button hover as a
-      bg+text shift, not a border darken.
-
-    --- COMMIT 1ae17cc — gold-as-status purge ---
-    - 5 files: text-foreground underline-offset-2
-      hover:underline → text-blue
-      transition-colors hover:text-blue-2.
-    - StatusBadge: assigned + in_progress states
-      gold-tinted → info-blue.
-    - ServiceTypeBadge: rewrite. Was using gold
-      (action color) and success/warning (status
-      colors) for category labels — neither
-      correct per design. Now uniform neutral
-      surface (bg-background border-border
-      text-foreground) with a colored DOT (navy
-      / blue / muted) to distinguish category.
-      bg-ash was a stale Airbnb-era token.
-    - TimelinePanel: started/resumed/assigned_
-      to_tech/claimed_by_tech all gold-tinted →
-      info-blue.
-    - PayoffCalculator + RedeemConfirmDialog
-      "Total Due" / "Payoff Now" emphasis pills:
-      gold-tinted → navy-tinted (display values,
-      not interactive, can't use action color).
-    - audit/content.tsx: hero ClockCounterClockwise
-      icon text-gold → text-muted; record-id
-      link text-gold hover:underline → text-blue
-      transition-colors hover:text-blue-2.
-
-    --- COMMIT e49574d — stale Rausch gradients ---
-    - 4 chrome surfaces still had the old Rausch
-      → magenta gradient buried in inline
-      style={{ backgroundImage: ... }} props the
-      Session 29 className sweep couldn't reach:
-      portal/login/page.tsx, onboard/layout.tsx,
-      PortalChrome.tsx, (admin)/layout.tsx. All
-      restyled to solid Playfair-Display navy
-      (light surfaces) or white (navy-bg auth
-      cards). (admin)/layout.tsx nav links also
-      bumped from text-foreground hover:text-gold
-      → text-text-secondary hover:text-blue (gold
-      not allowed for navigation hover); Staff →
-      button promoted to Luna Azul secondary
-      shape.
-
-    --- COMMIT 05b92f0 — tabs + dashboard chips ---
-    - eBay listings tab buttons + portal nav top
-      + portal nav bottom: border-gold/text-gold
-      active state → border-blue/text-blue. Per
-      design, gold is action only; light-surface
-      navigation underlines use Blue. (Dark-
-      sidebar gold-on-active stays — that's the
-      documented exception.)
-    - StatCard + RevenueCard icon chip: bare icon
-      in the corner → w-9 h-9 rounded-lg colored
-      chip. Tone-driven: navy/5 + navy text for
-      neutral, danger/10 for error tone, warning/
-      10 for warning tone. RevenueCard uses
-      success/10 + success text (revenue is a
-      "good-standing money-in" signal). Matches
-      Luna Azul module-card icon-box pattern.
-
-    --- COMMIT 5036698 — TenantSwitcher + claim ---
-    - TenantSwitcher trigger button + single-
-      tenant chip: rounded-md text-sm font-medium
-      → rounded-lg text-xs font-semibold (Luna
-      Azul secondary-button shape). Active-
-      tenant checkmark text-gold → text-blue.
-      Dropdown panel: dropped the inline 3-layer
-      "signature elevation" shadow for shadow-lg.
-    - portal/claim/[token]/content.tsx: full
-      restyle to navy bg + white centered card
-      (matches auth-card pattern). Drops the last
-      inline 3-layer shadow in the codebase. The
-      Airbnb signature shadow is fully retired.
-
-  PRIOR-SESSION ACTIVE FILE(S) — Session 29
-  (committed in 1d57110, on production):
-
-    --- DESIGN SYSTEM (replaced) ---
-    - DESIGN-lunaazul.md (new) — full doc
-      replacing DESIGN-airbnb.md. 12 sections
-      including palette, typography, layout,
-      components, motion budget, photography,
-      print reports, Tailwind token map,
-      migration find/replace map, and
-      deviations (Phosphor over Lucide,
-      JetBrains Mono retained).
-    - DESIGN-airbnb.md DELETED.
-    - CLAUDE.md — "DESIGN SYSTEM — LOCKED"
-      section rewritten to point at
-      DESIGN-lunaazul.md. New token names
-      listed. Motion budget added (4 signature
-      behaviors, CSS-only, no Framer/Motion).
-      Phosphor deviation documented.
-
-    --- TOKENS / CSS / FONTS ---
-    - src/lib/tokens.ts — full rewrite. New
-      `colors` shape: navy / navy2 / navy3 /
-      gold / gold2 / blue / blue2 / background
-      / card / border / foreground /
-      textSecondary / muted / sidebarText /
-      sidebarHoverBg / sidebarActiveBg / success
-      / warning / danger / info. New `radius`:
-      sm 6 / md 8 / lg 8 / xl 12 / 2xl 16 /
-      full 9999. New `shadows`: none / sm / lg
-      / modal. Breakpoints reset to Tailwind
-      defaults (640/768/1024/1280/1536). The
-      `reportColors` block (charcoal-on-paper
-      for PDFs) preserved unchanged.
-    - src/app/globals.css — rewritten @theme
-      block exposing the new palette as
-      Tailwind tokens. font-size: 17px on
-      <html> (was implicit 16). body weight is
-      400 (DM Sans default), was 500 (Inter at
-      Airbnb's body weight). h1/h2/h3 -0.01em
-      tracking compensation removed (Playfair
-      handles its own display proportions).
-    - src/app/layout.tsx — fonts swapped.
-      next/font/google now loads DM_Sans (400/
-      500/600/700) + Playfair_Display (700/900)
-      + JetBrains_Mono (400/500/600). CSS vars:
-      --font-dm-sans, --font-playfair,
-      --font-jetbrains-mono. Body className
-      moved from `bg-canvas text-ink` to
-      `bg-background text-foreground`.
-
-    --- LAYOUT SHELL (composition restyle) ---
-    - src/app/(staff)/layout.tsx — header now
-      h-16 (was py-3 ~ 48px). Brand wordmark
-      simplified from gradient bg-clip-text
-      span to a solid font-display text-navy
-      Link. Tenant-switcher separator color
-      shifted (text-muted). Admin Console pill
-      restyled to the secondary-button shape
-      (rounded-lg, text-xs, font-semibold,
-      hover:bg-background hover:text-foreground).
-      Staff name moved to text-text-secondary.
-    - src/components/layout/Sidebar.tsx — full
-      dark surface restyle. bg-canvas + border-r
-      → bg-navy + no right border. Width
-      reduced from w-56/w-14 → w-52/w-16 to
-      match Luna Azul. Toggle button: text-muted
-      → text-white/65. Each nav row: text-ink/80
-      → text-white/65 idle, hover:bg-cloud →
-      hover:bg-white/5 hover:text-white. Active
-      state: bg-cloud font-medium text-ink →
-      bg-white/10 text-gold (with gold icon).
-      Disabled rows: text-ash/60 → text-white/40.
-      Radius bumped from rounded-md → rounded-lg
-      per the design's button-radius scale on
-      dark surface.
-    - src/app/(staff)/dashboard/content.tsx —
-      Page title: text-2xl font-bold → font-
-      display text-3xl font-bold text-navy
-      (Playfair). StatCard: rounded-lg p-4
-      transition-colors hover:border-foreground
-      → rounded-xl p-5 transition-all hover:
-      -translate-y-1 hover:shadow-lg + tighter
-      uppercase font-semibold label. RevenueCard
-      same treatment. Panel: header p-2 → p-3,
-      title text-sm → text-base font-semibold,
-      seeAll text-muted hover:text-foreground →
-      text-muted hover:text-blue + outer
-      hover:shadow-lg. Card structure
-      unchanged — 4-up stat grid + module-gated
-      cards + 2-column recent panels — that's
-      the Session 28 revert, just re-skinned.
-    - src/app/(auth)/layout.tsx — full navy
-      page background (was bg-background light).
-      White Playfair "Pawn" wordmark above the
-      card (was inside the card as gradient
-      text). Card upgraded to rounded-2xl
-      shadow-lg p-10 max-w-md.
-
-    --- CASCADE EDITS (mechanical sweep) ---
-    - 154 files modified across the bulk
-      migration (full list in `git diff
-      --name-only HEAD`). Every staff route,
-      portal route, public landing, admin
-      console, and component file had at least
-      a few className attribute renames. No
-      logic changes in any of them.
+    --- COMMIT 103e641 — push-to-talk rewire ---
+    - src/components/pawn/VoicePawnButton.tsx
+      (replaced click-start / click-stop with
+       onPointerDown / onPointerUp / onPointerCancel +
+       setPointerCapture; dropped greeting TTS; new
+       `arming` phase handles release-during-permission-
+       prompt cleanly; label shifts gold→red while held,
+       red→muted during processing)
+    - src/lib/i18n/en.ts + es.ts
+      (start: "Hold to talk" / "Mantén presionado para
+       hablar"; listening: new key for the held state;
+       hint rephrased; greeting + stop keys removed)
 
   RESUME POINT:
-    The Luna Azul migration + design pass is on
-    production through commit 5036698. Six commits
-    landed this session covering form inputs, page
-    titles, card radii, hover states, status-color
-    discipline, gradient cleanup, tab states,
-    dashboard icon chips, and the TenantSwitcher /
-    portal-claim chrome. tsc --noEmit clean
-    throughout. Vercel auto-deployed each.
+    Voice intake ships through commit 103e641 but is
+    gated on env vars at the route. The route returns
+    503 "Voice intake is not configured on this
+    deployment" when either OPENAI_API_KEY or
+    ANTHROPIC_API_KEY is missing from process.env at
+    runtime — that's the error operator is hitting.
 
-    Remaining work has hit diminishing returns
-    from static analysis — the design pass has
-    touched every architecturally distinct surface.
-    What's left is per-page composition tuning
-    that needs operator's eyes in the browser.
-    Pull up the production URL, walk through the
-    routes below, and call out by route + element
-    anything that still feels Airbnb-era. Each
-    finding becomes a small surgical commit, no
-    more mass sweeps.
+    Next session, ask operator which environment they
+    are testing in:
+    - DEV (`npm run dev` on :3060): both keys must be
+      in .env.local at the project root AND the dev
+      server must be restarted (Next reads .env.local
+      at boot, not on hot reload).
+    - VERCEL: confirm both keys are set in the project
+      env settings, scoped to the right environment
+      (Production for the canonical URL, Preview for
+      branch URLs), and trigger a redeploy of the
+      latest commit (Vercel only injects env vars at
+      build time).
 
-    BROWSER WALKTHROUGH (in priority order):
-    - /dashboard — Playfair page title navy.
-      Stat cards lift 4px on hover with shadow-
-      lg, 12px radius, w-9 h-9 colored icon
-      chips. Module-gated row only renders
-      pawn/repair/retail when tenant has that
-      module.
-    - Sidebar — full dark navy column TOP TO
-      BOTTOM. Active row gold text + white/10
-      overlay + gold icon. w-52 expanded /
-      w-16 collapsed. Collapse caret muted
-      white at top.
-    - Topbar — h-16 white strip on the RIGHT
-      side only. Solid Playfair "Pawn" navy
-      next to tenant switcher.
-    - /login, /portal/login, /onboard,
-      /portal/claim — all four navy-bg auth
-      cards with rounded-2xl + shadow-lg + white
-      Playfair wordmark above. Gold submit
-      buttons with NAVY text + lift on hover.
-    - /customers, /inventory, /pawn, /repair,
-      /pos, /settings — page titles in Playfair,
-      forms with 2px borders + focus:border-blue
-      (no ring), buttons rounded-lg with
-      bg-shift hover, links text-blue.
-    - Open a dialog (e.g. record-payment, add-
-      stone) — modal panel rounded-xl border
-      shadow-lg, navy/40 backdrop.
-    - /pawn/[id] — backpage smoke still open
-      from Session 27 (carried below).
+    Once env is fixed, walk the test phrase:
+    "I want to make a pawn for Maria Fernandez born
+    on January first two thousand and the loan is for
+    two hundred dollars for a 14 karat wedding ring
+    that weighs 2.3 grams." Expected — TTS
+    confirmation reads either "I created a new record
+    for Maria Fernandez and filled in the form…"
+    (no match) or "I filled in the form for Maria
+    Fernandez…" (match exists in customers). Form
+    fields populated: customer dropdown selects
+    "Fernandez, Maria"; principal = 200; one
+    collateral row with description='wedding ring' /
+    category='ring' / metal_type='gold' / karat='14K' /
+    weight_grams='2.3'.
 
-    SHIP-AS-YOU-GO:
-    - Each operator finding becomes its own
-      surgical commit. No more mechanical
-      sweeps; the Session 29 migration script
-      was deleted on purpose to force per-case
-      thinking.
-
-    BACKPAGE SMOKE (carried from Session 27 —
-    still open):
-    - Print a pawn ticket from /pawn/[id] and
-      verify page 2 renders the FL Ch. 539
-      default with a "Terms and Conditions —
-      Reverse Side" header.
-    - Edit the textarea on /settings/loan-rates
-      with a custom override; print again; verify
-      the custom text replaces the default.
-    - Verify form-field lines (Pledgor _____,
-      X ____, Name: ____, etc.) print as
-      continuous handwriting rules in mono, not
-      gappy.
-    - Click "Reset to default" — verify textarea
-      clears, save, status line flips to "Using
-      the Florida Ch. 539 default text", next
-      print renders default again.
-    Note: PDF templates use `reportColors`
-    (charcoal/muted/divider/ink) which is
-    intentionally separate from the screen
-    palette — the print look is unchanged by
-    this migration.
-
-    SMOKE TESTS still open from Session 25/26
-    (carrying):
-    (A) Google Reviews end-to-end: GOOGLE_PLACES_
-        API_KEY in Vercel env + Places API
-        enabled. Widget renders on /s/<slug>;
-        /settings/integrations/google-reviews
-        shows cached list + hide/unhide.
-    (B) Cron warmer: curl /api/cron/refresh-google-
-        reviews with Authorization: Bearer
-        <CRON_SECRET>; expect JSON + audit_log row.
-    (C) Quota guardrails: 50+ refresh hits in
-        24h; 51+ returns cached row +
-        last_error='quota_exceeded'.
-    (D) Email campaigns: SQL-insert a draft, flip
-        status='scheduled', cron dispatches,
-        message_log + email_campaign_recipients
-        + audit_log fill.
-    (E) Public unsubscribe: /unsubscribe?t=<uuid>
-        bilingual form; click → marketing_opt_in
-        flips FALSE, audit-logged.
-    (F) Resend webhook: ${APP_URL}/api/webhooks/
-        resend with RESEND_WEBHOOK_SECRET; test
-        event 200 + audit-log update.
-    (G) Vault smoke: rotate Resend key in
-        /settings/communications; tenant_secrets
-        row + updated_at; badge lit; test email
-        dispatches.
-    (H) Settings UIs: /settings,
-        /settings/integrations,
-        /settings/communications,
-        /settings/integrations/google-reviews,
-        /settings/integrations/ebay all render
-        with vault-driven badges (and the new
-        Luna Azul styling).
-    (I) eBay sync cron + inventory page work
-        without errors.
-
-    NEXT MOVES (after smoke):
-    (a) Phase 0 punch list — CRON_SECRET +
-        NEXT_PUBLIC_APP_URL + RESEND_WEBHOOK_
-        SECRET + GOOGLE_PLACES_API_KEY +
-        NEXT_PUBLIC_BASE_DOMAIN env vars in
-        Vercel. Three pasted secrets (anon JWT,
-        service-role JWT, sbp_ token) still need
-        rotation. Repo-local git config revert
-        still open.
-    (b) Email-campaign UI editor at /settings/
-        communications/campaigns — list +
-        create/edit/schedule/cancel form +
-        segmentation preview. Engine ships from
-        Session 25; UI is what makes it operator-
-        usable. Build it on the new design
-        system from day 1 (gold submit, navy
-        sidebar contextual cues, Playfair page
-        title).
-    (c) Stripe-side vault cutover — when Connect
-        onboarding is built. 3 stripe_* kinds in
-        lib/secrets/vault.ts are typed; no
-        readers/writers yet.
-    (d) eBay de-stub — auth.ts + client.ts +
-        listings.ts STUB markers to real Sell API
-        calls. ~840 LOC. Needs eBay developer
-        account + sandbox vs prod decision +
-        marketplace ID confirmation.
-    (e) Phase 8 mobile audit — operator's eyes
-        in browser device-mode, now against the
-        new design system.
+    Spec deviations from the original spec (locked
+    in CLAUDE.md / DESIGN-lunaazul.md):
+    - Phosphor icons (not lucide).
+    - Design tokens (gold / danger / blue) not raw
+      Tailwind colors.
+    - claude-haiku-4-5-20251001 (the spec's
+      claude-sonnet-4-5 doesn't exist; Haiku is the
+      project's narrow-extraction model per CLAUDE.md
+      "Sonnet heavy / Haiku parallel").
+    - Route at /api/ai/voice/ not /api/voice/
+      (project convention).
+    - Match-or-create customer path (operator chose
+      via AskUserQuestion).
+    - Push-to-talk gesture (operator chose after
+      first-round feedback).
 
   OPEN ISSUES / BLOCKERS:
-    - Sessions 29 + 30 + 31 design migration
-      (eight commits total: 1d57110 / 8b13560 /
-      929d072 / e301f67 / 1ae17cc / e49574d /
-      05b92f0 / 5036698) all shipped. Operator
-      browser walkthrough of the production URL
-      still open — Airbnb-era stragglers get
-      surgical follow-up commits as found.
-    - Sessions 25/26/27 production smoke not yet
-      walked end-to-end. Local lint+tsc+409 tests
-      are green; real Resend / Google / Vercel-
-      cron behavior under vault-only is
-      unverified. Backpage rendering is
-      tsc-verified only — needs an actual print
-      to confirm page 2 layout.
-    - Email-campaign engine has NO operator UI
-      yet — SQL-insert campaigns to test until
-      the editor lands.
-    - Phase 0 punch list — CRON_SECRET +
-      NEXT_PUBLIC_APP_URL + RESEND_WEBHOOK_SECRET +
-      GOOGLE_PLACES_API_KEY + NEXT_PUBLIC_BASE_
-      DOMAIN still unset in Vercel; cron routes
-      401 + webhooks 401 + GR widget renders empty
-      until they land. Three pasted secrets (anon
-      JWT, service-role JWT, sbp_ token) still
-      need rotation. Repo-local git config revert
-      still open.
-    - SaaS billing real-money flow + per-tenant
-      Stripe Connect + per-tenant Resend not yet
-      onboarded for first tenant.
+    - Voice intake 503 awaiting env-var confirmation +
+      redeploy. Not a code bug — env-not-loaded.
+    - Session 32 carry-over still applies: operator
+      browser walkthrough; backpage smoke from Session
+      27; the 9-smoke sequence (A-I) for Google
+      Reviews / cron warmer / quota / email campaigns /
+      unsubscribe / Resend webhook / vault / settings
+      UIs / eBay sync; Phase 0 punch list (CRON_SECRET +
+      RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY +
+      NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN +
+      three pasted-secret rotations).
+    - Email-campaign UI editor still pending (engine
+      shipped Session 25).
+    - Stripe Connect + per-tenant Resend onboarding
+      for first tenant.
     - eBay paths still STUBBED (Phase 10 B).
-    - Diamond cert lookup is in stub mode — needs
-      IDEX_API_KEY or RAPAPORT_API_KEY in env.
-    - WhatsApp Content SIDs NULL until Twilio +
-      Meta approval per template per tenant.
-    - FL LeadsOnline CSV format still DRAFT.
+    - Diamond cert lookup in stub mode.
+    - WhatsApp Content SIDs NULL until Twilio + Meta
+      approval per template per tenant.
+    - FL LeadsOnline CSV format DRAFT.
+    - Phase 8 mobile audit still in backlog from
+      Session 24.
 
-  OPEN SMALL FOLLOW-UPS (carried, can ride along):
-    - Reviewer photos in widget — adding next/image
-      remotePatterns for lh3.googleusercontent.com
-      would enable avatars per review. Defer until
-      Eddy explicitly wants them.
-    - Email-campaign editor UI at /settings/
-      communications/campaigns.
-    - Stripe-side vault cutover — ready when
-      Connect onboarding is built.
-    - Multi-jurisdiction backpage defaults — when
-      a tenant outside Florida onboards, expand
-      pawn-ticket-backpage-default.ts to a
-      jurisdiction map keyed by
-      tenants.police_report_format.
-    - Visual polish opportunities revealed by the
-      sweep: any spot that uses bg-success / bg-
-      warning / bg-danger as decoration (rather
-      than status communication) violates the new
-      "strict semantic use" rule and should be
-      remapped to gold/blue/navy. None spotted in
-      tsc, but a visual pass may surface a few.
+  KEY DECISIONS LOCKED THIS SESSION (Session 33):
+    - HAIKU 4.5 OVER SONNET 4.6 FOR VOICE EXTRACTION.
+      The Armando spec said Sonnet but the parse is
+      narrow + structured + operator-blocking on
+      latency. CLAUDE.md routes "narrow / parallel"
+      workloads to Haiku; Sonnet is for "heavy"
+      reasoning. ~3x faster + ~3x cheaper at
+      ~$0.001/parse vs ~$0.003. Whisper cost stays
+      the same (whisper-1 only).
+    - PUSH-TO-TALK OVER CLICK-START / CLICK-STOP.
+      Operator's first-round feedback. Press-and-
+      hold-to-record matches walkie-talkie /
+      iMessage voice-note muscle memory. Greeting
+      TTS dropped — the gesture is self-
+      explanatory; post-fill confirmation TTS kept
+      so operators get audible confirmation that
+      the form filled.
+    - SETPOINTERCAPTURE FOR DRAG-OFF SAFETY. The
+      pointer-up handler must fire on the button
+      even if the operator drags off mid-press;
+      setPointerCapture(pointerId) ensures the
+      capture stays on the button until release.
+      Wrapped in try/catch for older browsers.
+    - VOICE FILLS PRINCIPAL + ONE COLLATERAL ROW +
+      CUSTOMER ONLY. Term, rate, dates, signature
+      stay manual. v1 keeps the parse narrow for
+      reliability; multi-item / term-rate
+      extraction is future enhancement.
+    - MATCH-OR-CREATE OVER PICK-EXISTING. Operator
+      explicitly chose via AskUserQuestion. ilike
+      on first_name + last_name within tenant,
+      narrowed by date_of_birth when extracted.
+      No-match falls through to a fresh customers
+      insert via admin client — operator must
+      verify ID details before submitting (the
+      TTS confirmation flags this branch).
+    - INLINE ROLE GATE IN THE API ROUTE. Project's
+      requireRoleInTenant() uses redirect() which
+      throws and doesn't translate to a JSON
+      response. The voice route returns JSON 4xx
+      so the inline check covers direct membership
+      + chain_admin fallback in ~30 lines instead.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 31):
-    - GOLD IS ACTION ONLY, ENFORCED EVERYWHERE.
-      The Session 29 mechanical sweep migrated
-      tokens but didn't enforce the design rule
-      that gold is the action color, never used
-      for status / decoration / navigation. This
-      session purged the misuses found:
-      assigned/in_progress repair status badges,
-      timeline events, ServiceTypeBadge category
-      tints, light-surface tab active borders,
-      TenantSwitcher active checkmark, audit-page
-      hero icon, audit record-id link, payoff /
-      redeem emphasis pills. Dark-sidebar gold-
-      on-active stays — that's documented in
-      DESIGN-lunaazul.md §6 as the exception.
-    - LIGHT-SURFACE NAV USES BLUE, NOT GOLD.
-      Tabs, dropdown active rows, breadcrumb
-      separators, focus rings, link colors —
-      all blue (#1d6fa4) on light surface. Dark
-      sidebar uses gold. Two distinct
-      "I'm-here / I'm-active" treatments per
-      surface type.
-    - INLINE STYLE GRADIENTS / SHADOWS WERE
-      INVISIBLE TO THE className SWEEP. Four
-      Rausch gradients hid in inline style={{}}
-      props (portal/login, onboard, PortalChrome,
-      admin layout) and survived the Session 29
-      mass migration. One inline 3-layer Airbnb
-      shadow hid in portal/claim. All caught
-      this session via grep for hex literals.
-      Lesson: future migrations should grep for
-      both className tokens AND hex literals in
-      inline styles.
-    - CARD WORKHORSE RADIUS IS 12PX.
-      `rounded-lg border border-border bg-card`
-      patterns (8px) bumped to `rounded-xl
-      border border-border bg-card` (12px). The
-      design's "one card radius" rule.
-    - HOVER FEEL IS BG-SHIFT, NOT BORDER-DARKEN.
-      Old `hover:border-foreground` (single
-      pixel of border darkens) replaced with
-      `hover:bg-background hover:text-
-      foreground` (whole row warms slightly).
-      This is the single biggest interaction-
-      feel change after the migration — cards
-      and buttons feel softer / more inviting.
-    - STAT CARD HAS A COLORED ICON CHIP. Bare
-      icons in the corner moved to w-9 h-9
-      colored boxes per Luna Azul module-card
-      reference. Chip color follows the tone
-      prop: navy/5 + navy text for neutral,
-      danger/10 for error, warning/10 for
-      warning. RevenueCard uses success/10 +
-      success text since revenue is a
-      good-standing money-in signal.
-    - SHIP-AS-YOU-GO, NO MORE SWEEPS. The
-      one-shot migration script was deleted at
-      the end of Session 29. From this session
-      forward, every visual fix gets its own
-      commit + push so Vercel ships it
-      individually, and so any regression has a
-      clean bisect target.
+  IMPORTANT CONSTANTS / PATHS:
+    - Voice route: src/app/api/ai/voice/pawn-intake/route.ts
+    - Voice component: src/components/pawn/VoicePawnButton.tsx
+    - Form integration: src/app/(staff)/pawn/new/form.tsx
+    - Required env: OPENAI_API_KEY + ANTHROPIC_API_KEY
+    - Whisper model: whisper-1 (language=en|es from
+      i18n)
+    - Claude model: claude-haiku-4-5-20251001
+    - Allowed roles: owner | chain_admin | manager |
+      pawn_clerk
+    - Audit-log action: 'create' on customers, with
+      changes.source='voice_intake'
+    - Audio cap: 5MB (30sec webm/opus is ~250KB)
+    - Codec preference: webm/opus → webm → mp4 →
+      ogg/opus (Safari iOS uses mp4)
 
-  KEY DECISIONS LOCKED LAST SESSION (Session 30):
-    - SIDEBAR-FIRST LAYOUT, NOT HEADER-FIRST.
-      The Session 29 staff layout had the topbar
-      as the first child (above the sidebar/main
-      row) — quick to write but stacked the
-      navy column under a white strip. Switched
-      to the Luna Azul reference shape: outer
-      flex-row with sidebar as first child
-      (full-height) and a flex-col right column
-      holding header + main. Sidebar reaches
-      y=0; header only spans the right portion.
-      This is the right end state, not a
-      workaround.
-    - NO STICKY SIDEBAR YET. The current shell
-      lets the page scroll behind the topbar.
-      Operator may want sticky/independent
-      sidebar scroll later (`sticky top-0
-      self-start` add); deferred until requested,
-      so the simple layout stays simple.
-
-  KEY DECISIONS LOCKED LAST SESSION (Session 29):
-    - DESIGN SYSTEM SOURCE = LUNA AZUL WEB SAAS,
-      NOT NEW. The operator already has a
-      shipped sister app in this aesthetic
-      (LunaAzul Web SaaS at c:\...\LunaAzul Web
-      Sass\); copying that posture saves
-      designing from scratch and keeps the
-      Rodriguez Multi Service portfolio visually
-      coherent.
-    - PHOSPHOR OVER LUCIDE. Luna Azul uses
-      Lucide. Pawn keeps Phosphor. Already
-      imported in 30+ files; visual diff at our
-      sizes is small; weight variants useful for
-      state expression. Documented as a
-      deviation in DESIGN-lunaazul.md §12.
-    - JETBRAINS MONO RETAINED. Luna Azul has
-      no mono family. Pawn keeps it for tabular
-      numerals (loan principal, ticket numbers,
-      register totals, item SKUs).
-    - REPORT TOKENS UNTOUCHED. PDF print
-      tokens (`reportColors`) intentionally
-      stay separate. Paper printing has
-      different contrast budgets than monitor
-      rendering; charcoal-on-white reads
-      better at 600dpi than navy.
-    - SEMANTIC COLORS = TAILWIND DEFAULTS.
-      Replaced the dusty saturation-matched
-      success #2D7A4E / warning #B7791F with
-      Tailwind's emerald-500 / amber-500. The
-      "saturation match to error red" rationale
-      doesn't apply once Rausch leaves. Same
-      Tailwind class names (text-success /
-      bg-warning / etc.) — only the hex shifted,
-      no template edits needed for those.
-    - ACTION COLORS NEVER OVERLAP STATUS
-      COLORS. Gold = primary action. Blue =
-      link / focus. Success / warning / danger
-      / info = strictly status. A "click here"
-      moment never uses success green; a
-      "completed" moment never uses gold.
-    - GOLD BUTTONS GET NAVY TEXT, NOT WHITE.
-      The Luna Azul reference shows gold + navy
-      reads better than gold + white. Mechanical
-      sweep specifically handled this — Pass B
-      flipped text-white → text-navy on every
-      bg-gold button.
-    - MECHANICAL SWEEP, NOT HAND-EDITS. 154
-      files / ~5300 className renames. Doing it
-      by hand would have taken days; the
-      one-shot Node migration script
-      (scripts/migrate-tokens-to-lunaazul.mjs,
-      since deleted) ran four passes and
-      finished in seconds. The "do it right
-      the first time" rule pushed against a
-      compat-alias workaround (e.g., adding
-      bg-rausch as a backwards-compat alias
-      to bg-gold in @theme); rejected, did the
-      full sweep instead.
-    - SESSION 28 REVERT ABSORBED. The
-      uncommitted dashboard revert from
-      Session 28 (4f5b13a) carried into this
-      session; the dashboard's STRUCTURE is
-      what was reverted (4 stat cards +
-      module-gated row + recent lists), but
-      its STYLING is now Luna Azul. End state
-      = reverted-then-restyled, single commit.
-
-  (Sessions 13-28 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-32 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -731,7 +253,9 @@ PHASE OVERVIEW
           (Variable rate menu Session 11. Loan-rate
           minimums + tenant min loan amount Session
           12. Watch typeahead + 3 dashboard charts
-          live Session 13.)
+          live Session 13. Voice intake on /pawn/new
+          shipped Session 33 — Whisper + Haiku 4.5
+          + match-or-create customer.)
   3       Repair / stone setting                     COMPLETE    2026-04-27
           (Tech workflow upgraded Session 12 —
           assigned + tech_qa stages, auto-timer
@@ -2177,6 +1701,98 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
+--- Session 33 (2026-05-08) — Voice pawn intake on /pawn/new (Whisper + Haiku, push-to-talk) ---
+
+ 283. VOICE PAWN INTAKE — INITIAL FLOW (commit
+     16e6d43). New: src/components/pawn/
+     VoicePawnButton.tsx + src/app/api/ai/voice/
+     pawn-intake/route.ts. Modified: src/app/
+     (staff)/pawn/new/form.tsx (lifted customers +
+     principal state, wired VoicePawnButton with
+     handleVoiceData callback that injects
+     resolved customer + sets principal + calls
+     collateralRef.current.addExtractedRow);
+     src/components/pawn/CollateralItemsList.tsx
+     (added addExtractedRow to
+     CollateralListHandle, mirrors addWatchRow's
+     pristine-seed-replace behavior so a single
+     fill keeps row count at 1); src/lib/i18n/
+     en.ts + es.ts (pawn.new_.voice block);
+     CLAUDE.md (OPENAI_API_KEY env var
+     documented); package.json +
+     package-lock.json (openai +
+     @anthropic-ai/sdk).
+     Pipeline: Whisper transcription with EN/ES
+     language hint from operator's i18n
+     preference; Claude Haiku 4.5
+     (claude-haiku-4-5-20251001) strict-JSON
+     extraction (customer + principal + one
+     collateral row with category / metal_type /
+     karat / weight_grams / est_value); customers
+     match-or-create via ilike on first + last
+     within tenant, narrowed by date_of_birth
+     when extracted. New customer rows insert
+     via admin client with audit-log action='create',
+     changes.source='voice_intake'. Module-gated
+     on tenants.has_pawn; role-gated inline to
+     owner | chain_admin | manager | pawn_clerk
+     (route returns JSON 4xx instead of using
+     requireRoleInTenant() which redirect()s).
+     Returns 503 "Voice intake is not configured
+     on this deployment" if OPENAI_API_KEY or
+     ANTHROPIC_API_KEY missing.
+     Spec deviations from Armando's original spec:
+     Phosphor not lucide; design tokens not raw
+     colors; Haiku 4.5 not the spec's nonexistent
+     claude-sonnet-4-5; route under /api/ai/voice/
+     per project convention; bilingual EN/ES
+     strings + TTS; auth + module + role gating;
+     audit log on customer create. tsc + lint
+     clean.
+
+ 284. VOICE INTAKE — PUSH-TO-TALK REWIRE (commit
+     103e641). Operator feedback after first
+     ship: click-to-start / click-to-stop felt
+     clunky; wanted hold-to-record / release-to-
+     submit muscle memory. Replaced onClick with
+     onPointerDown + onPointerUp + onPointerCancel
+     in src/components/pawn/VoicePawnButton.tsx.
+     setPointerCapture(pointerId) on press so a
+     drag-off-button release still fires pointerup
+     on the button (mouse path); finger lift on
+     touch always fires on the button anyway. New
+     `arming` phase between press and recorder.start()
+     handles the case where operator releases
+     during the first-press mic-permission prompt:
+     armingRef.current.aborted = true, the start
+     path tears down the stream and returns to
+     idle. Greeting TTS dropped (operator's
+     gesture is self-explanatory; the silent
+     recording flow is more predictable). Post-
+     fill confirmation TTS kept. i18n: start →
+     "Hold to talk" / "Mantén presionado para
+     hablar"; new `listening` key for the held
+     state; hint rephrased to mention press +
+     hold + release; greeting + stop keys
+     removed (dead). tsc + lint clean. Session
+     33 net delta: ~917 lines added across the
+     two commits, ~102 deleted (mostly the old
+     click-based component + dropped i18n keys).
+     Zero changes to server actions or business
+     logic — voice intake is purely a pre-fill
+     layer over the existing form.
+
+ 285. OPEN ISSUE — VOICE INTAKE 503 ON OPERATOR
+     TEST. Route returns 503 "Voice intake is
+     not configured on this deployment" when
+     either OPENAI_API_KEY or ANTHROPIC_API_KEY
+     isn't loaded at runtime. Operator hit this
+     after push and reported. Diagnosis sent:
+     check .env.local (dev) or Vercel env scope +
+     redeploy (production). Awaiting operator
+     confirmation of which environment to fix.
+     Not a code bug — env-not-loaded.
+
 --- Session 32 (2026-05-06, ~17:00) — Design migration closed out ---
 
  278. STALE-TOKEN AUDIT — ZERO HITS. Ran a 30-
@@ -3381,30 +2997,35 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Pull up the production URL. The Luna Azul
-    migration + design pass is fully shipped
-    through commit 5036698. Walk the routes in
-    the RESUME POINT browser-walkthrough above
-    (dashboard, sidebar, topbar, auth pages,
-    main staff routes, a dialog) and call out
-    by route + element anything that still
-    feels Airbnb-era. Each finding gets a
-    small surgical commit. The mass sweeps
-    are done — no more grep-driven changes.
-    AFTER THE BROWSER PASS (carrying from
-    Session 27): walk the backpage smoke (print
-    a pawn ticket; verify default + custom
-    override + reset paths — PDF print uses
-    reportColors, NOT the screen palette, so
-    the print look is unchanged by the
-    migration), then the 9-smoke sequence (A-I)
+    Confirm the OPENAI_API_KEY + ANTHROPIC_API_KEY
+    state with the operator. If dev: add both to
+    .env.local at the project root and restart
+    `npm run dev`. If Vercel: confirm both are set
+    in the project env settings, scoped to the
+    right environment, and trigger a redeploy of
+    the latest commit (Vercel only injects env
+    vars at build time). Then walk the test phrase
+    end-to-end on /pawn/new: press and hold the
+    gold mic, say "Maria Fernandez, $200 for a 14k
+    wedding ring, 2.3 grams", release. Expected:
+    TTS confirmation + form fields populated
+    (customer dropdown, principal=200, one
+    collateral row).
+
+    AFTER VOICE SMOKE: the Session 32 carry-over
+    agenda resumes — operator browser walkthrough
+    of the Luna Azul design pass; backpage smoke
+    from Session 27 (FL Ch. 539 default + custom
+    override + reset); the 9-smoke sequence (A-I)
     for Google Reviews / cron warmer / quota /
-    email campaigns / unsubscribe / Resend
-    webhook / vault / settings UIs / eBay sync.
-    Phase 0 punch list (CRON_SECRET +
-    RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY
-    + the three secret rotations) is still the
-    biggest blocker for smokes B/F/A.
+    email campaigns / unsubscribe / Resend webhook /
+    vault / settings UIs / eBay sync. Phase 0
+    punch list (now item h. OPENAI_API_KEY +
+    confirm ANTHROPIC_API_KEY in addition to
+    CRON_SECRET + RESEND_WEBHOOK_SECRET +
+    GOOGLE_PLACES_API_KEY + the three secret
+    rotations) remains the biggest blocker for
+    smokes B/F/A.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 7 cron paths
@@ -3427,6 +3048,13 @@ PENDING — NEXT UP
        wildcard cert in Vercel domains UI. Lights up the
        acme.basedomain.com subdomain form. Path form `/s/<slug>`
        works without it.
+    h. (NEW Session 33) Set OPENAI_API_KEY + confirm
+       ANTHROPIC_API_KEY in Vercel Production env. Gates
+       /api/ai/voice/pawn-intake — returns 503 "Voice
+       intake is not configured on this deployment" if
+       either is missing at runtime. Vercel only injects
+       env vars at build time so the deployment must be
+       redeployed after setting.
 
   BACKLOG (in priority order):
     1. Operator setup gates (above) + per-tenant Stripe Connect
