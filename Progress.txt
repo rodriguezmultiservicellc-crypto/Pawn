@@ -13,217 +13,167 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 33 (2026-05-08, mid-afternoon)
-                  — VOICE PAWN INTAKE FEATURE.
-                  Built voice-driven pawn intake on
-                  /pawn/new: press and hold the gold
-                  mic, speak ("Maria Fernandez, $200
-                  for a 14k wedding ring, 2.3 grams"),
-                  release, the form pre-fills.
+  Last session:   Session 34 (2026-05-08, late afternoon)
+                  — VOICE INTAKE DIAGNOSTICS + STT
+                  PROVIDER DECISION.
 
-                  Two commits:
-                  - 16e6d43: initial click-to-start /
-                    click-to-stop flow + greeting TTS.
-                  - 103e641: rewired to push-to-talk
-                    per operator feedback. Hold = record,
-                    release = submit. Greeting TTS dropped
-                    (operator's gesture is self-
-                    explanatory). setPointerCapture on
-                    press so a drag-off-button release
-                    still fires pointerup on the button.
+                  Voice intake from Session 33 shipped,
+                  but the operator hit two errors in
+                  sequence while testing:
 
-                  Pipeline: Whisper (whisper-1) for
-                  transcription with EN/ES language hint
-                  from i18n; Claude Haiku 4.5
-                  (claude-haiku-4-5-20251001) for
-                  strict-JSON extraction (customer name +
-                  DOB, principal, one collateral row with
-                  category / metal / karat / weight /
-                  est_value); match-or-create on
-                  customers (case-insensitive ilike on
-                  first + last, narrowed by date_of_birth
-                  when extracted); audit-logged with
-                  changes.source='voice_intake' on
-                  create. Module-gated on
-                  tenants.has_pawn, role-gated to owner |
-                  chain_admin | manager | pawn_clerk.
+                  (1) "Voice intake is not configured on
+                  this deployment" — old 503 message
+                  fired on either OPENAI_API_KEY or
+                  ANTHROPIC_API_KEY missing without
+                  saying which. Commit d56fbfe
+                  differentiates: now reports the
+                  specific missing env var.
 
-                  New deps: openai, @anthropic-ai/sdk.
-                  New env: OPENAI_API_KEY (added to
-                  CLAUDE.md, gates 503 fallback when
-                  missing).
+                  (2) "Transcription failed" — Whisper
+                  call rejected the request. Old
+                  message swallowed the upstream error.
+                  Commit c59ff43 passes through the
+                  OpenAI / Anthropic SDK error message
+                  (truncated to 300 chars). API keys
+                  are never in error.message so this is
+                  safe to surface to authenticated
+                  staff.
 
-  Context budget: ~70% at save time.
-  Last worked on: Operator hit a 503 "Voice intake is
-                  not configured on this deployment"
-                  error after the push-to-talk push.
-                  Diagnosis sent: either OPENAI_API_KEY
-                  or ANTHROPIC_API_KEY isn't loaded at
-                  the route's runtime — needs to be in
-                  .env.local for dev OR set + scope-
-                  correct + redeployed in Vercel for
-                  production. Awaiting operator
-                  confirmation of which environment.
+                  Diagnosing (2), the operator revealed
+                  that the value pasted into
+                  OPENAI_API_KEY in Vercel is actually
+                  an Anthropic key — the operator does
+                  not have an OpenAI account. Two paths
+                  surfaced via AskUserQuestion: (A)
+                  swap Whisper for the browser's Web
+                  Speech API (free, no key, Chrome/
+                  Edge-only), or (B) sign up for OpenAI
+                  ($5 minimum, ~833 minutes of Whisper,
+                  works in more browsers).
 
-  ACTIVE FILE(S) modified this session — Session 33
-  (both commits live, gated on env vars):
+                  Operator chose (B). No code changes
+                  needed — operator signs up at
+                  platform.openai.com, loads $5, copies
+                  the sk-proj-... key, replaces the
+                  current Vercel OPENAI_API_KEY value
+                  with the real OpenAI key, redeploys.
 
-    --- COMMIT 16e6d43 — initial voice intake ---
-    - src/components/pawn/VoicePawnButton.tsx (new)
-    - src/app/api/ai/voice/pawn-intake/route.ts (new)
-    - src/components/pawn/CollateralItemsList.tsx
-      (added addExtractedRow to CollateralListHandle)
-    - src/app/(staff)/pawn/new/form.tsx
-      (lifted customers + principal to state, wired
-       VoicePawnButton with handleVoiceData callback)
-    - src/lib/i18n/en.ts + es.ts
-      (pawn.new_.voice block: start / listening /
-       transcribing / confirmExisting / confirmCreated /
-       confirmEmpty / hint / heard / micDenied /
-       notSupported / serverError)
-    - CLAUDE.md (OPENAI_API_KEY env var documented)
-    - package.json + package-lock.json (openai +
-      @anthropic-ai/sdk)
+  Context budget: ~80% at save time.
+  Last worked on: Session 34 closes with the diagnostic
+                  trail in place + the OpenAI signup
+                  steps sent to the operator. The
+                  voice intake feature is fully built;
+                  the only blocker is the operator
+                  obtaining a real OpenAI key.
 
-    --- COMMIT 103e641 — push-to-talk rewire ---
-    - src/components/pawn/VoicePawnButton.tsx
-      (replaced click-start / click-stop with
-       onPointerDown / onPointerUp / onPointerCancel +
-       setPointerCapture; dropped greeting TTS; new
-       `arming` phase handles release-during-permission-
-       prompt cleanly; label shifts gold→red while held,
-       red→muted during processing)
-    - src/lib/i18n/en.ts + es.ts
-      (start: "Hold to talk" / "Mantén presionado para
-       hablar"; listening: new key for the held state;
-       hint rephrased; greeting + stop keys removed)
+  ACTIVE FILE(S) modified this session — Session 34
+  (both commits live on production):
+
+    --- COMMIT d56fbfe — differentiate missing-key 503 ---
+    - src/app/api/ai/voice/pawn-intake/route.ts
+      (replaced single 503 message with three branches:
+       both missing / openai missing / anthropic
+       missing, each mentioning the specific env var
+       to set + redeploy)
+
+    --- COMMIT c59ff43 — surface upstream error details ---
+    - src/app/api/ai/voice/pawn-intake/route.ts
+      (Whisper catch + Claude catch now include
+       e.message truncated to 300 chars in the 502
+       response so the operator sees auth errors,
+       rate-limit messages, bad-audio errors, etc.,
+       directly in the inline error UI)
 
   RESUME POINT:
-    Voice intake ships through commit 103e641 but is
-    gated on env vars at the route. The route returns
-    503 "Voice intake is not configured on this
-    deployment" when either OPENAI_API_KEY or
-    ANTHROPIC_API_KEY is missing from process.env at
-    runtime — that's the error operator is hitting.
+    Session 34 ships through commit c59ff43. The
+    feature is fully built and gated only on env
+    vars. Operator's chosen path is to sign up for
+    OpenAI and keep Whisper.
 
-    Next session, ask operator which environment they
-    are testing in:
-    - DEV (`npm run dev` on :3060): both keys must be
-      in .env.local at the project root AND the dev
-      server must be restarted (Next reads .env.local
-      at boot, not on hot reload).
-    - VERCEL: confirm both keys are set in the project
-      env settings, scoped to the right environment
-      (Production for the canonical URL, Preview for
-      branch URLs), and trigger a redeploy of the
-      latest commit (Vercel only injects env vars at
-      build time).
+    Next session, ask operator whether the OpenAI
+    signup + key paste + Vercel redeploy completed.
+    If yes, walk the test phrase end-to-end on
+    /pawn/new (press and hold the gold mic, say
+    "Maria Fernandez, $200 for a 14k wedding ring,
+    2.3 grams", release). Expected: TTS confirmation
+    + form fields populated. If the new diagnostic
+    surfaces a different error (auth / rate-limit /
+    bad-audio), that's now visible in the inline
+    error UI and we follow up from there.
 
-    Once env is fixed, walk the test phrase:
-    "I want to make a pawn for Maria Fernandez born
-    on January first two thousand and the loan is for
-    two hundred dollars for a 14 karat wedding ring
-    that weighs 2.3 grams." Expected — TTS
-    confirmation reads either "I created a new record
-    for Maria Fernandez and filled in the form…"
-    (no match) or "I filled in the form for Maria
-    Fernandez…" (match exists in customers). Form
-    fields populated: customer dropdown selects
-    "Fernandez, Maria"; principal = 200; one
-    collateral row with description='wedding ring' /
-    category='ring' / metal_type='gold' / karat='14K' /
-    weight_grams='2.3'.
-
-    Spec deviations from the original spec (locked
-    in CLAUDE.md / DESIGN-lunaazul.md):
-    - Phosphor icons (not lucide).
-    - Design tokens (gold / danger / blue) not raw
-      Tailwind colors.
-    - claude-haiku-4-5-20251001 (the spec's
-      claude-sonnet-4-5 doesn't exist; Haiku is the
-      project's narrow-extraction model per CLAUDE.md
-      "Sonnet heavy / Haiku parallel").
-    - Route at /api/ai/voice/ not /api/voice/
-      (project convention).
-    - Match-or-create customer path (operator chose
-      via AskUserQuestion).
-    - Push-to-talk gesture (operator chose after
-      first-round feedback).
+    AFTER VOICE SMOKE: the Session 32 carry-over
+    agenda resumes — operator browser walkthrough
+    of the Luna Azul design pass; backpage smoke
+    from Session 27 (FL Ch. 539 default + custom
+    override + reset); the 9-smoke sequence (A-I)
+    for Google Reviews / cron warmer / quota /
+    email campaigns / unsubscribe / Resend webhook /
+    vault / settings UIs / eBay sync. Phase 0
+    punch list (h. OPENAI_API_KEY + confirm
+    ANTHROPIC_API_KEY in addition to CRON_SECRET +
+    RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY +
+    the three secret rotations) remains the
+    biggest blocker for smokes B/F/A.
 
   OPEN ISSUES / BLOCKERS:
-    - Voice intake 503 awaiting env-var confirmation +
-      redeploy. Not a code bug — env-not-loaded.
-    - Session 32 carry-over still applies: operator
-      browser walkthrough; backpage smoke from Session
-      27; the 9-smoke sequence (A-I) for Google
-      Reviews / cron warmer / quota / email campaigns /
-      unsubscribe / Resend webhook / vault / settings
-      UIs / eBay sync; Phase 0 punch list (CRON_SECRET +
-      RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY +
-      NEXT_PUBLIC_APP_URL + NEXT_PUBLIC_BASE_DOMAIN +
-      three pasted-secret rotations).
-    - Email-campaign UI editor still pending (engine
-      shipped Session 25).
-    - Stripe Connect + per-tenant Resend onboarding
-      for first tenant.
-    - eBay paths still STUBBED (Phase 10 B).
-    - Diamond cert lookup in stub mode.
-    - WhatsApp Content SIDs NULL until Twilio + Meta
-      approval per template per tenant.
-    - FL LeadsOnline CSV format DRAFT.
-    - Phase 8 mobile audit still in backlog from
-      Session 24.
+    - Voice intake awaiting OpenAI key. Operator
+      will sign up at platform.openai.com, load
+      $5, paste the real sk-proj-... key into the
+      Vercel OPENAI_API_KEY env var (currently has
+      an Anthropic key in there), and redeploy.
+      Not a code bug — env value is wrong.
+    - Session 32 + 33 carry-over still applies:
+      operator browser walkthrough; backpage smoke
+      from Session 27; the 9-smoke sequence (A-I);
+      Phase 0 punch list; email-campaign UI editor;
+      Stripe Connect onboarding; eBay de-stub;
+      diamond-cert real provider; WhatsApp Content
+      SIDs; FL LeadsOnline format finalization;
+      Phase 8 mobile audit.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 33):
-    - HAIKU 4.5 OVER SONNET 4.6 FOR VOICE EXTRACTION.
-      The Armando spec said Sonnet but the parse is
-      narrow + structured + operator-blocking on
-      latency. CLAUDE.md routes "narrow / parallel"
-      workloads to Haiku; Sonnet is for "heavy"
-      reasoning. ~3x faster + ~3x cheaper at
-      ~$0.001/parse vs ~$0.003. Whisper cost stays
-      the same (whisper-1 only).
-    - PUSH-TO-TALK OVER CLICK-START / CLICK-STOP.
-      Operator's first-round feedback. Press-and-
-      hold-to-record matches walkie-talkie /
-      iMessage voice-note muscle memory. Greeting
-      TTS dropped — the gesture is self-
-      explanatory; post-fill confirmation TTS kept
-      so operators get audible confirmation that
-      the form filled.
-    - SETPOINTERCAPTURE FOR DRAG-OFF SAFETY. The
-      pointer-up handler must fire on the button
-      even if the operator drags off mid-press;
-      setPointerCapture(pointerId) ensures the
-      capture stays on the button until release.
-      Wrapped in try/catch for older browsers.
-    - VOICE FILLS PRINCIPAL + ONE COLLATERAL ROW +
-      CUSTOMER ONLY. Term, rate, dates, signature
-      stay manual. v1 keeps the parse narrow for
-      reliability; multi-item / term-rate
-      extraction is future enhancement.
-    - MATCH-OR-CREATE OVER PICK-EXISTING. Operator
-      explicitly chose via AskUserQuestion. ilike
-      on first_name + last_name within tenant,
-      narrowed by date_of_birth when extracted.
-      No-match falls through to a fresh customers
-      insert via admin client — operator must
-      verify ID details before submitting (the
-      TTS confirmation flags this branch).
-    - INLINE ROLE GATE IN THE API ROUTE. Project's
-      requireRoleInTenant() uses redirect() which
-      throws and doesn't translate to a JSON
-      response. The voice route returns JSON 4xx
-      so the inline check covers direct membership
-      + chain_admin fallback in ~30 lines instead.
+  KEY DECISIONS LOCKED THIS SESSION (Session 34):
+    - WHISPER STAYS, NO BROWSER SPEECHRECOGNITION
+      FALLBACK. Operator chose to keep the existing
+      Whisper architecture and sign up for OpenAI
+      ($5 floor, ~833 minutes of voice intake)
+      instead of swapping to the browser's Web
+      Speech API. Trade-offs: better accuracy +
+      Safari iOS support kept; modest ongoing cost
+      vs free Web-Speech-API (Chrome/Edge only).
+      Decision rationale: the pawn shop runs on
+      Windows desktops AND iPads, so cross-browser
+      support matters; $5 is a one-time near-zero
+      ongoing cost. Web Speech API path was
+      explicitly considered + rejected.
+    - DIAGNOSTIC ERRORS PASS THROUGH UPSTREAM
+      MESSAGE. Generic "Transcription failed"
+      hides the actual cause; staff are
+      authenticated and the OpenAI / Anthropic
+      SDK error.message strings don't include
+      the API key, so passing the upstream
+      message through (truncated to 300 chars)
+      is the right balance of useful + safe.
+      Same pattern applied to the Claude /
+      extraction catch.
+    - CLAUDE DOES NOT TRANSCRIBE AUDIO.
+      Investigated Anthropic SDK content blocks
+      (text + image + document supported; audio
+      NOT supported as of this session's @anthropic-
+      ai/sdk types). Confirmed no audio block in
+      messages.d.ts. So the transcription provider
+      MUST be a third-party (OpenAI Whisper, Google
+      Speech-to-Text, AssemblyAI, Deepgram, browser
+      Web Speech API). This is documented here so
+      future sessions don't re-investigate.
 
   IMPORTANT CONSTANTS / PATHS:
     - Voice route: src/app/api/ai/voice/pawn-intake/route.ts
     - Voice component: src/components/pawn/VoicePawnButton.tsx
     - Form integration: src/app/(staff)/pawn/new/form.tsx
-    - Required env: OPENAI_API_KEY + ANTHROPIC_API_KEY
-    - Whisper model: whisper-1 (language=en|es from
-      i18n)
+    - Required env: OPENAI_API_KEY (sk-proj-... or
+      sk-... from platform.openai.com — NOT an
+      Anthropic key) + ANTHROPIC_API_KEY (sk-ant-...)
+    - Whisper model: whisper-1
     - Claude model: claude-haiku-4-5-20251001
     - Allowed roles: owner | chain_admin | manager |
       pawn_clerk
@@ -233,7 +183,7 @@ SEE ALSO (do not duplicate here):
     - Codec preference: webm/opus → webm → mp4 →
       ogg/opus (Safari iOS uses mp4)
 
-  (Sessions 13-32 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-33 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -1700,6 +1650,77 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 34 (2026-05-08, late afternoon) — Voice intake diagnostics + STT provider decision ---
+
+ 286. VOICE 503 — DIFFERENTIATED ERROR PER MISSING
+     KEY (commit d56fbfe). Old fallback message
+     "Voice intake is not configured on this
+     deployment" fired on either OPENAI_API_KEY or
+     ANTHROPIC_API_KEY missing without saying
+     which. Replaced single check with three
+     branches in src/app/api/ai/voice/pawn-intake/
+     route.ts: both missing / openai missing /
+     anthropic missing, each mentioning the
+     specific env var to set + redeploy. Operator
+     can now diagnose env config from the inline
+     error UI directly. tsc clean.
+
+ 287. VOICE WHISPER/CLAUDE — UPSTREAM ERROR
+     PASS-THROUGH (commit c59ff43). Generic
+     "Transcription failed" / "Extraction failed"
+     swallowed the actual cause (auth, rate
+     limit, bad audio, network blip). Updated
+     both catch blocks in src/app/api/ai/voice/
+     pawn-intake/route.ts to include
+     e.message.slice(0, 300) in the 502 response.
+     OpenAI + Anthropic SDK error messages don't
+     include API keys (verified — they only
+     reference the call type / status code), so
+     surfacing them to authenticated staff is
+     safe. tsc clean. Operator hit "Transcription
+     failed" right after this shipped, which led
+     directly to item 288.
+
+ 288. STT PROVIDER DECISION — KEEP WHISPER, GET
+     OPENAI KEY. Operator revealed that the value
+     pasted into OPENAI_API_KEY in Vercel is
+     actually an Anthropic key — operator doesn't
+     have an OpenAI account. Investigated whether
+     Claude could replace Whisper: grep'd
+     @anthropic-ai/sdk/resources for audio
+     content-block types, confirmed Anthropic
+     Messages API supports text + image +
+     document content blocks but NOT audio (as of
+     the installed SDK version). So a transcription
+     provider must come from outside Anthropic.
+     Surfaced two options via AskUserQuestion:
+     (A) browser Web Speech API — free, no key,
+     Chrome/Edge-only client-side transcription;
+     (B) OpenAI Whisper — keep current
+     architecture, $5 minimum signup, better
+     accuracy, broader browser support.
+     Operator chose (B). No code changes —
+     operator will sign up at platform.openai.com,
+     load $5, copy the sk-proj-... key, replace
+     the current OPENAI_API_KEY value in Vercel,
+     and redeploy. Decision rationale documented
+     in the new RESUME block: pawn shop runs on
+     Windows AND iPads, so cross-browser support
+     matters more than the $5 floor.
+
+ 289. CLAUDE-DOES-NOT-TRANSCRIBE-AUDIO RULE
+     LOCKED. Investigation in item 288 confirmed
+     that as of @anthropic-ai/sdk currently in
+     package.json, audio is not a supported
+     content-block type on the Messages API.
+     Documented in the Session 34 RESUME's KEY
+     DECISIONS so future sessions don't repeat
+     the investigation. If/when Anthropic ships
+     audio support, the voice route can be
+     simplified to a single Anthropic call;
+     until then Whisper (or an equivalent
+     non-Anthropic STT) stays.
 
 --- Session 33 (2026-05-08) — Voice pawn intake on /pawn/new (Whisper + Haiku, push-to-talk) ---
 
