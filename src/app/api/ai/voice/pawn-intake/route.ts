@@ -144,11 +144,27 @@ function bad(status: number, error: string) {
 export async function POST(req: NextRequest) {
   // Confirm both API keys are configured before doing the multipart
   // parse — failing fast saves the operator a 30-second mic recording
-  // that would only error at the upstream call.
+  // that would only error at the upstream call. Differentiated error
+  // messages so the operator knows exactly which env var to set.
   const openaiKey = process.env.OPENAI_API_KEY
   const anthropicKey = process.env.ANTHROPIC_API_KEY
-  if (!openaiKey || !anthropicKey) {
-    return bad(503, 'Voice intake is not configured on this deployment.')
+  if (!openaiKey && !anthropicKey) {
+    return bad(
+      503,
+      'Voice intake not configured: OPENAI_API_KEY and ANTHROPIC_API_KEY both missing at runtime. Set them and redeploy.',
+    )
+  }
+  if (!openaiKey) {
+    return bad(
+      503,
+      'Voice intake not configured: OPENAI_API_KEY missing at runtime. Set it in env and redeploy.',
+    )
+  }
+  if (!anthropicKey) {
+    return bad(
+      503,
+      'Voice intake not configured: ANTHROPIC_API_KEY missing at runtime. Set it in env and redeploy.',
+    )
   }
 
   const ctx = await getCtx()
