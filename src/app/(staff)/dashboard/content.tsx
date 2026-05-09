@@ -71,11 +71,48 @@ export default function DashboardContent({
 }) {
   const { t } = useI18n()
 
+  const showSales = hasRetail
+  const showPawn = hasPawn
+  const showOrders = hasRepair
+  const anyQuickAction = showSales || showPawn || showOrders
+
   return (
     <div className="space-y-6">
       <h1 className="font-display text-3xl font-bold text-navy">
         {t.dashboard.title}
       </h1>
+
+      {anyQuickAction ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {showSales ? (
+            <QuickActionTile
+              label={t.dashboard.quickActions.sales}
+              sub={t.dashboard.quickActions.salesSub}
+              href="/pos"
+              icon={<ShoppingBag size={36} weight="duotone" />}
+              accent="success"
+            />
+          ) : null}
+          {showPawn ? (
+            <QuickActionTile
+              label={t.dashboard.quickActions.pawn}
+              sub={t.dashboard.quickActions.pawnSub}
+              href="/pawn"
+              icon={<Coins size={36} weight="duotone" />}
+              accent="gold"
+            />
+          ) : null}
+          {showOrders ? (
+            <QuickActionTile
+              label={t.dashboard.quickActions.orders}
+              sub={t.dashboard.quickActions.ordersSub}
+              href="/repair"
+              icon={<Wrench size={36} weight="duotone" />}
+              accent="blue"
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
@@ -262,6 +299,43 @@ export default function DashboardContent({
 
 type StatTone = 'neutral' | 'warning' | 'error'
 type ModuleAccent = 'pawn' | 'repair' | 'retail'
+type QuickActionAccent = 'gold' | 'blue' | 'success'
+
+function QuickActionTile({
+  label,
+  sub,
+  href,
+  icon,
+  accent,
+}: {
+  label: string
+  sub: string
+  href: string
+  icon: React.ReactNode
+  accent: QuickActionAccent
+}) {
+  const palette: Record<QuickActionAccent, string> = {
+    gold: 'border-gold/30 bg-gold/10 text-gold hover:bg-gold/15',
+    blue: 'border-blue/30 bg-blue/10 text-blue hover:bg-blue/15',
+    success: 'border-success/30 bg-success/10 text-success hover:bg-success/15',
+  }
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-4 rounded-xl border p-6 transition-all hover:-translate-y-1 hover:shadow-lg ${palette[accent]}`}
+    >
+      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/60">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <div className="font-display text-2xl font-bold uppercase tracking-wide">
+          {label}
+        </div>
+        <div className="text-sm font-medium opacity-80">{sub}</div>
+      </div>
+    </Link>
+  )
+}
 
 function StatCard({
   label,

@@ -128,6 +128,14 @@ export const es: Dictionary = {
     welcome: 'Bienvenido',
     placeholder:
       'Esqueleto de Fase 0 — el panel completo llega en la Fase 1.',
+    quickActions: {
+      sales: 'Ventas',
+      salesSub: 'Nueva venta',
+      pawn: 'Empeños',
+      pawnSub: 'Nuevo empeño',
+      orders: 'Órdenes',
+      ordersSub: 'Reparaciones',
+    },
     customersCard: 'Clientes',
     customersCardSub: 'Registros activos',
     inventoryCard: 'Inventario',

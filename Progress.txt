@@ -13,177 +13,157 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 34 (2026-05-08, late afternoon)
-                  — VOICE INTAKE DIAGNOSTICS + STT
-                  PROVIDER DECISION.
+  Last session:   Session 35 (2026-05-09)
+                  — PHASE 1 REDESIGN-INITIATIVE
+                  KICKOFF: DASHBOARD QUICK-ACTIONS ROW.
 
-                  Voice intake from Session 33 shipped,
-                  but the operator hit two errors in
-                  sequence while testing:
+                  Operator opened the session asking to
+                  "start Phase 1 — improve workflow and
+                  redesign for improvements." CLAUDE.md's
+                  original Phase 1 (Customers + Inventory)
+                  is long-shipped; the repo has 35 SQL
+                  patches and Phases 0-7 surfaces live.
+                  Reframed: this is Phase 1 of a NEW
+                  UX/redesign initiative on top of the
+                  existing app, not the original data-
+                  spine phase.
 
-                  (1) "Voice intake is not configured on
-                  this deployment" — old 503 message
-                  fired on either OPENAI_API_KEY or
-                  ANTHROPIC_API_KEY missing without
-                  saying which. Commit d56fbfe
-                  differentiates: now reports the
-                  specific missing env var.
+                  First slice landed in this session:
+                  three big quick-action tiles at the top
+                  of /dashboard — SALES / PAWN / ORDERS —
+                  routing to /pos /pawn /repair. Tiles
+                  are module-gated on has_retail /
+                  has_pawn / has_repair so jewelry-only
+                  shops with no pawn don't see Pawn, etc.
+                  Each tile uses the existing per-module
+                  identity color from StatCard's
+                  moduleChip (Sales=success-green,
+                  Pawn=gold, Orders=blue), 36px duotone
+                  Phosphor icon, big uppercase
+                  font-display label, sub-label below.
+                  Bilingual EN+ES (en.ts + es.ts).
 
-                  (2) "Transcription failed" — Whisper
-                  call rejected the request. Old
-                  message swallowed the upstream error.
-                  Commit c59ff43 passes through the
-                  OpenAI / Anthropic SDK error message
-                  (truncated to 300 chars). API keys
-                  are never in error.message so this is
-                  safe to surface to authenticated
-                  staff.
+                  Voice intake from Session 34 still
+                  awaits the operator's OpenAI signup +
+                  key paste in Vercel — not addressed
+                  this session.
 
-                  Diagnosing (2), the operator revealed
-                  that the value pasted into
-                  OPENAI_API_KEY in Vercel is actually
-                  an Anthropic key — the operator does
-                  not have an OpenAI account. Two paths
-                  surfaced via AskUserQuestion: (A)
-                  swap Whisper for the browser's Web
-                  Speech API (free, no key, Chrome/
-                  Edge-only), or (B) sign up for OpenAI
-                  ($5 minimum, ~833 minutes of Whisper,
-                  works in more browsers).
+  Context budget: ~50% at save time.
+  Last worked on: Dashboard quick-action tiles row.
+                  tsc clean. Awaiting browser smoke.
 
-                  Operator chose (B). No code changes
-                  needed — operator signs up at
-                  platform.openai.com, loads $5, copies
-                  the sk-proj-... key, replaces the
-                  current Vercel OPENAI_API_KEY value
-                  with the real OpenAI key, redeploys.
+  ACTIVE FILE(S) modified this session — Session 35:
 
-  Context budget: ~80% at save time.
-  Last worked on: Session 34 closes with the diagnostic
-                  trail in place + the OpenAI signup
-                  steps sent to the operator. The
-                  voice intake feature is fully built;
-                  the only blocker is the operator
-                  obtaining a real OpenAI key.
+    - src/app/(staff)/dashboard/content.tsx
+      (added QuickActionTile component +
+       3-up gated row at top of dashboard,
+       above the existing 4-up StatCards row.
+       Imports ShoppingBag/Coins/Wrench from
+       Phosphor — already in the import list.)
 
-  ACTIVE FILE(S) modified this session — Session 34
-  (both commits live on production):
+    - src/lib/i18n/en.ts
+      (new dashboard.quickActions block:
+       sales/salesSub, pawn/pawnSub,
+       orders/ordersSub.)
 
-    --- COMMIT d56fbfe — differentiate missing-key 503 ---
-    - src/app/api/ai/voice/pawn-intake/route.ts
-      (replaced single 503 message with three branches:
-       both missing / openai missing / anthropic
-       missing, each mentioning the specific env var
-       to set + redeploy)
-
-    --- COMMIT c59ff43 — surface upstream error details ---
-    - src/app/api/ai/voice/pawn-intake/route.ts
-      (Whisper catch + Claude catch now include
-       e.message truncated to 300 chars in the 502
-       response so the operator sees auth errors,
-       rate-limit messages, bad-audio errors, etc.,
-       directly in the inline error UI)
+    - src/lib/i18n/es.ts
+      (matching ES translations:
+       Ventas/Empeños/Órdenes + sub-labels.
+       'Empeños' matches the existing pawn
+       ES naming convention.)
 
   RESUME POINT:
-    Session 34 ships through commit c59ff43. The
-    feature is fully built and gated only on env
-    vars. Operator's chosen path is to sign up for
-    OpenAI and keep Whisper.
+    Operator decision pending: push this checkpoint
+    to git so Vercel ships it (Sales/Pawn/Orders go
+    live on /dashboard in ~1 min), or hold for a
+    local browser smoke first. Claude offered both
+    paths at end of session.
 
-    Next session, ask operator whether the OpenAI
-    signup + key paste + Vercel redeploy completed.
-    If yes, walk the test phrase end-to-end on
-    /pawn/new (press and hold the gold mic, say
-    "Maria Fernandez, $200 for a 14k wedding ring,
-    2.3 grams", release). Expected: TTS confirmation
-    + form fields populated. If the new diagnostic
-    surfaces a different error (auth / rate-limit /
-    bad-audio), that's now visible in the inline
-    error UI and we follow up from there.
+    Once shipped, smoke /dashboard on production:
+    expect three big tinted tiles at the top, each
+    clickable to /pos / /pawn / /repair. If a module
+    is disabled on the tenant, that tile should not
+    render. On mobile (sm-) tiles should stack
+    vertically.
 
-    AFTER VOICE SMOKE: the Session 32 carry-over
-    agenda resumes — operator browser walkthrough
-    of the Luna Azul design pass; backpage smoke
-    from Session 27 (FL Ch. 539 default + custom
-    override + reset); the 9-smoke sequence (A-I)
-    for Google Reviews / cron warmer / quota /
-    email campaigns / unsubscribe / Resend webhook /
-    vault / settings UIs / eBay sync. Phase 0
-    punch list (h. OPENAI_API_KEY + confirm
-    ANTHROPIC_API_KEY in addition to CRON_SECRET +
+    AFTER QUICK-ACTIONS SMOKE: voice intake from
+    Session 34 — operator's OpenAI signup + key
+    paste + Vercel redeploy is still pending. Then
+    the Phase 1 redesign initiative continues with
+    next-priority surfaces (TBD with operator —
+    candidates: /pawn/new, /customers/new, sidebar
+    IA, /pos cart density).
+
+    AFTER PHASE-1 PROGRESS: Session 32 carry-over
+    agenda — Luna Azul design pass walkthrough,
+    backpage smoke (Session 27), 9-smoke sequence
+    (A-I), Phase 0 punch list (CRON_SECRET +
     RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY +
-    the three secret rotations) remains the
-    biggest blocker for smokes B/F/A.
+    OPENAI_API_KEY + secret rotations), email-
+    campaign UI, Stripe Connect, eBay de-stub,
+    diamond-cert provider, WhatsApp Content SIDs,
+    FL LeadsOnline format, Phase 8 mobile audit.
 
   OPEN ISSUES / BLOCKERS:
-    - Voice intake awaiting OpenAI key. Operator
-      will sign up at platform.openai.com, load
-      $5, paste the real sk-proj-... key into the
-      Vercel OPENAI_API_KEY env var (currently has
-      an Anthropic key in there), and redeploy.
-      Not a code bug — env value is wrong.
-    - Session 32 + 33 carry-over still applies:
-      operator browser walkthrough; backpage smoke
-      from Session 27; the 9-smoke sequence (A-I);
-      Phase 0 punch list; email-campaign UI editor;
-      Stripe Connect onboarding; eBay de-stub;
-      diamond-cert real provider; WhatsApp Content
-      SIDs; FL LeadsOnline format finalization;
-      Phase 8 mobile audit.
+    - Quick-action tiles not yet smoked in browser
+      (typecheck passes, but no live click-through
+      verification of all three routes + mobile
+      stack).
+    - Voice intake awaiting OpenAI key (Session 34
+      carry-over). Operator: sign up at platform.
+      openai.com, load $5, paste sk-proj-... into
+      Vercel OPENAI_API_KEY (currently holds an
+      Anthropic key), redeploy.
+    - Session 32 + 33 + 34 carry-over agenda above.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 34):
-    - WHISPER STAYS, NO BROWSER SPEECHRECOGNITION
-      FALLBACK. Operator chose to keep the existing
-      Whisper architecture and sign up for OpenAI
-      ($5 floor, ~833 minutes of voice intake)
-      instead of swapping to the browser's Web
-      Speech API. Trade-offs: better accuracy +
-      Safari iOS support kept; modest ongoing cost
-      vs free Web-Speech-API (Chrome/Edge only).
-      Decision rationale: the pawn shop runs on
-      Windows desktops AND iPads, so cross-browser
-      support matters; $5 is a one-time near-zero
-      ongoing cost. Web Speech API path was
-      explicitly considered + rejected.
-    - DIAGNOSTIC ERRORS PASS THROUGH UPSTREAM
-      MESSAGE. Generic "Transcription failed"
-      hides the actual cause; staff are
-      authenticated and the OpenAI / Anthropic
-      SDK error.message strings don't include
-      the API key, so passing the upstream
-      message through (truncated to 300 chars)
-      is the right balance of useful + safe.
-      Same pattern applied to the Claude /
-      extraction catch.
-    - CLAUDE DOES NOT TRANSCRIBE AUDIO.
-      Investigated Anthropic SDK content blocks
-      (text + image + document supported; audio
-      NOT supported as of this session's @anthropic-
-      ai/sdk types). Confirmed no audio block in
-      messages.d.ts. So the transcription provider
-      MUST be a third-party (OpenAI Whisper, Google
-      Speech-to-Text, AssemblyAI, Deepgram, browser
-      Web Speech API). This is documented here so
-      future sessions don't re-investigate.
+  KEY DECISIONS LOCKED THIS SESSION (Session 35):
+    - "PHASE 1" REFRAMED. CLAUDE.md's Phase 1
+      (Customers + Inventory data-spine) is shipped.
+      "Start Phase 1" now means Phase 1 of a NEW
+      UX/redesign initiative on top of the existing
+      app. Operator confirmed via AskUserQuestion.
+      Future Phase-1-redesign sessions will focus on
+      workflow + visual improvements across existing
+      surfaces, not greenfield new modules.
+    - DASHBOARD HERO ROW = QUICK-ACTION TILES, NOT
+      STAT CARDS. The dashboard already had stat
+      cards linking to /pawn /repair /pos with
+      counts; those stay below. The new top row is
+      bigger (~h-24+, 36px icon, font-display 2xl
+      label) and optimized for fast clerk navigation
+      ("get me into the right module NOW") rather
+      than information display. Pawn-shop POS
+      pattern: big touch targets at the top.
+    - PER-MODULE COLOR IDENTITY EXTENDS TO HERO
+      ROW. Sales=success-green, Pawn=gold,
+      Orders=blue — same mapping as StatCard's
+      moduleChip dictionary. Not three competing
+      gold CTAs. Tinted bg/border (~10%) with full-
+      saturation icon + label so each module reads
+      instantly without reading text.
+    - "ORDERS" IS A DASHBOARD-ONLY LABEL FOR
+      /repair. Sidebar entry, breadcrumbs, en.ts/
+      es.ts repair.* keys, the route itself stay as
+      "Repair" / "Reparaciones" / /repair. Smallest
+      blast radius — operator confirmed via
+      AskUserQuestion.
 
   IMPORTANT CONSTANTS / PATHS:
-    - Voice route: src/app/api/ai/voice/pawn-intake/route.ts
-    - Voice component: src/components/pawn/VoicePawnButton.tsx
-    - Form integration: src/app/(staff)/pawn/new/form.tsx
-    - Required env: OPENAI_API_KEY (sk-proj-... or
-      sk-... from platform.openai.com — NOT an
-      Anthropic key) + ANTHROPIC_API_KEY (sk-ant-...)
-    - Whisper model: whisper-1
-    - Claude model: claude-haiku-4-5-20251001
-    - Allowed roles: owner | chain_admin | manager |
-      pawn_clerk
-    - Audit-log action: 'create' on customers, with
-      changes.source='voice_intake'
-    - Audio cap: 5MB (30sec webm/opus is ~250KB)
-    - Codec preference: webm/opus → webm → mp4 →
-      ogg/opus (Safari iOS uses mp4)
+    - Dashboard route: src/app/(staff)/dashboard/
+      page.tsx (server) + content.tsx (client)
+    - QuickActionTile component: inline in
+      content.tsx, just above StatCard
+    - i18n keys: t.dashboard.quickActions.{sales,
+      salesSub, pawn, pawnSub, orders, ordersSub}
+    - Module-gate flags loaded in page.tsx from
+      tenants table: hasPawn, hasRepair, hasRetail
+    - Phosphor icons used: ShoppingBag (sales),
+      Coins (pawn), Wrench (orders) — duotone, 36px
+    - Color tokens (per Luna Azul design system):
+      gold, blue, success — defined in globals.css
+      @theme block
 
-  (Sessions 13-33 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-34 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -1651,6 +1631,82 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
+--- Session 35 (2026-05-09) — Phase 1 redesign-initiative kickoff: dashboard quick-actions row ---
+
+ 290. PHASE 1 REDESIGN INITIATIVE OPENED. Operator
+     asked to "start Phase 1 — improve workflow +
+     redesign for improvements." CLAUDE.md's
+     original Phase 1 (Customers + Inventory) is
+     long-shipped (35 SQL patches in patches/,
+     Phases 0-7 surfaces all live). Reframed via
+     AskUserQuestion: "Phase 1" now means the FIRST
+     SLICE of a NEW UX/redesign initiative on top
+     of the existing app, not the original data-
+     spine phase. Operator confirmed framing.
+     Brainstorming skill HARD-GATE used to scope
+     the first slice; user pivoted mid-brainstorm
+     to a concrete request (3 dashboard buttons —
+     see item 291), so the broad redesign roadmap
+     was deferred. Future Phase-1-redesign
+     sessions will pick up additional surfaces
+     (candidates: /pawn/new, /customers/new,
+     sidebar IA, /pos cart density).
+
+ 291. DASHBOARD QUICK-ACTIONS ROW — SALES / PAWN /
+     ORDERS. Added a new 3-up tile row at the top
+     of /dashboard, above the existing 4-up
+     StatCards row. Each tile is a Link to the
+     corresponding module entrypoint:
+       Sales tile  → /pos     (success-green)
+       Pawn tile   → /pawn    (gold)
+       Orders tile → /repair  (blue)
+     Tiles render only if the matching module is
+     enabled on the tenant — gated on
+     hasRetail / hasPawn / hasRepair flags
+     already loaded in dashboard/page.tsx. If all
+     three are false, the entire row is suppressed
+     (anyQuickAction guard). Tile design: 36px
+     duotone Phosphor icon (ShoppingBag / Coins /
+     Wrench) in a 56×56 white-tinted chip on the
+     left, font-display 2xl uppercase label +
+     opacity-80 sub-label on the right. Tinted
+     bg-{color}/10 + border-{color}/30 +
+     hover:bg-{color}/15 with the standard
+     hover:-translate-y-1 hover:shadow-lg motion
+     budget from DESIGN-lunaazul.md. Component
+     `QuickActionTile` lives inline in content.tsx
+     just above StatCard. tsc clean.
+     File: src/app/(staff)/dashboard/content.tsx
+
+ 292. I18N — DASHBOARD.QUICKACTIONS BLOCK ADDED.
+     New keys in t.dashboard.quickActions:
+       sales / salesSub / pawn / pawnSub /
+       orders / ordersSub
+     EN: Sales / New sale / Pawn / New loan /
+         Orders / Repairs
+     ES: Ventas / Nueva venta / Empeños /
+         Nuevo empeño / Órdenes / Reparaciones
+     'Empeños' matches the existing convention in
+     es.ts (line 63 sidebar, line 722 pawn module
+     keys). Per CLAUDE.md bilingual rule
+     ("hardcoded strings = bug"), all six tile
+     strings flow through useI18n(); no hardcoded
+     copy in the tile component.
+     Files: src/lib/i18n/en.ts, src/lib/i18n/es.ts
+
+ 293. "ORDERS" LABEL SCOPE LOCKED — DASHBOARD-ONLY.
+     Operator wanted the dashboard tile to say
+     "Orders" but the route is /repair. Three
+     options surfaced via AskUserQuestion:
+     (A) dashboard label only, route + sidebar
+     stay "Repair"; (B) full-app rename of
+     repair → orders; (C) use existing "Repairs"
+     label. Operator chose (A). Smallest blast
+     radius — only the new dashboard.quickActions.
+     orders / ordersSub keys mention "Orders".
+     Sidebar, breadcrumbs, route, and existing
+     repair.* i18n keys are unchanged.
+
 --- Session 34 (2026-05-08, late afternoon) — Voice intake diagnostics + STT provider decision ---
 
  286. VOICE 503 — DIFFERENTIATED ERROR PER MISSING
@@ -3018,35 +3074,44 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Confirm the OPENAI_API_KEY + ANTHROPIC_API_KEY
-    state with the operator. If dev: add both to
-    .env.local at the project root and restart
-    `npm run dev`. If Vercel: confirm both are set
-    in the project env settings, scoped to the
-    right environment, and trigger a redeploy of
-    the latest commit (Vercel only injects env
-    vars at build time). Then walk the test phrase
-    end-to-end on /pawn/new: press and hold the
-    gold mic, say "Maria Fernandez, $200 for a 14k
-    wedding ring, 2.3 grams", release. Expected:
-    TTS confirmation + form fields populated
-    (customer dropdown, principal=200, one
-    collateral row).
+    Smoke the new dashboard quick-action tiles on
+    production. Open https://pawn-three.vercel.app/
+    dashboard. Expect three big tinted tiles at the
+    top: SALES (green) → /pos, PAWN (gold) →
+    /pawn, ORDERS (blue) → /repair. Click each,
+    confirm correct landing. Resize to mobile width
+    — tiles should stack to single column. If a
+    tenant has has_pawn=false, that tile should not
+    render (toggle in tenants table to verify).
 
-    AFTER VOICE SMOKE: the Session 32 carry-over
-    agenda resumes — operator browser walkthrough
+    AFTER QUICK-ACTIONS SMOKE: voice intake from
+    Session 34 — confirm the operator's OpenAI
+    signup + key paste + Vercel redeploy completed.
+    Walk the voice test phrase on /pawn/new: hold
+    the gold mic, say "Maria Fernandez, $200 for a
+    14k wedding ring, 2.3 grams", release. Expected:
+    TTS confirmation + form fields populated. New
+    diagnostics will surface auth / rate-limit /
+    bad-audio errors directly in the inline error
+    UI.
+
+    AFTER VOICE SMOKE: Phase 1 redesign initiative
+    continues — pick the next surface with operator
+    (candidates: /pawn/new layout density, /
+    customers/new ID-capture flow, sidebar IA,
+    /pos cart density). Then resume the Session 32
+    carry-over agenda — operator browser walkthrough
     of the Luna Azul design pass; backpage smoke
     from Session 27 (FL Ch. 539 default + custom
     override + reset); the 9-smoke sequence (A-I)
     for Google Reviews / cron warmer / quota /
     email campaigns / unsubscribe / Resend webhook /
     vault / settings UIs / eBay sync. Phase 0
-    punch list (now item h. OPENAI_API_KEY +
-    confirm ANTHROPIC_API_KEY in addition to
-    CRON_SECRET + RESEND_WEBHOOK_SECRET +
-    GOOGLE_PLACES_API_KEY + the three secret
-    rotations) remains the biggest blocker for
-    smokes B/F/A.
+    punch list (h. OPENAI_API_KEY + confirm
+    ANTHROPIC_API_KEY in addition to CRON_SECRET +
+    RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY +
+    the three secret rotations) remains the
+    biggest blocker for smokes B/F/A.
 
   PHASE 0 PUNCH LIST (still open):
     a. Set CRON_SECRET in Vercel. (Gates 7 cron paths
