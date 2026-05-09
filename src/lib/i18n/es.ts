@@ -876,6 +876,10 @@ export const es: Dictionary = {
       categoryStepTitle: 'Selecciona una categoría',
       categoryStepHelp:
         '¿Qué tipo de artículo trae el cliente? Esto define el flujo del resto del boleto.',
+      categorySubStepTitle: 'Selecciona una subcategoría',
+      categorySubStepHelp: 'Especifica más para que el índice sea exacto.',
+      categoryBackToTop: 'Volver a categorías',
+      categorySubcountSuffix: 'subs',
       categoryChange: 'Cambiar',
       categoryNoneConfigured:
         'No hay categorías configuradas. Dueño — configúralas en /settings/pawn-categories.',

@@ -874,6 +874,10 @@ export const en = {
       categoryStepTitle: 'Pick a category',
       categoryStepHelp:
         'What type of item is the customer pawning? This sets the workflow for the rest of the ticket.',
+      categorySubStepTitle: 'Pick a sub-category',
+      categorySubStepHelp: 'Narrow it down so the search index is accurate.',
+      categoryBackToTop: 'Back to categories',
+      categorySubcountSuffix: 'subs',
       categoryChange: 'Change',
       categoryNoneConfigured:
         'No pawn categories are configured. Owner — set them up at /settings/pawn-categories.',

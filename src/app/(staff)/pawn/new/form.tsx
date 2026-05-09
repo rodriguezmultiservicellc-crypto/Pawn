@@ -60,11 +60,23 @@ export default function NewPawnLoanForm({
   const today = todayDateString()
   const [issueDate, setIssueDate] = useState<string>(today)
   const [termDays, setTermDays] = useState<string>('30')
-  // Wizard step 1 — pawn category. Until the operator picks a tile,
-  // the rest of the form is hidden. Voice intake skips the picker by
-  // auto-selecting 'general' (or the first available category).
+  // Wizard step 1 — pawn category (top + optional sub). Until both are
+  // settled (or top with no subs is picked), the rest of the form is
+  // hidden. Voice intake skips the picker by auto-selecting 'general'.
   const [categorySlug, setCategorySlug] = useState<string | null>(null)
-  const selectedCategory = categories.find((c) => c.slug === categorySlug) ?? null
+  const [subcategorySlug, setSubcategorySlug] = useState<string | null>(null)
+  const selectedCategory =
+    categories.find((c) => c.slug === categorySlug) ?? null
+  const selectedSubcategory =
+    selectedCategory && subcategorySlug
+      ? selectedCategory.subcategories.find((s) => s.slug === subcategorySlug) ??
+        null
+      : null
+  // The form is "ready" when the top category is picked AND either it
+  // has no subs OR a sub is also picked.
+  const categoryStepDone =
+    selectedCategory != null &&
+    (selectedCategory.subcategories.length === 0 || selectedSubcategory != null)
   // Customer picker exposes an imperative handle so /api/ai/voice/
   // pawn-intake (match-or-create branch) can prefill the resolved
   // customer programmatically. The form input name="customer_id" is
@@ -139,11 +151,14 @@ export default function NewPawnLoanForm({
   // covers the high-frequency intake fields.
   function handleVoiceData(data: PawnVoiceData) {
     // Voice flow skips the category-picker step. Auto-set to the
-    // 'general' category if available, else the first one — operator
-    // can change before submit.
+    // 'general' category if available, else the first top-level —
+    // operator can change before submit. Sub-category stays null
+    // (general has no subs by default; for other parents the operator
+    // can drill in via the Change banner).
     if (categorySlug == null && categories.length > 0) {
       const general = categories.find((c) => c.slug === 'general')
       setCategorySlug(general?.slug ?? categories[0].slug)
+      setSubcategorySlug(null)
     }
     if (data.customer) {
       customerPickerRef.current?.set({
@@ -170,21 +185,29 @@ export default function NewPawnLoanForm({
 
       <VoicePawnButton onDataExtracted={handleVoiceData} />
 
-      {/* Step 1 — category picker. Until a tile is clicked, the rest
-          of the form (and the submit button) stays hidden. */}
-      {selectedCategory == null ? (
+      {/* Step 1 — category picker (top + optional sub). Until step 1
+          is done, the rest of the form (and the submit button) stays
+          hidden. */}
+      {!categoryStepDone ? (
         <CategoryPicker
           categories={categories}
-          onPick={(slug) => setCategorySlug(slug)}
+          onPick={(topSlug, subSlug) => {
+            setCategorySlug(topSlug)
+            setSubcategorySlug(subSlug)
+          }}
         />
       ) : (
         <CategoryBanner
-          category={selectedCategory}
-          onChange={() => setCategorySlug(null)}
+          category={selectedCategory!}
+          subcategory={selectedSubcategory}
+          onChange={() => {
+            setCategorySlug(null)
+            setSubcategorySlug(null)
+          }}
         />
       )}
 
-      {selectedCategory != null ? (
+      {categoryStepDone && selectedCategory != null ? (
       <>
       {state.error ? (
         <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -201,10 +224,15 @@ export default function NewPawnLoanForm({
         action={formAction}
         className="space-y-6"
       >
-        {/* Carries the chosen category slug to the server action so it
-            can be persisted on the loan record (column to be added in
-            a follow-up; today the slug is dropped). */}
+        {/* Carries the chosen category slugs to the server action so
+            they can be persisted on the loan record (columns to be
+            added in a follow-up; today the slugs are dropped). */}
         <input type="hidden" name="pawn_category" value={selectedCategory.slug} />
+        <input
+          type="hidden"
+          name="pawn_subcategory"
+          value={selectedSubcategory?.slug ?? ''}
+        />
 
         {/* Customer */}
         <fieldset className="rounded-xl border border-border bg-card p-4">

@@ -26,12 +26,15 @@ export default async function PawnCategoriesPage() {
   const canFlipFirearms =
     ctx.tenantRole === 'owner' || ctx.tenantRole === 'chain_admin'
 
-  // Fetch all categories (active + inactive) for the settings list.
+  // Fetch all categories (active + inactive, top-level + subs) for the
+  // settings list.
   const admin = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const builder = (admin.from as any)('pawn_intake_categories')
   const { data: rows } = await builder
-    .select('id, slug, label, icon, sort_order, is_active, requires_ffl, created_at')
+    .select(
+      'id, slug, label, icon, sort_order, is_active, requires_ffl, parent_id, created_at',
+    )
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
@@ -44,6 +47,7 @@ export default async function PawnCategoriesPage() {
     sort_order: number
     is_active: boolean
     requires_ffl: boolean
+    parent_id: string | null
     created_at: string
   }>).map((r) => ({
     id: r.id,
@@ -53,6 +57,7 @@ export default async function PawnCategoriesPage() {
     sort_order: r.sort_order,
     is_active: r.is_active,
     requires_ffl: r.requires_ffl,
+    parent_id: r.parent_id,
   }))
 
   return (

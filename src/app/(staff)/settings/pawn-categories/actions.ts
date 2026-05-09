@@ -28,6 +28,20 @@ const categorySchema = z.object({
   sort_order: z.coerce.number().int().min(0).max(9999).default(100),
   requires_ffl: z.coerce.boolean().default(false),
   is_active: z.coerce.boolean().default(true),
+  // Empty / 'none' / missing → null = top-level. Otherwise a UUID
+  // referring to another row in this same tenant's category list.
+  parent_id: z
+    .preprocess(
+      (v) => {
+        if (v == null) return null
+        const s = String(v).trim()
+        if (s === '' || s === 'none') return null
+        return s
+      },
+      z.string().uuid().nullable(),
+    )
+    .nullable()
+    .default(null),
 })
 
 export type SaveCategoryState = {
@@ -54,6 +68,7 @@ export async function saveCategoryAction(
     sort_order: formData.get('sort_order'),
     requires_ffl: formData.get('requires_ffl') === 'on',
     is_active: formData.get('is_active') !== 'off',
+    parent_id: formData.get('parent_id'),
   })
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {}
@@ -80,6 +95,7 @@ export async function saveCategoryAction(
         sort_order: v.sort_order,
         requires_ffl: v.requires_ffl,
         is_active: v.is_active,
+        parent_id: v.parent_id,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -94,6 +110,7 @@ export async function saveCategoryAction(
       sort_order: v.sort_order,
       requires_ffl: v.requires_ffl,
       is_active: v.is_active,
+      parent_id: v.parent_id,
     })
     if (error) return { error: error.message }
   }
@@ -110,6 +127,7 @@ export async function saveCategoryAction(
       icon: v.icon,
       requires_ffl: v.requires_ffl,
       is_active: v.is_active,
+      parent_id: v.parent_id,
     },
   })
 

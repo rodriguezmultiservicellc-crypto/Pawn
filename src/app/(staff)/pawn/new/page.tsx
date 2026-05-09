@@ -60,33 +60,56 @@ export default async function NewPawnLoanPage() {
       : Number(settingsRes.data.min_loan_amount)
 
   // Pawn intake categories — operator-editable, RLS-scoped to this
-  // tenant. Firearms-flagged tiles are filtered out when has_firearms
-  // is FALSE on the tenant. Boundary cast: the table lands in
-  // generated types only after `npm run db:types` runs post-migration
-  // 0037 — code uses an inline cast until then.
+  // tenant. Two-level hierarchy: top-levels have parent_id IS NULL,
+  // sub-categories point to a parent. Firearms-flagged tiles
+  // (top-level OR sub) are filtered when has_firearms is FALSE.
+  // Boundary cast: the table lands in generated types only after
+  // `npm run db:types` runs post-migration 0037/0038.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const picBuilder = (ctx.supabase.from as any)('pawn_intake_categories')
   const { data: catRows } = await picBuilder
-    .select('id, slug, label, icon, requires_ffl')
+    .select('id, slug, label, icon, requires_ffl, parent_id')
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
 
-  const categories: PawnIntakeCategory[] = ((catRows ?? []) as Array<{
+  type RawCategoryRow = {
     id: string
     slug: string
     label: string
     icon: string
     requires_ffl: boolean
-  }>)
-    .filter((c) => !c.requires_ffl || hasFirearms)
-    .map((c) => ({
-      id: c.id,
-      slug: c.slug,
-      label: c.label,
-      icon: c.icon,
-      requires_ffl: c.requires_ffl,
+    parent_id: string | null
+  }
+  const allRows = (catRows ?? []) as RawCategoryRow[]
+  const visible = allRows.filter((c) => !c.requires_ffl || hasFirearms)
+
+  // Group subs by parent_id.
+  const subsByParent = new Map<string, RawCategoryRow[]>()
+  for (const r of visible) {
+    if (r.parent_id != null) {
+      const arr = subsByParent.get(r.parent_id) ?? []
+      arr.push(r)
+      subsByParent.set(r.parent_id, arr)
+    }
+  }
+
+  const categories: PawnIntakeCategory[] = visible
+    .filter((r) => r.parent_id == null)
+    .map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      label: r.label,
+      icon: r.icon,
+      requires_ffl: r.requires_ffl,
+      subcategories: (subsByParent.get(r.id) ?? []).map((s) => ({
+        id: s.id,
+        slug: s.slug,
+        label: s.label,
+        icon: s.icon,
+        requires_ffl: s.requires_ffl,
+      })),
     }))
 
   return (

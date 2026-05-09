@@ -1,6 +1,6 @@
 'use client'
 
-import { createElement } from 'react'
+import { createElement, useState } from 'react'
 import {
   Diamond,
   DeviceMobile,
@@ -14,6 +14,7 @@ import {
   Star,
   Tag,
   Hammer,
+  ArrowLeft,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
@@ -24,6 +25,11 @@ export type PawnIntakeCategory = {
   label: string
   icon: string
   requires_ffl: boolean
+  /** Sub-categories nested under this top-level. Empty array when the
+   *  top-level has no children (operator clicks straight through to
+   *  step 2). Server-side filters firearms-requiring subs when
+   *  has_firearms=false. */
+  subcategories: Array<Omit<PawnIntakeCategory, 'subcategories'>>
 }
 
 /**
@@ -74,19 +80,25 @@ function CategoryIcon({
 }
 
 /**
- * Wizard step 1 on /pawn/new — operator picks a high-level category.
- * Tiles render in sort_order. Firearms-flagged tiles are pre-filtered
- * by the parent page based on tenants.has_firearms (this component
- * just renders whatever it's given).
+ * Wizard step 1 on /pawn/new — operator picks a top-level category, then
+ * (if that top has sub-categories) picks a sub. Cascade-renders both
+ * steps inline so the operator never leaves the page.
+ *
+ * onPick fires with (topSlug, subSlug):
+ *   - top has subs → onPick fires when a sub tile is clicked
+ *     (subSlug is the picked sub's slug)
+ *   - top has no subs → onPick fires immediately on the top click
+ *     (subSlug is null)
  */
 export default function CategoryPicker({
   categories,
   onPick,
 }: {
   categories: PawnIntakeCategory[]
-  onPick: (slug: string) => void
+  onPick: (topSlug: string, subSlug: string | null) => void
 }) {
   const { t } = useI18n()
+  const [drilledTop, setDrilledTop] = useState<PawnIntakeCategory | null>(null)
 
   if (categories.length === 0) {
     return (
@@ -96,20 +108,69 @@ export default function CategoryPicker({
     )
   }
 
+  function onTopClick(top: PawnIntakeCategory) {
+    if (top.subcategories.length === 0) {
+      // No subs — advance directly.
+      onPick(top.slug, null)
+      return
+    }
+    setDrilledTop(top)
+  }
+
+  // Drilled-in view — show the picked top's sub-tiles.
+  if (drilledTop) {
+    return (
+      <fieldset className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between gap-3">
+          <legend className="px-1 font-display text-base font-semibold text-foreground">
+            {drilledTop.label} → {t.pawn.new_.categorySubStepTitle}
+          </legend>
+          <button
+            type="button"
+            onClick={() => setDrilledTop(null)}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-muted transition-colors hover:text-blue"
+          >
+            <ArrowLeft size={12} weight="bold" />
+            {t.pawn.new_.categoryBackToTop}
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-muted">
+          {t.pawn.new_.categorySubStepHelp}
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {drilledTop.subcategories.map((sub) => (
+            <button
+              key={sub.id}
+              type="button"
+              onClick={() => onPick(drilledTop.slug, sub.slug)}
+              className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-background p-3 text-center transition-all hover:-translate-y-1 hover:border-gold/60 hover:bg-gold/5 hover:shadow-lg"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10 text-gold transition-colors group-hover:bg-gold/20">
+                <CategoryIcon name={sub.icon} size={22} weight="duotone" />
+              </span>
+              <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
+                {sub.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+    )
+  }
+
+  // Top-level view.
   return (
     <fieldset className="rounded-xl border border-border bg-card p-5">
       <legend className="px-1 font-display text-base font-semibold text-foreground">
         {t.pawn.new_.categoryStepTitle}
       </legend>
-      <p className="mt-1 text-xs text-muted">
-        {t.pawn.new_.categoryStepHelp}
-      </p>
+      <p className="mt-1 text-xs text-muted">{t.pawn.new_.categoryStepHelp}</p>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
         {categories.map((c) => (
           <button
             key={c.id}
             type="button"
-            onClick={() => onPick(c.slug)}
+            onClick={() => onTopClick(c)}
             className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-gold/60 hover:bg-gold/5 hover:shadow-lg"
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-gold/10 text-gold transition-colors group-hover:bg-gold/20">
@@ -118,6 +179,11 @@ export default function CategoryPicker({
             <span className="font-display text-base font-bold uppercase tracking-wide text-foreground">
               {c.label}
             </span>
+            {c.subcategories.length > 0 ? (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                {c.subcategories.length} {t.pawn.new_.categorySubcountSuffix}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -127,21 +193,28 @@ export default function CategoryPicker({
 
 /**
  * Compact picked-category banner shown at the top of the form AFTER step
- * 1 is complete. Includes a "Change" button that calls onChange with no
- * args (returns to picker view).
+ * 1 is complete. Includes a "Change" button that calls onChange (returns
+ * to picker view).
  */
 export function CategoryBanner({
   category,
+  subcategory,
   onChange,
 }: {
   category: PawnIntakeCategory
+  /** Optional — null when the parent has no subs. */
+  subcategory: { slug: string; label: string; icon: string } | null
   onChange: () => void
 }) {
   const { t } = useI18n()
   return (
     <div className="flex items-center gap-3 rounded-xl border-2 border-gold/40 bg-gold/5 px-4 py-3">
       <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold/10 text-gold">
-        <CategoryIcon name={category.icon} size={20} weight="duotone" />
+        <CategoryIcon
+          name={subcategory?.icon ?? category.icon}
+          size={20}
+          weight="duotone"
+        />
       </span>
       <div className="min-w-0 flex-1">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">
@@ -149,6 +222,12 @@ export function CategoryBanner({
         </div>
         <div className="font-display text-base font-bold text-foreground">
           {category.label}
+          {subcategory ? (
+            <>
+              <span className="mx-2 text-muted">→</span>
+              {subcategory.label}
+            </>
+          ) : null}
         </div>
       </div>
       <button

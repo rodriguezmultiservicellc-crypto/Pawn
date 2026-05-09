@@ -25,6 +25,8 @@ export type CategoryRow = {
   sort_order: number
   is_active: boolean
   requires_ffl: boolean
+  /** NULL = top-level. Otherwise UUID of the parent top-level row. */
+  parent_id: string | null
 }
 
 export default function PawnCategoriesContent({
@@ -40,6 +42,20 @@ export default function PawnCategoriesContent({
 }) {
   const [editing, setEditing] = useState<CategoryRow | null>(null)
   const [showAdd, setShowAdd] = useState(false)
+  // When the operator clicks "+ Add sub-category" on a top-level row,
+  // the modal opens with the parent_id pre-filled to that top.
+  const [addUnderParentId, setAddUnderParentId] = useState<string | null>(null)
+
+  // Group subs by parent_id for nested rendering.
+  const topLevels = categories.filter((c) => c.parent_id == null)
+  const subsByParent = new Map<string, CategoryRow[]>()
+  for (const c of categories) {
+    if (c.parent_id != null) {
+      const arr = subsByParent.get(c.parent_id) ?? []
+      arr.push(c)
+      subsByParent.set(c.parent_id, arr)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -66,7 +82,7 @@ export default function PawnCategoriesContent({
       {/* HAS_FIREARMS TOGGLE */}
       <FirearmsToggle initialValue={hasFirearms} canEdit={canFlipFirearms} />
 
-      {/* CATEGORY LIST */}
+      {/* CATEGORY LIST — top-levels with subs nested under each */}
       <section className="rounded-xl border border-border bg-card">
         <header className="flex items-center justify-between border-b border-border px-5 py-3">
           <h2 className="font-display text-lg font-bold text-foreground">
@@ -77,71 +93,66 @@ export default function PawnCategoriesContent({
               type="button"
               onClick={() => {
                 setEditing(null)
+                setAddUnderParentId(null)
                 setShowAdd(true)
               }}
               className="inline-flex items-center gap-1.5 rounded-md bg-gold px-3 py-1.5 text-sm font-semibold text-navy hover:bg-gold-2"
             >
               <Plus size={14} weight="bold" />
-              Add category
+              Add top-level
             </button>
           ) : null}
         </header>
-        {categories.length === 0 ? (
+        {topLevels.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-muted">
             No categories yet.
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {categories.map((c) => (
-              <li
-                key={c.id}
-                className={`flex items-center gap-3 px-5 py-3 text-sm ${
-                  c.is_active ? '' : 'opacity-60'
-                }`}
-              >
-                <span className="font-mono text-xs text-muted">
-                  {c.sort_order}
-                </span>
-                <span className="font-display text-base font-bold text-foreground">
-                  {c.label}
-                </span>
-                <span className="font-mono text-xs text-muted">
-                  ({c.slug})
-                </span>
-                {c.requires_ffl ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
-                    <Warning size={10} weight="bold" />
-                    FFL
-                  </span>
-                ) : null}
-                {!c.is_active ? (
-                  <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted">
-                    INACTIVE
-                  </span>
-                ) : null}
-                <span className="ml-auto text-xs text-muted">
-                  icon: {c.icon}
-                </span>
-                {canManage ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditing(c)
-                        setShowAdd(false)
-                      }}
-                      className="rounded-md border border-border bg-card p-1.5 text-muted hover:border-blue/40 hover:bg-blue/5 hover:text-blue"
-                      aria-label="Edit"
-                    >
-                      <PencilSimple size={14} weight="bold" />
-                    </button>
-                    {c.is_active ? (
-                      <DeactivateButton id={c.id} label={c.label} />
-                    ) : null}
-                  </>
-                ) : null}
-              </li>
-            ))}
+            {topLevels.map((c) => {
+              const subs = subsByParent.get(c.id) ?? []
+              return (
+                <li key={c.id} className="px-5 py-3">
+                  <CategoryRowDisplay
+                    row={c}
+                    canManage={canManage}
+                    onEdit={() => {
+                      setEditing(c)
+                      setAddUnderParentId(null)
+                      setShowAdd(false)
+                    }}
+                    onAddSub={
+                      canManage
+                        ? () => {
+                            setEditing(null)
+                            setAddUnderParentId(c.id)
+                            setShowAdd(true)
+                          }
+                        : null
+                    }
+                  />
+                  {subs.length > 0 ? (
+                    <ul className="mt-2 ml-8 space-y-1 border-l border-border pl-4">
+                      {subs.map((sub) => (
+                        <li key={sub.id}>
+                          <CategoryRowDisplay
+                            row={sub}
+                            canManage={canManage}
+                            onEdit={() => {
+                              setEditing(sub)
+                              setAddUnderParentId(null)
+                              setShowAdd(false)
+                            }}
+                            onAddSub={null}
+                            isSub
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
@@ -150,11 +161,85 @@ export default function PawnCategoriesContent({
       {(showAdd || editing) && canManage ? (
         <CategoryEditModal
           category={editing}
+          parentOptions={topLevels.map((t) => ({ id: t.id, label: t.label }))}
+          presetParentId={addUnderParentId}
           onClose={() => {
             setShowAdd(false)
             setEditing(null)
+            setAddUnderParentId(null)
           }}
         />
+      ) : null}
+    </div>
+  )
+}
+
+function CategoryRowDisplay({
+  row,
+  canManage,
+  onEdit,
+  onAddSub,
+  isSub = false,
+}: {
+  row: CategoryRow
+  canManage: boolean
+  onEdit: () => void
+  onAddSub: (() => void) | null
+  isSub?: boolean
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 text-sm ${
+        row.is_active ? '' : 'opacity-60'
+      }`}
+    >
+      <span className="font-mono text-xs text-muted w-8 shrink-0">
+        {row.sort_order}
+      </span>
+      <span
+        className={`font-display ${
+          isSub ? 'text-sm' : 'text-base'
+        } font-bold text-foreground`}
+      >
+        {row.label}
+      </span>
+      <span className="font-mono text-xs text-muted">({row.slug})</span>
+      {row.requires_ffl ? (
+        <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
+          <Warning size={10} weight="bold" />
+          FFL
+        </span>
+      ) : null}
+      {!row.is_active ? (
+        <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted">
+          INACTIVE
+        </span>
+      ) : null}
+      <span className="ml-auto text-xs text-muted">icon: {row.icon}</span>
+      {canManage ? (
+        <>
+          {onAddSub ? (
+            <button
+              type="button"
+              onClick={onAddSub}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-semibold text-muted hover:border-gold/40 hover:bg-gold/5 hover:text-gold"
+            >
+              <Plus size={10} weight="bold" />
+              Add sub
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-md border border-border bg-card p-1.5 text-muted hover:border-blue/40 hover:bg-blue/5 hover:text-blue"
+            aria-label="Edit"
+          >
+            <PencilSimple size={14} weight="bold" />
+          </button>
+          {row.is_active ? (
+            <DeactivateButton id={row.id} label={row.label} />
+          ) : null}
+        </>
       ) : null}
     </div>
   )
@@ -237,9 +322,15 @@ function DeactivateButton({ id, label }: { id: string; label: string }) {
 
 function CategoryEditModal({
   category,
+  parentOptions,
+  presetParentId,
   onClose,
 }: {
   category: CategoryRow | null
+  parentOptions: Array<{ id: string; label: string }>
+  /** When non-null and we're in ADD mode, the parent dropdown pre-fills
+   *  to this id (operator clicked "+ Add sub" on a top-level row). */
+  presetParentId: string | null
   onClose: () => void
 }) {
   const [state, formAction, pending] = useActionState<
@@ -250,6 +341,20 @@ function CategoryEditModal({
   if (state.ok) {
     onClose()
   }
+
+  // For an EDITED row, default the parent dropdown to whatever the row
+  // currently has. For an ADDED row under a specific parent, use
+  // presetParentId. Otherwise top-level.
+  const initialParentId =
+    category?.parent_id ?? presetParentId ?? ''
+
+  // Editing a top-level that already has subs underneath should NOT be
+  // re-parented (would orphan the subs visually). Filter the parent
+  // dropdown to exclude the row being edited (no self-parent) plus any
+  // descendants. Only one level deep so descendants = subs of this id.
+  const parentChoices = parentOptions.filter(
+    (p) => !category || p.id !== category.id,
+  )
 
   return (
     <div
@@ -263,12 +368,31 @@ function CategoryEditModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="font-display text-lg font-bold text-foreground">
-          {category ? 'Edit category' : 'Add category'}
+          {category
+            ? 'Edit category'
+            : presetParentId
+            ? 'Add sub-category'
+            : 'Add top-level category'}
         </h3>
         <form action={formAction} className="mt-4 space-y-3">
           {category ? (
             <input type="hidden" name="id" value={category.id} />
           ) : null}
+
+          <Field label="Parent (None = top-level)">
+            <select
+              name="parent_id"
+              defaultValue={initialParentId}
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            >
+              <option value="">None — top-level</option>
+              {parentChoices.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Field>
 
           <Field label="Label" required>
             <input
