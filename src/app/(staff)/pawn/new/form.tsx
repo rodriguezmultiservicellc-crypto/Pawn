@@ -9,7 +9,6 @@ import {
   CollateralItemsList,
   type CollateralListHandle,
 } from '@/components/pawn/CollateralItemsList'
-import { InlinePawnCalculator } from '@/components/pawn/InlinePawnCalculator'
 import VoicePawnButton, {
   type PawnVoiceData,
 } from '@/components/pawn/VoicePawnButton'
@@ -244,18 +243,6 @@ export default function NewPawnLoanForm({
                 />
               </div>
             </fieldset>
-
-            {/* Inline calculator — reads collateral_<n>_* from this
-                form via DOM access; writes back to the principal
-                field on click. onAddWatchToCollateral pushes the
-                picked watch into the collateral list as a populated
-                row. */}
-            <InlinePawnCalculator
-              formId={PAWN_NEW_FORM_ID}
-              onAddWatchToCollateral={(match) =>
-                collateralRef.current?.addWatchRow(match)
-              }
-            />
 
             {/* Terms */}
             <fieldset className="rounded-xl border border-border bg-card p-4">

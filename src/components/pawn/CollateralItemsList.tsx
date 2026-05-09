@@ -77,23 +77,6 @@ export type CollateralListHandle = {
  * At least one row is enforced client-side AND server-side.
  */
 
-const CATEGORY_OPTIONS: ReadonlyArray<{ value: InventoryCategory; key: string }> = [
-  { value: 'ring', key: 'catRing' },
-  { value: 'necklace', key: 'catNecklace' },
-  { value: 'bracelet', key: 'catBracelet' },
-  { value: 'earrings', key: 'catEarrings' },
-  { value: 'pendant', key: 'catPendant' },
-  { value: 'chain', key: 'catChain' },
-  { value: 'watch', key: 'catWatch' },
-  { value: 'coin', key: 'catCoin' },
-  { value: 'bullion', key: 'catBullion' },
-  { value: 'loose_stone', key: 'catLooseStone' },
-  { value: 'electronics', key: 'catElectronics' },
-  { value: 'tool', key: 'catTool' },
-  { value: 'instrument', key: 'catInstrument' },
-  { value: 'other', key: 'catOther' },
-]
-
 const METAL_OPTIONS: ReadonlyArray<{ value: MetalType; key: string }> = [
   { value: 'gold', key: 'metalGold' },
   { value: 'silver', key: 'metalSilver' },
@@ -110,6 +93,54 @@ const METAL_OPTIONS: ReadonlyArray<{ value: MetalType; key: string }> = [
 ]
 
 type FirearmType = 'handgun' | 'rifle' | 'shotgun' | 'other' | ''
+
+/**
+ * Derive a reasonable inventory_category enum value from the picked
+ * pawn_intake_categories slug pair. Used to keep the legacy
+ * loan_collateral_items.category column populated without showing a
+ * separate dropdown to the operator — pawn_category_slug +
+ * pawn_subcategory_slug are the new source of truth, but the enum
+ * column still drives forfeiture-to-inventory routing and reports.
+ *
+ * Falls back to 'other' for anything we can't map (e.g., firearms,
+ * general, custom operator-added categories).
+ */
+function inventoryCategoryFromSlug(
+  topSlug: string | null,
+  subSlug: string | null,
+): InventoryCategory {
+  if (!topSlug) return 'other'
+  if (topSlug === 'jewelry') {
+    switch (subSlug) {
+      case 'rings':
+        return 'ring'
+      case 'necklaces':
+        return 'necklace'
+      case 'bracelets':
+        return 'bracelet'
+      case 'earrings':
+        return 'earrings'
+      case 'pendants':
+        return 'pendant'
+      case 'chains':
+        return 'chain'
+      case 'watches':
+        return 'watch'
+      case 'coins':
+        return 'coin'
+      case 'bullion':
+        return 'bullion'
+      case 'loose-stones':
+      case 'loose_stones':
+        return 'loose_stone'
+      default:
+        return 'other'
+    }
+  }
+  if (topSlug === 'electronics') return 'electronics'
+  if (topSlug === 'tools') return 'tool'
+  return 'other'
+}
 
 type Row = {
   /** stable id per row, only for React key */
@@ -328,11 +359,6 @@ export const CollateralItemsList = forwardRef<
           onChange={(patch) => patchRow(row.uid, patch)}
           onRemove={() => removeRow(row.uid)}
           canRemove={rows.length > 1}
-          tCategory={(c) =>
-            (t.inventory as unknown as Record<string, string>)[
-              CATEGORY_OPTIONS.find((o) => o.value === c)?.key ?? 'catOther'
-            ] ?? c
-          }
           tMetal={(m) =>
             (t.inventory as unknown as Record<string, string>)[
               METAL_OPTIONS.find((o) => o.value === m)?.key ?? 'metalOther'
@@ -362,7 +388,6 @@ function CollateralRow({
   onChange,
   onRemove,
   canRemove,
-  tCategory,
   tMetal,
 }: {
   index: number
@@ -371,7 +396,6 @@ function CollateralRow({
   onChange: (patch: Partial<Row>) => void
   onRemove: () => void
   canRemove: boolean
-  tCategory: (c: InventoryCategory) => string
   tMetal: (m: MetalType) => string
 }) {
   const { t } = useI18n()
@@ -437,6 +461,10 @@ function CollateralRow({
               onChange({
                 pawn_category_slug: topSlug,
                 pawn_subcategory_slug: subSlug,
+                // Derive the inventory_category enum value from the
+                // pawn slugs so the legacy column stays populated
+                // without asking the operator twice.
+                category: inventoryCategoryFromSlug(topSlug, subSlug),
               })
             }
           />
@@ -450,6 +478,7 @@ function CollateralRow({
               onChange({
                 pawn_category_slug: null,
                 pawn_subcategory_slug: null,
+                category: 'other',
               })
             }
           />
@@ -528,38 +557,17 @@ function CollateralRow({
             />
           </label>
 
-          {/* Inventory category enum — only shown for jewelry, where
-              ring/necklace/etc. matters for forfeiture-to-inventory.
-              For other top-levels we ship a hidden default of 'other'
-              so the server-side schema (which requires the field)
-              still validates. */}
-          {selectedCategory?.slug === 'jewelry' ? (
-            <label className="md:col-span-3 block space-y-1">
-              <span className="text-xs font-medium text-foreground">
-                {t.pawn.new_.itemCategory}
-              </span>
-              <select
-                name={`collateral_${index}_category`}
-                value={row.category}
-                onChange={(e) =>
-                  onChange({ category: e.target.value as InventoryCategory })
-                }
-                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
-              >
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {tCategory(opt.value)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
-            <input
-              type="hidden"
-              name={`collateral_${index}_category`}
-              value={row.category}
-            />
-          )}
+          {/* Inventory category — derived from pawn_subcategory_slug
+              by inventoryCategoryFromSlug(). Hidden input so the
+              server-side schema (which requires the field) still
+              validates. The dropdown that used to live here was
+              removed once the pawn_intake_categories picker became
+              the single source of truth. */}
+          <input
+            type="hidden"
+            name={`collateral_${index}_category`}
+            value={row.category}
+          />
 
           {/* ── JEWELRY: metal / karat / weight ─────────────────── */}
           {selectedCategory?.slug === 'jewelry' ? (
