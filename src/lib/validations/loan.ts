@@ -107,6 +107,10 @@ export const collateralItemSchema = z.object({
     .transform((v) => v ?? null),
   karat: optionalKarat,
   weight_grams: optionalDecimal,
+  // Free-text size (rings) or length (chains/bracelets). Jewelry-only.
+  // patches/0042. Empty string normalizes to null via
+  // optionalTrimmedString.
+  jewelry_size: optionalTrimmedString,
   est_value: requiredDecimalNonNeg.default(0),
   // Either a Storage path (after upload) or null. The /pawn/new flow first
   // uploads the file, then includes the resulting path in this schema.

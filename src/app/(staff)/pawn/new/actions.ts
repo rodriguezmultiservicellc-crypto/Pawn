@@ -177,6 +177,7 @@ function readCollateralRows(
         metal_type: fd.get(`collateral_${i}_metal_type`),
         karat: fd.get(`collateral_${i}_karat`),
         weight_grams: fd.get(`collateral_${i}_weight_grams`),
+        jewelry_size: fd.get(`collateral_${i}_jewelry_size`),
         est_value: fd.get(`collateral_${i}_est_value`),
         // Per-row pawn intake category slugs (patches/0040). Picked
         // from the inline CategoryPicker on each collateral row.
@@ -423,6 +424,8 @@ export async function createLoanAction(
     return { error: 'no_valid_collateral' }
   }
 
+  // boundary cast: jewelry_size was added by patches/0042. Drops
+  // after `npm run db:types` runs against the updated schema.
   const { error: collErr } = await supabase.from('loan_collateral_items').insert(
     collateralInserts.map((it) => ({
       loan_id: loanId,
@@ -432,6 +435,7 @@ export async function createLoanAction(
       metal_type: it.metal_type ?? null,
       karat: it.karat,
       weight_grams: it.weight_grams,
+      jewelry_size: it.jewelry_size,
       est_value: it.est_value,
       photo_path: it.photo_path,
       position: it.position,
@@ -450,7 +454,7 @@ export async function createLoanAction(
       electronic_serial: it.electronic_serial,
       tool_brand: it.tool_brand,
       tool_model: it.tool_model,
-    })),
+    })) as never,
   )
   if (collErr) {
     return { error: collErr.message }
@@ -517,6 +521,7 @@ export async function createLoanAction(
     metal_type: it.metal_type,
     karat: it.karat,
     weight_grams: it.weight_grams,
+    jewelry_size: it.jewelry_size,
     est_value: it.est_value,
     photo_path: it.photo_path,
     position: it.position,

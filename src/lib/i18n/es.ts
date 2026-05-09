@@ -914,6 +914,7 @@ export const es: Dictionary = {
       itemMetalType: 'Metal',
       itemKarat: 'Quilates',
       itemWeightGrams: 'Peso (g)',
+      itemJewelrySize: 'Talla / Largo',
       itemEstValue: 'Valor estimado',
       itemPhoto: 'Foto',
       itemPhotoHelp: 'Foto opcional de esta prenda.',

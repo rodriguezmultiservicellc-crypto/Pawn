@@ -912,6 +912,7 @@ export const en = {
       itemMetalType: 'Metal',
       itemKarat: 'Karat',
       itemWeightGrams: 'Weight (g)',
+      itemJewelrySize: 'Size / Length',
       itemEstValue: 'Est. value',
       itemPhoto: 'Photo',
       itemPhotoHelp: 'Optional photo of this collateral item.',

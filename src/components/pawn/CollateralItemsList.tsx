@@ -157,6 +157,9 @@ type Row = {
   metal_type: MetalType | ''
   karat: string
   weight_grams: string
+  /** Free-text size (rings) or length (chains/bracelets). Jewelry-only.
+   *  patches/0042. */
+  jewelry_size: string
   // Firearm attributes (patches/0041, only shown for 'firearms' top).
   firearm_make: string
   firearm_model: string
@@ -188,6 +191,7 @@ function newRow(): Row {
     metal_type: '',
     karat: '',
     weight_grams: '',
+    jewelry_size: '',
     firearm_make: '',
     firearm_model: '',
     firearm_caliber: '',
@@ -287,6 +291,7 @@ export const CollateralItemsList = forwardRef<
       r.metal_type === '' &&
       r.karat === '' &&
       r.weight_grams === '' &&
+      r.jewelry_size === '' &&
       r.firearm_make === '' &&
       r.firearm_model === '' &&
       r.firearm_caliber === '' &&
@@ -620,6 +625,22 @@ function CollateralRow({
                   name={`collateral_${index}_weight_grams`}
                   value={row.weight_grams}
                   onChange={(e) => onChange({ weight_grams: e.target.value })}
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemJewelrySize}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_jewelry_size`}
+                  value={row.jewelry_size}
+                  onChange={(e) =>
+                    onChange({ jewelry_size: e.target.value })
+                  }
+                  placeholder="7  /  22 in"
                   className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
                 />
               </label>
