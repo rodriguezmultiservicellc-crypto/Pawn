@@ -51,8 +51,11 @@ export default function NewPawnLoanForm({
     FormData
   >(createLoanAction, {})
 
+  // Issue date is locked to today on the intake form — operator can't
+  // back-date a ticket. The server action also defaults to today when
+  // the field is missing, so the readOnly UI is just an extra layer.
   const today = todayDateString()
-  const [issueDate, setIssueDate] = useState<string>(today)
+  const issueDate = today
   const [termDays, setTermDays] = useState<string>('30')
   // Wizard step 1 — customer. Until a customer is picked, the rest
   // of the form stays hidden. Voice intake fills this via the
@@ -333,8 +336,8 @@ export default function NewPawnLoanForm({
                     type="date"
                     name="issue_date"
                     value={issueDate}
-                    onChange={(e) => setIssueDate(e.target.value)}
-                    className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+                    readOnly
+                    className="block w-full rounded-md border border-border bg-background/50 px-3 py-2 text-muted"
                   />
                 </label>
 
