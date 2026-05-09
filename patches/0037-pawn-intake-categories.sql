@@ -167,13 +167,15 @@ CREATE TRIGGER trg_tenant_after_insert_seed_pic
   EXECUTE FUNCTION public.tenant_after_insert_seed_pic();
 
 -- Backfill existing tenants. Idempotent — uses the same ON CONFLICT
--- guard as the seed function.
+-- guard as the seed function. tenants uses is_active (not deleted_at)
+-- for soft-suspension; both is_active=true and is_active=false tenants
+-- get categories so a re-activation finds them already configured.
 DO $$
 DECLARE
   v_tenant_id UUID;
 BEGIN
   FOR v_tenant_id IN
-    SELECT id FROM public.tenants WHERE deleted_at IS NULL
+    SELECT id FROM public.tenants
   LOOP
     PERFORM public.seed_pawn_intake_categories(v_tenant_id);
   END LOOP;
