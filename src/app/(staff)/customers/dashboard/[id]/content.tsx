@@ -183,31 +183,31 @@ export default function CustomerAnalyticsDashboard({
         <h2 className="font-display text-xl font-bold text-navy">
           {cd.lifetimeStatsTitle}
         </h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {gates.hasPawn ? (
             <>
               <StatCard
                 label={cd.statPawns}
                 value={lifetime.totalPawns.toString()}
-                icon={<Coins size={18} weight="regular" />}
+                icon={<Coins size={14} weight="regular" />}
                 accent="gold"
               />
               <StatCard
                 label={cd.statLoaned}
                 value={formatMoney(lifetime.totalLoaned)}
-                icon={<Coins size={18} weight="regular" />}
+                icon={<Coins size={14} weight="regular" />}
                 accent="gold"
               />
               <StatCard
                 label={cd.statActive}
                 value={lifetime.activeLoans.toString()}
-                icon={<Clock size={18} weight="regular" />}
+                icon={<Clock size={14} weight="regular" />}
                 accent="info"
               />
               <StatCard
                 label={cd.statLost}
                 value={lifetime.forfeitedLoansCount.toString()}
-                icon={<Lock size={18} weight="regular" />}
+                icon={<Lock size={14} weight="regular" />}
                 accent={
                   lifetime.forfeitedLoansCount > 0 ? 'danger' : 'neutral'
                 }
@@ -220,13 +220,13 @@ export default function CustomerAnalyticsDashboard({
               <StatCard
                 label={cd.statSales}
                 value={lifetime.totalSalesCount.toString()}
-                icon={<CashRegister size={18} weight="regular" />}
+                icon={<CashRegister size={14} weight="regular" />}
                 accent="success"
               />
               <StatCard
                 label={cd.statSpent}
                 value={formatMoney(lifetime.totalSpent)}
-                icon={<Receipt size={18} weight="regular" />}
+                icon={<Receipt size={14} weight="regular" />}
                 accent="success"
               />
             </>
@@ -240,7 +240,7 @@ export default function CustomerAnalyticsDashboard({
                   ? ` (${lifetime.repairsActive} ${cd.activeAbbrev})`
                   : ''
               }`}
-              icon={<Wrench size={18} weight="regular" />}
+              icon={<Wrench size={14} weight="regular" />}
               accent="info"
             />
           ) : null}
@@ -253,7 +253,7 @@ export default function CustomerAnalyticsDashboard({
                   ? ` (${lifetime.activeLayaways} ${cd.activeAbbrev})`
                   : ''
               }`}
-              icon={<ShoppingBag size={18} weight="regular" />}
+              icon={<ShoppingBag size={14} weight="regular" />}
               accent="success"
             />
           ) : null}
@@ -263,13 +263,13 @@ export default function CustomerAnalyticsDashboard({
               <StatCard
                 label={cd.statInterestPaid}
                 value={formatMoney(lifetime.interestPaidLifetime)}
-                icon={<Coins size={18} weight="regular" />}
+                icon={<Coins size={14} weight="regular" />}
                 accent="gold"
               />
               <StatCard
                 label={cd.statExtensions}
                 value={lifetime.extensionCount.toString()}
-                icon={<TrendUp size={18} weight="regular" />}
+                icon={<TrendUp size={14} weight="regular" />}
                 accent="warning"
               />
               <StatCard
@@ -279,7 +279,7 @@ export default function CustomerAnalyticsDashboard({
                     ? '—'
                     : `${lifetime.onTimePct}%`
                 }
-                icon={<Clock size={18} weight="regular" />}
+                icon={<Clock size={14} weight="regular" />}
                 accent={
                   lifetime.onTimePct == null
                     ? 'neutral'
@@ -296,7 +296,7 @@ export default function CustomerAnalyticsDashboard({
           <StatCard
             label={cd.statLoyalty}
             value={`${customer.loyalty_points_balance} ${cd.pointsAbbrev}`}
-            icon={<Star size={18} weight="regular" />}
+            icon={<Star size={14} weight="regular" />}
             accent="info"
           />
         </div>
@@ -494,18 +494,18 @@ function StatCard({
   }
   const p = palette[accent]
   return (
-    <div className={`flex flex-col gap-2 rounded-xl border p-4 ${p.border}`}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+    <div className={`flex flex-col gap-1 rounded-lg border p-2.5 ${p.border}`}>
+      <div className="flex items-center justify-between gap-1">
+        <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted">
           {label}
         </span>
         <span
-          className={`flex h-8 w-8 items-center justify-center rounded-lg ${p.chip}`}
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${p.chip}`}
         >
           {icon}
         </span>
       </div>
-      <div className={`font-mono text-2xl font-bold ${p.valueColor}`}>
+      <div className={`font-mono text-lg font-bold leading-tight ${p.valueColor}`}>
         {value}
       </div>
     </div>
