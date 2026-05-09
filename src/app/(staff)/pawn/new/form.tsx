@@ -16,10 +16,7 @@ import VoicePawnButton, {
 import CustomerPicker, {
   type CustomerPickerHandle,
 } from '@/components/customers/CustomerPicker'
-import CategoryPicker, {
-  CategoryBanner,
-  type PawnIntakeCategory,
-} from '@/components/pawn/CategoryPicker'
+import type { PawnIntakeCategory } from '@/components/pawn/CategoryPicker'
 import {
   createLoanAction,
   type CreateLoanState,
@@ -60,23 +57,17 @@ export default function NewPawnLoanForm({
   const today = todayDateString()
   const [issueDate, setIssueDate] = useState<string>(today)
   const [termDays, setTermDays] = useState<string>('30')
-  // Wizard step 1 — pawn category (top + optional sub). Until both are
-  // settled (or top with no subs is picked), the rest of the form is
-  // hidden. Voice intake skips the picker by auto-selecting 'general'.
-  const [categorySlug, setCategorySlug] = useState<string | null>(null)
-  const [subcategorySlug, setSubcategorySlug] = useState<string | null>(null)
-  const selectedCategory =
-    categories.find((c) => c.slug === categorySlug) ?? null
-  const selectedSubcategory =
-    selectedCategory && subcategorySlug
-      ? selectedCategory.subcategories.find((s) => s.slug === subcategorySlug) ??
-        null
-      : null
-  // The form is "ready" when the top category is picked AND either it
-  // has no subs OR a sub is also picked.
-  const categoryStepDone =
-    selectedCategory != null &&
-    (selectedCategory.subcategories.length === 0 || selectedSubcategory != null)
+  // Wizard step 1 — customer. Until a customer is picked, the rest
+  // of the form stays hidden. Voice intake fills this via the
+  // imperative handle which fires onChange.
+  //
+  // The pawn intake CATEGORY is picked PER COLLATERAL ITEM inside
+  // CollateralItemsList — not at the loan level — because the
+  // operator can pawn (e.g.) Jewelry→Ring + Electronics→Phone in
+  // the same ticket.
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+    null,
+  )
   // Customer picker exposes an imperative handle so /api/ai/voice/
   // pawn-intake (match-or-create branch) can prefill the resolved
   // customer programmatically. The form input name="customer_id" is
@@ -148,18 +139,10 @@ export default function NewPawnLoanForm({
   // server returns the resolved id + label), principal, and one
   // collateral row pushed via the imperative handle. Term/rate are
   // intentionally NOT touched — operator picks those, voice only
-  // covers the high-frequency intake fields.
+  // covers the high-frequency intake fields. The voiced collateral
+  // row defaults to the 'general' pawn category (CollateralItemsList
+  // supplies that fallback); operator can swap on the row.
   function handleVoiceData(data: PawnVoiceData) {
-    // Voice flow skips the category-picker step. Auto-set to the
-    // 'general' category if available, else the first top-level —
-    // operator can change before submit. Sub-category stays null
-    // (general has no subs by default; for other parents the operator
-    // can drill in via the Change banner).
-    if (categorySlug == null && categories.length > 0) {
-      const general = categories.find((c) => c.slug === 'general')
-      setCategorySlug(general?.slug ?? categories[0].slug)
-      setSubcategorySlug(null)
-    }
     if (data.customer) {
       customerPickerRef.current?.set({
         id: data.customer.id,
@@ -174,6 +157,8 @@ export default function NewPawnLoanForm({
     }
   }
 
+  const revealReady = selectedCustomerId != null
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
@@ -185,56 +170,20 @@ export default function NewPawnLoanForm({
 
       <VoicePawnButton onDataExtracted={handleVoiceData} />
 
-      {/* Step 1 — category picker (top + optional sub). Until step 1
-          is done, the rest of the form (and the submit button) stays
-          hidden. */}
-      {!categoryStepDone ? (
-        <CategoryPicker
-          categories={categories}
-          onPick={(topSlug, subSlug) => {
-            setCategorySlug(topSlug)
-            setSubcategorySlug(subSlug)
-          }}
-        />
-      ) : (
-        <CategoryBanner
-          category={selectedCategory!}
-          subcategory={selectedSubcategory}
-          onChange={() => {
-            setCategorySlug(null)
-            setSubcategorySlug(null)
-          }}
-        />
-      )}
-
-      {categoryStepDone && selectedCategory != null ? (
-      <>
-      {state.error ? (
-        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {state.error}
-        </div>
-      ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {t.common.fixErrorsBelow}
-        </div>
-      ) : null}
-
       <form
         id={PAWN_NEW_FORM_ID}
         action={formAction}
+        // Block implicit Enter-key submission while the wizard is still
+        // gated. The submit button only renders at the reveal step, but
+        // browsers still implicit-submit a form whose only visible
+        // input is single-line text (the customer search field).
+        onSubmit={(e) => {
+          if (!revealReady) e.preventDefault()
+        }}
         className="space-y-6"
       >
-        {/* Carries the chosen category slugs to the server action so
-            they can be persisted on the loan record (columns to be
-            added in a follow-up; today the slugs are dropped). */}
-        <input type="hidden" name="pawn_category" value={selectedCategory.slug} />
-        <input
-          type="hidden"
-          name="pawn_subcategory"
-          value={selectedSubcategory?.slug ?? ''}
-        />
-
-        {/* Customer */}
+        {/* Step 1 — Customer (always visible). Picking a customer
+            unlocks the category step. */}
         <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
             {t.pawn.new_.sectionCustomer}
@@ -250,6 +199,7 @@ export default function NewPawnLoanForm({
                 required
                 enableDlScan
                 error={state.fieldErrors?.customer_id}
+                onChange={(c) => setSelectedCustomerId(c?.id ?? null)}
               />
             </div>
             <Link
@@ -261,248 +211,275 @@ export default function NewPawnLoanForm({
           </div>
         </fieldset>
 
-        {/* Terms */}
-        <fieldset className="rounded-xl border border-border bg-card p-4">
-          <legend className="px-1 text-sm font-semibold text-foreground">
-            {t.pawn.new_.sectionTerms}
-          </legend>
-          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">
-                {t.pawn.new_.principal} *
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                min={minLoanAmount ?? 0.01}
-                name="principal"
-                required
-                placeholder="0.00"
-                value={principal}
-                onChange={(e) => setPrincipal(e.target.value)}
-                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-              />
-              {minLoanAmount != null ? (
-                <span className="block text-xs text-muted">
-                  {t.pawn.new_.principalMinHint.replace(
-                    '{amount}',
-                    `$${minLoanAmount.toFixed(2)}`,
-                  )}
-                </span>
-              ) : null}
-              {state.fieldErrors?.principal ? (
-                <span className="text-xs text-danger">
-                  {state.fieldErrors.principal}
-                </span>
-              ) : null}
-            </label>
+        {/* Reveal — wizard step 1 (customer) done. Each collateral
+            row carries its OWN pawn intake category picker, so the
+            "category step" lives inside CollateralItemsList — not at
+            the loan level. */}
+        {revealReady ? (
+          <>
+            {state.error ? (
+              <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+                {state.error}
+              </div>
+            ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
+              <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+                {t.common.fixErrorsBelow}
+              </div>
+            ) : null}
 
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">
-                {t.pawn.new_.interestRate} *
-              </span>
-              {/* Hidden field carries the actual rate value submitted
-                  to the server. The visible <select> chooses preset OR
-                  custom; the custom path swaps in a number input. */}
-              <input
-                type="hidden"
-                name="interest_rate_monthly"
-                value={submittedRate}
-              />
-              {/* Snapshot of the selected rate's per-month minimum (empty
-                  when the operator picked Custom or the rate has no
-                  floor). The server reads this onto loans.min_monthly_charge. */}
-              <input
-                type="hidden"
-                name="min_monthly_charge"
-                value={submittedMinCharge}
-              />
-              {rates.length > 0 ? (
-                <select
-                  value={rateChoice}
-                  onChange={(e) => setRateChoice(e.target.value)}
-                  className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-                >
-                  {rates.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {(r.rateMonthly * 100).toFixed(2)}% — {r.label}
-                      {r.minMonthlyCharge != null
-                        ? ` (${t.pawn.new_.rateMinSuffix.replace(
-                            '{amount}',
-                            `$${r.minMonthlyCharge.toFixed(2)}`,
-                          )})`
-                        : ''}
-                      {r.isDefault ? ` (${t.pawn.new_.rateDefaultBadge})` : ''}
-                    </option>
-                  ))}
-                  <option value={CUSTOM_RATE_VALUE}>
-                    {t.pawn.new_.rateCustom}
-                  </option>
-                </select>
-              ) : null}
-              {isCustomRate ? (
-                <input
-                  type="number"
-                  step="0.0001"
-                  min={0}
-                  max={0.25}
-                  value={customRate}
-                  onChange={(e) => setCustomRate(e.target.value)}
-                  required
-                  className="mt-2 block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-                />
-              ) : null}
-              {selectedRateDescription ? (
-                <span className="block text-xs text-muted">
-                  {selectedRateDescription}
-                </span>
-              ) : (
-                <span className="block text-xs text-muted">
-                  {t.pawn.new_.interestRateHelp}
-                </span>
-              )}
-              {rates.length === 0 ? (
-                <span className="block text-xs text-muted">
-                  {t.pawn.new_.rateNoneConfigured}
-                </span>
-              ) : null}
-            </label>
-
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">
-                {t.pawn.new_.termDays} *
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={180}
-                name="term_days"
-                required
-                value={termDays}
-                onChange={(e) => setTermDays(e.target.value)}
-                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-              />
-            </label>
-
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">
-                {t.pawn.new_.issueDate}
-              </span>
-              <input
-                type="date"
-                name="issue_date"
-                value={issueDate}
-                onChange={(e) => setIssueDate(e.target.value)}
-                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-              />
-            </label>
-
-            <label className="block space-y-1 md:col-span-2">
-              <span className="text-sm font-medium text-foreground">
-                {t.pawn.new_.dueDate}{' '}
-                <span className="text-xs text-muted">
-                  {t.pawn.new_.dueDateAuto}
-                </span>
-              </span>
-              <input
-                type="date"
-                name="due_date"
-                value={computedDueDate}
-                onChange={() => {
-                  /* allow override but the auto value tracks term/issue */
-                }}
-                readOnly
-                className="block w-full rounded-md border border-border bg-background/50 px-3 py-2 text-muted"
-              />
-            </label>
-          </div>
-        </fieldset>
-
-        {/* Collateral */}
-        <fieldset className="rounded-xl border border-border bg-card p-4">
-          <legend className="px-1 text-sm font-semibold text-foreground">
-            {t.pawn.new_.sectionCollateral}
-          </legend>
-          <p className="mt-1 text-xs text-muted">{t.pawn.new_.itemMinOne}</p>
-          <div className="mt-2">
-            <CollateralItemsList ref={collateralRef} />
-          </div>
-        </fieldset>
-
-        {/* Inline calculator — reads collateral_<n>_* from this form via
-            DOM access; writes back to the principal field on click.
-            onAddWatchToCollateral pushes the picked watch into the
-            collateral list as a populated row (description + est_value
-            from the typeahead match midpoint). */}
-        <InlinePawnCalculator
-          formId={PAWN_NEW_FORM_ID}
-          onAddWatchToCollateral={(match) =>
-            collateralRef.current?.addWatchRow(match)
-          }
-        />
-
-        {/* Signature & notes */}
-        <fieldset className="rounded-xl border border-border bg-card p-4">
-          <legend className="px-1 text-sm font-semibold text-foreground">
-            {t.pawn.new_.sectionSignature}
-          </legend>
-          <div className="mt-2 space-y-3">
-            <div>
-              <span className="block text-sm font-medium text-foreground">
-                {t.pawn.new_.signature}
-              </span>
-              <p className="mb-1 text-xs text-muted">
-                {t.pawn.new_.signatureHelp}
+            {/* Collateral — first thing inside the reveal. Each row
+                begins with its own CategoryPicker, then exposes the
+                rest of the item fields once a category is chosen. */}
+            <fieldset className="rounded-xl border border-border bg-card p-4">
+              <legend className="px-1 text-sm font-semibold text-foreground">
+                {t.pawn.new_.sectionCollateral}
+              </legend>
+              <p className="mt-1 text-xs text-muted">
+                {t.pawn.new_.itemMinOne}
               </p>
-              <button
-                type="button"
-                onClick={() => sigInputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
+              <div className="mt-2">
+                <CollateralItemsList
+                  ref={collateralRef}
+                  categories={categories}
+                />
+              </div>
+            </fieldset>
+
+            {/* Inline calculator — reads collateral_<n>_* from this
+                form via DOM access; writes back to the principal
+                field on click. onAddWatchToCollateral pushes the
+                picked watch into the collateral list as a populated
+                row. */}
+            <InlinePawnCalculator
+              formId={PAWN_NEW_FORM_ID}
+              onAddWatchToCollateral={(match) =>
+                collateralRef.current?.addWatchRow(match)
+              }
+            />
+
+            {/* Terms */}
+            <fieldset className="rounded-xl border border-border bg-card p-4">
+              <legend className="px-1 text-sm font-semibold text-foreground">
+                {t.pawn.new_.sectionTerms}
+              </legend>
+              <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {t.pawn.new_.principal} *
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={minLoanAmount ?? 0.01}
+                    name="principal"
+                    required
+                    placeholder="0.00"
+                    value={principal}
+                    onChange={(e) => setPrincipal(e.target.value)}
+                    className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+                  />
+                  {minLoanAmount != null ? (
+                    <span className="block text-xs text-muted">
+                      {t.pawn.new_.principalMinHint.replace(
+                        '{amount}',
+                        `$${minLoanAmount.toFixed(2)}`,
+                      )}
+                    </span>
+                  ) : null}
+                  {state.fieldErrors?.principal ? (
+                    <span className="text-xs text-danger">
+                      {state.fieldErrors.principal}
+                    </span>
+                  ) : null}
+                </label>
+
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {t.pawn.new_.interestRate} *
+                  </span>
+                  {/* Hidden field carries the actual rate value
+                      submitted to the server. The visible <select>
+                      chooses preset OR custom; the custom path swaps
+                      in a number input. */}
+                  <input
+                    type="hidden"
+                    name="interest_rate_monthly"
+                    value={submittedRate}
+                  />
+                  {/* Snapshot of the selected rate's per-month
+                      minimum (empty when the operator picked Custom
+                      or the rate has no floor). The server reads
+                      this onto loans.min_monthly_charge. */}
+                  <input
+                    type="hidden"
+                    name="min_monthly_charge"
+                    value={submittedMinCharge}
+                  />
+                  {rates.length > 0 ? (
+                    <select
+                      value={rateChoice}
+                      onChange={(e) => setRateChoice(e.target.value)}
+                      className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+                    >
+                      {rates.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {(r.rateMonthly * 100).toFixed(2)}% — {r.label}
+                          {r.minMonthlyCharge != null
+                            ? ` (${t.pawn.new_.rateMinSuffix.replace(
+                                '{amount}',
+                                `$${r.minMonthlyCharge.toFixed(2)}`,
+                              )})`
+                            : ''}
+                          {r.isDefault
+                            ? ` (${t.pawn.new_.rateDefaultBadge})`
+                            : ''}
+                        </option>
+                      ))}
+                      <option value={CUSTOM_RATE_VALUE}>
+                        {t.pawn.new_.rateCustom}
+                      </option>
+                    </select>
+                  ) : null}
+                  {isCustomRate ? (
+                    <input
+                      type="number"
+                      step="0.0001"
+                      min={0}
+                      max={0.25}
+                      value={customRate}
+                      onChange={(e) => setCustomRate(e.target.value)}
+                      required
+                      className="mt-2 block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+                    />
+                  ) : null}
+                  {selectedRateDescription ? (
+                    <span className="block text-xs text-muted">
+                      {selectedRateDescription}
+                    </span>
+                  ) : (
+                    <span className="block text-xs text-muted">
+                      {t.pawn.new_.interestRateHelp}
+                    </span>
+                  )}
+                  {rates.length === 0 ? (
+                    <span className="block text-xs text-muted">
+                      {t.pawn.new_.rateNoneConfigured}
+                    </span>
+                  ) : null}
+                </label>
+
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {t.pawn.new_.termDays} *
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={180}
+                    name="term_days"
+                    required
+                    value={termDays}
+                    onChange={(e) => setTermDays(e.target.value)}
+                    className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+                  />
+                </label>
+
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {t.pawn.new_.issueDate}
+                  </span>
+                  <input
+                    type="date"
+                    name="issue_date"
+                    value={issueDate}
+                    onChange={(e) => setIssueDate(e.target.value)}
+                    className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+                  />
+                </label>
+
+                <label className="block space-y-1 md:col-span-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {t.pawn.new_.dueDate}{' '}
+                    <span className="text-xs text-muted">
+                      {t.pawn.new_.dueDateAuto}
+                    </span>
+                  </span>
+                  <input
+                    type="date"
+                    name="due_date"
+                    value={computedDueDate}
+                    onChange={() => {
+                      /* allow override but the auto value tracks term/issue */
+                    }}
+                    readOnly
+                    className="block w-full rounded-md border border-border bg-background/50 px-3 py-2 text-muted"
+                  />
+                </label>
+              </div>
+            </fieldset>
+
+            {/* Signature & notes */}
+            <fieldset className="rounded-xl border border-border bg-card p-4">
+              <legend className="px-1 text-sm font-semibold text-foreground">
+                {t.pawn.new_.sectionSignature}
+              </legend>
+              <div className="mt-2 space-y-3">
+                <div>
+                  <span className="block text-sm font-medium text-foreground">
+                    {t.pawn.new_.signature}
+                  </span>
+                  <p className="mb-1 text-xs text-muted">
+                    {t.pawn.new_.signatureHelp}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => sigInputRef.current?.click()}
+                    className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
+                  >
+                    <Upload size={14} weight="bold" />
+                    {sigPreview ?? t.common.upload}
+                  </button>
+                  <input
+                    ref={sigInputRef}
+                    type="file"
+                    name="signature_file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                    onChange={onSigChange}
+                    className="sr-only"
+                  />
+                </div>
+
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {t.pawn.new_.notes}
+                  </span>
+                  <textarea
+                    name="notes"
+                    rows={2}
+                    className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+                  />
+                </label>
+              </div>
+            </fieldset>
+
+            <div className="flex items-center justify-end gap-3">
+              <Link
+                href="/pawn"
+                className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
               >
-                <Upload size={14} weight="bold" />
-                {sigPreview ?? t.common.upload}
+                {t.common.cancel}
+              </Link>
+              <button
+                type="submit"
+                disabled={pending}
+                className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
+              >
+                {pending ? t.pawn.new_.submitting : t.pawn.new_.submit}
               </button>
-              <input
-                ref={sigInputRef}
-                type="file"
-                name="signature_file"
-                accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
-                onChange={onSigChange}
-                className="sr-only"
-              />
             </div>
-
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">
-                {t.pawn.new_.notes}
-              </span>
-              <textarea
-                name="notes"
-                rows={2}
-                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-              />
-            </label>
-          </div>
-        </fieldset>
-
-        <div className="flex items-center justify-end gap-3">
-          <Link
-            href="/pawn"
-            className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
-          >
-            {t.common.cancel}
-          </Link>
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
-          >
-            {pending ? t.pawn.new_.submitting : t.pawn.new_.submit}
-          </button>
-        </div>
+          </>
+        ) : null}
       </form>
-      </>
-      ) : null}
     </div>
   )
 }

@@ -71,6 +71,30 @@ export const paymentMethodSchema = z.enum(['cash', 'card', 'check', 'other'])
 export const collateralItemSchema = z.object({
   description: z.string().trim().min(2, 'too_short').max(500),
   category: inventoryCategorySchema.default('other'),
+  // Slug snapshots from the per-row pawn_intake_categories picker
+  // (patches/0040). Plain text so a later rename of the category row
+  // doesn't mutate historical items. Voice intake / watch typeahead
+  // / pristine new rows default to 'general' (no sub).
+  pawn_category_slug: z
+    .preprocess(
+      (v) => {
+        if (typeof v !== 'string') return v
+        const trimmed = v.trim()
+        return trimmed === '' ? null : trimmed
+      },
+      z.string().min(1).max(120).nullable().optional(),
+    )
+    .transform((v) => v ?? null),
+  pawn_subcategory_slug: z
+    .preprocess(
+      (v) => {
+        if (typeof v !== 'string') return v
+        const trimmed = v.trim()
+        return trimmed === '' ? null : trimmed
+      },
+      z.string().min(1).max(120).nullable().optional(),
+    )
+    .transform((v) => v ?? null),
   // Select placeholder option ("—") sends "". Empty must become null
   // BEFORE the enum runs, otherwise z.enum().optional().nullable()
   // rejects "" and the row never validates. Same pattern as

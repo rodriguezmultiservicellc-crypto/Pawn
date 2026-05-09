@@ -1923,6 +1923,71 @@ export type Database = {
           },
         ]
       }
+      market_data_points: {
+        Row: {
+          amount: number
+          created_at: string
+          est_value: number | null
+          id: string
+          item_category: Database["public"]["Enums"]["inventory_category"]
+          item_description: string
+          item_embedding: string | null
+          karat: number | null
+          metal_type: Database["public"]["Enums"]["metal_type"] | null
+          source_row_id: string
+          source_table: string
+          source_tenant_id: string
+          state: string | null
+          transaction_date: string
+          transaction_type: string
+          weight_grams: number | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          est_value?: number | null
+          id?: string
+          item_category: Database["public"]["Enums"]["inventory_category"]
+          item_description: string
+          item_embedding?: string | null
+          karat?: number | null
+          metal_type?: Database["public"]["Enums"]["metal_type"] | null
+          source_row_id: string
+          source_table: string
+          source_tenant_id: string
+          state?: string | null
+          transaction_date: string
+          transaction_type: string
+          weight_grams?: number | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          est_value?: number | null
+          id?: string
+          item_category?: Database["public"]["Enums"]["inventory_category"]
+          item_description?: string
+          item_embedding?: string | null
+          karat?: number | null
+          metal_type?: Database["public"]["Enums"]["metal_type"] | null
+          source_row_id?: string
+          source_table?: string
+          source_tenant_id?: string
+          state?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          weight_grams?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_data_points_source_tenant_id_fkey"
+            columns: ["source_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_log: {
         Row: {
           body_rendered: string
@@ -2068,6 +2133,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "message_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pawn_intake_categories: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          label: string
+          parent_id: string | null
+          requires_ffl: boolean
+          slug: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          parent_id?: string | null
+          requires_ffl?: boolean
+          slug: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          parent_id?: string | null
+          requires_ffl?: boolean
+          slug?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pawn_intake_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "pawn_intake_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pawn_intake_categories_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3652,6 +3777,7 @@ export type Database = {
           dba: string | null
           default_currency: string
           email: string | null
+          has_firearms: boolean
           has_pawn: boolean
           has_repair: boolean
           has_retail: boolean
@@ -3682,6 +3808,7 @@ export type Database = {
           dba?: string | null
           default_currency?: string
           email?: string | null
+          has_firearms?: boolean
           has_pawn?: boolean
           has_repair?: boolean
           has_retail?: boolean
@@ -3712,6 +3839,7 @@ export type Database = {
           dba?: string | null
           default_currency?: string
           email?: string | null
+          has_firearms?: boolean
           has_pawn?: boolean
           has_repair?: boolean
           has_retail?: boolean
@@ -3930,6 +4058,14 @@ export type Database = {
       next_tenant_counter: {
         Args: { p_counter_name: string; p_tenant_id: string }
         Returns: number
+      }
+      seed_pawn_intake_categories: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      seed_pawn_intake_subcategories: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
       }
       set_tenant_secret: {
         Args: { p_kind: string; p_tenant_id: string; p_value: string }

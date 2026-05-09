@@ -178,6 +178,10 @@ function readCollateralRows(
         karat: fd.get(`collateral_${i}_karat`),
         weight_grams: fd.get(`collateral_${i}_weight_grams`),
         est_value: fd.get(`collateral_${i}_est_value`),
+        // Per-row pawn intake category slugs (patches/0040). Picked
+        // from the inline CategoryPicker on each collateral row.
+        pawn_category_slug: fd.get(`collateral_${i}_pawn_category`),
+        pawn_subcategory_slug: fd.get(`collateral_${i}_pawn_subcategory`),
         position: String(i),
       },
       photo,
@@ -401,6 +405,9 @@ export async function createLoanAction(
     return { error: 'no_valid_collateral' }
   }
 
+  // boundary cast: pawn_category_slug + pawn_subcategory_slug were
+  // added by patches/0040. Once `npm run db:types` is re-run after
+  // 0040 is applied, the `as never` below can be removed.
   const { error: collErr } = await supabase.from('loan_collateral_items').insert(
     collateralInserts.map((it) => ({
       loan_id: loanId,
@@ -413,7 +420,9 @@ export async function createLoanAction(
       est_value: it.est_value,
       photo_path: it.photo_path,
       position: it.position,
-    })),
+      pawn_category_slug: it.pawn_category_slug,
+      pawn_subcategory_slug: it.pawn_subcategory_slug,
+    })) as never,
   )
   if (collErr) {
     return { error: collErr.message }
@@ -483,6 +492,8 @@ export async function createLoanAction(
     est_value: it.est_value,
     photo_path: it.photo_path,
     position: it.position,
+    pawn_category_slug: it.pawn_category_slug,
+    pawn_subcategory_slug: it.pawn_subcategory_slug,
   })) as unknown as ComplianceInsertChanges
 
   await supabase.from('compliance_log').insert({
@@ -509,6 +520,11 @@ export async function createLoanAction(
       term_days: v.term_days,
       customer_id: v.customer_id,
       collateral_count: collateralInserts.length,
+      collateral_categories: collateralInserts.map((it) => ({
+        pos: it.position,
+        cat: it.pawn_category_slug,
+        sub: it.pawn_subcategory_slug,
+      })),
     },
   })
 

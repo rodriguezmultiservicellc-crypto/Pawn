@@ -15,6 +15,10 @@ import type {
   InventoryCategory,
   MetalType,
 } from '@/types/database-aliases'
+import CategoryPicker, {
+  CategoryBanner,
+  type PawnIntakeCategory,
+} from './CategoryPicker'
 
 /**
  * Imperative handle exposed by CollateralItemsList. The /pawn/new form
@@ -49,18 +53,24 @@ export type CollateralListHandle = {
 
 /**
  * Inline editor for the collateral list on /pawn/new. Each row collects:
+ *   pawn_category_slug + pawn_subcategory_slug — the per-item pawn
+ *     intake category (top + optional sub) picked from a CategoryPicker
+ *     rendered at the top of the row (patches/0040). Until the row's
+ *     category is picked, only the picker shows.
  *   description, category, metal_type, karat, weight_grams, est_value, photo
  *
  * Photos are kept as File objects in component state. On submit, the form
  * action serializes them via FormData under names:
- *   collateral_count             — number of rows
+ *   collateral_count               — number of rows
+ *   collateral_<n>_pawn_category    — top-level slug
+ *   collateral_<n>_pawn_subcategory — sub slug (empty when no sub)
  *   collateral_<n>_description
- *   collateral_<n>_category
+ *   collateral_<n>_category         — inventory_category enum (separate)
  *   collateral_<n>_metal_type
  *   collateral_<n>_karat
  *   collateral_<n>_weight_grams
  *   collateral_<n>_est_value
- *   collateral_<n>_photo         — the File (optional)
+ *   collateral_<n>_photo            — the File (optional)
  *
  * The server action reads these via formData.get(`collateral_<n>_*`).
  *
@@ -102,6 +112,12 @@ const METAL_OPTIONS: ReadonlyArray<{ value: MetalType; key: string }> = [
 type Row = {
   /** stable id per row, only for React key */
   uid: string
+  /** pawn_intake_categories.slug — top-level. NULL = picker still
+   *  visible at the top of the row. */
+  pawn_category_slug: string | null
+  /** pawn_intake_categories.slug — sub. NULL when the picked top has
+   *  no subs OR no top picked yet. */
+  pawn_subcategory_slug: string | null
   description: string
   category: InventoryCategory
   metal_type: MetalType | ''
@@ -115,6 +131,8 @@ type Row = {
 function newRow(): Row {
   return {
     uid: typeof crypto !== 'undefined' ? crypto.randomUUID() : `r${Math.random()}`,
+    pawn_category_slug: null,
+    pawn_subcategory_slug: null,
     description: '',
     category: 'other',
     metal_type: '',
@@ -126,10 +144,29 @@ function newRow(): Row {
   }
 }
 
-export const CollateralItemsList = forwardRef<CollateralListHandle>(
-  function CollateralItemsList(_props, ref) {
+export const CollateralItemsList = forwardRef<
+  CollateralListHandle,
+  { categories: PawnIntakeCategory[] }
+>(function CollateralItemsList({ categories }, ref) {
   const { t } = useI18n()
   const [rows, setRows] = useState<Row[]>([newRow()])
+
+  // Default category for auto-populated rows (voice intake / watch
+  // typeahead). Prefer 'general' (no subs, no extra picker step) then
+  // fall back to whatever's first in the seeded list. Same behavior
+  // as the prior wizard step 1.
+  const defaultCategorySlug =
+    categories.find((c) => c.slug === 'general')?.slug ??
+    categories[0]?.slug ??
+    null
+  // Default for the watch typeahead: jewelry → watch when those exist
+  // in the tenant's category list, else fall through to defaultCategorySlug.
+  const watchCategorySlug =
+    categories.find((c) => c.slug === 'jewelry')?.slug ?? defaultCategorySlug
+  const watchSubcategorySlug =
+    categories
+      .find((c) => c.slug === 'jewelry')
+      ?.subcategories.find((s) => s.slug === 'watch')?.slug ?? null
 
   function addRow() {
     setRows((prev) => [...prev, newRow()])
@@ -166,6 +203,8 @@ export const CollateralItemsList = forwardRef<CollateralListHandle>(
     )
     return {
       ...newRow(),
+      pawn_category_slug: watchCategorySlug,
+      pawn_subcategory_slug: watchSubcategorySlug,
       description,
       category: 'watch',
       est_value: midpoint.toString(),
@@ -174,10 +213,12 @@ export const CollateralItemsList = forwardRef<CollateralListHandle>(
 
   // If the first row is still pristine (default empty values), reuse
   // it instead of appending — saves the operator the click to delete
-  // the placeholder row that newRow() seeds. Pristine = empty
-  // description, default category, no photo, est_value still '0'.
+  // the placeholder row that newRow() seeds. Pristine = no category
+  // picked yet, empty description, default category, no photo,
+  // est_value still '0'.
   function isPristineRow(r: Row): boolean {
     return (
+      r.pawn_category_slug == null &&
       r.description.trim() === '' &&
       r.category === 'other' &&
       r.metal_type === '' &&
@@ -205,6 +246,12 @@ export const CollateralItemsList = forwardRef<CollateralListHandle>(
       addExtractedRow(extracted) {
         const built: Row = {
           ...newRow(),
+          // Voice intake doesn't yet emit a pawn_intake_categories
+          // slug — default the auto-row to the tenant's 'general'
+          // category (or the first available) so the row reveals
+          // its fields immediately. Operator can hit Change.
+          pawn_category_slug: defaultCategorySlug,
+          pawn_subcategory_slug: null,
           description: extracted.description,
           category: extracted.category,
           metal_type: extracted.metal_type,
@@ -220,6 +267,7 @@ export const CollateralItemsList = forwardRef<CollateralListHandle>(
         })
       },
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
 
@@ -231,6 +279,7 @@ export const CollateralItemsList = forwardRef<CollateralListHandle>(
           key={row.uid}
           index={idx}
           row={row}
+          categories={categories}
           onChange={(patch) => patchRow(row.uid, patch)}
           onRemove={() => removeRow(row.uid)}
           canRemove={rows.length > 1}
@@ -264,6 +313,7 @@ export const CollateralItemsList = forwardRef<CollateralListHandle>(
 function CollateralRow({
   index,
   row,
+  categories,
   onChange,
   onRemove,
   canRemove,
@@ -272,6 +322,7 @@ function CollateralRow({
 }: {
   index: number
   row: Row
+  categories: PawnIntakeCategory[]
   onChange: (patch: Partial<Row>) => void
   onRemove: () => void
   canRemove: boolean
@@ -281,6 +332,26 @@ function CollateralRow({
   const { t } = useI18n()
   const photoInputRef = useRef<HTMLInputElement>(null)
   const fieldId = useId()
+
+  // Resolve the picked top + sub once per render. Both null until the
+  // operator picks via the inline CategoryPicker.
+  const selectedCategory =
+    row.pawn_category_slug
+      ? categories.find((c) => c.slug === row.pawn_category_slug) ?? null
+      : null
+  const selectedSubcategory =
+    selectedCategory && row.pawn_subcategory_slug
+      ? selectedCategory.subcategories.find(
+          (s) => s.slug === row.pawn_subcategory_slug,
+        ) ?? null
+      : null
+  // Row's category step is "done" when the top is picked AND either
+  // it has no subs or a sub is also picked. Mirrors the prior loan-
+  // level wizard logic.
+  const categoryStepDone =
+    selectedCategory != null &&
+    (selectedCategory.subcategories.length === 0 ||
+      selectedSubcategory != null)
 
   function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null
@@ -294,6 +365,53 @@ function CollateralRow({
 
   return (
     <div className="rounded-xl border border-border bg-card p-3">
+      {/* Hidden inputs always present so the form action sees the
+          slug pair on submit. Empty strings serialize fine — the
+          server-side schema treats empty as null. */}
+      <input
+        type="hidden"
+        name={`collateral_${index}_pawn_category`}
+        value={row.pawn_category_slug ?? ''}
+      />
+      <input
+        type="hidden"
+        name={`collateral_${index}_pawn_subcategory`}
+        value={row.pawn_subcategory_slug ?? ''}
+      />
+
+      {/* Per-row pawn intake category picker. While not picked, only
+          the picker shows — fields below are hidden so the operator
+          must classify the item before describing it. Once picked,
+          the banner replaces the picker and the rest of the row
+          reveals. */}
+      {!categoryStepDone ? (
+        <div className="mb-3">
+          <CategoryPicker
+            categories={categories}
+            onPick={(topSlug, subSlug) =>
+              onChange({
+                pawn_category_slug: topSlug,
+                pawn_subcategory_slug: subSlug,
+              })
+            }
+          />
+        </div>
+      ) : (
+        <div className="mb-3">
+          <CategoryBanner
+            category={selectedCategory!}
+            subcategory={selectedSubcategory}
+            onChange={() =>
+              onChange({
+                pawn_category_slug: null,
+                pawn_subcategory_slug: null,
+              })
+            }
+          />
+        </div>
+      )}
+
+      {categoryStepDone ? (
       <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
         {/* Photo */}
         <div className="md:col-span-2">
@@ -437,6 +555,7 @@ function CollateralRow({
           </label>
         </div>
       </div>
+      ) : null}
 
       {canRemove ? (
         <div className="mt-2 flex justify-end">
