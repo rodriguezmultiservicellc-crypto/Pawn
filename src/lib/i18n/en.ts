@@ -913,7 +913,11 @@ export const en = {
       itemKarat: 'Karat',
       itemWeightGrams: 'Weight (g)',
       itemJewelrySize: 'Size / Length',
+      itemGemstones: 'Gemstones',
       itemEstValue: 'Est. value',
+      // Common FS 539.001 fields (patches/0043).
+      itemColor: 'Color',
+      itemUniqueMarks: 'Unique marks',
       itemPhoto: 'Photo',
       itemPhotoHelp: 'Optional photo of this collateral item.',
       itemMinOne: 'Add at least one collateral item.',
@@ -931,6 +935,8 @@ export const en = {
       itemFirearmBarrelLength: 'Barrel length (in)',
       itemFirearmActionType: 'Action',
       itemFirearmCapacity: 'Capacity',
+      itemFirearmFinish: 'Finish',
+      itemFirearmBarrels: '# of barrels',
       // Electronic fields — 'electronics' top-level only.
       itemElectronicBrand: 'Brand',
       itemElectronicModel: 'Model',

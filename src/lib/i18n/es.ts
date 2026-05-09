@@ -915,7 +915,11 @@ export const es: Dictionary = {
       itemKarat: 'Quilates',
       itemWeightGrams: 'Peso (g)',
       itemJewelrySize: 'Talla / Largo',
+      itemGemstones: 'Gemas / Piedras',
       itemEstValue: 'Valor estimado',
+      // Campos comunes FS 539.001 (patches/0043).
+      itemColor: 'Color',
+      itemUniqueMarks: 'Marcas únicas',
       itemPhoto: 'Foto',
       itemPhotoHelp: 'Foto opcional de esta prenda.',
       itemMinOne: 'Agrega al menos un artículo de prenda.',
@@ -933,6 +937,8 @@ export const es: Dictionary = {
       itemFirearmBarrelLength: 'Longitud del cañón (pulg)',
       itemFirearmActionType: 'Acción',
       itemFirearmCapacity: 'Capacidad',
+      itemFirearmFinish: 'Acabado',
+      itemFirearmBarrels: 'No. de cañones',
       // Campos electrónicos — sólo categoría 'electronics'.
       itemElectronicBrand: 'Marca',
       itemElectronicModel: 'Modelo',

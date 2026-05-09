@@ -178,6 +178,9 @@ function readCollateralRows(
         karat: fd.get(`collateral_${i}_karat`),
         weight_grams: fd.get(`collateral_${i}_weight_grams`),
         jewelry_size: fd.get(`collateral_${i}_jewelry_size`),
+        color: fd.get(`collateral_${i}_color`),
+        gemstone_description: fd.get(`collateral_${i}_gemstone_description`),
+        unique_marks: fd.get(`collateral_${i}_unique_marks`),
         est_value: fd.get(`collateral_${i}_est_value`),
         // Per-row pawn intake category slugs (patches/0040). Picked
         // from the inline CategoryPicker on each collateral row.
@@ -196,6 +199,10 @@ function readCollateralRows(
         ),
         firearm_action_type: fd.get(`collateral_${i}_firearm_action_type`),
         firearm_capacity: fd.get(`collateral_${i}_firearm_capacity`),
+        firearm_finish: fd.get(`collateral_${i}_firearm_finish`),
+        firearm_number_of_barrels: fd.get(
+          `collateral_${i}_firearm_number_of_barrels`,
+        ),
         electronic_brand: fd.get(`collateral_${i}_electronic_brand`),
         electronic_model: fd.get(`collateral_${i}_electronic_model`),
         electronic_serial: fd.get(`collateral_${i}_electronic_serial`),
@@ -424,7 +431,9 @@ export async function createLoanAction(
     return { error: 'no_valid_collateral' }
   }
 
-  // boundary cast: jewelry_size was added by patches/0042. Drops
+  // boundary cast: jewelry_size + the FS 539.001 fields (color,
+  // gemstone_description, unique_marks, firearm_finish,
+  // firearm_number_of_barrels) were added by patches/0042+0043. Drops
   // after `npm run db:types` runs against the updated schema.
   const { error: collErr } = await supabase.from('loan_collateral_items').insert(
     collateralInserts.map((it) => ({
@@ -436,6 +445,9 @@ export async function createLoanAction(
       karat: it.karat,
       weight_grams: it.weight_grams,
       jewelry_size: it.jewelry_size,
+      color: it.color,
+      gemstone_description: it.gemstone_description,
+      unique_marks: it.unique_marks,
       est_value: it.est_value,
       photo_path: it.photo_path,
       position: it.position,
@@ -449,6 +461,8 @@ export async function createLoanAction(
       firearm_barrel_length_inches: it.firearm_barrel_length_inches,
       firearm_action_type: it.firearm_action_type,
       firearm_capacity: it.firearm_capacity,
+      firearm_finish: it.firearm_finish,
+      firearm_number_of_barrels: it.firearm_number_of_barrels,
       electronic_brand: it.electronic_brand,
       electronic_model: it.electronic_model,
       electronic_serial: it.electronic_serial,
@@ -522,6 +536,9 @@ export async function createLoanAction(
     karat: it.karat,
     weight_grams: it.weight_grams,
     jewelry_size: it.jewelry_size,
+    color: it.color,
+    gemstone_description: it.gemstone_description,
+    unique_marks: it.unique_marks,
     est_value: it.est_value,
     photo_path: it.photo_path,
     position: it.position,
@@ -536,6 +553,8 @@ export async function createLoanAction(
     firearm_barrel_length_inches: it.firearm_barrel_length_inches,
     firearm_action_type: it.firearm_action_type,
     firearm_capacity: it.firearm_capacity,
+    firearm_finish: it.firearm_finish,
+    firearm_number_of_barrels: it.firearm_number_of_barrels,
     electronic_brand: it.electronic_brand,
     electronic_model: it.electronic_model,
     electronic_serial: it.electronic_serial,

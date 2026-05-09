@@ -160,7 +160,16 @@ type Row = {
   /** Free-text size (rings) or length (chains/bracelets). Jewelry-only.
    *  patches/0042. */
   jewelry_size: string
-  // Firearm attributes (patches/0041, only shown for 'firearms' top).
+  /** FS 539.001(8)(b)(2)(g) — gemstone description, jewelry-only. */
+  gemstone_description: string
+  // Common FS 539.001 fields (patches/0043) — visible across all
+  // categories.
+  /** FS 539.001(8)(b)(2)(e) — apparent color. */
+  color: string
+  /** FS 539.001(8)(b)(2)(i) — any other unique identifying marks. */
+  unique_marks: string
+  // Firearm attributes (patches/0041 + 0043, only shown for
+  // 'firearms' top).
   firearm_make: string
   firearm_model: string
   firearm_caliber: string
@@ -169,6 +178,10 @@ type Row = {
   firearm_barrel_length_inches: string
   firearm_action_type: string
   firearm_capacity: string
+  /** FS 539.001(8)(b)(2)(h) — finish (blued/stainless/cerakote/etc). */
+  firearm_finish: string
+  /** FS 539.001(8)(b)(2)(h) — number of barrels (1 / 2 / etc). */
+  firearm_number_of_barrels: string
   // Electronic attributes (patches/0041, only shown for 'electronics').
   electronic_brand: string
   electronic_model: string
@@ -192,6 +205,9 @@ function newRow(): Row {
     karat: '',
     weight_grams: '',
     jewelry_size: '',
+    gemstone_description: '',
+    color: '',
+    unique_marks: '',
     firearm_make: '',
     firearm_model: '',
     firearm_caliber: '',
@@ -200,6 +216,8 @@ function newRow(): Row {
     firearm_barrel_length_inches: '',
     firearm_action_type: '',
     firearm_capacity: '',
+    firearm_finish: '',
+    firearm_number_of_barrels: '',
     electronic_brand: '',
     electronic_model: '',
     electronic_serial: '',
@@ -292,6 +310,9 @@ export const CollateralItemsList = forwardRef<
       r.karat === '' &&
       r.weight_grams === '' &&
       r.jewelry_size === '' &&
+      r.gemstone_description === '' &&
+      r.color === '' &&
+      r.unique_marks === '' &&
       r.firearm_make === '' &&
       r.firearm_model === '' &&
       r.firearm_caliber === '' &&
@@ -300,6 +321,8 @@ export const CollateralItemsList = forwardRef<
       r.firearm_barrel_length_inches === '' &&
       r.firearm_action_type === '' &&
       r.firearm_capacity === '' &&
+      r.firearm_finish === '' &&
+      r.firearm_number_of_barrels === '' &&
       r.electronic_brand === '' &&
       r.electronic_model === '' &&
       r.electronic_serial === '' &&
@@ -574,6 +597,36 @@ function CollateralRow({
             value={row.category}
           />
 
+          {/* Common FS 539.001(8)(b)(2) fields — visible regardless of
+              picked category. Color (e) + unique marks (i). */}
+          <label className="md:col-span-2 block space-y-1">
+            <span className="text-xs font-medium text-foreground">
+              {t.pawn.new_.itemColor}
+            </span>
+            <input
+              type="text"
+              name={`collateral_${index}_color`}
+              value={row.color}
+              onChange={(e) => onChange({ color: e.target.value })}
+              placeholder="Yellow / Black / Two-tone"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            />
+          </label>
+
+          <label className="md:col-span-4 block space-y-1">
+            <span className="text-xs font-medium text-foreground">
+              {t.pawn.new_.itemUniqueMarks}
+            </span>
+            <input
+              type="text"
+              name={`collateral_${index}_unique_marks`}
+              value={row.unique_marks}
+              onChange={(e) => onChange({ unique_marks: e.target.value })}
+              placeholder="Engraving, hallmark, scratch pattern"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            />
+          </label>
+
           {/* ── JEWELRY: metal / karat / weight ─────────────────── */}
           {selectedCategory?.slug === 'jewelry' ? (
             <>
@@ -644,10 +697,26 @@ function CollateralRow({
                   className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
                 />
               </label>
+
+              <label className="md:col-span-6 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemGemstones}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_gemstone_description`}
+                  value={row.gemstone_description}
+                  onChange={(e) =>
+                    onChange({ gemstone_description: e.target.value })
+                  }
+                  placeholder="3 round diamonds ~0.25ct each, prong-set"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
             </>
           ) : null}
 
-          {/* ── FIREARMS: 8 fields ──────────────────────────────── */}
+          {/* ── FIREARMS: 10 fields (FS 539.001(8)(b)(2)(h)) ────── */}
           {selectedCategory?.slug === 'firearms' ? (
             <>
               <label className="md:col-span-2 block space-y-1">
@@ -778,6 +847,40 @@ function CollateralRow({
                   value={row.firearm_capacity}
                   onChange={(e) =>
                     onChange({ firearm_capacity: e.target.value })
+                  }
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-3 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmFinish}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_firearm_finish`}
+                  value={row.firearm_finish}
+                  onChange={(e) =>
+                    onChange({ firearm_finish: e.target.value })
+                  }
+                  placeholder="Blued / Stainless / Cerakote"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-1 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmBarrels}
+                </span>
+                <input
+                  type="number"
+                  step="1"
+                  min={0}
+                  max={20}
+                  name={`collateral_${index}_firearm_number_of_barrels`}
+                  value={row.firearm_number_of_barrels}
+                  onChange={(e) =>
+                    onChange({ firearm_number_of_barrels: e.target.value })
                   }
                   className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
                 />

@@ -111,6 +111,12 @@ export const collateralItemSchema = z.object({
   // patches/0042. Empty string normalizes to null via
   // optionalTrimmedString.
   jewelry_size: optionalTrimmedString,
+  // ── FS 539.001(8)(b)(2) item description fields (patches/0043) ────
+  // Color (e), gemstone description (g), unique marks (i). All free
+  // text + nullable. Form gates which categories show which fields.
+  color: optionalTrimmedString,
+  gemstone_description: optionalTrimmedString,
+  unique_marks: optionalTrimmedString,
   est_value: requiredDecimalNonNeg.default(0),
   // Either a Storage path (after upload) or null. The /pawn/new flow first
   // uploads the file, then includes the resulting path in this schema.
@@ -134,6 +140,14 @@ export const collateralItemSchema = z.object({
     .preprocess(
       (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
       z.coerce.number().int().min(0).max(1000).nullable().optional(),
+    )
+    .transform((v) => (v === null || v === undefined ? null : v)),
+  // FS 539.001(8)(b)(2)(h) — finish + number of barrels.
+  firearm_finish: optionalTrimmedString,
+  firearm_number_of_barrels: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      z.coerce.number().int().min(0).max(20).nullable().optional(),
     )
     .transform((v) => (v === null || v === undefined ? null : v)),
   // ── Electronic attributes (patches/0041) ──────────────────────────
