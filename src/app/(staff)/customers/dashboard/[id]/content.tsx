@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import {
   ArrowLeft,
   Coins,
@@ -92,11 +93,41 @@ type PawnBehavior = {
   avgDaysLate: number | null
 }
 
+type SalesBehavior = {
+  avgSale: number | null
+  largestSale: number | null
+  daysSinceLastSale: number | null
+  avgDaysBetweenSales: number | null
+  completedCount: number
+}
+
+type LayawayBehavior = {
+  avgTotal: number | null
+  activeCount: number
+  avgPaidPct: number | null
+  totalOutstanding: number
+  totalCount: number
+}
+
+type RepairBehavior = {
+  avgBalance: number | null
+  activeCount: number
+  completedCount: number
+  mostCommonType: string | null
+  mostCommonCount: number
+  totalCount: number
+}
+
+type BehaviorTab = 'pawn' | 'sales' | 'layaway' | 'custom_orders'
+
 export default function CustomerAnalyticsDashboard({
   customer,
   gates,
   lifetime,
   pawnBehavior,
+  salesBehavior,
+  layawayBehavior,
+  repairBehavior,
   trends,
   forfeited,
   activity,
@@ -105,6 +136,9 @@ export default function CustomerAnalyticsDashboard({
   gates: ModuleGates
   lifetime: LifetimeStats
   pawnBehavior: PawnBehavior
+  salesBehavior: SalesBehavior
+  layawayBehavior: LayawayBehavior
+  repairBehavior: RepairBehavior
   trends: MonthlyBucket[]
   forfeited: ForfeitedLoanRow[]
   activity: ActivityEvent[]
@@ -302,62 +336,15 @@ export default function CustomerAnalyticsDashboard({
         </div>
       </section>
 
-      {/* PAWN BEHAVIOR */}
-      {gates.hasPawn && lifetime.totalPawns > 0 ? (
-        <section className="rounded-xl border border-border bg-card p-5">
-          <h2 className="font-display text-xl font-bold text-navy">
-            {cd.pawnBehaviorTitle}
-          </h2>
-          <div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-5">
-            <Metric
-              label={cd.behaviorAvgPrincipal}
-              value={
-                pawnBehavior.avgPrincipal == null
-                  ? '—'
-                  : formatMoney(pawnBehavior.avgPrincipal)
-              }
-            />
-            <Metric
-              label={cd.behaviorRedemptionRate}
-              value={
-                pawnBehavior.redemptionRatePct == null
-                  ? '—'
-                  : `${pawnBehavior.redemptionRatePct}%`
-              }
-            />
-            <Metric
-              label={cd.behaviorForfeitRate}
-              value={
-                pawnBehavior.forfeitRatePct == null
-                  ? '—'
-                  : `${pawnBehavior.forfeitRatePct}%`
-              }
-              tone={
-                pawnBehavior.forfeitRatePct != null &&
-                pawnBehavior.forfeitRatePct >= 25
-                  ? 'danger'
-                  : 'neutral'
-              }
-            />
-            <Metric
-              label={cd.behaviorExtensionRate}
-              value={
-                pawnBehavior.extensionRatePct == null
-                  ? '—'
-                  : `${pawnBehavior.extensionRatePct}%`
-              }
-            />
-            <Metric
-              label={cd.behaviorAvgDaysLate}
-              value={
-                pawnBehavior.avgDaysLate == null
-                  ? '—'
-                  : `${pawnBehavior.avgDaysLate}d`
-              }
-            />
-          </div>
-        </section>
-      ) : null}
+      {/* BEHAVIOR — TABBED */}
+      <BehaviorSection
+        gates={gates}
+        cd={cd}
+        pawnBehavior={pawnBehavior}
+        salesBehavior={salesBehavior}
+        layawayBehavior={layawayBehavior}
+        repairBehavior={repairBehavior}
+      />
 
       {/* TRENDS — 12 MONTHS */}
       <section className="rounded-xl border border-border bg-card p-5">
@@ -467,6 +454,279 @@ export default function CustomerAnalyticsDashboard({
       </section>
     </div>
   )
+}
+
+// ─── BEHAVIOR TABS ───────────────────────────────────────────────────
+
+function BehaviorSection({
+  gates,
+  cd,
+  pawnBehavior,
+  salesBehavior,
+  layawayBehavior,
+  repairBehavior,
+}: {
+  gates: ModuleGates
+  cd: ReturnType<typeof useI18n>['t']['customers']['dashboard']
+  pawnBehavior: PawnBehavior
+  salesBehavior: SalesBehavior
+  layawayBehavior: LayawayBehavior
+  repairBehavior: RepairBehavior
+}) {
+  const tabs: Array<{ key: BehaviorTab; label: string; visible: boolean }> = [
+    { key: 'pawn', label: cd.behaviorTabPawn, visible: gates.hasPawn },
+    { key: 'sales', label: cd.behaviorTabSales, visible: gates.hasRetail },
+    { key: 'layaway', label: cd.behaviorTabLayaway, visible: gates.hasRetail },
+    {
+      key: 'custom_orders',
+      label: cd.behaviorTabCustomOrders,
+      visible: gates.hasRepair,
+    },
+  ]
+  const visibleTabs = tabs.filter((t) => t.visible)
+  const initial: BehaviorTab = visibleTabs[0]?.key ?? 'pawn'
+  const [active, setActive] = useState<BehaviorTab>(initial)
+
+  if (visibleTabs.length === 0) return null
+
+  return (
+    <section className="rounded-xl border border-border bg-card">
+      <div className="flex flex-wrap gap-1 border-b border-border px-3 pt-3">
+        {visibleTabs.map((tab) => {
+          const isActive = tab.key === active
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActive(tab.key)}
+              className={`-mb-px rounded-t-md border-b-2 px-3 py-2 text-sm font-semibold transition-colors ${
+                isActive
+                  ? 'border-gold text-foreground'
+                  : 'border-transparent text-muted hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+      <div className="p-5">
+        {active === 'pawn' ? (
+          <BehaviorMetrics
+            metrics={[
+              {
+                label: cd.behaviorAvgPrincipal,
+                value:
+                  pawnBehavior.avgPrincipal == null
+                    ? '—'
+                    : formatMoney(pawnBehavior.avgPrincipal),
+              },
+              {
+                label: cd.behaviorRedemptionRate,
+                value:
+                  pawnBehavior.redemptionRatePct == null
+                    ? '—'
+                    : `${pawnBehavior.redemptionRatePct}%`,
+              },
+              {
+                label: cd.behaviorForfeitRate,
+                value:
+                  pawnBehavior.forfeitRatePct == null
+                    ? '—'
+                    : `${pawnBehavior.forfeitRatePct}%`,
+                tone:
+                  pawnBehavior.forfeitRatePct != null &&
+                  pawnBehavior.forfeitRatePct >= 25
+                    ? 'danger'
+                    : 'neutral',
+              },
+              {
+                label: cd.behaviorExtensionRate,
+                value:
+                  pawnBehavior.extensionRatePct == null
+                    ? '—'
+                    : `${pawnBehavior.extensionRatePct}%`,
+              },
+              {
+                label: cd.behaviorAvgDaysLate,
+                value:
+                  pawnBehavior.avgDaysLate == null
+                    ? '—'
+                    : `${pawnBehavior.avgDaysLate}d`,
+              },
+            ]}
+            empty={cd.behaviorEmpty}
+            isEmpty={pawnBehavior.avgPrincipal == null}
+          />
+        ) : null}
+
+        {active === 'sales' ? (
+          <BehaviorMetrics
+            metrics={[
+              {
+                label: cd.salesAvgTotal,
+                value:
+                  salesBehavior.avgSale == null
+                    ? '—'
+                    : formatMoney(salesBehavior.avgSale),
+              },
+              {
+                label: cd.salesLargest,
+                value:
+                  salesBehavior.largestSale == null
+                    ? '—'
+                    : formatMoney(salesBehavior.largestSale),
+              },
+              {
+                label: cd.salesDaysSinceLast,
+                value:
+                  salesBehavior.daysSinceLastSale == null
+                    ? '—'
+                    : `${salesBehavior.daysSinceLastSale}d`,
+              },
+              {
+                label: cd.salesAvgDaysBetween,
+                value:
+                  salesBehavior.avgDaysBetweenSales == null
+                    ? '—'
+                    : `${salesBehavior.avgDaysBetweenSales}d`,
+              },
+              {
+                label: cd.salesCompletedCount,
+                value: salesBehavior.completedCount.toString(),
+              },
+            ]}
+            empty={cd.behaviorEmpty}
+            isEmpty={salesBehavior.completedCount === 0}
+          />
+        ) : null}
+
+        {active === 'layaway' ? (
+          <BehaviorMetrics
+            metrics={[
+              {
+                label: cd.layawayAvgTotal,
+                value:
+                  layawayBehavior.avgTotal == null
+                    ? '—'
+                    : formatMoney(layawayBehavior.avgTotal),
+              },
+              {
+                label: cd.layawayActiveCount,
+                value: layawayBehavior.activeCount.toString(),
+              },
+              {
+                label: cd.layawayAvgPaidPct,
+                value:
+                  layawayBehavior.avgPaidPct == null
+                    ? '—'
+                    : `${layawayBehavior.avgPaidPct}%`,
+              },
+              {
+                label: cd.layawayOutstanding,
+                value: formatMoney(layawayBehavior.totalOutstanding),
+              },
+              {
+                label: cd.layawayTotalCount,
+                value: layawayBehavior.totalCount.toString(),
+              },
+            ]}
+            empty={cd.behaviorEmpty}
+            isEmpty={layawayBehavior.totalCount === 0}
+          />
+        ) : null}
+
+        {active === 'custom_orders' ? (
+          <BehaviorMetrics
+            metrics={[
+              {
+                label: cd.repairAvgBalance,
+                value:
+                  repairBehavior.avgBalance == null
+                    ? '—'
+                    : formatMoney(repairBehavior.avgBalance),
+              },
+              {
+                label: cd.repairActiveCount,
+                value: repairBehavior.activeCount.toString(),
+              },
+              {
+                label: cd.repairCompletedCount,
+                value: repairBehavior.completedCount.toString(),
+              },
+              {
+                label: cd.repairMostCommonType,
+                value:
+                  repairBehavior.mostCommonType == null
+                    ? '—'
+                    : `${labelForServiceType(repairBehavior.mostCommonType, cd)} (${repairBehavior.mostCommonCount})`,
+              },
+              {
+                label: cd.repairTotalCount,
+                value: repairBehavior.totalCount.toString(),
+              },
+            ]}
+            empty={cd.behaviorEmpty}
+            isEmpty={repairBehavior.totalCount === 0}
+          />
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+function BehaviorMetrics({
+  metrics,
+  empty,
+  isEmpty,
+}: {
+  metrics: Array<{
+    label: string
+    value: string
+    tone?: 'neutral' | 'danger'
+  }>
+  empty: string
+  isEmpty: boolean
+}) {
+  if (isEmpty) {
+    return <div className="text-center text-sm text-muted">{empty}</div>
+  }
+  return (
+    <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-5">
+      {metrics.map((m) => (
+        <Metric
+          key={m.label}
+          label={m.label}
+          value={m.value}
+          tone={m.tone ?? 'neutral'}
+        />
+      ))}
+    </div>
+  )
+}
+
+function labelForServiceType(
+  serviceType: string,
+  cd: ReturnType<typeof useI18n>['t']['customers']['dashboard'],
+): string {
+  switch (serviceType) {
+    case 'repair':
+      return cd.serviceTypeRepair
+    case 'stone_setting':
+      return cd.serviceTypeStoneSetting
+    case 'sizing':
+      return cd.serviceTypeSizing
+    case 'restring':
+      return cd.serviceTypeRestring
+    case 'plating':
+      return cd.serviceTypePlating
+    case 'engraving':
+      return cd.serviceTypeEngraving
+    case 'custom':
+      return cd.serviceTypeCustom
+    default:
+      return serviceType
+  }
 }
 
 // ─── PRESENTATIONAL HELPERS ──────────────────────────────────────────

@@ -247,6 +247,103 @@ export default async function CustomerDashboardPage(props: { params: Params }) {
   const totalLayaways = layaways.length
   const activeLayaways = layaways.filter((l) => l.status === 'active').length
 
+  // ─── SALES BEHAVIOR ─────────────────────────────────────────────────
+  const completedSalesAmounts = completedSales.map((s) => Number(s.total))
+  const avgSale =
+    completedSalesAmounts.length > 0
+      ? Math.round(
+          completedSalesAmounts.reduce((s, x) => s + x, 0) /
+            completedSalesAmounts.length,
+        )
+      : null
+  const largestSale =
+    completedSalesAmounts.length > 0 ? Math.max(...completedSalesAmounts) : null
+  // Sort completed sales by their effective date ASC for first/last + frequency.
+  const completedSalesByDate = [...completedSales].sort((a, b) => {
+    const aT = new Date(a.completed_at ?? a.created_at).getTime()
+    const bT = new Date(b.completed_at ?? b.created_at).getTime()
+    return aT - bT
+  })
+  const lastSaleDateMs =
+    completedSalesByDate.length > 0
+      ? new Date(
+          completedSalesByDate[completedSalesByDate.length - 1].completed_at ??
+            completedSalesByDate[completedSalesByDate.length - 1].created_at,
+        ).getTime()
+      : null
+  const daysSinceLastSale =
+    lastSaleDateMs == null
+      ? null
+      : Math.max(
+          0,
+          Math.floor((Date.now() - lastSaleDateMs) / (1000 * 60 * 60 * 24)),
+        )
+  let avgDaysBetweenSales: number | null = null
+  if (completedSalesByDate.length >= 2) {
+    const firstT = new Date(
+      completedSalesByDate[0].completed_at ??
+        completedSalesByDate[0].created_at,
+    ).getTime()
+    const lastT = lastSaleDateMs ?? firstT
+    avgDaysBetweenSales = Math.round(
+      (lastT - firstT) /
+        (1000 * 60 * 60 * 24) /
+        (completedSalesByDate.length - 1),
+    )
+  }
+
+  // ─── LAYAWAY BEHAVIOR ───────────────────────────────────────────────
+  const layawayTotals = layaways.map((l) => Number(l.total_due))
+  const avgLayawayTotal =
+    layawayTotals.length > 0
+      ? Math.round(layawayTotals.reduce((s, x) => s + x, 0) / layawayTotals.length)
+      : null
+  const layawayPaidPcts = layaways
+    .map((l) => {
+      const total = Number(l.total_due)
+      if (total <= 0) return null
+      return Math.min(1, Number(l.paid_total) / total)
+    })
+    .filter((v): v is number => v != null)
+  const avgLayawayPaidPct =
+    layawayPaidPcts.length > 0
+      ? Math.round(
+          (layawayPaidPcts.reduce((s, x) => s + x, 0) / layawayPaidPcts.length) *
+            100,
+        )
+      : null
+  const layawayOutstanding = layaways
+    .filter((l) => l.status !== 'completed' && l.status !== 'cancelled')
+    .reduce((s, l) => s + Number(l.balance_remaining), 0)
+
+  // ─── REPAIR BEHAVIOR (custom orders) ────────────────────────────────
+  const repairBalances = repairs
+    .map((r) => (r.balance_due == null ? null : Number(r.balance_due)))
+    .filter((v): v is number => v != null)
+  const avgRepairBalance =
+    repairBalances.length > 0
+      ? Math.round(
+          repairBalances.reduce((s, x) => s + x, 0) / repairBalances.length,
+        )
+      : null
+  const repairsCompleted = repairs.filter((r) =>
+    ['picked_up'].includes(r.status as string),
+  ).length
+  // Most common service_type — mode across all the customer's tickets.
+  const serviceTypeCounts = new Map<string, number>()
+  for (const r of repairs) {
+    const k = r.service_type as string
+    serviceTypeCounts.set(k, (serviceTypeCounts.get(k) ?? 0) + 1)
+  }
+  let mostCommonRepairType: string | null = null
+  let mostCommonRepairCount = 0
+  for (const [k, n] of serviceTypeCounts.entries()) {
+    if (n > mostCommonRepairCount) {
+      mostCommonRepairCount = n
+      mostCommonRepairType = k
+    }
+  }
+
   // ─── 12-MONTH TRENDS ────────────────────────────────────────────────
   // Bucket each module's createds (or completed for sales) into the last
   // 12 calendar months. Bucket key = 'YYYY-MM'.
@@ -389,6 +486,28 @@ export default async function CustomerDashboardPage(props: { params: Params }) {
         forfeitRatePct,
         extensionRatePct,
         avgDaysLate,
+      }}
+      salesBehavior={{
+        avgSale,
+        largestSale,
+        daysSinceLastSale,
+        avgDaysBetweenSales,
+        completedCount: completedSales.length,
+      }}
+      layawayBehavior={{
+        avgTotal: avgLayawayTotal,
+        activeCount: activeLayaways,
+        avgPaidPct: avgLayawayPaidPct,
+        totalOutstanding: layawayOutstanding,
+        totalCount: layaways.length,
+      }}
+      repairBehavior={{
+        avgBalance: avgRepairBalance,
+        activeCount: repairsActive,
+        completedCount: repairsCompleted,
+        mostCommonType: mostCommonRepairType,
+        mostCommonCount: mostCommonRepairCount,
+        totalCount: repairs.length,
       }}
       trends={buckets}
       forfeited={forfeited}
