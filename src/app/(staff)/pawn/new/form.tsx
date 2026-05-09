@@ -16,6 +16,10 @@ import VoicePawnButton, {
 import CustomerPicker, {
   type CustomerPickerHandle,
 } from '@/components/customers/CustomerPicker'
+import CategoryPicker, {
+  CategoryBanner,
+  type PawnIntakeCategory,
+} from '@/components/pawn/CategoryPicker'
 import {
   createLoanAction,
   type CreateLoanState,
@@ -38,10 +42,14 @@ const CUSTOM_RATE_VALUE = '__custom__'
 export default function NewPawnLoanForm({
   rates,
   minLoanAmount,
+  categories,
 }: {
   rates: LoanRateOption[]
   /** Tenant-wide min loan principal. Null = no minimum. */
   minLoanAmount: number | null
+  /** Pre-filtered list — firearms-requiring categories are already
+   *  excluded server-side when tenants.has_firearms is false. */
+  categories: PawnIntakeCategory[]
 }) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<
@@ -52,6 +60,11 @@ export default function NewPawnLoanForm({
   const today = todayDateString()
   const [issueDate, setIssueDate] = useState<string>(today)
   const [termDays, setTermDays] = useState<string>('30')
+  // Wizard step 1 — pawn category. Until the operator picks a tile,
+  // the rest of the form is hidden. Voice intake skips the picker by
+  // auto-selecting 'general' (or the first available category).
+  const [categorySlug, setCategorySlug] = useState<string | null>(null)
+  const selectedCategory = categories.find((c) => c.slug === categorySlug) ?? null
   // Customer picker exposes an imperative handle so /api/ai/voice/
   // pawn-intake (match-or-create branch) can prefill the resolved
   // customer programmatically. The form input name="customer_id" is
@@ -125,6 +138,13 @@ export default function NewPawnLoanForm({
   // intentionally NOT touched — operator picks those, voice only
   // covers the high-frequency intake fields.
   function handleVoiceData(data: PawnVoiceData) {
+    // Voice flow skips the category-picker step. Auto-set to the
+    // 'general' category if available, else the first one — operator
+    // can change before submit.
+    if (categorySlug == null && categories.length > 0) {
+      const general = categories.find((c) => c.slug === 'general')
+      setCategorySlug(general?.slug ?? categories[0].slug)
+    }
     if (data.customer) {
       customerPickerRef.current?.set({
         id: data.customer.id,
@@ -150,6 +170,22 @@ export default function NewPawnLoanForm({
 
       <VoicePawnButton onDataExtracted={handleVoiceData} />
 
+      {/* Step 1 — category picker. Until a tile is clicked, the rest
+          of the form (and the submit button) stays hidden. */}
+      {selectedCategory == null ? (
+        <CategoryPicker
+          categories={categories}
+          onPick={(slug) => setCategorySlug(slug)}
+        />
+      ) : (
+        <CategoryBanner
+          category={selectedCategory}
+          onChange={() => setCategorySlug(null)}
+        />
+      )}
+
+      {selectedCategory != null ? (
+      <>
       {state.error ? (
         <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
@@ -165,6 +201,11 @@ export default function NewPawnLoanForm({
         action={formAction}
         className="space-y-6"
       >
+        {/* Carries the chosen category slug to the server action so it
+            can be persisted on the loan record (column to be added in
+            a follow-up; today the slug is dropped). */}
+        <input type="hidden" name="pawn_category" value={selectedCategory.slug} />
+
         {/* Customer */}
         <fieldset className="rounded-xl border border-border bg-card p-4">
           <legend className="px-1 text-sm font-semibold text-foreground">
@@ -432,6 +473,8 @@ export default function NewPawnLoanForm({
           </button>
         </div>
       </form>
+      </>
+      ) : null}
     </div>
   )
 }

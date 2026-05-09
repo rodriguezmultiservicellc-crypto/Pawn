@@ -14,6 +14,7 @@ import {
   Clock,
   ArrowRight,
   Buildings,
+  Tag,
 } from '@phosphor-icons/react'
 
 export type SettingsHubView = {
@@ -144,6 +145,17 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             description="Variable interest-rate menu shown on /pawn/new. One rate is marked default. Custom-rate fallback always available."
             status="configured"
             statusDetail="Manage rate menu"
+          />
+        ) : null}
+
+        {view.modules.pawn ? (
+          <Card
+            href="/settings/pawn-categories"
+            icon={<Tag size={20} weight="regular" />}
+            title="Pawn categories"
+            description="Tile buttons shown on /pawn/new step 1 (Jewelry / Electronics / Firearms / Tools / General). Edit, reorder, or add custom categories. Firearms gate lives here too."
+            status="configured"
+            statusDetail="Manage categories"
           />
         ) : null}
 

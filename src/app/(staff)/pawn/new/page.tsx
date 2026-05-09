@@ -1,19 +1,25 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import NewPawnLoanForm, { type LoanRateOption } from './form'
+import type { PawnIntakeCategory } from '@/components/pawn/CategoryPicker'
 
 export default async function NewPawnLoanPage() {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
 
-  // Module gate.
-  const { data: tenant } = await ctx.supabase
+  // Module gate + firearms gate. has_firearms lands in generated types
+  // after `npm run db:types` post-migration 0037 — boundary cast until.
+  const { data: tenantRaw } = await ctx.supabase
     .from('tenants')
-    .select('has_pawn')
+    .select('has_pawn, has_firearms')
     .eq('id', ctx.tenantId)
     .maybeSingle()
+  const tenant = tenantRaw as
+    | { has_pawn: boolean; has_firearms: boolean | null }
+    | null
   if (!tenant?.has_pawn) redirect('/dashboard')
+  const hasFirearms = !!tenant?.has_firearms
 
   const [ratesRes, settingsRes] = await Promise.all([
     // Per-tenant rate menu — patches/0021 + 0022 (min_monthly_charge).
@@ -53,5 +59,41 @@ export default async function NewPawnLoanPage() {
       ? null
       : Number(settingsRes.data.min_loan_amount)
 
-  return <NewPawnLoanForm rates={rates} minLoanAmount={minLoanAmount} />
+  // Pawn intake categories — operator-editable, RLS-scoped to this
+  // tenant. Firearms-flagged tiles are filtered out when has_firearms
+  // is FALSE on the tenant. Boundary cast: the table lands in
+  // generated types only after `npm run db:types` runs post-migration
+  // 0037 — code uses an inline cast until then.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const picBuilder = (ctx.supabase.from as any)('pawn_intake_categories')
+  const { data: catRows } = await picBuilder
+    .select('id, slug, label, icon, requires_ffl')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+
+  const categories: PawnIntakeCategory[] = ((catRows ?? []) as Array<{
+    id: string
+    slug: string
+    label: string
+    icon: string
+    requires_ffl: boolean
+  }>)
+    .filter((c) => !c.requires_ffl || hasFirearms)
+    .map((c) => ({
+      id: c.id,
+      slug: c.slug,
+      label: c.label,
+      icon: c.icon,
+      requires_ffl: c.requires_ffl,
+    }))
+
+  return (
+    <NewPawnLoanForm
+      rates={rates}
+      minLoanAmount={minLoanAmount}
+      categories={categories}
+    />
+  )
 }

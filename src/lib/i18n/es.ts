@@ -873,6 +873,12 @@ export const es: Dictionary = {
     },
     new_: {
       title: 'Nuevo boleto de empeño',
+      categoryStepTitle: 'Selecciona una categoría',
+      categoryStepHelp:
+        '¿Qué tipo de artículo trae el cliente? Esto define el flujo del resto del boleto.',
+      categoryChange: 'Cambiar',
+      categoryNoneConfigured:
+        'No hay categorías configuradas. Dueño — configúralas en /settings/pawn-categories.',
       sectionCustomer: 'Cliente',
       sectionTerms: 'Términos del empeño',
       sectionCollateral: 'Prenda',

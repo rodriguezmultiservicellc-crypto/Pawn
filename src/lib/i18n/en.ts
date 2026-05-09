@@ -871,6 +871,12 @@ export const en = {
     },
     new_: {
       title: 'New pawn ticket',
+      categoryStepTitle: 'Pick a category',
+      categoryStepHelp:
+        'What type of item is the customer pawning? This sets the workflow for the rest of the ticket.',
+      categoryChange: 'Change',
+      categoryNoneConfigured:
+        'No pawn categories are configured. Owner — set them up at /settings/pawn-categories.',
       sectionCustomer: 'Customer',
       sectionTerms: 'Loan terms',
       sectionCollateral: 'Collateral',
