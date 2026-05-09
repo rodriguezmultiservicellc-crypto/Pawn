@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import NewSaleForm from './form'
-import type { CustomerOption } from '@/components/pos/Cart'
 import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
 
 type SearchParams = Promise<{ customer?: string }>
@@ -33,31 +32,15 @@ export default async function NewSalePage(props: {
   const params = await props.searchParams
   const initialCustomerId = params.customer ?? null
 
-  const [{ data: customers }, { data: items }] = await Promise.all([
-    ctx.supabase
-      .from('customers')
-      .select('id, first_name, last_name, phone')
-      .eq('tenant_id', ctx.tenantId)
-      .is('deleted_at', null)
-      .eq('is_banned', false)
-      .order('last_name', { ascending: true })
-      .limit(500),
-    ctx.supabase
-      .from('inventory_items')
-      .select('id, sku, description, list_price, category')
-      .eq('tenant_id', ctx.tenantId)
-      .is('deleted_at', null)
-      .eq('status', 'available')
-      .order('created_at', { ascending: false })
-      .limit(500),
-  ])
+  const { data: items } = await ctx.supabase
+    .from('inventory_items')
+    .select('id, sku, description, list_price, category')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .eq('status', 'available')
+    .order('created_at', { ascending: false })
+    .limit(500)
 
-  const customerOpts: CustomerOption[] = (customers ?? []).map((c) => ({
-    id: c.id,
-    first_name: c.first_name,
-    last_name: c.last_name,
-    phone: c.phone,
-  }))
   const inventoryOpts: InventoryPickRow[] = (items ?? []).map((i) => ({
     id: i.id,
     sku: i.sku,
@@ -68,7 +51,6 @@ export default async function NewSalePage(props: {
 
   return (
     <NewSaleForm
-      customers={customerOpts}
       inventory={inventoryOpts}
       initialCustomerId={initialCustomerId}
     />

@@ -4,17 +4,13 @@ import { useActionState, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Plus, Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
   createAppraisalAction,
   type CreateAppraisalState,
 } from './actions'
 import StoneEditor, { type StoneRow, newStoneRow } from '@/components/appraisals/StoneEditor'
 import type { AppraisalPurpose, MetalType } from '@/types/database-aliases'
-
-export type CustomerOption = {
-  id: string
-  label: string
-}
 
 export type InventoryOption = {
   id: string
@@ -50,12 +46,10 @@ const PURPOSES: ReadonlyArray<AppraisalPurpose> = [
 ]
 
 export default function NewAppraisalForm({
-  customers,
   inventory,
   presetCustomerId,
   presetInventoryId,
 }: {
-  customers: CustomerOption[]
   inventory: InventoryOption[]
   presetCustomerId: string | null
   presetInventoryId: string | null
@@ -137,23 +131,15 @@ export default function NewAppraisalForm({
             {t.appraisal.new_.pickCustomerHelp}
           </p>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label className="block space-y-1">
+            <div className="space-y-1">
               <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.pickCustomer}
               </span>
-              <select
+              <CustomerPicker
                 name="customer_id"
-                defaultValue={presetCustomerId ?? ''}
-                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-              >
-                <option value="">—</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+                initialCustomerId={presetCustomerId}
+              />
+            </div>
             <label className="block space-y-1">
               <span className="text-sm font-medium text-foreground">
                 {t.appraisal.new_.pickInventory}

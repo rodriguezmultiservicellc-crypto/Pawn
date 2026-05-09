@@ -4,16 +4,12 @@ import { useActionState, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Plus, Trash, Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
   createRepairTicketAction,
   type CreateRepairTicketState,
 } from './actions'
 import type { ServiceType } from '@/types/database-aliases'
-
-export type CustomerOption = {
-  id: string
-  label: string
-}
 
 export type TechnicianOption = {
   id: string
@@ -54,10 +50,8 @@ function newStoneRow(): StoneRow {
 }
 
 export default function NewRepairTicketForm({
-  customers,
   technicians,
 }: {
-  customers: CustomerOption[]
   technicians: TechnicianOption[]
 }) {
   const { t } = useI18n()
@@ -120,31 +114,21 @@ export default function NewRepairTicketForm({
           <p className="mt-1 text-xs text-muted">
             {t.repair.new_.pickCustomerHelp}
           </p>
-          <div className="mt-2 flex items-center gap-2">
-            <select
-              name="customer_id"
-              required
-              className="flex-1 rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-            >
-              <option value="">{t.repair.new_.pickCustomer}</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+          <div className="mt-2 flex items-start gap-2">
+            <div className="flex-1">
+              <CustomerPicker
+                name="customer_id"
+                required
+                error={state.fieldErrors?.customer_id}
+              />
+            </div>
             <Link
               href="/customers/new?return=/repair/new"
-              className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
+              className="shrink-0 rounded-md border border-border bg-card px-3 py-3 text-sm text-foreground hover:bg-background hover:text-foreground"
             >
               {t.repair.new_.newCustomer}
             </Link>
           </div>
-          {state.fieldErrors?.customer_id ? (
-            <div className="mt-1 text-xs text-danger">
-              {state.fieldErrors.customer_id}
-            </div>
-          ) : null}
         </fieldset>
 
         {/* Item & service */}

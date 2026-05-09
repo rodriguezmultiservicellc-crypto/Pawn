@@ -8,7 +8,6 @@ import { useI18n } from '@/lib/i18n/context'
 import {
   Cart,
   type CartLineState,
-  type CustomerOption,
 } from '@/components/pos/Cart'
 import {
   LayawayScheduleDialog,
@@ -19,11 +18,9 @@ import { computeSubtotal, computeTotal } from '@/lib/pos/cart'
 import { createSaleAction } from './actions'
 
 export default function NewSaleForm({
-  customers,
   inventory,
   initialCustomerId,
 }: {
-  customers: CustomerOption[]
   inventory: InventoryPickRow[]
   initialCustomerId: string | null
 }) {
@@ -200,7 +197,6 @@ export default function NewSaleForm({
       ) : null}
 
       <Cart
-        customers={customers}
         inventory={inventory}
         initialCustomerId={initialCustomerId}
         onSubmitSale={onSubmitSale}

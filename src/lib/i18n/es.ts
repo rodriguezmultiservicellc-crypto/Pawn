@@ -9,6 +9,13 @@ export const es: Dictionary = {
   common: {
     appName: 'Pawn',
     loading: 'Cargando…',
+    customerPicker: {
+      placeholder: 'Buscar cliente por nombre o teléfono…',
+      typeMore: 'Escribe al menos 2 caracteres para buscar.',
+      searching: 'Buscando…',
+      noResults: 'Sin resultados. Prueba el apellido o dígitos del teléfono.',
+      clear: 'Borrar selección',
+    },
     save: 'Guardar',
     saving: 'Guardando…',
     cancel: 'Cancelar',

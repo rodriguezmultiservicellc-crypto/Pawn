@@ -1,9 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
-import NewAppraisalForm, {
-  type CustomerOption,
-  type InventoryOption,
-} from './form'
+import NewAppraisalForm, { type InventoryOption } from './form'
 
 type SearchParams = Promise<{
   customer?: string
@@ -20,20 +17,6 @@ export default async function NewAppraisalPage(props: {
   const params = await props.searchParams
   const presetCustomerId = params.customer ?? null
   const presetInventoryId = params.inventory ?? null
-
-  const { data: customers } = await ctx.supabase
-    .from('customers')
-    .select('id, first_name, last_name, phone')
-    .eq('tenant_id', ctx.tenantId)
-    .is('deleted_at', null)
-    .eq('is_banned', false)
-    .order('last_name', { ascending: true })
-    .limit(500)
-
-  const customerOptions: CustomerOption[] = (customers ?? []).map((c) => ({
-    id: c.id,
-    label: `${c.last_name}, ${c.first_name}${c.phone ? ` · ${c.phone}` : ''}`,
-  }))
 
   const { data: invItems } = await ctx.supabase
     .from('inventory_items')
@@ -56,7 +39,6 @@ export default async function NewAppraisalPage(props: {
 
   return (
     <NewAppraisalForm
-      customers={customerOptions}
       inventory={inventoryOptions}
       presetCustomerId={presetCustomerId}
       presetInventoryId={presetInventoryId}

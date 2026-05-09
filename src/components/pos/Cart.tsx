@@ -10,6 +10,7 @@ import {
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { computeLineTotal, computeSubtotal, computeTotal } from '@/lib/pos/cart'
+import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
   AddInventoryItemDialog,
   type InventoryPickRow,
@@ -24,15 +25,7 @@ export type CartLineState = {
   sku: string | null
 }
 
-export type CustomerOption = {
-  id: string
-  first_name: string
-  last_name: string
-  phone: string | null
-}
-
 export function Cart({
-  customers,
   inventory,
   initialCustomerId,
   onSubmitSale,
@@ -41,7 +34,6 @@ export function Cart({
   error,
   layawayDisabled,
 }: {
-  customers: CustomerOption[]
   inventory: InventoryPickRow[]
   initialCustomerId?: string | null
   onSubmitSale: (
@@ -147,19 +139,14 @@ export function Cart({
           <User size={14} weight="bold" />
           {t.pos.sale.customer}
         </legend>
-        <select
-          value={customerId ?? ''}
-          onChange={(e) => setCustomerId(e.target.value || null)}
-          className="mt-2 block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-        >
-          <option value="">{t.pos.sale.anonymous}</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.last_name}, {c.first_name}
-              {c.phone ? ` — ${c.phone}` : ''}
-            </option>
-          ))}
-        </select>
+        <p className="mt-1 text-xs text-muted">{t.pos.sale.anonymous}</p>
+        <div className="mt-2">
+          <CustomerPicker
+            name="customer_id"
+            initialCustomerId={initialCustomerId ?? null}
+            onChange={(c) => setCustomerId(c?.id ?? null)}
+          />
+        </div>
       </fieldset>
 
       {/* Cart lines */}

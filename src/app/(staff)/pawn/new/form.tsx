@@ -13,17 +13,15 @@ import { InlinePawnCalculator } from '@/components/pawn/InlinePawnCalculator'
 import VoicePawnButton, {
   type PawnVoiceData,
 } from '@/components/pawn/VoicePawnButton'
+import CustomerPicker, {
+  type CustomerPickerHandle,
+} from '@/components/customers/CustomerPicker'
 import {
   createLoanAction,
   type CreateLoanState,
 } from './actions'
 
 const PAWN_NEW_FORM_ID = 'pawn-new-form'
-
-export type CustomerOption = {
-  id: string
-  label: string
-}
 
 export type LoanRateOption = {
   id: string
@@ -38,11 +36,9 @@ export type LoanRateOption = {
 const CUSTOM_RATE_VALUE = '__custom__'
 
 export default function NewPawnLoanForm({
-  customers,
   rates,
   minLoanAmount,
 }: {
-  customers: CustomerOption[]
   rates: LoanRateOption[]
   /** Tenant-wide min loan principal. Null = no minimum. */
   minLoanAmount: number | null
@@ -56,13 +52,11 @@ export default function NewPawnLoanForm({
   const today = todayDateString()
   const [issueDate, setIssueDate] = useState<string>(today)
   const [termDays, setTermDays] = useState<string>('30')
-  const [customerId, setCustomerId] = useState<string>('')
-  // Customer dropdown options are lifted so /api/ai/voice/pawn-intake
-  // can inject a freshly-created customer (match-or-create branch)
-  // without a full page reload — the new option is appended at the
-  // top so it's visible above the alphabetical list.
-  const [customerOptions, setCustomerOptions] =
-    useState<CustomerOption[]>(customers)
+  // Customer picker exposes an imperative handle so /api/ai/voice/
+  // pawn-intake (match-or-create branch) can prefill the resolved
+  // customer programmatically. The form input name="customer_id" is
+  // emitted by the picker's hidden input.
+  const customerPickerRef = useRef<CustomerPickerHandle>(null)
   // Principal is controlled so voice intake can pre-fill it. The
   // server action reads `principal` off FormData on submit, so the
   // controlled <input> still serializes correctly.
@@ -132,20 +126,10 @@ export default function NewPawnLoanForm({
   // covers the high-frequency intake fields.
   function handleVoiceData(data: PawnVoiceData) {
     if (data.customer) {
-      const next: CustomerOption = {
+      customerPickerRef.current?.set({
         id: data.customer.id,
         label: data.customer.label,
-      }
-      if (data.customer.isNew) {
-        setCustomerOptions((prev) =>
-          prev.some((c) => c.id === next.id) ? prev : [next, ...prev],
-        )
-      } else if (!customerOptions.some((c) => c.id === next.id)) {
-        // Existing customer outside the first-500 page — inject so the
-        // dropdown can render the selection.
-        setCustomerOptions((prev) => [next, ...prev])
-      }
-      setCustomerId(data.customer.id)
+      })
     }
     if (data.principal != null) {
       setPrincipal(data.principal.toString())
@@ -189,33 +173,22 @@ export default function NewPawnLoanForm({
           <p className="mt-1 text-xs text-muted">
             {t.pawn.new_.pickCustomerHelp}
           </p>
-          <div className="mt-2 flex items-center gap-2">
-            <select
-              name="customer_id"
-              required
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              className="flex-1 rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-            >
-              <option value="">{t.pawn.new_.pickCustomer}</option>
-              {customerOptions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+          <div className="mt-2 flex items-start gap-2">
+            <div className="flex-1">
+              <CustomerPicker
+                ref={customerPickerRef}
+                name="customer_id"
+                required
+                error={state.fieldErrors?.customer_id}
+              />
+            </div>
             <Link
               href="/customers/new?return=/pawn/new"
-              className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
+              className="shrink-0 rounded-md border border-border bg-card px-3 py-3 text-sm text-foreground hover:bg-background hover:text-foreground"
             >
               {t.pawn.new_.newCustomer}
             </Link>
           </div>
-          {state.fieldErrors?.customer_id ? (
-            <div className="mt-1 text-xs text-danger">
-              {state.fieldErrors.customer_id}
-            </div>
-          ) : null}
         </fieldset>
 
         {/* Terms */}

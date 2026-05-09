@@ -14,6 +14,13 @@ export const en = {
   common: {
     appName: 'Pawn',
     loading: 'Loading…',
+    customerPicker: {
+      placeholder: 'Search customer by name or phone…',
+      typeMore: 'Type at least 2 characters to search.',
+      searching: 'Searching…',
+      noResults: 'No matches. Tip: try last name or phone digits.',
+      clear: 'Clear selection',
+    },
     save: 'Save',
     saving: 'Saving…',
     cancel: 'Cancel',

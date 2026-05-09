@@ -1,9 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
-import NewPawnLoanForm, {
-  type CustomerOption,
-  type LoanRateOption,
-} from './form'
+import NewPawnLoanForm, { type LoanRateOption } from './form'
 
 export default async function NewPawnLoanPage() {
   const ctx = await getCtx()
@@ -18,15 +15,7 @@ export default async function NewPawnLoanPage() {
     .maybeSingle()
   if (!tenant?.has_pawn) redirect('/dashboard')
 
-  const [customersRes, ratesRes, settingsRes] = await Promise.all([
-    ctx.supabase
-      .from('customers')
-      .select('id, first_name, last_name, phone')
-      .eq('tenant_id', ctx.tenantId)
-      .is('deleted_at', null)
-      .eq('is_banned', false)
-      .order('last_name', { ascending: true })
-      .limit(500),
+  const [ratesRes, settingsRes] = await Promise.all([
     // Per-tenant rate menu — patches/0021 + 0022 (min_monthly_charge).
     // Active rates only, sorted by sort_order then rate_monthly so the
     // dropdown matches the configured menu order.
@@ -48,11 +37,6 @@ export default async function NewPawnLoanPage() {
       .maybeSingle(),
   ])
 
-  const options: CustomerOption[] = (customersRes.data ?? []).map((c) => ({
-    id: c.id,
-    label: `${c.last_name}, ${c.first_name}${c.phone ? ` · ${c.phone}` : ''}`,
-  }))
-
   // NUMERIC → string in the generated types; coerce.
   const rates: LoanRateOption[] = (ratesRes.data ?? []).map((r) => ({
     id: r.id,
@@ -69,11 +53,5 @@ export default async function NewPawnLoanPage() {
       ? null
       : Number(settingsRes.data.min_loan_amount)
 
-  return (
-    <NewPawnLoanForm
-      customers={options}
-      rates={rates}
-      minLoanAmount={minLoanAmount}
-    />
-  )
+  return <NewPawnLoanForm rates={rates} minLoanAmount={minLoanAmount} />
 }

@@ -1,9 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
-import NewRepairTicketForm, {
-  type CustomerOption,
-  type TechnicianOption,
-} from './form'
+import NewRepairTicketForm, { type TechnicianOption } from './form'
 
 export default async function NewRepairTicketPage() {
   const ctx = await getCtx()
@@ -16,20 +13,6 @@ export default async function NewRepairTicketPage() {
     .eq('id', ctx.tenantId)
     .maybeSingle()
   if (!tenant?.has_repair) redirect('/dashboard')
-
-  const { data: customers } = await ctx.supabase
-    .from('customers')
-    .select('id, first_name, last_name, phone')
-    .eq('tenant_id', ctx.tenantId)
-    .is('deleted_at', null)
-    .eq('is_banned', false)
-    .order('last_name', { ascending: true })
-    .limit(500)
-
-  const customerOptions: CustomerOption[] = (customers ?? []).map((c) => ({
-    id: c.id,
-    label: `${c.last_name}, ${c.first_name}${c.phone ? ` · ${c.phone}` : ''}`,
-  }))
 
   // Staff users at this tenant for the technician picker. Two-step:
   // user_tenants → join to profiles by user_id (no FK across schemas).
@@ -59,10 +42,5 @@ export default async function NewRepairTicketPage() {
     }))
   }
 
-  return (
-    <NewRepairTicketForm
-      customers={customerOptions}
-      technicians={technicianOptions}
-    />
-  )
+  return <NewRepairTicketForm technicians={technicianOptions} />
 }

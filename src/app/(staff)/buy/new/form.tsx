@@ -15,6 +15,7 @@ import {
   Trash,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
   createBuyOutrightAction,
   type CreateBuyState,
@@ -135,7 +136,6 @@ export default function BuyForm({
     {},
   )
 
-  const [customerId, setCustomerId] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<
     'cash' | 'card' | 'check' | 'other'
   >('cash')
@@ -151,7 +151,6 @@ export default function BuyForm({
   if (state !== lastState) {
     setLastState(state)
     if (state.values) {
-      if (state.values.customer_id) setCustomerId(state.values.customer_id)
       if (state.values.payment_method) {
         const pm = state.values.payment_method
         if (pm === 'cash' || pm === 'card' || pm === 'check' || pm === 'other') {
@@ -285,40 +284,26 @@ export default function BuyForm({
           <legend className="px-1 text-sm font-semibold text-foreground">
             Customer
           </legend>
-          <div className="mt-2">
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">Customer ID</span>
-              <input
-                type="text"
+          <div className="mt-2 flex items-start gap-2">
+            <div className="flex-1">
+              <CustomerPicker
                 name="customer_id"
                 required
-                value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
-                placeholder="Paste a customer UUID or use the picker (TBD)"
-                className={`block w-full rounded-md border bg-card px-3 py-2 font-mono text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
-                  fieldError('customer_id')
-                    ? 'border-danger focus:border-danger'
-                    : 'border-border focus:border-blue'
-                }`}
+                error={fieldError('customer_id')}
+                initialCustomerId={state.values?.customer_id ?? null}
               />
-              {fieldError('customer_id') ? (
-                <span className="text-xs text-danger">
-                  {fieldError('customer_id')}
-                </span>
-              ) : null}
-              <p className="text-[11px] text-muted">
-                Customer must be in this tenant&apos;s records (FL pawn law
-                requires customer ID for buy-outright). Create one at{' '}
-                <Link
-                  href="/customers/new"
-                  className="text-gold hover:underline"
-                >
-                  /customers/new
-                </Link>{' '}
-                first if needed, then copy their UUID here.
-              </p>
-            </label>
+            </div>
+            <Link
+              href="/customers/new?return=/buy/new"
+              className="shrink-0 rounded-md border border-border bg-card px-3 py-3 text-sm text-foreground hover:bg-background hover:text-foreground"
+            >
+              + New
+            </Link>
           </div>
+          <p className="mt-2 text-[11px] text-muted">
+            Customer must be in this tenant&apos;s records (FL pawn law
+            requires customer ID for buy-outright).
+          </p>
         </fieldset>
 
         {/* Items */}
