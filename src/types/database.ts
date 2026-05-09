@@ -1655,7 +1655,18 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string
+          electronic_brand: string | null
+          electronic_model: string | null
+          electronic_serial: string | null
           est_value: number
+          firearm_action_type: string | null
+          firearm_barrel_length_inches: number | null
+          firearm_caliber: string | null
+          firearm_capacity: number | null
+          firearm_make: string | null
+          firearm_model: string | null
+          firearm_serial_number: string | null
+          firearm_type: string | null
           id: string
           karat: number | null
           loan_id: string
@@ -1665,6 +1676,8 @@ export type Database = {
           photo_path: string | null
           position: number
           tenant_id: string
+          tool_brand: string | null
+          tool_model: string | null
           weight_grams: number | null
         }
         Insert: {
@@ -1672,7 +1685,18 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description: string
+          electronic_brand?: string | null
+          electronic_model?: string | null
+          electronic_serial?: string | null
           est_value?: number
+          firearm_action_type?: string | null
+          firearm_barrel_length_inches?: number | null
+          firearm_caliber?: string | null
+          firearm_capacity?: number | null
+          firearm_make?: string | null
+          firearm_model?: string | null
+          firearm_serial_number?: string | null
+          firearm_type?: string | null
           id?: string
           karat?: number | null
           loan_id: string
@@ -1682,6 +1706,8 @@ export type Database = {
           photo_path?: string | null
           position?: number
           tenant_id: string
+          tool_brand?: string | null
+          tool_model?: string | null
           weight_grams?: number | null
         }
         Update: {
@@ -1689,7 +1715,18 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string
+          electronic_brand?: string | null
+          electronic_model?: string | null
+          electronic_serial?: string | null
           est_value?: number
+          firearm_action_type?: string | null
+          firearm_barrel_length_inches?: number | null
+          firearm_caliber?: string | null
+          firearm_capacity?: number | null
+          firearm_make?: string | null
+          firearm_model?: string | null
+          firearm_serial_number?: string | null
+          firearm_type?: string | null
           id?: string
           karat?: number | null
           loan_id?: string
@@ -1699,6 +1736,8 @@ export type Database = {
           photo_path?: string | null
           position?: number
           tenant_id?: string
+          tool_brand?: string | null
+          tool_model?: string | null
           weight_grams?: number | null
         }
         Relationships: [

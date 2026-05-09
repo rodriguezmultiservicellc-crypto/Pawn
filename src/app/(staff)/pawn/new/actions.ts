@@ -423,9 +423,6 @@ export async function createLoanAction(
     return { error: 'no_valid_collateral' }
   }
 
-  // boundary cast: firearm_/electronic_/tool_ columns were added by
-  // patches/0041. Once `npm run db:types` is re-run after 0041 is
-  // applied, the `as never` below can be removed.
   const { error: collErr } = await supabase.from('loan_collateral_items').insert(
     collateralInserts.map((it) => ({
       loan_id: loanId,
@@ -453,7 +450,7 @@ export async function createLoanAction(
       electronic_serial: it.electronic_serial,
       tool_brand: it.tool_brand,
       tool_model: it.tool_model,
-    })) as never,
+    })),
   )
   if (collErr) {
     return { error: collErr.message }
