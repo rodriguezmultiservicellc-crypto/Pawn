@@ -10,6 +10,7 @@ import {
   Trash,
   Upload,
   Prohibit,
+  TrendUp,
   User,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
@@ -321,6 +322,13 @@ export default function CustomerDetail({
           </Link>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/customers/dashboard/${customer.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-blue/40 hover:bg-blue/5 hover:text-blue"
+          >
+            <TrendUp size={12} weight="bold" />
+            {t.customers.viewAnalyticsDashboard}
+          </Link>
           {customer.is_banned ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger">
               <Prohibit size={12} weight="bold" />

@@ -13,86 +13,122 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 35 (2026-05-09)
-                  — PHASE 1 REDESIGN-INITIATIVE
-                  KICKOFF: DASHBOARD QUICK-ACTIONS ROW.
+  Last session:   Session 36 (2026-05-09, second pass)
+                  — CUSTOMER ANALYTICS DASHBOARD AT
+                  /customers/dashboard/[id].
 
-                  Operator opened the session asking to
-                  "start Phase 1 — improve workflow and
-                  redesign for improvements." CLAUDE.md's
-                  original Phase 1 (Customers + Inventory)
-                  is long-shipped; the repo has 35 SQL
-                  patches and Phases 0-7 surfaces live.
-                  Reframed: this is Phase 1 of a NEW
-                  UX/redesign initiative on top of the
-                  existing app, not the original data-
-                  spine phase.
+                  Phase 1 redesign initiative slice 2:
+                  per-customer analytics page showing
+                  lifetime activity across pawns / sales
+                  / repairs / layaways, plus pawn
+                  behavior metrics, 12-month trends, lost
+                  pawns, and a unified 60-day activity
+                  feed.
 
-                  First slice landed in this session:
-                  three big quick-action tiles at the top
-                  of /dashboard — SALES / PAWN / ORDERS —
-                  routing to /pos /pawn /repair. Tiles
-                  are module-gated on has_retail /
-                  has_pawn / has_repair so jewelry-only
-                  shops with no pawn don't see Pawn, etc.
-                  Each tile uses the existing per-module
-                  identity color from StatCard's
-                  moduleChip (Sales=success-green,
-                  Pawn=gold, Orders=blue), 36px duotone
-                  Phosphor icon, big uppercase
-                  font-display label, sub-label below.
-                  Bilingual EN+ES (en.ts + es.ts).
+                  Sections in render order:
+                  (1) Header — photo (or initials block),
+                      name, "Customer since" + months,
+                      phone/email, banned flag.
+                  (2) Lifetime stats — module-gated tiles:
+                      Pawns / Loaned / Active / Lost /
+                      Sales / Spent / Repairs / Layaways /
+                      Interest paid / Extensions /
+                      On-time payoff% / Loyalty pts.
+                  (3) Pawn behavior — Avg principal,
+                      redemption %, forfeit %, extension
+                      %, avg days late.
+                  (4) 12-month trends — pure-SVG stacked
+                      bars per module (no Recharts).
+                  (5) Lost pawns — forfeited loans with
+                      collateral descriptions + grams.
+                  (6) Recent activity — unified feed
+                      across loan_events / sales /
+                      repairs / layaways, last 60 days,
+                      capped at 50 rows.
 
-                  Voice intake from Session 34 still
-                  awaits the operator's OpenAI signup +
-                  key paste in Vercel — not addressed
-                  this session.
+                  Bilingual EN+ES via the new
+                  customers.dashboard.* block (~25 keys
+                  each in en.ts + es.ts).
 
-  Context budget: ~50% at save time.
-  Last worked on: Dashboard quick-action tiles row.
+  Context budget: ~62% at save time.
+  Last worked on: Customer analytics dashboard route.
                   tsc clean. Awaiting browser smoke.
 
-  ACTIVE FILE(S) modified this session — Session 35:
+  ACTIVE FILE(S) modified this session — Session 36:
 
-    - src/app/(staff)/dashboard/content.tsx
-      (added QuickActionTile component +
-       3-up gated row at top of dashboard,
-       above the existing 4-up StatCards row.
-       Imports ShoppingBag/Coins/Wrench from
-       Phosphor — already in the import list.)
+    --- NEW ROUTE ---
+    - src/app/(staff)/customers/dashboard/[id]/page.tsx
+      (server component; parallel queries across
+       loans / loan_events / sales / repair_tickets /
+       layaways / loan_collateral_items; all
+       aggregations done in JS in-memory; module-
+       gated by hasPawn/hasRepair/hasRetail; on-time
+       % derived from redemption events vs due_date
+       (no grace period applied))
 
+    - src/app/(staff)/customers/dashboard/[id]/
+      content.tsx
+      (client component, ~480 LOC; 6 sections;
+       StatCard + Metric + TrendChart helpers;
+       pure-SVG stacked-bar chart, 12 monthly
+       buckets; iconForActivityKind + labelFor
+       Activity helpers; formatMoney + relativeDate
+       utilities)
+
+    --- MODIFIED ---
     - src/lib/i18n/en.ts
-      (new dashboard.quickActions block:
-       sales/salesSub, pawn/pawnSub,
-       orders/ordersSub.)
+      (new t.customers.dashboard block + new
+       t.customers.viewAnalyticsDashboard string)
 
     - src/lib/i18n/es.ts
       (matching ES translations:
-       Ventas/Empeños/Órdenes + sub-labels.
-       'Empeños' matches the existing pawn
-       ES naming convention.)
+       'Empeños perdidos', 'Pagos a tiempo',
+       'Tasa de rescate', 'Tendencias', etc.)
+
+    - src/app/(staff)/customers/[id]/content.tsx
+      (added TrendUp Phosphor import + new
+       "View analytics dashboard" link in the top-
+       right action area, next to the banned badge)
 
   RESUME POINT:
-    Operator decision pending: push this checkpoint
-    to git so Vercel ships it (Sales/Pawn/Orders go
-    live on /dashboard in ~1 min), or hold for a
-    local browser smoke first. Claude offered both
-    paths at end of session.
+    Browser-smoke /customers/dashboard/[id] on
+    production. Use a customer that actually has
+    history (loans, sales, etc.) — for an empty
+    customer the page renders but every card shows
+    0 / dashes. Operator pasted
+    /customers/dashboard/ff884c8e-a8ce-4c88-bb99-
+    f951373d4c4e as the test ID; that's the URL to
+    hit.
 
-    Once shipped, smoke /dashboard on production:
-    expect three big tinted tiles at the top, each
-    clickable to /pos / /pawn / /repair. If a module
-    is disabled on the tenant, that tile should not
-    render. On mobile (sm-) tiles should stack
-    vertically.
+    Then click the new "View analytics dashboard"
+    button on /customers/[id] to confirm the
+    forward link works. Confirm module-gating: a
+    jewelry-only shop with has_pawn=false should
+    NOT see pawn cards, the pawn-behavior block,
+    the lost-pawns section, or the gold trend
+    bars.
 
-    AFTER QUICK-ACTIONS SMOKE: voice intake from
-    Session 34 — operator's OpenAI signup + key
-    paste + Vercel redeploy is still pending. Then
-    the Phase 1 redesign initiative continues with
-    next-priority surfaces (TBD with operator —
-    candidates: /pawn/new, /customers/new, sidebar
-    IA, /pos cart density).
+    Areas worth eyeballing during smoke:
+    - On-time % math: with no grace period, a
+      same-day redemption shows on-time. If the
+      operator wants a grace window applied, point
+      me at where it lives in settings (likely
+      tenant rate config).
+    - Forfeit rate denominator is decided loans
+      (redeemed + forfeited), not all loans.
+      Active / extended / partial-paid loans don't
+      count. If operator prefers all-loans
+      denominator, easy fix.
+    - 12-month chart Y-axis is implicit — no
+      labels. If empty months should still show
+      a thin bar, that's a tweak.
+
+    AFTER ANALYTICS SMOKE: voice intake (Session
+    34 carry-over) still awaits OpenAI key. Then
+    next Phase 1 redesign slice — TBD with operator.
+    Candidates: /pawn/new layout density, /
+    customers/new ID-capture flow, sidebar IA,
+    /pos cart density.
 
     AFTER PHASE-1 PROGRESS: Session 32 carry-over
     agenda — Luna Azul design pass walkthrough,
@@ -105,65 +141,93 @@ SEE ALSO (do not duplicate here):
     FL LeadsOnline format, Phase 8 mobile audit.
 
   OPEN ISSUES / BLOCKERS:
-    - Quick-action tiles not yet smoked in browser
-      (typecheck passes, but no live click-through
-      verification of all three routes + mobile
-      stack).
+    - Customer dashboard not yet smoked in browser
+      (typecheck passes; no live verification of
+      empty-state, gated, full-history views, or
+      the SVG chart at narrow widths).
     - Voice intake awaiting OpenAI key (Session 34
-      carry-over). Operator: sign up at platform.
-      openai.com, load $5, paste sk-proj-... into
-      Vercel OPENAI_API_KEY (currently holds an
-      Anthropic key), redeploy.
+      carry-over).
     - Session 32 + 33 + 34 carry-over agenda above.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 35):
-    - "PHASE 1" REFRAMED. CLAUDE.md's Phase 1
-      (Customers + Inventory data-spine) is shipped.
-      "Start Phase 1" now means Phase 1 of a NEW
-      UX/redesign initiative on top of the existing
-      app. Operator confirmed via AskUserQuestion.
-      Future Phase-1-redesign sessions will focus on
-      workflow + visual improvements across existing
-      surfaces, not greenfield new modules.
-    - DASHBOARD HERO ROW = QUICK-ACTION TILES, NOT
-      STAT CARDS. The dashboard already had stat
-      cards linking to /pawn /repair /pos with
-      counts; those stay below. The new top row is
-      bigger (~h-24+, 36px icon, font-display 2xl
-      label) and optimized for fast clerk navigation
-      ("get me into the right module NOW") rather
-      than information display. Pawn-shop POS
-      pattern: big touch targets at the top.
-    - PER-MODULE COLOR IDENTITY EXTENDS TO HERO
-      ROW. Sales=success-green, Pawn=gold,
-      Orders=blue — same mapping as StatCard's
-      moduleChip dictionary. Not three competing
-      gold CTAs. Tinted bg/border (~10%) with full-
-      saturation icon + label so each module reads
-      instantly without reading text.
-    - "ORDERS" IS A DASHBOARD-ONLY LABEL FOR
-      /repair. Sidebar entry, breadcrumbs, en.ts/
-      es.ts repair.* keys, the route itself stay as
-      "Repair" / "Reparaciones" / /repair. Smallest
-      blast radius — operator confirmed via
-      AskUserQuestion.
+  KEY DECISIONS LOCKED THIS SESSION (Session 36):
+    - PURE-SVG TRENDS CHART, NO RECHARTS DEPENDENCY.
+      CLAUDE.md says Recharts is in the stack, but
+      it's not actually in package.json — no chart
+      library is currently installed. Rather than
+      introduce a 250KB+ client dep for a 12-bar
+      stacked chart, built it in pure SVG (~30 lines)
+      that themes directly with Luna Azul tokens.
+      If a future need requires line / radar /
+      pie / interactive zoom, install Recharts
+      then; for now SVG is correct.
+    - URL FORMAT: /customers/dashboard/[id], NOT
+      /customers/[id]/dashboard. Honored exactly
+      what operator pasted (ff884c8e... after
+      /customers/dashboard/). Both Next route
+      patterns work; literal-segment-then-id is
+      what they asked for.
+    - JS-IN-MEMORY AGGREGATION (NOT RPCS). Pulls
+      all of a customer's loans / sales / repairs /
+      layaways / loan_events in 5 parallel queries,
+      then aggregates with reduce/filter in the
+      page handler. For most customers (<1k rows
+      total) this is fast and trivially auditable.
+      If profiling shows it's slow on power-users
+      with thousands of transactions, can move to
+      Postgres aggregate functions or RPCs.
+    - ON-TIME % USES NO GRACE PERIOD. v1 math:
+      redemption.occurred_at <= loan.due_date =>
+      on-time. If operator wants a settings-driven
+      grace window (e.g., FL pawn statute allows N
+      days), wire it in next.
+    - FORFEIT RATE = forfeited / (redeemed +
+      forfeited). Active / extended / partial-paid
+      loans aren't decided yet, so they're
+      excluded from the denominator. Same for
+      redemption rate. v1 choice; operator can
+      flip to all-loans denominator if preferred.
+    - LOST PAWNS LIST PULLS COLLATERAL ITEMS BY
+      SOFT-LOOKUP. Map of loan_id -> items[]
+      built from a single .in('loan_id',
+      forfeitedIds) query. Avoids N+1.
+    - "VIEW ANALYTICS DASHBOARD" LINK PLACEMENT.
+      Top-right of /customers/[id], next to the
+      banned badge. Hover state borders blue;
+      icon is Phosphor TrendUp. Uses existing
+      action-area pattern; no new component.
 
   IMPORTANT CONSTANTS / PATHS:
-    - Dashboard route: src/app/(staff)/dashboard/
-      page.tsx (server) + content.tsx (client)
-    - QuickActionTile component: inline in
-      content.tsx, just above StatCard
-    - i18n keys: t.dashboard.quickActions.{sales,
-      salesSub, pawn, pawnSub, orders, ordersSub}
-    - Module-gate flags loaded in page.tsx from
-      tenants table: hasPawn, hasRepair, hasRetail
-    - Phosphor icons used: ShoppingBag (sales),
-      Coins (pawn), Wrench (orders) — duotone, 36px
-    - Color tokens (per Luna Azul design system):
-      gold, blue, success — defined in globals.css
-      @theme block
+    - Route: /customers/dashboard/[id]
+      (literal-segment-then-id, NOT nested under
+       /customers/[id])
+    - Server file: src/app/(staff)/customers/
+      dashboard/[id]/page.tsx
+    - Client file: src/app/(staff)/customers/
+      dashboard/[id]/content.tsx
+    - Activity-window: 60 days (sixtyDaysAgo
+      constant in page.tsx)
+    - Activity-cap: 50 rows (slice in render call)
+    - Trend-window: 12 months (loop in page.tsx
+      bucketing)
+    - i18n root: t.customers.dashboard.*
+    - Forward-link string: t.customers.
+      viewAnalyticsDashboard
+    - Phosphor icons used (client only): ArrowLeft
+      / Coins / CashRegister / Wrench / ShoppingBag
+      / Lock / Prohibit / TrendUp / Star / Clock /
+      Receipt / Warning / CalendarBlank
+    - Module gates loaded same way as everywhere
+      else: tenant.has_pawn / has_repair /
+      has_retail
+    - Loan event types we read: 'payment',
+      'redemption', 'extension'
+    - Loan statuses we count: 'redeemed' (decided,
+      on-time vs late) and 'forfeited' (decided,
+      forfeit rate). 'active' / 'extended' /
+      'partial_paid' contribute to "active" tile
+      but not the rate calculations.
 
-  (Sessions 13-34 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-35 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -1631,6 +1695,129 @@ Items 1-166 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
+--- Session 36 (2026-05-09, second pass) — Customer analytics dashboard at /customers/dashboard/[id] ---
+
+ 294. CUSTOMER ANALYTICS DASHBOARD — NEW ROUTE.
+     Built a per-customer analytics page at
+     /customers/dashboard/[id] (literal segment
+     "dashboard" then customer UUID — exactly
+     what operator asked for). Server file
+     parallel-queries every module table for the
+     customer (loans / sales / repair_tickets /
+     layaways / loan_collateral_items) +
+     loan_events scoped to the customer's loans
+     via .in('loan_id', loanIds). All
+     aggregations in JS — no RPCs / no Postgres
+     aggregate functions. Module-gated by
+     tenant.has_pawn / has_repair / has_retail —
+     a jewelry-only shop with !has_pawn does not
+     see pawn cards, behavior block, lost-pawns
+     list, or gold trend bars. Six rendered
+     sections in order: header / lifetime stats /
+     pawn behavior / 12-month trends / lost pawns /
+     recent activity. tsc clean.
+     Files: src/app/(staff)/customers/dashboard/
+            [id]/page.tsx, content.tsx (NEW)
+
+ 295. CUSTOMER DASHBOARD METRIC SET. Lifetime
+     stats grid (12 cards, module-gated):
+       Pawns count
+       Loaned $ (sum of principal)
+       Active loans (active/extended/partial_paid)
+       Lost pawns (forfeited count)
+       Sales count (completed only)
+       Spent $ (sum of completed sales total)
+       Repairs (count + active count badge)
+       Layaways (count + active count badge)
+       Interest paid lifetime (sum from
+         loan_events where event_type IN
+         ('payment','redemption'), interest_paid)
+       Extensions count (loan_events where
+         event_type='extension')
+       On-time payoff % (redeemed loans where
+         redemption.occurred_at <= due_date /
+         all decided loans)
+       Loyalty pts (customers.loyalty_points_
+         balance)
+     Pawn behavior block (5 metrics): avg
+     principal, redemption rate, forfeit rate,
+     extension rate, avg days late on payoff.
+     Forfeit rate denominator excludes undecided
+     loans (active/extended/partial_paid).
+
+ 296. PURE-SVG 12-MONTH TRENDS CHART. CLAUDE.md
+     mentions Recharts but it isn't in package.
+     json. Rather than add a 250KB+ chart-library
+     dep for a 12-bar stacked chart, built it in
+     ~30 lines of SVG-equivalent flexbox + tinted
+     divs. Bar segments stacked: gold=pawns,
+     success=sales, blue=repairs, success/60=
+     layaways. Bar height normalized against the
+     max-month total. Labels are Jan-Dec abbrevs
+     under each bar; legend below. Themes
+     directly with Luna Azul tokens (bg-gold /
+     bg-success / bg-blue). title attribute on
+     each bar gives a hover tooltip with the
+     per-module breakdown. If a future need
+     warrants Recharts, install then.
+
+ 297. LOST-PAWNS LIST WITH COLLATERAL JOIN. After
+     fetching the customer's loans, filter to
+     status='forfeited', then a single .in(
+     'loan_id', forfeitedIds) query against
+     loan_collateral_items. Build a Map of
+     loan_id -> items[] and render in the Lost
+     Pawns section: date, ticket #, principal,
+     comma-separated item descriptions with
+     weights in grams. No N+1.
+
+ 298. RECENT ACTIVITY UNIFIED FEED — 60 DAYS.
+     Cross-module activity feed merging entries
+     from loan_events, sales (completed_at fall-
+     back to created_at), repair_tickets, and
+     layaways. Filtered by 60-day window in JS,
+     sorted by occurred_at DESC, sliced to 50
+     rows for the render. Each row gets a
+     module-tinted icon (Coins / CashRegister /
+     Wrench / ShoppingBag), label = i18n
+     prefix + status, optional amount, optional
+     detail (sale_kind for sales, title for
+     repairs), and a relative-time stamp.
+
+ 299. I18N — CUSTOMERS.DASHBOARD BLOCK ADDED.
+     ~25 keys in t.customers.dashboard for the
+     six sections + the new t.customers.
+     viewAnalyticsDashboard string for the
+     forward link. Bilingual EN+ES with
+     consistent terminology: 'Empeños perdidos',
+     'Tasa de rescate', 'Tasa de pérdida',
+     'Pagos a tiempo', 'Tendencias',
+     'Apartados', 'Reparaciones', etc.
+     Per CLAUDE.md bilingual rule, no hardcoded
+     copy in either page.tsx or content.tsx.
+     Files: src/lib/i18n/en.ts, src/lib/i18n/es.ts
+
+ 300. "VIEW ANALYTICS DASHBOARD" LINK ON
+     /customers/[id]. Added a new link button in
+     the top-right action area (next to the
+     banned badge), routing to /customers/
+     dashboard/[id]. TrendUp Phosphor icon, blue
+     hover state, follows the existing pill-
+     button pattern. No new component — just a
+     Link.
+     File: src/app/(staff)/customers/[id]/
+           content.tsx
+
+ 301. ROUTE NAMING DECISION. Operator pasted
+     /customers/dashboard/<uuid> as the URL.
+     Honored that exactly even though /customers/
+     [id]/dashboard would be more REST-ful.
+     Next.js routes both patterns; operator's
+     choice stands. If a future refactor wants
+     to flip to nested, both files move and the
+     forward link from /customers/[id] updates —
+     no other call sites.
+
 --- Session 35 (2026-05-09) — Phase 1 redesign-initiative kickoff: dashboard quick-actions row ---
 
  290. PHASE 1 REDESIGN INITIATIVE OPENED. Operator
@@ -3074,26 +3261,36 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Smoke the new dashboard quick-action tiles on
+    Smoke the new customer analytics dashboard on
     production. Open https://pawn-three.vercel.app/
-    dashboard. Expect three big tinted tiles at the
-    top: SALES (green) → /pos, PAWN (gold) →
-    /pawn, ORDERS (blue) → /repair. Click each,
-    confirm correct landing. Resize to mobile width
-    — tiles should stack to single column. If a
-    tenant has has_pawn=false, that tile should not
-    render (toggle in tenants table to verify).
+    customers/dashboard/ff884c8e-a8ce-4c88-bb99-
+    f951373d4c4e (or any customer ID with real
+    history). Expect six sections in order:
+    header, lifetime stats grid, pawn behavior
+    block, 12-month trends chart, lost pawns list,
+    recent activity feed. Click the "View
+    analytics dashboard" button on /customers/
+    [id] to confirm the forward link. Verify
+    module-gating (a !has_pawn tenant should not
+    see pawn cards, behavior block, lost-pawns,
+    or gold trend bars). Resize to narrow widths
+    to confirm the SVG chart still reads.
 
-    AFTER QUICK-ACTIONS SMOKE: voice intake from
-    Session 34 — confirm the operator's OpenAI
-    signup + key paste + Vercel redeploy completed.
-    Walk the voice test phrase on /pawn/new: hold
-    the gold mic, say "Maria Fernandez, $200 for a
-    14k wedding ring, 2.3 grams", release. Expected:
-    TTS confirmation + form fields populated. New
-    diagnostics will surface auth / rate-limit /
-    bad-audio errors directly in the inline error
-    UI.
+    AFTER ANALYTICS SMOKE: also smoke the
+    Session 35 dashboard quick-action tiles
+    (Sales/Pawn/Orders) at /dashboard if not yet
+    verified.
+
+    AFTER BOTH SMOKES: voice intake from Session
+    34 — confirm the operator's OpenAI signup +
+    key paste + Vercel redeploy completed. Walk
+    the voice test phrase on /pawn/new: hold the
+    gold mic, say "Maria Fernandez, $200 for a
+    14k wedding ring, 2.3 grams", release.
+    Expected: TTS confirmation + form fields
+    populated. New diagnostics surface auth /
+    rate-limit / bad-audio errors directly in
+    the inline error UI.
 
     AFTER VOICE SMOKE: Phase 1 redesign initiative
     continues — pick the next surface with operator
