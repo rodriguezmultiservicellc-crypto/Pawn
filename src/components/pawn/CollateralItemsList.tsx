@@ -109,6 +109,8 @@ const METAL_OPTIONS: ReadonlyArray<{ value: MetalType; key: string }> = [
   { value: 'other', key: 'metalOther' },
 ]
 
+type FirearmType = 'handgun' | 'rifle' | 'shotgun' | 'other' | ''
+
 type Row = {
   /** stable id per row, only for React key */
   uid: string
@@ -120,9 +122,26 @@ type Row = {
   pawn_subcategory_slug: string | null
   description: string
   category: InventoryCategory
+  // Jewelry attributes (existing, only shown for 'jewelry' top).
   metal_type: MetalType | ''
   karat: string
   weight_grams: string
+  // Firearm attributes (patches/0041, only shown for 'firearms' top).
+  firearm_make: string
+  firearm_model: string
+  firearm_caliber: string
+  firearm_serial_number: string
+  firearm_type: FirearmType
+  firearm_barrel_length_inches: string
+  firearm_action_type: string
+  firearm_capacity: string
+  // Electronic attributes (patches/0041, only shown for 'electronics').
+  electronic_brand: string
+  electronic_model: string
+  electronic_serial: string
+  // Tool attributes (patches/0041, only shown for 'tools').
+  tool_brand: string
+  tool_model: string
   est_value: string
   photo: File | null
   photoPreview: string | null
@@ -138,6 +157,19 @@ function newRow(): Row {
     metal_type: '',
     karat: '',
     weight_grams: '',
+    firearm_make: '',
+    firearm_model: '',
+    firearm_caliber: '',
+    firearm_serial_number: '',
+    firearm_type: '',
+    firearm_barrel_length_inches: '',
+    firearm_action_type: '',
+    firearm_capacity: '',
+    electronic_brand: '',
+    electronic_model: '',
+    electronic_serial: '',
+    tool_brand: '',
+    tool_model: '',
     est_value: '0',
     photo: null,
     photoPreview: null,
@@ -224,6 +256,19 @@ export const CollateralItemsList = forwardRef<
       r.metal_type === '' &&
       r.karat === '' &&
       r.weight_grams === '' &&
+      r.firearm_make === '' &&
+      r.firearm_model === '' &&
+      r.firearm_caliber === '' &&
+      r.firearm_serial_number === '' &&
+      r.firearm_type === '' &&
+      r.firearm_barrel_length_inches === '' &&
+      r.firearm_action_type === '' &&
+      r.firearm_capacity === '' &&
+      r.electronic_brand === '' &&
+      r.electronic_model === '' &&
+      r.electronic_serial === '' &&
+      r.tool_brand === '' &&
+      r.tool_model === '' &&
       r.est_value === '0' &&
       r.photo == null
     )
@@ -450,9 +495,10 @@ function CollateralRow({
           />
         </div>
 
-        {/* Fields */}
+        {/* Fields — common base + category-specific block */}
         <div className="md:col-span-10 grid grid-cols-1 gap-3 md:grid-cols-6">
-          <label className="md:col-span-3 block space-y-1">
+          {/* Common: description + est_value, always shown */}
+          <label className="md:col-span-4 block space-y-1">
             <span className="text-xs font-medium text-foreground">
               {t.pawn.new_.itemDescription} *
             </span>
@@ -463,78 +509,6 @@ function CollateralRow({
               value={row.description}
               onChange={(e) => onChange({ description: e.target.value })}
               placeholder="14k gold rope chain, 22 inches"
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
-            />
-          </label>
-
-          <label className="md:col-span-3 block space-y-1">
-            <span className="text-xs font-medium text-foreground">
-              {t.pawn.new_.itemCategory}
-            </span>
-            <select
-              name={`collateral_${index}_category`}
-              value={row.category}
-              onChange={(e) =>
-                onChange({ category: e.target.value as InventoryCategory })
-              }
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
-            >
-              {CATEGORY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {tCategory(opt.value)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="md:col-span-2 block space-y-1">
-            <span className="text-xs font-medium text-foreground">
-              {t.pawn.new_.itemMetalType}
-            </span>
-            <select
-              name={`collateral_${index}_metal_type`}
-              value={row.metal_type}
-              onChange={(e) =>
-                onChange({ metal_type: e.target.value as MetalType | '' })
-              }
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
-            >
-              <option value="">—</option>
-              {METAL_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {tMetal(opt.value)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="md:col-span-1 block space-y-1">
-            <span className="text-xs font-medium text-foreground">
-              {t.pawn.new_.itemKarat}
-            </span>
-            <input
-              type="number"
-              step="0.5"
-              min={0}
-              max={24}
-              name={`collateral_${index}_karat`}
-              value={row.karat}
-              onChange={(e) => onChange({ karat: e.target.value })}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
-            />
-          </label>
-
-          <label className="md:col-span-1 block space-y-1">
-            <span className="text-xs font-medium text-foreground">
-              {t.pawn.new_.itemWeightGrams}
-            </span>
-            <input
-              type="number"
-              step="0.01"
-              min={0}
-              name={`collateral_${index}_weight_grams`}
-              value={row.weight_grams}
-              onChange={(e) => onChange({ weight_grams: e.target.value })}
               className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
@@ -553,6 +527,319 @@ function CollateralRow({
               className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
           </label>
+
+          {/* Inventory category enum — only shown for jewelry, where
+              ring/necklace/etc. matters for forfeiture-to-inventory.
+              For other top-levels we ship a hidden default of 'other'
+              so the server-side schema (which requires the field)
+              still validates. */}
+          {selectedCategory?.slug === 'jewelry' ? (
+            <label className="md:col-span-3 block space-y-1">
+              <span className="text-xs font-medium text-foreground">
+                {t.pawn.new_.itemCategory}
+              </span>
+              <select
+                name={`collateral_${index}_category`}
+                value={row.category}
+                onChange={(e) =>
+                  onChange({ category: e.target.value as InventoryCategory })
+                }
+                className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              >
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {tCategory(opt.value)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <input
+              type="hidden"
+              name={`collateral_${index}_category`}
+              value={row.category}
+            />
+          )}
+
+          {/* ── JEWELRY: metal / karat / weight ─────────────────── */}
+          {selectedCategory?.slug === 'jewelry' ? (
+            <>
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemMetalType}
+                </span>
+                <select
+                  name={`collateral_${index}_metal_type`}
+                  value={row.metal_type}
+                  onChange={(e) =>
+                    onChange({ metal_type: e.target.value as MetalType | '' })
+                  }
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                >
+                  <option value="">—</option>
+                  {METAL_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {tMetal(opt.value)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="md:col-span-1 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemKarat}
+                </span>
+                <input
+                  type="number"
+                  step="0.5"
+                  min={0}
+                  max={24}
+                  name={`collateral_${index}_karat`}
+                  value={row.karat}
+                  onChange={(e) => onChange({ karat: e.target.value })}
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemWeightGrams}
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  name={`collateral_${index}_weight_grams`}
+                  value={row.weight_grams}
+                  onChange={(e) => onChange({ weight_grams: e.target.value })}
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+            </>
+          ) : null}
+
+          {/* ── FIREARMS: 8 fields ──────────────────────────────── */}
+          {selectedCategory?.slug === 'firearms' ? (
+            <>
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmMake}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_firearm_make`}
+                  value={row.firearm_make}
+                  onChange={(e) => onChange({ firearm_make: e.target.value })}
+                  placeholder="Glock"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmModel}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_firearm_model`}
+                  value={row.firearm_model}
+                  onChange={(e) => onChange({ firearm_model: e.target.value })}
+                  placeholder="19 Gen 5"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmCaliber}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_firearm_caliber`}
+                  value={row.firearm_caliber}
+                  onChange={(e) =>
+                    onChange({ firearm_caliber: e.target.value })
+                  }
+                  placeholder="9mm"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-3 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmSerialNumber} *
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_firearm_serial_number`}
+                  required
+                  value={row.firearm_serial_number}
+                  onChange={(e) =>
+                    onChange({ firearm_serial_number: e.target.value })
+                  }
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmType}
+                </span>
+                <select
+                  name={`collateral_${index}_firearm_type`}
+                  value={row.firearm_type}
+                  onChange={(e) =>
+                    onChange({ firearm_type: e.target.value as FirearmType })
+                  }
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                >
+                  <option value="">—</option>
+                  <option value="handgun">{t.pawn.new_.itemFirearmTypeHandgun}</option>
+                  <option value="rifle">{t.pawn.new_.itemFirearmTypeRifle}</option>
+                  <option value="shotgun">{t.pawn.new_.itemFirearmTypeShotgun}</option>
+                  <option value="other">{t.pawn.new_.itemFirearmTypeOther}</option>
+                </select>
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmActionType}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_firearm_action_type`}
+                  value={row.firearm_action_type}
+                  onChange={(e) =>
+                    onChange({ firearm_action_type: e.target.value })
+                  }
+                  placeholder="Semi-auto"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmBarrelLength}
+                </span>
+                <input
+                  type="number"
+                  step="0.1"
+                  min={0}
+                  name={`collateral_${index}_firearm_barrel_length_inches`}
+                  value={row.firearm_barrel_length_inches}
+                  onChange={(e) =>
+                    onChange({
+                      firearm_barrel_length_inches: e.target.value,
+                    })
+                  }
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemFirearmCapacity}
+                </span>
+                <input
+                  type="number"
+                  step="1"
+                  min={0}
+                  max={1000}
+                  name={`collateral_${index}_firearm_capacity`}
+                  value={row.firearm_capacity}
+                  onChange={(e) =>
+                    onChange({ firearm_capacity: e.target.value })
+                  }
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+            </>
+          ) : null}
+
+          {/* ── ELECTRONICS: brand / model / serial-imei ────────── */}
+          {selectedCategory?.slug === 'electronics' ? (
+            <>
+              <label className="md:col-span-3 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemElectronicBrand}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_electronic_brand`}
+                  value={row.electronic_brand}
+                  onChange={(e) =>
+                    onChange({ electronic_brand: e.target.value })
+                  }
+                  placeholder="Apple"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-3 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemElectronicModel}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_electronic_model`}
+                  value={row.electronic_model}
+                  onChange={(e) =>
+                    onChange({ electronic_model: e.target.value })
+                  }
+                  placeholder="iPhone 13 Pro"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-6 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemElectronicSerial}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_electronic_serial`}
+                  value={row.electronic_serial}
+                  onChange={(e) =>
+                    onChange({ electronic_serial: e.target.value })
+                  }
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+            </>
+          ) : null}
+
+          {/* ── TOOLS: brand / model ───────────────────────────── */}
+          {selectedCategory?.slug === 'tools' ? (
+            <>
+              <label className="md:col-span-3 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemToolBrand}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_tool_brand`}
+                  value={row.tool_brand}
+                  onChange={(e) => onChange({ tool_brand: e.target.value })}
+                  placeholder="DeWalt"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+
+              <label className="md:col-span-3 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemToolModel}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_tool_model`}
+                  value={row.tool_model}
+                  onChange={(e) => onChange({ tool_model: e.target.value })}
+                  placeholder="DCD777"
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                />
+              </label>
+            </>
+          ) : null}
         </div>
       </div>
       ) : null}

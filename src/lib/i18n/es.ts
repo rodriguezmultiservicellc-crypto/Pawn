@@ -918,6 +918,27 @@ export const es: Dictionary = {
       itemPhoto: 'Foto',
       itemPhotoHelp: 'Foto opcional de esta prenda.',
       itemMinOne: 'Agrega al menos un artículo de prenda.',
+      // Campos de arma de fuego (patches/0041) — sólo en filas con la
+      // categoría 'firearms'.
+      itemFirearmMake: 'Marca',
+      itemFirearmModel: 'Modelo',
+      itemFirearmCaliber: 'Calibre',
+      itemFirearmSerialNumber: 'Número de serie',
+      itemFirearmType: 'Tipo',
+      itemFirearmTypeHandgun: 'Pistola',
+      itemFirearmTypeRifle: 'Rifle',
+      itemFirearmTypeShotgun: 'Escopeta',
+      itemFirearmTypeOther: 'Otro',
+      itemFirearmBarrelLength: 'Longitud del cañón (pulg)',
+      itemFirearmActionType: 'Acción',
+      itemFirearmCapacity: 'Capacidad',
+      // Campos electrónicos — sólo categoría 'electronics'.
+      itemElectronicBrand: 'Marca',
+      itemElectronicModel: 'Modelo',
+      itemElectronicSerial: 'Serie / IMEI',
+      // Campos de herramientas — sólo categoría 'tools'.
+      itemToolBrand: 'Marca',
+      itemToolModel: 'Modelo',
       submit: 'Emitir boleto',
       submitting: 'Emitiendo…',
       voice: {

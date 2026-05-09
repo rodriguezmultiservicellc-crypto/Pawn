@@ -112,6 +112,33 @@ export const collateralItemSchema = z.object({
   // uploads the file, then includes the resulting path in this schema.
   photo_path: optionalTrimmedString,
   position: z.coerce.number().int().min(0).default(0),
+  // ── Firearm attributes (patches/0041) ─────────────────────────────
+  // All NULL except on rows where pawn_category_slug = 'firearms'.
+  firearm_make: optionalTrimmedString,
+  firearm_model: optionalTrimmedString,
+  firearm_caliber: optionalTrimmedString,
+  firearm_serial_number: optionalTrimmedString,
+  firearm_type: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      z.enum(['handgun', 'rifle', 'shotgun', 'other']).nullable().optional(),
+    )
+    .transform((v) => v ?? null),
+  firearm_barrel_length_inches: optionalDecimal,
+  firearm_action_type: optionalTrimmedString,
+  firearm_capacity: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      z.coerce.number().int().min(0).max(1000).nullable().optional(),
+    )
+    .transform((v) => (v === null || v === undefined ? null : v)),
+  // ── Electronic attributes (patches/0041) ──────────────────────────
+  electronic_brand: optionalTrimmedString,
+  electronic_model: optionalTrimmedString,
+  electronic_serial: optionalTrimmedString,
+  // ── Tool attributes (patches/0041) ────────────────────────────────
+  tool_brand: optionalTrimmedString,
+  tool_model: optionalTrimmedString,
 })
 
 export type CollateralItemInput = z.infer<typeof collateralItemSchema>

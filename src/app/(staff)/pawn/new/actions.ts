@@ -182,6 +182,24 @@ function readCollateralRows(
         // from the inline CategoryPicker on each collateral row.
         pawn_category_slug: fd.get(`collateral_${i}_pawn_category`),
         pawn_subcategory_slug: fd.get(`collateral_${i}_pawn_subcategory`),
+        // Category-specific attribute columns (patches/0041). Only
+        // the picked category's fields are filled; the rest stay
+        // empty and validate to null.
+        firearm_make: fd.get(`collateral_${i}_firearm_make`),
+        firearm_model: fd.get(`collateral_${i}_firearm_model`),
+        firearm_caliber: fd.get(`collateral_${i}_firearm_caliber`),
+        firearm_serial_number: fd.get(`collateral_${i}_firearm_serial_number`),
+        firearm_type: fd.get(`collateral_${i}_firearm_type`),
+        firearm_barrel_length_inches: fd.get(
+          `collateral_${i}_firearm_barrel_length_inches`,
+        ),
+        firearm_action_type: fd.get(`collateral_${i}_firearm_action_type`),
+        firearm_capacity: fd.get(`collateral_${i}_firearm_capacity`),
+        electronic_brand: fd.get(`collateral_${i}_electronic_brand`),
+        electronic_model: fd.get(`collateral_${i}_electronic_model`),
+        electronic_serial: fd.get(`collateral_${i}_electronic_serial`),
+        tool_brand: fd.get(`collateral_${i}_tool_brand`),
+        tool_model: fd.get(`collateral_${i}_tool_model`),
         position: String(i),
       },
       photo,
@@ -405,6 +423,9 @@ export async function createLoanAction(
     return { error: 'no_valid_collateral' }
   }
 
+  // boundary cast: firearm_/electronic_/tool_ columns were added by
+  // patches/0041. Once `npm run db:types` is re-run after 0041 is
+  // applied, the `as never` below can be removed.
   const { error: collErr } = await supabase.from('loan_collateral_items').insert(
     collateralInserts.map((it) => ({
       loan_id: loanId,
@@ -419,7 +440,20 @@ export async function createLoanAction(
       position: it.position,
       pawn_category_slug: it.pawn_category_slug,
       pawn_subcategory_slug: it.pawn_subcategory_slug,
-    })),
+      firearm_make: it.firearm_make,
+      firearm_model: it.firearm_model,
+      firearm_caliber: it.firearm_caliber,
+      firearm_serial_number: it.firearm_serial_number,
+      firearm_type: it.firearm_type,
+      firearm_barrel_length_inches: it.firearm_barrel_length_inches,
+      firearm_action_type: it.firearm_action_type,
+      firearm_capacity: it.firearm_capacity,
+      electronic_brand: it.electronic_brand,
+      electronic_model: it.electronic_model,
+      electronic_serial: it.electronic_serial,
+      tool_brand: it.tool_brand,
+      tool_model: it.tool_model,
+    })) as never,
   )
   if (collErr) {
     return { error: collErr.message }
@@ -491,6 +525,20 @@ export async function createLoanAction(
     position: it.position,
     pawn_category_slug: it.pawn_category_slug,
     pawn_subcategory_slug: it.pawn_subcategory_slug,
+    // FL Ch. 539 reporting reads firearm fields out of this snapshot.
+    firearm_make: it.firearm_make,
+    firearm_model: it.firearm_model,
+    firearm_caliber: it.firearm_caliber,
+    firearm_serial_number: it.firearm_serial_number,
+    firearm_type: it.firearm_type,
+    firearm_barrel_length_inches: it.firearm_barrel_length_inches,
+    firearm_action_type: it.firearm_action_type,
+    firearm_capacity: it.firearm_capacity,
+    electronic_brand: it.electronic_brand,
+    electronic_model: it.electronic_model,
+    electronic_serial: it.electronic_serial,
+    tool_brand: it.tool_brand,
+    tool_model: it.tool_model,
   })) as unknown as ComplianceInsertChanges
 
   await supabase.from('compliance_log').insert({

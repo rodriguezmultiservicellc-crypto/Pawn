@@ -916,6 +916,27 @@ export const en = {
       itemPhoto: 'Photo',
       itemPhotoHelp: 'Optional photo of this collateral item.',
       itemMinOne: 'Add at least one collateral item.',
+      // Firearm fields (patches/0041) — show only on rows where the
+      // operator picks the 'firearms' top-level pawn intake category.
+      itemFirearmMake: 'Make',
+      itemFirearmModel: 'Model',
+      itemFirearmCaliber: 'Caliber',
+      itemFirearmSerialNumber: 'Serial number',
+      itemFirearmType: 'Type',
+      itemFirearmTypeHandgun: 'Handgun',
+      itemFirearmTypeRifle: 'Rifle',
+      itemFirearmTypeShotgun: 'Shotgun',
+      itemFirearmTypeOther: 'Other',
+      itemFirearmBarrelLength: 'Barrel length (in)',
+      itemFirearmActionType: 'Action',
+      itemFirearmCapacity: 'Capacity',
+      // Electronic fields — 'electronics' top-level only.
+      itemElectronicBrand: 'Brand',
+      itemElectronicModel: 'Model',
+      itemElectronicSerial: 'Serial / IMEI',
+      // Tool fields — 'tools' top-level only.
+      itemToolBrand: 'Brand',
+      itemToolModel: 'Model',
       submit: 'Issue pawn ticket',
       submitting: 'Issuing…',
       voice: {
