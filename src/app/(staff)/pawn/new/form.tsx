@@ -179,6 +179,7 @@ export default function NewPawnLoanForm({
                 ref={customerPickerRef}
                 name="customer_id"
                 required
+                enableDlScan
                 error={state.fieldErrors?.customer_id}
               />
             </div>

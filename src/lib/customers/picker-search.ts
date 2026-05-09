@@ -10,9 +10,10 @@ export type PickerCustomerResult = {
 
 /**
  * Server-side typeahead for the customer picker. Returns up to 20 matches
- * for the given query. Searches across last_name, first_name, and phone via
- * ilike. Banned customers are excluded — staff intent on banned-list lookup
- * uses /customers?banned=1.
+ * for the given query. Searches across last_name, first_name, phone, and
+ * id_number (driver's license / state ID) via ilike. Banned customers
+ * are excluded — staff intent on banned-list lookup uses
+ * /customers?banned=1.
  *
  * Returns empty array if not signed in, no tenant context, or query too
  * short. RLS scopes results to the caller's tenant — no explicit tenant_id
@@ -41,7 +42,7 @@ export async function searchCustomersForPicker(
     .is('deleted_at', null)
     .eq('is_banned', false)
     .or(
-      `last_name.ilike.${wildcard},first_name.ilike.${wildcard},phone.ilike.${wildcard}`,
+      `last_name.ilike.${wildcard},first_name.ilike.${wildcard},phone.ilike.${wildcard},id_number.ilike.${wildcard}`,
     )
     .order('last_name', { ascending: true })
     .limit(20)
@@ -50,6 +51,43 @@ export async function searchCustomersForPicker(
     id: c.id,
     label: `${c.last_name}, ${c.first_name}${c.phone ? ` · ${c.phone}` : ''}`,
   }))
+}
+
+/**
+ * Exact-match lookup by id_number (driver's license / state ID number).
+ * Used after a DL barcode scan to find an existing customer by the
+ * licenseNumber from the AAMVA payload. Returns null if no match — the
+ * caller surfaces a "create new" prompt.
+ */
+export async function findCustomerByIdNumber(
+  idNumber: string,
+): Promise<PickerCustomerResult | null> {
+  const ctx = await getCtx()
+  if (!ctx || !ctx.tenantId) return null
+
+  const trimmed = idNumber.trim()
+  if (trimmed.length === 0) return null
+
+  const { data } = await ctx.supabase
+    .from('customers')
+    .select('id, first_name, last_name, phone')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .eq('id_number', trimmed)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{
+      id: string
+      first_name: string
+      last_name: string
+      phone: string | null
+    }>()
+
+  if (!data) return null
+  return {
+    id: data.id,
+    label: `${data.last_name}, ${data.first_name}${data.phone ? ` · ${data.phone}` : ''}`,
+  }
 }
 
 /**

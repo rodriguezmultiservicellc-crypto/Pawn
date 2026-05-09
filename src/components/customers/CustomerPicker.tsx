@@ -10,7 +10,10 @@ import {
 } from 'react'
 import { MagnifyingGlass, X, CaretDown } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import DlScanner from '@/components/customers/DlScanner'
+import type { DLInfo } from '@/lib/dl-parser'
 import {
+  findCustomerByIdNumber,
   getCustomerForPicker,
   searchCustomersForPicker,
   type PickerCustomerResult,
@@ -54,6 +57,13 @@ const CustomerPicker = forwardRef<
      *  consumers (e.g., POS cart) that need to read the customer id
      *  outside of FormData submission. Unselect = null. */
     onChange?: (customer: PickerCustomerResult | null) => void
+    /** When true, renders a "Scan ID" button next to the search input.
+     *  Scanning a US driver's license PDF417 barcode triggers an
+     *  exact-match search by id_number. If a customer with that DL is
+     *  found, it's auto-selected. If not, an inline notice surfaces.
+     *  Use on intake flows where physical IDs are required (pawn /
+     *  buy-outright per FL Ch. 539). */
+    enableDlScan?: boolean
   }
 >(function CustomerPicker(
   {
@@ -64,6 +74,7 @@ const CustomerPicker = forwardRef<
     error,
     autoFocus = false,
     onChange,
+    enableDlScan = false,
   },
   ref,
 ) {
@@ -77,6 +88,7 @@ const CustomerPicker = forwardRef<
   const [isOpen, setIsOpen] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(0)
   const [isSearching, startTransition] = useTransition()
+  const [scanNotice, setScanNotice] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -163,6 +175,7 @@ const CustomerPicker = forwardRef<
     setQuery('')
     setResults([])
     setIsOpen(false)
+    setScanNotice(null)
     onChange?.(c)
   }
 
@@ -171,8 +184,28 @@ const CustomerPicker = forwardRef<
     setQuery('')
     setResults([])
     setIsOpen(false)
+    setScanNotice(null)
     onChange?.(null)
     requestAnimationFrame(() => inputRef.current?.focus())
+  }
+
+  function onDlScan(info: DLInfo) {
+    setScanNotice(null)
+    if (!info.licenseNumber) {
+      setScanNotice(cp.scanNoNumber)
+      return
+    }
+    startTransition(async () => {
+      const match = await findCustomerByIdNumber(info.licenseNumber)
+      if (match) {
+        pick(match)
+      } else {
+        const name =
+          [info.firstName, info.lastName].filter(Boolean).join(' ').trim() ||
+          info.licenseNumber
+        setScanNotice(`${cp.scanNoMatch} (${name})`)
+      }
+    })
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -224,28 +257,43 @@ const CustomerPicker = forwardRef<
       {/* Empty hidden input so the form submits an empty value if not
           picked — server-side validation surfaces the "required" error. */}
       {required ? <input type="hidden" name={name} value="" /> : null}
-      <div className="relative">
-        <MagnifyingGlass
-          size={16}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-        />
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          onKeyDown={onKeyDown}
-          onFocus={() => setIsOpen(true)}
-          autoFocus={autoFocus}
-          autoComplete="off"
-          placeholder={cp.placeholder}
-          className="w-full rounded-xl border-2 border-border bg-background py-3 pl-9 pr-9 text-sm text-foreground outline-none transition-colors focus:border-blue"
-        />
-        <CaretDown
-          size={14}
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted"
-        />
+      <div className="flex items-stretch gap-2">
+        <div className="relative flex-1">
+          <MagnifyingGlass
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+          />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            onKeyDown={onKeyDown}
+            onFocus={() => setIsOpen(true)}
+            autoFocus={autoFocus}
+            autoComplete="off"
+            placeholder={enableDlScan ? cp.placeholderWithDl : cp.placeholder}
+            className="w-full rounded-xl border-2 border-border bg-background py-3 pl-9 pr-9 text-sm text-foreground outline-none transition-colors focus:border-blue"
+          />
+          <CaretDown
+            size={14}
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted"
+          />
+        </div>
+        {enableDlScan ? (
+          <DlScanner
+            onResult={onDlScan}
+            label={cp.scanButton}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-blue/40 hover:bg-blue/5 hover:text-blue"
+          />
+        ) : null}
       </div>
+
+      {scanNotice ? (
+        <div className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
+          {scanNotice}
+        </div>
+      ) : null}
 
       {isOpen ? (
         <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-xl border border-border bg-card shadow-lg">

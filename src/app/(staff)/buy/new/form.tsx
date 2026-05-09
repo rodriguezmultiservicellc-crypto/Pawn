@@ -289,6 +289,7 @@ export default function BuyForm({
               <CustomerPicker
                 name="customer_id"
                 required
+                enableDlScan
                 error={fieldError('customer_id')}
                 initialCustomerId={state.values?.customer_id ?? null}
               />
