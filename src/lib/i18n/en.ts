@@ -217,9 +217,9 @@ export const en = {
   customers: {
     title: 'Customers',
     new: 'New customer',
-    viewAnalyticsDashboard: 'View analytics dashboard',
     dashboard: {
-      backToCustomer: 'Back to customer',
+      backToCustomers: 'Back to customers',
+      editCustomer: 'Edit customer',
       customerSince: 'Customer since',
       monthsAbbrev: 'mo',
       bannedFlag: 'BANNED',

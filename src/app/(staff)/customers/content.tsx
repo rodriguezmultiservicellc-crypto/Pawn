@@ -137,7 +137,7 @@ export default function CustomersContent({
                 <tr
                   key={c.id}
                   className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-background"
-                  onClick={() => router.push(`/customers/${c.id}`)}
+                  onClick={() => router.push(`/customers/dashboard/${c.id}`)}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">

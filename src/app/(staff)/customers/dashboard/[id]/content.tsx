@@ -10,10 +10,11 @@ import {
   ShoppingBag,
   Lock,
   Prohibit,
-  TrendUp,
+  PencilSimple,
   Star,
   Clock,
   Receipt,
+  TrendUp,
   Warning,
   CalendarBlank,
 } from '@phosphor-icons/react'
@@ -162,14 +163,23 @@ export default function CustomerAnalyticsDashboard({
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <div className="flex flex-wrap items-start gap-4">
+      <div className="flex items-center justify-between gap-3">
         <Link
-          href={`/customers/${customer.id}`}
+          href="/customers"
           className="inline-flex items-center gap-1 text-sm font-semibold text-muted transition-colors hover:text-blue"
         >
           <ArrowLeft size={14} weight="bold" />
-          {cd.backToCustomer}
+          {cd.backToCustomers}
         </Link>
+        <Link
+          href={`/customers/${customer.id}`}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-blue/40 hover:bg-blue/5 hover:text-blue"
+        >
+          <PencilSimple size={12} weight="bold" />
+          {cd.editCustomer}
+        </Link>
+      </div>
+      <div className="flex flex-wrap items-start gap-4">
         <div className="flex flex-1 items-start gap-4 min-w-0">
           {customer.photo_url ? (
             // eslint-disable-next-line @next/next/no-img-element

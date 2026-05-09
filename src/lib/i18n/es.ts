@@ -213,9 +213,9 @@ export const es: Dictionary = {
   customers: {
     title: 'Clientes',
     new: 'Nuevo cliente',
-    viewAnalyticsDashboard: 'Ver panel analítico',
     dashboard: {
-      backToCustomer: 'Volver al cliente',
+      backToCustomers: 'Volver a clientes',
+      editCustomer: 'Editar cliente',
       customerSince: 'Cliente desde',
       monthsAbbrev: 'mes',
       bannedFlag: 'BLOQUEADO',
