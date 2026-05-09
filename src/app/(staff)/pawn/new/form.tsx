@@ -226,25 +226,8 @@ export default function NewPawnLoanForm({
               </div>
             ) : null}
 
-            {/* Collateral — first thing inside the reveal. Each row
-                begins with its own CategoryPicker, then exposes the
-                rest of the item fields once a category is chosen. */}
-            <fieldset className="rounded-xl border border-border bg-card p-4">
-              <legend className="px-1 text-sm font-semibold text-foreground">
-                {t.pawn.new_.sectionCollateral}
-              </legend>
-              <p className="mt-1 text-xs text-muted">
-                {t.pawn.new_.itemMinOne}
-              </p>
-              <div className="mt-2">
-                <CollateralItemsList
-                  ref={collateralRef}
-                  categories={categories}
-                />
-              </div>
-            </fieldset>
-
-            {/* Terms */}
+            {/* Terms — placed before collateral so the operator
+                locks principal / rate / term first, then itemizes. */}
             <fieldset className="rounded-xl border border-border bg-card p-4">
               <legend className="px-1 text-sm font-semibold text-foreground">
                 {t.pawn.new_.sectionTerms}
@@ -402,6 +385,25 @@ export default function NewPawnLoanForm({
                     className="block w-full rounded-md border border-border bg-background/50 px-3 py-2 text-muted"
                   />
                 </label>
+              </div>
+            </fieldset>
+
+            {/* Collateral — itemized after the terms are locked. Each
+                row begins with its own CategoryPicker, then exposes
+                the rest of the item fields once a category is
+                chosen. */}
+            <fieldset className="rounded-xl border border-border bg-card p-4">
+              <legend className="px-1 text-sm font-semibold text-foreground">
+                {t.pawn.new_.sectionCollateral}
+              </legend>
+              <p className="mt-1 text-xs text-muted">
+                {t.pawn.new_.itemMinOne}
+              </p>
+              <div className="mt-2">
+                <CollateralItemsList
+                  ref={collateralRef}
+                  categories={categories}
+                />
               </div>
             </fieldset>
 
