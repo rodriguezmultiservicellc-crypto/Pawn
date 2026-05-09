@@ -13,127 +13,249 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 36 (2026-05-09, second pass)
-                  — CUSTOMER ANALYTICS DASHBOARD AT
-                  /customers/dashboard/[id].
+  Last session:   Session 37 (2026-05-09, third pass)
+                  — CUSTOMER UX OVERHAUL + MARKET DATA
+                  WAREHOUSE + PAWN INTAKE WIZARD WITH
+                  HIERARCHICAL CATEGORIES.
 
-                  Phase 1 redesign initiative slice 2:
-                  per-customer analytics page showing
-                  lifetime activity across pawns / sales
-                  / repairs / layaways, plus pawn
-                  behavior metrics, 12-month trends, lost
-                  pawns, and a unified 60-day activity
-                  feed.
+                  Big session. Three major lines of work
+                  shipped + a sweep of customer-flow
+                  improvements:
 
-                  Sections in render order:
-                  (1) Header — photo (or initials block),
-                      name, "Customer since" + months,
-                      phone/email, banned flag.
-                  (2) Lifetime stats — module-gated tiles:
-                      Pawns / Loaned / Active / Lost /
-                      Sales / Spent / Repairs / Layaways /
-                      Interest paid / Extensions /
-                      On-time payoff% / Loyalty pts.
-                  (3) Pawn behavior — Avg principal,
-                      redemption %, forfeit %, extension
-                      %, avg days late.
-                  (4) 12-month trends — pure-SVG stacked
-                      bars per module (no Recharts).
-                  (5) Lost pawns — forfeited loans with
-                      collateral descriptions + grams.
-                  (6) Recent activity — unified feed
-                      across loan_events / sales /
-                      repairs / layaways, last 60 days,
-                      capped at 50 rows.
+                  (1) CUSTOMER FLOW REDESIGN
+                  - Stat-card density on /customers/
+                    dashboard/[id] tightened twice
+                    (commits 33c420d, 14114b6) — now
+                    8 cards per row at lg, smaller
+                    padding, smaller value font.
+                  - Nav flow INVERTED (commit e5694ab):
+                    /customers list rows now open the
+                    analytics dashboard, NOT the edit
+                    page. Dashboard header gets a
+                    "← Back to customers" link plus an
+                    "✏ Edit customer" pill that goes
+                    to /customers/[id]. The
+                    "view analytics" pill on the edit
+                    page was removed.
+                  - Customer dashboard behavior block
+                    split into 4 tabs (commit c6531a7):
+                    Pawn / Sales / Layaway / Custom
+                    orders. Each tab module-gated; new
+                    metrics computed in page.tsx for
+                    sales (avg/largest/recency/freq),
+                    layaway (avg total/active/paid%/
+                    outstanding), repairs (avg balance/
+                    active/completed/most-common type).
 
-                  Bilingual EN+ES via the new
-                  customers.dashboard.* block (~25 keys
-                  each in en.ts + es.ts).
+                  (2) CUSTOMER PICKER ROLLOUT
+                  - 500-cap <select> dropdown replaced
+                    with server-typeahead across all 5
+                    forms (commit fac09eb): /pawn/new,
+                    /repair/new, /pos/sales/new (Cart),
+                    /buy/new (was raw UUID input!),
+                    /appraisals/new. Shared
+                    src/components/customers/
+                    CustomerPicker.tsx + searchCustomers
+                    ForPicker server action. ilike on
+                    last/first/phone, top 20, 250ms
+                    debounce, keyboard nav (↑↓ Enter
+                    Esc), imperative handle for voice
+                    intake prefill, onChange callback
+                    for non-form consumers.
+                  - DL number search + Scan ID button
+                    (commit 8164604): id_number added
+                    to the search OR clause + new
+                    findCustomerByIdNumber() helper.
+                    Picker exposes an enableDlScan prop;
+                    when on, renders the Session-18
+                    DlScanner. On scan, exact-match
+                    lookup, auto-pick if found, "no
+                    match" notice if not. Enabled on
+                    /pawn/new + /buy/new only (FL Ch.
+                    539 ID-required surfaces).
 
-  Context budget: ~62% at save time.
-  Last worked on: Customer analytics dashboard route.
-                  tsc clean. Awaiting browser smoke.
+                  (3) MARKET DATA WAREHOUSE — Phase A+B
+                  (commit e1c7a17)
+                  - patches/0036-market-data-points.sql:
+                    new market_data_points table (cross-
+                    tenant), pgvector extension, 4
+                    triggers (loans, loan_collateral_
+                    items, sales-completed, inventory-
+                    bought), tenants.share_market_data
+                    opt-out flag, market_data_search_
+                    by_embedding RPC, RLS=superadmin-
+                    only-read, no INSERT/UPDATE/DELETE
+                    policies (only service-role +
+                    SECURITY DEFINER triggers write).
+                  - src/lib/market-data/embed.ts:
+                    OpenAI text-embedding-3-small batch
+                    embedder (50 rows/call, ~$0.0001/
+                    100 rows).
+                  - src/app/api/cron/embed-market-data:
+                    15-min cron (vercel.json updated)
+                    drains the unembedded backlog FIFO.
+                  - /admin/market-data: superadmin
+                    search UI with category/state/
+                    date filters, similarity threshold
+                    slider, P25/P50/P75/mean per
+                    transaction type, sample rows.
+                  - Forward-only collection. Backfill
+                    deferred (Phase C).
 
-  ACTIVE FILE(S) modified this session — Session 36:
+                  (4) PAWN INTAKE WIZARD WITH NESTED
+                  CATEGORIES
+                  - patches/0037-pawn-intake-categories.
+                    sql (commit 725b9a1, then bug fix
+                    commit 56d53ea — tenants uses
+                    is_active not deleted_at):
+                    pawn_intake_categories table
+                    (per-tenant), tenants.has_firearms
+                    BOOLEAN DEFAULT FALSE, 5 default
+                    categories seeded (Jewelry /
+                    Electronics / Firearms / Tools /
+                    General), seed_pawn_intake_
+                    categories() helper, AFTER INSERT
+                    trigger on tenants for auto-seed.
+                  - patches/0038-pawn-intake-
+                    subcategories.sql (commit 63439f9):
+                    parent_id self-FK, replaced
+                    UNIQUE(tenant_id, slug) with index
+                    scoped by COALESCE(parent_id, ZERO),
+                    seed_pawn_intake_subcategories()
+                    helper seeds 18 default subs.
+                  - /pawn/new: cascading wizard step 1
+                    (top-tile → sub-tile row → form
+                    reveal). CategoryBanner shows
+                    "Jewelry → Ring [Change]". Voice
+                    intake auto-picks 'general' to skip
+                    the picker.
+                  - /settings/pawn-categories: CRUD
+                    page (list nested with subs
+                    indented under their parent +
+                    "+ Add sub" button) + has_firearms
+                    toggle (owner / chain_admin only).
 
-    --- NEW ROUTE ---
-    - src/app/(staff)/customers/dashboard/[id]/page.tsx
-      (server component; parallel queries across
-       loans / loan_events / sales / repair_tickets /
-       layaways / loan_collateral_items; all
-       aggregations done in JS in-memory; module-
-       gated by hasPawn/hasRepair/hasRetail; on-time
-       % derived from redemption events vs due_date
-       (no grace period applied))
+  Context budget: ~70% at save time.
+  Last worked on: Sub-categories cascade + settings
+                  nesting. tsc + lint clean. Awaiting
+                  operator to apply migrations 0036 +
+                  0037 + 0038 in order.
 
+  ACTIVE FILE(S) modified this session — Session 37
+  (10 commits, all live on production after migration
+  application):
+
+    --- Customer dashboard density + flow ---
     - src/app/(staff)/customers/dashboard/[id]/
-      content.tsx
-      (client component, ~480 LOC; 6 sections;
-       StatCard + Metric + TrendChart helpers;
-       pure-SVG stacked-bar chart, 12 monthly
-       buckets; iconForActivityKind + labelFor
-       Activity helpers; formatMoney + relativeDate
-       utilities)
-
-    --- MODIFIED ---
-    - src/lib/i18n/en.ts
-      (new t.customers.dashboard block + new
-       t.customers.viewAnalyticsDashboard string)
-
-    - src/lib/i18n/es.ts
-      (matching ES translations:
-       'Empeños perdidos', 'Pagos a tiempo',
-       'Tasa de rescate', 'Tendencias', etc.)
-
+      content.tsx (density + 8-up + behavior tabs +
+      Edit-customer link)
+    - src/app/(staff)/customers/dashboard/[id]/
+      page.tsx (added sales/layaway/repair behavior
+      computation)
+    - src/app/(staff)/customers/content.tsx (row
+      click → /customers/dashboard/[id])
     - src/app/(staff)/customers/[id]/content.tsx
-      (added TrendUp Phosphor import + new
-       "View analytics dashboard" link in the top-
-       right action area, next to the banned badge)
+      (removed view-dashboard pill + TrendUp import)
+
+    --- Shared customer picker ---
+    - src/lib/customers/picker-search.ts (NEW —
+      searchCustomersForPicker, getCustomerForPicker,
+      findCustomerByIdNumber)
+    - src/components/customers/CustomerPicker.tsx
+      (NEW — typeahead + DL scan integration +
+      imperative handle + onChange + initialCustomerId)
+
+    --- Picker rollout (5 forms + Cart) ---
+    - src/app/(staff)/pawn/new/{page,form}.tsx
+      (typeahead + voice prefill via ref + DL scan
+      + category wizard step)
+    - src/app/(staff)/repair/new/{page,form}.tsx
+    - src/app/(staff)/pos/sales/new/{page,form}.tsx
+    - src/components/pos/Cart.tsx (CustomerOption
+      type removed; uses picker now)
+    - src/app/(staff)/buy/new/form.tsx (was raw
+      UUID input → real picker + DL scan)
+    - src/app/(staff)/appraisals/new/{page,form}.tsx
+
+    --- Market data warehouse ---
+    - patches/0036-market-data-points.sql (NEW)
+    - src/lib/market-data/embed.ts (NEW)
+    - src/app/api/cron/embed-market-data/route.ts
+      (NEW)
+    - vercel.json (added embed-market-data cron)
+    - src/app/(admin)/admin/market-data/{page,
+      content,actions}.tsx (NEW)
+    - src/app/(admin)/layout.tsx (added Market data
+      header link)
+
+    --- Pawn intake wizard ---
+    - patches/0037-pawn-intake-categories.sql (NEW
+      — fixed in 56d53ea: is_active not deleted_at)
+    - patches/0038-pawn-intake-subcategories.sql
+      (NEW)
+    - src/components/pawn/CategoryPicker.tsx (NEW
+      — cascading top→sub picker + CategoryBanner)
+    - src/app/(staff)/settings/pawn-categories/
+      {page,content,actions}.tsx (NEW — CRUD +
+      has_firearms toggle + nested list view +
+      parent dropdown)
+    - src/app/(staff)/settings/content.tsx (added
+      Pawn categories card)
+
+    --- i18n ---
+    - src/lib/i18n/en.ts + es.ts (customers.dashboard,
+      customers.dashboard.behavior tabs, common.
+      customerPicker, pawn.new_.category*)
 
   RESUME POINT:
-    Browser-smoke /customers/dashboard/[id] on
-    production. Use a customer that actually has
-    history (loans, sales, etc.) — for an empty
-    customer the page renders but every card shows
-    0 / dashes. Operator pasted
-    /customers/dashboard/ff884c8e-a8ce-4c88-bb99-
-    f951373d4c4e as the test ID; that's the URL to
-    hit.
+    Operator must apply THREE SQL migrations in order
+    in Supabase before any of the new features work:
 
-    Then click the new "View analytics dashboard"
-    button on /customers/[id] to confirm the
-    forward link works. Confirm module-gating: a
-    jewelry-only shop with has_pawn=false should
-    NOT see pawn cards, the pawn-behavior block,
-    the lost-pawns section, or the gold trend
-    bars.
+      patches/0036-market-data-points.sql
+        (enables pgvector, creates warehouse,
+         triggers, RPC, RLS — superadmin-only read)
+      patches/0037-pawn-intake-categories.sql
+        (already partially run; full re-run is
+         idempotent and safe — fixes the deleted_at
+         bug + completes the backfill)
+      patches/0038-pawn-intake-subcategories.sql
+        (adds parent_id, drops/replaces unique
+         constraint, seeds 18 default subs)
 
-    Areas worth eyeballing during smoke:
-    - On-time % math: with no grace period, a
-      same-day redemption shows on-time. If the
-      operator wants a grace window applied, point
-      me at where it lives in settings (likely
-      tenant rate config).
-    - Forfeit rate denominator is decided loans
-      (redeemed + forfeited), not all loans.
-      Active / extended / partial-paid loans don't
-      count. If operator prefers all-loans
-      denominator, easy fix.
-    - 12-month chart Y-axis is implicit — no
-      labels. If empty months should still show
-      a thin bar, that's a tweak.
+    Then: `npm run db:types` to regen database.ts
+    so the boundary casts in code become unnecessary.
 
-    AFTER ANALYTICS SMOKE: voice intake (Session
-    34 carry-over) still awaits OpenAI key. Then
-    next Phase 1 redesign slice — TBD with operator.
-    Candidates: /pawn/new layout density, /
-    customers/new ID-capture flow, sidebar IA,
-    /pos cart density.
+    Then: confirm OPENAI_API_KEY is set in Vercel
+    Production env (gates voice intake from
+    Session 34 AND now also gates market-data
+    embedding cron and admin lookup).
 
-    AFTER PHASE-1 PROGRESS: Session 32 carry-over
-    agenda — Luna Azul design pass walkthrough,
-    backpage smoke (Session 27), 9-smoke sequence
-    (A-I), Phase 0 punch list (CRON_SECRET +
+    Then: smoke each surface in this order:
+    (a) /pawn/new — wizard step 1 should show
+        4 tiles (Jewelry/Electronics/Tools/General;
+        Firearms hidden until has_firearms is
+        flipped on at /settings/pawn-categories).
+        Click Jewelry — sub-row appears with
+        Rings/Chains/Bracelets/etc. Pick a sub —
+        rest of form reveals. Customer picker at
+        the top should typeahead search by
+        name/phone/DL with the Scan ID button next
+        to it.
+    (b) /customers — clicking a row should now
+        open /customers/dashboard/[id] (NOT the
+        edit page). Dashboard should show 8 stat
+        cards per row, behavior tabs across the
+        bottom, Edit-customer pill in the top-right.
+    (c) /admin/market-data — superadmin search.
+        Initially zero rows; after a couple of
+        pawn/sale transactions go through, the
+        warehouse will collect rows + the cron
+        will embed them within 15 min.
+
+    AFTER SMOKE: previous-session carry-over still
+    pending — Session 32 design walkthrough,
+    backpage smoke (S27), 9-smoke sequence (A-I),
+    Phase 0 punch list (CRON_SECRET +
     RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY +
     OPENAI_API_KEY + secret rotations), email-
     campaign UI, Stripe Connect, eBay de-stub,
@@ -141,96 +263,136 @@ SEE ALSO (do not duplicate here):
     FL LeadsOnline format, Phase 8 mobile audit.
 
   OPEN ISSUES / BLOCKERS:
-    - Customer dashboard not yet smoked in browser
-      (typecheck passes; no live verification of
-      empty-state, gated, full-history views, or
-      the SVG chart at narrow widths).
-    - Voice intake awaiting OpenAI key (Session 34
+    - 3 SQL migrations pending application: 0036,
+      0037 (re-run), 0038. All idempotent, must be
+      applied in order.
+    - pgvector extension may need to be enabled
+      manually via Supabase dashboard if 0036
+      fails on CREATE EXTENSION.
+    - npm run db:types pending — code currently
+      uses boundary casts (as never / as any) for
+      the 3 new tables (market_data_points,
+      pawn_intake_categories, plus the new column
+      tenants.has_firearms).
+    - OPENAI_API_KEY still pending (Session 34
+      voice + new for market-data embed + market-
+      data lookup).
+    - 9 smokes never run for new code.
+    - Voice intake awaiting OpenAI key (S34
       carry-over).
-    - Session 32 + 33 + 34 carry-over agenda above.
+    - Session 32+33+34 carry-over agenda above.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 36):
-    - PURE-SVG TRENDS CHART, NO RECHARTS DEPENDENCY.
-      CLAUDE.md says Recharts is in the stack, but
-      it's not actually in package.json — no chart
-      library is currently installed. Rather than
-      introduce a 250KB+ client dep for a 12-bar
-      stacked chart, built it in pure SVG (~30 lines)
-      that themes directly with Luna Azul tokens.
-      If a future need requires line / radar /
-      pie / interactive zoom, install Recharts
-      then; for now SVG is correct.
-    - URL FORMAT: /customers/dashboard/[id], NOT
-      /customers/[id]/dashboard. Honored exactly
-      what operator pasted (ff884c8e... after
-      /customers/dashboard/). Both Next route
-      patterns work; literal-segment-then-id is
-      what they asked for.
-    - JS-IN-MEMORY AGGREGATION (NOT RPCS). Pulls
-      all of a customer's loans / sales / repairs /
-      layaways / loan_events in 5 parallel queries,
-      then aggregates with reduce/filter in the
-      page handler. For most customers (<1k rows
-      total) this is fast and trivially auditable.
-      If profiling shows it's slow on power-users
-      with thousands of transactions, can move to
-      Postgres aggregate functions or RPCs.
-    - ON-TIME % USES NO GRACE PERIOD. v1 math:
-      redemption.occurred_at <= loan.due_date =>
-      on-time. If operator wants a settings-driven
-      grace window (e.g., FL pawn statute allows N
-      days), wire it in next.
-    - FORFEIT RATE = forfeited / (redeemed +
-      forfeited). Active / extended / partial-paid
-      loans aren't decided yet, so they're
-      excluded from the denominator. Same for
-      redemption rate. v1 choice; operator can
-      flip to all-loans denominator if preferred.
-    - LOST PAWNS LIST PULLS COLLATERAL ITEMS BY
-      SOFT-LOOKUP. Map of loan_id -> items[]
-      built from a single .in('loan_id',
-      forfeitedIds) query. Avoids N+1.
-    - "VIEW ANALYTICS DASHBOARD" LINK PLACEMENT.
-      Top-right of /customers/[id], next to the
-      banned badge. Hover state borders blue;
-      icon is Phosphor TrendUp. Uses existing
-      action-area pattern; no new component.
+  KEY DECISIONS LOCKED THIS SESSION (Session 37):
+    - CUSTOMER PICKER ARCHITECTURE — server
+      typeahead with debounced ilike, no client-side
+      filter. Top 20 results. Same picker reused
+      across 5 forms via prop config (enableDlScan,
+      initialCustomerId, onChange, ref). One server
+      action (searchCustomersForPicker). Picker
+      manages its own selection state internally;
+      forms read via the hidden input or via the
+      onChange callback.
+    - CUSTOMER NAV: /customers list → DASHBOARD
+      first. Edit page is reached via the Edit pill
+      on the dashboard. Inverts the prior flow.
+      Operator confirmed via direct request.
+    - MARKET DATA = ANONYMIZED + SUPERADMIN-ONLY.
+      source_tenant_id stored for audit but NEVER
+      returned downstream. RLS policy = read only
+      when profiles.role='superadmin'. No INSERT/
+      UPDATE/DELETE policies — only service-role +
+      SECURITY DEFINER triggers + the search RPC
+      can write or query. Per-tenant opt-out via
+      tenants.share_market_data (default TRUE).
+    - PGVECTOR + OPENAI EMBEDDINGS, NOT RECHARTS.
+      The lookup uses pgvector cosine similarity
+      via market_data_search_by_embedding RPC.
+      Embedding model = text-embedding-3-small
+      (1536 dims). No client-side chart library
+      added — admin UI uses pure stat-tile cards.
+    - FORWARD-ONLY COLLECTION. Triggers fire on
+      new transactions starting after migration
+      0036. Historical backfill is Phase C
+      (deferred until query patterns validated).
+    - PAWN CATEGORIES = TWO-LEVEL HIERARCHY,
+      OPERATOR-EDITABLE. Top-levels have
+      parent_id IS NULL; subs point to a parent
+      via self-FK with ON DELETE CASCADE. Unique
+      index scoped by COALESCE(parent_id, ZERO_
+      UUID) so a sub of one top can share a slug
+      with a sub of another top. Picker drilled-
+      in state local to component; onPick fires
+      when (a) sub is clicked OR (b) top with no
+      subs is clicked. Voice intake auto-picks
+      'general' (no subs) so the wizard never
+      blocks voice flow.
+    - HAS_FIREARMS GATE = OWNER/CHAIN_ADMIN ONLY.
+      Manager can edit category list but cannot
+      flip has_firearms (FFL is a compliance
+      boundary). Default FALSE so no shop
+      accidentally thinks it can pawn firearms
+      through this app — currently the wizard
+      tile is the ONLY work product; there's no
+      4473/NICS workflow yet (Phase 3, deferred).
+    - PHOSPHOR HAS NO GUN ICON. Used Crosshair
+      as the closest semantic fit for the
+      Firearms tile + sub-tiles. Operator-
+      editable in /settings/pawn-categories
+      icon picker.
+    - REACT-HOOKS/STATIC-COMPONENTS LINT WORKAROUND
+      = createElement(). The CategoryIcon wrapper
+      uses createElement(iconFor(name), {...})
+      instead of `const Icon = iconFor(...);
+      <Icon ... />` because the linter can't see
+      that the lookup is referentially stable.
+      Pattern documented for future icon-by-name
+      wrappers.
+    - TENANTS USES is_active NOT deleted_at FOR
+      SOFT-SUSPEND. The 0037 migration originally
+      filtered by deleted_at IS NULL in the
+      backfill loop and failed. Fixed in 56d53ea.
+      Worth a CLAUDE.md gotcha entry for future
+      migration authors. (See KNOWN GOTCHAS list
+      below.)
+    - BOUNDARY-CAST PATTERN FOR NOT-YET-TYPED
+      TABLES. New tables/RPCs created by 0036/
+      0037/0038 don't appear in generated database
+      types until `npm run db:types` runs post-
+      migration. Code uses targeted (admin.from
+      as any)('table_name') + as unknown as T
+      casts at the call boundary. Pattern: same
+      file as the original cast comment, easy to
+      grep `boundary cast` if/when types are
+      regenerated and the casts can be removed.
 
   IMPORTANT CONSTANTS / PATHS:
-    - Route: /customers/dashboard/[id]
-      (literal-segment-then-id, NOT nested under
-       /customers/[id])
-    - Server file: src/app/(staff)/customers/
-      dashboard/[id]/page.tsx
-    - Client file: src/app/(staff)/customers/
-      dashboard/[id]/content.tsx
-    - Activity-window: 60 days (sixtyDaysAgo
-      constant in page.tsx)
-    - Activity-cap: 50 rows (slice in render call)
-    - Trend-window: 12 months (loop in page.tsx
-      bucketing)
-    - i18n root: t.customers.dashboard.*
-    - Forward-link string: t.customers.
-      viewAnalyticsDashboard
-    - Phosphor icons used (client only): ArrowLeft
-      / Coins / CashRegister / Wrench / ShoppingBag
-      / Lock / Prohibit / TrendUp / Star / Clock /
-      Receipt / Warning / CalendarBlank
-    - Module gates loaded same way as everywhere
-      else: tenant.has_pawn / has_repair /
-      has_retail
-    - Loan event types we read: 'payment',
-      'redemption', 'extension'
-    - Loan statuses we count: 'redeemed' (decided,
-      on-time vs late) and 'forfeited' (decided,
-      forfeit rate). 'active' / 'extended' /
-      'partial_paid' contribute to "active" tile
-      but not the rate calculations.
+    - Customer picker: src/components/customers/
+      CustomerPicker.tsx + src/lib/customers/
+      picker-search.ts. Imperative handle:
+      ref?.current.set(c) / clear()
+    - Market data warehouse: market_data_points
+      table + market_data_search_by_embedding RPC
+    - Embed cron: /api/cron/embed-market-data,
+      schedule "*/15 * * * *", auth Bearer
+      CRON_SECRET
+    - Pawn categories: pawn_intake_categories
+      table, tenants.has_firearms flag
+    - Settings UI: /settings/pawn-categories
+    - Admin UI: /admin/market-data (superadmin
+      only via proxy.ts gate + double-checked in
+      page.tsx)
+    - i18n roots:
+      t.customers.dashboard.behaviorTab*,
+      t.customers.dashboard.sales*/.layaway*/
+      .repair*/.serviceType*,
+      t.common.customerPicker.*,
+      t.pawn.new_.category*
 
-  (Sessions 13-35 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-36 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
+
 
 ================================================================================
 PHASE OVERVIEW
@@ -1694,6 +1856,290 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 37 (2026-05-09, third pass) — Customer flow overhaul + market data warehouse + pawn intake wizard ---
+
+ 302. CUSTOMER DASHBOARD STAT-CARD DENSITY PASS
+     (commits 33c420d + 14114b6). Lifetime stats
+     grid on /customers/dashboard/[id] was too
+     visually heavy. Two-step tightening:
+     (a) p-4→p-2.5, h-8 w-8 chip→h-5 w-5,
+         text-2xl→text-lg, gap-2→gap-1, label
+         text-xs→text-[10px] with truncate.
+         Grid bumped from 2/4 to 2/3/4/6
+         responsive cols.
+     (b) lg:grid-cols-6 → lg:grid-cols-8.
+     Card height drops ~40%. 12-card grid now
+     fits in 2 rows on desktop instead of 3.
+     File: src/app/(staff)/customers/dashboard/
+           [id]/content.tsx
+
+ 303. CUSTOMER NAVIGATION FLOW INVERTED (commit
+     e5694ab). Operator request: "/customers
+     list when customer selected opens dashboard,
+     edit customer is from dashboard." Done:
+     - src/app/(staff)/customers/content.tsx:
+       row onClick router.push to /customers/
+       dashboard/[id] (was /customers/[id]).
+     - src/app/(staff)/customers/dashboard/[id]/
+       content.tsx: top-left "← Back to
+       customers" now points to /customers (the
+       list, not the edit page). New top-right
+       pill "✏ Edit customer" links to
+       /customers/[id].
+     - src/app/(staff)/customers/[id]/content.tsx:
+       removed the "View analytics dashboard"
+       pill (no longer the entry point) +
+       removed unused TrendUp icon import.
+     - i18n keys backToCustomers (renamed from
+       singular) + editCustomer + removed
+       viewAnalyticsDashboard.
+
+ 304. CUSTOMER DASHBOARD BEHAVIOR SECTION → 4
+     MODULE-GATED TABS (commit c6531a7).
+     Operator request: "in pawn behavior break
+     that in 4 tabs pawn behaviour, sales
+     behaviour, Layway, Custom Orders (repairs)".
+     Replaced single Pawn-only metrics block
+     with a tabbed BehaviorSection.
+     - Tabs: Pawn / Sales / Layaway / Custom
+       orders (the dashboard label for repairs).
+     - Module-gated — Sales+Layaway hide on
+       !has_retail, Custom orders on !has_repair.
+     - First visible tab is the default.
+     - New metrics computed in page.tsx:
+       sales: avgSale, largestSale,
+         daysSinceLastSale, avgDaysBetweenSales,
+         completedCount
+       layaway: avgTotal, activeCount,
+         avgPaidPct, totalOutstanding, totalCount
+       repair: avgBalance, activeCount,
+         completedCount, mostCommonType (mode of
+         service_type), totalCount
+     - i18n: t.customers.dashboard.behaviorTab*,
+       sales*, layaway*, repair*, serviceType*
+       blocks added to en.ts + es.ts.
+     Files: src/app/(staff)/customers/dashboard/
+            [id]/{content,page}.tsx
+
+ 305. CUSTOMER PICKER TYPEAHEAD ROLLOUT (commit
+     fac09eb). Replaces the legacy 500-cap
+     <select> dropdown across ALL 5 customer-
+     intake forms. Server action ilike search
+     against last_name + first_name + phone, top
+     20 matches, 250ms debounce, keyboard nav
+     (↑↓ Enter Esc).
+     - NEW src/lib/customers/picker-search.ts:
+       searchCustomersForPicker(query),
+       getCustomerForPicker(id) for validation-
+       echo restoration.
+     - NEW src/components/customers/CustomerPicker.
+       tsx (forwardRef): name= for hidden form
+       input, initialCustomer / initialCustomerId
+       prefill, onChange callback for non-form
+       consumers (POS Cart), imperative handle
+       set()/clear() for voice intake prefill.
+     - Wired into 5 forms; each form drops the
+       customers-fetch in its page.tsx
+       (saving ~50KB of payload per intake page):
+         /pawn/new/{page,form}.tsx
+         /repair/new/{page,form}.tsx
+         /pos/sales/new/{page,form}.tsx +
+           components/pos/Cart.tsx
+         /buy/new/form.tsx (was raw "paste UUID"
+           input — major UX upgrade)
+         /appraisals/new/{page,form}.tsx
+     - Lifts the silent 500-customer cap that
+       was masking customer #501+ from intake.
+     - i18n: common.customerPicker block (en+es).
+
+ 306. CUSTOMER PICKER DL NUMBER SEARCH + SCAN ID
+     BUTTON (commit 8164604). Two enhancements
+     to the typeahead:
+     - Text search now matches against id_number
+       (DL/state ID) in addition to name/phone.
+       OR clause extended:
+         last_name.ilike, first_name.ilike,
+         phone.ilike, id_number.ilike.
+     - New enableDlScan prop renders a "Scan ID"
+       button next to the search input. Reuses
+       the Session-18 DlScanner (PDF417 USB
+       scanner). On scan, runs exact-match
+       findCustomerByIdNumber(licenseNumber);
+       auto-selects if found, surfaces an
+       inline amber "no match" notice if not.
+       Operator clicks the form's existing "+
+       New customer" link to create one (no
+       auto-prefill yet — that's a follow-up).
+     - Enabled on /pawn/new + /buy/new only
+       (FL Ch. 539 ID-required intake surfaces).
+       Repair / sales / layaway / appraisals
+       keep the plain picker.
+     - i18n: customerPicker.scanButton,
+       scanNoMatch, scanNoNumber, placeholderWith
+       Dl.
+
+ 307. MARKET DATA WAREHOUSE — PHASE A + B
+     (commit e1c7a17). Cross-tenant pricing
+     aggregation module. Anonymized data layer
+     where every pawn loan, retail sale, and
+     buy-outright transaction emits one row at
+     write time. Admin queries answer "what's
+     the market for an iPhone 7 64GB blue?"
+     with stats like pawn p25/p50/p75, retail
+     p25/p50/p75, last 90 days.
+     - patches/0036-market-data-points.sql: NEW
+       market_data_points table (1536-dim
+       vector embedding column for OpenAI text-
+       embedding-3-small), per-tenant
+       tenants.share_market_data flag, 4
+       triggers (loans, loan_collateral_items,
+       sales-completed, inventory-bought),
+       market_data_search_by_embedding RPC,
+       RLS=superadmin-only-read, NO INSERT/
+       UPDATE/DELETE policies (only service-role
+       + SECURITY DEFINER triggers + the search
+       RPC can read or write).
+     - src/lib/market-data/embed.ts: OpenAI
+       text-embedding-3-small batch embedder,
+       50 rows per call, idempotent.
+     - src/app/api/cron/embed-market-data/
+       route.ts: 15-min cron drains unembedded
+       backlog FIFO. Auth = Bearer CRON_SECRET.
+       audit_log row with tenant_id NULL.
+     - vercel.json: added schedule "*/15 * * * *".
+     - /admin/market-data: superadmin search UI
+       at src/app/(admin)/admin/market-data/
+       {page,content,actions}.tsx. Search input,
+       category/state/date filters, similarity
+       threshold slider, P25/P50/P75/mean per
+       transaction type, sample rows
+       (anonymized — no shop attribution).
+     - src/app/(admin)/layout.tsx: added "Market
+       data" header link.
+     - This is the ONE place in the schema that
+       deliberately violates tenant isolation.
+       source_tenant_id stored for audit but
+       NEVER returned downstream.
+     - Forward-only collection. Backfill is
+       Phase C (deferred).
+
+ 308. PAWN INTAKE WIZARD — STEP 1 CATEGORY TILES
+     (commit 725b9a1). Operator request: "add
+     a panel with buttons this represent pawn
+     category types ... once chosen are going
+     to move us to the next step in a wizard
+     type style". Built as a single-page wizard
+     where step 1 = category picker, step 2 =
+     existing form, transition is in-page.
+     - patches/0037-pawn-intake-categories.sql:
+       NEW pawn_intake_categories table (per-
+       tenant, RLS read=member, write=manager+),
+       NEW tenants.has_firearms BOOLEAN DEFAULT
+       FALSE, seed_pawn_intake_categories()
+       helper, AFTER INSERT trigger on tenants
+       for auto-seed of new tenants. Backfill
+       loops over existing tenants. Default
+       categories: jewelry / electronics /
+       firearms / tools / general.
+     - src/components/pawn/CategoryPicker.tsx:
+       tile-grid picker + CategoryBanner (shows
+       picked category with Change button).
+       Uses Phosphor icons via stable
+       createElement wrapper (CategoryIcon)
+       to satisfy react-hooks/static-
+       components.
+     - /pawn/new gates the rest of the form
+       behind a chosen category; hidden input
+       pawn_category=<slug> rides on submit.
+       Voice intake auto-picks 'general' to
+       skip the picker.
+     - /settings/pawn-categories: NEW CRUD page
+       (list / add / edit / soft-delete) +
+       has_firearms toggle (owner /
+       chain_admin only). Inline English copy
+       (matches existing settings convention,
+       no i18n).
+     - /settings hub gets a new "Pawn
+       categories" card.
+     - Phosphor doesn't ship a Gun icon —
+       Crosshair is the closest fit, mapped via
+       ICON_MAP['Gun'] alias.
+
+ 309. MIGRATION 0037 BACKFILL FIX (commit
+     56d53ea). Operator hit error:
+     `column "deleted_at" does not exist` when
+     applying 0037. Root cause: tenants table
+     uses `is_active BOOLEAN` for soft-suspend,
+     not the `deleted_at TIMESTAMPTZ` pattern
+     other tables use. Fixed the backfill DO
+     block to loop over ALL tenant rows (the
+     ON CONFLICT DO NOTHING in the seed
+     function makes per-row work idempotent).
+     The whole migration is idempotent so
+     re-running is safe.
+
+ 310. PAWN INTAKE SUB-CATEGORIES — TWO-LEVEL
+     HIERARCHY (commit 63439f9). Operator
+     request: "we just added categories i would
+     also like to add sub categories". Cascading
+     wizard step 1 — pick top-level → sub-tile
+     row reveals → pick sub → advance to step 2.
+     Top-levels with no subs (General) advance
+     directly.
+     - patches/0038-pawn-intake-subcategories.sql:
+       ADD COLUMN parent_id UUID self-FK with
+       ON DELETE CASCADE. DROP UNIQUE(tenant_id,
+       slug), CREATE UNIQUE INDEX scoped by
+       COALESCE(parent_id, '00000000-...'::
+       UUID) so a sub of one top can share a
+       slug with a sub of another top.
+       seed_pawn_intake_subcategories() seeds 18
+       defaults (Jewelry: Rings/Chains/Bracelets/
+       Earrings/Pendants/Watches; Electronics:
+       Phones/Laptops/Tablets/Consoles/Audio/TVs;
+       Firearms: Handguns/Rifles/Shotguns;
+       Tools: Power tools/Hand tools/Yard tools;
+       General: none — catch-all). tenant
+       AFTER INSERT trigger updated to call
+       both seeders. Backfill loops existing
+       tenants.
+     - CategoryPicker rewritten with internal
+       drilledTop state. CategoryBanner shows
+       "Jewelry → Ring [Change]".
+     - /pawn/new/page.tsx fetches all rows,
+       groups subs under parents in JS, filters
+       firearms-flagged tiles when has_firearms
+       =false (BOTH top-levels AND sub-rows
+       checked).
+     - /pawn/new/form.tsx tracks both
+       categorySlug + subcategorySlug. Hidden
+       fields pawn_category + pawn_subcategory
+       ride on submit. categoryStepDone gate
+       requires both (or top with no subs) to
+       reveal the rest of the form.
+     - /settings/pawn-categories list view
+       nests subs under their parent with
+       border-l indent + "+ Add sub" pill button
+       per top-level row. Modal gains a Parent
+       (None = top-level) dropdown that pre-fills
+       to the row being edited or the parent
+       being added under.
+     - saveCategoryAction accepts parent_id
+       (UUID or null/'none' string variants).
+
+ 311. CLAUDE-MD-WORTHY GOTCHA: TENANTS USES
+     is_active NOT deleted_at. Discovered via
+     item 309 above. Future migration writers
+     who loop over tenants for backfill must
+     filter by is_active OR loop all rows
+     (depending on whether suspended tenants
+     should also be backfilled). The
+     `deleted_at IS NULL` pattern works for
+     customers / inventory_items / loans /
+     repair_tickets / sales / layaways but
+     NOT for tenants. Worth a CLAUDE.md gotcha
+     entry; not added this session.
 
 --- Session 36 (2026-05-09, second pass) — Customer analytics dashboard at /customers/dashboard/[id] ---
 
@@ -3261,52 +3707,61 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Smoke the new customer analytics dashboard on
-    production. Open https://pawn-three.vercel.app/
-    customers/dashboard/ff884c8e-a8ce-4c88-bb99-
-    f951373d4c4e (or any customer ID with real
-    history). Expect six sections in order:
-    header, lifetime stats grid, pawn behavior
-    block, 12-month trends chart, lost pawns list,
-    recent activity feed. Click the "View
-    analytics dashboard" button on /customers/
-    [id] to confirm the forward link. Verify
-    module-gating (a !has_pawn tenant should not
-    see pawn cards, behavior block, lost-pawns,
-    or gold trend bars). Resize to narrow widths
-    to confirm the SVG chart still reads.
+    Apply the THREE pending SQL migrations in
+    order in Supabase SQL Editor:
+      1. patches/0036-market-data-points.sql
+      2. patches/0037-pawn-intake-categories.sql
+         (re-run is safe — fully idempotent,
+          fixes the deleted_at bug)
+      3. patches/0038-pawn-intake-subcategories.sql
 
-    AFTER ANALYTICS SMOKE: also smoke the
-    Session 35 dashboard quick-action tiles
-    (Sales/Pawn/Orders) at /dashboard if not yet
-    verified.
+    If 0036 fails on `CREATE EXTENSION vector`,
+    enable pgvector via Supabase dashboard →
+    Database → Extensions → search "vector" →
+    enable, then re-run 0036.
 
-    AFTER BOTH SMOKES: voice intake from Session
-    34 — confirm the operator's OpenAI signup +
-    key paste + Vercel redeploy completed. Walk
-    the voice test phrase on /pawn/new: hold the
-    gold mic, say "Maria Fernandez, $200 for a
-    14k wedding ring, 2.3 grams", release.
-    Expected: TTS confirmation + form fields
-    populated. New diagnostics surface auth /
-    rate-limit / bad-audio errors directly in
-    the inline error UI.
+    After all three apply cleanly:
+      `npm run db:types`
+    to regenerate database.ts with the new
+    tables/columns/RPC. Code uses boundary casts
+    (`as never` / `as any`) at the moment so
+    everything builds + ships, but future edits
+    become type-safe after regen.
 
-    AFTER VOICE SMOKE: Phase 1 redesign initiative
-    continues — pick the next surface with operator
-    (candidates: /pawn/new layout density, /
-    customers/new ID-capture flow, sidebar IA,
-    /pos cart density). Then resume the Session 32
-    carry-over agenda — operator browser walkthrough
-    of the Luna Azul design pass; backpage smoke
-    from Session 27 (FL Ch. 539 default + custom
-    override + reset); the 9-smoke sequence (A-I)
-    for Google Reviews / cron warmer / quota /
-    email campaigns / unsubscribe / Resend webhook /
-    vault / settings UIs / eBay sync. Phase 0
-    punch list (h. OPENAI_API_KEY + confirm
-    ANTHROPIC_API_KEY in addition to CRON_SECRET +
-    RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY +
+    Also confirm OPENAI_API_KEY is set in Vercel
+    Production env (gates voice intake from S34
+    AND the new market-data embedding cron AND
+    the admin lookup RPC). Without it the embed
+    cron silently no-ops and the admin search
+    returns embed_failed_check_OPENAI_API_KEY.
+
+    Then smoke each surface:
+    - /pawn/new — wizard step 1 = 4 tiles
+      (Firearms hidden until has_firearms is
+      flipped on at /settings/pawn-categories).
+      Click Jewelry → sub-tiles appear → pick
+      Rings → form reveals. Customer picker has
+      typeahead + Scan ID button.
+    - /customers — clicking a row opens
+      /customers/dashboard/[id] (NOT the edit
+      page anymore). Dashboard shows 8 stat
+      cards per row + 4 behavior tabs + Edit
+      pill at top-right.
+    - /admin/market-data — superadmin search.
+      Initially zero rows; collects forward
+      after a few transactions.
+    - /buy/new — picker now has typeahead
+      AND Scan ID (was raw "paste UUID").
+
+    AFTER MIGRATIONS + SMOKES: previous-session
+    carry-over still pending — Session 32
+    design walkthrough; backpage smoke (S27);
+    9-smoke sequence (A-I) for Google Reviews /
+    cron warmer / quota / email campaigns /
+    unsubscribe / Resend webhook / vault /
+    settings UIs / eBay sync. Phase 0 punch
+    list (CRON_SECRET + RESEND_WEBHOOK_SECRET +
+    GOOGLE_PLACES_API_KEY + OPENAI_API_KEY +
     the three secret rotations) remains the
     biggest blocker for smokes B/F/A.
 
