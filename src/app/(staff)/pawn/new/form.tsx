@@ -33,8 +33,6 @@ export type LoanRateOption = {
   isDefault: boolean
 }
 
-const CUSTOM_RATE_VALUE = '__custom__'
-
 export default function NewPawnLoanForm({
   rates,
   minLoanAmount,
@@ -77,31 +75,18 @@ export default function NewPawnLoanForm({
   // controlled <input> still serializes correctly.
   const [principal, setPrincipal] = useState<string>('')
 
-  // Default rate selection: the configured default rate, OR the first
-  // active rate, OR the literal "custom" sentinel when no rates exist
-  // (graceful fallback so the form still works on a brand-new tenant
-  // before any rates are configured).
+  // Default rate selection: configured default rate OR first active
+  // rate OR empty string when the tenant has not configured any rates
+  // yet (form blocks submit in that case — no fallback to a custom
+  // rate). Operator must add a rate at /settings/loan-rates first.
   const defaultRateId =
-    rates.find((r) => r.isDefault)?.id ?? rates[0]?.id ?? CUSTOM_RATE_VALUE
+    rates.find((r) => r.isDefault)?.id ?? rates[0]?.id ?? ''
   const [rateChoice, setRateChoice] = useState<string>(defaultRateId)
 
-  // The actual rate value submitted to the server. Picked from the menu
-  // for preset choices, or typed manually when the operator picks
-  // Custom. Defaults to 0.10 to match the legacy behavior.
-  const initialCustomRate =
-    (rates.find((r) => r.isDefault) ?? rates[0])?.rateMonthly?.toString() ??
-    '0.10'
-  const [customRate, setCustomRate] = useState<string>(initialCustomRate)
-  const isCustomRate = rateChoice === CUSTOM_RATE_VALUE
-  const selectedRate = isCustomRate
-    ? null
-    : (rates.find((r) => r.id === rateChoice) ?? null)
-  const submittedRate = isCustomRate
-    ? customRate
-    : (selectedRate?.rateMonthly?.toString() ?? customRate)
-  // Custom rate has no min by definition. Snapshot the preset rate's
-  // min_monthly_charge to the hidden field so the server can write it
-  // onto loans.min_monthly_charge.
+  const selectedRate = rates.find((r) => r.id === rateChoice) ?? null
+  const submittedRate = selectedRate?.rateMonthly?.toString() ?? ''
+  // Snapshot the rate's per-month minimum so the server writes it onto
+  // loans.min_monthly_charge. Empty when the rate has no floor.
   const submittedMinCharge =
     selectedRate?.minMonthlyCharge != null
       ? selectedRate.minMonthlyCharge.toString()
@@ -289,6 +274,7 @@ export default function NewPawnLoanForm({
                     <select
                       value={rateChoice}
                       onChange={(e) => setRateChoice(e.target.value)}
+                      required
                       className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
                     >
                       {rates.map((r) => (
@@ -305,22 +291,7 @@ export default function NewPawnLoanForm({
                             : ''}
                         </option>
                       ))}
-                      <option value={CUSTOM_RATE_VALUE}>
-                        {t.pawn.new_.rateCustom}
-                      </option>
                     </select>
-                  ) : null}
-                  {isCustomRate ? (
-                    <input
-                      type="number"
-                      step="0.0001"
-                      min={0}
-                      max={0.25}
-                      value={customRate}
-                      onChange={(e) => setCustomRate(e.target.value)}
-                      required
-                      className="mt-2 block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-                    />
                   ) : null}
                   {selectedRateDescription ? (
                     <span className="block text-xs text-muted">
