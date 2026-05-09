@@ -405,9 +405,6 @@ export async function createLoanAction(
     return { error: 'no_valid_collateral' }
   }
 
-  // boundary cast: pawn_category_slug + pawn_subcategory_slug were
-  // added by patches/0040. Once `npm run db:types` is re-run after
-  // 0040 is applied, the `as never` below can be removed.
   const { error: collErr } = await supabase.from('loan_collateral_items').insert(
     collateralInserts.map((it) => ({
       loan_id: loanId,
@@ -422,7 +419,7 @@ export async function createLoanAction(
       position: it.position,
       pawn_category_slug: it.pawn_category_slug,
       pawn_subcategory_slug: it.pawn_subcategory_slug,
-    })) as never,
+    })),
   )
   if (collErr) {
     return { error: collErr.message }

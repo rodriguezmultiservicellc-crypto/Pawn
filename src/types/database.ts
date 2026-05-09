@@ -1660,6 +1660,8 @@ export type Database = {
           karat: number | null
           loan_id: string
           metal_type: Database["public"]["Enums"]["metal_type"] | null
+          pawn_category_slug: string | null
+          pawn_subcategory_slug: string | null
           photo_path: string | null
           position: number
           tenant_id: string
@@ -1675,6 +1677,8 @@ export type Database = {
           karat?: number | null
           loan_id: string
           metal_type?: Database["public"]["Enums"]["metal_type"] | null
+          pawn_category_slug?: string | null
+          pawn_subcategory_slug?: string | null
           photo_path?: string | null
           position?: number
           tenant_id: string
@@ -1690,6 +1694,8 @@ export type Database = {
           karat?: number | null
           loan_id?: string
           metal_type?: Database["public"]["Enums"]["metal_type"] | null
+          pawn_category_slug?: string | null
+          pawn_subcategory_slug?: string | null
           photo_path?: string | null
           position?: number
           tenant_id?: string

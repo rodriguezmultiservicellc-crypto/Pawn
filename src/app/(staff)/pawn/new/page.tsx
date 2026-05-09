@@ -8,16 +8,12 @@ export default async function NewPawnLoanPage() {
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
 
-  // Module gate + firearms gate. has_firearms lands in generated types
-  // after `npm run db:types` post-migration 0037 — boundary cast until.
-  const { data: tenantRaw } = await ctx.supabase
+  // Module gate + firearms gate.
+  const { data: tenant } = await ctx.supabase
     .from('tenants')
     .select('has_pawn, has_firearms')
     .eq('id', ctx.tenantId)
     .maybeSingle()
-  const tenant = tenantRaw as
-    | { has_pawn: boolean; has_firearms: boolean | null }
-    | null
   if (!tenant?.has_pawn) redirect('/dashboard')
   const hasFirearms = !!tenant?.has_firearms
 
@@ -63,30 +59,20 @@ export default async function NewPawnLoanPage() {
   // tenant. Two-level hierarchy: top-levels have parent_id IS NULL,
   // sub-categories point to a parent. Firearms-flagged tiles
   // (top-level OR sub) are filtered when has_firearms is FALSE.
-  // Boundary cast: the table lands in generated types only after
-  // `npm run db:types` runs post-migration 0037/0038.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const picBuilder = (ctx.supabase.from as any)('pawn_intake_categories')
-  const { data: catRows } = await picBuilder
+  const { data: catRows } = await ctx.supabase
+    .from('pawn_intake_categories')
     .select('id, slug, label, icon, requires_ffl, parent_id')
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
 
-  type RawCategoryRow = {
-    id: string
-    slug: string
-    label: string
-    icon: string
-    requires_ffl: boolean
-    parent_id: string | null
-  }
-  const allRows = (catRows ?? []) as RawCategoryRow[]
-  const visible = allRows.filter((c) => !c.requires_ffl || hasFirearms)
+  const visible = (catRows ?? []).filter(
+    (c) => !c.requires_ffl || hasFirearms,
+  )
 
   // Group subs by parent_id.
-  const subsByParent = new Map<string, RawCategoryRow[]>()
+  const subsByParent = new Map<string, typeof visible>()
   for (const r of visible) {
     if (r.parent_id != null) {
       const arr = subsByParent.get(r.parent_id) ?? []
