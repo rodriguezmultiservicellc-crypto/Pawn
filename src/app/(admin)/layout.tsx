@@ -61,6 +61,12 @@ export default async function AdminLayout({
                 Watches
               </Link>
               <Link
+                href="/admin/market-data"
+                className="text-text-secondary transition-colors hover:text-blue"
+              >
+                Market data
+              </Link>
+              <Link
                 href="/admin/settings"
                 className="text-text-secondary transition-colors hover:text-blue"
               >
