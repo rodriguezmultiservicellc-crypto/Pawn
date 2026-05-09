@@ -614,7 +614,7 @@ function CollateralRow({
                 />
               </label>
 
-              <label className="md:col-span-2 block space-y-1">
+              <label className="md:col-span-1 block space-y-1">
                 <span className="text-xs font-medium text-foreground">
                   {t.pawn.new_.itemWeightGrams}
                 </span>
@@ -629,7 +629,7 @@ function CollateralRow({
                 />
               </label>
 
-              <label className="md:col-span-2 block space-y-1">
+              <label className="md:col-span-1 block space-y-1">
                 <span className="text-xs font-medium text-foreground">
                   {t.pawn.new_.itemJewelrySize}
                 </span>
