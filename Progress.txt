@@ -13,343 +13,378 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 38 (2026-05-09, fourth pass)
-                  — PAWN INTAKE CATEGORY MOVED TO
-                  loan_collateral_items (per-item, not
-                  per-loan) + /pawn/new WIZARD =
-                  CUSTOMER STEP THEN PER-ROW CATEGORY
-                  STEP INSIDE EACH COLLATERAL ROW.
+  Last session:   Session 39 (2026-05-09, fifth pass)
+                  — PER-CATEGORY ATTRIBUTES + FL §539.001
+                  FIELD GAPS + WIZARD POLISH ON /pawn/new.
 
-                  Two-half session. First half built
-                  the loan-level category persistence
-                  (0039) + customer→category→reveal
-                  wizard. Operator caught it mid-save:
-                  "the categories is for when you are
-                  adding collateral for the collateral
-                  item. not for the pawn ticket." Second
-                  half undid the loan-level work and
-                  redid it at the per-item level.
+                  Long focused session iterating on the
+                  /pawn/new pawn-intake form. Eight
+                  thematic landings:
 
-                  (1) MIGRATION 0040 — UNDO 0039 +
-                  ADD TO loan_collateral_items
-                  - patches/0040-collateral-pawn-
-                    category.sql (NEW): drops
-                    loans.pawn_category_slug +
-                    loans.pawn_subcategory_slug + the
-                    idx_loans_pawn_category index from
-                    0039. Adds the same column pair to
-                    loan_collateral_items. New analytics
-                    index idx_loan_collateral_items_
-                    pawn_category on (tenant_id,
-                    pawn_category_slug, created_at DESC)
-                    WHERE slug IS NOT NULL AND
-                    deleted_at IS NULL.
-                  - SLUG SNAPSHOT, NO FK kept — same
-                    rationale as 0039 (immutability,
-                    soft-delete tolerance, graceful
-                    fallback display).
-                  - patches/0039 STAYS in tree as a
-                    historical record. Don't try to
-                    re-apply on a fresh database — 0040
-                    would simply no-op on the loans
-                    drops.
+                  (1) PER-CATEGORY ATTRIBUTE COLUMNS
+                  - patches/0041-collateral-category-
+                    attributes.sql: 13 dedicated columns
+                    on loan_collateral_items —
+                    firearm_make/model/caliber/serial/
+                    type/barrel_length/action_type/
+                    capacity, electronic_brand/model/
+                    serial, tool_brand/model.
+                    CHECK constraint on firearm_type
+                    ('handgun'/'rifle'/'shotgun'/'other').
+                    Partial indexes on firearm_serial_
+                    number + electronic_serial.
+                  - collateralItemSchema gains 13
+                    optional fields (firearm_type uses
+                    z.enum).
+                  - Server action persists per-row,
+                    snapshots into compliance_log.
+                    items_snapshot for FL Ch. 539
+                    police-report exports.
+                  - CollateralRow renders fields
+                    conditionally on selectedCategory.
+                    slug — jewelry shows metal/karat/
+                    weight, firearms shows the new 8,
+                    electronics shows brand/model/
+                    serial, tools shows brand/model,
+                    general shows nothing extra.
 
-                  (2) VALIDATION SCHEMA SHIFT
-                  - src/lib/validations/loan.ts:
-                    pawn_category_slug + pawn_subcategory_
-                    slug REMOVED from loanCreateSchema +
-                    ADDED to collateralItemSchema (each
-                    field uses an empty-string-to-null
-                    preprocessor matching the existing
-                    optionalTrimmedString pattern).
+                  (2) JEWELRY SIZE/LENGTH FIELD
+                  - patches/0042-collateral-jewelry-
+                    size.sql: jewelry_size TEXT NULL
+                    on loan_collateral_items. Free
+                    text for ring sizes ('7') or
+                    chain/bracelet lengths ('22 in').
+                  - Renders after weight in the jewelry
+                    block. Width halved later in
+                    session — md:col-span-1 for both
+                    weight + size.
 
-                  (3) SERVER ACTION SHIFT
-                  - src/app/(staff)/pawn/new/actions.ts:
-                    (a) readCollateralRows() now also
-                        reads collateral_<n>_pawn_category
-                        + collateral_<n>_pawn_subcategory
-                        per row.
-                    (b) loans.insert no longer carries
-                        the slug pair. Boundary cast
-                        from the morning's loan insert
-                        is gone.
-                    (c) loan_collateral_items.insert
-                        passes the slugs per row, with
-                        an `as never` boundary cast on
-                        the array because db:types is
-                        not yet aware of the 0040
-                        columns.
-                    (d) compliance_log items_snapshot
-                        includes the slug pair per item
-                        — police-report exporter now
-                        has the category for each
-                        pawned item out of the box.
-                    (e) audit-log changes JSON emits
-                        collateral_categories: array of
-                        {pos, cat, sub} objects so the
-                        audit row reflects each row's
-                        category at intake time.
+                  (3) FL §539.001(8)(b)(2) FIELD GAPS
+                  + NCIC TYP CODE
+                  - patches/0043-fl-539-fields-plus-
+                    ncic.sql: 5 new columns on
+                    loan_collateral_items — color,
+                    gemstone_description, firearm_
+                    finish, firearm_number_of_barrels,
+                    unique_marks. Plus ncic_code TEXT
+                    NULL on pawn_intake_categories
+                    (operator-editable per-tenant for
+                    LeadsOnline/RAPID daily exports;
+                    settings UI to edit deferred).
+                  - Form: color + unique_marks common
+                    across all categories;
+                    gemstone_description in jewelry
+                    block; firearm_finish + #_barrels
+                    appended to firearms block.
 
-                  (4) /pawn/new WIZARD RESHAPED
-                  - Customer step 1 KEPT (always
-                    visible at top of form, picker
-                    collapses to banner on pick).
-                  - LOAN-LEVEL CATEGORY STEP DELETED.
-                    No more form-level CategoryPicker /
-                    CategoryBanner. revealReady now
-                    just === selectedCustomerId.
-                  - Reveal block continues to render
-                    Collateral first (the move from S38
-                    morning is preserved). Then
-                    calculator → terms → signature →
-                    submit.
-                  - VoicePawnButton handler simplified:
-                    no more form-level category auto-
-                    pick.
-                  - Form-level onSubmit guard kept —
-                    still prevents implicit Enter
-                    submission while only the customer-
-                    search input is visible.
+                  (4) FOREIGN PAWN MODULE NOT INSERTED
+                  - Operator pasted in another Claude
+                    session's output (7 files, 1384
+                    lines) building a parallel
+                    pawn_transactions / pawn_items /
+                    pawn_holds schema using Drizzle ORM
+                    with USING (true) RLS placeholders.
+                    Declined to insert — reasons in
+                    KEY DECISIONS below. Cherry-picked
+                    only the FS 539.001 cross-check +
+                    NCIC TYP code list as research.
 
-                  (5) PER-ROW PICKER LANDED IN
-                  CollateralItemsList
-                  - components/pawn/CollateralItemsList.
-                    tsx now takes a `categories:
-                    PawnIntakeCategory[]` prop, fed from
-                    /pawn/new/page.tsx via form.tsx.
-                  - Row state extends with
-                    pawn_category_slug +
-                    pawn_subcategory_slug (both null
-                    until picked).
-                  - Each row top section renders the
-                    full CategoryPicker tile grid until
-                    the row's category step is done,
-                    then collapses to a CategoryBanner.
-                    Same UX as the prior loan-level
-                    wizard step — just inside each row.
-                  - Item field grid is GATED on
-                    categoryStepDone for the row — no
-                    description / metal / weight / etc.
-                    until the operator classifies the
-                    item.
-                  - Hidden inputs collateral_<n>_pawn_
-                    category + collateral_<n>_pawn_
-                    subcategory always emitted (empty
-                    string when not picked) so the
-                    server-side schema sees the field
-                    even when the row is in pre-pick
-                    state and rejects the submit.
-                  - Voice extracted row defaults its
-                    category slug to 'general' (or
-                    first available top) so the
-                    auto-row reveals fields immediately;
-                    operator can change.
-                  - Watch typeahead row defaults to
-                    'jewelry' top + 'watch' sub when
-                    those slugs exist in the tenant's
-                    category list, else falls through
-                    to defaultCategorySlug.
-                  - isPristineRow() updated to treat a
-                    null pawn_category_slug as part of
-                    the pristine signature so voice/
-                    watch auto-population still
-                    replaces the seed row in place
-                    rather than appending.
+                  (5) INVENTORY_CATEGORY DROPDOWN GONE
+                  - Legacy enum select on each row
+                    removed. Auto-derives from
+                    pawn_subcategory_slug via
+                    inventoryCategoryFromSlug()
+                    (jewelry/rings → 'ring',
+                    electronics/* → 'electronics',
+                    tools/* → 'tool', firearms/* →
+                    'other'). Hidden input still
+                    submits so loan_collateral_items.
+                    category stays populated for
+                    forfeiture-to-inventory routing.
+                  - CATEGORY_OPTIONS const + tCategory
+                    translator chain dropped as dead
+                    code.
 
-  Context budget: ~80% at save time.
-  Last worked on: Per-item category wired through.
-                  tsc clean. Lint clean for changed
-                  files; the 2 pre-existing customers/
-                  dashboard/[id]/page.tsx react-hooks/
-                  purity errors from S37 commit
-                  c6531a7 are still there but unrelated.
+                  (6) INLINE PAWN CALCULATOR REMOVED
+                  - <InlinePawnCalculator /> block on
+                    /pawn/new is gone. Operator types
+                    principal directly. Watch
+                    typeahead lost with it.
+                    CollateralRow.addWatchRow handle
+                    still defined but uncalled.
 
-  ACTIVE FILE(S) modified this session — Session 38:
+                  (7) WIZARD REORDERED + RATE LOCKDOWN
+                  - Reveal order: Customer → Terms →
+                    Collateral → Signature (Terms now
+                    BEFORE collateral; was after).
+                  - Interest rate dropdown removed
+                    Custom option + manual-entry
+                    input. Operator can only pick
+                    rates configured at /settings/
+                    loan-rates. CUSTOM_RATE_VALUE +
+                    customRate state + isCustomRate
+                    + initialCustomRate fallback all
+                    deleted.
+
+                  (8) ISSUE DATE LOCKED TO TODAY
+                  - issue_date readOnly with muted
+                    styling matching due_date. const
+                    issueDate replaces useState.
+                    Server action already defaults to
+                    today when missing — defense in
+                    depth.
+
+  Context budget: ~85% at save time.
+  Last worked on: Issue-date lockdown shipped (commit
+                  48489ad). tsc clean. Lint clean for
+                  changed files; the 2 pre-existing
+                  customers/dashboard/[id]/page.tsx
+                  react-hooks/purity errors from S37
+                  commit c6531a7 still flagged but
+                  unrelated.
+
+  ACTIVE FILE(S) modified across Session 39:
 
     --- Migrations ---
-    - patches/0039-loans-pawn-category.sql (NEW
-      morning, kept in tree as historical — its
-      effects are reversed by 0040)
-    - patches/0040-collateral-pawn-category.sql
-      (NEW evening — drops loans cols, adds to
-       loan_collateral_items)
+    - patches/0041-collateral-category-attributes.sql
+      (NEW; APPLIED + db:types regen done)
+    - patches/0042-collateral-jewelry-size.sql
+      (NEW; PENDING APPLICATION)
+    - patches/0043-fl-539-fields-plus-ncic.sql
+      (NEW; PENDING APPLICATION)
 
     --- Validation ---
-    - src/lib/validations/loan.ts
-      (slug pair MOVED from loanCreateSchema to
-       collateralItemSchema)
+    - src/lib/validations/loan.ts (collateralItem
+      Schema picks up firearm_*, electronic_*,
+      tool_*, jewelry_size, color,
+      gemstone_description, unique_marks,
+      firearm_finish, firearm_number_of_barrels)
 
     --- Pawn intake server side ---
     - src/app/(staff)/pawn/new/actions.ts
-      (readCollateralRows reads slugs per row;
-       loan insert no longer carries slugs;
-       loan_collateral_items insert + items_snapshot
-       + audit changes carry the slugs per row;
-       boundary cast moved to the items insert)
+      (readCollateralRows reads per-row attribute
+      fields; loan_collateral_items.insert passes
+      them through with `as never` boundary cast
+      until db:types regen post-0042+0043;
+      compliance_log items_snapshot includes the
+      new fields)
 
     --- Pawn intake form UX ---
-    - src/app/(staff)/pawn/new/form.tsx
-      (loan-level CategoryPicker / CategoryBanner
-       removed; voice handler simplified;
-       revealReady === selectedCustomerId now;
-       passes categories prop down to
-       CollateralItemsList)
+    - src/app/(staff)/pawn/new/form.tsx (custom
+      rate option removed; CUSTOM_RATE_VALUE
+      sentinel + customRate state deleted; reveal
+      reordered Terms-before-Collateral; issue
+      date readOnly + muted; const issueDate
+      replaces useState; InlinePawnCalculator
+      import + JSX removed)
+    - src/app/(staff)/pawn/new/page.tsx (boundary
+      casts cleaned post-0040 — typed query
+      builders for tenants + pawn_intake_
+      categories)
+    - src/app/(staff)/settings/pawn-categories/
+      page.tsx (boundary casts cleaned post-0037)
 
     --- Per-row picker ---
     - src/components/pawn/CollateralItemsList.tsx
-      (categories prop added to both list +
-       row; row state extended with
-       pawn_category_slug + pawn_subcategory_slug;
-       row top section renders the picker/banner;
-       row field grid gated on row's
-       categoryStepDone; hidden inputs;
-       voice + watch row default-category logic;
-       eslint-disable on useImperativeHandle deps
-       to match codebase pattern)
+      (Row state extended with all 18 attribute
+      fields; newRow() initializes all to '';
+      isPristineRow() includes all in pristine
+      signature; CollateralRow renders fields
+      conditionally on selectedCategory.slug;
+      inventoryCategoryFromSlug() helper auto-
+      derives the legacy category enum from the
+      pawn slugs; CATEGORY_OPTIONS + tCategory
+      dead-code dropped)
+
+    --- i18n ---
+    - src/lib/i18n/en.ts (firearm/electronic/tool
+      labels + firearm_type enum options +
+      jewelry_size + color + unique_marks +
+      gemstones + firearm_finish + firearm_barrels)
+    - src/lib/i18n/es.ts (Spanish parity)
 
     --- Generated types ---
-    - src/types/database.ts (regenerated at
-      session start — 148KB, contains
-      pawn_intake_categories + market_data_points
-      tables; loan_collateral_items NOT yet aware
-      of the new 0040 columns — pending second
-      db:types run after 0040 is applied)
+    - src/types/database.ts (regenerated TWICE —
+      post-0040 = 148024 bytes, post-0041 =
+      149956 bytes; loan_collateral_items now
+      exposes firearm_* + electronic_* + tool_*
+      columns natively. NOT YET aware of 0042
+      jewelry_size or 0043 fields)
 
   RESUME POINT:
-    Apply patches/0040-collateral-pawn-category.sql
-    in Supabase SQL Editor. It's idempotent (uses
-    DROP COLUMN IF EXISTS / ADD COLUMN IF NOT
-    EXISTS) so safe to re-run.
-
-    Then re-run `npm run db:types` so loan_collateral
-    _items.pawn_category_slug + pawn_subcategory_slug
-    appear in src/types/database.ts. Then in
-    src/app/(staff)/pawn/new/actions.ts grep for
-    "boundary cast" and delete the `as never` cast
-    on the loan_collateral_items.insert array (and
-    the comment block above it). tsc should still
+    Apply patches/0042-collateral-jewelry-size.sql
+    AND patches/0043-fl-539-fields-plus-ncic.sql
+    in Supabase SQL Editor (in order — both
+    idempotent). Then `npm run db:types` so the
+    new columns surface. Then in src/app/(staff)/
+    pawn/new/actions.ts grep for "boundary cast"
+    and delete the `as never` cast on the loan_
+    collateral_items.insert array (and the
+    comment block above it). tsc should still
     pass.
 
-    Then smoke /pawn/new in browser:
-    (a) Voice button + Customer panel visible at
-        top. NO category picker at form level.
-    (b) Type a customer or hit Scan ID — picker
-        collapses to a blue-bordered banner with X.
-    (c) Reveal block appears: Collateral fieldset
-        first, with one row. The row shows the
-        CategoryPicker tile grid (no description /
-        metal / etc. fields yet).
-    (d) Click Jewelry → sub-row → pick Rings →
-        CategoryBanner "Jewelry → Ring [Change]"
-        within the row, AND the rest of the row's
-        fields appear (description, metal, karat,
-        weight, est_value, photo).
-    (e) Click "+ Add item" → second row with its
-        own picker. Pick Electronics → Phone (or
-        any sub) → second row's fields reveal.
-        Confirm row 1 and row 2 carry independent
-        category slugs.
-    (f) Submit a loan with two items in different
-        categories. After redirect to /pawn/<id>,
-        query
+    Then smoke /pawn/new in the browser:
+    (a) Land on the form. Customer panel at top.
+        No category picker at form level.
+    (b) Pick a customer (Scan ID or typeahead).
+    (c) Reveal block opens in this order: Terms
+        → Collateral → Signature. Issue date is
+        readOnly + greyed (today). Interest rate
+        dropdown shows ONLY rates configured at
+        /settings/loan-rates — no Custom option.
+    (d) Add a Jewelry → Ring item. Verify fields:
+        description, est_value, color, unique_
+        marks, metal, karat, weight (narrow),
+        size (narrow), gemstones. NO inventory_
+        category dropdown.
+    (e) Add a Firearms → Handgun item. Verify
+        fields: description, est_value, color,
+        unique_marks, make, model, caliber,
+        serial (required), type, action_type,
+        barrel_length, capacity, finish,
+        # of barrels.
+    (f) Add an Electronics → Phone item. Verify:
+        description, est_value, color, unique_
+        marks, electronic_brand, electronic_
+        model, electronic_serial.
+    (g) Submit. After redirect, query
           select position, pawn_category_slug,
-                 pawn_subcategory_slug
+                 pawn_subcategory_slug, color,
+                 unique_marks, jewelry_size,
+                 gemstone_description,
+                 firearm_make,
+                 firearm_serial_number,
+                 firearm_finish,
+                 firearm_number_of_barrels,
+                 electronic_brand
           from loan_collateral_items
           where loan_id=<id> order by position;
-        to confirm both rows landed correctly.
-    (g) audit_log row should carry the
-        collateral_categories array in the changes
-        JSON. compliance_log row should carry
-        items_snapshot with the slugs per item.
+    (h) Confirm compliance_log.items_snapshot
+        carries the same fields populated for
+        FL Ch. 539 downstream export.
 
-    AFTER SMOKE: surface the per-item category on
-    the loan detail page (/pawn/<id>) — currently
-    persists slugs but no UI reads them. Quick:
-    show "Jewelry → Ring" badge on each collateral
-    row; join pawn_intake_categories on
-    (tenant_id, slug) for the human label.
-
-    SECONDARY: 2 react-hooks/purity errors in
-    customers/dashboard/[id]/page.tsx:279 + :392
-    (Date.now() in render body — from S37 commit
-    c6531a7). One-line fix per call site.
+    AFTER SMOKE — DEFERRED FOLLOW-UPS:
+    - Settings UI for ncic_code on /settings/
+      pawn-categories (column exists; SQL works).
+    - Surface per-item category + new attributes
+      on /pawn/<id> detail page.
+    - /pawn/<id> ticket print: include color +
+      gemstones + firearm finish/barrels + size
+      + unique_marks per FL §539.001 form
+      mandate.
+    - Daily LeadsOnline export job — read NCIC
+      via tenant join, write CSV/JSON in vendor
+      format, schedule via cron.
+    - 2 react-hooks/purity errors in customers/
+      dashboard/[id]/page.tsx:279 + :392 (S37
+      commit c6531a7).
 
   OPEN ISSUES / BLOCKERS:
-    - patches/0040 PENDING APPLICATION in Supabase.
-    - npm run db:types pending re-run vs. 0040.
-      Until then, actions.ts carries an `as never`
-      boundary cast on the loan_collateral_items
-      insert (search "boundary cast").
-    - 2 react-hooks/purity errors in
-      customers/dashboard/[id]/page.tsx:279 + :392
-      (from S37 commit c6531a7).
+    - patches/0042 + 0043 PENDING APPLICATION
+      in Supabase. After apply, db:types regen +
+      drop the boundary cast in actions.ts.
+    - 2 react-hooks/purity errors in customers/
+      dashboard/[id]/page.tsx (S37, unrelated).
+    - Settings UI to edit ncic_code per category
+      missing (column exists; SQL works).
     - OPENAI_API_KEY still pending in Vercel
-      Production env (S33/S34 voice intake +
-      market-data embed cron + market-data lookup).
-    - Carry-over: previous-session smokes (32
-      design walkthrough, S27 backpage, A-I 9-smoke,
-      Phase 0 punch list, email-campaign UI,
-      Stripe Connect, eBay de-stub, FL LeadsOnline
-      reconciliation, Phase 8 mobile audit).
+      Production env (S33/S34 voice + market-
+      data embed cron + market-data lookup).
+    - Carry-over: 32 design walkthrough, S27
+      backpage, A-I 9-smoke, Phase 0 punch list,
+      email-campaign UI, Stripe Connect, eBay
+      de-stub, FL LeadsOnline reconciliation,
+      Phase 8 mobile audit.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 38):
-    - PAWN INTAKE CATEGORY = PER-ITEM, NOT PER-
-      TICKET. Operator clarified: a single ticket
-      can carry items from different top-level
-      categories (Jewelry → Ring + Electronics →
-      Phone). Categories are a property of the
-      collateral item, NOT of the loan envelope.
-      0039 was rolled back via 0040; columns now
-      live on loan_collateral_items.
-    - SLUG SNAPSHOT, NO FK (carried from 0039
-      logic, applied to 0040). Frozen on intake.
-      Display joins to pawn_intake_categories on
-      (tenant_id, slug) work for live rows;
-      fall back to raw slug for soft-deleted /
-      renamed.
-    - PER-ROW PICKER GATES THE ROW. Each
-      collateral row begins with the full
-      CategoryPicker tile grid; the rest of the
-      row's fields are HIDDEN until the operator
-      picks. Forces classification before
-      description — operationally cleanest for
-      pawn shops where category drives the field
-      relevance (electronics rows shouldn't be
-      asking for karat).
-    - VOICE/WATCH AUTO-ROW DEFAULTS TO 'GENERAL'
-      / 'JEWELRY → WATCH'. Auto-populated rows
-      shouldn't get stuck behind the per-row
-      picker. Voice → 'general'. Watch typeahead
-      → 'jewelry' top + 'watch' sub when those
-      slugs exist in the tenant's seeded list,
-      else falls through to defaultCategorySlug.
-    - WIZARD ENVELOPE SIMPLIFIED. revealReady
-      collapses back to a one-step gate
-      (selectedCustomerId != null). The per-row
-      picker handles its own gating inside the
-      collateral list. Form-level onSubmit guard
-      kept for browser implicit-submit prevention.
+  KEY DECISIONS LOCKED THIS SESSION (Session 39):
+    - PER-CATEGORY ATTRIBUTES = DEDICATED COLUMNS,
+      NOT JSONB. Reasons:
+      (1) FL Ch. 539 police-report exports must
+          filter on serial number for firearms —
+          typed columns make that query trivial;
+      (2) operator queries (e.g., "find all
+          Glock 19s in inventory") benefit from
+          indexes on dedicated columns;
+      (3) JSONB hides the schema from the
+          operator's mental model.
+    - SLUG-DRIVEN INVENTORY_CATEGORY DERIVATION.
+      Legacy inventory_category enum dropdown
+      removed. Column still populated via
+      inventoryCategoryFromSlug() — auto-mapping
+      from pawn_subcategory_slug. Operator never
+      asked twice; pawn_intake_categories is the
+      single source of truth for classification.
+    - INLINE CALCULATOR REMOVED. Watch typeahead
+      lost with it. Operator types principal
+      directly. Watch typeahead can be re-added
+      as a standalone if missed.
+    - NO CUSTOM RATE. Operator can only pick
+      from rates configured at /settings/loan-
+      rates. Removes the audit-time "where did
+      this rate come from?" — every loan rate
+      maps to a tenant_loan_rates row. Tenant-
+      without-rates case: form blocks submit;
+      operator must configure rates first.
+    - ISSUE DATE LOCKED TO TODAY. No back-dating
+      from intake form. Server still defaults to
+      today as second line of defense. If back-
+      dating is ever needed (correction flow),
+      it lives in a separate UI; intake stays
+      clean.
+    - WIZARD ORDER = CUSTOMER → TERMS →
+      COLLATERAL → SIGNATURE. Operator request:
+      pin principal/rate/term before itemizing.
+    - WIDTH RHYTHM ON JEWELRY ROW. Weight + size
+      both md:col-span-1 (half-width) since each
+      is short. Karat md:col-span-1. Metal
+      md:col-span-2. Description md:col-span-4.
+      Est value md:col-span-2.
+    - NCIC = PER-TENANT, OPERATOR-EDITABLE.
+      ncic_code TEXT NULL on pawn_intake_
+      categories. Per-tenant because the
+      accepted code list varies by transmission
+      vendor + jurisdiction. Settings UI to
+      edit deferred.
+    - DECLINED FOREIGN PAWN MODULE. The other
+      Claude session's 7-file output (Drizzle +
+      pawn_transactions duplicate tables +
+      USING (true) RLS) was not inserted.
+      Reasons:
+      (1) Drizzle ORM not in package.json;
+      (2) tables overlapped 1:1 with our
+          existing loans / loan_collateral_items
+          / loan_events / compliance_log;
+      (3) USING (true) RLS placeholders violate
+          CLAUDE.md rule 1;
+      (4) flat 110-key i18n shape would break
+          every page that reads t.pawn.*.* keys.
 
   IMPORTANT CONSTANTS / PATHS:
-    - Migration: patches/0040-collateral-pawn-
-      category.sql (drops loans cols, adds to
-      loan_collateral_items)
-    - Item slug columns:
-      loan_collateral_items.pawn_category_slug
-      + loan_collateral_items.pawn_subcategory_slug
-      (both NULL)
-    - Index: idx_loan_collateral_items_pawn_category
-      on (tenant_id, pawn_category_slug, created_at
-      DESC) WHERE slug IS NOT NULL AND deleted_at
-      IS NULL
-    - FormData per-row keys:
-      collateral_<n>_pawn_category
-      collateral_<n>_pawn_subcategory
+    - Migrations pending: patches/0042 + 0043
     - Boundary cast grep: search "boundary cast"
-      in src/app/(staff)/pawn/new/actions.ts after
-      `npm run db:types` post-0040.
+      in src/app/(staff)/pawn/new/actions.ts
+      after `npm run db:types` post-0042+0043.
+    - 13 firearm/electronic/tool columns:
+      loan_collateral_items.firearm_make /
+      _model / _caliber / _serial_number /
+      _type / _barrel_length_inches /
+      _action_type / _capacity / _finish /
+      _number_of_barrels ; .electronic_brand /
+      _model / _serial ; .tool_brand / _model
+    - FS 539.001 columns: loan_collateral_items.
+      color, gemstone_description, unique_marks,
+      jewelry_size
+    - NCIC code: pawn_intake_categories.
+      ncic_code (TEXT NULL, operator-editable)
+    - Slug → enum helper:
+      inventoryCategoryFromSlug() in
+      CollateralItemsList.tsx
+    - Wizard reveal order in form.tsx:
+      Customer step → Terms fieldset →
+      Collateral fieldset → Signature
+      fieldset → Submit.
 
-  (Sessions 13-37 PRIOR-SESSION decision blocks pruned from
+  (Sessions 13-38 PRIOR-SESSION decision blocks pruned from
   RESUME — full context preserved in the SESSION HISTORY
   LOG below. Carried-forward architectural decisions are
   in CLAUDE.md and the existing prior-session items below.)
@@ -1817,6 +1852,194 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 39 (2026-05-09, fifth pass) — Per-category attribute columns + FL §539.001 field gaps + wizard polish on /pawn/new ---
+
+ 323. DB:TYPES REGEN POST-0040 + S37-ERA BOUNDARY-
+     CAST CLEANUP (commit 4e9e7ea). After operator
+     applied 0040, regenerated src/types/database.ts
+     against the new loan_collateral_items columns
+     (148024 bytes). Dropped the `as never` cast
+     in src/app/(staff)/pawn/new/actions.ts on the
+     loan_collateral_items.insert. Same pass also
+     cleaned two stale S37-era casts that targeted
+     0037 columns (pawn_intake_categories table +
+     tenants.has_firearms): src/app/(staff)/
+     settings/pawn-categories/page.tsx and
+     src/app/(staff)/pawn/new/page.tsx switched to
+     typed query builders, dropped the `as any` /
+     `as` shims and the now-redundant local row
+     types.
+
+ 324. PER-CATEGORY ATTRIBUTE COLUMNS — 13 NEW
+     COLUMNS ON loan_collateral_items (commit
+     93cd9bd). patches/0041-collateral-category-
+     attributes.sql adds firearm_make / _model /
+     _caliber / _serial_number / _type /
+     _barrel_length_inches / _action_type /
+     _capacity (8 firearm) + electronic_brand /
+     _model / _serial (3 electronic) + tool_brand
+     / _model (2 tool). CHECK constraint on
+     firearm_type ('handgun'/'rifle'/'shotgun'/
+     'other'). Partial indexes idx_loan_collateral_
+     items_firearm_serial + idx_loan_collateral_
+     items_electronic_serial for police-report
+     lookups + dup-detection.
+     - collateralItemSchema gains the 13 fields
+       (firearm_type uses z.enum so invalid
+       values bounce at the boundary; numeric
+       coercion on barrel_length + capacity).
+     - Server action reads collateral_<n>_<field>
+       per row, persists with `as never` boundary
+       cast, snapshots into compliance_log.items_
+       snapshot for FL Ch. 539 export.
+     - CollateralRow renders fields conditionally
+       on selectedCategory.slug — jewelry shows
+       metal/karat/weight (existing), firearms
+       shows the 8 new fields, electronics shows
+       brand/model/serial, tools shows brand/
+       model, general shows nothing extra.
+     - en/es i18n labels for all 13 + the
+       firearm_type enum options.
+
+ 325. DB:TYPES REGEN POST-0041 + DROP 0041
+     BOUNDARY CAST (commit a830dd5). Operator
+     applied 0041; regenerated db.ts (149956
+     bytes). Removed the `as never` cast on
+     loan_collateral_items.insert. tsc + lint
+     stayed clean.
+
+ 326. INVENTORY_CATEGORY DROPDOWN REMOVED +
+     INLINE CALCULATOR REMOVED (commit 29ceb97).
+     Two cleanups in one commit:
+     - src/components/pawn/CollateralItemsList.
+       tsx: legacy inventory_category <select>
+       dropdown removed from each row. Value now
+       auto-derives from pawn_subcategory_slug
+       via new inventoryCategoryFromSlug()
+       helper (jewelry/rings → 'ring',
+       electronics/* → 'electronics', tools/*
+       → 'tool', firearms/* → 'other', general
+       → 'other'). Hidden input still submits
+       the value so the server-side schema
+       validates. CATEGORY_OPTIONS const +
+       tCategory translator dropped as dead
+       code. PROBLEM IT FIXES: operator was
+       being asked to classify the item TWICE
+       — once via the pawn_intake_categories
+       picker, once via this enum dropdown.
+       Pawn picker is the source of truth.
+     - src/app/(staff)/pawn/new/form.tsx:
+       <InlinePawnCalculator /> import + JSX
+       removed. Operator types principal
+       directly. Watch typeahead lived inside
+       the calculator and went with it;
+       collateralRef.current?.addWatchRow(...)
+       handle still defined but uncalled (kept
+       for future callers).
+
+ 327. JEWELRY SIZE/LENGTH FIELD ADDED (commit
+     b1b305f). patches/0042-collateral-jewelry-
+     size.sql: jewelry_size TEXT NULL on
+     loan_collateral_items. Free-text catch-all
+     for ring sizes ('7', '8.5'), chain/bracelet
+     lengths ('22 in', '55 cm'), or whatever
+     the operator's gauge reports. Renders after
+     weight in the jewelry block of CollateralRow.
+     Width md:col-span-2 initially.
+
+ 328. WEIGHT + SIZE COLUMN WIDTHS HALVED (commit
+     307e914). md:col-span-2 → md:col-span-1 on
+     both fields. Operator request — both fields
+     are short numeric/short-string so half-
+     width is the right rhythm.
+
+ 329. FL §539.001(8)(b)(2) FIELD GAPS + NCIC TYP
+     CODE COLUMN (commit 20ba180). Cross-checked
+     the FL Pawnbroking Act item description
+     requirements against what we collect today
+     and added the missing fields. patches/0043-
+     fl-539-fields-plus-ncic.sql adds:
+     - loan_collateral_items.color (apparent
+       color)
+     - loan_collateral_items.gemstone_
+       description (jewelry-only at UI; column
+       allows non-jewelry NULL)
+     - loan_collateral_items.firearm_finish
+       (FL §539.001(8)(b)(2)(h))
+     - loan_collateral_items.firearm_number_of_
+       barrels (1 / 2 for double-barrel
+       shotguns)
+     - loan_collateral_items.unique_marks (FL
+       §539.001(8)(b)(2)(i) — engravings,
+       hallmarks, custom inscriptions)
+     - pawn_intake_categories.ncic_code (TEXT
+       NULL, operator-editable per-tenant for
+       LeadsOnline / RAPID daily exports;
+       Article File codes JEWL/WTCH/TOOL/CMPT
+       or Gun File codes HA/RE/RI/SH/CO).
+     Form: color + unique_marks visible across
+     all categories (statute calls these out
+     as universal); gemstone_description in
+     jewelry block (after size); firearm_finish
+     + #_barrels in firearms block (after
+     capacity). Server action reads + persists
+     all five new fields and snapshots them
+     onto compliance_log.items_snapshot.
+     Boundary cast `as never` reinstated on
+     items insert until next db:types regen.
+     en/es i18n: itemColor, itemUniqueMarks,
+     itemGemstones, itemFirearmFinish,
+     itemFirearmBarrels.
+     SETTINGS UI for ncic_code DEFERRED —
+     column exists, operator can SET via SQL
+     until then.
+     ALSO: NOT inserted the parallel
+     pawn_transactions / pawn_items / pawn_
+     holds / pawn_extensions / pawn_redemptions
+     schema another Claude session generated
+     (7 files, 1384 lines, Drizzle ORM,
+     `USING (true)` RLS placeholders). Reasons
+     in commit message + RESUME's KEY
+     DECISIONS.
+
+ 330. WIZARD REVEAL REORDERED — CUSTOMER →
+     TERMS → COLLATERAL → SIGNATURE (commit
+     609f559). Operator request: "after we get
+     the customer before the items lets put the
+     loan terms." Terms fieldset moved above
+     collateral so principal/rate/term are
+     pinned before itemizing. Submit button
+     follows signature, unchanged.
+
+ 331. CUSTOM-RATE OPTION REMOVED FROM INTEREST
+     RATE DROPDOWN (commit 9585a2b). The
+     "Custom" option + the manual-entry
+     <input type="number"> for typing arbitrary
+     rates removed. Operator can only pick from
+     rates configured at /settings/loan-rates.
+     CUSTOM_RATE_VALUE sentinel + customRate
+     state + setCustomRate setter + isCustomRate
+     boolean + initialCustomRate fallback to
+     0.10 all deleted as dead code.
+     defaultRateId falls through to '' when no
+     rates exist (form blocks submit;
+     rateNoneConfigured message already
+     handled it).
+
+ 332. ISSUE DATE LOCKED TO TODAY (commit
+     48489ad). issue_date <input> on /pawn/new
+     marked readOnly with the same muted
+     styling as the auto-computed due_date.
+     useState replaced with `const issueDate
+     = today` so setIssueDate is gone (was
+     dead code). Server action still defaults
+     to today when missing — defense in depth.
+     PROBLEM IT FIXES: operator was able to
+     back-date a ticket from the intake form.
+     If back-dating is ever needed (correction
+     flow), it lives in a separate UI;
+     intake stays clean.
 
 --- Session 38 (2026-05-09, fourth pass) — Pawn intake category moved to per-collateral-item (not per-loan); /pawn/new wizard = customer step then per-row category step inside each collateral row ---
 
@@ -3842,69 +4065,51 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Apply patches/0040-collateral-pawn-category.sql
-    in Supabase SQL Editor. It's idempotent (DROP
-    COLUMN IF EXISTS / ADD COLUMN IF NOT EXISTS)
-    so re-running after a partial apply is safe.
+    Apply patches/0042-collateral-jewelry-size.sql
+    AND patches/0043-fl-539-fields-plus-ncic.sql
+    in Supabase SQL Editor (in order; both are
+    idempotent — ADD COLUMN IF NOT EXISTS).
 
-    Then re-run `npm run db:types` so
-    loan_collateral_items.pawn_category_slug +
-    pawn_subcategory_slug appear in
+    Then re-run `npm run db:types` so the new
+    loan_collateral_items columns (jewelry_size,
+    color, gemstone_description, firearm_finish,
+    firearm_number_of_barrels, unique_marks) +
+    pawn_intake_categories.ncic_code appear in
     src/types/database.ts. Then in
     src/app/(staff)/pawn/new/actions.ts grep for
-    "boundary cast" and remove the `as never` cast
-    on the loan_collateral_items.insert array (and
-    the comment block above it). tsc should still
-    pass — the types now accept the columns
-    natively.
+    "boundary cast" and remove the `as never`
+    cast on the loan_collateral_items.insert
+    array (and the comment block above it). tsc
+    should still pass — the types now accept the
+    columns natively.
 
-    Then smoke /pawn/new in browser:
-    (a) Voice button + Customer panel visible at
-        top. NO category picker at form level.
-    (b) Type a customer or hit Scan ID with a DL —
-        picker collapses to a blue-bordered banner
-        with X.
-    (c) Reveal opens. Collateral fieldset is first.
-        The first (and only) row shows the
-        CategoryPicker tile grid — NO description
-        / metal / weight fields yet.
-    (d) Click Jewelry → sub-row → pick Rings →
-        CategoryBanner "Jewelry → Ring [Change]"
-        within the row, AND the rest of the row's
-        fields appear.
-    (e) Click "+ Add item" → second row with its
-        own picker. Pick Electronics → Phone (or
-        any sub) → second row's fields reveal.
-        Confirm row 1 and row 2 carry independent
-        category slugs.
-    (f) Submit a loan with two items in different
-        categories. After redirect, query
-          select position, pawn_category_slug,
-                 pawn_subcategory_slug
-          from loan_collateral_items
-          where loan_id=<id> order by position;
-        to confirm both rows landed.
-    (g) audit_log row should carry the
-        collateral_categories array in the
-        changes JSON. compliance_log row should
-        carry items_snapshot with the slugs per
-        item.
+    Then smoke /pawn/new in browser per the
+    RESUME POINT walkthrough above (Customer
+    pick → Terms → Add Jewelry/Firearm/Electronic
+    items → Submit → query loan_collateral_items
+    + compliance_log.items_snapshot to confirm
+    everything landed).
 
-    AFTER SMOKE: surface the per-item category on
-    the loan detail page (/pawn/<id>) — currently
-    persists slugs but no UI reads them. Quick
-    visual: show a "Jewelry → Ring" badge on each
-    collateral row; join pawn_intake_categories
-    on (tenant_id, slug) for the human label;
-    fall back to raw slug if soft-deleted/renamed.
-
-    SECONDARY: 2 react-hooks/purity errors in
-    customers/dashboard/[id]/page.tsx:279 + :392
-    (Date.now() in render body — from S37 commit
-    c6531a7). One-line fix per call site (hoist
-    to a const at top of the function body).
-    Lint isn't actually clean — fixing these
-    closes the gap.
+    AFTER SMOKE — DEFERRED FOLLOW-UPS:
+    - Settings UI for ncic_code on /settings/
+      pawn-categories. Column exists; SQL works
+      to set it; UI to edit per category is the
+      missing piece.
+    - Surface per-item category + new attributes
+      on /pawn/<id> detail page. Currently
+      persisted but not displayed.
+    - /pawn/<id> ticket print: include color +
+      gemstones + firearm finish/barrels +
+      jewelry_size + unique_marks per FL
+      §539.001 form mandate.
+    - Daily LeadsOnline export job — read NCIC
+      via tenant join, write CSV/JSON in vendor
+      format, schedule via cron.
+    - 2 react-hooks/purity errors in
+      customers/dashboard/[id]/page.tsx:279 +
+      :392 (Date.now() in render body — from
+      S37 commit c6531a7). One-line fix per
+      call site.
 
     THEN: previous-session carry-over still
     pending — Session 32 design walkthrough;
