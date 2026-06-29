@@ -431,10 +431,6 @@ export async function createLoanAction(
     return { error: 'no_valid_collateral' }
   }
 
-  // boundary cast: jewelry_size + the FS 539.001 fields (color,
-  // gemstone_description, unique_marks, firearm_finish,
-  // firearm_number_of_barrels) were added by patches/0042+0043. Drops
-  // after `npm run db:types` runs against the updated schema.
   const { error: collErr } = await supabase.from('loan_collateral_items').insert(
     collateralInserts.map((it) => ({
       loan_id: loanId,
@@ -468,7 +464,7 @@ export async function createLoanAction(
       electronic_serial: it.electronic_serial,
       tool_brand: it.tool_brand,
       tool_model: it.tool_model,
-    })) as never,
+    })),
   )
   if (collErr) {
     return { error: collErr.message }

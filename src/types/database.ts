@@ -1652,6 +1652,7 @@ export type Database = {
       loan_collateral_items: {
         Row: {
           category: Database["public"]["Enums"]["inventory_category"]
+          color: string | null
           created_at: string
           deleted_at: string | null
           description: string
@@ -1663,11 +1664,15 @@ export type Database = {
           firearm_barrel_length_inches: number | null
           firearm_caliber: string | null
           firearm_capacity: number | null
+          firearm_finish: string | null
           firearm_make: string | null
           firearm_model: string | null
+          firearm_number_of_barrels: number | null
           firearm_serial_number: string | null
           firearm_type: string | null
+          gemstone_description: string | null
           id: string
+          jewelry_size: string | null
           karat: number | null
           loan_id: string
           metal_type: Database["public"]["Enums"]["metal_type"] | null
@@ -1678,10 +1683,12 @@ export type Database = {
           tenant_id: string
           tool_brand: string | null
           tool_model: string | null
+          unique_marks: string | null
           weight_grams: number | null
         }
         Insert: {
           category?: Database["public"]["Enums"]["inventory_category"]
+          color?: string | null
           created_at?: string
           deleted_at?: string | null
           description: string
@@ -1693,11 +1700,15 @@ export type Database = {
           firearm_barrel_length_inches?: number | null
           firearm_caliber?: string | null
           firearm_capacity?: number | null
+          firearm_finish?: string | null
           firearm_make?: string | null
           firearm_model?: string | null
+          firearm_number_of_barrels?: number | null
           firearm_serial_number?: string | null
           firearm_type?: string | null
+          gemstone_description?: string | null
           id?: string
+          jewelry_size?: string | null
           karat?: number | null
           loan_id: string
           metal_type?: Database["public"]["Enums"]["metal_type"] | null
@@ -1708,10 +1719,12 @@ export type Database = {
           tenant_id: string
           tool_brand?: string | null
           tool_model?: string | null
+          unique_marks?: string | null
           weight_grams?: number | null
         }
         Update: {
           category?: Database["public"]["Enums"]["inventory_category"]
+          color?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string
@@ -1723,11 +1736,15 @@ export type Database = {
           firearm_barrel_length_inches?: number | null
           firearm_caliber?: string | null
           firearm_capacity?: number | null
+          firearm_finish?: string | null
           firearm_make?: string | null
           firearm_model?: string | null
+          firearm_number_of_barrels?: number | null
           firearm_serial_number?: string | null
           firearm_type?: string | null
+          gemstone_description?: string | null
           id?: string
+          jewelry_size?: string | null
           karat?: number | null
           loan_id?: string
           metal_type?: Database["public"]["Enums"]["metal_type"] | null
@@ -1738,6 +1755,7 @@ export type Database = {
           tenant_id?: string
           tool_brand?: string | null
           tool_model?: string | null
+          unique_marks?: string | null
           weight_grams?: number | null
         }
         Relationships: [
@@ -2193,6 +2211,7 @@ export type Database = {
           id: string
           is_active: boolean
           label: string
+          ncic_code: string | null
           parent_id: string | null
           requires_ffl: boolean
           slug: string
@@ -2207,6 +2226,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           label: string
+          ncic_code?: string | null
           parent_id?: string | null
           requires_ffl?: boolean
           slug: string
@@ -2221,6 +2241,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string
+          ncic_code?: string | null
           parent_id?: string | null
           requires_ffl?: boolean
           slug?: string
