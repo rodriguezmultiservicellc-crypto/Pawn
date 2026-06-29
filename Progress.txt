@@ -13,382 +13,169 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 39 (2026-05-09, fifth pass)
-                  — PER-CATEGORY ATTRIBUTES + FL §539.001
-                  FIELD GAPS + WIZARD POLISH ON /pawn/new.
+  Last session:   Session 40 (2026-06-29)
+                  — APPLIED COLLATERAL MIGRATIONS 0042/0043
+                  + TWILIO SHARED-CORE REFACTOR (match
+                  LunaAzul) + TCPA SMS FOOTER.
 
-                  Long focused session iterating on the
-                  /pawn/new pawn-intake form. Eight
-                  thematic landings:
+                  Two streams, one commit (59609c0):
 
-                  (1) PER-CATEGORY ATTRIBUTE COLUMNS
-                  - patches/0041-collateral-category-
-                    attributes.sql: 13 dedicated columns
-                    on loan_collateral_items —
-                    firearm_make/model/caliber/serial/
-                    type/barrel_length/action_type/
-                    capacity, electronic_brand/model/
-                    serial, tool_brand/model.
-                    CHECK constraint on firearm_type
-                    ('handgun'/'rifle'/'shotgun'/'other').
-                    Partial indexes on firearm_serial_
-                    number + electronic_serial.
-                  - collateralItemSchema gains 13
-                    optional fields (firearm_type uses
-                    z.enum).
-                  - Server action persists per-row,
-                    snapshots into compliance_log.
-                    items_snapshot for FL Ch. 539
-                    police-report exports.
-                  - CollateralRow renders fields
-                    conditionally on selectedCategory.
-                    slug — jewelry shows metal/karat/
-                    weight, firearms shows the new 8,
-                    electronics shows brand/model/
-                    serial, tools shows brand/model,
-                    general shows nothing extra.
+                  (A) MIGRATIONS 0042 + 0043 APPLIED.
+                  S39 left these PENDING in Supabase. Applied
+                  both via the Supabase Management API SQL
+                  endpoint (api.supabase.com/v1/projects/
+                  {ref}/database/query) because DATABASE_URL
+                  is empty in .env.local and psql isn't
+                  installed. The S39 SUPABASE_ACCESS_TOKEN
+                  was stale (401); operator minted a fresh
+                  sbp_ token into .env.local and it works for
+                  both the Mgmt API and db:types again.
+                  Verified all 6 cols on loan_collateral_
+                  items + ncic_code on pawn_intake_categories.
+                  Ran npm run db:types (database.ts now
+                  150807 bytes) and DROPPED the `as never`
+                  boundary cast on the loan_collateral_items
+                  .insert in pawn/new/actions.ts. tsc clean.
 
-                  (2) JEWELRY SIZE/LENGTH FIELD
-                  - patches/0042-collateral-jewelry-
-                    size.sql: jewelry_size TEXT NULL
-                    on loan_collateral_items. Free
-                    text for ring sizes ('7') or
-                    chain/bracelet lengths ('22 in').
-                  - Renders after weight in the jewelry
-                    block. Width halved later in
-                    session — md:col-span-1 for both
-                    weight + size.
+                  (B) TWILIO REFACTOR — match LunaAzul, keep
+                  Pawn's better choices. Read LunaAzul's
+                  lib/messaging/core.ts + lib/sms/send.ts.
+                  - NEW src/lib/twilio/core.ts: shared
+                    runTwilioSend() — queued message_log
+                    insert, NODE_ENV=test short-circuit,
+                    Twilio POST, 429/error handling,
+                    markSent/markFailed. Dedupes ~80 lines
+                    that were copy-pasted across sms.ts +
+                    whatsapp.ts.
+                  - NEW src/lib/twilio/compliance.ts: pure
+                    withComplianceFooter() (TCPA "Reply STOP
+                    to unsubscribe. Msg&Data Rates may
+                    apply.", idempotent). Pure module (no
+                    server-only) so it's vitest-testable.
+                  - NEW src/lib/twilio/core.test.ts: 4
+                    footer regression tests.
+                  - sms.ts + whatsapp.ts reduced to creds-
+                    resolver + form-builder wrappers calling
+                    runTwilioSend via a prepare() callback.
+                    SMS now carries the TCPA footer; WhatsApp
+                    does NOT (own Meta opt-out).
+                  - KEPT (did NOT regress to match LunaAzul):
+                    Vault auth token (getTenantSecret) vs
+                    LunaAzul's plaintext column; single rich
+                    message_log w/ FK relations + reason
+                    codes; MessagingServiceSid support;
+                    dispatch.ts email routing.
+                  - DEFERRED: platform-Twilio fallback +
+                    messaging_mode (operator chose "Core +
+                    TCPA footer" scope; full fallback needs
+                    a migration + platform env + settings UI).
 
-                  (3) FL §539.001(8)(b)(2) FIELD GAPS
-                  + NCIC TYP CODE
-                  - patches/0043-fl-539-fields-plus-
-                    ncic.sql: 5 new columns on
-                    loan_collateral_items — color,
-                    gemstone_description, firearm_
-                    finish, firearm_number_of_barrels,
-                    unique_marks. Plus ncic_code TEXT
-                    NULL on pawn_intake_categories
-                    (operator-editable per-tenant for
-                    LeadsOnline/RAPID daily exports;
-                    settings UI to edit deferred).
-                  - Form: color + unique_marks common
-                    across all categories;
-                    gemstone_description in jewelry
-                    block; firearm_finish + #_barrels
-                    appended to firearms block.
+  Context budget: ~62% at save time.
+  Last worked on: Both streams shipped in commit 59609c0,
+                  pushed to main (Vercel auto-deploying).
+                  tsc clean, eslint clean on changed files,
+                  full suite 413 tests pass.
 
-                  (4) FOREIGN PAWN MODULE NOT INSERTED
-                  - Operator pasted in another Claude
-                    session's output (7 files, 1384
-                    lines) building a parallel
-                    pawn_transactions / pawn_items /
-                    pawn_holds schema using Drizzle ORM
-                    with USING (true) RLS placeholders.
-                    Declined to insert — reasons in
-                    KEY DECISIONS below. Cherry-picked
-                    only the FS 539.001 cross-check +
-                    NCIC TYP code list as research.
-
-                  (5) INVENTORY_CATEGORY DROPDOWN GONE
-                  - Legacy enum select on each row
-                    removed. Auto-derives from
-                    pawn_subcategory_slug via
-                    inventoryCategoryFromSlug()
-                    (jewelry/rings → 'ring',
-                    electronics/* → 'electronics',
-                    tools/* → 'tool', firearms/* →
-                    'other'). Hidden input still
-                    submits so loan_collateral_items.
-                    category stays populated for
-                    forfeiture-to-inventory routing.
-                  - CATEGORY_OPTIONS const + tCategory
-                    translator chain dropped as dead
-                    code.
-
-                  (6) INLINE PAWN CALCULATOR REMOVED
-                  - <InlinePawnCalculator /> block on
-                    /pawn/new is gone. Operator types
-                    principal directly. Watch
-                    typeahead lost with it.
-                    CollateralRow.addWatchRow handle
-                    still defined but uncalled.
-
-                  (7) WIZARD REORDERED + RATE LOCKDOWN
-                  - Reveal order: Customer → Terms →
-                    Collateral → Signature (Terms now
-                    BEFORE collateral; was after).
-                  - Interest rate dropdown removed
-                    Custom option + manual-entry
-                    input. Operator can only pick
-                    rates configured at /settings/
-                    loan-rates. CUSTOM_RATE_VALUE +
-                    customRate state + isCustomRate
-                    + initialCustomRate fallback all
-                    deleted.
-
-                  (8) ISSUE DATE LOCKED TO TODAY
-                  - issue_date readOnly with muted
-                    styling matching due_date. const
-                    issueDate replaces useState.
-                    Server action already defaults to
-                    today when missing — defense in
-                    depth.
-
-  Context budget: ~85% at save time.
-  Last worked on: Issue-date lockdown shipped (commit
-                  48489ad). tsc clean. Lint clean for
-                  changed files; the 2 pre-existing
-                  customers/dashboard/[id]/page.tsx
-                  react-hooks/purity errors from S37
-                  commit c6531a7 still flagged but
-                  unrelated.
-
-  ACTIVE FILE(S) modified across Session 39:
-
-    --- Migrations ---
-    - patches/0041-collateral-category-attributes.sql
-      (NEW; APPLIED + db:types regen done)
-    - patches/0042-collateral-jewelry-size.sql
-      (NEW; PENDING APPLICATION)
-    - patches/0043-fl-539-fields-plus-ncic.sql
-      (NEW; PENDING APPLICATION)
-
-    --- Validation ---
-    - src/lib/validations/loan.ts (collateralItem
-      Schema picks up firearm_*, electronic_*,
-      tool_*, jewelry_size, color,
-      gemstone_description, unique_marks,
-      firearm_finish, firearm_number_of_barrels)
-
-    --- Pawn intake server side ---
-    - src/app/(staff)/pawn/new/actions.ts
-      (readCollateralRows reads per-row attribute
-      fields; loan_collateral_items.insert passes
-      them through with `as never` boundary cast
-      until db:types regen post-0042+0043;
-      compliance_log items_snapshot includes the
-      new fields)
-
-    --- Pawn intake form UX ---
-    - src/app/(staff)/pawn/new/form.tsx (custom
-      rate option removed; CUSTOM_RATE_VALUE
-      sentinel + customRate state deleted; reveal
-      reordered Terms-before-Collateral; issue
-      date readOnly + muted; const issueDate
-      replaces useState; InlinePawnCalculator
-      import + JSX removed)
-    - src/app/(staff)/pawn/new/page.tsx (boundary
-      casts cleaned post-0040 — typed query
-      builders for tenants + pawn_intake_
-      categories)
-    - src/app/(staff)/settings/pawn-categories/
-      page.tsx (boundary casts cleaned post-0037)
-
-    --- Per-row picker ---
-    - src/components/pawn/CollateralItemsList.tsx
-      (Row state extended with all 18 attribute
-      fields; newRow() initializes all to '';
-      isPristineRow() includes all in pristine
-      signature; CollateralRow renders fields
-      conditionally on selectedCategory.slug;
-      inventoryCategoryFromSlug() helper auto-
-      derives the legacy category enum from the
-      pawn slugs; CATEGORY_OPTIONS + tCategory
-      dead-code dropped)
-
-    --- i18n ---
-    - src/lib/i18n/en.ts (firearm/electronic/tool
-      labels + firearm_type enum options +
-      jewelry_size + color + unique_marks +
-      gemstones + firearm_finish + firearm_barrels)
-    - src/lib/i18n/es.ts (Spanish parity)
-
-    --- Generated types ---
-    - src/types/database.ts (regenerated TWICE —
-      post-0040 = 148024 bytes, post-0041 =
-      149956 bytes; loan_collateral_items now
-      exposes firearm_* + electronic_* + tool_*
-      columns natively. NOT YET aware of 0042
-      jewelry_size or 0043 fields)
+  ACTIVE FILE(S) this session:
+    --- Twilio (NEW) ---
+    - src/lib/twilio/core.ts (shared runTwilioSend)
+    - src/lib/twilio/compliance.ts (pure withComplianceFooter)
+    - src/lib/twilio/core.test.ts (4 footer tests)
+    --- Twilio (reduced to thin wrappers) ---
+    - src/lib/twilio/sms.ts (creds resolver + footer)
+    - src/lib/twilio/whatsapp.ts (creds resolver)
+    --- Migrations applied + cast dropped ---
+    - patches/0042-collateral-jewelry-size.sql (APPLIED)
+    - patches/0043-fl-539-fields-plus-ncic.sql (APPLIED)
+    - src/types/database.ts (regenerated, 150807 bytes)
+    - src/app/(staff)/pawn/new/actions.ts (as never dropped)
+    --- Reference only (read, not changed) ---
+    - LunaAzul lib/messaging/core.ts + lib/sms/send.ts
 
   RESUME POINT:
-    Apply patches/0042-collateral-jewelry-size.sql
-    AND patches/0043-fl-539-fields-plus-ncic.sql
-    in Supabase SQL Editor (in order — both
-    idempotent). Then `npm run db:types` so the
-    new columns surface. Then in src/app/(staff)/
-    pawn/new/actions.ts grep for "boundary cast"
-    and delete the `as never` cast on the loan_
-    collateral_items.insert array (and the
-    comment block above it). tsc should still
-    pass.
+    Clean stopping point — both work streams are committed
+    + pushed (59609c0). The single most useful next action
+    is the BROWSER SMOKE-TEST of /pawn/new that S39 queued
+    and which is now unblocked (0042+0043 applied, types
+    regen'd, cast removed). Run the a-h checklist:
+    (a) form loads, Customer panel at top, no form-level
+        category picker; (b) pick a customer; (c) reveal
+        order Terms -> Collateral -> Signature, issue date
+        readOnly+greyed, rate dropdown = configured rates
+        only; (d) Jewelry->Ring shows color/unique_marks/
+        metal/karat/weight(narrow)/size(narrow)/gemstones;
+        (e) Firearms->Handgun shows make/model/caliber/
+        serial(req)/type/action/barrel_length/capacity/
+        finish/#barrels; (f) Electronics->Phone shows
+        brand/model/serial; (g) submit, then query loan_
+        collateral_items for the new fields; (h) confirm
+        compliance_log.items_snapshot carries them.
 
-    Then smoke /pawn/new in the browser:
-    (a) Land on the form. Customer panel at top.
-        No category picker at form level.
-    (b) Pick a customer (Scan ID or typeahead).
-    (c) Reveal block opens in this order: Terms
-        → Collateral → Signature. Issue date is
-        readOnly + greyed (today). Interest rate
-        dropdown shows ONLY rates configured at
-        /settings/loan-rates — no Custom option.
-    (d) Add a Jewelry → Ring item. Verify fields:
-        description, est_value, color, unique_
-        marks, metal, karat, weight (narrow),
-        size (narrow), gemstones. NO inventory_
-        category dropdown.
-    (e) Add a Firearms → Handgun item. Verify
-        fields: description, est_value, color,
-        unique_marks, make, model, caliber,
-        serial (required), type, action_type,
-        barrel_length, capacity, finish,
-        # of barrels.
-    (f) Add an Electronics → Phone item. Verify:
-        description, est_value, color, unique_
-        marks, electronic_brand, electronic_
-        model, electronic_serial.
-    (g) Submit. After redirect, query
-          select position, pawn_category_slug,
-                 pawn_subcategory_slug, color,
-                 unique_marks, jewelry_size,
-                 gemstone_description,
-                 firearm_make,
-                 firearm_serial_number,
-                 firearm_finish,
-                 firearm_number_of_barrels,
-                 electronic_brand
-          from loan_collateral_items
-          where loan_id=<id> order by position;
-    (h) Confirm compliance_log.items_snapshot
-        carries the same fields populated for
-        FL Ch. 539 downstream export.
-
-    AFTER SMOKE — DEFERRED FOLLOW-UPS:
-    - Settings UI for ncic_code on /settings/
-      pawn-categories (column exists; SQL works).
-    - Surface per-item category + new attributes
-      on /pawn/<id> detail page.
-    - /pawn/<id> ticket print: include color +
-      gemstones + firearm finish/barrels + size
-      + unique_marks per FL §539.001 form
-      mandate.
-    - Daily LeadsOnline export job — read NCIC
-      via tenant join, write CSV/JSON in vendor
-      format, schedule via cron.
-    - 2 react-hooks/purity errors in customers/
-      dashboard/[id]/page.tsx:279 + :392 (S37
-      commit c6531a7).
+    SECOND: decide whether to localize the TCPA SMS footer
+    (currently English-only, matching LunaAzul; STOP is the
+    carrier-standard keyword so it works regardless of
+    language). Localizing means threading customer.language
+    into sendSms() (it doesn't receive it today).
 
   OPEN ISSUES / BLOCKERS:
-    - patches/0042 + 0043 PENDING APPLICATION
-      in Supabase. After apply, db:types regen +
-      drop the boundary cast in actions.ts.
-    - 2 react-hooks/purity errors in customers/
-      dashboard/[id]/page.tsx (S37, unrelated).
-    - Settings UI to edit ncic_code per category
-      missing (column exists; SQL works).
-    - OPENAI_API_KEY still pending in Vercel
-      Production env (S33/S34 voice + market-
-      data embed cron + market-data lookup).
-    - Carry-over: 32 design walkthrough, S27
-      backpage, A-I 9-smoke, Phase 0 punch list,
-      email-campaign UI, Stripe Connect, eBay
-      de-stub, FL LeadsOnline reconciliation,
-      Phase 8 mobile audit.
+    - /pawn/new browser smoke-test (a-h) still not run.
+    - TCPA SMS footer is English-only — pending decision on
+      bilingual (CLAUDE.md rule 6). Not a bug; deliberate
+      match to LunaAzul.
+    - Settings UI to edit ncic_code per category still
+      missing (column exists; operator can SET via SQL).
+    - 2 react-hooks/purity errors in customers/dashboard/
+      [id]/page.tsx:279 + :392 (S37 commit c6531a7).
+    - OPENAI_API_KEY still pending in Vercel Production env.
+    - Carry-over backlog: 32 design walkthrough, S27
+      backpage, A-I 9-smoke, Phase 0 punch list, email-
+      campaign UI, Stripe Connect, eBay de-stub, FL
+      LeadsOnline reconciliation, Phase 8 mobile audit.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 39):
-    - PER-CATEGORY ATTRIBUTES = DEDICATED COLUMNS,
-      NOT JSONB. Reasons:
-      (1) FL Ch. 539 police-report exports must
-          filter on serial number for firearms —
-          typed columns make that query trivial;
-      (2) operator queries (e.g., "find all
-          Glock 19s in inventory") benefit from
-          indexes on dedicated columns;
-      (3) JSONB hides the schema from the
-          operator's mental model.
-    - SLUG-DRIVEN INVENTORY_CATEGORY DERIVATION.
-      Legacy inventory_category enum dropdown
-      removed. Column still populated via
-      inventoryCategoryFromSlug() — auto-mapping
-      from pawn_subcategory_slug. Operator never
-      asked twice; pawn_intake_categories is the
-      single source of truth for classification.
-    - INLINE CALCULATOR REMOVED. Watch typeahead
-      lost with it. Operator types principal
-      directly. Watch typeahead can be re-added
-      as a standalone if missed.
-    - NO CUSTOM RATE. Operator can only pick
-      from rates configured at /settings/loan-
-      rates. Removes the audit-time "where did
-      this rate come from?" — every loan rate
-      maps to a tenant_loan_rates row. Tenant-
-      without-rates case: form blocks submit;
-      operator must configure rates first.
-    - ISSUE DATE LOCKED TO TODAY. No back-dating
-      from intake form. Server still defaults to
-      today as second line of defense. If back-
-      dating is ever needed (correction flow),
-      it lives in a separate UI; intake stays
-      clean.
-    - WIZARD ORDER = CUSTOMER → TERMS →
-      COLLATERAL → SIGNATURE. Operator request:
-      pin principal/rate/term before itemizing.
-    - WIDTH RHYTHM ON JEWELRY ROW. Weight + size
-      both md:col-span-1 (half-width) since each
-      is short. Karat md:col-span-1. Metal
-      md:col-span-2. Description md:col-span-4.
-      Est value md:col-span-2.
-    - NCIC = PER-TENANT, OPERATOR-EDITABLE.
-      ncic_code TEXT NULL on pawn_intake_
-      categories. Per-tenant because the
-      accepted code list varies by transmission
-      vendor + jurisdiction. Settings UI to
-      edit deferred.
-    - DECLINED FOREIGN PAWN MODULE. The other
-      Claude session's 7-file output (Drizzle +
-      pawn_transactions duplicate tables +
-      USING (true) RLS) was not inserted.
-      Reasons:
-      (1) Drizzle ORM not in package.json;
-      (2) tables overlapped 1:1 with our
-          existing loans / loan_collateral_items
-          / loan_events / compliance_log;
-      (3) USING (true) RLS placeholders violate
-          CLAUDE.md rule 1;
-      (4) flat 110-key i18n shape would break
-          every page that reads t.pawn.*.* keys.
+  KEY DECISIONS LOCKED THIS SESSION (Session 40):
+    - MIGRATIONS APPLY VIA MGMT API. When DATABASE_URL is
+      empty + psql absent, apply idempotent DDL through
+      api.supabase.com/v1/projects/{ref}/database/query
+      with the SUPABASE_ACCESS_TOKEN (sbp_ PAT). Same
+      token db:types uses. Only ADD COLUMN IF NOT EXISTS
+      here — no RLS touched (CLAUDE.md rule 1 respected).
+    - SUPABASE_ACCESS_TOKEN ROTATED. S39 token was 401
+      (stale). Fresh sbp_ token now in .env.local;
+      db:types + Mgmt API both work.
+    - TWILIO = MATCH LUNAAZUL STRUCTURE, KEEP PAWN'S
+      STRONGER CHOICES. Adopted the shared-core pattern
+      (one runTwilioSend) + TCPA footer. Did NOT adopt
+      LunaAzul's plaintext twilio_auth_token column
+      (Pawn's Vault is more secure) nor its double-log
+      table split (Pawn's single message_log is richer).
+    - TCPA FOOTER: SMS-ONLY, ENGLISH-ONLY, IDEMPOTENT.
+      WhatsApp carries its own Meta opt-out. Footer skips
+      if body already says "reply stop" so a resend never
+      double-stacks. Lives in pure compliance.ts so it's
+      unit-testable (server-only breaks under vitest).
+    - PLATFORM-TWILIO FALLBACK DEFERRED. Operator chose
+      "Core + TCPA footer" scope. messaging_mode +
+      TWILIO_PLATFORM_* + settings toggle not built.
 
   IMPORTANT CONSTANTS / PATHS:
-    - Migrations pending: patches/0042 + 0043
-    - Boundary cast grep: search "boundary cast"
-      in src/app/(staff)/pawn/new/actions.ts
-      after `npm run db:types` post-0042+0043.
-    - 13 firearm/electronic/tool columns:
-      loan_collateral_items.firearm_make /
-      _model / _caliber / _serial_number /
-      _type / _barrel_length_inches /
-      _action_type / _capacity / _finish /
-      _number_of_barrels ; .electronic_brand /
-      _model / _serial ; .tool_brand / _model
-    - FS 539.001 columns: loan_collateral_items.
-      color, gemstone_description, unique_marks,
-      jewelry_size
-    - NCIC code: pawn_intake_categories.
-      ncic_code (TEXT NULL, operator-editable)
-    - Slug → enum helper:
-      inventoryCategoryFromSlug() in
-      CollateralItemsList.tsx
-    - Wizard reveal order in form.tsx:
-      Customer step → Terms fieldset →
-      Collateral fieldset → Signature
-      fieldset → Submit.
+    - Mgmt API SQL endpoint: POST https://api.supabase.com
+      /v1/projects/{SUPABASE_PROJECT_ID}/database/query
+      with Authorization: Bearer {SUPABASE_ACCESS_TOKEN};
+      body {"query":"<sql>"}. Pawn project ref =
+      kjyaxfwlggxiqijiiuna.
+    - Twilio shared core: src/lib/twilio/core.ts
+      runTwilioSend({ channel, log, prepare }).
+    - TCPA footer: src/lib/twilio/compliance.ts
+      withComplianceFooter() — SMS only.
+    - resolveTwilioCreds() stays in sms.ts (whatsapp.ts
+      imports it). Auth token from Vault getTenantSecret.
+    - LunaAzul Twilio reference: C:\Users\rodri\OneDrive\
+      Documents\Claude Projects\LunaAzul Web Sass\src\src\
+      lib\messaging\core.ts + lib\sms\send.ts.
 
-  (Sessions 13-38 PRIOR-SESSION decision blocks pruned from
-  RESUME — full context preserved in the SESSION HISTORY
-  LOG below. Carried-forward architectural decisions are
-  in CLAUDE.md and the existing prior-session items below.)
-
+  (Sessions 13-39 PRIOR-SESSION decision blocks are in the
+  SESSION HISTORY LOG below. Carried-forward architectural
+  decisions live in CLAUDE.md.)
 
 ================================================================================
 PHASE OVERVIEW
@@ -1852,6 +1639,80 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 40 (2026-06-29) — Applied collateral migrations 0042/0043 + Twilio shared-core refactor (match LunaAzul) + TCPA SMS footer ---
+
+ 333. MIGRATIONS 0042 + 0043 APPLIED VIA MGMT API +
+     db:types REGEN + BOUNDARY CAST DROPPED (commit
+     59609c0, part 1). S39 left patches/0042
+     (jewelry_size) + 0043 (FL 539.001 fields: color,
+     gemstone_description, firearm_finish, firearm_
+     number_of_barrels, unique_marks + pawn_intake_
+     categories.ncic_code) PENDING in Supabase. No
+     psql installed and DATABASE_URL is empty in
+     .env.local, so applied both through the Supabase
+     Management API SQL endpoint (POST api.supabase.com
+     /v1/projects/kjyaxfwlggxiqijiiuna/database/query,
+     Bearer SUPABASE_ACCESS_TOKEN). ROOT CAUSE of the
+     first 401: the S39 access token was stale/revoked
+     — confirmed it 401'd on a plain GET /v1/projects
+     too, so it would also have broken db:types.
+     Operator minted a fresh sbp_ PAT into .env.local;
+     re-ran apply -> both 201, verified all 6
+     loan_collateral_items columns + ncic_code present.
+     Ran npm run db:types (database.ts 149956 ->
+     150807 bytes) and removed the `as never` cast +
+     its comment block on the loan_collateral_items
+     .insert array in src/app/(staff)/pawn/new/
+     actions.ts. tsc --noEmit exits 0. (MIME-check
+     `as never` casts on lines 374/404 are unrelated,
+     left intact.)
+
+ 334. TWILIO SHARED-CORE REFACTOR — MATCH LUNAAZUL
+     (commit 59609c0, part 2). Operator asked to update
+     Pawn's Twilio to "sort of match" LunaAzul's. Read
+     LunaAzul's lib/messaging/core.ts + lib/sms/send.ts.
+     Compared: LunaAzul factors the Twilio POST + log
+     writes into one runTwilioSend; Pawn duplicated that
+     ~80 lines across sms.ts + whatsapp.ts. Operator
+     chose scope "Core + TCPA footer" (not the platform-
+     fallback/messaging_mode, which needs a migration).
+     - NEW src/lib/twilio/core.ts: runTwilioSend({
+       channel, log, prepare }) — inserts the queued
+       message_log row, NODE_ENV=test short-circuit,
+       resolves the prepare() callback (creds + form or
+       a pre-send failure), POSTs to Twilio, handles 429
+       + non-ok + parse, then markSent/markFailed. One
+       copy of the logic both rails share.
+     - NEW src/lib/twilio/compliance.ts: pure
+       withComplianceFooter() — appends the TCPA opt-out
+       footer to SMS bodies, idempotent (skips if body
+       already matches /reply\s+stop/i), empty-body
+       passthrough. Pure (no server-only import) so it
+       unit-tests under vitest.
+     - NEW src/lib/twilio/core.test.ts: 4 vitest cases
+       locking the footer (appends, idempotent, skips
+       existing STOP any-case, empty untouched).
+     - src/lib/twilio/sms.ts: reduced to a creds
+       resolver + form builder; APPLIES the TCPA footer
+       before send AND before logging so body_rendered
+       matches what was sent. resolveTwilioCreds() stays
+       exported here (whatsapp.ts imports it).
+     - src/lib/twilio/whatsapp.ts: reduced to a creds
+       resolver + form builder through runTwilioSend; no
+       footer (WhatsApp templates carry their own Meta
+       opt-out; freeform fallback is in-session).
+     KEPT (deliberately NOT regressed to match LunaAzul):
+     Vault auth token (getTenantSecret) over LunaAzul's
+     plaintext twilio_auth_token column; Pawn's single
+     rich message_log (FK relations + typed reason codes)
+     over LunaAzul's sms_log+sms_messages split;
+     MessagingServiceSid support; dispatch.ts email
+     routing. templates.ts unchanged. eslint + tsc clean;
+     full suite 413 tests pass (was 409 + 4 new).
+     FLAGGED to operator (not done): TCPA footer is
+     English-only like LunaAzul — bilingual would need
+     customer.language threaded into sendSms().
 
 --- Session 39 (2026-05-09, fifth pass) — Per-category attribute columns + FL §539.001 field gaps + wizard polish on /pawn/new ---
 
@@ -4065,459 +3926,40 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Apply patches/0042-collateral-jewelry-size.sql
-    AND patches/0043-fl-539-fields-plus-ncic.sql
-    in Supabase SQL Editor (in order; both are
-    idempotent — ADD COLUMN IF NOT EXISTS).
-
-    Then re-run `npm run db:types` so the new
-    loan_collateral_items columns (jewelry_size,
-    color, gemstone_description, firearm_finish,
-    firearm_number_of_barrels, unique_marks) +
-    pawn_intake_categories.ncic_code appear in
-    src/types/database.ts. Then in
-    src/app/(staff)/pawn/new/actions.ts grep for
-    "boundary cast" and remove the `as never`
-    cast on the loan_collateral_items.insert
-    array (and the comment block above it). tsc
-    should still pass — the types now accept the
-    columns natively.
-
-    Then smoke /pawn/new in browser per the
-    RESUME POINT walkthrough above (Customer
-    pick → Terms → Add Jewelry/Firearm/Electronic
-    items → Submit → query loan_collateral_items
-    + compliance_log.items_snapshot to confirm
-    everything landed).
-
-    AFTER SMOKE — DEFERRED FOLLOW-UPS:
-    - Settings UI for ncic_code on /settings/
-      pawn-categories. Column exists; SQL works
-      to set it; UI to edit per category is the
-      missing piece.
-    - Surface per-item category + new attributes
-      on /pawn/<id> detail page. Currently
-      persisted but not displayed.
-    - /pawn/<id> ticket print: include color +
-      gemstones + firearm finish/barrels +
-      jewelry_size + unique_marks per FL
-      §539.001 form mandate.
-    - Daily LeadsOnline export job — read NCIC
-      via tenant join, write CSV/JSON in vendor
-      format, schedule via cron.
-    - 2 react-hooks/purity errors in
-      customers/dashboard/[id]/page.tsx:279 +
-      :392 (Date.now() in render body — from
-      S37 commit c6531a7). One-line fix per
-      call site.
-
-    THEN: previous-session carry-over still
-    pending — Session 32 design walkthrough;
-    backpage smoke (S27); 9-smoke sequence (A-I)
-    for Google Reviews / cron warmer / quota /
-    email campaigns / unsubscribe / Resend
-    webhook / vault / settings UIs / eBay sync.
-    Phase 0 punch list (CRON_SECRET +
-    RESEND_WEBHOOK_SECRET + GOOGLE_PLACES_API_KEY
-    + OPENAI_API_KEY + the three secret
-    rotations) remains the biggest blocker for
-    smokes B/F/A.
-
-  PHASE 0 PUNCH LIST (still open):
-    a. Set CRON_SECRET in Vercel. (Gates 7 cron paths
-       — the 6 from Session 14 + new send-email-
-       campaigns at every 2 min.)
-    b. Set NEXT_PUBLIC_APP_URL=https://pawn-three.vercel.app in
-       Vercel (Production env). Redeploy.
-    c. Set RESEND_WEBHOOK_SECRET in Vercel and
-       configure the Resend dashboard webhook to
-       ${NEXT_PUBLIC_APP_URL}/api/webhooks/resend.
-       (NEW Session 25 — webhook 401s without it.)
-    d. Set GOOGLE_PLACES_API_KEY in Vercel
-       (carrying from Session 23 / 24 — gates the
-       Google Reviews smoke).
-    e. Rotate the three pasted secrets (anon JWT, service_role JWT,
-       sbp_ access token).
-    f. Optionally revert repo-local git user.name + user.email config.
-    g. (NEW Session 19) Set NEXT_PUBLIC_BASE_DOMAIN in Vercel and
-       point `*.<basedomain>` at the Vercel project + attach the
-       wildcard cert in Vercel domains UI. Lights up the
-       acme.basedomain.com subdomain form. Path form `/s/<slug>`
-       works without it.
-    h. (NEW Session 33) Set OPENAI_API_KEY + confirm
-       ANTHROPIC_API_KEY in Vercel Production env. Gates
-       /api/ai/voice/pawn-intake — returns 503 "Voice
-       intake is not configured on this deployment" if
-       either is missing at runtime. Vercel only injects
-       env vars at build time so the deployment must be
-       redeployed after setting.
+    Browser smoke-test /pawn/new end to end (the S39 a-h
+    checklist, now unblocked: 0042+0043 applied, db.ts
+    regen'd, cast dropped). Add a Jewelry->Ring, a
+    Firearms->Handgun, and an Electronics->Phone item;
+    submit; then verify loan_collateral_items + compliance_
+    log.items_snapshot carry color / unique_marks /
+    jewelry_size / gemstone_description / firearm_finish /
+    firearm_number_of_barrels / electronic_brand.
 
   BACKLOG (in priority order):
-    1. Operator setup gates (above) + per-tenant Stripe Connect
-       onboarding for first tenant + per-tenant Resend setup at
-       /settings/communications.
-    2. [DONE Session 26] Migration 0034 + plaintext-column drop +
-       resolveSecret fallback removal — collapsed into the
-       single 0034-vault-cutover-resync.sql + cad2b23 cutover.
-       Vault is the sole secret store as of this session.
-    3. Email-campaign UI editor at /settings/communications/
-       campaigns — list + create/edit/schedule/cancel form +
-       segmentation preview ("X recipients will be reached").
-       Engine works without it (SQL inserts), but campaigns
-       aren't shippable to operators until this lands.
-       (Session 25 closed the engine backbone — items 235-239.)
-    4. Phase 10 Path A continuation — additional sub-surfaces:
-       (a) Public-route edge-cache fix — add
-           `export const revalidate = 60` to /s/[slug] +
-           /s/[slug]/catalog + /s/[slug]/catalog/[sku] +
-           /portal/loyalty. Cheap. Closes the stale-404-on-
-           flag-flip path documented in Session 20;
-       (b) [DONE Session 23] Google Reviews embed.
-       (c) [DONE Session 25 — engine backbone, no UI yet]
-           email-campaign engine.
-       (d) [DONE Session 24 item 231] Reset-code UI on
-           LoyaltyPanel.
-       (e) Phase 10 (A) cron warmer for Google Reviews —
-           [DONE Session 25 item 232].
-    5. Phase 8 — mobile audit across portal + dashboard
-       (charts + activity feed + kanban + receipt PDFs all
-       need mobile review before going live). Code-level pass
-       fits a single fresh-context session; real device
-       verification needs operator's eyes.
-    6. Phase 9 (A) — Stripe SaaS GA real-money smoke test (after
-       operator setup completes).
-    7. Real eBay wire-up — 12-step checklist in commit 9b93e235.
-       Deferred — needs your eBay developer account + sandbox
-       vs prod decision + marketplace ID confirmation.
-    8. WhatsApp Business per-template approval.
-    9. FL LeadsOnline format reconciliation with agency.
-   10. Phase 10 Path B continuation — Worthy / Sotheby's, Reverb,
-       Mercari listing publishers (after eBay flow is stable).
-   11. Stripe Terminal hardware reader pairing UI when readers
-       arrive.
-   12. [DONE Session 25 — items 240-244] Vault encryption-at-rest.
-   13. Platform-side staff-invite email (currently /team invites
-       return the magic link to the operator for manual delivery).
-   14. Diamond cert real provider wire-up (IDEX or Rapaport) when
-       operator obtains API keys.
-   15. Dedicated MessageKind 'saas_admin_new_tenant' migration
-       (currently Session-11 item 161 reuses 'custom' — works but
-       loses sub-typing in the comms templates UI).
-   16. Tiered loan rates by amount range (the v1 variable-rate
-       menu is flat; FL pawn-shop convention often tiers rates
-       by loan size). Schema decision still pending: per-row min/
-       max columns vs sub-table.
-   17. Test suite further coverage — lib/repair/billing (line-
-       cost + balance-due math), lib/spot-prices/melt (purity
-       + grams + override math), lib/saas/gates I/O (would need
-       Supabase mock infrastructure — out of current pure-logic
-       scope), lib/validations/{repair,pos,appraisal,transfer,
-       communications}. Session 25 floor: 409 tests across
-       workflow + saas types + 4 validation modules + tenant
-       resolver + Google Reviews filter (5 new this session).
-   18. React-rendering tests via @testing-library/react + jsdom —
-       when a UI regression worth locking down surfaces.
-   19. FK-join `as unknown as { customer: {...} }` cleanup —
-       cuts ~25 of the 72 surviving casts in src/. Pattern: use
-       a generic <Joined<Row, K, JoinShape>> helper or migrate
-       to PostgREST embedded resource shapes. (Down from 76 in
-       Session 18 — Session 19's db:types regen knocked off 4.)
+    1. Decide + (if yes) implement bilingual TCPA SMS footer
+       — thread customer.language into sendSms().
+    2. Settings UI for ncic_code on /settings/pawn-categories.
+    3. Surface per-item category + new FS 539.001 attributes
+       on the /pawn/<id> detail page.
+    4. /pawn/<id> ticket print: include color + gemstones +
+       firearm finish/#barrels + size + unique_marks per FL
+       §539.001 mandate.
+    5. Daily LeadsOnline export job — read ncic_code via
+       tenant join, write CSV/JSON in vendor format, cron.
+    6. Optional: port LunaAzul's platform-Twilio fallback +
+       messaging_mode (needs migration + TWILIO_PLATFORM_*
+       env + settings toggle).
+    7. Fix 2 react-hooks/purity errors in customers/
+       dashboard/[id]/page.tsx:279 + :392 (S37).
 
-  KNOWN GOTCHAS TO AVOID FROM DAY 1 (carried + new):
-    - Next 16 file is `proxy.ts`, exported function named `proxy`.
-    - Next 16 'use server' modules can ONLY export async functions
-      (type exports are erased so `export type` is fine).
-    - Phosphor icons crash server components — only import in 'use
-      client' files.
-    - useSearchParams() must be wrapped in <Suspense> for static gen.
-    - <form action={fn}> never has explicit encType.
-    - Storage uploads from server actions use admin (service-role)
-      client.
-    - `npm run db:types` via the safe wrapper.
-    - Service role key NEVER goes in NEXT_PUBLIC_*.
-    - DATABASE_URL via Supavisor pooler.
-    - GitHub commits MUST be authored by the identity Vercel has
-      linked.
-    - git worktree cleanup uses `-f -f` (DOUBLE-force).
-    - Auth callback needs both PKCE AND implicit-flow handling.
-    - Portal invites: don't use Supabase built-in SMTP.
-    - profiles.role is GLOBAL only ('superadmin' | NULL).
-    - profiles PK column is `id` (FK to auth.users.id).
-    - user_tenants HAS user_id (no FK to profiles).
-    - audit_log has SELECT policy only; inserts must use admin
-      client.
-    - audit_log.user_id IS NULLABLE — webhook events / cron jobs
-      pass null.
-    - CHECK-constrained TEXT columns come back as plain string from
-      db:types — narrow at the page boundary.
-    - Supabase JSONB columns need JSON-roundtrip narrowing.
-    - Supabase update(patch) types reject Record<string, unknown>
-      — type the patch as the table's Update alias instead.
-    - First uploaded inventory photo auto-promotes to primary.
-    - Storage path layout: tenant_id MUST be folder[0] for RLS.
-    - Pawn ticket print locks core fields.
-    - Forfeiture / abandonment inventory items start
-      status='available'.
-    - Cross-chain transfers blocked at trigger.
-    - Use useMemo for derived state, not useEffect+setState.
-    - Date.now() / random / location inside useState() trip the
-      react-hooks/purity rule. Wrap in lazy initializer
-      `useState(() => Date.now())[0]`.
-    - Server components can use `// eslint-disable-next-line
-      react-hooks/purity` for Date.now() since they render once.
-    - lib/audit.ts pulls in the admin client — never import from
-      a client component. Use lib/audit-format.ts for label
-      helpers.
-    - layaway_payments.amount allows NEGATIVE values. CHECK is
-      `<> 0`. Session 13 dashboard chart filters > 0 to show
-      gross collections.
-    - Stripe Connect: per-tenant calls need Stripe-Account header.
-      SaaS-platform calls (lib/stripe/saas.ts) must NOT set it.
-    - @fontsource fonts in @react-pdf/renderer must be loaded via
-      fs.readFileSync + base64 dataURL.
-    - Setting state inside useEffect on mount triggers
-      react-hooks/set-state-in-effect. Use the compute-during-
-      render pattern from Session 8 / 11 / 13 instead.
-    - Debounced search MUST live in onChange handler, not
-      useEffect. Re-confirmed by Session 13 watch typeahead.
-    - 3-way merge of additive top-level objects: ALWAYS UNION.
-    - When re-dispatching an agent after a crash, scrub the primary
-      tree of leftover untracked files FIRST.
-    - Validation Zod helpers — preprocess MUST handle
-      empty-string-after-trim BEFORE the inner schema.
-    - NUMERIC(N,M) columns are typed as `string` in generated DB
-      types but supabase-js returns `number` at runtime.
-    - lib modules with 'server-only' cannot be imported by client
-      components. Split: pure types/helpers in a .ts WITHOUT
-      'server-only'; server-DB-touching code in a separate file.
-    - .toFixed(4) is the wrong safety net. r4() already 4dp-rounds.
-    - SESSION 8: <form action={fn}> in React 19 auto-resets the form
-      after submission. Form-reset workaround is now compute-during-
-      render: `if (state !== lastState) setLastState(state); if
-      (state.values) setFormGen(g => g + 1)`.
-    - SESSION 8: z.enum().optional().nullable() rejects "" — wrap in
-      preprocess(""→null) BEFORE the enum.
-    - SESSION 8: Stripe REST pattern for both Connect and SaaS — raw
-      fetch + URLSearchParams.
-    - SESSION 8: Plan-tier feature gates via lib/saas/gates.ts.
-    - SESSION 8: Parallel-agent worktree gotcha.
-    - SESSION 8: compliance_log.source_id is polymorphic.
-    - SESSION 9: any postgres function mutating a tenant-scoped
-      table from a trigger MUST be SECURITY DEFINER + locked
-      search_path.
-    - SESSION 9: x-vercel-cron is NOT a security check — only
-      Authorization: Bearer ${CRON_SECRET}.
-    - SESSION 9: portal customer resolution must verify an active
-      'client' membership at customer.tenant_id specifically.
-    - SESSION 9: report-style /api/* endpoints must enforce staff
-      role at the endpoint level.
-    - SESSION 10: Supabase site_url + uri_allow_list need to be
-      configured per project.
-    - SESSION 10: admin.auth.admin.generateLink({type:'invite'})
-      errors when user already exists — fall back to type=
-      'magiclink'.
-    - SESSION 10: pages outside the route groups use useLangLocal()
-      not useI18n().
-    - SESSION 10: /api/portal/sign-in-bridge sets active-tenant
-      cookie BEFORE the (portal) layout runs.
-    - SESSION 10: customer auth users without a password sign in
-      via magic link forever.
-    - SESSION 10: subscription_plans uses price_monthly_cents /
-      price_yearly_cents.
-    - SESSION 11: NUMERIC(N,M) columns return as `number` at
-      runtime but generated types narrow to `string` — coerce at
-      the page boundary.
-    - SESSION 11: form state can be read across components without
-      lifting via getElementById(formId) + new FormData(form).
-    - SESSION 11: Stripe subscription update for plan-CHANGE
-      requires items[0].id (the SUB ITEM, not the sub).
-    - SESSION 11: Per-tenant variable-rate menus use a flat list
-      in v1.
-    - SESSION 11: When Stripe Checkout would create a duplicate
-      sub (existing subscriber clicking "Choose"), use the
-      change-plan endpoint instead.
-    - SESSION 12: Loan-rate minimum charge is enforced per-DAY via
-      `daily = MAX(principal * rate / 30, min / 30)`. Threaded
-      through every payoffFromLoan caller — the Stripe webhook
-      one is critical to update or automated redemption flips
-      under-bill. Regression-locked by Session 13 tests.
-    - SESSION 12: Per-tenant min_loan_amount lives on settings,
-      not on each rate row. /pawn/new server action validates
-      principal >= settings.min_loan_amount AFTER Zod parse but
-      BEFORE any DB writes.
-    - SESSION 12: Repair workflow auto-timer hooks rely on the
-      shouldOpenTimerOnEnter / shouldStopTimerOnLeave helpers in
-      lib/repair/workflow.ts. If a future status warrants timer
-      activity, update those helpers ONCE rather than scattering
-      the logic across actions.
-    - SESSION 12: Repair claim authorization: assigned_to tech OR
-      a manager-level role. Manager override lets owners
-      reassign-and-claim in one step. If a manager claims an
-      unassigned ticket, assigned_to gets set to the claiming user
-      so the timer + audit trail line up.
-    - SESSION 12: assignTechnicianAction is now MANAGER-ONLY
-      (owner / manager / chain_admin). Was open to all
-      STAFF_REPAIR_ROLES. If you re-open it, audit who can move
-      tickets between jewelers — that's the routing decision the
-      lock was added to protect.
-    - SESSION 12: Tech-inbox auto-filter on /repair list queries
-      ctx.tenantRole === 'repair_tech'. Passing ?showAll=1 opts
-      out. Manager+ roles see everything by default.
-    - SESSION 13: PDF receipts go through /api/print/<kind>/[id]
-      and open in a new tab. Three live: /api/print/loan/[id]
-      (Session 5), /api/print/sale/[id] + /api/print/buy/[id]
-      (Session 13). NEVER call window.print() on the staff page
-      — it prints the staff UI itself, not a customer receipt.
-    - SESSION 13: Buy-receipt path param is the FIRST inventory_
-      item_id (anchor, mirrors /buy/[id] page). The route resolves
-      compliance_log via source_id = anchor_item_id + source_table
-      ='inventory_items' + event_type='buy_outright'.
-    - SESSION 13: Manager kanban route is /repair/board (NOT
-      /repair/kanban). Manager-only — non-managers redirect to
-      /repair (NOT /no-tenant).
-    - SESSION 13: Activity feed pulls from module tables directly,
-      NOT audit_log. Joining audit_log to source tables at render
-      time would be expensive; the customer-name path is what
-      operators actually want.
-    - SESSION 13: Watch typeahead is READ-ONLY by design. Don't
-      add DOM-write auto-fill without first migrating Collateral
-      ItemsList to expose an imperative handle (refactor on
-      backlog).
-    - SESSION 13: Vitest + `@/` alias is configured; new tests
-      go in src/**/*.test.ts. Run via `npm test`.
-    - SESSION 13: When supabase-js generic narrowing trips on
-      NUMERIC at upsert/update time, use `as never` at the call
-      boundary. NOT a project-wide cast.
-    - SESSION 13: For SELECT queries with hand-rolled row types
-      (e.g. SpotPriceRow uses `number` for NUMERIC), narrow at
-      the row boundary with `as unknown as T`. Bridge until the
-      Database<'public'> override lands.
-    - SESSION 14: Vercel cron requires BOTH vercel.json (with
-      `crons` entries) AND CRON_SECRET env var. Without
-      vercel.json, Vercel has no schedule. Without CRON_SECRET,
-      the route bodies all 401. Both gates must be in place or
-      auto-runs silently no-op. Current state: vercel.json
-      committed; CRON_SECRET still pending in Vercel project env.
-    - SESSION 14: Vercel free Hobby plan rejects sub-daily cron
-      schedules at deploy and falls back to once-per-day. If
-      vercel.json's `*/15` or `0,30` schedules don't appear in
-      the deployment summary, the project is on Hobby — upgrade
-      or trim to daily-only.
-
-  KNOWN ISSUES TO REVISIT WHEN PHASES LAND:
-    - Phase 5: pawn ticket print PDF legal disclosure — vet with
-      counsel.
-    - Phase 5: compliance_log.customer_snapshot must include the
-      new pawn fields.
-    - Phase 6: WhatsApp Content SIDs need Twilio + Meta approval.
-    - Phase 7: confirm current FL LeadsOnline upload format.
-    - Phase 7: idempotency for compliance_log re-export.
-    - Phase 8: mobile audits across portal + dashboard (charts +
-      activity feed + kanban + receipt PDFs all need mobile
-      review before going live).
-    - Phase 9 (A): admin-notification email currently uses
-      MessageKind 'custom' — add a dedicated 'saas_admin_new_tenant'
-      kind in a future migration so the comms templates UI can
-      filter it cleanly.
-    - Phase 9 (B): metals.live brittle; documented fallbacks
-      goldapi.io / metals-api.com.
-    - Phase 9 (B): legal disclaimer copy in appraisals i18n
-      placeholders — counsel vetting before go-live.
-    - Phase 9 (B): wire watch-models typeahead into CollateralItems
-      List rows (auto-fill description + est_value via imperative
-      handle). Read-only typeahead landed Session 13 item 170.
-    - Phase 9 (B): diamond cert real provider wire-up (IDEX or
-      Rapaport) when operator obtains API keys.
-    - Phase 10 Path B (eBay): photo public-mirror question
-      (signed-URL TTL caps vs CDN mirror).
-    - Phase 10 Path B (eBay): real wire-up needs eBay developer-
-      account approval.
-    - ID retention enforcement: read current FL statute right
-      before portal pay-by-link ships.
-    - DL scanner: dl_raw_payload TEXT column.
-    - DL scanner: block-expired-licenses guard.
-    - DL scanner: front-of-license photo capture.
-    - Buy-outright: customer signature capture.
-    - Buy-outright: cron job to flip status='held' → 'available'.
-    - 1099-MISC: SSN/TIN field on customers.
-    - 1099-MISC: chain rollup across multi-shop tenants.
-    - Portal: per-tenant customer-portal email template editor.
-    - Portal: staff-side platform invite email.
-    - Project-wide Database<'public'> NUMERIC → number override
-      (backlog #16). Replaces `as unknown as T` row-boundary
-      pattern locked in Session 13.
-    - Variable-rate tiered-by-amount (backlog #20).
-    - Drag-and-drop manager kanban (backlog #14).
+  KNOWN ISSUES TO REVISIT:
+    - OPENAI_API_KEY pending in Vercel Production env
+      (voice intake + market-data cron).
+    - Phase 0 punch list: NEXT_PUBLIC_APP_URL + CRON_SECRET
+      + secret rotation still open in Vercel env.
 
   OUT OF SCOPE (noted for later):
-    - Mobile native app.
-    - Cross-tenant customer matching (blacklist-share). [Candidate]
-    - Watch / fine-jewelry authentication services beyond model
-      lookup. [Needs paid partner — Entrupy / ALPS]
-    - Tax filing helpers (1099-MISC year-end). [SHIPPED 2026-04-28
-      Session 8 item 137]
-    - Wholesale buy-side (gold-buying with melt-value calculator).
-      [SHIPPED 2026-04-28 Session 8 item 134]
-    - Customer portal onboarding self-link flow. [SHIPPED 2026-04-29
-      Session 10 items 147 + 152 + 154]
-    - Variable interest-rate menu. [SHIPPED 2026-04-29 Session 11
-      item 166]
-    - Self-service plan-CHANGE flow. [SHIPPED 2026-04-29 Session 11
-      item 163]
-    - Admin notification on new tenant signup. [SHIPPED 2026-04-29
-      Session 11 item 161]
-    - Loan-rate minimums (per-rate min monthly charge + tenant-wide
-      min loan amount). [SHIPPED 2026-04-29 Session 12 item 167]
-    - Repair tech workflow (assignment + claim + tech_qa stage +
-      auto-timer hooks). [SHIPPED 2026-04-29 Session 12 item 168]
-    - Phase 8 dashboard charts (3 PRNG charts → real DB).
-      [SHIPPED 2026-04-29 Session 13 item 169]
-    - Watch-models typeahead inside InlinePawnCalculator (read-
-      only v1). [SHIPPED 2026-04-29 Session 13 item 170]
-    - Manager-side repair work-order kanban. [SHIPPED 2026-04-29
-      Session 13 item 171]
-    - Real activity feed for /dashboard. [SHIPPED 2026-04-29
-      Session 13 item 173]
-    - POS receipt PDF. [SHIPPED 2026-04-29 Session 13 item 174]
-    - Buy-outright bilingual PDF receipt. [SHIPPED 2026-04-29
-      Session 13 item 175]
-    - NUMERIC `as any` cleanup. [SHIPPED 2026-04-29 Session 13
-      item 176 — partial; project-wide override remains on
-      backlog]
-    - Vitest scaffold + first tests. [SHIPPED 2026-04-29 Session
-      13 item 177]
-    - vercel.json with cron schedules for all 5 cron routes.
-      [SHIPPED 2026-04-29 Session 14 item 178 — closes the
-      auto-cron-never-fires compounding cause; CRON_SECRET still
-      pending]
-    - Public per-tenant landing page at /s/<slug>. [SHIPPED
-      2026-04-30 Session 19 items 191-196]
-    - Public per-tenant catalog at /s/<slug>/catalog +
-      /s/<slug>/catalog/<sku>. [SHIPPED 2026-05-04 Session 20
-      items 197-204]
-    - Loyalty + referrals (per-tenant points wallet, earn on
-      retail sales subtotal + loan interest paid, cashier-driven
-      POS redemption, referral attribution on first qualifying
-      transaction, /settings/loyalty + /portal/loyalty +
-      /customers/[id] panel + POS redemption block, void/return
-      clawback, append-only DB enforcement, bilingual portal).
-      [SHIPPED 2026-05-05 Session 22 items 206-217]
-    - Edge-cache revalidate=60 on public + portal/loyalty
-      routes (closes Session-20 stale-404-on-flag-flip).
-      [SHIPPED 2026-05-05 Session 23 item 218]
-    - Google Reviews embed (per-tenant place_id + Places API
-      with hybrid platform/per-tenant key + 24h DB cache with
-      on-demand fill + min-star floor render filter +
-      /settings/integrations/google-reviews staff UI with
-      Test-connection + integrations hub status card +
-      public widget between About and CTAs + bilingual
-      landing strings + silent-fail-soft).
-      [SHIPPED 2026-05-05 Session 23 items 218-229]
-    - Sidebar /settings/loyalty visibility predicate
-      tightened (manager no longer sees a dead link).
-      [SHIPPED 2026-05-05 Session 24 item 230]
-    - LoyaltyPanel reset-code UI (icon button next to Copy +
-      inline confirm form + extracted ResetReferralCodeForm
-      component for lint compliance).
-      [SHIPPED 2026-05-05 Session 24 item 231]
-================================================================================
+    - Platform-Twilio fallback (deferred this session by
+      operator's scope choice).
+    - eBay de-stub, Stripe Connect smoke test, email-
+      campaign UI editor, Phase 8 mobile audit.
