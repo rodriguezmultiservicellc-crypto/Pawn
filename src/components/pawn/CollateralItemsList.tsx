@@ -2,6 +2,7 @@
 
 import {
   forwardRef,
+  useEffect,
   useId,
   useImperativeHandle,
   useRef,
@@ -231,10 +232,33 @@ function newRow(): Row {
 
 export const CollateralItemsList = forwardRef<
   CollateralListHandle,
-  { categories: PawnIntakeCategory[] }
->(function CollateralItemsList({ categories }, ref) {
+  {
+    categories: PawnIntakeCategory[]
+    /** Reports running { item count, summed est_value } up to the parent
+     *  so the loan-summary rail can show collateral value + LTV live. */
+    onTotalsChange?: (count: number, totalValue: number) => void
+  }
+>(function CollateralItemsList({ categories, onTotalsChange }, ref) {
   const { t } = useI18n()
   const [rows, setRows] = useState<Row[]>([newRow()])
+
+  // Report collateral count + total est_value up to the rail whenever rows
+  // change. Counts only rows the operator has actually started (a picked
+  // category or a non-empty description) so the seeded pristine row reads
+  // as 0 items / $0.
+  useEffect(() => {
+    if (!onTotalsChange) return
+    let count = 0
+    let total = 0
+    for (const r of rows) {
+      const started =
+        r.pawn_category_slug != null || r.description.trim() !== ''
+      if (!started) continue
+      count += 1
+      total += parseFloat(r.est_value) || 0
+    }
+    onTotalsChange(count, total)
+  }, [rows, onTotalsChange])
 
   // Default category for auto-populated rows (voice intake / watch
   // typeahead). Prefer 'general' (no subs, no extra picker step) then
