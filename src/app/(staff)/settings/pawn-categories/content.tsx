@@ -25,6 +25,9 @@ export type CategoryRow = {
   sort_order: number
   is_active: boolean
   requires_ffl: boolean
+  /** NCIC Article/Gun File TYP code for police-report (LeadsOnline/RAPID)
+   *  exports. NULL until the operator sets it. */
+  ncic_code: string | null
   /** NULL = top-level. Otherwise UUID of the parent top-level row. */
   parent_id: string | null
 }
@@ -208,6 +211,11 @@ function CategoryRowDisplay({
         <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
           <Warning size={10} weight="bold" />
           FFL
+        </span>
+      ) : null}
+      {row.ncic_code ? (
+        <span className="inline-flex items-center gap-1 rounded-full border border-blue/30 bg-blue/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-blue">
+          NCIC: {row.ncic_code}
         </span>
       ) : null}
       {!row.is_active ? (
@@ -457,6 +465,26 @@ function CategoryEditModal({
               defaultValue={category?.sort_order ?? 100}
               className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
             />
+          </Field>
+
+          <Field label="NCIC code (police-report export)">
+            <input
+              type="text"
+              name="ncic_code"
+              defaultValue={category?.ncic_code ?? ''}
+              maxLength={10}
+              placeholder="e.g. JEWL, TOOL, HA, RI"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 font-mono text-sm uppercase text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            />
+            <p className="mt-1 text-xs text-muted">
+              NCIC Article/Gun File TYP code for the daily LeadsOnline /
+              RAPID export. Leave blank if this category is not reported.
+            </p>
+            {state.fieldErrors?.ncic_code ? (
+              <p className="mt-1 text-xs text-danger">
+                {state.fieldErrors.ncic_code}
+              </p>
+            ) : null}
           </Field>
 
           <label className="block">

@@ -23,6 +23,7 @@ import { randomUUID } from 'node:crypto'
 import { getCtx } from '@/lib/supabase/ctx'
 import { resolveReportScope } from '@/lib/reports/tenant-scope'
 import { getPoliceReportRows } from '@/lib/reports/police-report'
+import { buildNcicBySlug } from '@/lib/compliance/ncic'
 import { dispatch } from '@/lib/compliance/police-report'
 import { csvResponse, parseRange } from '@/lib/reports/http'
 import { logAudit } from '@/lib/audit'
@@ -72,10 +73,16 @@ export async function GET(req: Request) {
     range,
   })
 
+  const ncicBySlug = await buildNcicBySlug({
+    supabase: ctx.supabase,
+    tenantIds: scope.tenantIds,
+  })
+
   const exportResult = dispatch({
     format,
     rows: result.rows,
     tenantStoreId,
+    ncicBySlug,
   })
 
   // Mark the rows as exported. We use the user-scoped client; compliance_log

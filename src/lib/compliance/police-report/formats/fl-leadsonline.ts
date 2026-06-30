@@ -51,6 +51,9 @@ export type LeadsOnlineRow = {
   item_brand: string
   item_model: string
   item_make: string
+  /** NCIC Article/Gun File TYP code, resolved from the item's pawn
+   *  subcategory slug via the tenant's pawn_intake_categories.ncic_code. */
+  item_ncic_code: string
   item_quantity: string
   item_unit_amount: string
   item_total_amount: string
@@ -77,6 +80,7 @@ const COLUMNS: ReadonlyArray<CsvColumn<LeadsOnlineRow>> = [
   { header: 'item_brand', value: 'item_brand' },
   { header: 'item_model', value: 'item_model' },
   { header: 'item_make', value: 'item_make' },
+  { header: 'item_ncic_code', value: 'item_ncic_code' },
   { header: 'item_quantity', value: 'item_quantity' },
   { header: 'item_unit_amount', value: 'item_unit_amount' },
   { header: 'item_total_amount', value: 'item_total_amount' },
@@ -138,8 +142,16 @@ function n(v: unknown): string {
  */
 export function flattenComplianceRow(
   row: ComplianceLogRow,
-  opts: { tenantStoreId: string },
+  opts: { tenantStoreId: string; ncicBySlug?: Record<string, string> },
 ): LeadsOnlineRow[] {
+  const ncicBySlug = opts.ncicBySlug ?? {}
+  // Resolve an item's NCIC code from its pawn subcategory slug, falling back
+  // to the top-level category slug. Empty when the operator hasn't mapped one.
+  const ncicFor = (it: Record<string, unknown>): string => {
+    const sub = s(it.pawn_subcategory_slug)
+    const top = s(it.pawn_category_slug)
+    return ncicBySlug[sub] ?? ncicBySlug[top] ?? ''
+  }
   const customer = (row.customer_snapshot ?? {}) as Record<string, unknown>
   const itemsRaw = row.items_snapshot
   const items: ReadonlyArray<Record<string, unknown>> = Array.isArray(itemsRaw)
@@ -180,6 +192,7 @@ export function flattenComplianceRow(
         item_brand: '',
         item_model: '',
         item_make: '',
+        item_ncic_code: '',
         item_quantity: '1',
         item_unit_amount: n(row.amount),
         item_total_amount: n(row.amount),
@@ -204,6 +217,7 @@ export function flattenComplianceRow(
       item_brand: s(it.brand),
       item_model: s(it.model),
       item_make: s(it.make ?? it.metal_type),
+      item_ncic_code: ncicFor(it),
       item_quantity: String(qty),
       item_unit_amount: n(unit),
       item_total_amount: n(total),
@@ -211,13 +225,27 @@ export function flattenComplianceRow(
   })
 }
 
+/** Flatten a batch of compliance_log rows into LeadsOnline item rows. */
+export function flattenLeadsOnline(
+  rows: ReadonlyArray<ComplianceLogRow>,
+  opts: { tenantStoreId: string; ncicBySlug?: Record<string, string> },
+): LeadsOnlineRow[] {
+  return rows.flatMap((r) => flattenComplianceRow(r, opts))
+}
+
+/** Serialize already-flattened LeadsOnline rows to CSV. */
+export function leadsOnlineRowsToCsv(
+  flatRows: ReadonlyArray<LeadsOnlineRow>,
+): string {
+  return rowsToCsv(flatRows, COLUMNS)
+}
+
 /** Build the full CSV payload for a batch of compliance_log rows. */
 export function buildLeadsOnlineCsv(
   rows: ReadonlyArray<ComplianceLogRow>,
-  opts: { tenantStoreId: string },
+  opts: { tenantStoreId: string; ncicBySlug?: Record<string, string> },
 ): string {
-  const flattened = rows.flatMap((r) => flattenComplianceRow(r, opts))
-  return rowsToCsv(flattened, COLUMNS)
+  return leadsOnlineRowsToCsv(flattenLeadsOnline(rows, opts))
 }
 
 export const LEADS_ONLINE_COLUMNS = COLUMNS

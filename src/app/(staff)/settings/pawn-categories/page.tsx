@@ -28,7 +28,7 @@ export default async function PawnCategoriesPage() {
   const { data: rows } = await admin
     .from('pawn_intake_categories')
     .select(
-      'id, slug, label, icon, sort_order, is_active, requires_ffl, parent_id, created_at',
+      'id, slug, label, icon, sort_order, is_active, requires_ffl, ncic_code, parent_id, created_at',
     )
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
@@ -42,6 +42,7 @@ export default async function PawnCategoriesPage() {
     sort_order: r.sort_order,
     is_active: r.is_active,
     requires_ffl: r.requires_ffl,
+    ncic_code: r.ncic_code,
     parent_id: r.parent_id,
   }))
 

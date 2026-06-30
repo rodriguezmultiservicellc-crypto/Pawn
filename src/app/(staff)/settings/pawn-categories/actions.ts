@@ -28,6 +28,22 @@ const categorySchema = z.object({
   sort_order: z.coerce.number().int().min(0).max(9999).default(100),
   requires_ffl: z.coerce.boolean().default(false),
   is_active: z.coerce.boolean().default(true),
+  // NCIC Article/Gun File TYP code for police-report export. Empty → null.
+  // Normalized to uppercase; 1-10 alphanumerics (codes are JEWL, HA, RI…).
+  ncic_code: z
+    .preprocess(
+      (v) => {
+        if (v == null) return null
+        const s = String(v).trim().toUpperCase()
+        return s === '' ? null : s
+      },
+      z
+        .string()
+        .regex(/^[A-Z0-9]{1,10}$/, 'NCIC code: 1-10 letters/digits')
+        .nullable(),
+    )
+    .nullable()
+    .default(null),
   // Empty / 'none' / missing → null = top-level. Otherwise a UUID
   // referring to another row in this same tenant's category list.
   parent_id: z
@@ -68,6 +84,7 @@ export async function saveCategoryAction(
     sort_order: formData.get('sort_order'),
     requires_ffl: formData.get('requires_ffl') === 'on',
     is_active: formData.get('is_active') !== 'off',
+    ncic_code: formData.get('ncic_code'),
     parent_id: formData.get('parent_id'),
   })
   if (!parsed.success) {
@@ -95,6 +112,7 @@ export async function saveCategoryAction(
         sort_order: v.sort_order,
         requires_ffl: v.requires_ffl,
         is_active: v.is_active,
+        ncic_code: v.ncic_code,
         parent_id: v.parent_id,
         updated_at: new Date().toISOString(),
       })
@@ -110,6 +128,7 @@ export async function saveCategoryAction(
       sort_order: v.sort_order,
       requires_ffl: v.requires_ffl,
       is_active: v.is_active,
+      ncic_code: v.ncic_code,
       parent_id: v.parent_id,
     })
     if (error) return { error: error.message }
@@ -127,6 +146,7 @@ export async function saveCategoryAction(
       icon: v.icon,
       requires_ffl: v.requires_ffl,
       is_active: v.is_active,
+      ncic_code: v.ncic_code,
       parent_id: v.parent_id,
     },
   })

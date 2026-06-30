@@ -370,6 +370,56 @@ export type Database = {
           },
         ]
       }
+      compliance_export_batches: {
+        Row: {
+          created_at: string
+          csv_body: string
+          filename: string
+          format: Database["public"]["Enums"]["police_report_format"]
+          generated_by: string
+          id: string
+          range_end: string
+          range_start: string
+          row_count: number
+          tenant_id: string
+          transaction_count: number
+        }
+        Insert: {
+          created_at?: string
+          csv_body: string
+          filename: string
+          format: Database["public"]["Enums"]["police_report_format"]
+          generated_by?: string
+          id?: string
+          range_end: string
+          range_start: string
+          row_count?: number
+          tenant_id: string
+          transaction_count?: number
+        }
+        Update: {
+          created_at?: string
+          csv_body?: string
+          filename?: string
+          format?: Database["public"]["Enums"]["police_report_format"]
+          generated_by?: string
+          id?: string
+          range_end?: string
+          range_start?: string
+          row_count?: number
+          tenant_id?: string
+          transaction_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_export_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_log: {
         Row: {
           amount: number | null

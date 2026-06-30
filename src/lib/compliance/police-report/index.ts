@@ -17,12 +17,19 @@
  */
 
 import type { ComplianceLogRow, PoliceReportFormat } from '@/types/database-aliases'
-import { buildLeadsOnlineCsv } from './formats/fl-leadsonline'
+import {
+  buildLeadsOnlineCsv,
+  flattenLeadsOnline,
+  leadsOnlineRowsToCsv,
+} from './formats/fl-leadsonline'
 
 export type PoliceReportExportInput = {
   format: PoliceReportFormat
   rows: ReadonlyArray<ComplianceLogRow>
   tenantStoreId: string
+  /** slug → NCIC TYP code map from the tenant's pawn_intake_categories.
+   *  Per-item codes are resolved from this; omit for an unmapped tenant. */
+  ncicBySlug?: Record<string, string>
 }
 
 export type PoliceReportExportResult = {
@@ -30,6 +37,9 @@ export type PoliceReportExportResult = {
   body: string
   mimeType: 'text/csv'
   filename: string
+  /** compliance_log transactions covered by this batch. */
+  transactionCount: number
+  /** Flattened CSV data rows (one per item; can exceed transactionCount). */
   rowCount: number
 }
 
@@ -38,15 +48,18 @@ export function dispatch(
 ): PoliceReportExportResult {
   switch (input.format) {
     case 'fl_leadsonline': {
-      const body = buildLeadsOnlineCsv(input.rows, {
+      const flat = flattenLeadsOnline(input.rows, {
         tenantStoreId: input.tenantStoreId,
+        ncicBySlug: input.ncicBySlug,
       })
+      const body = leadsOnlineRowsToCsv(flat)
       return {
         format: input.format,
         body,
         mimeType: 'text/csv',
         filename: makeFilename('fl-leadsonline', input.rows),
-        rowCount: input.rows.length,
+        transactionCount: input.rows.length,
+        rowCount: flat.length,
       }
     }
     default: {

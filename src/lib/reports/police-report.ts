@@ -62,3 +62,31 @@ export async function getPoliceReportRows(args: {
 
   return { rows, totals, tenantIds: [...tenantIds] }
 }
+
+/**
+ * Fetch a single tenant's UNEXPORTED reportable compliance_log rows
+ * (exported_at IS NULL), ascending by occurrence. Used by the daily
+ * LeadsOnline export cron — the exported_at stamp is the idempotency key,
+ * so this captures every not-yet-reported transaction including backfill
+ * from any missed day.
+ */
+export async function getUnexportedPoliceReportRows(args: {
+  supabase: SupabaseClient<Database>
+  tenantId: string
+  eventTypes?: ReadonlyArray<string>
+}): Promise<ComplianceLogRow[]> {
+  const eventTypes = args.eventTypes ?? POLICE_REPORT_DEFAULT_EVENT_TYPES
+
+  const { data, error } = await args.supabase
+    .from('compliance_log')
+    .select('*')
+    .eq('tenant_id', args.tenantId)
+    .is('exported_at', null)
+    .in('event_type', eventTypes as string[])
+    .order('occurred_at', { ascending: true })
+
+  if (error) {
+    throw new Error(`unexported_police_report_query_failed: ${error.message}`)
+  }
+  return (data ?? []) as ComplianceLogRow[]
+}

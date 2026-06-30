@@ -4,6 +4,7 @@ import { resolveReportScope } from '@/lib/reports/tenant-scope'
 import { getPoliceReportRows } from '@/lib/reports/police-report'
 import { todayDateString, addDaysIso } from '@/lib/pawn/math'
 import { flattenComplianceRow } from '@/lib/compliance/police-report/formats/fl-leadsonline'
+import { buildNcicBySlug } from '@/lib/compliance/ncic'
 import type { PoliceReportFormat } from '@/types/database-aliases'
 import PoliceReportContent from './content'
 
@@ -54,14 +55,20 @@ export default async function PoliceReportPage(props: {
     range: { from, to },
   })
 
+  const ncicBySlug = await buildNcicBySlug({
+    supabase: ctx.supabase,
+    tenantIds: scope.tenantIds,
+  })
+
   // Build a flattened preview (one row per item, capped).
   const previewRows = result.rows.slice(0, 25).flatMap((r) =>
-    flattenComplianceRow(r, { tenantStoreId: scope.storeId }),
+    flattenComplianceRow(r, { tenantStoreId: scope.storeId, ncicBySlug }),
   ).slice(0, PREVIEW_MAX_FLATTENED_ROWS)
 
   // Total flattened count (so the operator knows what to expect post-export).
   const totalFlattened = result.rows.reduce(
-    (acc, r) => acc + flattenComplianceRow(r, { tenantStoreId: scope.storeId }).length,
+    (acc, r) =>
+      acc + flattenComplianceRow(r, { tenantStoreId: scope.storeId, ncicBySlug }).length,
     0,
   )
 
