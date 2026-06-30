@@ -75,6 +75,26 @@ export type LoanCollateralView = {
   photo_path: string | null
   photo_signed_url: string | null
   position: number
+  // FS 539.001 + per-category attributes (patches/0041, 0043).
+  jewelry_size: string | null
+  color: string | null
+  gemstone_description: string | null
+  unique_marks: string | null
+  firearm_make: string | null
+  firearm_model: string | null
+  firearm_caliber: string | null
+  firearm_serial_number: string | null
+  firearm_type: string | null
+  firearm_barrel_length_inches: number | null
+  firearm_action_type: string | null
+  firearm_capacity: number | null
+  firearm_finish: string | null
+  firearm_number_of_barrels: number | null
+  electronic_brand: string | null
+  electronic_model: string | null
+  electronic_serial: string | null
+  tool_brand: string | null
+  tool_model: string | null
 }
 
 export type LoanEventView = {
@@ -444,6 +464,49 @@ function ActionButton({
 
 function CollateralPanel({ collateral }: { collateral: LoanCollateralView[] }) {
   const { t } = useI18n()
+  const tn = t.pawn.new_
+  const firearmTypeLabel = (v: string | null): string | null => {
+    switch (v) {
+      case 'handgun':
+        return tn.itemFirearmTypeHandgun
+      case 'rifle':
+        return tn.itemFirearmTypeRifle
+      case 'shotgun':
+        return tn.itemFirearmTypeShotgun
+      case 'other':
+        return tn.itemFirearmTypeOther
+      default:
+        return v
+    }
+  }
+  const detailsFor = (c: LoanCollateralView): Array<[string, string]> => {
+    const out: Array<[string, string]> = []
+    const push = (label: string, val: string | number | null) => {
+      if (val == null) return
+      const s = String(val).trim()
+      if (s !== '') out.push([label, s])
+    }
+    push(tn.itemColor, c.color)
+    push(tn.itemJewelrySize, c.jewelry_size)
+    push(tn.itemGemstones, c.gemstone_description)
+    push(tn.itemFirearmMake, c.firearm_make)
+    push(tn.itemFirearmModel, c.firearm_model)
+    push(tn.itemFirearmCaliber, c.firearm_caliber)
+    push(tn.itemFirearmSerialNumber, c.firearm_serial_number)
+    push(tn.itemFirearmType, firearmTypeLabel(c.firearm_type))
+    push(tn.itemFirearmActionType, c.firearm_action_type)
+    push(tn.itemFirearmBarrelLength, c.firearm_barrel_length_inches)
+    push(tn.itemFirearmCapacity, c.firearm_capacity)
+    push(tn.itemFirearmFinish, c.firearm_finish)
+    push(tn.itemFirearmBarrels, c.firearm_number_of_barrels)
+    push(tn.itemElectronicBrand, c.electronic_brand)
+    push(tn.itemElectronicModel, c.electronic_model)
+    push(tn.itemElectronicSerial, c.electronic_serial)
+    push(tn.itemToolBrand, c.tool_brand)
+    push(tn.itemToolModel, c.tool_model)
+    push(tn.itemUniqueMarks, c.unique_marks)
+    return out
+  }
   return (
     <section className="rounded-xl border border-border bg-card p-4">
       <h2 className="mb-3 text-sm font-semibold text-foreground">
@@ -489,6 +552,22 @@ function CollateralPanel({ collateral }: { collateral: LoanCollateralView[] }) {
                 <div className="mt-1 font-mono text-xs text-foreground">
                   Est. {fmtMoney(c.est_value)}
                 </div>
+                {(() => {
+                  const details = detailsFor(c)
+                  if (details.length === 0) return null
+                  return (
+                    <dl className="mt-1.5 space-y-0.5 text-xs">
+                      {details.map(([label, val]) => (
+                        <div key={label} className="flex gap-1">
+                          <dt className="shrink-0 text-muted">{label}:</dt>
+                          <dd className="min-w-0 break-words text-foreground">
+                            {val}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )
+                })()}
               </div>
             </div>
           ))}

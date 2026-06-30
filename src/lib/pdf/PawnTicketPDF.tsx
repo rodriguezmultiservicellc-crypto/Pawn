@@ -55,6 +55,28 @@ export type PawnTicketCollateral = {
   weight_grams: number | null
   est_value: number
   has_photo: boolean
+  // FS 539.001 + per-category attributes (patches/0041, 0043). Printed as a
+  // full-width detail sub-line under each row to satisfy the statute's item-
+  // description requirements (serial, color, gemstones, finish, etc.).
+  jewelry_size: string | null
+  color: string | null
+  gemstone_description: string | null
+  unique_marks: string | null
+  firearm_make: string | null
+  firearm_model: string | null
+  firearm_caliber: string | null
+  firearm_serial_number: string | null
+  firearm_type: string | null
+  firearm_barrel_length_inches: number | null
+  firearm_action_type: string | null
+  firearm_capacity: number | null
+  firearm_finish: string | null
+  firearm_number_of_barrels: number | null
+  electronic_brand: string | null
+  electronic_model: string | null
+  electronic_serial: string | null
+  tool_brand: string | null
+  tool_model: string | null
 }
 
 export type PawnTicketCustomer = {
@@ -313,6 +335,17 @@ const styles = StyleSheet.create({
   colWeight: { width: '12%' },
   colValue: { width: '16%' },
 
+  // Full-width FS 539.001 attribute sub-line under a collateral row.
+  detailRow: {
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+  },
+  detailText: {
+    fontSize: 7,
+    color: PALETTE.muted,
+    lineHeight: 1.35,
+  },
+
   photoNote: {
     marginTop: 4,
     fontSize: 7,
@@ -522,6 +555,69 @@ function Field({
 export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
   const en = data.i18n.en.pawn.print
   const es = data.i18n.es.pawn.print
+
+  // Bilingual FS 539.001 attribute sub-line for one collateral item.
+  // Labels sourced from the pawn.new_ namespace (same labels the intake form
+  // uses); "EN/ES" pairs, collapsed when identical. Empty fields omitted.
+  const ne = data.i18n.en.pawn.new_
+  const ns = data.i18n.es.pawn.new_
+  const firearmType = (v: string | null, d: typeof ne): string | null => {
+    switch (v) {
+      case 'handgun':
+        return d.itemFirearmTypeHandgun
+      case 'rifle':
+        return d.itemFirearmTypeRifle
+      case 'shotgun':
+        return d.itemFirearmTypeShotgun
+      case 'other':
+        return d.itemFirearmTypeOther
+      default:
+        return v
+    }
+  }
+  const collateralDetailLine = (c: PawnTicketCollateral): string => {
+    const parts: string[] = []
+    const push = (le: string, ls: string, val: string | number | null) => {
+      if (val == null) return
+      const s = String(val).trim()
+      if (s === '') return
+      const label = le === ls ? le : `${le}/${ls}`
+      parts.push(`${label}: ${s}`)
+    }
+    push(ne.itemColor, ns.itemColor, c.color)
+    push(ne.itemJewelrySize, ns.itemJewelrySize, c.jewelry_size)
+    push(ne.itemGemstones, ns.itemGemstones, c.gemstone_description)
+    push(ne.itemFirearmMake, ns.itemFirearmMake, c.firearm_make)
+    push(ne.itemFirearmModel, ns.itemFirearmModel, c.firearm_model)
+    push(ne.itemFirearmCaliber, ns.itemFirearmCaliber, c.firearm_caliber)
+    push(
+      ne.itemFirearmSerialNumber,
+      ns.itemFirearmSerialNumber,
+      c.firearm_serial_number,
+    )
+    if (c.firearm_type) {
+      const le = firearmType(c.firearm_type, ne)
+      const lsv = firearmType(c.firearm_type, ns)
+      const val = le === lsv ? le : `${le}/${lsv}`
+      push(ne.itemFirearmType, ns.itemFirearmType, val)
+    }
+    push(ne.itemFirearmActionType, ns.itemFirearmActionType, c.firearm_action_type)
+    push(
+      ne.itemFirearmBarrelLength,
+      ns.itemFirearmBarrelLength,
+      c.firearm_barrel_length_inches,
+    )
+    push(ne.itemFirearmCapacity, ns.itemFirearmCapacity, c.firearm_capacity)
+    push(ne.itemFirearmFinish, ns.itemFirearmFinish, c.firearm_finish)
+    push(ne.itemFirearmBarrels, ns.itemFirearmBarrels, c.firearm_number_of_barrels)
+    push(ne.itemElectronicBrand, ns.itemElectronicBrand, c.electronic_brand)
+    push(ne.itemElectronicModel, ns.itemElectronicModel, c.electronic_model)
+    push(ne.itemElectronicSerial, ns.itemElectronicSerial, c.electronic_serial)
+    push(ne.itemToolBrand, ns.itemToolBrand, c.tool_brand)
+    push(ne.itemToolModel, ns.itemToolModel, c.tool_model)
+    push(ne.itemUniqueMarks, ns.itemUniqueMarks, c.unique_marks)
+    return parts.join('   ·   ')
+  }
 
   const tenantSubline = joinAddress([
     data.tenant.address,
@@ -769,31 +865,43 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
               <Text style={[styles.tableCell, { width: '100%' }]}>—</Text>
             </View>
           ) : (
-            data.collateral.map((c, i) => (
-              <View key={i} style={styles.tableRow} wrap={false}>
-                <Text style={[styles.tableCellMono, styles.colIdx]}>
-                  {i + 1}
-                </Text>
-                <Text style={[styles.tableCell, styles.colDesc]}>
-                  {c.description}
-                </Text>
-                <Text style={[styles.tableCell, styles.colCat]}>
-                  {c.category}
-                </Text>
-                <Text style={[styles.tableCell, styles.colMetal]}>
-                  {c.metal_type ?? '—'}
-                </Text>
-                <Text style={[styles.tableCellMono, styles.colKarat]}>
-                  {c.karat == null ? '—' : `${c.karat}k`}
-                </Text>
-                <Text style={[styles.tableCellMono, styles.colWeight]}>
-                  {c.weight_grams == null ? '—' : `${c.weight_grams.toFixed(2)} g`}
-                </Text>
-                <Text style={[styles.tableCellMono, styles.colValue]}>
-                  {formatMoney(c.est_value)}
-                </Text>
-              </View>
-            ))
+            data.collateral.map((c, i) => {
+              const detailLine = collateralDetailLine(c)
+              return (
+                <View key={i} wrap={false}>
+                  <View style={styles.tableRow}>
+                    <Text style={[styles.tableCellMono, styles.colIdx]}>
+                      {i + 1}
+                    </Text>
+                    <Text style={[styles.tableCell, styles.colDesc]}>
+                      {c.description}
+                    </Text>
+                    <Text style={[styles.tableCell, styles.colCat]}>
+                      {c.category}
+                    </Text>
+                    <Text style={[styles.tableCell, styles.colMetal]}>
+                      {c.metal_type ?? '—'}
+                    </Text>
+                    <Text style={[styles.tableCellMono, styles.colKarat]}>
+                      {c.karat == null ? '—' : `${c.karat}k`}
+                    </Text>
+                    <Text style={[styles.tableCellMono, styles.colWeight]}>
+                      {c.weight_grams == null
+                        ? '—'
+                        : `${c.weight_grams.toFixed(2)} g`}
+                    </Text>
+                    <Text style={[styles.tableCellMono, styles.colValue]}>
+                      {formatMoney(c.est_value)}
+                    </Text>
+                  </View>
+                  {detailLine ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailText}>{detailLine}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              )
+            })
           )}
         </View>
         {data.collateral.some((c) => c.has_photo) ? (

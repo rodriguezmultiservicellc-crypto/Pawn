@@ -118,7 +118,13 @@ export async function renderLoanTicketPdf(args: {
   const { data: collateralRows } = await supabase
     .from('loan_collateral_items')
     .select(
-      'description, category, metal_type, karat, weight_grams, est_value, photo_path, position',
+      `description, category, metal_type, karat, weight_grams, est_value,
+       photo_path, position, jewelry_size, color, gemstone_description,
+       unique_marks, firearm_make, firearm_model, firearm_caliber,
+       firearm_serial_number, firearm_type, firearm_barrel_length_inches,
+       firearm_action_type, firearm_capacity, firearm_finish,
+       firearm_number_of_barrels, electronic_brand, electronic_model,
+       electronic_serial, tool_brand, tool_model`,
     )
     .eq('loan_id', loanId)
     .eq('tenant_id', tenantId)
@@ -134,6 +140,32 @@ export async function renderLoanTicketPdf(args: {
       weight_grams: c.weight_grams == null ? null : Number(c.weight_grams),
       est_value: c.est_value == null ? 0 : Number(c.est_value),
       has_photo: Boolean(c.photo_path),
+      jewelry_size: c.jewelry_size,
+      color: c.color,
+      gemstone_description: c.gemstone_description,
+      unique_marks: c.unique_marks,
+      firearm_make: c.firearm_make,
+      firearm_model: c.firearm_model,
+      firearm_caliber: c.firearm_caliber,
+      firearm_serial_number: c.firearm_serial_number,
+      firearm_type: c.firearm_type,
+      firearm_barrel_length_inches:
+        c.firearm_barrel_length_inches == null
+          ? null
+          : Number(c.firearm_barrel_length_inches),
+      firearm_action_type: c.firearm_action_type,
+      firearm_capacity:
+        c.firearm_capacity == null ? null : Number(c.firearm_capacity),
+      firearm_finish: c.firearm_finish,
+      firearm_number_of_barrels:
+        c.firearm_number_of_barrels == null
+          ? null
+          : Number(c.firearm_number_of_barrels),
+      electronic_brand: c.electronic_brand,
+      electronic_model: c.electronic_model,
+      electronic_serial: c.electronic_serial,
+      tool_brand: c.tool_brand,
+      tool_model: c.tool_model,
     }),
   )
 

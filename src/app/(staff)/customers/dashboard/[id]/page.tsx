@@ -247,6 +247,12 @@ export default async function CustomerDashboardPage(props: { params: Params }) {
   const totalLayaways = layaways.length
   const activeLayaways = layaways.filter((l) => l.status === 'active').length
 
+  // Capture "now" once for all time-based derivations below (recency,
+  // 12-month buckets, 60-day activity). Sidesteps react-hooks/purity's
+  // ban on calling Date.now() inline during render.
+  const now = new Date()
+  const nowMs = now.getTime()
+
   // ─── SALES BEHAVIOR ─────────────────────────────────────────────────
   const completedSalesAmounts = completedSales.map((s) => Number(s.total))
   const avgSale =
@@ -276,7 +282,7 @@ export default async function CustomerDashboardPage(props: { params: Params }) {
       ? null
       : Math.max(
           0,
-          Math.floor((Date.now() - lastSaleDateMs) / (1000 * 60 * 60 * 24)),
+          Math.floor((nowMs - lastSaleDateMs) / (1000 * 60 * 60 * 24)),
         )
   let avgDaysBetweenSales: number | null = null
   if (completedSalesByDate.length >= 2) {
@@ -347,7 +353,6 @@ export default async function CustomerDashboardPage(props: { params: Params }) {
   // ─── 12-MONTH TRENDS ────────────────────────────────────────────────
   // Bucket each module's createds (or completed for sales) into the last
   // 12 calendar months. Bucket key = 'YYYY-MM'.
-  const now = new Date()
   const buckets: MonthlyBucket[] = []
   for (let i = 11; i >= 0; i -= 1) {
     const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1))
@@ -389,7 +394,7 @@ export default async function CustomerDashboardPage(props: { params: Params }) {
   }
 
   // ─── RECENT ACTIVITY (last 60 days, all modules) ────────────────────
-  const sixtyDaysAgo = Date.now() - 60 * 24 * 60 * 60 * 1000
+  const sixtyDaysAgo = nowMs - 60 * 24 * 60 * 60 * 1000
   const activity: ActivityEvent[] = []
   for (const e of events) {
     const t = new Date(e.occurred_at).getTime()
