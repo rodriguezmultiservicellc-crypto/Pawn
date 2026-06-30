@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Pawn Ticket — redesign</title>
+<style>
+  :root{
+    --navy:#0d1b2a;--gold:#e8a020;--gold-hi:#f4b53c;--ink:#0d1b2a;
+    --muted:#6b7a8d;--line:#e4e9f0;--surface:#f4f6f9;--card:#fff;
+    --green:#1f9d6b;--amber:#b9791a;--radius:14px;
+    --shadow:0 1px 2px rgba(13,27,42,.04),0 8px 24px rgba(13,27,42,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--surface);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .tnum{font-variant-numeric:tabular-nums}
+  .serif{font-family:"Georgia","Times New Roman",serif}
+
+  .topbar{height:56px;display:flex;align-items:center;gap:12px;padding:0 22px;
+    background:var(--card);border-bottom:1px solid var(--line)}
+  .brand{font-weight:800;font-size:18px;letter-spacing:-.01em}
+  .dot{color:#c2ccd6}
+  .tenant{font-size:13px;font-weight:700;border:1px solid var(--line);
+    border-radius:9px;padding:6px 12px;background:var(--surface)}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;
+    font-weight:700;font-size:11px;padding:5px 10px;border-radius:999px}
+  .pill b{color:var(--gold)}
+  .user{font-weight:700;color:var(--ink)}
+
+  .subbar{display:flex;align-items:center;padding:18px 22px 0;max-width:1400px;margin:0 auto;width:100%}
+  .subbar h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
+  .subbar .back{margin-left:auto;color:var(--muted);text-decoration:none;font-weight:700;font-size:13.5px}
+  .subbar .back:hover{color:var(--ink)}
+
+  .stage{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:16px 22px 40px;
+    max-width:1400px;margin:0 auto;align-items:start}
+  @media(max-width:980px){.stage{grid-template-columns:1fr}}
+
+  .voice{display:flex;align-items:center;gap:16px;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:14px 16px;margin-bottom:16px}
+  .talk{display:flex;align-items:center;gap:9px;background:linear-gradient(180deg,var(--gold-hi),var(--gold));
+    color:#3a2600;border:none;border-radius:11px;padding:13px 20px;font-weight:800;font-size:14.5px;
+    cursor:pointer;box-shadow:0 8px 18px rgba(232,160,32,.28);white-space:nowrap}
+  .talk:active{transform:scale(.98)}
+  .voice .hint{font-size:12.5px;color:var(--muted);line-height:1.45}
+  .voice .hint em{color:var(--ink);font-style:normal;font-weight:600}
+
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+  .sec > h2{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:14px}
+  .sec .note{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  .sec .note.warn{color:var(--amber);font-weight:600}
+
+  .cust-row{display:flex;gap:10px}
+  .cust-field{flex:1;display:flex;align-items:center;gap:10px;border:2px solid var(--gold);
+    border-radius:11px;padding:0 14px;height:50px;background:#fffdf8}
+  .cust-field .who{font-weight:700;font-size:14.5px}
+  .cust-field .x{margin-left:auto;border:none;background:transparent;color:#b6c0cc;
+    font-size:16px;cursor:pointer}
+  .btn-ghost{border:1px solid var(--line);background:var(--card);border-radius:11px;
+    padding:0 16px;height:50px;font-weight:700;font-size:13.5px;cursor:pointer;white-space:nowrap}
+  .btn-ghost:hover{border-color:var(--gold)}
+
+  .cats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:760px){.cats{grid-template-columns:repeat(2,1fr)}}
+  .cat{border:1.5px solid var(--line);border-radius:13px;padding:16px 10px;text-align:center;
+    cursor:pointer;background:var(--card);transition:.13s}
+  .cat:hover{border-color:var(--gold);transform:translateY(-2px)}
+  .cat.on{border-color:var(--gold);background:#fffdf6;box-shadow:0 6px 16px rgba(232,160,32,.18)}
+  .cat .ic{width:48px;height:48px;border-radius:12px;background:#fbeccd;display:grid;
+    place-items:center;margin:0 auto 10px;color:var(--gold)}
+  .cat.on .ic{background:var(--gold);color:#fff}
+  .cat .nm{font-weight:800;font-size:13px;letter-spacing:.02em}
+  .cat .subs{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;letter-spacing:.05em}
+
+  .itembox{margin-top:16px;border:1px dashed var(--line);border-radius:12px;padding:16px;background:var(--surface);display:none}
+  .itembox.show{display:block}
+  .itembox h3{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--gold);margin-bottom:12px}
+  .ig{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:760px){.ig{grid-template-columns:1fr 1fr}}
+  .ig .fld input,.ig .fld select{height:42px;font-size:13.5px}
+  .fld label{display:block;font-size:11.5px;font-weight:700;margin-bottom:6px}
+  .fld input,.fld select{width:100%;height:42px;border:1.5px solid var(--line);border-radius:10px;
+    padding:0 13px;font-size:13.5px;font-weight:600;color:var(--ink);background:#fff;outline:none}
+  .fld input:focus,.fld select:focus{border-color:var(--gold)}
+  .compliance{margin-top:12px;font-size:11.5px;color:var(--amber);font-weight:600;
+    background:#fdf6e9;border:1px solid #f0e2c4;border-radius:8px;padding:8px 11px;display:none}
+  .compliance.show{display:block}
+  .additem{margin-top:12px;background:var(--navy);color:#fff;border:none;border-radius:10px;
+    padding:11px 18px;font-weight:700;font-size:13.5px;cursor:pointer}
+  .additem:hover{background:#16304a}
+  .added{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .added .row{display:flex;align-items:center;gap:12px;background:var(--card);
+    border:1px solid var(--line);border-radius:10px;padding:11px 14px}
+  .added .tag{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--gold);background:#fbeccd;border-radius:6px;padding:3px 7px}
+  .added .desc{font-weight:700;font-size:13.5px}
+  .added .desc small{display:block;color:var(--muted);font-weight:600;margin-top:2px}
+  .added .val{margin-left:auto;font-weight:800;font-size:13.5px}
+  .added .x{border:none;background:transparent;color:#b6c0cc;cursor:pointer;font-size:14px}
+  .added .x:hover{color:#d6453f}
+
+  .siggrid{display:grid;grid-template-columns:1fr 1.4fr;gap:18px}
+  @media(max-width:760px){.siggrid{grid-template-columns:1fr}}
+  .upload{border:1.5px dashed var(--line);border-radius:11px;padding:18px;text-align:center;
+    cursor:pointer;background:var(--surface)}
+  .upload:hover{border-color:var(--gold)}
+  .upload .u-ic{color:var(--gold);margin-bottom:6px}
+  .upload .u-t{font-weight:700;font-size:13px}
+  .upload .u-s{font-size:11.5px;color:var(--muted);margin-top:3px}
+  textarea{width:100%;min-height:96px;border:1.5px solid var(--line);border-radius:11px;
+    padding:12px;font-family:inherit;font-size:14px;background:var(--surface);resize:vertical;outline:none}
+  textarea:focus{border-color:var(--gold);background:#fff}
+
+  /* pawned item history */
+  .subhead{font-weight:800;font-size:13px;margin:18px 0 4px}
+  .hist{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#fff}
+  .hist-head{margin-bottom:6px}
+  .hist-title{font-weight:800;font-size:13px}
+  .hist-sub{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;font-weight:500}
+  .hrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+  .hrow .tag{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--gold);background:#fbeccd;border-radius:6px;padding:3px 7px;flex:none}
+  .hdesc{font-weight:700;font-size:13.5px}
+  .hdesc small{display:block;color:var(--muted);font-weight:600;margin-top:2px;font-size:11.5px}
+  .hadd{margin-left:auto;background:var(--navy);color:#fff;border:none;border-radius:8px;
+    padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer;flex:none}
+  .hadd:hover{background:#16304a}
+  .hbadge{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--muted);background:var(--surface);
+    border:1px solid var(--line);border-radius:7px;padding:5px 9px;flex:none}
+  .hist-empty{font-size:12.5px;color:var(--muted);padding:8px 0 2px}
+  .hfilter{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 4px}
+  .hfilter .fchip{border:1px solid var(--line);background:#fff;color:var(--muted);font-weight:700;
+    font-size:11.5px;padding:6px 13px;border-radius:999px;cursor:pointer}
+  .hfilter .fchip:hover{border-color:var(--gold)}
+  .hfilter .fchip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+  /* RAIL */
+  .rail{background:var(--navy);border-radius:18px;color:#fff;position:sticky;top:18px;
+    box-shadow:0 18px 40px rgba(13,27,42,.28);overflow:hidden}
+  .rail .pad{padding:18px}
+  .fin-type{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:rgba(255,255,255,.06);
+    padding:4px;border-radius:11px;margin-bottom:16px}
+  .ft{border:none;background:transparent;color:rgba(255,255,255,.6);font-weight:700;
+    font-size:13px;padding:10px;border-radius:8px;cursor:pointer}
+  .ft.on{background:var(--gold);color:var(--navy)}
+  .rail h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:rgba(255,255,255,.5);font-weight:800;margin-bottom:14px}
+  .cust-chip{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.09);border-radius:11px;padding:11px 13px;margin-bottom:16px}
+  .cust-chip .ci{width:34px;height:34px;border-radius:9px;background:rgba(232,160,32,.16);
+    display:grid;place-items:center;color:var(--gold);flex:none}
+  .cust-chip .nm{font-weight:700;font-size:13.5px}
+  .cust-chip .ph{font-size:11.5px;color:rgba(255,255,255,.55);font-weight:600}
+
+  .rinput{margin-bottom:12px}
+  .rinput label{display:block;font-size:10.5px;font-weight:700;color:rgba(255,255,255,.55);
+    text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .rinput input,.rinput select{width:100%;height:42px;background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.14);border-radius:9px;color:#fff;padding:0 12px;
+    font-size:14px;font-weight:700;outline:none}
+  .rinput input:focus,.rinput select:focus{border-color:var(--gold)}
+  .rinput select option{color:#0d1b2a}
+  .money-in{position:relative}
+  .money-in span{position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    color:rgba(255,255,255,.5);font-weight:700}
+  .money-in input{padding-left:24px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  .principal-block{display:grid;grid-template-columns:1.1fr .9fr;gap:10px;align-items:end;margin-bottom:14px}
+  .money-in.big input{height:56px;font-size:23px;font-weight:800;padding-left:28px}
+  .money-in.big span{font-size:18px;left:13px}
+  .collat{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:9px 12px;transition:.15s}
+  .collat.ok{border-color:rgba(31,157,107,.55);background:rgba(31,157,107,.13)}
+  .collat.over{border-color:rgba(232,160,32,.6);background:rgba(232,160,32,.15)}
+  .cl-label{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.55)}
+  .cl-val{font-size:21px;font-weight:800;letter-spacing:-.01em;margin-top:3px}
+  .cl-sub{font-size:10.5px;font-weight:700;color:rgba(255,255,255,.5);margin-top:2px;display:flex;align-items:center;gap:4px}
+  .collat.ok .cl-sub{color:#6fe0b0}
+  .collat.over .cl-sub{color:var(--gold-hi)}
+
+  .ln{display:flex;align-items:center;justify-content:space-between;padding:9px 2px;font-size:13px}
+  .ln .k{color:rgba(255,255,255,.6);font-weight:600}
+  .ln .v{font-weight:700}
+  .divide{height:1px;background:rgba(255,255,255,.1);margin:8px 0}
+  .redeem{background:rgba(232,160,32,.1);border:1px solid rgba(232,160,32,.25);
+    border-radius:12px;padding:14px;margin:10px 0 4px}
+  .redeem .rk{font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+    color:rgba(255,255,255,.6);font-weight:700}
+  .redeem .rv{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+  .redeem .rsub{font-size:11.5px;color:var(--gold-hi);font-weight:600;margin-top:4px}
+  .issue{width:100%;height:56px;margin-top:14px;border:none;border-radius:13px;
+    background:linear-gradient(180deg,var(--gold-hi),var(--gold));color:#3a2600;
+    font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:9px;box-shadow:0 10px 22px rgba(232,160,32,.32)}
+  .issue:hover{filter:brightness(1.04);transform:translateY(-1px)}
+  .issue:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+  .draft{width:100%;height:42px;margin-top:10px;border-radius:10px;background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.13);color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+  .draft:hover{background:rgba(255,255,255,.12)}
+  .miss{font-size:11.5px;color:rgba(255,255,255,.5);text-align:center;margin-top:10px;font-weight:600}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <span class="brand serif">Pawn</span>
+    <span class="dot">·</span>
+    <span class="tenant">Eddy's Jewelers Corp.</span>
+    <div class="right">
+      <span class="pill"><b>ADMIN</b> Console</span>
+      <span class="user">Eddy Rodriguez</span>
+    </div>
+  </div>
+
+  <div class="subbar">
+    <h1 class="serif">New pawn ticket</h1>
+    <a class="back" href="#">Back to pawn loans →</a>
+  </div>
+
+  <div class="stage">
+    <!-- LEFT -->
+    <div>
+      <div class="voice">
+        <button class="talk" onmousedown="this.style.opacity=.85" onmouseup="this.style.opacity=1">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          Hold to talk
+        </button>
+        <div class="hint">Press and hold, say the customer, loan amount, and the item, then release — e.g. <em>"Maria Fernandez, two hundred dollars for a 14-karat wedding ring weighing 2.3 grams."</em></div>
+      </div>
+
+      <div class="sec">
+        <h2>Customer</h2>
+        <div class="note warn">Customer must be on file with valid ID before issuing a pawn loan.</div>
+        <div class="cust-row">
+          <div class="cust-field"><span class="who">Rodriguez, Eddy · (813) 647-5237</span><button class="x">✕</button></div>
+          <button class="btn-ghost">Create new customer</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Collateral</h2>
+
+        <div class="hist">
+          <div class="hist-head">
+            <span class="hist-title">Pawned item history</span>
+            <span class="hist-sub">Items Rodriguez, Eddy has pawned before — add one to re-pawn it on this ticket.</span>
+          </div>
+          <div class="hfilter" id="hfilter"></div>
+          <div id="histRows"></div>
+        </div>
+
+        <div class="subhead">Add a new item — pick a category</div>
+        <div class="note">What type of item is being pawned? This sets the workflow for the rest of the ticket.</div>
+        <div class="cats" id="cats">
+          <div class="cat" data-c="jewelry" onclick="pickCat(this)">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9 3 7 9l5 12 5-12-2-6"/></svg></div>
+            <div class="nm">JEWELRY</div><div class="subs">6 SUBS</div>
+          </div>
+          <div class="cat" data-c="electronics" onclick="pickCat(this)">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
+            <div class="nm">ELECTRONICS</div><div class="subs">6 SUBS</div>
+          </div>
+          <div class="cat" data-c="firearms" onclick="pickCat(this)">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="2"/></svg></div>
+            <div class="nm">FIREARMS</div><div class="subs">3 SUBS</div>
+          </div>
+          <div class="cat" data-c="tools" onclick="pickCat(this)">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></div>
+            <div class="nm">TOOLS</div><div class="subs">3 SUBS</div>
+          </div>
+          <div class="cat" data-c="general" onclick="pickCat(this)">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
+            <div class="nm">GENERAL</div><div class="subs">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="itembox" id="itembox">
+          <h3 id="itemTitle">Item details</h3>
+          <div class="ig" id="itemFields"></div>
+          <div class="compliance" id="compliance"></div>
+          <button class="additem" onclick="addItem()">+ Add item to ticket</button>
+        </div>
+
+        <div class="added" id="added"></div>
+      </div>
+
+      <div class="sec">
+        <h2>Signature &amp; notes</h2>
+        <div class="siggrid">
+          <div>
+            <div class="fld"><label>Customer signature</label></div>
+            <div class="upload">
+              <div class="u-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg></div>
+              <div class="u-t">Upload signed ticket</div>
+              <div class="u-s">Scan or photo of the signed pawn ticket</div>
+            </div>
+          </div>
+          <div class="fld"><label>Notes</label><textarea placeholder="Internal notes about this loan or item…"></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RAIL -->
+    <aside class="rail">
+      <div class="pad">
+        <div class="fin-type">
+          <button class="ft on" data-ft="pawn" onclick="setFin(this)">Pawn loan</button>
+          <button class="ft" data-ft="buy" onclick="setFin(this)">Buy outright</button>
+        </div>
+
+        <h2 id="railTitle">Loan summary</h2>
+
+        <div class="cust-chip">
+          <div class="ci"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+          <div><div class="nm">Rodriguez, Eddy</div><div class="ph">(813) 647-5237</div></div>
+        </div>
+
+        <div class="principal-block">
+          <div class="rinput" style="margin-bottom:0">
+            <label id="lblPrincipal">Principal financed</label>
+            <div class="money-in big"><span>$</span><input id="principal" inputmode="decimal" placeholder="0.00" oninput="calc()"></div>
+          </div>
+          <div class="collat" id="collatBox">
+            <div class="cl-label">Collateral value</div>
+            <div class="cl-val tnum" id="collatVal">$0.00</div>
+            <div class="cl-sub" id="collatSub">0 items</div>
+          </div>
+        </div>
+
+        <div class="rinput rateRow">
+          <label>Interest rate (monthly)</label>
+          <select id="rate" onchange="calc()">
+            <option value="0.10">Standard — 10% / month</option>
+            <option value="0.05">Reduced — 5% / month</option>
+            <option value="0.125">Small loan — 12.5% / month</option>
+          </select>
+        </div>
+
+        <div class="two">
+          <div class="rinput termRow">
+            <label>Term (days)</label>
+            <input id="term" type="number" value="30" oninput="calc()">
+          </div>
+          <div class="rinput">
+            <label>Issue date</label>
+            <input id="issue" value="06/30/2026" oninput="calc()">
+          </div>
+        </div>
+
+        <div class="ln dueRow"><span class="k">Due date (auto)</span><span class="v" id="rDue">07/30/2026</span></div>
+        <div class="ln"><span class="k">Collateral items</span><span class="v" id="rItems">0</span></div>
+
+        <div class="divide"></div>
+
+        <div class="redeem">
+          <div class="rk" id="redeemLabel">Redemption at due date</div>
+          <div class="rv tnum" id="rRedeem">$0.00</div>
+          <div class="rsub" id="rInterest">includes $0.00 interest</div>
+        </div>
+
+        <button class="issue" id="issueBtn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
+          <span id="issueLbl">Issue pawn loan</span>
+        </button>
+        <button class="draft">Save as draft</button>
+        <div class="miss" id="miss">Add a principal and at least one item</div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+  const FIELDS={
+    jewelry:{title:"Jewelry details",f:[
+      ["Metal","select",["10K Gold","14K Gold","18K Gold","22K Gold","24K Gold","Platinum","Sterling Silver"]],
+      ["Weight (g)","input"],["Gemstones","input"],["Description","input"],
+      ["Appraised value ($)","input"],["Loan value ($)","input"]]},
+    electronics:{title:"Electronics details",f:[
+      ["Type","input"],["Make / Model","input"],["Serial / IMEI","input"],
+      ["Condition","select",["Like new","Good","Fair","Parts only"]],
+      ["Description","input"],["Est. value ($)","input"]]},
+    firearms:{title:"Firearm details",f:[
+      ["Make","input"],["Model","input"],["Caliber","input"],
+      ["Serial #","input"],["Type","select",["Handgun","Long gun","Other"]],
+      ["Est. value ($)","input"]],
+      compliance:"Firearms require serial-number capture and may trigger state reporting and a mandatory hold before resale. Verify customer ID and complete the firearm log."},
+    tools:{title:"Tool details",f:[
+      ["Brand","input"],["Model","input"],
+      ["Condition","select",["Like new","Good","Fair"]],
+      ["Description","input"],["Est. value ($)","input"]]},
+    general:{title:"Item details",f:[
+      ["Description","input"],["Condition","select",["Like new","Good","Fair"]],
+      ["Est. value ($)","input"]]}
+  };
+  let activeCat=null, items=[], finType='pawn', histFilter='all';
+  const $=id=>document.getElementById(id);
+  const money=n=>"$"+(n||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+
+  const HISTORY=[
+    {cat:'jewelry',desc:'14K Gold Cuban Link Chain — 24"',date:'Mar 2026',loan:300,status:'Redeemed'},
+    {cat:'electronics',desc:'iPhone 14 Pro 256GB',date:'Jan 2026',loan:250,status:'Redeemed'},
+    {cat:'jewelry',desc:'Men\u2019s Diamond Ring 0.75ct',date:'Dec 2025',loan:400,status:'Redeemed'},
+    {cat:'tools',desc:'DeWalt 10" Table Saw',date:'Nov 2025',loan:120,status:'Forfeited'}
+  ];
+  function renderHistFilters(){
+    const cats=[...new Set(HISTORY.map(h=>h.cat))];
+    const chips=['all',...cats];
+    $('hfilter').innerHTML=chips.map(c=>
+      `<button class="fchip ${c===histFilter?'on':''}" onclick="setHistFilter('${c}')">${c==='all'?'All':cap(c)}</button>`
+    ).join('');
+  }
+  function setHistFilter(c){histFilter=c;renderHistFilters();renderHistory();}
+  function renderHistory(){
+    const rows=HISTORY.map((h,i)=>{
+      if(histFilter!=='all'&&h.cat!==histFilter) return '';
+      const forfeited=h.status==='Forfeited';
+      const right=forfeited
+        ? `<span class="hbadge">Now shop inventory</span>`
+        : `<button class="hadd" onclick="addFromHistory(${i})">+ Add</button>`;
+      return `<div class="hrow">
+        <span class="tag">${h.cat}</span>
+        <div class="hdesc">${h.desc}<small>Last pawned ${h.date} · loan ${money(h.loan)} · ${h.status}</small></div>
+        ${right}</div>`;
+    }).join('');
+    $('histRows').innerHTML=rows||'<div class="hist-empty">No '+(histFilter==='all'?'':cap(histFilter)+' ')+'history for this customer.</div>';
+  }
+  function addFromHistory(i){
+    const h=HISTORY[i];
+    items.push({cat:h.cat,desc:h.desc,val:h.loan,fromHistory:true});
+    render();
+  }
+
+  function pickCat(el){
+    document.querySelectorAll('.cat').forEach(c=>c.classList.remove('on'));
+    el.classList.add('on');
+    activeCat=el.dataset.c;
+    const cfg=FIELDS[activeCat];
+    $('itemTitle').textContent=cfg.title;
+    $('itemFields').innerHTML=cfg.f.map(f=>{
+      if(f[1]==='select') return `<div class="fld"><label>${f[0]}</label><select>${f[2].map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+      return `<div class="fld"><label>${f[0]}</label><input placeholder="—"></div>`;
+    }).join('');
+    const comp=$('compliance');
+    if(cfg.compliance){comp.textContent="⚠ "+cfg.compliance;comp.classList.add('show');}
+    else comp.classList.remove('show');
+    $('itembox').classList.add('show');
+  }
+
+  function addItem(){
+    if(!activeCat)return;
+    const inputs=$('itemFields').querySelectorAll('input,select');
+    const desc=inputs[0].value||FIELDS[activeCat].title;
+    const valField=[...inputs].reverse().find(i=>/value/i.test(i.previousElementSibling?.textContent||''));
+    const val=parseFloat((valField?.value||'').replace(/[^0-9.]/g,''))||0;
+    items.push({cat:activeCat,desc,val});
+    inputs.forEach(i=>{if(i.tagName==='INPUT')i.value='';});
+    render();
+  }
+  function removeItem(i){items.splice(i,1);render();}
+  function render(){
+    $('added').innerHTML=items.map((it,i)=>`
+      <div class="row">
+        <span class="tag">${it.cat}</span>
+        <div class="desc">${it.desc}<small>${it.fromHistory?'Re-pawn · ':''}est. ${money(it.val)}</small></div>
+        <span class="val">${money(it.val)}</span>
+        <button class="x" onclick="removeItem(${i})">✕</button>
+      </div>`).join('');
+    calc();
+  }
+
+  function setFin(el){
+    document.querySelectorAll('.ft').forEach(b=>b.classList.remove('on'));
+    el.classList.add('on');
+    finType=el.dataset.ft;
+    const buy=finType==='buy';
+    document.querySelectorAll('.rateRow,.termRow,.dueRow').forEach(e=>e.style.display=buy?'none':'');
+    $('railTitle').textContent=buy?'Purchase summary':'Loan summary';
+    $('lblPrincipal').textContent=buy?'Purchase price':'Principal financed';
+    $('issueLbl').textContent=buy?'Complete purchase':'Issue pawn loan';
+    calc();
+  }
+
+  function calc(){
+    const p=parseFloat($('principal').value)||0;
+    const r=parseFloat($('rate').value)||0;
+    const t=parseInt($('term').value)||0;
+    $('rItems').textContent=items.length;
+
+    // running collateral value vs principal (loan-to-value)
+    const collat=items.reduce((a,i)=>a+(i.val||0),0);
+    $('collatVal').textContent=money(collat);
+    const box=$('collatBox');
+    box.classList.remove('ok','over');
+    let sub=items.length+(items.length===1?' item':' items');
+    if(p>0&&collat>0){
+      if(p>collat){box.classList.add('over');sub='⚠ Over value';}
+      else{box.classList.add('ok');const pct=Math.round(p/collat*100);sub='✓ '+pct+'% of value';}
+    }
+    $('collatSub').textContent=sub;
+
+    if(finType==='buy'){
+      $('redeemLabel').textContent='Cash paid to customer';
+      $('rRedeem').textContent=money(p);
+      $('rInterest').style.display='none';
+    }else{
+      const months=t/30, interest=p*r*months;
+      $('redeemLabel').textContent='Redemption at due date';
+      $('rRedeem').textContent=money(p+interest);
+      $('rInterest').style.display='';
+      $('rInterest').textContent='includes '+money(interest)+' interest';
+      const m=$('issue').value.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if(m){const d=new Date(+m[3],+m[1]-1,+m[2]);d.setDate(d.getDate()+t);
+        const dd=String(d.getMonth()+1).padStart(2,'0')+"/"+String(d.getDate()).padStart(2,'0')+"/"+d.getFullYear();
+        $('rDue').textContent=dd;}
+    }
+    const ok=p>0&&items.length>0;
+    $('issueBtn').disabled=!ok;
+    $('miss').style.display=ok?'none':'block';
+  }
+  calc();
+  renderHistFilters();
+  renderHistory();
+</script>
+</body>
+</html>

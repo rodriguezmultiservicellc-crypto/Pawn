@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS — New Sale (redesign)</title>
+<style>
+  :root{
+    --navy:#0d1b2a;
+    --navy-2:#13263a;
+    --navy-3:#1c3350;
+    --gold:#e8a020;
+    --gold-hi:#f4b53c;
+    --ink:#0d1b2a;
+    --muted:#6b7a8d;
+    --line:#e4e9f0;
+    --surface:#f4f6f9;
+    --card:#ffffff;
+    --green:#1f9d6b;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(13,27,42,.04),0 8px 24px rgba(13,27,42,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--surface);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    height:60px;display:flex;align-items:center;gap:18px;
+    padding:0 22px;background:var(--card);border-bottom:1px solid var(--line);
+  }
+  .back{display:flex;align-items:center;gap:7px;color:var(--muted);
+    text-decoration:none;font-weight:600;font-size:14px;padding:7px 10px;border-radius:9px}
+  .back:hover{background:var(--surface);color:var(--ink)}
+  .title{font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .topbar .meta{margin-left:auto;display:flex;align-items:center;gap:14px;
+    color:var(--muted);font-size:13px;font-weight:600}
+  .reg-dot{width:8px;height:8px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 0 3px rgba(31,157,107,.15);display:inline-block;margin-right:6px}
+  .cashier{display:flex;align-items:center;gap:8px;color:var(--ink)}
+  .avatar{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:11px;font-weight:700}
+
+  /* ---------- Layout ---------- */
+  .stage{display:grid;grid-template-columns:1fr 380px;gap:18px;
+    padding:18px;align-items:start;max-width:1400px;margin:0 auto}
+  @media(max-width:980px){.stage{grid-template-columns:1fr}}
+
+  /* ---------- Work surface (left) ---------- */
+  .surface{display:flex;flex-direction:column;gap:14px}
+  .scanbar{position:relative}
+  .scanbar input{
+    width:100%;height:60px;border:2px solid var(--line);border-radius:var(--radius);
+    background:var(--card);padding:0 56px 0 52px;font-size:16px;font-weight:600;
+    color:var(--ink);box-shadow:var(--shadow);outline:none;transition:border-color .15s}
+  .scanbar input::placeholder{color:#9aa7b6;font-weight:500}
+  .scanbar input:focus{border-color:var(--gold)}
+  .scan-ico{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--gold)}
+  .scan-kbd{position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    font-size:11px;font-weight:700;color:var(--muted);background:var(--surface);
+    border:1px solid var(--line);border-radius:7px;padding:4px 8px}
+  .quickrow{display:flex;gap:10px;flex-wrap:wrap}
+  .qbtn{display:flex;align-items:center;gap:7px;background:var(--card);
+    border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13.5px;
+    font-weight:700;color:var(--ink);cursor:pointer;box-shadow:var(--shadow);transition:.12s}
+  .qbtn:hover{border-color:var(--gold);transform:translateY(-1px)}
+  .qbtn svg{color:var(--gold)}
+
+  /* ---------- Line items ---------- */
+  .items{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;min-height:320px;display:flex;flex-direction:column}
+  .items-head{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;border-bottom:1px solid var(--line)}
+  .items-head h2{font-size:12px;font-weight:800;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted)}
+  .items-head .cnt{font-size:12px;font-weight:700;color:var(--gold)}
+  .row{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;
+    gap:16px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:none}
+  .row .nm{font-weight:700;font-size:14.5px}
+  .row .sub{font-size:12px;color:var(--muted);margin-top:3px;font-weight:600}
+  .stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .stepper button{width:30px;height:30px;border:none;background:var(--surface);
+    font-size:16px;font-weight:700;color:var(--navy);cursor:pointer;line-height:1}
+  .stepper button:hover{background:#e9edf3}
+  .stepper span{width:34px;text-align:center;font-weight:700;font-size:14px}
+  .row .price{font-weight:800;font-size:14.5px;min-width:74px;text-align:right}
+  .row .x{width:28px;height:28px;border:none;background:transparent;border-radius:7px;
+    color:#b6c0cc;cursor:pointer;font-size:15px}
+  .row .x:hover{background:#fdecec;color:#d6453f}
+  .empty{flex:1;display:grid;place-items:center;text-align:center;color:var(--muted);
+    padding:40px;gap:6px}
+  .empty .big{font-weight:700;color:#8a98a8}
+  .empty .sm{font-size:13px}
+
+  /* ---------- Checkout rail (right) ---------- */
+  .rail{background:var(--navy);border-radius:18px;color:#fff;position:sticky;top:18px;
+    box-shadow:0 18px 40px rgba(13,27,42,.28);overflow:hidden}
+  .rail .pad{padding:18px}
+  .cust-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+    border-radius:12px;padding:13px 14px;display:flex;align-items:center;gap:12px}
+  .cust-ico{width:38px;height:38px;border-radius:10px;background:rgba(232,160,32,.16);
+    display:grid;place-items:center;color:var(--gold);flex:none}
+  .cust-card .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(255,255,255,.55);font-weight:700}
+  .cust-card .val{font-weight:700;font-size:14px;margin-top:2px}
+  .cust-card .chg{margin-left:auto;font-size:12px;font-weight:700;color:var(--gold);
+    background:transparent;border:none;cursor:pointer}
+  .cust-card .chg:hover{text-decoration:underline}
+
+  .lines{padding:4px 2px 2px;display:flex;flex-direction:column;gap:2px}
+  .ln{display:flex;align-items:center;justify-content:space-between;padding:9px 4px;font-size:13.5px}
+  .ln .k{color:rgba(255,255,255,.62);font-weight:600;display:flex;align-items:center;gap:8px}
+  .ln .v{font-weight:700}
+  .ln.disc .v{color:var(--gold-hi)}
+  .chip{font-size:11px;font-weight:700;background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:3px 9px;
+    color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .chip:hover{border-color:var(--gold)}
+
+  .control{display:flex;align-items:center;gap:8px}
+  .seg{display:inline-flex;background:rgba(255,255,255,.08);border-radius:8px;padding:2px}
+  .seg button{border:none;background:transparent;color:rgba(255,255,255,.6);
+    font-weight:700;font-size:12px;padding:4px 9px;border-radius:6px;cursor:pointer}
+  .seg button.on{background:var(--gold);color:var(--navy)}
+  .mini{width:78px;height:32px;background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#fff;
+    text-align:right;padding:0 10px;font-weight:700;font-size:13px;outline:none}
+  .mini:focus{border-color:var(--gold)}
+
+  .divide{height:1px;background:rgba(255,255,255,.1);margin:6px 0}
+  .total-row{display:flex;align-items:flex-end;justify-content:space-between;
+    padding:8px 4px 4px}
+  .total-row .k{font-size:13px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:rgba(255,255,255,.6)}
+  .total-row .v{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1}
+
+  .tender-lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(255,255,255,.5);font-weight:700;margin:14px 0 8px}
+  .tenders{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .tender{display:flex;flex-direction:column;align-items:center;gap:5px;
+    background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);
+    border-radius:11px;padding:11px 6px;cursor:pointer;color:#fff;font-weight:700;font-size:12.5px}
+  .tender svg{color:rgba(255,255,255,.7)}
+  .tender:hover{border-color:rgba(232,160,32,.6)}
+  .tender.on{border-color:var(--gold);background:rgba(232,160,32,.14)}
+  .tender.on svg{color:var(--gold)}
+
+  .charge{width:100%;height:58px;margin-top:14px;border:none;border-radius:13px;
+    background:linear-gradient(180deg,var(--gold-hi),var(--gold));color:#3a2600;
+    font-size:16.5px;font-weight:800;letter-spacing:.01em;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    box-shadow:0 10px 22px rgba(232,160,32,.32);transition:.12s}
+  .charge:hover{filter:brightness(1.04);transform:translateY(-1px)}
+  .charge:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+  .alt{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .alt button{height:42px;border-radius:10px;background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.13);color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+  .alt button:hover{background:rgba(255,255,255,.12)}
+  .note-toggle{margin-top:12px;font-size:12.5px;color:rgba(255,255,255,.55);
+    font-weight:600;background:none;border:none;cursor:pointer;padding:0}
+  .note-toggle:hover{color:#fff}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <a class="back" href="#">&larr; Back to POS</a>
+    <span class="title">New sale</span>
+    <div class="meta">
+      <span><span class="reg-dot"></span>Register 1</span>
+      <span class="cashier"><span class="avatar">ER</span>Eddy R.</span>
+    </div>
+  </div>
+
+  <div class="stage">
+
+    <!-- LEFT: work surface -->
+    <section class="surface">
+      <div class="scanbar">
+        <svg class="scan-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5v14M7 5v14M11 5v14M15 5v9M19 5v14M23 5v14" opacity=".0"/><rect x="3" y="5" width="2" height="14"/><rect x="8" y="5" width="1" height="14"/><rect x="12" y="5" width="2" height="14"/><rect x="17" y="5" width="1" height="14"/><rect x="20" y="5" width="1" height="14"/></svg>
+        <input id="scan" placeholder="Scan tag or search by SKU, item, or barcode…">
+        <span class="scan-kbd">Enter</span>
+      </div>
+
+      <div class="quickrow">
+        <button class="qbtn" onclick="addDemo()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add item</button>
+        <button class="qbtn" onclick="addCustom()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add custom line</button>
+        <button class="qbtn" onclick="clearCart()" style="margin-left:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Clear</button>
+      </div>
+
+      <div class="items">
+        <div class="items-head">
+          <h2>Line items</h2>
+          <span class="cnt" id="cnt">0 items</span>
+        </div>
+        <div id="rows"></div>
+        <div class="empty" id="empty">
+          <div class="big">Cart is empty</div>
+          <div class="sm">Scan a tag or tap <strong>Add item</strong> to get started.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: checkout rail -->
+    <aside class="rail">
+      <div class="pad">
+        <div class="cust-card">
+          <div class="cust-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+          <div>
+            <div class="lbl">Customer</div>
+            <div class="val" id="custName">Anonymous walk-in</div>
+          </div>
+          <button class="chg" onclick="toggleCust()">Add</button>
+        </div>
+
+        <div class="lines">
+          <div class="ln"><span class="k">Subtotal</span><span class="v tnum" id="sub">$0.00</span></div>
+
+          <div class="ln disc">
+            <span class="k control">
+              Discount
+              <span class="seg" id="discSeg">
+                <button class="on" onclick="setDiscMode('amt')">$</button>
+                <button onclick="setDiscMode('pct')">%</button>
+              </span>
+              <input class="mini tnum" id="discVal" value="0" inputmode="decimal" oninput="recompute()">
+            </span>
+            <span class="v tnum" id="discOut">-$0.00</span>
+          </div>
+
+          <div class="ln">
+            <span class="k control">
+              Tax
+              <span class="chip" id="taxChip" onclick="editTax()">8.25% <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+            </span>
+            <span class="v tnum" id="taxOut">$0.00</span>
+          </div>
+
+          <div class="divide"></div>
+          <div class="total-row">
+            <span class="k">Total</span>
+            <span class="v tnum" id="total">$0.00</span>
+          </div>
+        </div>
+
+        <div class="tender-lbl">Tender</div>
+        <div class="tenders" id="tenders">
+          <div class="tender on" data-t="cash" onclick="pickTender(this)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Cash</div>
+          <div class="tender" data-t="card" onclick="pickTender(this)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Card</div>
+          <div class="tender" data-t="split" onclick="pickTender(this)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5"/></svg>Split</div>
+        </div>
+
+        <button class="charge" id="charge" disabled>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
+          <span id="chargeLbl">Charge $0.00</span>
+        </button>
+
+        <div class="alt">
+          <button onclick="alert('Saved as layaway (demo)')">Save as layaway</button>
+          <button onclick="alert('Sale held (demo)')">Hold sale</button>
+        </div>
+        <button class="note-toggle" onclick="alert('Note field (demo)')">+ Add note to sale</button>
+      </div>
+    </aside>
+  </div>
+
+<script>
+  const CATALOG=[
+    {sku:"PN-10231",nm:"14K Gold Rope Chain — 22\"",price:420.00},
+    {sku:"PN-10884",nm:"Bose QC45 Headphones (pre-owned)",price:180.00},
+    {sku:"PN-11002",nm:"DeWalt 20V Drill Kit",price:95.00},
+    {sku:"PN-11540",nm:"Apple Watch Series 8 45mm",price:240.00},
+  ];
+  let cart=[];
+  let taxRate=0.0825;
+  let discMode='amt';
+  let demoIdx=0;
+
+  const $=id=>document.getElementById(id);
+  const money=n=>"$"+n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  function addDemo(){const c=CATALOG[demoIdx%CATALOG.length];demoIdx++;addItem(c);}
+  function addItem(c){
+    const found=cart.find(i=>i.sku===c.sku);
+    if(found){found.qty++;}else{cart.push({...c,qty:1});}
+    render();
+  }
+  function addCustom(){
+    const nm=prompt("Custom line description:","Misc / service");
+    if(nm===null)return;
+    const p=parseFloat(prompt("Price ($):","0"))||0;
+    cart.push({sku:"CUSTOM",nm:nm,price:p,qty:1});render();
+  }
+  function clearCart(){cart=[];render();}
+  function step(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);render();}
+  function removeItem(i){cart.splice(i,1);render();}
+
+  function setDiscMode(m){
+    discMode=m;
+    [...$('discSeg').children].forEach(b=>b.classList.remove('on'));
+    $('discSeg').children[m==='amt'?0:1].classList.add('on');
+    recompute();
+  }
+  function editTax(){
+    const v=prompt("Tax rate (%):",(taxRate*100).toFixed(3).replace(/\.?0+$/,''));
+    if(v===null)return;
+    const n=parseFloat(v);if(!isNaN(n)){taxRate=n/100;$('taxChip').childNodes[0].nodeValue=(n).toString().replace(/\.?0+$/,(n%1?'':''))+"% ";}
+    $('taxChip').innerHTML=(parseFloat(v)||0)+'% <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    recompute();
+  }
+  function pickTender(el){[...$('tenders').children].forEach(t=>t.classList.remove('on'));el.classList.add('on');}
+  function toggleCust(){
+    const has=$('custName').textContent!=="Anonymous walk-in";
+    $('custName').textContent=has?"Anonymous walk-in":"Maria Gonzalez · (813) 555-0142";
+    event.target.textContent=has?"Add":"Change";
+  }
+
+  function render(){
+    const rows=$('rows'),empty=$('empty');
+    rows.innerHTML='';
+    if(cart.length===0){empty.style.display='grid';}else{empty.style.display='none';}
+    cart.forEach((it,i)=>{
+      const div=document.createElement('div');div.className='row';
+      div.innerHTML=`
+        <div><div class="nm">${it.nm}</div><div class="sub">${it.sku==='CUSTOM'?'Custom line':'SKU '+it.sku} · ${money(it.price)} ea</div></div>
+        <div class="stepper"><button onclick="step(${i},-1)">−</button><span class="tnum">${it.qty}</span><button onclick="step(${i},1)">+</button></div>
+        <div class="price tnum">${money(it.price*it.qty)}</div>
+        <button class="x" onclick="removeItem(${i})">✕</button>`;
+      rows.appendChild(div);
+    });
+    recompute();
+  }
+
+  function recompute(){
+    const count=cart.reduce((a,i)=>a+i.qty,0);
+    $('cnt').textContent=count+(count===1?' item':' items');
+    const sub=cart.reduce((a,i)=>a+i.price*i.qty,0);
+    let discInput=parseFloat($('discVal').value)||0;
+    let disc=discMode==='amt'?discInput:sub*(discInput/100);
+    disc=Math.min(disc,sub);
+    const taxed=sub-disc;
+    const tax=taxed*taxRate;
+    const total=taxed+tax;
+    $('sub').textContent=money(sub);
+    $('discOut').textContent="-"+money(disc);
+    $('taxOut').textContent=money(tax);
+    $('total').textContent=money(total);
+    $('chargeLbl').textContent="Charge "+money(total);
+    $('charge').disabled=cart.length===0;
+  }
+
+  $('scan').addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      const q=e.target.value.trim().toLowerCase();
+      const hit=CATALOG.find(c=>c.sku.toLowerCase()===q||c.nm.toLowerCase().includes(q));
+      if(hit){addItem(hit);e.target.value='';}
+      else if(q){addDemo();e.target.value='';}
+    }
+  });
+  $('charge').addEventListener('click',()=>{if(cart.length)alert("Completing sale: "+$('total').textContent+" (demo)");});
+
+  render();
+</script>
+</body>
+</html>

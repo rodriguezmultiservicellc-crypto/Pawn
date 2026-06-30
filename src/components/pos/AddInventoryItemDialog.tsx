@@ -17,13 +17,16 @@ export function AddInventoryItemDialog({
   items,
   onClose,
   onPick,
+  initialQuery,
 }: {
   items: InventoryPickRow[]
   onClose: () => void
   onPick: (item: InventoryPickRow) => void
+  /** Pre-seed the search box (e.g. from a multi-hit ScanBar query). */
+  initialQuery?: string
 }) {
   const { t } = useI18n()
-  const [q, setQ] = useState<string>('')
+  const [q, setQ] = useState<string>(initialQuery ?? '')
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase()
