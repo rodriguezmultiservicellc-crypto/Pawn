@@ -13,163 +13,132 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 41 (2026-06-29, second pass)
-                  — NCIC CODE PER CATEGORY + DAILY
-                  LEADSONLINE EXPORT JOB + ALL STAFF
-                  PAGES MADE FULL-WIDTH.
+  Last session:   Session 42 (2026-06-30)
+                  — FS 539.001 COLLATERAL ATTRS ON
+                  /pawn/[id] DETAIL + TICKET PRINT (#4);
+                  REACT-HOOKS PURITY FIX (#5).
 
-                  Three landings across two commits:
+                  Knocked out the two backlog items that
+                  could be done solo (no agency spec, no
+                  browser needed). Commit 7c510f1.
 
-                  (A) NCIC CODE PER CATEGORY (#2)
-                  - /settings/pawn-categories: operator-
-                    editable NCIC TYP code per category.
-                    List shows a blue NCIC badge; modal
-                    has an uppercase 1-10 alnum input;
-                    validated + persisted + audited.
-                    Column already existed (0043).
+                  (A) FS 539.001 ATTRS SURFACED (#4)
+                  - The per-category / FS 539.001 columns
+                    added in S39 (color, gemstone_
+                    description, unique_marks, jewelry_size,
+                    firearm make/model/caliber/serial/type/
+                    action/barrel_length/capacity/finish/
+                    #barrels, electronic + tool brand/model)
+                    were being CAPTURED at intake but never
+                    DISPLAYED. Now shown in two places:
+                  - /pawn/[id] detail page: page.tsx
+                    collateral select + LoanCollateralView
+                    extended; content.tsx CollateralPanel
+                    renders populated attrs as a labeled
+                    detail list under each card. Reuses the
+                    existing t.pawn.new_.item* i18n labels
+                    (no new keys). Firearm type enum mapped
+                    to localized label.
+                  - Ticket PDF: render-loan-ticket.tsx
+                    collateral select + PawnTicketCollateral
+                    mapping extended; PawnTicketPDF.tsx adds
+                    a full-width BILINGUAL (EN/ES) detail
+                    sub-line under each collateral row
+                    (labels collapsed when EN==ES). This is
+                    what FL §539.001 actually requires in
+                    the printed item description.
 
-                  (B) DAILY LEADSONLINE EXPORT (#5,
-                  commit b12b8bc, migration 0044 APPLIED)
-                  - patches/0044-compliance-export-
-                    batches.sql: new table holding frozen
-                    daily CSV artifacts + SELECT-only
-                    staff RLS (mirrors compliance_log;
-                    writes service-role only). Applied
-                    via Mgmt API; db:types regen'd
-                    (152288 bytes); boundary casts dropped.
-                  - Exporter: per-item item_ncic_code
-                    column resolved from the tenant's
-                    category map; threaded through the
-                    dispatcher + the on-demand CSV route
-                    + the report-page preview.
-                  - lib/compliance/ncic.ts: buildNcicBySlug
-                    (tenantIds) shared helper.
-                  - lib/reports/police-report.ts:
-                    getUnexportedPoliceReportRows()
-                    (exported_at IS NULL selector).
-                  - /api/cron/leadsonline-export: per
-                    tenant, build CSV from UNEXPORTED
-                    compliance_log rows -> freeze batch
-                    -> stamp exported_at/format/batch_id
-                    (idempotent) -> audit. Batch-insert-
-                    first ordering so a stamp failure
-                    re-exports (visible duplicate) rather
-                    than silently under-reporting.
-                  - /api/compliance/export/[id]: RLS-gated
-                    batch download.
-                  - vercel.json: cron 30 14 * * *.
+                  (B) REACT-HOOKS PURITY FIX (#5)
+                  - customers/dashboard/[id]/page.tsx had 2
+                    react-hooks/purity errors: inline
+                    Date.now() at :279 + :392 ("Cannot call
+                    impure function during render"). Hoisted
+                    one const now = new Date() + nowMs =
+                    now.getTime() at the top of the
+                    derivations; replaced both Date.now()
+                    with nowMs and removed the duplicate
+                    new Date() that was at ~:350. new Date()
+                    (no-arg) is NOT flagged by the rule;
+                    Date.now() is.
 
-                  (C) ALL STAFF PAGES FULL-WIDTH (#UI,
-                  commit 05be4c3)
-                  - Removed the mx-auto max-w-* cap from
-                    29 staff page wrappers so every page
-                    fills width like /customers. Layout
-                    <main> was already full-width; pages
-                    self-capped. Spacing classes kept;
-                    modals keep their own max-w.
-
-  Context budget: ~55% at save time.
-  Last worked on: Full-width sweep shipped (commit
-                  05be4c3). Compliance feature shipped
-                  (commit b12b8bc, 0044 applied). All
-                  pushed to main. tsc + eslint clean,
-                  413 tests pass.
+  Context budget: ~40% at save time.
+  Last worked on: Both items shipped in commit 7c510f1,
+                  pushed to main. tsc + eslint clean, 413
+                  tests pass. Clean stopping point.
 
   ACTIVE FILE(S) this session:
-    --- NCIC settings UI (#2) ---
-    - src/app/(staff)/settings/pawn-categories/
-      {page,content,actions}.tsx
-    --- LeadsOnline export (#5) ---
-    - patches/0044-compliance-export-batches.sql (APPLIED)
-    - src/lib/compliance/ncic.ts (NEW)
-    - src/lib/compliance/police-report/index.ts
-    - src/lib/compliance/police-report/formats/
-      fl-leadsonline.ts
-    - src/lib/reports/police-report.ts
-    - src/app/api/cron/leadsonline-export/route.ts (NEW)
-    - src/app/api/compliance/export/[id]/route.ts (NEW)
-    - src/app/api/reports/police-report/csv/route.ts
-    - src/app/(staff)/reports/police-report/page.tsx
-    - src/types/database.ts (regen, 152288 bytes)
-    - vercel.json
-    --- Full-width sweep (#UI) ---
-    - 29 src/app/(staff)/**/{content,form}.tsx wrappers
+    --- #4 detail page ---
+    - src/app/(staff)/pawn/[id]/page.tsx
+    - src/app/(staff)/pawn/[id]/content.tsx
+    --- #4 ticket print ---
+    - src/lib/pdf/render-loan-ticket.tsx
+    - src/lib/pdf/PawnTicketPDF.tsx
+    --- #5 purity fix ---
+    - src/app/(staff)/customers/dashboard/[id]/page.tsx
 
   RESUME POINT:
     Clean stopping point — everything committed + pushed
-    (HEAD = 05be4c3). No half-done work. Most useful next
-    actions, pick one:
-    (1) Set CRON_SECRET in Vercel Production env — the new
-        leadsonline-export cron (and every other cron)
-        returns 401 until it's set. Phase 0 punch list.
-    (2) Reconcile the LeadsOnline CSV column set against
-        the agency's official "Required Field List" before
-        any real submission (fl-leadsonline.ts is v0 draft).
-    (3) Run the /pawn/new browser smoke-test still owed
-        from S39 (a-h checklist) now that 0042/0043 are
-        live.
-    (4) Spot-check the now-full-width forms (new customer,
-        loan rates) on a wide monitor; cap individually if
-        any look too stretched.
+    (HEAD = 7c510f1). No half-done work. The remaining
+    backlog items need the operator (not solo-able):
+    (1) IMMEDIATE: set CRON_SECRET in Vercel Production —
+        every /api/cron/* route (incl. leadsonline-export)
+        401s until it's set.
+    (2) Reconcile the LeadsOnline CSV columns in
+        fl-leadsonline.ts against the agency's official
+        "Required Field List" (needs the doc from Eddy).
+    (3) /pawn/new browser smoke-test (S39 a-h) — needs a
+        real logged-in browser.
+    (4) Visually confirm the new ticket-PDF detail sub-line
+        renders cleanly on a real print with firearm /
+        electronics collateral (could not render here).
 
   OPEN ISSUES / BLOCKERS:
     - CRON_SECRET not set in Vercel Production — all crons
-      including leadsonline-export 401 until set.
+      401 until set.
     - LeadsOnline CSV columns are a v0 DRAFT — confirm with
       the agency before go-live.
-    - Pre-existing as-any cast on pawn_intake_categories
-      builder in settings/pawn-categories/actions.ts left
-      in place (stale comment ref 0037; table is now typed,
-      low-value cleanup deferred).
-    - 2 react-hooks/purity errors in customers/dashboard/
-      [id]/page.tsx:279 + :392 (S37, unrelated).
+    - Ticket-PDF detail sub-line not visually verified (no
+      PDF rendering available in-session); change is
+      additive + wrap=false so low layout risk.
+    - 2 react-hooks/purity errors in customers/dashboard
+      are FIXED this session.
     - OPENAI_API_KEY still pending in Vercel Production env.
     - Carry-over backlog: 32 design walkthrough, S27
       backpage, A-I 9-smoke, email-campaign UI, Stripe
       Connect, eBay de-stub, Phase 8 mobile audit.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 41):
-    - EXPORT ARTIFACTS = compliance_export_batches TABLE,
-      NOT STORAGE. Frozen CSV body stored inline (TEXT) to
-      avoid a new private bucket + storage.objects RLS.
-      SELECT-only staff RLS mirrors compliance_log; writes
-      are service-role only. Rule 1 honored — RLS shown +
-      explicitly confirmed before applying.
-    - EXPORTED_AT IS THE IDEMPOTENCY KEY. The cron selects
-      exported_at IS NULL rows (not a date window), so it
-      backfills any missed day and never double-reports.
-      The existing immutability trigger already permits the
-      exported_* bookkeeping columns.
-    - BATCH-INSERT-FIRST ORDERING. Persist the artifact,
-      then stamp. A stamp failure re-exports next run (a
-      visible duplicate batch) — preferred over silently
-      marking transactions reported with no file (under-
-      reporting to law enforcement is the worse failure).
-    - NCIC ENRICHMENT SHARED. buildNcicBySlug() used by the
-      cron, the on-demand CSV route, AND the report preview
-      so all three stay consistent (no per-call dup).
-    - PAGE WIDTH = FULL, controlled per-page (no layout
-      cap). Removing the per-page mx-auto max-w-* caps
-      matches /customers; adding a layout-level cap was
-      rejected (would have narrowed the already-wide list
-      pages).
+  KEY DECISIONS LOCKED THIS SESSION (Session 42):
+    - ATTR DISPLAY REUSES INTAKE LABELS. Both the detail
+      page and the PDF source their field labels from the
+      pawn.new_.item* namespace rather than minting new
+      keys — keeps one source of truth, zero i18n drift.
+    - PDF = FULL-WIDTH SUB-LINE, NOT MORE COLUMNS. The
+      collateral table is fixed 7-column; ~18 new attrs
+      can't fit as columns, so they print as one bilingual
+      detail line under each row (kept with its row via
+      wrap=false). Matches the FL §539.001 description
+      mandate.
+    - DETAIL-LINE LOGIC DUPLICATED ON PURPOSE. The "which
+      fields, in what order" list lives in BOTH content.tsx
+      (React/DOM, t hook, array of [label,value]) and
+      PawnTicketPDF (react-pdf, data.i18n, bilingual
+      string). Different render targets + label sources;
+      a shared abstraction would be more complex than the
+      duplication. Left separate by judgment.
+    - PURITY FIX VIA new Date(). The rule flags Date.now()
+      but not new Date(); hoisting one Date object and
+      deriving getTime() is the accepted pattern here.
 
   IMPORTANT CONSTANTS / PATHS:
-    - Mgmt API SQL endpoint (migrations when DATABASE_URL
-      empty + no psql): POST https://api.supabase.com/v1/
-      projects/{SUPABASE_PROJECT_ID}/database/query, Bearer
-      {SUPABASE_ACCESS_TOKEN}. Pawn ref = kjyaxfwlggxiqijiiuna.
-    - New cron: /api/cron/leadsonline-export (30 14 * * *).
-    - Batch download: /api/compliance/export/[id]
-      (RLS-gated, staff of owning tenant).
-    - NCIC map helper: buildNcicBySlug() in
-      src/lib/compliance/ncic.ts.
-    - Unexported selector: getUnexportedPoliceReportRows()
-      in src/lib/reports/police-report.ts.
-    - Full-width convention: staff pages carry NO
-      mx-auto max-w-* cap (layout <main> px-6 is the gutter).
+    - Collateral attr labels: t.pawn.new_.item* (en.ts/
+      es.ts ~lines 910-946). Same labels used by the
+      intake form, the detail page, and the ticket PDF.
+    - Ticket PDF detail line builder: collateralDetailLine()
+      inside PawnTicketPDF.tsx (closure over data.i18n).
+    - Detail-page attr renderer: detailsFor() inside
+      CollateralPanel in pawn/[id]/content.tsx.
 
-  (Sessions 13-40 PRIOR-SESSION decision blocks are in the
+  (Sessions 13-41 PRIOR-SESSION decision blocks are in the
   SESSION HISTORY LOG below. Carried-forward architectural
   decisions live in CLAUDE.md.)
 
@@ -1635,6 +1604,58 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 42 (2026-06-30) — FS 539.001 collateral attrs on /pawn/[id] detail + ticket print (#4); react-hooks purity fix (#5) ---
+
+ 338. FS 539.001 + PER-CATEGORY COLLATERAL ATTRS
+     SURFACED ON DETAIL PAGE + TICKET PRINT (#4,
+     commit 7c510f1). The attributes captured at
+     intake since S39 (color, gemstone_description,
+     unique_marks, jewelry_size, firearm_make/_model/
+     _caliber/_serial_number/_type/_barrel_length_
+     inches/_action_type/_capacity/_finish/_number_of_
+     barrels, electronic_brand/_model/_serial, tool_
+     brand/_model) were never displayed. Now shown:
+     - src/app/(staff)/pawn/[id]/page.tsx: collateral
+       .select() expanded to all attr columns;
+       LoanCollateralView mapping carries them
+       (numeric coercion on barrel_length / capacity /
+       #barrels).
+     - src/app/(staff)/pawn/[id]/content.tsx:
+       LoanCollateralView type extended; CollateralPanel
+       gains detailsFor(c) + a firearmTypeLabel() enum
+       mapper; renders populated attrs as a labeled
+       <dl> detail list under each card. Labels reuse
+       t.pawn.new_.item* (no new i18n keys). metal/
+       karat/weight stay in the existing meta line.
+     - src/lib/pdf/render-loan-ticket.tsx: collateral
+       .select() + PawnTicketCollateral mapping
+       expanded to all attrs.
+     - src/lib/pdf/PawnTicketPDF.tsx: PawnTicketCollateral
+       type extended; new collateralDetailLine() closure
+       (over data.i18n.en/es.pawn.new_) builds a
+       bilingual "EN/ES: value" string (collapsed when
+       EN==ES, firearm_type enum localized); row map
+       restructured so each item is an outer wrap=false
+       View containing the table row + an optional
+       full-width detailRow sub-line (new detailRow /
+       detailText styles, fontSize 7, muted). Satisfies
+       FL §539.001(8)(b)(2) printed-description mandate.
+
+ 339. [BUG] REACT-HOOKS/PURITY ERRORS FIXED (#5,
+     commit 7c510f1). src/app/(staff)/customers/
+     dashboard/[id]/page.tsx threw 2 eslint
+     react-hooks/purity errors: "Cannot call impure
+     function during render" on inline Date.now() at
+     :279 (daysSinceLastSale) and :392 (sixtyDaysAgo).
+     ROOT CAUSE: the rule bans Date.now() in render;
+     new Date() (no-arg) is NOT flagged. FIX: hoisted
+     one "const now = new Date()" + "const nowMs =
+     now.getTime()" to the top of the derived-metrics
+     section; replaced both Date.now() with nowMs;
+     removed the duplicate "const now = new Date()"
+     that previously sat at the 12-month-trends block.
+     eslint 0, tsc 0 on the file after.
 
 --- Session 41 (2026-06-29, second pass) — NCIC code per category + daily LeadsOnline export job + all staff pages full-width ---
 
@@ -4001,24 +4022,23 @@ PENDING — NEXT UP
 
   IMMEDIATE (do this first next session):
     Set CRON_SECRET in the Vercel Production env. Every
-    /api/cron/* route (including the new leadsonline-export)
+    /api/cron/* route (including leadsonline-export)
     returns 401 until it's set, so none of the scheduled
-    jobs actually run.
+    jobs actually run. Operator action in Vercel.
 
   BACKLOG (in priority order):
     1. Reconcile the LeadsOnline CSV column set in
        fl-leadsonline.ts against the agency's official
        "Required Field List" before any real submission
-       (currently a v0 draft).
-    2. /pawn/new browser smoke-test (S39 a-h checklist) now
-       that 0042/0043 are live.
-    3. Spot-check now-full-width forms (new customer, loan
-       rates) on a wide monitor; cap individually if any
-       look too stretched.
-    4. Surface per-item category + FS 539.001 attributes on
-       the /pawn/<id> detail page + ticket print.
-    5. Fix 2 react-hooks/purity errors in customers/
-       dashboard/[id]/page.tsx:279 + :392 (S37).
+       (needs the doc; currently a v0 draft).
+    2. /pawn/new browser smoke-test (S39 a-h checklist) —
+       needs a real logged-in browser.
+    3. Visually confirm the new ticket-PDF detail sub-line
+       on a real print (firearm / electronics collateral).
+    4. Spot-check now-full-width forms on a wide monitor;
+       cap individually if any look too stretched.
+    5. Surface per-item attrs further if needed (forfeiture
+       -> inventory carry-over, etc.).
 
   KNOWN ISSUES TO REVISIT:
     - OPENAI_API_KEY pending in Vercel Production env
@@ -4027,9 +4047,7 @@ PENDING — NEXT UP
       + secret rotation still open in Vercel env.
 
   OUT OF SCOPE (noted for later):
-    - Bilingual TCPA SMS footer (operator chose English-only
-      to match LunaAzul, Session 40).
-    - Platform-Twilio fallback / messaging_mode (deferred
-      Session 40).
+    - Bilingual TCPA SMS footer (English-only by choice, S40).
+    - Platform-Twilio fallback / messaging_mode (S40).
     - eBay de-stub, Stripe Connect smoke test, email-
       campaign UI editor, Phase 8 mobile audit.
