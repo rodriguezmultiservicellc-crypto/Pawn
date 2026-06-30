@@ -13,132 +13,162 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 42 (2026-06-30)
-                  — FS 539.001 COLLATERAL ATTRS ON
-                  /pawn/[id] DETAIL + TICKET PRINT (#4);
-                  REACT-HOOKS PURITY FIX (#5).
+  Last session:   Session 43 (2026-06-30, second pass)
+                  — TWO-PANE REDESIGNS: POS NEW-SALE
+                  + NEW PAWN TICKET (PHASE 1). Both
+                  shipped + build-clean.
 
-                  Knocked out the two backlog items that
-                  could be done solo (no agency spec, no
-                  browser needed). Commit 7c510f1.
+                  Paired navy/gold two-pane layout
+                  (left work surface + right sticky rail)
+                  applied to the two highest-traffic
+                  intake screens, from operator-supplied
+                  HTML mockups + handoff briefs.
 
-                  (A) FS 539.001 ATTRS SURFACED (#4)
-                  - The per-category / FS 539.001 columns
-                    added in S39 (color, gemstone_
-                    description, unique_marks, jewelry_size,
-                    firearm make/model/caliber/serial/type/
-                    action/barrel_length/capacity/finish/
-                    #barrels, electronic + tool brand/model)
-                    were being CAPTURED at intake but never
-                    DISPLAYED. Now shown in two places:
-                  - /pawn/[id] detail page: page.tsx
-                    collateral select + LoanCollateralView
-                    extended; content.tsx CollateralPanel
-                    renders populated attrs as a labeled
-                    detail list under each card. Reuses the
-                    existing t.pawn.new_.item* i18n labels
-                    (no new keys). Firearm type enum mapped
-                    to localized label.
-                  - Ticket PDF: render-loan-ticket.tsx
-                    collateral select + PawnTicketCollateral
-                    mapping extended; PawnTicketPDF.tsx adds
-                    a full-width BILINGUAL (EN/ES) detail
-                    sub-line under each collateral row
-                    (labels collapsed when EN==ES). This is
-                    what FL §539.001 actually requires in
-                    the printed item description.
+                  (A) POS NEW-SALE (commit 2ee3299)
+                  - Rewrote ONLY src/components/pos/Cart.tsx
+                    into the two-pane layout; server
+                    contract + cart math + customer/
+                    inventory/layaway flows unchanged.
+                  - Left: ScanBar (autofocus + refocus
+                    after add; Enter resolves exact SKU
+                    -> single partial hit -> multi-hit
+                    picker -> inline no-match) + Add item/
+                    custom/clear + line items. Inventory
+                    lines = unique units (qty locked 1,
+                    re-scan no-op); custom lines get a
+                    qty stepper + inline name/price.
+                  - Right navy rail: customer (embedded
+                    CustomerPicker) + order summary with
+                    $/% discount toggle (resolved to $,
+                    capped) + tax % chip (fraction never
+                    shown) + live Total + Charge; tender
+                    (cash/card; split disabled) + Save as
+                    layaway + note.
+                  - AddInventoryItemDialog gained an
+                    initialQuery prop. New pos.sale.* i18n
+                    keys en+es; removed orphaned taxRateHelp.
 
-                  (B) REACT-HOOKS PURITY FIX (#5)
-                  - customers/dashboard/[id]/page.tsx had 2
-                    react-hooks/purity errors: inline
-                    Date.now() at :279 + :392 ("Cannot call
-                    impure function during render"). Hoisted
-                    one const now = new Date() + nowMs =
-                    now.getTime() at the top of the
-                    derivations; replaced both Date.now()
-                    with nowMs and removed the duplicate
-                    new Date() that was at ~:350. new Date()
-                    (no-arg) is NOT flagged by the rule;
-                    Date.now() is.
+                  (B) NEW PAWN TICKET — PHASE 1
+                  (commit 984374c)
+                  - Rewrote src/app/(staff)/pawn/new/
+                    form.tsx into two-pane; createLoanAction
+                    + validation + data model UNCHANGED.
+                  - Terms MOVED into the rail (no more
+                    left-column Loan-terms section):
+                    principal (large), rate, term, issue,
+                    auto due date.
+                  - Live Collateral-value box + LTV state:
+                    CollateralItemsList now reports running
+                    {count, summed est_value} via a new
+                    onTotalsChange prop; rail color-codes
+                    principal vs collateral (covered+ratio /
+                    over-value / neutral).
+                  - Live redemption (principal + p*rate*
+                    term/30) + includes-interest line.
+                  - Financing toggle: Pawn (active) / Buy
+                    outright -> bridges to existing /buy/new.
+                  - Issue disabled until customer + principal
+                    + >=1 item. New pawn.new_ i18n en+es.
 
-  Context budget: ~40% at save time.
-  Last worked on: Both items shipped in commit 7c510f1,
-                  pushed to main. tsc + eslint clean, 413
-                  tests pass. Clean stopping point.
+  Context budget: ~22% at save time.
+  Last worked on: Pawn redesign Phase 1 shipped (984374c),
+                  pushed to main. tsc + eslint clean,
+                  npm run build clean, 413 tests pass.
+                  Clean stopping point.
 
   ACTIVE FILE(S) this session:
-    --- #4 detail page ---
-    - src/app/(staff)/pawn/[id]/page.tsx
-    - src/app/(staff)/pawn/[id]/content.tsx
-    --- #4 ticket print ---
-    - src/lib/pdf/render-loan-ticket.tsx
-    - src/lib/pdf/PawnTicketPDF.tsx
-    --- #5 purity fix ---
-    - src/app/(staff)/customers/dashboard/[id]/page.tsx
+    --- POS redesign ---
+    - src/components/pos/Cart.tsx (rewritten)
+    - src/components/pos/AddInventoryItemDialog.tsx
+    - src/lib/i18n/en.ts + es.ts (pos.sale.*)
+    --- Pawn redesign Phase 1 ---
+    - src/app/(staff)/pawn/new/form.tsx (rewritten)
+    - src/components/pawn/CollateralItemsList.tsx
+      (onTotalsChange prop)
+    - src/lib/i18n/en.ts + es.ts (pawn.new_.*)
+    --- Mockups/briefs (committed, repo root) ---
+    - pos-new-sale.html / brief-pos-new-sale-redesign.md
+    - new-pawn-ticket.html / brief-new-pawn-ticket-redesign.md
 
   RESUME POINT:
     Clean stopping point — everything committed + pushed
-    (HEAD = 7c510f1). No half-done work. The remaining
-    backlog items need the operator (not solo-able):
-    (1) IMMEDIATE: set CRON_SECRET in Vercel Production —
-        every /api/cron/* route (incl. leadsonline-export)
-        401s until it's set.
-    (2) Reconcile the LeadsOnline CSV columns in
-        fl-leadsonline.ts against the agency's official
-        "Required Field List" (needs the doc from Eddy).
-    (3) /pawn/new browser smoke-test (S39 a-h) — needs a
-        real logged-in browser.
-    (4) Visually confirm the new ticket-PDF detail sub-line
-        renders cleanly on a real print with firearm /
-        electronics collateral (could not render here).
+    (HEAD = 984374c). The next defined work is PAWN
+    REDESIGN PHASE 2 (operator chose the full "everything"
+    scope; Phase 1 delivered the verifiable layout, Phase 2
+    is the data-backed remainder, each needing a migration +
+    regulated-action change + a verify pass):
+    (1) Save as draft — migration adds loan_status 'draft';
+        createLoanAction gets a relaxed draft path (customer
+        only; skip plan-limit/min-loan/collateral/compliance;
+        no issue event); rail "Save as draft" button.
+    (2) Pawn-history re-pawn panel — new customer-scoped
+        server action (prior loans + collateral, re-pawn-
+        eligible status, category for filter chips); panel
+        above the category picker; redeemed -> + Add (reuse
+        CollateralItemsList.addExtractedRow); forfeited ->
+        "shop inventory"; optional is_repawn/source_loan_id
+        provenance columns.
+    (3) In-place Buy-outright — move the buy valuation/
+        inventory/hold/compliance pipeline into this screen
+        with its own buy item fields (currently bridged to
+        /buy/new). Largest; do last.
+
+    ALSO STILL OPEN (pre-existing):
+    - CRON_SECRET in Vercel Production (all crons 401).
+    - LeadsOnline CSV column reconciliation (v0 draft).
+    - Visually confirm both new rails on the deploy (no
+      browser verification was possible in-session).
 
   OPEN ISSUES / BLOCKERS:
-    - CRON_SECRET not set in Vercel Production — all crons
-      401 until set.
-    - LeadsOnline CSV columns are a v0 DRAFT — confirm with
-      the agency before go-live.
-    - Ticket-PDF detail sub-line not visually verified (no
-      PDF rendering available in-session); change is
-      additive + wrap=false so low layout risk.
-    - 2 react-hooks/purity errors in customers/dashboard
-      are FIXED this session.
-    - OPENAI_API_KEY still pending in Vercel Production env.
-    - Carry-over backlog: 32 design walkthrough, S27
-      backpage, A-I 9-smoke, email-campaign UI, Stripe
-      Connect, eBay de-stub, Phase 8 mobile audit.
+    - POS tender selector is UI-only this pass — payment
+      method is still finalized on /pos/sales/[id] (existing
+      two-step flow preserved). Split tender disabled.
+    - POS money stays numeric(18,4) r4 (brief asked integer
+      cents; CLAUDE.md rule 11 wins). No per-line taxable /
+      no tenant default tax rate / no held-sales (schema).
+    - POS + Pawn rails not visually verified (no browser).
+    - Pawn Phase 2 (draft/history/buy-merge) deferred.
+    - CRON_SECRET still unset in Vercel Production.
+    - OPENAI_API_KEY still pending in Vercel Production.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 42):
-    - ATTR DISPLAY REUSES INTAKE LABELS. Both the detail
-      page and the PDF source their field labels from the
-      pawn.new_.item* namespace rather than minting new
-      keys — keeps one source of truth, zero i18n drift.
-    - PDF = FULL-WIDTH SUB-LINE, NOT MORE COLUMNS. The
-      collateral table is fixed 7-column; ~18 new attrs
-      can't fit as columns, so they print as one bilingual
-      detail line under each row (kept with its row via
-      wrap=false). Matches the FL §539.001 description
-      mandate.
-    - DETAIL-LINE LOGIC DUPLICATED ON PURPOSE. The "which
-      fields, in what order" list lives in BOTH content.tsx
-      (React/DOM, t hook, array of [label,value]) and
-      PawnTicketPDF (react-pdf, data.i18n, bilingual
-      string). Different render targets + label sources;
-      a shared abstraction would be more complex than the
-      duplication. Left separate by judgment.
-    - PURITY FIX VIA new Date(). The rule flags Date.now()
-      but not new Date(); hoisting one Date object and
-      deriving getTime() is the accepted pattern here.
+  KEY DECISIONS LOCKED THIS SESSION (Session 43):
+    - REDESIGN = ONE COMPONENT EACH, SERVER UNCHANGED.
+      POS rebuilt Cart.tsx only; Pawn rebuilt form.tsx only.
+      The screens compute display math (tax fraction,
+      resolved discount, LTV, redemption) client-side and
+      submit the SAME FormData the existing actions already
+      read — zero data-model/flow change, so both are
+      build-verifiable without touching regulated writes.
+    - PAWN PHASED FOR SAFETY. Operator chose "everything"
+      (buy-merge + draft). Phase 1 = layout/rail/LTV/
+      redemption (no migration, verifiable). Phase 2 =
+      draft + history + in-place buy, each needing a
+      migration + a change to the regulated loan/buy/
+      compliance code that can't be browser-verified here,
+      so they get their own pass. Buy bridged to /buy/new
+      meanwhile.
+    - TAX/ DISCOUNT UX WITHOUT SCHEMA. POS shows tax as an
+      editable % chip and discount via $/% toggle, but
+      submits tax_rate (fraction) + discount_amount ($) to
+      the unchanged action. No tenant default-tax column
+      exists -> defaults to 0; flagged.
+    - LTV VIA REPORT-UP. CollateralItemsList lifts totals
+      through an onTotalsChange callback (effect-driven,
+      converges because setState with equal primitives
+      bails) rather than lifting all row state.
 
   IMPORTANT CONSTANTS / PATHS:
-    - Collateral attr labels: t.pawn.new_.item* (en.ts/
-      es.ts ~lines 910-946). Same labels used by the
-      intake form, the detail page, and the ticket PDF.
-    - Ticket PDF detail line builder: collateralDetailLine()
-      inside PawnTicketPDF.tsx (closure over data.i18n).
-    - Detail-page attr renderer: detailsFor() inside
-      CollateralPanel in pawn/[id]/content.tsx.
+    - POS cart UI: src/components/pos/Cart.tsx (two-pane;
+      tender state UI-only; layaway via existing dialog).
+    - Pawn intake UI: src/app/(staff)/pawn/new/form.tsx
+      (two-pane; rail holds all terms).
+    - Collateral totals: CollateralItemsList onTotalsChange
+      (count, totalValue) -> rail LTV box.
+    - Buy bridge target: /buy/new (separate regulated flow).
+    - Mockups + briefs live at repo root (pos-new-sale.html,
+      new-pawn-ticket.html + matching brief-*.md).
 
-  (Sessions 13-41 PRIOR-SESSION decision blocks are in the
+  (Sessions 13-42 PRIOR-SESSION decision blocks are in the
   SESSION HISTORY LOG below. Carried-forward architectural
   decisions live in CLAUDE.md.)
 
@@ -1604,6 +1634,87 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 43 (2026-06-30, second pass) — Two-pane redesigns: POS new-sale + New Pawn Ticket (Phase 1) ---
+
+ 340. POS NEW-SALE REDESIGN — TWO-PANE WORK SURFACE +
+     CHECKOUT RAIL (commit 2ee3299). From operator
+     mockup pos-new-sale.html + brief. Rewrote ONLY
+     src/components/pos/Cart.tsx; form.tsx, actions.ts,
+     page.tsx, lib/pos/cart.ts unchanged (the Cart
+     computes tax fraction + resolved discount and
+     passes them to the existing onSubmitSale/
+     onSaveAsLayaway callbacks).
+     - Left work surface: ScanBar (autofocus + refocus
+       after every add for barcode guns; Enter resolves
+       exact SKU -> single partial hit -> multi-hit
+       picker pre-seeded -> inline "no item found").
+       Add item / Add custom line / Clear. Line items:
+       inventory = unique units (qty locked 1, re-scan
+       no-op + "already in cart"); custom lines get a
+       qty stepper + inline name/price.
+     - Right navy rail: customer (embedded
+       CustomerPicker) + order summary [subtotal,
+       discount $/% segmented toggle resolved to $ and
+       capped at subtotal, tax editable % chip -> stored
+       as fraction (raw decimal never shown), live
+       Total] + tender (cash/card; split disabled
+       "coming soon") + Charge {amount} + Save as
+       layaway + collapsible note.
+     - src/components/pos/AddInventoryItemDialog.tsx
+       gained an initialQuery prop for the multi-hit
+       handoff.
+     - i18n: new pos.sale.* keys en+es (identical);
+       removed orphaned taxRateHelp.
+     DEVIATIONS (existing schema/flow preserved): money
+     stays numeric(18,4) r4 (not integer cents, rule 11);
+     no per-line taxable / no tenant default tax rate /
+     no held-sales / no split-tender; tender UI-only
+     (payment still finalized on /pos/sales/[id]); mobile
+     rail stacks (no bottom-pin). npm run build clean.
+
+ 341. NEW PAWN TICKET REDESIGN — PHASE 1: TWO-PANE +
+     STICKY LOAN RAIL (commit 984374c). From operator
+     mockup new-pawn-ticket.html + brief. Layout +
+     interaction only; createLoanAction, validation, and
+     data model UNCHANGED.
+     - Rewrote src/app/(staff)/pawn/new/form.tsx into a
+       two-pane grid (lg:grid-cols-[1fr_360px]). Left:
+       voice + customer + collateral editor + signature/
+       notes. Right: sticky navy loan-summary rail.
+     - Terms MOVED into the rail; the old left-column
+       "Loan terms" fieldset is gone. Rail holds
+       principal (large $ input), interest rate select
+       (from config), term, issue date (locked today),
+       auto due date, plus hidden interest_rate_monthly /
+       min_monthly_charge / due_date inputs so the
+       unchanged action still reads the same FormData.
+     - Live Collateral-value box + LTV state:
+       src/components/pawn/CollateralItemsList.tsx gained
+       an onTotalsChange(count, totalValue) prop (reports
+       via a useEffect; counts only started rows). Rail
+       color-codes principal vs collateral value: ok
+       (shows "{pct}% of value"), over ("Over value"),
+       or neutral (item count).
+     - Live redemption box: principal + principal *
+       monthly_rate * term/30, with includes-{interest}
+       line.
+     - Financing toggle (Pawn active / Buy outright):
+       Buy bridges to the existing /buy/new regulated
+       flow (in-place buy deferred to Phase 2).
+     - Issue button disabled until customer + principal>0
+       + >=1 collateral item; rail missing-hint shown
+       otherwise.
+     - i18n: new pawn.new_ keys en+es (financingPawn/Buy,
+       railSummaryTitle, collateralValue, ltvCovered/Over,
+       redemptionLabel/Includes, collateralItemsLabel,
+       manageRatesHint, railMissingHint, itemOne/Many);
+       removed the dead duplicate key I introduced.
+     PHASE 2 DEFERRED (operator chose full scope; each
+     needs a migration + regulated-action change + verify
+     pass): Save-as-draft (loan_status 'draft'), pawn-
+     history re-pawn panel, in-place Buy-outright merge.
+     tsc + eslint clean, npm run build clean, 413 tests.
 
 --- Session 42 (2026-06-30) — FS 539.001 collateral attrs on /pawn/[id] detail + ticket print (#4); react-hooks purity fix (#5) ---
 
@@ -4021,33 +4132,36 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Set CRON_SECRET in the Vercel Production env. Every
-    /api/cron/* route (including leadsonline-export)
-    returns 401 until it's set, so none of the scheduled
-    jobs actually run. Operator action in Vercel.
+    Pawn redesign PHASE 2, step 1 — Save as draft. Migration
+    adds loan_status 'draft'; createLoanAction gets a relaxed
+    draft branch (customer required only; skip plan-limit /
+    min-loan / collateral-required / compliance / issue
+    event); add the rail "Save as draft" button. Verify with
+    npm run build.
 
   BACKLOG (in priority order):
-    1. Reconcile the LeadsOnline CSV column set in
-       fl-leadsonline.ts against the agency's official
-       "Required Field List" before any real submission
-       (needs the doc; currently a v0 draft).
-    2. /pawn/new browser smoke-test (S39 a-h checklist) —
-       needs a real logged-in browser.
-    3. Visually confirm the new ticket-PDF detail sub-line
-       on a real print (firearm / electronics collateral).
-    4. Spot-check now-full-width forms on a wide monitor;
-       cap individually if any look too stretched.
-    5. Surface per-item attrs further if needed (forfeiture
-       -> inventory carry-over, etc.).
+    1. Pawn Phase 2 step 2 — pawn-history re-pawn panel
+       (customer-scoped server action for prior loans +
+       collateral; filter chips; redeemed -> + Add via
+       CollateralItemsList.addExtractedRow; forfeited ->
+       "shop inventory"; optional is_repawn/source_loan_id).
+    2. Pawn Phase 2 step 3 — in-place Buy-outright merge
+       (embed buy valuation/inventory/hold/compliance with
+       its own buy item fields; currently bridged to
+       /buy/new).
+    3. Set CRON_SECRET in Vercel Production (all crons 401).
+    4. Reconcile LeadsOnline CSV columns vs agency spec.
+    5. Visually verify the POS + Pawn rails on the deploy.
 
   KNOWN ISSUES TO REVISIT:
-    - OPENAI_API_KEY pending in Vercel Production env
-      (voice intake + market-data cron).
-    - Phase 0 punch list: NEXT_PUBLIC_APP_URL + CRON_SECRET
-      + secret rotation still open in Vercel env.
+    - OPENAI_API_KEY pending in Vercel Production env.
+    - POS tender selector is UI-only (payment finalized on
+      the sale detail page).
+    - No tenant default tax rate column (POS tax defaults 0).
 
   OUT OF SCOPE (noted for later):
-    - Bilingual TCPA SMS footer (English-only by choice, S40).
-    - Platform-Twilio fallback / messaging_mode (S40).
-    - eBay de-stub, Stripe Connect smoke test, email-
-      campaign UI editor, Phase 8 mobile audit.
+    - POS: integer-cents money model, per-line taxable,
+      held-sales, split-tender (each a schema/flow addition).
+    - Bilingual TCPA SMS footer; platform-Twilio fallback.
+    - eBay de-stub, Stripe Connect smoke, email-campaign UI,
+      Phase 8 mobile audit.
