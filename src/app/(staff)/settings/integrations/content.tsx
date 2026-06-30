@@ -64,7 +64,7 @@ export default function IntegrationsContent({
   const isOwner = !!view.role && OWNER_ROLES.has(view.role)
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       <header>
         <div className="flex items-center gap-2 text-sm text-muted">
           <Link href="/settings" className="hover:text-foreground">

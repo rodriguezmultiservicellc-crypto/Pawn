@@ -82,7 +82,7 @@ export default function NewTransferForm({
 
   if (noSiblings) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-bold">
             {t.inventory.transfers.new.title}
@@ -108,7 +108,7 @@ export default function NewTransferForm({
 
   if (availableItems.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-bold">
             {t.inventory.transfers.new.title}
@@ -139,7 +139,7 @@ export default function NewTransferForm({
   const fieldError = (key: string) => state.fieldErrors?.[key]
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ArrowsLeftRight size={22} weight="regular" className="text-muted" />

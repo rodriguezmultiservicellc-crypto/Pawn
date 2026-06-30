@@ -78,7 +78,7 @@ export default function LayawayDetailContent({
   const isActive = layaway.status === 'active'
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <Link
           href="/pos/layaways"

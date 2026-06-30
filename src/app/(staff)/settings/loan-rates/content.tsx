@@ -52,7 +52,7 @@ export default function LoanRatesContent({
   const inactive = rows.filter((r) => !r.isActive)
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div>
         <Link
           href="/settings"

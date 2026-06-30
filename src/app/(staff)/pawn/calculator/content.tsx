@@ -52,7 +52,7 @@ export default function CalculatorContent({
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="font-display flex items-center gap-2 text-2xl font-bold text-foreground">

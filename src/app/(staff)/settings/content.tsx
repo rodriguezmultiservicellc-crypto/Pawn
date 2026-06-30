@@ -66,7 +66,7 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
   const isOwner = !!view.role && OWNER_ROLES.has(view.role)
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       <header>
         <h1 className="font-display text-2xl font-bold text-foreground">Settings</h1>
         <p className="text-sm text-muted">

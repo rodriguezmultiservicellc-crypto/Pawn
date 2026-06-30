@@ -79,7 +79,7 @@ export default function CommunicationsContent({
   }, [templates])
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">
           {t.comms.settingsTitle}

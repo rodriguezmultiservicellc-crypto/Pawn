@@ -147,7 +147,7 @@ export default function NewPawnLoanForm({
   const revealReady = selectedCustomerId != null
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">{t.pawn.new_.title}</h1>
         <Link href="/pawn" className="text-sm text-muted hover:text-foreground">

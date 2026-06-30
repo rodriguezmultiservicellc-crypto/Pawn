@@ -116,7 +116,7 @@ export default function SpotPricesContent({
   )
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <Link
           href="/inventory"

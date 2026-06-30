@@ -140,7 +140,7 @@ export default function SaleDetailContent({
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <Link
           href="/pos"

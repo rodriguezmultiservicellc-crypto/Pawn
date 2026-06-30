@@ -175,7 +175,7 @@ export default function NewCustomerForm({
   const fieldError = (key: string) => state.fieldErrors?.[key]
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">{t.customers.new}</h1>
         <div className="flex items-center gap-2">

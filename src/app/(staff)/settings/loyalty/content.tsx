@@ -31,7 +31,7 @@ export default function LoyaltySettingsContent({
     'w-32 rounded-md border border-border bg-card px-3 py-2 text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-gold/50 disabled:cursor-not-allowed disabled:opacity-60'
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="px-4 py-8">
       <h1 className="mb-2 text-2xl font-semibold text-foreground">Loyalty &amp; Referrals</h1>
       <p className="mb-6 text-sm text-muted">
         Configure point earn / redemption rates and referral bonuses for this shop.

@@ -92,7 +92,7 @@ export default function EbaySettingsContent({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold">{t.ebay.settingsTitle}</h1>
         <p className="text-sm text-muted">{t.ebay.settingsSubtitle}</p>

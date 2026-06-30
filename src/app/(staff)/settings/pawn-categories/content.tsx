@@ -61,7 +61,7 @@ export default function PawnCategoriesContent({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <Link
           href="/settings"

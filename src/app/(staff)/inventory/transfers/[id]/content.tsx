@@ -121,7 +121,7 @@ export default function TransferDetail({
   const badge = STATUS_BADGE[data.status]
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <Link

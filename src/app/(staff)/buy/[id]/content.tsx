@@ -53,7 +53,7 @@ export default function BuyReceiptContent({
   view: BuyReceiptView
 }) {
   return (
-    <div className="mx-auto max-w-3xl space-y-6 print:max-w-none">
+    <div className="space-y-6 print:max-w-none">
       <header className="flex items-center justify-between print:hidden">
         <Link
           href="/inventory"
