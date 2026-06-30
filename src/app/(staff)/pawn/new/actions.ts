@@ -19,6 +19,7 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
+import { readCollateralRows } from '@/lib/pawn/intake-form'
 import { addDaysIso, todayDateString } from '@/lib/pawn/math'
 import { checkPlanLimit, countActiveLoans } from '@/lib/saas/gates'
 import {
@@ -26,6 +27,7 @@ import {
   type CollateralLoanInput,
   type SuggestedLoanResult,
 } from '@/lib/pawn/suggested-loan'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import type { MetalType } from '@/types/database-aliases'
 
@@ -150,70 +152,6 @@ function pickExt(mime: string | null | undefined, filename?: string): string {
 
 function newUuid(): string {
   return crypto.randomUUID()
-}
-
-/**
- * Parse `collateral_<n>_<field>` entries out of FormData into an array of
- * CollateralItemInput. Files (`collateral_<n>_photo`) are pulled separately
- * by the action so it can upload first and then write the validated path.
- */
-function readCollateralRows(
-  fd: FormData,
-): Array<{ raw: Record<string, FormDataEntryValue | null>; photo: File | null }> {
-  const countRaw = fd.get('collateral_count')
-  const count = Math.max(0, Math.min(50, parseInt(String(countRaw ?? '0'), 10) || 0))
-  const rows: Array<{
-    raw: Record<string, FormDataEntryValue | null>
-    photo: File | null
-  }> = []
-  for (let i = 0; i < count; i++) {
-    const photoVal = fd.get(`collateral_${i}_photo`)
-    const photo =
-      photoVal instanceof File && photoVal.size > 0 ? photoVal : null
-    rows.push({
-      raw: {
-        description: fd.get(`collateral_${i}_description`),
-        category: fd.get(`collateral_${i}_category`),
-        metal_type: fd.get(`collateral_${i}_metal_type`),
-        karat: fd.get(`collateral_${i}_karat`),
-        weight_grams: fd.get(`collateral_${i}_weight_grams`),
-        jewelry_size: fd.get(`collateral_${i}_jewelry_size`),
-        color: fd.get(`collateral_${i}_color`),
-        gemstone_description: fd.get(`collateral_${i}_gemstone_description`),
-        unique_marks: fd.get(`collateral_${i}_unique_marks`),
-        est_value: fd.get(`collateral_${i}_est_value`),
-        // Per-row pawn intake category slugs (patches/0040). Picked
-        // from the inline CategoryPicker on each collateral row.
-        pawn_category_slug: fd.get(`collateral_${i}_pawn_category`),
-        pawn_subcategory_slug: fd.get(`collateral_${i}_pawn_subcategory`),
-        // Category-specific attribute columns (patches/0041). Only
-        // the picked category's fields are filled; the rest stay
-        // empty and validate to null.
-        firearm_make: fd.get(`collateral_${i}_firearm_make`),
-        firearm_model: fd.get(`collateral_${i}_firearm_model`),
-        firearm_caliber: fd.get(`collateral_${i}_firearm_caliber`),
-        firearm_serial_number: fd.get(`collateral_${i}_firearm_serial_number`),
-        firearm_type: fd.get(`collateral_${i}_firearm_type`),
-        firearm_barrel_length_inches: fd.get(
-          `collateral_${i}_firearm_barrel_length_inches`,
-        ),
-        firearm_action_type: fd.get(`collateral_${i}_firearm_action_type`),
-        firearm_capacity: fd.get(`collateral_${i}_firearm_capacity`),
-        firearm_finish: fd.get(`collateral_${i}_firearm_finish`),
-        firearm_number_of_barrels: fd.get(
-          `collateral_${i}_firearm_number_of_barrels`,
-        ),
-        electronic_brand: fd.get(`collateral_${i}_electronic_brand`),
-        electronic_model: fd.get(`collateral_${i}_electronic_model`),
-        electronic_serial: fd.get(`collateral_${i}_electronic_serial`),
-        tool_brand: fd.get(`collateral_${i}_tool_brand`),
-        tool_model: fd.get(`collateral_${i}_tool_model`),
-        position: String(i),
-      },
-      photo,
-    })
-  }
-  return rows
 }
 
 export async function createLoanAction(
@@ -589,6 +527,22 @@ export async function createLoanAction(
       })),
     },
   })
+
+  // If this intake was finalized from a saved draft, soft-delete the draft so
+  // it stops showing on /pawn/drafts. Best-effort — the loan is already
+  // committed; a stale draft is harmless. loan_drafts isn't in the generated
+  // Database type yet (lands on the next `npm run db:types` after 0045), so
+  // we reach it through a generically-typed client.
+  const draftId = String(formData.get('draft_id') ?? '').trim()
+  if (draftId) {
+    const draftsDb = supabase as unknown as SupabaseClient
+    await draftsDb
+      .from('loan_drafts')
+      .update({ deleted_at: new Date().toISOString(), updated_by: userId })
+      .eq('id', draftId)
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+  }
 
   revalidatePath('/pawn')
   redirect(`/pawn/${loanId}`)

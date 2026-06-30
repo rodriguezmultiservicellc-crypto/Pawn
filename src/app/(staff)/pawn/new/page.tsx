@@ -1,9 +1,15 @@
 import { redirect } from 'next/navigation'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getCtx } from '@/lib/supabase/ctx'
-import NewPawnLoanForm, { type LoanRateOption } from './form'
+import NewPawnLoanForm, { type LoanRateOption, type DraftInitial } from './form'
+import { parseDraftPayload } from '@/lib/pawn/intake-form'
 import type { PawnIntakeCategory } from '@/components/pawn/CategoryPicker'
 
-export default async function NewPawnLoanPage() {
+type SearchParams = Promise<{ draft?: string }>
+
+export default async function NewPawnLoanPage(props: {
+  searchParams: SearchParams
+}) {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
@@ -98,11 +104,38 @@ export default async function NewPawnLoanPage() {
       })),
     }))
 
+  // Resume a saved draft when ?draft=<id> is present. loan_drafts isn't in
+  // the generated Database type until the next `npm run db:types` after
+  // patches/0045; reach it via a generic client. RLS scopes to the tenant.
+  const { draft: draftId } = await props.searchParams
+  let initialDraft: DraftInitial | null = null
+  if (draftId) {
+    const db = ctx.supabase as unknown as SupabaseClient
+    const { data: draftRow } = await db
+      .from('loan_drafts')
+      .select('id, customer_id, payload')
+      .eq('id', draftId)
+      .eq('tenant_id', ctx.tenantId)
+      .is('deleted_at', null)
+      .maybeSingle()
+    const d = draftRow as
+      | { id: string; customer_id: string; payload: unknown }
+      | null
+    if (d) {
+      initialDraft = {
+        id: d.id,
+        customerId: d.customer_id,
+        payload: parseDraftPayload(d.payload),
+      }
+    }
+  }
+
   return (
     <NewPawnLoanForm
       rates={rates}
       minLoanAmount={minLoanAmount}
       categories={categories}
+      initialDraft={initialDraft}
     />
   )
 }

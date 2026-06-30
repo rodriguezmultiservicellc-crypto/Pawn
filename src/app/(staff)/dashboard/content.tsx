@@ -6,436 +6,470 @@ import {
   Package,
   Prohibit,
   Lock,
-  ArrowRight,
+  CaretRight,
   Coins,
   Calendar,
+  Clock,
   Wrench,
   CheckCircle,
-  CashRegister,
+  HandCoins,
   ShoppingBag,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import type { InventoryStatus } from '@/types/database-aliases'
 
-export type RecentCustomer = {
+export type DueSoonRow = {
   id: string
-  first_name: string
-  last_name: string
-  phone: string | null
-  created_at: string
+  ticket_number: string
+  customer_name: string
+  due_date: string
+  days: number
+  payoff: number
 }
 
-export type RecentItem = {
+export type ActivityRow = {
   id: string
-  sku: string
-  description: string
-  status: InventoryStatus
-  list_price: number | string | null
-  created_at: string
+  kind: 'sale' | 'loan' | 'pay' | 'redeem'
+  title: string
+  subtitle: string | null
+  amount: number | null
+  occurredAt: string
+  href: string
+  eventType?: string
+}
+
+type Money = {
+  todaySalesCount: number
+  todayRevenue: number
+  onLoanNow: number
+  interestDue7: number
+  dueThisWeekCount: number
+  overdueAtRisk: number
+  overdueLoanCount: number
+}
+
+type Attention = {
+  dueThisWeekCount: number
+  overdueLoanCount: number
+  heldCount: number
+  readyForPickupCount: number
+  repairsNeedPartsCount: number
+}
+
+type Library = {
+  customerCount: number
+  inventoryCount: number
+  bannedCount: number
 }
 
 export default function DashboardContent({
-  customerCount,
-  bannedCount,
-  inventoryCount,
-  heldCount,
-  recentCustomers,
-  recentItems,
-  hasPawn = false,
-  activeLoanCount = 0,
-  dueThisWeekCount = 0,
-  hasRepair = false,
-  activeRepairCount = 0,
-  readyForPickupCount = 0,
-  hasRetail = false,
-  todaySalesCount = 0,
-  todayRevenue = 0,
-  activeLayawayCount = 0,
+  hasPawn,
+  hasRepair,
+  hasRetail,
+  today,
+  money,
+  attention,
+  loansDueSoon,
+  activity,
+  library,
+  activeLoanCount,
 }: {
-  customerCount: number
-  bannedCount: number
-  inventoryCount: number
-  heldCount: number
-  recentCustomers: RecentCustomer[]
-  recentItems: RecentItem[]
-  hasPawn?: boolean
-  activeLoanCount?: number
-  dueThisWeekCount?: number
-  hasRepair?: boolean
-  activeRepairCount?: number
-  readyForPickupCount?: number
-  hasRetail?: boolean
-  todaySalesCount?: number
-  todayRevenue?: number
-  activeLayawayCount?: number
+  hasPawn: boolean
+  hasRepair: boolean
+  hasRetail: boolean
+  today: string
+  money: Money
+  attention: Attention
+  loansDueSoon: DueSoonRow[]
+  activity: ActivityRow[]
+  library: Library
+  activeLoanCount: number
 }) {
   const { t } = useI18n()
+  const d = t.dashboard
 
-  const showSales = hasRetail
-  const showPawn = hasPawn
-  const showOrders = hasRepair
-  const anyQuickAction = showSales || showPawn || showOrders
+  const anyQuickAction = hasRetail || hasPawn || hasRepair
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-3xl font-bold text-navy">
-        {t.dashboard.title}
-      </h1>
-
-      {anyQuickAction ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {showSales ? (
-            <QuickActionTile
-              label={t.dashboard.quickActions.sales}
-              sub={t.dashboard.quickActions.salesSub}
-              href="/pos"
-              icon={<ShoppingBag size={36} weight="duotone" />}
-              accent="success"
-            />
-          ) : null}
-          {showPawn ? (
-            <QuickActionTile
-              label={t.dashboard.quickActions.pawn}
-              sub={t.dashboard.quickActions.pawnSub}
-              href="/pawn"
-              icon={<Coins size={36} weight="duotone" />}
-              accent="gold"
-            />
-          ) : null}
-          {showOrders ? (
-            <QuickActionTile
-              label={t.dashboard.quickActions.orders}
-              sub={t.dashboard.quickActions.ordersSub}
-              href="/repair"
-              icon={<Wrench size={36} weight="duotone" />}
-              accent="blue"
-            />
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          label={t.dashboard.customersCard}
-          sub={t.dashboard.customersCardSub}
-          value={customerCount}
-          icon={<Users size={20} weight="regular" />}
-          href="/customers"
-        />
-        <StatCard
-          label={t.dashboard.bannedCard}
-          sub={t.customers.bannedBadge}
-          value={bannedCount}
-          icon={<Prohibit size={20} weight="regular" />}
-          href="/customers?banned=1"
-          tone={bannedCount > 0 ? 'error' : 'neutral'}
-        />
-        <StatCard
-          label={t.dashboard.inventoryCard}
-          sub={t.dashboard.inventoryCardSub}
-          value={inventoryCount}
-          icon={<Package size={20} weight="regular" />}
-          href="/inventory?status=available"
-        />
-        <StatCard
-          label={t.dashboard.heldCard}
-          sub={t.inventory.statusHeld}
-          value={heldCount}
-          icon={<Lock size={20} weight="regular" />}
-          href="/inventory?status=held"
-          tone={heldCount > 0 ? 'warning' : 'neutral'}
-        />
+    <div className="space-y-2">
+      {/* Header */}
+      <div className="flex items-baseline justify-between">
+        <h1 className="font-display text-2xl font-bold text-navy">{d.title}</h1>
+        <span className="text-sm font-semibold text-muted">
+          {formatDateLong(today)}
+        </span>
       </div>
 
-      {hasPawn ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard
-            label={t.pawn.dashboardCards.activeLoansCard}
-            sub={t.pawn.dashboardCards.activeLoansCardSub}
-            value={activeLoanCount}
-            icon={<Coins size={20} weight="regular" />}
-            href="/pawn?status=active"
-            module="pawn"
+      {/* Quick actions */}
+      {anyQuickAction ? (
+        <div className="grid grid-cols-1 gap-3.5 pt-4 sm:grid-cols-3">
+          {hasRetail ? (
+            <QuickAction
+              accent="success"
+              icon={<ShoppingBag size={22} weight="regular" />}
+              title={d.qaNewSale}
+              sub={d.qaNewSaleSub}
+              href="/pos/sales/new"
+            />
+          ) : null}
+          {hasPawn ? (
+            <QuickAction
+              accent="gold"
+              icon={<Coins size={22} weight="regular" />}
+              title={d.qaNewLoan}
+              sub={d.qaNewLoanSub}
+              href="/pawn/new"
+            />
+          ) : null}
+          {hasRepair ? (
+            <QuickAction
+              accent="blue"
+              icon={<Wrench size={22} weight="regular" />}
+              title={d.qaNewRepair}
+              sub={d.qaNewRepairSub}
+              href="/repair/new"
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Money KPIs */}
+      <SectionLabel>{d.sectionMoney}</SectionLabel>
+      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+        {hasRetail ? (
+          <Kpi
+            accent="bg-success"
+            label={d.kpiTodaySales}
+            value={fmtMoney(money.todayRevenue)}
+            sub={d.kpiTodaySalesSub.replace('{n}', String(money.todaySalesCount))}
           />
-          <StatCard
-            label={t.pawn.dashboardCards.dueThisWeekCard}
-            sub={t.pawn.dashboardCards.dueThisWeekCardSub}
-            value={dueThisWeekCount}
-            icon={<Calendar size={20} weight="regular" />}
+        ) : null}
+        {hasPawn ? (
+          <>
+            <Kpi
+              accent="bg-navy"
+              label={d.kpiOnLoan}
+              value={fmtMoney(money.onLoanNow)}
+              sub={d.kpiOnLoanSub.replace('{n}', String(activeLoanCount))}
+            />
+            <Kpi
+              accent="bg-warning"
+              label={d.kpiInterestDue}
+              value={fmtMoney(money.interestDue7)}
+              sub={d.kpiInterestDueSub.replace(
+                '{n}',
+                String(money.dueThisWeekCount),
+              )}
+            />
+            <Kpi
+              accent="bg-danger"
+              label={d.kpiOverdue}
+              value={fmtMoney(money.overdueAtRisk)}
+              valueClass="text-danger"
+              sub={d.kpiOverdueSub.replace('{n}', String(money.overdueLoanCount))}
+            />
+          </>
+        ) : null}
+      </div>
+
+      {/* Needs attention */}
+      <SectionLabel>{d.sectionAttention}</SectionLabel>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {hasPawn ? (
+          <Attn
+            n={attention.dueThisWeekCount}
+            label={d.attnDueWeek}
+            icon={<Calendar size={16} weight="bold" />}
+            tone="amber"
             href="/pawn?status=active&due=dueSoon7"
-            tone={dueThisWeekCount > 0 ? 'warning' : 'neutral'}
-            module="pawn"
           />
-        </div>
-      ) : null}
-
-      {hasRepair ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard
-            label={t.repair.dashboardCards.activeRepairsCard}
-            sub={t.repair.dashboardCards.activeRepairsCardSub}
-            value={activeRepairCount}
-            icon={<Wrench size={20} weight="regular" />}
-            href="/repair?status=active"
-            module="repair"
+        ) : null}
+        {hasPawn ? (
+          <Attn
+            n={attention.overdueLoanCount}
+            label={d.attnOverdue}
+            icon={<Clock size={16} weight="bold" />}
+            tone="red"
+            href="/pawn?status=active&due=overdue"
           />
-          <StatCard
-            label={t.repair.dashboardCards.readyForPickupCard}
-            sub={t.repair.dashboardCards.readyForPickupCardSub}
-            value={readyForPickupCount}
-            icon={<CheckCircle size={20} weight="regular" />}
+        ) : null}
+        <Attn
+          n={attention.heldCount}
+          label={d.attnHold}
+          icon={<Lock size={16} weight="bold" />}
+          tone="navy"
+          href="/inventory?status=held"
+        />
+        {hasRepair ? (
+          <Attn
+            n={attention.readyForPickupCount}
+            label={d.attnReady}
+            icon={<CheckCircle size={16} weight="bold" />}
+            tone="green"
             href="/repair?status=ready"
-            tone={readyForPickupCount > 0 ? 'warning' : 'neutral'}
-            module="repair"
           />
-        </div>
-      ) : null}
+        ) : null}
+        {hasRepair ? (
+          <Attn
+            n={attention.repairsNeedPartsCount}
+            label={d.attnNeedParts}
+            icon={<Wrench size={16} weight="bold" />}
+            tone="amber"
+            href="/repair?status=needs_parts"
+          />
+        ) : null}
+      </div>
 
-      {hasRetail ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard
-            label={t.pos.dashboardCards.todaySalesCard}
-            sub={t.pos.dashboardCards.todaySalesCardSub}
-            value={todaySalesCount}
-            icon={<CashRegister size={20} weight="regular" />}
-            href="/pos"
-            module="retail"
-          />
-          <RevenueCard
-            label={t.pos.dashboardCards.todayRevenueCard}
-            sub={t.pos.dashboardCards.todayRevenueCardSub}
-            value={todayRevenue}
-            icon={<CashRegister size={20} weight="regular" />}
-            href="/pos"
-          />
-          <StatCard
-            label={t.pos.dashboardCards.activeLayawaysCard}
-            sub={t.pos.dashboardCards.activeLayawaysCardSub}
-            value={activeLayawayCount}
-            icon={<ShoppingBag size={20} weight="regular" />}
-            href="/pos/layaways?status=active"
-            module="retail"
-          />
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel
-          title={t.dashboard.recentCustomers}
-          seeAllHref="/customers"
-          seeAllLabel={t.dashboard.seeAll}
-        >
-          {recentCustomers.length === 0 ? (
-            <Empty>{t.dashboard.none}</Empty>
-          ) : (
-            <ul className="divide-y divide-border">
-              {recentCustomers.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    href={`/customers/${c.id}`}
-                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-background"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate font-medium text-foreground">
-                        {c.last_name}, {c.first_name}
-                      </div>
-                      <div className="truncate text-xs text-muted">
-                        {c.phone ?? '—'}
-                      </div>
+      {/* Lower two-column */}
+      <div className="grid grid-cols-1 gap-4 pt-5 lg:grid-cols-2">
+        {hasPawn ? (
+          <Panel title={d.panelDueSoon} seeAllHref="/pawn" seeAllLabel={d.seeAll}>
+            {loansDueSoon.length === 0 ? (
+              <Empty>{d.emptyDueSoon}</Empty>
+            ) : (
+              loansDueSoon.map((l) => (
+                <Link
+                  key={l.id}
+                  href={`/pawn/${l.id}`}
+                  className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0 hover:bg-background"
+                >
+                  <span className="w-20 shrink-0 font-mono text-xs font-bold text-navy">
+                    {l.ticket_number}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-foreground">
+                      {l.customer_name}
                     </div>
-                    <div className="shrink-0 text-xs text-muted">
-                      {relativeDate(c.created_at)}
+                    <div className={`text-[11px] font-bold ${relTone(l.days)}`}>
+                      {relLabel(l.days, d)}
                     </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
+                  </div>
+                  <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+                    {fmtMoney(l.payoff)}
+                  </span>
+                </Link>
+              ))
+            )}
+          </Panel>
+        ) : null}
 
         <Panel
-          title={t.dashboard.recentInventory}
-          seeAllHref="/inventory"
-          seeAllLabel={t.dashboard.seeAll}
+          title={d.panelActivity}
+          seeAllHref="/reports"
+          seeAllLabel={d.seeAll}
         >
-          {recentItems.length === 0 ? (
-            <Empty>{t.dashboard.none}</Empty>
+          {activity.length === 0 ? (
+            <Empty>{d.emptyActivity}</Empty>
           ) : (
-            <ul className="divide-y divide-border">
-              {recentItems.map((it) => (
-                <li key={it.id}>
-                  <Link
-                    href={`/inventory/${it.id}`}
-                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-background"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate font-medium text-foreground">
-                        {it.description}
-                      </div>
-                      <div className="truncate font-mono text-xs text-muted">
-                        {it.sku}
-                      </div>
+            activity.map((a) => (
+              <Link
+                key={a.id}
+                href={a.href}
+                className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0 hover:bg-background"
+              >
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${activityChip(a.kind)}`}
+                >
+                  {activityIcon(a.kind)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-foreground">
+                    {activityTitle(a, d)}
+                  </div>
+                  {a.subtitle ? (
+                    <div className="truncate text-[11.5px] font-semibold text-muted">
+                      {a.subtitle}
                     </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-xs text-muted">
-                        {relativeDate(it.created_at)}
-                      </div>
-                      {it.list_price != null ? (
-                        <div className="font-mono text-xs text-foreground">
-                          {formatMoney(it.list_price)}
-                        </div>
-                      ) : null}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                  ) : null}
+                </div>
+                {a.amount != null ? (
+                  <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+                    {fmtMoney(a.amount)}
+                  </span>
+                ) : null}
+                <span className="w-14 shrink-0 text-right text-[11px] font-semibold text-muted">
+                  {relativeTime(a.occurredAt)}
+                </span>
+              </Link>
+            ))
           )}
         </Panel>
+      </div>
+
+      {/* Library */}
+      <SectionLabel>{d.sectionLibrary}</SectionLabel>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <LibCard
+          n={library.customerCount}
+          label={d.libCustomers}
+          icon={<Users size={18} weight="regular" />}
+          href="/customers"
+        />
+        <LibCard
+          n={library.inventoryCount}
+          label={d.libInventory}
+          icon={<Package size={18} weight="regular" />}
+          href="/inventory?status=available"
+        />
+        <LibCard
+          n={library.bannedCount}
+          label={d.libBanned}
+          icon={<Prohibit size={18} weight="regular" />}
+          href="/customers?banned=1"
+        />
       </div>
     </div>
   )
 }
 
-type StatTone = 'neutral' | 'warning' | 'error'
-type ModuleAccent = 'pawn' | 'repair' | 'retail'
-type QuickActionAccent = 'gold' | 'blue' | 'success'
+// ── Pieces ──────────────────────────────────────────────────────────────────
 
-function QuickActionTile({
-  label,
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="pb-1 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
+      {children}
+    </div>
+  )
+}
+
+function QuickAction({
+  accent,
+  icon,
+  title,
   sub,
   href,
-  icon,
-  accent,
 }: {
-  label: string
+  accent: 'success' | 'gold' | 'blue'
+  icon: React.ReactNode
+  title: string
   sub: string
   href: string
-  icon: React.ReactNode
-  accent: QuickActionAccent
 }) {
-  const palette: Record<QuickActionAccent, string> = {
-    gold: 'border-gold/30 bg-gold/10 text-gold hover:bg-gold/15',
-    blue: 'border-blue/30 bg-blue/10 text-blue hover:bg-blue/15',
-    success: 'border-success/30 bg-success/10 text-success hover:bg-success/15',
-  }
+  const bar =
+    accent === 'success'
+      ? 'before:bg-success'
+      : accent === 'gold'
+      ? 'before:bg-gold'
+      : 'before:bg-blue'
+  const chip =
+    accent === 'success'
+      ? 'bg-success/10 text-success'
+      : accent === 'gold'
+      ? 'bg-gold/15 text-gold'
+      : 'bg-blue/10 text-blue'
   return (
     <Link
       href={href}
-      className={`flex items-center gap-4 rounded-xl border p-6 transition-all hover:-translate-y-1 hover:shadow-lg ${palette[accent]}`}
+      className={`group relative flex items-center gap-3.5 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg before:absolute before:inset-y-0 before:left-0 before:w-1 ${bar}`}
     >
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/60">
+      <span
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${chip}`}
+      >
         {icon}
       </span>
       <div className="min-w-0">
-        <div className="font-display text-2xl font-bold uppercase tracking-wide">
-          {label}
-        </div>
-        <div className="text-sm font-medium opacity-80">{sub}</div>
+        <div className="text-base font-bold text-foreground">{title}</div>
+        <div className="text-xs font-semibold text-muted">{sub}</div>
       </div>
+      <CaretRight
+        size={18}
+        weight="bold"
+        className="ml-auto text-border transition-colors group-hover:text-foreground"
+      />
     </Link>
   )
 }
 
-function StatCard({
+function Kpi({
+  accent,
   label,
-  sub,
   value,
-  icon,
-  href,
-  tone = 'neutral',
-  module,
+  valueClass,
+  sub,
 }: {
+  accent: string
   label: string
+  value: string
+  valueClass?: string
   sub: string
-  value: number
-  icon: React.ReactNode
-  href: string
-  tone?: StatTone
-  /** When set, overrides the neutral icon-chip tint to a per-module
-   *  identity color so the pawn / repair / retail rows visually
-   *  cluster on the dashboard. tone='warning' / 'error' still wins
-   *  (a due-soon loan should look amber regardless of module). */
-  module?: ModuleAccent
 }) {
-  const accent =
-    tone === 'error'
-      ? 'border-danger/40 bg-danger/5'
-      : tone === 'warning'
-      ? 'border-warning/40 bg-warning/5'
-      : 'border-border bg-card'
-  const valueColor =
-    tone === 'error' ? 'text-danger' : tone === 'warning' ? 'text-warning' : 'text-foreground'
-  const moduleChip: Record<ModuleAccent, string> = {
-    pawn: 'bg-gold/10 text-gold',
-    repair: 'bg-blue/10 text-blue',
-    retail: 'bg-success/10 text-success',
-  }
-  const iconChip =
-    tone === 'error'
-      ? 'bg-danger/10 text-danger'
-      : tone === 'warning'
-      ? 'bg-warning/10 text-warning'
-      : module
-      ? moduleChip[module]
-      : 'bg-navy/5 text-navy'
-
   return (
-    <Link
-      href={href}
-      className={`flex flex-col gap-2 rounded-xl border p-5 transition-all hover:-translate-y-1 hover:shadow-lg ${accent}`}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-          {label}
-        </span>
-        <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconChip}`}>
-          {icon}
-        </span>
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
+      <span className={`absolute inset-y-0 left-0 w-1 ${accent}`} />
+      <div className="text-[11px] font-bold uppercase tracking-wide text-muted">
+        {label}
       </div>
-      <div className={`font-mono text-3xl font-bold ${valueColor}`}>
+      <div
+        className={`mt-1.5 font-mono text-2xl font-bold tracking-tight ${valueClass ?? 'text-foreground'}`}
+      >
         {value}
       </div>
-      <div className="text-xs text-muted">{sub}</div>
-    </Link>
+      <div className="mt-0.5 text-xs font-semibold text-muted">{sub}</div>
+    </div>
   )
 }
 
-function RevenueCard({
+function Attn({
+  n,
   label,
-  sub,
-  value,
   icon,
+  tone,
   href,
 }: {
+  n: number
   label: string
-  sub: string
-  value: number
   icon: React.ReactNode
+  tone: 'red' | 'amber' | 'green' | 'navy'
   href: string
 }) {
-  const formatted = value.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  })
+  const zero = n === 0
+  const palette: Record<
+    'red' | 'amber' | 'green' | 'navy',
+    { box: string; num: string; chip: string }
+  > = {
+    red: {
+      box: 'border-danger/30 bg-danger/5',
+      num: 'text-danger',
+      chip: 'bg-danger/10 text-danger',
+    },
+    amber: {
+      box: 'border-warning/30 bg-warning/5',
+      num: 'text-warning',
+      chip: 'bg-warning/10 text-warning',
+    },
+    green: {
+      box: 'border-success/30 bg-success/5',
+      num: 'text-success',
+      chip: 'bg-success/10 text-success',
+    },
+    navy: {
+      box: 'border-border bg-card',
+      num: 'text-navy',
+      chip: 'bg-navy/5 text-navy',
+    },
+  }
+  const p = palette[tone]
   return (
     <Link
       href={href}
-      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-1 hover:shadow-lg"
+      className={`rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm ${
+        zero ? 'border-border bg-card opacity-60' : p.box
+      }`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-          {label}
+        <span
+          className={`text-2xl font-bold tabular-nums ${zero ? 'text-muted' : p.num}`}
+        >
+          {n}
         </span>
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10 text-success">
+        <span
+          className={`flex h-7 w-7 items-center justify-center rounded-lg ${
+            zero ? 'bg-background text-muted' : p.chip
+          }`}
+        >
           {icon}
         </span>
       </div>
-      <div className="font-mono text-2xl font-bold text-foreground">
-        {formatted}
-      </div>
-      <div className="text-xs text-muted">{sub}</div>
+      <div className="mt-2 text-xs font-bold text-muted">{label}</div>
     </Link>
   )
 }
@@ -452,15 +486,14 @@ function Panel({
   children: React.ReactNode
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-lg">
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <header className="flex items-center justify-between border-b border-border px-4 py-3.5">
+        <h3 className="text-sm font-bold text-foreground">{title}</h3>
         <Link
           href={seeAllHref}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-muted transition-colors hover:text-blue"
+          className="text-xs font-bold text-gold hover:underline"
         >
-          {seeAllLabel}
-          <ArrowRight size={10} weight="bold" />
+          {seeAllLabel} →
         </Link>
       </header>
       {children}
@@ -468,30 +501,122 @@ function Panel({
   )
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="px-3 py-6 text-center text-sm text-muted">{children}</div>
+function LibCard({
+  n,
+  label,
+  icon,
+  href,
+}: {
+  n: number
+  label: string
+  icon: React.ReactNode
+  href: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-sm"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted">
+        {icon}
+      </span>
+      <div>
+        <div className="text-lg font-bold tabular-nums text-foreground">{n}</div>
+        <div className="text-xs font-semibold text-muted">{label}</div>
+      </div>
+    </Link>
+  )
 }
 
-function relativeDate(iso: string): string {
-  const t = new Date(iso).getTime()
-  if (!isFinite(t)) return ''
-  const seconds = Math.max(0, Math.floor((Date.now() - t) / 1000))
+function Empty({ children }: { children: React.ReactNode }) {
+  return <div className="px-4 py-8 text-center text-sm text-muted">{children}</div>
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+type Dict = ReturnType<typeof useI18n>['t']['dashboard']
+
+function activityChip(kind: ActivityRow['kind']): string {
+  switch (kind) {
+    case 'sale':
+      return 'bg-success/10 text-success'
+    case 'loan':
+      return 'bg-gold/15 text-gold'
+    case 'pay':
+      return 'bg-blue/10 text-blue'
+    case 'redeem':
+      return 'bg-background text-muted'
+  }
+}
+
+function activityIcon(kind: ActivityRow['kind']): React.ReactNode {
+  switch (kind) {
+    case 'sale':
+      return <ShoppingBag size={16} weight="bold" />
+    case 'loan':
+      return <Coins size={16} weight="bold" />
+    case 'pay':
+      return <HandCoins size={16} weight="bold" />
+    case 'redeem':
+      return <CheckCircle size={16} weight="bold" />
+  }
+}
+
+function activityTitle(a: ActivityRow, d: Dict): string {
+  if (a.kind === 'sale') return `${d.actSale} · ${a.title}`
+  const prefix =
+    a.eventType === 'redemption'
+      ? d.actRedemption
+      : a.eventType === 'issued'
+      ? d.actNewLoan
+      : a.eventType === 'extension'
+      ? d.actExtension
+      : d.actPayment
+  return `${prefix} · ${a.title}`
+}
+
+function relTone(days: number): string {
+  if (days < 0) return 'text-danger'
+  if (days <= 7) return 'text-warning'
+  return 'text-muted'
+}
+
+function relLabel(days: number, d: Dict): string {
+  if (days < 0) return d.relOverdue.replace('{n}', String(Math.abs(days)))
+  if (days === 0) return d.relDueToday
+  return d.relDueIn.replace('{n}', String(days))
+}
+
+function fmtMoney(v: number): string {
+  if (!isFinite(v)) return '—'
+  return v.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  })
+}
+
+function formatDateLong(isoDate: string): string {
+  const dt = new Date(`${isoDate}T00:00:00`)
+  if (isNaN(dt.getTime())) return ''
+  return dt.toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+function relativeTime(iso: string): string {
+  const ts = new Date(iso).getTime()
+  if (!isFinite(ts)) return ''
+  const seconds = Math.max(0, Math.floor((Date.now() - ts) / 1000))
   if (seconds < 60) return `${seconds}s`
   const m = Math.floor(seconds / 60)
   if (m < 60) return `${m}m`
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h`
-  const d = Math.floor(h / 24)
-  if (d < 7) return `${d}d`
+  const dd = Math.floor(h / 24)
+  if (dd < 7) return `${dd}d`
   return new Date(iso).toLocaleDateString()
-}
-
-function formatMoney(v: number | string): string {
-  const n = typeof v === 'string' ? parseFloat(v) : v
-  if (!isFinite(n)) return '—'
-  return n.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  })
 }

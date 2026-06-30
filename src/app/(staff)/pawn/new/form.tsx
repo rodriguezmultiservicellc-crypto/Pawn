@@ -1,14 +1,26 @@
 'use client'
 
-import { useActionState, useMemo, useRef, useState } from 'react'
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from 'react'
 import Link from 'next/link'
-import { CheckCircle, Upload, User } from '@phosphor-icons/react'
+import { CheckCircle, Upload, User, FloppyDisk } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { addDaysIso, todayDateString } from '@/lib/pawn/math'
+import { saveLoanDraft } from '../drafts/actions'
+import {
+  type LoanDraftPayload,
+} from '@/lib/pawn/intake-form'
 import {
   CollateralItemsList,
   type CollateralListHandle,
 } from '@/components/pawn/CollateralItemsList'
+import type { InventoryCategory, MetalType } from '@/types/database-aliases'
 import VoicePawnButton, {
   type PawnVoiceData,
 } from '@/components/pawn/VoicePawnButton'
@@ -30,6 +42,12 @@ export type LoanRateOption = {
   isDefault: boolean
 }
 
+export type DraftInitial = {
+  id: string
+  customerId: string
+  payload: LoanDraftPayload
+}
+
 function fmtMoney(v: number): string {
   if (!isFinite(v)) return '—'
   return v.toLocaleString('en-US', {
@@ -43,10 +61,12 @@ export default function NewPawnLoanForm({
   rates,
   minLoanAmount,
   categories,
+  initialDraft,
 }: {
   rates: LoanRateOption[]
   minLoanAmount: number | null
   categories: PawnIntakeCategory[]
+  initialDraft: DraftInitial | null
 }) {
   const { t } = useI18n()
   const tn = t.pawn.new_
@@ -54,19 +74,24 @@ export default function NewPawnLoanForm({
     createLoanAction,
     {},
   )
+  const [savingDraft, startSaveDraft] = useTransition()
 
   // Issue date locked to today (no back-dating from intake). Server also
   // defaults to today when missing.
   const today = todayDateString()
   const issueDate = today
-  const [termDays, setTermDays] = useState<string>('30')
+  const [termDays, setTermDays] = useState<string>(
+    initialDraft?.payload.term_days || '30',
+  )
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-    null,
+    initialDraft?.customerId ?? null,
   )
   const [customerLabel, setCustomerLabel] = useState<string | null>(null)
   const customerPickerRef = useRef<CustomerPickerHandle>(null)
   const [showCustomerModal, setShowCustomerModal] = useState(false)
-  const [principal, setPrincipal] = useState<string>('')
+  const [principal, setPrincipal] = useState<string>(
+    initialDraft?.payload.principal ?? '',
+  )
 
   // Live collateral totals reported up from the editor → drives the rail's
   // collateral-value box + LTV state.
@@ -74,7 +99,12 @@ export default function NewPawnLoanForm({
   const [collateralValue, setCollateralValue] = useState(0)
 
   const defaultRateId = rates.find((r) => r.isDefault)?.id ?? rates[0]?.id ?? ''
-  const [rateChoice, setRateChoice] = useState<string>(defaultRateId)
+  const draftRateId = initialDraft?.payload.rate_id
+  const seededRateId =
+    draftRateId && rates.some((r) => r.id === draftRateId)
+      ? draftRateId
+      : defaultRateId
+  const [rateChoice, setRateChoice] = useState<string>(seededRateId)
   const selectedRate = rates.find((r) => r.id === rateChoice) ?? null
   const submittedRate = selectedRate?.rateMonthly?.toString() ?? ''
   const submittedMinCharge =
@@ -93,8 +123,39 @@ export default function NewPawnLoanForm({
   const [sigPreview, setSigPreview] = useState<string | null>(null)
   const collateralRef = useRef<CollateralListHandle>(null)
 
+  // Resume a saved draft: inject its collateral rows into the editor once on
+  // mount. Photos aren't restored (not staged in the draft); category slugs
+  // aren't restored by addExtractedRow yet (same limitation as voice intake)
+  // — the operator re-confirms each row's category before issuing.
+  const draftAppliedRef = useRef(false)
+  useEffect(() => {
+    if (draftAppliedRef.current || !initialDraft) return
+    draftAppliedRef.current = true
+    for (const row of initialDraft.payload.collateral) {
+      collateralRef.current?.addExtractedRow({
+        description: row.description ?? '',
+        category: (row.category || 'other') as InventoryCategory,
+        metal_type: (row.metal_type || '') as MetalType | '',
+        karat: row.karat ?? '',
+        weight_grams: row.weight_grams ?? '',
+        est_value: row.est_value ?? '',
+      })
+    }
+  }, [initialDraft])
+
   function onSigChange(e: React.ChangeEvent<HTMLInputElement>) {
     setSigPreview(e.target.files?.[0]?.name ?? null)
+  }
+
+  function onSaveDraft() {
+    const formEl = document.getElementById(
+      PAWN_NEW_FORM_ID,
+    ) as HTMLFormElement | null
+    if (!formEl) return
+    const fd = new FormData(formEl)
+    startSaveDraft(async () => {
+      await saveLoanDraft(fd)
+    })
   }
 
   function handleVoiceData(data: PawnVoiceData) {
@@ -175,6 +236,7 @@ export default function NewPawnLoanForm({
                   name="customer_id"
                   required
                   enableDlScan
+                  initialCustomerId={initialDraft?.customerId ?? null}
                   error={state.fieldErrors?.customer_id}
                   onChange={(c) => {
                     setSelectedCustomerId(c?.id ?? null)
@@ -256,6 +318,7 @@ export default function NewPawnLoanForm({
                 <textarea
                   name="notes"
                   rows={2}
+                  defaultValue={initialDraft?.payload.notes ?? ''}
                   className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
                 />
               </label>
@@ -353,6 +416,11 @@ export default function NewPawnLoanForm({
           {/* Hidden rate fields submitted to the server */}
           <input type="hidden" name="interest_rate_monthly" value={submittedRate} />
           <input type="hidden" name="min_monthly_charge" value={submittedMinCharge} />
+          {/* rate_id is staged in drafts so the rate select can be restored. */}
+          <input type="hidden" name="rate_id" value={rateChoice} />
+          {initialDraft ? (
+            <input type="hidden" name="draft_id" value={initialDraft.id} />
+          ) : null}
 
           {/* Rate */}
           <label className="mb-3 block">
@@ -457,6 +525,18 @@ export default function NewPawnLoanForm({
             <CheckCircle size={18} weight="bold" />
             {pending ? tn.submitting : tn.submit}
           </button>
+
+          {/* Save as draft — only requires a customer; stages everything else. */}
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            disabled={savingDraft || selectedCustomerId == null}
+            className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] text-[13px] font-bold text-white/85 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <FloppyDisk size={16} weight="bold" />
+            {savingDraft ? tn.draftSaving : tn.saveDraft}
+          </button>
+
           {!canIssue && !pending ? (
             <p className="mt-2.5 text-center text-[11.5px] font-semibold text-white/50">
               {tn.railMissingHint}

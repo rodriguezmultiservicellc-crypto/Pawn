@@ -11,6 +11,7 @@ import {
   DotsThree,
   CaretUp,
   CaretDown,
+  FileDashed,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { daysBetween } from '@/lib/pawn/math'
@@ -146,13 +147,22 @@ export default function PawnContent({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">{t.pawn.title}</h1>
-        <Link
-          href="/pawn/new"
-          className="inline-flex items-center gap-1 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-navy shadow-lg transition-all hover:-translate-y-0.5 hover:bg-gold-2"
-        >
-          <Plus size={16} weight="bold" />
-          <span>{t.pawn.new}</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/pawn/drafts"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:border-gold"
+          >
+            <FileDashed size={16} weight="bold" />
+            <span>{t.pawn.drafts.navTitle}</span>
+          </Link>
+          <Link
+            href="/pawn/new"
+            className="inline-flex items-center gap-1 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-navy shadow-lg transition-all hover:-translate-y-0.5 hover:bg-gold-2"
+          >
+            <Plus size={16} weight="bold" />
+            <span>{t.pawn.new}</span>
+          </Link>
+        </div>
       </div>
 
       {/* Summary stats strip */}

@@ -13,154 +13,178 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 44 (2026-06-30, third pass)
-                  — /pawn LIST REDESIGN (stats strip +
-                  collateral/payoff + row actions) +
-                  /pawn/new "Create new customer" MODAL.
-                  Both shipped + build-clean.
+  Last session:   Session 45 (2026-06-30, fourth pass)
+                  — PAWN PHASE 2 STEP 1: SAVE-AS-DRAFT
+                  (loan_drafts table) + DASHBOARD REDESIGN
+                  (pawn-dashboard.html). Both shipped +
+                  build-clean. TWO features uncommitted
+                  before this checkpoint.
 
-                  (A) PAWN LOANS LIST (from operator HTML
-                  mockup pawn-loans-list.html)
-                  - Server src/app/(staff)/pawn/page.tsx:
-                    extended the READ (list is read-only,
-                    no regulated writes -> safe + build-
-                    verifiable). Added min_monthly_charge
-                    to the select; batched loan_events +
-                    loan_collateral_items fetches; per-row
-                    collateral summary (first item + "+N")
-                    and payoff-due (principal+interest via
-                    canonical payoffBalance). Book-wide
-                    stats strip (independent of filter):
-                    On loan now / Due soon 7d / Overdue /
-                    Redeemed-30d, computed from active book
-                    + redeemed-in-30d. Search now matches
-                    phone too.
-                  - Client src/app/(staff)/pawn/content.tsx
-                    (rewritten): 4 stat cards w/ accent
-                    borders; navy/gold filter pills (danger/
-                    warning active tones); Collateral +
-                    Payoff-due columns; sortable Principal/
-                    Payoff/Due headers (client-side);
-                    overdue/due-soon left-border row accents
-                    + relative due labels; per-row Take
-                    payment / View + portal-rendered kebab
-                    (View ticket / Extend / Redeem / Print
-                    -> /api/print/loan/[id] render-only /
-                    Mark forfeited). All kebab actions route
-                    to /pawn/[id] where the regulated writes
-                    live (not duplicated into the list).
+                  (A) SAVE AS DRAFT — loan_drafts model
+                  (operator chose dedicated table over
+                  enum+constraint-relax; drafts never touch
+                  the regulated loans table or burn a PT-
+                  ticket number).
+                  - patches/0045-loan-drafts.sql (NEW):
+                    loan_drafts (customer_id required,
+                    partial JSONB payload), soft-delete,
+                    updated_at trigger, RLS mirroring loans
+                    staff read/write. NEEDS APPLY + db:types.
+                  - saveLoanDraft / deleteLoanDraft
+                    (src/app/(staff)/pawn/drafts/actions.ts).
+                  - /pawn/drafts list (page+content) with
+                    Continue (-> /pawn/new?draft=id) + Discard.
+                  - /pawn/new resume: ?draft=id prefills
+                    customer + scalar terms + collateral rows
+                    (via addExtractedRow); rail "Save as
+                    draft" button; createLoanAction soft-
+                    deletes the draft on successful issue.
+                  - Shared src/lib/pawn/intake-form.ts:
+                    readCollateralRows extracted here
+                    (createLoanAction imports it now) +
+                    build/parse draft payload helpers.
+                  - "Drafts" link on /pawn list.
 
-                  (B) /pawn/new "CREATE NEW CUSTOMER" MODAL
-                  - Was a <Link> to /customers/new; now a
-                    button opening QuickCustomerModal
-                    (createPortal), which creates the
-                    customer WITHOUT navigating and drops it
-                    into the CustomerPicker via the
-                    imperative handle .set().
-                  - Extracted shared core
-                    src/lib/customers/create.ts
-                    (createCustomerFromForm: validate +
-                    insert + referral + audit, NO redirect).
-                    Existing redirecting createCustomerAction
-                    now calls it; new non-redirecting
-                    createCustomerInlineAction returns
-                    { id, label }. Zero logic duplicated.
+                  (B) DASHBOARD REDESIGN (pawn-dashboard.html)
+                  - Server dashboard/page.tsx (read-only ->
+                    safe to extend): book-driven money KPIs
+                    (on-loan-now / interest-due-7d / overdue-
+                    at-risk via payoffBalance over active book
+                    + batched loan_events), overdue +
+                    repairs-need-parts counts, loans-due-soon
+                    (top 6), cross-module recent-activity feed
+                    (sales + loan_events merged, top 8).
+                    Removed old recentCustomers/recentItems
+                    panels + unused activeRepairCount/in7.
+                  - Client dashboard/content.tsx (rewritten):
+                    header + long date, 3 module-gated quick-
+                    action cards (New sale/loan/repair -> the
+                    /new screens), money KPI row, 5-card
+                    needs-attention row (hot/zero states),
+                    two-column (loans-due-soon + activity),
+                    library row. Navy/gold tokens.
 
-  Context budget: ~38% at save time.
-  Last worked on: Both tasks shipped. tsc clean, eslint
+  Context budget: ~55% at save time.
+  Last worked on: Both features shipped. tsc clean, eslint
                   clean, npm run build green, 413 tests pass,
                   i18n en/es parity verified. Clean stop.
 
   ACTIVE FILE(S) this session:
-    --- Pawn list redesign ---
-    - src/app/(staff)/pawn/page.tsx (server read extended)
-    - src/app/(staff)/pawn/content.tsx (rewritten)
-    - pawn-loans-list.html (operator mockup, repo root)
-    --- Create-customer modal ---
-    - src/components/customers/QuickCustomerModal.tsx (NEW)
-    - src/lib/customers/create.ts (NEW shared core)
-    - src/app/(staff)/customers/new/inline-actions.ts (NEW)
-    - src/app/(staff)/customers/new/actions.ts (now calls core)
-    - src/app/(staff)/pawn/new/form.tsx (Link -> modal button)
+    --- Save as draft ---
+    - patches/0045-loan-drafts.sql (NEW — APPLY + db:types)
+    - src/lib/pawn/intake-form.ts (NEW shared parser)
+    - src/app/(staff)/pawn/drafts/actions.ts (NEW)
+    - src/app/(staff)/pawn/drafts/page.tsx + content.tsx (NEW)
+    - src/app/(staff)/pawn/new/actions.ts (uses shared reader
+      + deletes draft on finalize)
+    - src/app/(staff)/pawn/new/page.tsx (loads ?draft=)
+    - src/app/(staff)/pawn/new/form.tsx (resume prefill +
+      Save-as-draft button)
+    - src/app/(staff)/pawn/content.tsx (Drafts link)
+    --- Dashboard redesign ---
+    - src/app/(staff)/dashboard/page.tsx (KPIs/feed/due-soon)
+    - src/app/(staff)/dashboard/content.tsx (rewritten)
+    - pawn-dashboard.html (operator mockup, repo root)
     --- i18n ---
-    - src/lib/i18n/en.ts + es.ts (pawn.list.* stats/columns/
-      actions + pawn.new_.quickCustomer*)
+    - src/lib/i18n/en.ts + es.ts (pawn.drafts.* +
+      pawn.new_.saveDraft + dashboard redesign block)
+    --- Reference (committed, repo root) ---
+    - FL_Pawnbroker_Transaction_Form.pdf (compliance ref for
+      a FUTURE pawn-ticket-print alignment pass)
 
   RESUME POINT:
     Clean stopping point — everything committed + pushed.
-    NOTHING half-done. Two follow-ups noted but optional:
-    (1) Visually confirm the new /pawn list + the
-        /pawn/new modal on the Vercel deploy (no browser
-        verification was possible in-session).
-    (2) The kebab Extend/Redeem/Forfeit items currently
-        all route to /pawn/[id] (where those regulated
-        actions live). If deep-linking is wanted later,
-        the detail page would need hash/section anchors.
+    *** OPERATOR ACTION REQUIRED before the draft feature
+    works at runtime: apply patches/0045-loan-drafts.sql in
+    Supabase, then run `npm run db:types`. *** Until then the
+    loan_drafts table doesn't exist; code reaches it via a
+    generically-typed client (documented; drops to typed
+    access after db:types). Build is clean regardless.
 
-    The next defined BIG work is still PAWN REDESIGN
-    PHASE 2 (unchanged from Session 43):
-    (1) Save as draft — migration adds loan_status 'draft';
-        relaxed createLoanAction draft path; rail button.
-    (2) Pawn-history re-pawn panel on /pawn/new.
-    (3) In-place Buy-outright (merge /buy/new pipeline).
-    Each needs a migration + regulated-action change + its
-    own verify pass.
+    The next defined BIG work is PAWN REDESIGN PHASE 2,
+    steps 2-3 (step 1 = drafts, DONE this session):
+    (2) Pawn-history re-pawn panel on /pawn/new — customer-
+        scoped server action (prior loans + collateral, re-
+        pawn-eligible status, category for filter chips);
+        panel above the category picker; redeemed -> +Add via
+        CollateralItemsList.addExtractedRow; forfeited ->
+        "shop inventory"; optional is_repawn/source_loan_id.
+    (3) In-place Buy-outright — merge the /buy/new valuation/
+        inventory/hold/compliance pipeline into /pawn/new
+        with its own buy item fields. Largest; do last.
+
+    ALSO QUEUED (operator filed the official form):
+    - FL Pawnbroker Transaction Form alignment pass on the
+      pawn-ticket PDF (/api/print/loan) + back page — header/
+      control#, pledgor block (incl. race, business phone,
+      owner-applied#), code legends, items 1-6 (serial/brand/
+      model#), financial footer (APR + thumb-print line),
+      reverse statutory terms + Record of Payments table.
 
   OPEN ISSUES / BLOCKERS:
-    - /pawn list + /pawn/new modal not visually verified
-      (no browser this session).
-    - Pawn list payoff column shown only for non-terminal
-      loans; terminal rows show "—" (deliberate — payoff
-      for redeemed/forfeited is misleading).
-    - Stats strip queries the active book + redeemed-30d
-      capped at 1000 rows each (ample for per-tenant pawn
-      books; revisit if a tenant ever exceeds it).
-    - Pawn Phase 2 (draft/history/buy-merge) deferred.
+    - DRAFT FEATURE: patches/0045 not yet applied + db:types
+      not run -> loan_drafts table absent at runtime. Build
+      clean; feature non-functional until operator applies.
+    - Draft resume restores collateral description/category/
+      metal/karat/weight/value but NOT photos (not staged in
+      JSONB) and NOT per-row category slugs (addExtractedRow
+      limitation, same as voice intake) -> operator re-
+      confirms each row's category before issuing.
+    - Dashboard money KPIs query the active book capped at
+      1000 rows (ample per-tenant; revisit if exceeded).
+    - Nothing visually verified this session (no browser):
+      /pawn list, /pawn/new modal + draft flow, new dashboard.
+    - Pawn Phase 2 steps 2-3 (history/buy-merge) deferred.
     - CRON_SECRET still unset in Vercel Production (crons 401).
     - OPENAI_API_KEY still pending in Vercel Production.
     - LeadsOnline CSV column reconciliation (v0 draft).
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 44):
-    - LIST = EXTEND THE READ, NOT "ONE COMPONENT ONLY".
-      Unlike the POS/Pawn-new intake redesigns (Session 43,
-      which kept the server contract frozen because they
-      touch regulated WRITES), the /pawn list is read-only.
-      So extending page.tsx's SELECT (collateral, events,
-      payoff, stats) is safe and fully build-verifiable —
-      no regulated write is touched. All money math uses the
-      canonical lib/pawn/math helpers (payoffBalance,
-      appliedPayments), never re-implemented in the view.
-    - MODAL VIA SHARED CORE, NOT A SECOND INSERT. The new
-      customer modal does NOT copy the create logic. Pulled
-      validate+insert+referral+audit into
-      lib/customers/create.ts; both the redirecting action
-      and the inline action call it. Inline action returns
-      { id, label } shaped for CustomerPicker.set(); the
-      full-form action keeps its redirect. Guard FIRST
-      (requireStaff) then the core runs the insert (RLS
-      still enforces tenant isolation).
-    - KEBAB MENU VIA PORTAL. Row action menu renders through
-      createPortal to document.body positioned at the button
-      rect, so the table's overflow-x-auto can't clip it.
-    - QUICK-CREATE FIELD SET. Schema only requires first+last
-      name; modal also collects phone/email/DOB + an ID
-      section (type/number/state/expiry) since pawn intake is
-      ID-regulated, but none beyond name are required.
+  KEY DECISIONS LOCKED THIS SESSION (Session 45):
+    - DRAFTS = DEDICATED loan_drafts TABLE (operator chose
+      this over two alternatives: adding 'draft' to the
+      loan_status enum + relaxing the loans CHECK constraints
+      [principal>0 / term 1-365 / due_date] + skipping the
+      ticket-number trigger; or keeping all terms required).
+      Rationale: the loans table's DB constraints make a
+      "customer-only" draft impossible without altering a
+      regulated financial table, and the BEFORE-INSERT
+      trigger burns a sequential PT- number on every insert
+      (auditors expect contiguous numbers). A separate JSONB
+      staging table keeps the regulated loans machinery
+      pristine; finalize flows through the unchanged
+      createLoanAction (ticket#, compliance_log, issue event
+      all happen then), and the draft is soft-deleted.
+    - DRAFT SAVE BYPASSES useActionState. The rail "Save as
+      draft" button builds FormData from the form element and
+      calls a redirect-style server action directly (disabled
+      until a customer is picked = the one requirement) — no
+      strict validation, avoids the createLoanAction onSubmit
+      canIssue guard.
+    - DASHBOARD = EXTEND THE READ (same rule as the /pawn
+      list, Session 44). Read-only surface, so adding payoff/
+      stats/feed queries to page.tsx is safe + build-
+      verifiable. All money math via lib/pawn/math
+      (payoffBalance), never re-implemented in the view.
+    - FL FORM = REFERENCE, NOT THIS SESSION'S WORK. Operator
+      chose to keep the official FL Pawnbroker Transaction
+      Form as the compliance reference for a future ticket-
+      print pass, and continue the draft feature now.
 
   IMPORTANT CONSTANTS / PATHS:
-    - Pawn list UI: src/app/(staff)/pawn/content.tsx
-      (stats strip + sortable cols + portal kebab).
-    - Pawn list server read: src/app/(staff)/pawn/page.tsx
-      (batched events+collateral; book-wide stats).
-    - Customer create core: src/lib/customers/create.ts
-      (createCustomerFromForm — shared by both actions).
-    - Inline create action: src/app/(staff)/customers/new/
-      inline-actions.ts (returns {id,label}, no redirect).
-    - Quick modal: src/components/customers/QuickCustomerModal
-      .tsx (CustomerPicker.set() on success).
-    - Pawn ticket PDF (render-only): /api/print/loan/[id].
+    - Drafts table: loan_drafts (patches/0045; customer_id
+      NOT NULL + JSONB payload; soft-delete; RLS = loans).
+    - Draft actions: src/app/(staff)/pawn/drafts/actions.ts
+      (saveLoanDraft / deleteLoanDraft, redirect-style).
+    - Draft list: /pawn/drafts. Resume: /pawn/new?draft=<id>.
+    - Shared intake parser: src/lib/pawn/intake-form.ts
+      (readCollateralRows + draft payload build/parse).
+    - Dashboard server: src/app/(staff)/dashboard/page.tsx
+      (book-driven KPIs + activity feed + due-soon).
+    - Dashboard UI: src/app/(staff)/dashboard/content.tsx.
+    - FL form reference: FL_Pawnbroker_Transaction_Form.pdf
+      (repo root) — target layout for the ticket-print pass.
 
-  (Sessions 13-43 PRIOR-SESSION decision blocks are in the
+  (Sessions 13-44 PRIOR-SESSION decision blocks are in the
   SESSION HISTORY LOG below. Carried-forward architectural
   decisions live in CLAUDE.md.)
 
@@ -1626,6 +1650,91 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 45 (2026-06-30, fourth pass) — Pawn Phase 2 step 1: Save-as-draft (loan_drafts) + dashboard redesign (pawn-dashboard.html) ---
+
+ 345. SAVE AS DRAFT — DEDICATED loan_drafts TABLE. Operator was
+     asked (genuine regulated-schema fork) how to store drafts; chose
+     a separate table over (a) adding 'draft' to the loan_status enum +
+     relaxing the loans CHECK constraints + skipping the ticket-number
+     trigger, or (b) keeping all terms required. ROOT REASONING: the
+     loans table enforces principal>0 / term_days 1-365 / due_date NOT
+     NULL at the DB level and a BEFORE-INSERT trigger burns a
+     sequential PT-NNNNNN number on every insert — so a "customer-only"
+     draft is impossible without altering a regulated financial table
+     and consuming a ticket number auditors expect to be contiguous.
+     patches/0045-loan-drafts.sql (NEW): loan_drafts (id, tenant_id FK,
+     customer_id FK NOT NULL, payload JSONB DEFAULT '{}', created/
+     updated_by, created/updated_at, deleted_at), idx on (tenant_id,
+     updated_at desc) + (customer_id), update_updated_at trigger, RLS
+     ENABLE + loan_drafts_staff_read/_write mirroring the loans
+     policies exactly (NEW table/NEW policies — no existing isolation
+     altered), NOTIFY pgrst. OPERATOR: apply 0045 then `npm run
+     db:types`. Until then loan_drafts is reached via a generically-
+     typed client (`supabase as unknown as SupabaseClient`) —
+     documented, drops to typed access post-db:types.
+
+ 346. DRAFT ACTIONS + LIST + RESUME + FINALIZE-DELETE. New
+     src/app/(staff)/pawn/drafts/actions.ts: saveLoanDraft(formData)
+     (gate has_pawn + requireRoleInTenant owner/manager/pawn_clerk/
+     chain_admin; require customer_id [the one hard requirement];
+     defense-in-depth customer-belongs-to-tenant check; buildDraftPayload
+     -> insert or update by draft_id; audit create/update) and
+     deleteLoanDraft(formData) (soft-delete via deleted_at; audit
+     soft_delete) — both redirect-style (formData)=>Promise<void>, not
+     useActionState. New /pawn/drafts page.tsx (loads drafts via
+     generic client + parseDraftPayload -> DraftRow[]) + content.tsx
+     (table: customer / items / principal / saved-at; Continue ->
+     /pawn/new?draft=id; Discard -> deleteLoanDraft form). /pawn/new
+     page.tsx reads ?draft= and loads the row -> initialDraft prop.
+     form.tsx: seeds principal/termDays/rateChoice/notes + CustomerPicker
+     initialCustomerId from the draft, injects collateral rows once on
+     mount via collateralRef.addExtractedRow (photos NOT restored —
+     not staged; category slugs NOT restored — addExtractedRow
+     limitation, same as voice intake), hidden draft_id + rate_id
+     inputs, and a rail "Save as draft" button (useTransition; builds
+     FormData from the form element; disabled until a customer is
+     picked). createLoanAction reads draft_id and soft-deletes the
+     draft after a successful issue (before redirect). /pawn list
+     gained a "Drafts" link.
+
+ 347. SHARED INTAKE PARSER — src/lib/pawn/intake-form.ts (NEW,
+     non-'use server' so multiple action files can import its sync
+     helpers). readCollateralRows was MOVED here verbatim out of
+     pawn/new/actions.ts (createLoanAction now imports it — no
+     duplicate copy); added buildDraftPayload(fd) (drops photo Files —
+     can't stage in JSONB; re-attached on resume+finalize) and
+     parseDraftPayload(unknown) (defensive coerce of stored JSONB back
+     to LoanDraftPayload). Keeps the draft payload and the real loan
+     insert reading the exact same collateral_<n>_* field names.
+
+ 348. DASHBOARD REDESIGN (from operator mockup pawn-dashboard.html).
+     Server src/app/(staff)/dashboard/page.tsx (read-only surface, so
+     extending the READ is safe + build-verifiable — same rule as the
+     Session-44 /pawn list): book-driven MONEY KPIs computed via
+     canonical payoffBalance over the active loan book + a batched
+     loan_events fetch — onLoanNow (Σ principalOutstanding), interestDue7
+     (Σ interestOutstanding for loans due in [today, today+7]),
+     overdueAtRisk (Σ payoff for due<today); plus today's sales $/count.
+     Attention counts gained overdueLoanCount + repairsNeedPartsCount.
+     loansDueSoon (overdue-first, top 6, with payoff + customer). Cross-
+     module recent-activity feed: recent sales (has_retail) + recent
+     loan_events (has_pawn, embedded loan->customer) merged, sorted by
+     time desc, top 8; event_type maps to kind (issued->loan,
+     redemption->redeem, else pay). Removed the old recentCustomers/
+     recentItems panels + queries and the now-unused activeRepairCount/
+     in7/addDaysIso. Client dashboard/content.tsx (REWRITTEN): header +
+     long localized date, 3 module-gated quick-action cards (New sale ->
+     /pos/sales/new, New loan -> /pawn/new, New repair -> /repair/new),
+     money KPI row (accent bars navy/warning/danger/success), 5-card
+     needs-attention row (Due this week / Overdue loans / Items on hold
+     / Ready for pickup / Repairs need parts; per-tone hot styling +
+     muted zero state), two-column lower (loans-due-soon list + activity
+     feed with kind icons), library row (customers / inventory / banned).
+     New dashboard.* i18n block (~40 keys) en+es at parity. Also: the
+     official FL Pawnbroker Transaction Form PDF was added to the repo
+     root as the compliance reference for a FUTURE ticket-print pass
+     (operator chose to keep-as-reference and continue drafts now).
 
 --- Session 44 (2026-06-30, third pass) — /pawn list redesign (stats + collateral/payoff + row actions) + /pawn/new create-customer modal ---
 
@@ -4206,12 +4315,11 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Pawn redesign PHASE 2, step 1 — Save as draft. Migration
-    adds loan_status 'draft'; createLoanAction gets a relaxed
-    draft branch (customer required only; skip plan-limit /
-    min-loan / collateral-required / compliance / issue
-    event); add the rail "Save as draft" button. Verify with
-    npm run build.
+    Apply patches/0045-loan-drafts.sql in Supabase, then run
+    `npm run db:types`, so the Save-as-draft feature works at
+    runtime (loan_drafts table). After that, smoke the draft
+    loop on the deploy: save a draft from /pawn/new, see it on
+    /pawn/drafts, Continue -> prefill -> issue -> draft gone.
 
   BACKLOG (in priority order):
     1. Pawn Phase 2 step 2 — pawn-history re-pawn panel
@@ -4223,11 +4331,18 @@ PENDING — NEXT UP
        (embed buy valuation/inventory/hold/compliance with
        its own buy item fields; currently bridged to
        /buy/new).
-    3. Set CRON_SECRET in Vercel Production (all crons 401).
-    4. Reconcile LeadsOnline CSV columns vs agency spec.
-    5. Visually verify the POS + Pawn intake rails, the new
-       /pawn list, and the /pawn/new create-customer modal
-       on the deploy (no browser verification in-session).
+    3. FL Pawnbroker Transaction Form alignment pass on the
+       pawn-ticket PDF (/api/print/loan) + back page —
+       match FL_Pawnbroker_Transaction_Form.pdf layout
+       (header/control#, pledgor block incl. race + business
+       phone + owner-applied#, code legends, items 1-6 with
+       serial/brand/model#, APR + thumb-print line, reverse
+       statutory terms + Record of Payments table).
+    4. Set CRON_SECRET in Vercel Production (all crons 401).
+    5. Reconcile LeadsOnline CSV columns vs agency spec.
+    6. Visually verify the new dashboard, /pawn list,
+       /pawn/new modal + draft flow on the deploy (no browser
+       verification in-session).
 
   KNOWN ISSUES TO REVISIT:
     - OPENAI_API_KEY pending in Vercel Production env.
