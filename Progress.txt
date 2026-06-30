@@ -13,162 +13,154 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 43 (2026-06-30, second pass)
-                  — TWO-PANE REDESIGNS: POS NEW-SALE
-                  + NEW PAWN TICKET (PHASE 1). Both
-                  shipped + build-clean.
+  Last session:   Session 44 (2026-06-30, third pass)
+                  — /pawn LIST REDESIGN (stats strip +
+                  collateral/payoff + row actions) +
+                  /pawn/new "Create new customer" MODAL.
+                  Both shipped + build-clean.
 
-                  Paired navy/gold two-pane layout
-                  (left work surface + right sticky rail)
-                  applied to the two highest-traffic
-                  intake screens, from operator-supplied
-                  HTML mockups + handoff briefs.
+                  (A) PAWN LOANS LIST (from operator HTML
+                  mockup pawn-loans-list.html)
+                  - Server src/app/(staff)/pawn/page.tsx:
+                    extended the READ (list is read-only,
+                    no regulated writes -> safe + build-
+                    verifiable). Added min_monthly_charge
+                    to the select; batched loan_events +
+                    loan_collateral_items fetches; per-row
+                    collateral summary (first item + "+N")
+                    and payoff-due (principal+interest via
+                    canonical payoffBalance). Book-wide
+                    stats strip (independent of filter):
+                    On loan now / Due soon 7d / Overdue /
+                    Redeemed-30d, computed from active book
+                    + redeemed-in-30d. Search now matches
+                    phone too.
+                  - Client src/app/(staff)/pawn/content.tsx
+                    (rewritten): 4 stat cards w/ accent
+                    borders; navy/gold filter pills (danger/
+                    warning active tones); Collateral +
+                    Payoff-due columns; sortable Principal/
+                    Payoff/Due headers (client-side);
+                    overdue/due-soon left-border row accents
+                    + relative due labels; per-row Take
+                    payment / View + portal-rendered kebab
+                    (View ticket / Extend / Redeem / Print
+                    -> /api/print/loan/[id] render-only /
+                    Mark forfeited). All kebab actions route
+                    to /pawn/[id] where the regulated writes
+                    live (not duplicated into the list).
 
-                  (A) POS NEW-SALE (commit 2ee3299)
-                  - Rewrote ONLY src/components/pos/Cart.tsx
-                    into the two-pane layout; server
-                    contract + cart math + customer/
-                    inventory/layaway flows unchanged.
-                  - Left: ScanBar (autofocus + refocus
-                    after add; Enter resolves exact SKU
-                    -> single partial hit -> multi-hit
-                    picker -> inline no-match) + Add item/
-                    custom/clear + line items. Inventory
-                    lines = unique units (qty locked 1,
-                    re-scan no-op); custom lines get a
-                    qty stepper + inline name/price.
-                  - Right navy rail: customer (embedded
-                    CustomerPicker) + order summary with
-                    $/% discount toggle (resolved to $,
-                    capped) + tax % chip (fraction never
-                    shown) + live Total + Charge; tender
-                    (cash/card; split disabled) + Save as
-                    layaway + note.
-                  - AddInventoryItemDialog gained an
-                    initialQuery prop. New pos.sale.* i18n
-                    keys en+es; removed orphaned taxRateHelp.
+                  (B) /pawn/new "CREATE NEW CUSTOMER" MODAL
+                  - Was a <Link> to /customers/new; now a
+                    button opening QuickCustomerModal
+                    (createPortal), which creates the
+                    customer WITHOUT navigating and drops it
+                    into the CustomerPicker via the
+                    imperative handle .set().
+                  - Extracted shared core
+                    src/lib/customers/create.ts
+                    (createCustomerFromForm: validate +
+                    insert + referral + audit, NO redirect).
+                    Existing redirecting createCustomerAction
+                    now calls it; new non-redirecting
+                    createCustomerInlineAction returns
+                    { id, label }. Zero logic duplicated.
 
-                  (B) NEW PAWN TICKET — PHASE 1
-                  (commit 984374c)
-                  - Rewrote src/app/(staff)/pawn/new/
-                    form.tsx into two-pane; createLoanAction
-                    + validation + data model UNCHANGED.
-                  - Terms MOVED into the rail (no more
-                    left-column Loan-terms section):
-                    principal (large), rate, term, issue,
-                    auto due date.
-                  - Live Collateral-value box + LTV state:
-                    CollateralItemsList now reports running
-                    {count, summed est_value} via a new
-                    onTotalsChange prop; rail color-codes
-                    principal vs collateral (covered+ratio /
-                    over-value / neutral).
-                  - Live redemption (principal + p*rate*
-                    term/30) + includes-interest line.
-                  - Financing toggle: Pawn (active) / Buy
-                    outright -> bridges to existing /buy/new.
-                  - Issue disabled until customer + principal
-                    + >=1 item. New pawn.new_ i18n en+es.
-
-  Context budget: ~22% at save time.
-  Last worked on: Pawn redesign Phase 1 shipped (984374c),
-                  pushed to main. tsc + eslint clean,
-                  npm run build clean, 413 tests pass.
-                  Clean stopping point.
+  Context budget: ~38% at save time.
+  Last worked on: Both tasks shipped. tsc clean, eslint
+                  clean, npm run build green, 413 tests pass,
+                  i18n en/es parity verified. Clean stop.
 
   ACTIVE FILE(S) this session:
-    --- POS redesign ---
-    - src/components/pos/Cart.tsx (rewritten)
-    - src/components/pos/AddInventoryItemDialog.tsx
-    - src/lib/i18n/en.ts + es.ts (pos.sale.*)
-    --- Pawn redesign Phase 1 ---
-    - src/app/(staff)/pawn/new/form.tsx (rewritten)
-    - src/components/pawn/CollateralItemsList.tsx
-      (onTotalsChange prop)
-    - src/lib/i18n/en.ts + es.ts (pawn.new_.*)
-    --- Mockups/briefs (committed, repo root) ---
-    - pos-new-sale.html / brief-pos-new-sale-redesign.md
-    - new-pawn-ticket.html / brief-new-pawn-ticket-redesign.md
+    --- Pawn list redesign ---
+    - src/app/(staff)/pawn/page.tsx (server read extended)
+    - src/app/(staff)/pawn/content.tsx (rewritten)
+    - pawn-loans-list.html (operator mockup, repo root)
+    --- Create-customer modal ---
+    - src/components/customers/QuickCustomerModal.tsx (NEW)
+    - src/lib/customers/create.ts (NEW shared core)
+    - src/app/(staff)/customers/new/inline-actions.ts (NEW)
+    - src/app/(staff)/customers/new/actions.ts (now calls core)
+    - src/app/(staff)/pawn/new/form.tsx (Link -> modal button)
+    --- i18n ---
+    - src/lib/i18n/en.ts + es.ts (pawn.list.* stats/columns/
+      actions + pawn.new_.quickCustomer*)
 
   RESUME POINT:
-    Clean stopping point — everything committed + pushed
-    (HEAD = 984374c). The next defined work is PAWN
-    REDESIGN PHASE 2 (operator chose the full "everything"
-    scope; Phase 1 delivered the verifiable layout, Phase 2
-    is the data-backed remainder, each needing a migration +
-    regulated-action change + a verify pass):
-    (1) Save as draft — migration adds loan_status 'draft';
-        createLoanAction gets a relaxed draft path (customer
-        only; skip plan-limit/min-loan/collateral/compliance;
-        no issue event); rail "Save as draft" button.
-    (2) Pawn-history re-pawn panel — new customer-scoped
-        server action (prior loans + collateral, re-pawn-
-        eligible status, category for filter chips); panel
-        above the category picker; redeemed -> + Add (reuse
-        CollateralItemsList.addExtractedRow); forfeited ->
-        "shop inventory"; optional is_repawn/source_loan_id
-        provenance columns.
-    (3) In-place Buy-outright — move the buy valuation/
-        inventory/hold/compliance pipeline into this screen
-        with its own buy item fields (currently bridged to
-        /buy/new). Largest; do last.
+    Clean stopping point — everything committed + pushed.
+    NOTHING half-done. Two follow-ups noted but optional:
+    (1) Visually confirm the new /pawn list + the
+        /pawn/new modal on the Vercel deploy (no browser
+        verification was possible in-session).
+    (2) The kebab Extend/Redeem/Forfeit items currently
+        all route to /pawn/[id] (where those regulated
+        actions live). If deep-linking is wanted later,
+        the detail page would need hash/section anchors.
 
-    ALSO STILL OPEN (pre-existing):
-    - CRON_SECRET in Vercel Production (all crons 401).
-    - LeadsOnline CSV column reconciliation (v0 draft).
-    - Visually confirm both new rails on the deploy (no
-      browser verification was possible in-session).
+    The next defined BIG work is still PAWN REDESIGN
+    PHASE 2 (unchanged from Session 43):
+    (1) Save as draft — migration adds loan_status 'draft';
+        relaxed createLoanAction draft path; rail button.
+    (2) Pawn-history re-pawn panel on /pawn/new.
+    (3) In-place Buy-outright (merge /buy/new pipeline).
+    Each needs a migration + regulated-action change + its
+    own verify pass.
 
   OPEN ISSUES / BLOCKERS:
-    - POS tender selector is UI-only this pass — payment
-      method is still finalized on /pos/sales/[id] (existing
-      two-step flow preserved). Split tender disabled.
-    - POS money stays numeric(18,4) r4 (brief asked integer
-      cents; CLAUDE.md rule 11 wins). No per-line taxable /
-      no tenant default tax rate / no held-sales (schema).
-    - POS + Pawn rails not visually verified (no browser).
+    - /pawn list + /pawn/new modal not visually verified
+      (no browser this session).
+    - Pawn list payoff column shown only for non-terminal
+      loans; terminal rows show "—" (deliberate — payoff
+      for redeemed/forfeited is misleading).
+    - Stats strip queries the active book + redeemed-30d
+      capped at 1000 rows each (ample for per-tenant pawn
+      books; revisit if a tenant ever exceeds it).
     - Pawn Phase 2 (draft/history/buy-merge) deferred.
-    - CRON_SECRET still unset in Vercel Production.
+    - CRON_SECRET still unset in Vercel Production (crons 401).
     - OPENAI_API_KEY still pending in Vercel Production.
+    - LeadsOnline CSV column reconciliation (v0 draft).
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 43):
-    - REDESIGN = ONE COMPONENT EACH, SERVER UNCHANGED.
-      POS rebuilt Cart.tsx only; Pawn rebuilt form.tsx only.
-      The screens compute display math (tax fraction,
-      resolved discount, LTV, redemption) client-side and
-      submit the SAME FormData the existing actions already
-      read — zero data-model/flow change, so both are
-      build-verifiable without touching regulated writes.
-    - PAWN PHASED FOR SAFETY. Operator chose "everything"
-      (buy-merge + draft). Phase 1 = layout/rail/LTV/
-      redemption (no migration, verifiable). Phase 2 =
-      draft + history + in-place buy, each needing a
-      migration + a change to the regulated loan/buy/
-      compliance code that can't be browser-verified here,
-      so they get their own pass. Buy bridged to /buy/new
-      meanwhile.
-    - TAX/ DISCOUNT UX WITHOUT SCHEMA. POS shows tax as an
-      editable % chip and discount via $/% toggle, but
-      submits tax_rate (fraction) + discount_amount ($) to
-      the unchanged action. No tenant default-tax column
-      exists -> defaults to 0; flagged.
-    - LTV VIA REPORT-UP. CollateralItemsList lifts totals
-      through an onTotalsChange callback (effect-driven,
-      converges because setState with equal primitives
-      bails) rather than lifting all row state.
+  KEY DECISIONS LOCKED THIS SESSION (Session 44):
+    - LIST = EXTEND THE READ, NOT "ONE COMPONENT ONLY".
+      Unlike the POS/Pawn-new intake redesigns (Session 43,
+      which kept the server contract frozen because they
+      touch regulated WRITES), the /pawn list is read-only.
+      So extending page.tsx's SELECT (collateral, events,
+      payoff, stats) is safe and fully build-verifiable —
+      no regulated write is touched. All money math uses the
+      canonical lib/pawn/math helpers (payoffBalance,
+      appliedPayments), never re-implemented in the view.
+    - MODAL VIA SHARED CORE, NOT A SECOND INSERT. The new
+      customer modal does NOT copy the create logic. Pulled
+      validate+insert+referral+audit into
+      lib/customers/create.ts; both the redirecting action
+      and the inline action call it. Inline action returns
+      { id, label } shaped for CustomerPicker.set(); the
+      full-form action keeps its redirect. Guard FIRST
+      (requireStaff) then the core runs the insert (RLS
+      still enforces tenant isolation).
+    - KEBAB MENU VIA PORTAL. Row action menu renders through
+      createPortal to document.body positioned at the button
+      rect, so the table's overflow-x-auto can't clip it.
+    - QUICK-CREATE FIELD SET. Schema only requires first+last
+      name; modal also collects phone/email/DOB + an ID
+      section (type/number/state/expiry) since pawn intake is
+      ID-regulated, but none beyond name are required.
 
   IMPORTANT CONSTANTS / PATHS:
-    - POS cart UI: src/components/pos/Cart.tsx (two-pane;
-      tender state UI-only; layaway via existing dialog).
-    - Pawn intake UI: src/app/(staff)/pawn/new/form.tsx
-      (two-pane; rail holds all terms).
-    - Collateral totals: CollateralItemsList onTotalsChange
-      (count, totalValue) -> rail LTV box.
-    - Buy bridge target: /buy/new (separate regulated flow).
-    - Mockups + briefs live at repo root (pos-new-sale.html,
-      new-pawn-ticket.html + matching brief-*.md).
+    - Pawn list UI: src/app/(staff)/pawn/content.tsx
+      (stats strip + sortable cols + portal kebab).
+    - Pawn list server read: src/app/(staff)/pawn/page.tsx
+      (batched events+collateral; book-wide stats).
+    - Customer create core: src/lib/customers/create.ts
+      (createCustomerFromForm — shared by both actions).
+    - Inline create action: src/app/(staff)/customers/new/
+      inline-actions.ts (returns {id,label}, no redirect).
+    - Quick modal: src/components/customers/QuickCustomerModal
+      .tsx (CustomerPicker.set() on success).
+    - Pawn ticket PDF (render-only): /api/print/loan/[id].
 
-  (Sessions 13-42 PRIOR-SESSION decision blocks are in the
+  (Sessions 13-43 PRIOR-SESSION decision blocks are in the
   SESSION HISTORY LOG below. Carried-forward architectural
   decisions live in CLAUDE.md.)
 
@@ -1634,6 +1626,88 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 44 (2026-06-30, third pass) — /pawn list redesign (stats + collateral/payoff + row actions) + /pawn/new create-customer modal ---
+
+ 342. PAWN LOANS LIST REDESIGN — STATS STRIP + COLLATERAL/PAYOFF
+     COLUMNS + ROW ACTIONS (from operator mockup
+     pawn-loans-list.html). The /pawn list was a 6-column table
+     (ticket/customer/principal/due/days/status); rebuilt to match
+     the mockup. SERVER src/app/(staff)/pawn/page.tsx: this is a
+     READ-ONLY list (no regulated write), so extending the read is
+     safe + fully build-verifiable. Added min_monthly_charge to the
+     main loan select. After building+filtering the displayed rows,
+     gathers a single batched loan_events fetch (.in('loan_id', …))
+     over the UNION of displayed rows + active book + redeemed-30d,
+     grouped into a Map and coerced to numbers (EventLite). Batched
+     loan_collateral_items fetch for displayed rows -> first
+     description + extra count. Per non-terminal row computes payoff
+     via canonical payoffBalance() (principal + accrued interest,
+     events-aware); terminal rows get payoff=null (shown as "—" —
+     payoff for redeemed/forfeited is misleading). Book-wide STATS
+     STRIP (independent of the active filter): fetches active book
+     (NON_TERMINAL, cap 1000) + redeemed-in-30d (updated_at >=
+     today-30, cap 1000); onLoanNow = Σ principalOutstanding;
+     dueSoon/overdue counts+payoff Σ classified by daysBetween;
+     redeemedInterest = Σ appliedPayments().interestApplied. Search
+     `q` now also matches customer_phone. CLIENT
+     src/app/(staff)/pawn/content.tsx (REWRITTEN): PawnListRow gained
+     collateral_label/collateral_extra/payoff/accrued_interest; new
+     PawnStats export. 4 StatCard cells with left accent borders
+     (navy/warning/danger/success). Filter pills restyled navy/gold
+     (Chip: active = navy bg white, error = danger bg, warning =
+     warning bg; count chip recolors). Table gained Collateral +
+     Payoff-due columns; SortHeader makes Principal/Payoff/Due
+     client-side sortable (default due asc; payoff nulls sort last).
+     Rows: left border-l-4 danger(overdue)/warning(dueSoon), relative
+     due labels (relOverdue "{n} days overdue" / relDueIn "in {n}
+     days"), Take payment (open)/View (terminal) primary button +
+     RowMenu kebab. RowMenu renders via createPortal to document.body
+     positioned at the button rect (so table overflow-x-auto can't
+     clip it), closes on outside-click/scroll/resize; items View
+     ticket / Extend / Redeem (open only) / Print ticket (window.open
+     /api/print/loan/[id] — render-only, does NOT lock the ticket) /
+     Mark forfeited (danger, open only). All navigation kebab items
+     route to /pawn/[id] where the regulated extend/redeem/forfeit
+     actions actually live — not duplicated into the list.
+
+ 343. /pawn/new "CREATE NEW CUSTOMER" — INLINE MODAL (was a page
+     navigation). Operator: the Create-new-customer button should pop
+     up, not send them to /customers/new. NEW
+     src/components/customers/QuickCustomerModal.tsx: createPortal
+     modal, useActionState over a new inline action, fields
+     first_name*/last_name* + phone/email/dob + an ID fieldset
+     (id_type select/id_number/id_state/id_expiry); on success hands
+     the new {id,label} up via onCreated and closes (one-shot guard
+     ref). In form.tsx the <Link href="/customers/new"> became a
+     button toggling showCustomerModal; onCreated calls
+     customerPickerRef.current.set(c) + sets selectedCustomerId/
+     customerLabel so the picker shows the new walk-in immediately.
+     SHARED CORE (no duplicate insert): extracted
+     src/lib/customers/create.ts createCustomerFromForm() —
+     CUSTOMER_FORM_FIELDS + zod validate + insert + referral-code +
+     audit, returns { ok, id, firstName, lastName } | { ok:false,
+     fieldErrors?/error?, echo } and does NOT redirect/revalidate.
+     Existing customers/new/actions.ts createCustomerAction slimmed
+     to: guard -> core -> on !ok return fieldErrors/error, on ok
+     revalidate + redirect(/customers/[id]) (behavior byte-identical).
+     NEW src/app/(staff)/customers/new/inline-actions.ts
+     createCustomerInlineAction: guard -> core -> returns
+     { customer:{ id, label } } (label = "Last, First · phone" to
+     match picker-search shape) without navigating. Guard FIRST
+     (requireStaff), RLS still enforces tenant isolation on insert.
+
+ 344. SESSION 44 i18n (en+es, parity verified). pawn.list gained:
+     collateral, payoffDue, intSuffix, moreCount, takePayment, view,
+     viewTicket, extendRenew, redeem, printTicket, markForfeited,
+     rowActions, relOverdue, relDueIn, statOnLoan(+Sub),
+     statDueSoon(+Sub), statOverdue(+Sub), statRedeemed(+Sub); also
+     widened searchPlaceholder to mention phone. pawn.new_ gained
+     quickCustomerTitle/Help/IdSection/Save/Error. Modal field labels
+     REUSE existing t.customers.* (firstName/lastName/phone/email/dob/
+     idType/idNumber/idIssuingState/idExpiry + idType* options) — no
+     new keys for those. Verified build-clean: tsc --noEmit clean,
+     eslint clean, npm run build green, vitest 413/413 pass.
 
 --- Session 43 (2026-06-30, second pass) — Two-pane redesigns: POS new-sale + New Pawn Ticket (Phase 1) ---
 
@@ -4151,7 +4225,9 @@ PENDING — NEXT UP
        /buy/new).
     3. Set CRON_SECRET in Vercel Production (all crons 401).
     4. Reconcile LeadsOnline CSV columns vs agency spec.
-    5. Visually verify the POS + Pawn rails on the deploy.
+    5. Visually verify the POS + Pawn intake rails, the new
+       /pawn list, and the /pawn/new create-customer modal
+       on the deploy (no browser verification in-session).
 
   KNOWN ISSUES TO REVISIT:
     - OPENAI_API_KEY pending in Vercel Production env.

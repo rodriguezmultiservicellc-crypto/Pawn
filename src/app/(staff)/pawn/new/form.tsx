@@ -15,6 +15,7 @@ import VoicePawnButton, {
 import CustomerPicker, {
   type CustomerPickerHandle,
 } from '@/components/customers/CustomerPicker'
+import QuickCustomerModal from '@/components/customers/QuickCustomerModal'
 import type { PawnIntakeCategory } from '@/components/pawn/CategoryPicker'
 import { createLoanAction, type CreateLoanState } from './actions'
 
@@ -64,6 +65,7 @@ export default function NewPawnLoanForm({
   )
   const [customerLabel, setCustomerLabel] = useState<string | null>(null)
   const customerPickerRef = useRef<CustomerPickerHandle>(null)
+  const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [principal, setPrincipal] = useState<string>('')
 
   // Live collateral totals reported up from the editor → drives the rail's
@@ -180,14 +182,25 @@ export default function NewPawnLoanForm({
                   }}
                 />
               </div>
-              <Link
-                href="/customers/new?return=/pawn/new"
+              <button
+                type="button"
+                onClick={() => setShowCustomerModal(true)}
                 className="shrink-0 rounded-md border border-border bg-card px-3 py-3 text-sm text-foreground hover:bg-background hover:text-foreground"
               >
                 {tn.newCustomer}
-              </Link>
+              </button>
             </div>
           </fieldset>
+
+          <QuickCustomerModal
+            open={showCustomerModal}
+            onClose={() => setShowCustomerModal(false)}
+            onCreated={(c) => {
+              customerPickerRef.current?.set(c)
+              setSelectedCustomerId(c.id)
+              setCustomerLabel(c.label)
+            }}
+          />
 
           {/* Collateral */}
           <fieldset className="rounded-xl border border-border bg-card p-4">
