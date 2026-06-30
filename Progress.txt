@@ -13,167 +13,163 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 40 (2026-06-29)
-                  — APPLIED COLLATERAL MIGRATIONS 0042/0043
-                  + TWILIO SHARED-CORE REFACTOR (match
-                  LunaAzul) + TCPA SMS FOOTER.
+  Last session:   Session 41 (2026-06-29, second pass)
+                  — NCIC CODE PER CATEGORY + DAILY
+                  LEADSONLINE EXPORT JOB + ALL STAFF
+                  PAGES MADE FULL-WIDTH.
 
-                  Two streams, one commit (59609c0):
+                  Three landings across two commits:
 
-                  (A) MIGRATIONS 0042 + 0043 APPLIED.
-                  S39 left these PENDING in Supabase. Applied
-                  both via the Supabase Management API SQL
-                  endpoint (api.supabase.com/v1/projects/
-                  {ref}/database/query) because DATABASE_URL
-                  is empty in .env.local and psql isn't
-                  installed. The S39 SUPABASE_ACCESS_TOKEN
-                  was stale (401); operator minted a fresh
-                  sbp_ token into .env.local and it works for
-                  both the Mgmt API and db:types again.
-                  Verified all 6 cols on loan_collateral_
-                  items + ncic_code on pawn_intake_categories.
-                  Ran npm run db:types (database.ts now
-                  150807 bytes) and DROPPED the `as never`
-                  boundary cast on the loan_collateral_items
-                  .insert in pawn/new/actions.ts. tsc clean.
+                  (A) NCIC CODE PER CATEGORY (#2)
+                  - /settings/pawn-categories: operator-
+                    editable NCIC TYP code per category.
+                    List shows a blue NCIC badge; modal
+                    has an uppercase 1-10 alnum input;
+                    validated + persisted + audited.
+                    Column already existed (0043).
 
-                  (B) TWILIO REFACTOR — match LunaAzul, keep
-                  Pawn's better choices. Read LunaAzul's
-                  lib/messaging/core.ts + lib/sms/send.ts.
-                  - NEW src/lib/twilio/core.ts: shared
-                    runTwilioSend() — queued message_log
-                    insert, NODE_ENV=test short-circuit,
-                    Twilio POST, 429/error handling,
-                    markSent/markFailed. Dedupes ~80 lines
-                    that were copy-pasted across sms.ts +
-                    whatsapp.ts.
-                  - NEW src/lib/twilio/compliance.ts: pure
-                    withComplianceFooter() (TCPA "Reply STOP
-                    to unsubscribe. Msg&Data Rates may
-                    apply.", idempotent). Pure module (no
-                    server-only) so it's vitest-testable.
-                  - NEW src/lib/twilio/core.test.ts: 4
-                    footer regression tests.
-                  - sms.ts + whatsapp.ts reduced to creds-
-                    resolver + form-builder wrappers calling
-                    runTwilioSend via a prepare() callback.
-                    SMS now carries the TCPA footer; WhatsApp
-                    does NOT (own Meta opt-out).
-                  - KEPT (did NOT regress to match LunaAzul):
-                    Vault auth token (getTenantSecret) vs
-                    LunaAzul's plaintext column; single rich
-                    message_log w/ FK relations + reason
-                    codes; MessagingServiceSid support;
-                    dispatch.ts email routing.
-                  - DEFERRED: platform-Twilio fallback +
-                    messaging_mode (operator chose "Core +
-                    TCPA footer" scope; full fallback needs
-                    a migration + platform env + settings UI).
+                  (B) DAILY LEADSONLINE EXPORT (#5,
+                  commit b12b8bc, migration 0044 APPLIED)
+                  - patches/0044-compliance-export-
+                    batches.sql: new table holding frozen
+                    daily CSV artifacts + SELECT-only
+                    staff RLS (mirrors compliance_log;
+                    writes service-role only). Applied
+                    via Mgmt API; db:types regen'd
+                    (152288 bytes); boundary casts dropped.
+                  - Exporter: per-item item_ncic_code
+                    column resolved from the tenant's
+                    category map; threaded through the
+                    dispatcher + the on-demand CSV route
+                    + the report-page preview.
+                  - lib/compliance/ncic.ts: buildNcicBySlug
+                    (tenantIds) shared helper.
+                  - lib/reports/police-report.ts:
+                    getUnexportedPoliceReportRows()
+                    (exported_at IS NULL selector).
+                  - /api/cron/leadsonline-export: per
+                    tenant, build CSV from UNEXPORTED
+                    compliance_log rows -> freeze batch
+                    -> stamp exported_at/format/batch_id
+                    (idempotent) -> audit. Batch-insert-
+                    first ordering so a stamp failure
+                    re-exports (visible duplicate) rather
+                    than silently under-reporting.
+                  - /api/compliance/export/[id]: RLS-gated
+                    batch download.
+                  - vercel.json: cron 30 14 * * *.
 
-  Context budget: ~62% at save time.
-  Last worked on: Both streams shipped in commit 59609c0,
-                  pushed to main (Vercel auto-deploying).
-                  tsc clean, eslint clean on changed files,
-                  full suite 413 tests pass.
+                  (C) ALL STAFF PAGES FULL-WIDTH (#UI,
+                  commit 05be4c3)
+                  - Removed the mx-auto max-w-* cap from
+                    29 staff page wrappers so every page
+                    fills width like /customers. Layout
+                    <main> was already full-width; pages
+                    self-capped. Spacing classes kept;
+                    modals keep their own max-w.
+
+  Context budget: ~55% at save time.
+  Last worked on: Full-width sweep shipped (commit
+                  05be4c3). Compliance feature shipped
+                  (commit b12b8bc, 0044 applied). All
+                  pushed to main. tsc + eslint clean,
+                  413 tests pass.
 
   ACTIVE FILE(S) this session:
-    --- Twilio (NEW) ---
-    - src/lib/twilio/core.ts (shared runTwilioSend)
-    - src/lib/twilio/compliance.ts (pure withComplianceFooter)
-    - src/lib/twilio/core.test.ts (4 footer tests)
-    --- Twilio (reduced to thin wrappers) ---
-    - src/lib/twilio/sms.ts (creds resolver + footer)
-    - src/lib/twilio/whatsapp.ts (creds resolver)
-    --- Migrations applied + cast dropped ---
-    - patches/0042-collateral-jewelry-size.sql (APPLIED)
-    - patches/0043-fl-539-fields-plus-ncic.sql (APPLIED)
-    - src/types/database.ts (regenerated, 150807 bytes)
-    - src/app/(staff)/pawn/new/actions.ts (as never dropped)
-    --- Reference only (read, not changed) ---
-    - LunaAzul lib/messaging/core.ts + lib/sms/send.ts
+    --- NCIC settings UI (#2) ---
+    - src/app/(staff)/settings/pawn-categories/
+      {page,content,actions}.tsx
+    --- LeadsOnline export (#5) ---
+    - patches/0044-compliance-export-batches.sql (APPLIED)
+    - src/lib/compliance/ncic.ts (NEW)
+    - src/lib/compliance/police-report/index.ts
+    - src/lib/compliance/police-report/formats/
+      fl-leadsonline.ts
+    - src/lib/reports/police-report.ts
+    - src/app/api/cron/leadsonline-export/route.ts (NEW)
+    - src/app/api/compliance/export/[id]/route.ts (NEW)
+    - src/app/api/reports/police-report/csv/route.ts
+    - src/app/(staff)/reports/police-report/page.tsx
+    - src/types/database.ts (regen, 152288 bytes)
+    - vercel.json
+    --- Full-width sweep (#UI) ---
+    - 29 src/app/(staff)/**/{content,form}.tsx wrappers
 
   RESUME POINT:
-    Clean stopping point — both work streams are committed
-    + pushed (59609c0). The single most useful next action
-    is the BROWSER SMOKE-TEST of /pawn/new that S39 queued
-    and which is now unblocked (0042+0043 applied, types
-    regen'd, cast removed). Run the a-h checklist:
-    (a) form loads, Customer panel at top, no form-level
-        category picker; (b) pick a customer; (c) reveal
-        order Terms -> Collateral -> Signature, issue date
-        readOnly+greyed, rate dropdown = configured rates
-        only; (d) Jewelry->Ring shows color/unique_marks/
-        metal/karat/weight(narrow)/size(narrow)/gemstones;
-        (e) Firearms->Handgun shows make/model/caliber/
-        serial(req)/type/action/barrel_length/capacity/
-        finish/#barrels; (f) Electronics->Phone shows
-        brand/model/serial; (g) submit, then query loan_
-        collateral_items for the new fields; (h) confirm
-        compliance_log.items_snapshot carries them.
-
-    SECOND: decide whether to localize the TCPA SMS footer
-    (currently English-only, matching LunaAzul; STOP is the
-    carrier-standard keyword so it works regardless of
-    language). Localizing means threading customer.language
-    into sendSms() (it doesn't receive it today).
+    Clean stopping point — everything committed + pushed
+    (HEAD = 05be4c3). No half-done work. Most useful next
+    actions, pick one:
+    (1) Set CRON_SECRET in Vercel Production env — the new
+        leadsonline-export cron (and every other cron)
+        returns 401 until it's set. Phase 0 punch list.
+    (2) Reconcile the LeadsOnline CSV column set against
+        the agency's official "Required Field List" before
+        any real submission (fl-leadsonline.ts is v0 draft).
+    (3) Run the /pawn/new browser smoke-test still owed
+        from S39 (a-h checklist) now that 0042/0043 are
+        live.
+    (4) Spot-check the now-full-width forms (new customer,
+        loan rates) on a wide monitor; cap individually if
+        any look too stretched.
 
   OPEN ISSUES / BLOCKERS:
-    - /pawn/new browser smoke-test (a-h) still not run.
-    - TCPA SMS footer is English-only — pending decision on
-      bilingual (CLAUDE.md rule 6). Not a bug; deliberate
-      match to LunaAzul.
-    - Settings UI to edit ncic_code per category still
-      missing (column exists; operator can SET via SQL).
+    - CRON_SECRET not set in Vercel Production — all crons
+      including leadsonline-export 401 until set.
+    - LeadsOnline CSV columns are a v0 DRAFT — confirm with
+      the agency before go-live.
+    - Pre-existing as-any cast on pawn_intake_categories
+      builder in settings/pawn-categories/actions.ts left
+      in place (stale comment ref 0037; table is now typed,
+      low-value cleanup deferred).
     - 2 react-hooks/purity errors in customers/dashboard/
-      [id]/page.tsx:279 + :392 (S37 commit c6531a7).
+      [id]/page.tsx:279 + :392 (S37, unrelated).
     - OPENAI_API_KEY still pending in Vercel Production env.
     - Carry-over backlog: 32 design walkthrough, S27
-      backpage, A-I 9-smoke, Phase 0 punch list, email-
-      campaign UI, Stripe Connect, eBay de-stub, FL
-      LeadsOnline reconciliation, Phase 8 mobile audit.
+      backpage, A-I 9-smoke, email-campaign UI, Stripe
+      Connect, eBay de-stub, Phase 8 mobile audit.
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 40):
-    - MIGRATIONS APPLY VIA MGMT API. When DATABASE_URL is
-      empty + psql absent, apply idempotent DDL through
-      api.supabase.com/v1/projects/{ref}/database/query
-      with the SUPABASE_ACCESS_TOKEN (sbp_ PAT). Same
-      token db:types uses. Only ADD COLUMN IF NOT EXISTS
-      here — no RLS touched (CLAUDE.md rule 1 respected).
-    - SUPABASE_ACCESS_TOKEN ROTATED. S39 token was 401
-      (stale). Fresh sbp_ token now in .env.local;
-      db:types + Mgmt API both work.
-    - TWILIO = MATCH LUNAAZUL STRUCTURE, KEEP PAWN'S
-      STRONGER CHOICES. Adopted the shared-core pattern
-      (one runTwilioSend) + TCPA footer. Did NOT adopt
-      LunaAzul's plaintext twilio_auth_token column
-      (Pawn's Vault is more secure) nor its double-log
-      table split (Pawn's single message_log is richer).
-    - TCPA FOOTER: SMS-ONLY, ENGLISH-ONLY, IDEMPOTENT.
-      WhatsApp carries its own Meta opt-out. Footer skips
-      if body already says "reply stop" so a resend never
-      double-stacks. Lives in pure compliance.ts so it's
-      unit-testable (server-only breaks under vitest).
-    - PLATFORM-TWILIO FALLBACK DEFERRED. Operator chose
-      "Core + TCPA footer" scope. messaging_mode +
-      TWILIO_PLATFORM_* + settings toggle not built.
+  KEY DECISIONS LOCKED THIS SESSION (Session 41):
+    - EXPORT ARTIFACTS = compliance_export_batches TABLE,
+      NOT STORAGE. Frozen CSV body stored inline (TEXT) to
+      avoid a new private bucket + storage.objects RLS.
+      SELECT-only staff RLS mirrors compliance_log; writes
+      are service-role only. Rule 1 honored — RLS shown +
+      explicitly confirmed before applying.
+    - EXPORTED_AT IS THE IDEMPOTENCY KEY. The cron selects
+      exported_at IS NULL rows (not a date window), so it
+      backfills any missed day and never double-reports.
+      The existing immutability trigger already permits the
+      exported_* bookkeeping columns.
+    - BATCH-INSERT-FIRST ORDERING. Persist the artifact,
+      then stamp. A stamp failure re-exports next run (a
+      visible duplicate batch) — preferred over silently
+      marking transactions reported with no file (under-
+      reporting to law enforcement is the worse failure).
+    - NCIC ENRICHMENT SHARED. buildNcicBySlug() used by the
+      cron, the on-demand CSV route, AND the report preview
+      so all three stay consistent (no per-call dup).
+    - PAGE WIDTH = FULL, controlled per-page (no layout
+      cap). Removing the per-page mx-auto max-w-* caps
+      matches /customers; adding a layout-level cap was
+      rejected (would have narrowed the already-wide list
+      pages).
 
   IMPORTANT CONSTANTS / PATHS:
-    - Mgmt API SQL endpoint: POST https://api.supabase.com
-      /v1/projects/{SUPABASE_PROJECT_ID}/database/query
-      with Authorization: Bearer {SUPABASE_ACCESS_TOKEN};
-      body {"query":"<sql>"}. Pawn project ref =
-      kjyaxfwlggxiqijiiuna.
-    - Twilio shared core: src/lib/twilio/core.ts
-      runTwilioSend({ channel, log, prepare }).
-    - TCPA footer: src/lib/twilio/compliance.ts
-      withComplianceFooter() — SMS only.
-    - resolveTwilioCreds() stays in sms.ts (whatsapp.ts
-      imports it). Auth token from Vault getTenantSecret.
-    - LunaAzul Twilio reference: C:\Users\rodri\OneDrive\
-      Documents\Claude Projects\LunaAzul Web Sass\src\src\
-      lib\messaging\core.ts + lib\sms\send.ts.
+    - Mgmt API SQL endpoint (migrations when DATABASE_URL
+      empty + no psql): POST https://api.supabase.com/v1/
+      projects/{SUPABASE_PROJECT_ID}/database/query, Bearer
+      {SUPABASE_ACCESS_TOKEN}. Pawn ref = kjyaxfwlggxiqijiiuna.
+    - New cron: /api/cron/leadsonline-export (30 14 * * *).
+    - Batch download: /api/compliance/export/[id]
+      (RLS-gated, staff of owning tenant).
+    - NCIC map helper: buildNcicBySlug() in
+      src/lib/compliance/ncic.ts.
+    - Unexported selector: getUnexportedPoliceReportRows()
+      in src/lib/reports/police-report.ts.
+    - Full-width convention: staff pages carry NO
+      mx-auto max-w-* cap (layout <main> px-6 is the gutter).
 
-  (Sessions 13-39 PRIOR-SESSION decision blocks are in the
+  (Sessions 13-40 PRIOR-SESSION decision blocks are in the
   SESSION HISTORY LOG below. Carried-forward architectural
   decisions live in CLAUDE.md.)
 
@@ -1639,6 +1635,84 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 41 (2026-06-29, second pass) — NCIC code per category + daily LeadsOnline export job + all staff pages full-width ---
+
+ 335. NCIC CODE PER CATEGORY SETTINGS UI (#2, commit
+     b12b8bc). /settings/pawn-categories gains an
+     operator-editable NCIC TYP code per category
+     (column ncic_code already existed from 0043).
+     - page.tsx selects ncic_code + maps it onto
+       CategoryRow.
+     - content.tsx: blue "NCIC: <code>" badge in the
+       category-row display; new modal Field with an
+       uppercase font-mono input (maxLength 10) +
+       helper text + fieldError slot.
+     - actions.ts: categorySchema gains ncic_code via
+       preprocess (trim -> uppercase -> '' = null) +
+       regex /^[A-Z0-9]{1,10}$/; persisted on both
+       insert + update; included in the audit changes.
+     Pre-existing (admin.from as any) cast on the
+     pawn_intake_categories builder left as-is.
+
+ 336. DAILY LEADSONLINE EXPORT JOB + MIGRATION 0044
+     (#5, commit b12b8bc). End-to-end automated police-
+     report export, building on the existing exporter
+     lib + the on-demand /api/reports/police-report/csv
+     route + compliance_log.exported_* columns.
+     - patches/0044-compliance-export-batches.sql
+       (APPLIED via Mgmt API): new table id / tenant_id
+       / format / range_start / range_end /
+       transaction_count / row_count / filename /
+       csv_body / generated_by / created_at. RLS:
+       single SELECT-only policy
+       compliance_export_batches_staff_read =
+       tenant_id IN my_accessible_tenant_ids() AND
+       my_is_staff(tenant_id). No write policy ->
+       service-role (cron) only, mirroring
+       compliance_log. db:types regen'd ->
+       149/150k -> 152288 bytes; two as-any boundary
+       casts dropped after.
+     - NCIC ENRICHMENT: fl-leadsonline.ts gains an
+       item_ncic_code CSV column resolved per item from
+       pawn_subcategory_slug (fallback pawn_category_
+       slug) via an ncicBySlug map; flattenLeadsOnline
+       + leadsOnlineRowsToCsv split out so the
+       dispatcher reports both transactionCount and
+       flattened rowCount. index.ts dispatch() takes
+       ncicBySlug. The on-demand csv route + the
+       /reports/police-report page preview now pass it
+       too (lib/compliance/ncic.ts buildNcicBySlug()
+       shared across all three).
+     - lib/reports/police-report.ts:
+       getUnexportedPoliceReportRows(tenantId) selects
+       exported_at IS NULL reportable rows ascending.
+     - src/app/api/cron/leadsonline-export/route.ts
+       (NEW): CRON_SECRET-gated; per active has_pawn
+       tenant with a police_report_format -> build CSV
+       from unexported rows -> INSERT frozen batch ->
+       UPDATE compliance_log SET exported_at/format/
+       batch_id (idempotency) -> audit. Batch-insert-
+       first so a stamp failure re-exports (visible
+       duplicate) rather than under-reporting.
+     - src/app/api/compliance/export/[id]/route.ts
+       (NEW): authenticated batch download; RLS scopes
+       the read to the caller's tenant; audited.
+     - vercel.json: cron entry 30 14 * * *.
+
+ 337. ALL STAFF PAGES MADE FULL-WIDTH (#UI, commit
+     05be4c3). Operator: /settings (+ subpages) and
+     detail/form pages were centered at a fixed max
+     width while list pages (/customers) ran full-
+     width. ROOT CAUSE: the (staff) layout <main> is
+     already full-width (px-6 gutter); individual pages
+     self-capped with mx-auto max-w-*. Removed that cap
+     from all 29 staff page wrappers via a scripted
+     regex (mx-auto max-w-<token> -> ''), keeping
+     space-y-*/px/py. Modals keep their own max-w
+     (still centered). tsc clean; pure className change.
+     Operators on ultrawide monitors may find single-
+     column forms stretched — cap individually if so.
 
 --- Session 40 (2026-06-29) — Applied collateral migrations 0042/0043 + Twilio shared-core refactor (match LunaAzul) + TCPA SMS footer ---
 
@@ -3926,30 +4000,24 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Browser smoke-test /pawn/new end to end (the S39 a-h
-    checklist, now unblocked: 0042+0043 applied, db.ts
-    regen'd, cast dropped). Add a Jewelry->Ring, a
-    Firearms->Handgun, and an Electronics->Phone item;
-    submit; then verify loan_collateral_items + compliance_
-    log.items_snapshot carry color / unique_marks /
-    jewelry_size / gemstone_description / firearm_finish /
-    firearm_number_of_barrels / electronic_brand.
+    Set CRON_SECRET in the Vercel Production env. Every
+    /api/cron/* route (including the new leadsonline-export)
+    returns 401 until it's set, so none of the scheduled
+    jobs actually run.
 
   BACKLOG (in priority order):
-    1. Decide + (if yes) implement bilingual TCPA SMS footer
-       — thread customer.language into sendSms().
-    2. Settings UI for ncic_code on /settings/pawn-categories.
-    3. Surface per-item category + new FS 539.001 attributes
-       on the /pawn/<id> detail page.
-    4. /pawn/<id> ticket print: include color + gemstones +
-       firearm finish/#barrels + size + unique_marks per FL
-       §539.001 mandate.
-    5. Daily LeadsOnline export job — read ncic_code via
-       tenant join, write CSV/JSON in vendor format, cron.
-    6. Optional: port LunaAzul's platform-Twilio fallback +
-       messaging_mode (needs migration + TWILIO_PLATFORM_*
-       env + settings toggle).
-    7. Fix 2 react-hooks/purity errors in customers/
+    1. Reconcile the LeadsOnline CSV column set in
+       fl-leadsonline.ts against the agency's official
+       "Required Field List" before any real submission
+       (currently a v0 draft).
+    2. /pawn/new browser smoke-test (S39 a-h checklist) now
+       that 0042/0043 are live.
+    3. Spot-check now-full-width forms (new customer, loan
+       rates) on a wide monitor; cap individually if any
+       look too stretched.
+    4. Surface per-item category + FS 539.001 attributes on
+       the /pawn/<id> detail page + ticket print.
+    5. Fix 2 react-hooks/purity errors in customers/
        dashboard/[id]/page.tsx:279 + :392 (S37).
 
   KNOWN ISSUES TO REVISIT:
@@ -3959,7 +4027,9 @@ PENDING — NEXT UP
       + secret rotation still open in Vercel env.
 
   OUT OF SCOPE (noted for later):
-    - Platform-Twilio fallback (deferred this session by
-      operator's scope choice).
+    - Bilingual TCPA SMS footer (operator chose English-only
+      to match LunaAzul, Session 40).
+    - Platform-Twilio fallback / messaging_mode (deferred
+      Session 40).
     - eBay de-stub, Stripe Connect smoke test, email-
       campaign UI editor, Phase 8 mobile audit.
