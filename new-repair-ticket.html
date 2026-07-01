@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Repair Ticket — redesign</title>
+<style>
+  :root{
+    --navy:#0d1b2a;--gold:#e8a020;--gold-hi:#f4b53c;--ink:#0d1b2a;
+    --muted:#6b7a8d;--line:#e4e9f0;--surface:#f4f6f9;--card:#fff;
+    --orders:#2f6fb0;--green:#1f9d6b;--radius:14px;
+    --shadow:0 1px 2px rgba(13,27,42,.04),0 8px 24px rgba(13,27,42,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--surface);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .tnum{font-variant-numeric:tabular-nums}.serif{font-family:"Georgia",serif}
+
+  .topbar{height:56px;display:flex;align-items:center;gap:12px;padding:0 22px;
+    background:var(--card);border-bottom:1px solid var(--line)}
+  .brand{font-weight:800;font-size:18px}.dot{color:#c2ccd6}
+  .tenant{font-size:13px;font-weight:700;border:1px solid var(--line);border-radius:9px;padding:6px 12px;background:var(--surface)}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px}
+  .pill-admin{display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;font-weight:700;font-size:11px;padding:5px 10px;border-radius:999px}
+  .pill-admin b{color:var(--gold)}.user{font-weight:700}
+
+  .subbar{display:flex;align-items:center;padding:18px 22px 0;max-width:1400px;margin:0 auto;width:100%}
+  .subbar h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
+  .subbar .back{margin-left:auto;color:var(--muted);text-decoration:none;font-weight:700;font-size:13.5px}
+  .subbar .back:hover{color:var(--ink)}
+
+  .stage{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:16px 22px 40px;max-width:1400px;margin:0 auto;align-items:start}
+  @media(max-width:980px){.stage{grid-template-columns:1fr}}
+
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+  .sec > h2{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  .sec .note{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  .sec .note.warn{color:#b9791a;font-weight:600}
+
+  .cust-row{display:flex;gap:10px}
+  .cust-field{flex:1;display:flex;align-items:center;gap:10px;border:2px solid var(--gold);border-radius:11px;padding:0 14px;height:50px;background:#fffdf8}
+  .cust-field .who{font-weight:700;font-size:14.5px}
+  .cust-field .x{margin-left:auto;border:none;background:transparent;color:#b6c0cc;font-size:16px;cursor:pointer}
+  .btn-ghost{border:1px solid var(--line);background:var(--card);border-radius:11px;padding:0 16px;height:50px;font-weight:700;font-size:13.5px;cursor:pointer;white-space:nowrap}
+  .btn-ghost:hover{border-color:var(--gold)}
+
+  /* service type tiles */
+  .svcs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:760px){.svcs{grid-template-columns:repeat(2,1fr)}}
+  .svc{border:1.5px solid var(--line);border-radius:13px;padding:15px 8px;text-align:center;cursor:pointer;background:var(--card);transition:.13s}
+  .svc:hover{border-color:var(--gold);transform:translateY(-2px)}
+  .svc.on{border-color:var(--gold);background:#fffdf6;box-shadow:0 6px 16px rgba(232,160,32,.18)}
+  .svc .ic{width:44px;height:44px;border-radius:12px;background:#fbeccd;display:grid;place-items:center;margin:0 auto 9px;color:var(--gold)}
+  .svc.on .ic{background:var(--gold);color:#fff}
+  .svc .nm{font-weight:800;font-size:12.5px}
+
+  .fld{margin-top:14px}
+  .fld label{display:block;font-size:12.5px;font-weight:700;margin-bottom:6px}
+  .fld label .req{color:var(--gold)}
+  .fld input,.fld select,.fld textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:14px;font-weight:500;color:var(--ink);background:var(--surface);outline:none;font-family:inherit}
+  .fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--gold);background:#fff}
+  .fld textarea{min-height:84px;resize:vertical}
+  .fld .help{font-size:11.5px;color:var(--muted);margin-top:5px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:600px){.two{grid-template-columns:1fr}}
+
+  .variant{margin-top:14px;border:1px dashed var(--line);border-radius:12px;padding:14px;background:var(--surface);display:none}
+  .variant.show{display:block}
+  .variant h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);margin-bottom:10px}
+  .vg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:700px){.vg{grid-template-columns:1fr 1fr}}
+  .vg .fld{margin-top:0}
+  .vg .fld input,.vg .fld select{background:#fff;padding:9px 11px;font-size:13px}
+
+  /* photos */
+  .drop{border:1.5px dashed var(--line);border-radius:12px;padding:22px;text-align:center;cursor:pointer;background:var(--surface)}
+  .drop:hover{border-color:var(--gold)}
+  .drop .di{color:var(--gold);margin-bottom:6px}
+  .drop .dt{font-weight:700;font-size:13.5px}
+  .drop .ds{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .thumb{width:72px;height:72px;border-radius:10px;background:linear-gradient(135deg,#dfe6ee,#c9d4df);position:relative;border:1px solid var(--line)}
+  .thumb .rm{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;border:none;font-size:11px;cursor:pointer;line-height:1}
+
+  /* RAIL */
+  .rail{background:var(--navy);border-radius:18px;color:#fff;position:sticky;top:18px;box-shadow:0 18px 40px rgba(13,27,42,.28);overflow:hidden}
+  .rail .pad{padding:18px}
+  .rail h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);font-weight:800;margin-bottom:14px}
+  .cust-chip{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:11px;padding:11px 13px;margin-bottom:16px}
+  .cust-chip .ci{width:34px;height:34px;border-radius:9px;background:rgba(232,160,32,.16);display:grid;place-items:center;color:var(--gold);flex:none}
+  .cust-chip .nm{font-weight:700;font-size:13.5px}.cust-chip .ph{font-size:11.5px;color:rgba(255,255,255,.55);font-weight:600}
+
+  .rinput{margin-bottom:12px}
+  .rinput label{display:block;font-size:10.5px;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .rinput input,.rinput select{width:100%;height:42px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:9px;color:#fff;padding:0 12px;font-size:14px;font-weight:700;outline:none}
+  .rinput input:focus,.rinput select:focus{border-color:var(--gold)}
+  .rinput select option{color:#0d1b2a}
+  .svc-tag{font-size:13px;font-weight:700;padding:6px 0}
+  .divide{height:1px;background:rgba(255,255,255,.1);margin:10px 0}
+  .estlbl{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.5);font-weight:800;margin-bottom:8px}
+  .money-in{position:relative;margin-bottom:10px}
+  .money-in span.cur{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.5);font-weight:700;font-size:13px}
+  .money-in input{width:100%;height:40px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:9px;color:#fff;padding:0 12px 0 26px;font-size:14px;font-weight:700;outline:none}
+  .money-in input:focus{border-color:var(--gold)}
+  .money-in .ml{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10.5px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase}
+  .ln{display:flex;align-items:center;justify-content:space-between;padding:7px 2px;font-size:13px}
+  .ln .k{color:rgba(255,255,255,.6);font-weight:600}.ln .v{font-weight:700}
+  .ln.dep .v{color:var(--gold-hi)}
+  .balance{background:rgba(232,160,32,.1);border:1px solid rgba(232,160,32,.25);border-radius:12px;padding:13px;margin:8px 0 4px}
+  .balance .bk{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.6);font-weight:700}
+  .balance .bv{font-size:27px;font-weight:800;letter-spacing:-.02em;margin-top:3px}
+  .open{width:100%;height:54px;margin-top:14px;border:none;border-radius:13px;background:linear-gradient(180deg,var(--gold-hi),var(--gold));color:#3a2600;font-size:15.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 10px 22px rgba(232,160,32,.32)}
+  .open:hover{filter:brightness(1.04);transform:translateY(-1px)}
+  .open:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+  .cancel{width:100%;height:42px;margin-top:10px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+  .cancel:hover{background:rgba(255,255,255,.12)}
+  .miss{font-size:11.5px;color:rgba(255,255,255,.5);text-align:center;margin-top:10px;font-weight:600}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand serif">Pawn</span><span class="dot">·</span>
+    <span class="tenant">Eddy's Jewelers Corp.</span>
+    <div class="right"><span class="pill-admin"><b>ADMIN</b> Console</span><span class="user">Eddy Rodriguez</span></div>
+  </div>
+
+  <div class="subbar">
+    <h1 class="serif">New repair ticket</h1>
+    <a class="back" href="#">Back to repair tickets →</a>
+  </div>
+
+  <div class="stage">
+    <div>
+      <div class="sec">
+        <h2>Customer</h2>
+        <div class="note warn">Customer must be on file before opening a repair ticket.</div>
+        <div class="cust-row">
+          <div class="cust-field"><span class="who">Maria Fernandez · (813) 555-0142</span><button class="x">✕</button></div>
+          <button class="btn-ghost">Create new customer</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Item &amp; service</h2>
+        <div class="note">Pick the service type — it sets the workflow and which details are captured.</div>
+        <div class="svcs" id="svcs">
+          <div class="svc" data-s="repair" onclick="pickSvc(this)">
+            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></div>
+            <div class="nm">REPAIR</div>
+          </div>
+          <div class="svc" data-s="stone" onclick="pickSvc(this)">
+            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9 3 7 9l5 12 5-12-2-6"/></svg></div>
+            <div class="nm">STONE SET</div>
+          </div>
+          <div class="svc" data-s="custom" onclick="pickSvc(this)">
+            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></div>
+            <div class="nm">CUSTOM</div>
+          </div>
+          <div class="svc" data-s="appraisal" onclick="pickSvc(this)">
+            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div>
+            <div class="nm">APPRAISAL</div>
+          </div>
+          <div class="svc" data-s="engraving" onclick="pickSvc(this)">
+            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 20h16M6 16l9-9 3 3-9 9H6z"/></svg></div>
+            <div class="nm">ENGRAVE</div>
+          </div>
+        </div>
+
+        <div class="fld">
+          <label>Title <span class="req">*</span></label>
+          <input id="title" placeholder="e.g. Resize ring 7→6, reset lost center stone" oninput="calc()">
+        </div>
+        <div class="fld">
+          <label>Item description <span class="req">*</span></label>
+          <textarea id="desc" placeholder="Describe the customer's item: metal, karat, weight, distinguishing marks…" oninput="calc()"></textarea>
+        </div>
+        <div class="fld">
+          <label>Work needed</label>
+          <textarea placeholder="What the customer is asking for — the scope of work."></textarea>
+        </div>
+
+        <div class="variant" id="variant">
+          <h3 id="variantTitle">Details</h3>
+          <div class="vg" id="variantFields"></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Intake photos</h2>
+        <div class="note">Document the item before any work begins — protects you and the customer.</div>
+        <div class="drop" onclick="addPhoto()">
+          <div class="di"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg></div>
+          <div class="dt">Add intake photos</div>
+          <div class="ds">Multiple photos OK · drag &amp; drop or click</div>
+        </div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+
+      <div class="sec">
+        <h2>Internal</h2>
+        <div class="fld">
+          <label>Internal notes</label>
+          <textarea placeholder="Staff-only notes…"></textarea>
+          <div class="help">Staff-only. Never shown on a printed ticket or in the customer portal.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RAIL -->
+    <aside class="rail">
+      <div class="pad">
+        <h2>Ticket summary</h2>
+        <div class="cust-chip">
+          <div class="ci"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+          <div><div class="nm">Maria Fernandez</div><div class="ph">(813) 555-0142</div></div>
+        </div>
+
+        <div class="ln"><span class="k">Service type</span><span class="v" id="rSvc">— none —</span></div>
+
+        <div class="rinput">
+          <label>Assign technician</label>
+          <select id="tech"><option>— unassigned —</option><option>Eddy R.</option><option>Bench — Tomás</option><option>Setter — Lucia</option></select>
+        </div>
+        <div class="rinput">
+          <label>Promised pickup date</label>
+          <input id="promised" type="date">
+        </div>
+
+        <div class="divide"></div>
+        <div class="estlbl">Estimate</div>
+        <div class="money-in"><span class="cur">$</span><input id="labor" inputmode="decimal" placeholder="0.00" oninput="calc()"><span class="ml">Labor</span></div>
+        <div class="money-in"><span class="cur">$</span><input id="materials" inputmode="decimal" placeholder="0.00" oninput="calc()"><span class="ml">Materials</span></div>
+        <div class="ln"><span class="k">Estimated total</span><span class="v tnum" id="rTotal">$0.00</span></div>
+        <div class="money-in" style="margin-top:8px"><span class="cur">$</span><input id="deposit" inputmode="decimal" placeholder="0.00" oninput="calc()"><span class="ml">Deposit</span></div>
+
+        <div class="balance">
+          <div class="bk">Balance due at pickup</div>
+          <div class="bv tnum" id="rBalance">$0.00</div>
+        </div>
+
+        <button class="open" id="openBtn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
+          Open ticket
+        </button>
+        <button class="cancel">Cancel</button>
+        <div class="miss" id="miss">Pick a service type, add a title &amp; description</div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+  const VARIANTS={
+    repair:{title:"Repair details",f:[
+      ["Repair type","select",["Ring resize","Solder / weld","Prong rebuild","Clasp replace","Rhodium plate","Chain repair"]],
+      ["Metal / karat","input"],["Size from → to","input"],["Weight (g)","input"]]},
+    stone:{title:"Stone setting details",f:[
+      ["Stone type","input"],["Count","input"],["Size / carat","input"],
+      ["Supplied by","select",["Customer","Shop"]],["Setting style","input"]]},
+    custom:{title:"Custom design details",f:[
+      ["Metal","input"],["CAD needed","select",["Yes","No"]],["Target date","input"],["Design brief","input"]]},
+    appraisal:{title:"Appraisal details",f:[
+      ["Purpose","select",["Insurance","Estate","Resale"]],["Estimated value ($)","input"],["Turnaround","input"]]},
+    engraving:{title:"Engraving details",f:[
+      ["Text","input"],["Font","input"],["Placement","input"],["Characters","input"]]}
+  };
+  const LABEL={repair:"Repair",stone:"Stone setting",custom:"Custom",appraisal:"Appraisal",engraving:"Engraving"};
+  let activeSvc=null, photos=0;
+  const $=id=>document.getElementById(id);
+  const money=n=>"$"+(n||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  function pickSvc(el){
+    document.querySelectorAll('.svc').forEach(s=>s.classList.remove('on'));
+    el.classList.add('on');
+    activeSvc=el.dataset.s;
+    const v=VARIANTS[activeSvc];
+    $('variantTitle').textContent=v.title;
+    $('variantFields').innerHTML=v.f.map(f=>
+      f[1]==='select'
+        ? `<div class="fld"><label>${f[0]}</label><select>${f[2].map(o=>`<option>${o}</option>`).join('')}</select></div>`
+        : `<div class="fld"><label>${f[0]}</label><input placeholder="—"></div>`
+    ).join('');
+    $('variant').classList.add('show');
+    $('rSvc').textContent=LABEL[activeSvc];
+    calc();
+  }
+  function addPhoto(){
+    if(photos>=6)return;
+    photos++;
+    render();
+  }
+  function removePhoto(){photos=Math.max(0,photos-1);render();}
+  function render(){
+    let html='';
+    for(let i=0;i<photos;i++)html+=`<div class="thumb"><button class="rm" onclick="removePhoto()">✕</button></div>`;
+    $('thumbs').innerHTML=html;
+  }
+  function calc(){
+    const labor=parseFloat($('labor').value)||0;
+    const mat=parseFloat($('materials').value)||0;
+    const dep=parseFloat($('deposit').value)||0;
+    const total=labor+mat;
+    const bal=Math.max(0,total-dep);
+    $('rTotal').textContent=money(total);
+    $('rBalance').textContent=money(bal);
+    const ok=activeSvc&&$('title').value.trim()&&$('desc').value.trim();
+    $('openBtn').disabled=!ok;
+    $('miss').style.display=ok?'none':'block';
+  }
+  calc();
+</script>
+</body>
+</html>

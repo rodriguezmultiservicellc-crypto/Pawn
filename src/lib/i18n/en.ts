@@ -1379,6 +1379,22 @@ export const en = {
         'Staff-only. Never shown on a printed ticket or in the customer portal.',
       submit: 'Open ticket',
       submitting: 'Opening…',
+      // ── New repair ticket redesign (two-pane work surface + rail) ──
+      railSummaryTitle: 'Ticket summary',
+      railNoCustomer: 'No customer selected',
+      railServiceNone: '— none —',
+      serviceHelp:
+        'Pick the service type — it sets the workflow and which details are captured.',
+      photosHelp:
+        'Document the item before any work begins — protects you and the customer.',
+      estimateLabel: 'Estimate',
+      estimateHelp: 'For your reference — set the official quote after intake.',
+      laborLabel: 'Labor',
+      materialsLabel: 'Materials',
+      estimatedTotal: 'Estimated total',
+      depositLabel: 'Deposit',
+      balanceDue: 'Balance due at pickup',
+      railMissingHint: 'Pick a service type, add a title & description',
     },
     detail: {
       ticketLabel: 'Ticket',

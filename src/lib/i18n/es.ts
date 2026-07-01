@@ -1372,6 +1372,22 @@ export const es: Dictionary = {
         'Solo personal. No se muestran en el ticket impreso ni en el portal del cliente.',
       submit: 'Abrir orden',
       submitting: 'Abriendo…',
+      // ── Rediseño de nueva orden de reparación (panel de trabajo + barra) ──
+      railSummaryTitle: 'Resumen de la orden',
+      railNoCustomer: 'Sin cliente seleccionado',
+      railServiceNone: '— ninguno —',
+      serviceHelp:
+        'Elige el tipo de servicio — define el flujo y qué detalles se capturan.',
+      photosHelp:
+        'Documenta el artículo antes de empezar cualquier trabajo — te protege a ti y al cliente.',
+      estimateLabel: 'Estimado',
+      estimateHelp: 'Solo de referencia — fija la cotización oficial después de la recepción.',
+      laborLabel: 'Mano de obra',
+      materialsLabel: 'Materiales',
+      estimatedTotal: 'Total estimado',
+      depositLabel: 'Depósito',
+      balanceDue: 'Saldo al recoger',
+      railMissingHint: 'Elige un tipo de servicio, agrega un título y descripción',
     },
     detail: {
       ticketLabel: 'Orden',
