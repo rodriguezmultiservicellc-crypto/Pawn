@@ -13,14 +13,20 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 47 (2026-06-30, sixth pass)
-                  — REPAIR TICKET MULTI-ITEM REDESIGN.
-                  A repair ticket now holds MULTIPLE customer
-                  items; each item = a composed title built
-                  from attribute chips + its own service_type
-                  + a work-needed line. Replaces the single
-                  title / item_description / description triple.
-                  Shipped + build-clean. Committed + pushed.
+  Last session:   Session 48 (2026-07-01, seventh pass)
+                  — APPLIED MIGRATIONS 0045 + 0046 to Supabase
+                  + db:types + cast cleanup. The repair multi-
+                  item feature (Session 47) and the Save-as-
+                  draft feature (Session 45) are now LIVE at
+                  runtime — no longer blocked on pending SQL.
+
+                  Prior Session 47 work (still current):
+                  REPAIR TICKET MULTI-ITEM REDESIGN — a repair
+                  ticket holds MULTIPLE customer items; each
+                  item = a composed title built from attribute
+                  chips + its own service_type + a work-needed
+                  line. Replaces the single title /
+                  item_description / description triple.
 
                   - NEW TABLE repair_ticket_line_items
                     (patches/0046): structured attrs (item_type,
@@ -53,29 +59,32 @@ SEE ALSO (do not duplicate here):
                     deriveItemDescription / deriveTicketTitle /
                     ITEM_TYPES / KARAT_OPTIONS) + 11 vitest cases.
 
-  Context budget: ~55% at save time.
-  Last worked on: Repair multi-item redesign shipped. tsc
-                  clean, eslint clean, npm run build green,
-                  vitest 424/424, i18n en/es parity type-
-                  guaranteed (es: Dictionary). Clean stop.
+  Context budget: ~40% at save time.
+  Last worked on: Applied 0045 + 0046 via scripts/apply-
+                  migration.mjs (Management API, one txn each,
+                  HTTP 201), ran npm run db:types, removed the
+                  now-stale generic-client/as-never casts in
+                  repair new-action + detail page. tsc clean,
+                  lint clean. Backfill verified: 1 existing
+                  repair ticket -> 1 line item. Committed +
+                  pushed (385ab6a). Clean stop.
 
   ACTIVE FILE(S) this session:
-    - patches/0046-repair-line-items.sql (NEW)
-    - src/lib/repair/line-items.ts (NEW) + .test.ts (NEW)
-    - src/lib/validations/repair.ts (line-item schema)
-    - src/app/(staff)/repair/new/{form,actions}.tsx
-    - src/app/(staff)/repair/[id]/{page,content}.tsx
-    - src/lib/i18n/en.ts + es.ts (repair.new_ items block)
+    - src/types/database.ts (regenerated — both new tables)
+    - src/app/(staff)/repair/new/actions.ts (typed insert)
+    - src/app/(staff)/repair/[id]/page.tsx (typed select)
+    (Session 47 files already committed a6db6be — see log.)
 
   RESUME POINT:
-    Clean stopping point — everything committed + pushed.
-    *** OPERATOR STEPS (do FIRST, both pending): (1) apply
-    patches/0046-repair-line-items.sql in Supabase then
-    `npm run db:types` so repair line items persist/read at
-    runtime; (2) still-outstanding from Session 45 — apply
-    patches/0045-loan-drafts.sql + db:types for Save-as-draft.
-    Both build clean without applying (generic-client casts +
-    `as never` bridge the missing types). ***
+    Clean stopping point — everything committed + pushed, and
+    BOTH pending migrations are now applied (0045 loan_drafts
+    + 0046 repair_ticket_line_items) with db:types run. The
+    repair multi-item flow and pawn Save-as-draft are live at
+    runtime. Only open verification is a BROWSER smoke test on
+    the deploy (no in-session browser): /repair/new -> add 2
+    items via chips -> Open ticket -> confirm both show on
+    /repair/[id]; and the draft loop (save from /pawn/new ->
+    /pawn/drafts -> Continue -> issue -> gone).
 
     The next defined BIG work is PAWN REDESIGN PHASE 2,
     steps 2-3:
@@ -100,23 +109,19 @@ SEE ALSO (do not duplicate here):
       pawn-ticket PDF (/api/print/loan) + back page.
 
   OPEN ISSUES / BLOCKERS:
-    - REPAIR LINE ITEMS (Session 47): patches/0046 not applied
-      + db:types not run -> repair_ticket_line_items table
-      absent at runtime. Build clean (generic-client casts);
-      new tickets insert items + detail reads them only after
-      apply. Backfill row per existing ticket runs on apply.
-    - DRAFT FEATURE (Session 45): patches/0045 not applied +
-      db:types not run -> loan_drafts table absent at runtime.
+    - RESOLVED THIS SESSION: patches 0045 + 0046 applied +
+      db:types run. loan_drafts + repair_ticket_line_items are
+      live; the runtime "table absent" blockers are cleared.
     - Repair rail ESTIMATE (labor/materials/deposit) is a
       display-only calculator — NOT submitted/persisted.
-    - Nothing visually verified this session (no browser):
-      new multi-item /repair/new + /repair/[id] item list.
+    - Nothing visually verified in a browser: multi-item
+      /repair/new + /repair/[id] item list, and pawn draft loop.
     - Pawn Phase 2 steps 2-3 (history/buy-merge) deferred.
     - CRON_SECRET still unset in Vercel Production (crons 401).
     - OPENAI_API_KEY still pending in Vercel Production.
     - LeadsOnline CSV column reconciliation (v0 draft).
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 47):
+  KEY DECISIONS LOCKED (Session 47 — still current):
     - MULTI-ITEM = NEW CHILD TABLE, DERIVED PARENT COLUMNS.
       repair_ticket_line_items holds the items; the create
       action DERIVES repair_tickets.title (first item + "(+N)"),
@@ -142,16 +147,20 @@ SEE ALSO (do not duplicate here):
 
   IMPORTANT CONSTANTS / PATHS:
     - Repair line-item table: repair_ticket_line_items
-      (patches/0046 — apply + db:types pending).
+      (patches/0046 — APPLIED 2026-07-01; typed in database.ts).
     - Line-item composer + derivers: src/lib/repair/line-items.ts.
     - Repair intake UI: src/app/(staff)/repair/new/form.tsx
       (multi-item chips; li_<n>_* hidden fields + line_item_
       count; rail item list; estimate still display-only).
     - Repair intake action: repair/new/actions.ts
       (readLineItemRows; derives ticket title/item_desc/service;
-      generic-client insert of line items).
+      typed insert of line items).
     - Repair quote/deposit workflow lives on /repair/[id].
-    - STILL PENDING: apply patches/0046 + 0045 then db:types.
+    - Migration runner: node scripts/apply-migration.mjs
+      patches/<file>.sql (Management API, one txn); then
+      npm run db:types.
+    - Last applied migration: 0046. loan_drafts (0045) also
+      applied this session.
 
   (Sessions 13-46 PRIOR-SESSION decision blocks are in the
   SESSION HISTORY LOG below. Carried-forward architectural
@@ -1619,6 +1628,35 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 48 (2026-07-01, seventh pass) — Apply migrations 0045 + 0046, regenerate types, drop stale casts ---
+
+ 354. APPLIED PATCHES 0045 + 0046 + DB:TYPES + CAST CLEANUP.
+     Operator asked to run the two pending migrations. Applied via
+     scripts/apply-migration.mjs (Supabase Management API, each file
+     sent as one transaction; HTTP 201, "no result rows — DDL applied
+     successfully"): (1) patches/0045-loan-drafts.sql (loan_drafts
+     table — Save-as-draft, pending since Session 45); (2) patches/
+     0046-repair-line-items.sql (repair_ticket_line_items + staff RLS
+     + lock trigger + backfill, from Session 47). NEW RLS on 0046 is a
+     new-table staff read/write pair (my_accessible_tenant_ids +
+     my_is_staff) — no change to any existing tenant-isolation policy;
+     rule #1 respected (policy shown in full when written). Ran
+     `npm run db:types` — src/types/database.ts regenerated (155,677
+     bytes) with both new tables. BACKFILL VERIFIED via a throwaway
+     count query through the same runner: 1 existing non-deleted
+     repair ticket -> 1 line item, 1 ticket_with_items (full parity).
+     Then removed the now-stale temporary bridges written in Session
+     47: repair/new/actions.ts + repair/[id]/page.tsx dropped the
+     `as unknown as SupabaseClient` generic-client casts (and the
+     row-shape `as unknown as Array<...>` in page.tsx) and now use the
+     typed ctx.supabase directly, since both tables are in database.ts;
+     removed the two SupabaseClient imports + stale "until db:types"
+     comments. tsc --noEmit clean, eslint clean on both files. Commit
+     385ab6a pushed to main (3 files, +119/-20). Both runtime blockers
+     from Sessions 45 + 47 cleared — repair multi-item flow and pawn
+     Save-as-draft are live on the deploy. Only remaining verification
+     is a browser smoke test (no in-session browser).
 
 --- Session 47 (2026-06-30, sixth pass) — Repair ticket multi-item redesign (line items + chip title-builder + per-item service) ---
 
@@ -4401,14 +4439,12 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Apply BOTH pending migrations in Supabase then run
-    `npm run db:types`: (1) patches/0046-repair-line-items.sql
-    (repair multi-item — new tickets persist/read items, backfill
-    runs); (2) patches/0045-loan-drafts.sql (Save-as-draft). Then
-    smoke on the deploy: /repair/new -> add 2 items with chips ->
-    Open ticket -> confirm both show on /repair/[id]; and the
-    draft loop (save from /pawn/new -> /pawn/drafts -> Continue ->
-    issue -> gone).
+    Browser smoke test on the deploy (patches 0045 + 0046 are
+    now applied + db:types run): /repair/new -> add 2 items via
+    chips -> Open ticket -> confirm both show on /repair/[id];
+    and the draft loop (save from /pawn/new -> /pawn/drafts ->
+    Continue -> issue -> gone). Then start Pawn Phase 2 step 2
+    (pawn-history re-pawn panel).
 
   BACKLOG (in priority order):
     1. Pawn Phase 2 step 2 — pawn-history re-pawn panel
