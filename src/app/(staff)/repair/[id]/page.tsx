@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { getCtx } from '@/lib/supabase/ctx'
 import {
   REPAIR_PHOTOS_BUCKET,
@@ -103,24 +102,14 @@ export default async function RepairTicketDetailPage(props: {
       .limit(50),
   ])
 
-  // Line items — not in the generated Database type until `npm run db:types`
-  // runs after patches/0046; reach it via a generic client.
-  const db = ctx.supabase as unknown as SupabaseClient
-  const { data: lineItemRows } = await db
+  // Line items (one row per customer item).
+  const { data: lineItemRows } = await ctx.supabase
     .from('repair_ticket_line_items')
     .select('id, line_index, title, service_type, work_needed')
     .eq('ticket_id', id)
     .is('deleted_at', null)
     .order('line_index', { ascending: true })
-  const lineItemViews: RepairLineItemView[] = (
-    (lineItemRows ?? []) as unknown as Array<{
-      id: string
-      line_index: number
-      title: string
-      service_type: string
-      work_needed: string | null
-    }>
-  ).map((li) => ({
+  const lineItemViews: RepairLineItemView[] = (lineItemRows ?? []).map((li) => ({
     id: li.id,
     line_index: li.line_index,
     title: li.title,

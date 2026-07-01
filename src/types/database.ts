@@ -1825,6 +1825,57 @@ export type Database = {
           },
         ]
       }
+      loan_drafts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          deleted_at: string | null
+          id: string
+          payload: Json
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          deleted_at?: string | null
+          id?: string
+          payload?: Json
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          deleted_at?: string | null
+          id?: string
+          payload?: Json
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_drafts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_drafts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_events: {
         Row: {
           amount: number | null
@@ -2533,6 +2584,69 @@ export type Database = {
           },
           {
             foreignKeyName: "repair_ticket_items_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "repair_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repair_ticket_line_items: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          dimension: string | null
+          id: string
+          item_type: string
+          karat: string | null
+          line_index: number
+          service_type: Database["public"]["Enums"]["service_type"]
+          tenant_id: string
+          ticket_id: string
+          title: string
+          weight_grams: number | null
+          work_needed: string | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          dimension?: string | null
+          id?: string
+          item_type: string
+          karat?: string | null
+          line_index: number
+          service_type: Database["public"]["Enums"]["service_type"]
+          tenant_id: string
+          ticket_id: string
+          title: string
+          weight_grams?: number | null
+          work_needed?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          dimension?: string | null
+          id?: string
+          item_type?: string
+          karat?: string | null
+          line_index?: number
+          service_type?: Database["public"]["Enums"]["service_type"]
+          tenant_id?: string
+          ticket_id?: string
+          title?: string
+          weight_grams?: number | null
+          work_needed?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_ticket_line_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_ticket_line_items_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "repair_tickets"

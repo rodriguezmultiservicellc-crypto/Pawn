@@ -1,7 +1,6 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
@@ -193,9 +192,7 @@ export async function createRepairTicketAction(
   if (tErr || !ticket) return { error: tErr?.message ?? 'insert_failed' }
   const ticketId = ticket.id
 
-  // 2. Insert line items (one row per customer item). repair_ticket_line_items
-  //    isn't in the generated Database type until `npm run db:types` runs after
-  //    patches/0046 — reach it via a generic client.
+  // 2. Insert line items (one row per customer item).
   {
     const rows = v.line_items.map((li, idx) => ({
       ticket_id: ticketId,
@@ -209,8 +206,7 @@ export async function createRepairTicketAction(
       service_type: li.service_type,
       work_needed: li.work_needed,
     }))
-    const db = supabase as unknown as SupabaseClient
-    const { error: liErr } = await db
+    const { error: liErr } = await supabase
       .from('repair_ticket_line_items')
       .insert(rows)
     if (liErr) return { error: liErr.message }
