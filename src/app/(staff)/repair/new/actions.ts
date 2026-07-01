@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
@@ -13,6 +14,10 @@ import {
   REPAIR_PHOTOS_BUCKET,
   uploadToBucket,
 } from '@/lib/supabase/storage'
+import {
+  deriveItemDescription,
+  deriveTicketTitle,
+} from '@/lib/repair/line-items'
 import { logAudit } from '@/lib/audit'
 
 export type CreateRepairTicketState = {
@@ -75,6 +80,31 @@ function readStoneRows(fd: FormData) {
   )
 }
 
+/** Pull `li_<n>_<field>` line-item entries out of FormData. */
+function readLineItemRows(fd: FormData) {
+  const countRaw = fd.get('line_item_count')
+  const count = Math.max(
+    0,
+    Math.min(30, parseInt(String(countRaw ?? '0'), 10) || 0),
+  )
+  const rows: Array<Record<string, FormDataEntryValue | null>> = []
+  for (let i = 0; i < count; i++) {
+    rows.push({
+      item_type: fd.get(`li_${i}_item_type`),
+      karat: fd.get(`li_${i}_karat`),
+      weight_grams: fd.get(`li_${i}_weight_grams`),
+      dimension: fd.get(`li_${i}_dimension`),
+      title: fd.get(`li_${i}_title`),
+      service_type: fd.get(`li_${i}_service_type`),
+      work_needed: fd.get(`li_${i}_work_needed`),
+    })
+  }
+  // Keep only rows the operator actually built (an item type was chosen).
+  return rows.filter(
+    (r) => typeof r.item_type === 'string' && r.item_type.trim().length > 0,
+  )
+}
+
 export async function createRepairTicketAction(
   _prev: CreateRepairTicketState,
   formData: FormData,
@@ -98,13 +128,11 @@ export async function createRepairTicketAction(
   const tenantId = ctx.tenantId
 
   const stoneRows = readStoneRows(formData)
+  const lineItemRows = readLineItemRows(formData)
 
   const parsed = repairTicketCreateSchema.safeParse({
     customer_id: formData.get('customer_id'),
-    service_type: formData.get('service_type'),
-    title: formData.get('title'),
-    item_description: formData.get('item_description'),
-    description: formData.get('description'),
+    line_items: lineItemRows,
     promised_date: formData.get('promised_date'),
     assigned_to: formData.get('assigned_to'),
     notes_internal: formData.get('notes_internal'),
@@ -117,10 +145,21 @@ export async function createRepairTicketAction(
       const path = issue.path.join('.')
       if (path) fieldErrors[path] = issue.message
     }
+    // Surface the array-level "need at least one item" message on a stable key.
+    if (!fieldErrors.line_items && lineItemRows.length === 0) {
+      fieldErrors.line_items = 'at_least_one_item'
+    }
     return { fieldErrors }
   }
 
   const v = parsed.data
+
+  // Ticket-level title / item_description / service_type are DERIVED from the
+  // line items so every existing reader (list, board, detail, portal, feed)
+  // keeps working. The first item's service_type represents the ticket.
+  const ticketServiceType = v.line_items[0].service_type
+  const ticketTitle = deriveTicketTitle(v.line_items)
+  const itemDescription = deriveItemDescription(v.line_items)
 
   // Defense-in-depth: confirm customer is in this tenant.
   const { data: customer } = await supabase
@@ -138,10 +177,10 @@ export async function createRepairTicketAction(
     .insert({
       tenant_id: tenantId,
       customer_id: v.customer_id,
-      service_type: v.service_type,
-      title: v.title,
-      description: v.description,
-      item_description: v.item_description,
+      service_type: ticketServiceType,
+      title: ticketTitle,
+      description: null,
+      item_description: itemDescription,
       promised_date: v.promised_date,
       assigned_to: v.assigned_to,
       notes_internal: v.notes_internal,
@@ -154,7 +193,30 @@ export async function createRepairTicketAction(
   if (tErr || !ticket) return { error: tErr?.message ?? 'insert_failed' }
   const ticketId = ticket.id
 
-  // 2. Insert stones.
+  // 2. Insert line items (one row per customer item). repair_ticket_line_items
+  //    isn't in the generated Database type until `npm run db:types` runs after
+  //    patches/0046 — reach it via a generic client.
+  {
+    const rows = v.line_items.map((li, idx) => ({
+      ticket_id: ticketId,
+      tenant_id: tenantId,
+      line_index: idx + 1,
+      item_type: li.item_type,
+      karat: li.karat,
+      weight_grams: li.weight_grams,
+      dimension: li.dimension,
+      title: li.title,
+      service_type: li.service_type,
+      work_needed: li.work_needed,
+    }))
+    const db = supabase as unknown as SupabaseClient
+    const { error: liErr } = await db
+      .from('repair_ticket_line_items')
+      .insert(rows)
+    if (liErr) return { error: liErr.message }
+  }
+
+  // 4. Insert stones.
   if (v.stones && v.stones.length > 0) {
     const rows = v.stones.map((s, idx) => ({
       ticket_id: ticketId,
@@ -175,7 +237,7 @@ export async function createRepairTicketAction(
     await supabase.from('repair_ticket_stones').insert(rows)
   }
 
-  // 3. Upload intake photos. Multiple files under 'intake_files' (FormData
+  // 5. Upload intake photos. Multiple files under 'intake_files' (FormData
   //    appends — getAll picks them all up).
   const photoFiles = formData
     .getAll('intake_files')
@@ -208,7 +270,7 @@ export async function createRepairTicketAction(
     }
   }
 
-  // 4. Intake event.
+  // 6. Intake event.
   await supabase.from('repair_ticket_events').insert({
     ticket_id: ticketId,
     tenant_id: tenantId,
@@ -217,7 +279,7 @@ export async function createRepairTicketAction(
     performed_by: userId,
   })
 
-  // 5. Audit.
+  // 7. Audit.
   await logAudit({
     tenantId,
     userId,
@@ -226,9 +288,10 @@ export async function createRepairTicketAction(
     recordId: ticketId,
     changes: {
       ticket_number: ticket.ticket_number,
-      service_type: v.service_type,
+      service_type: ticketServiceType,
       customer_id: v.customer_id,
-      title: v.title,
+      title: ticketTitle,
+      line_items_count: v.line_items.length,
       stones_count: v.stones?.length ?? 0,
       photos_count: photoCount,
     },

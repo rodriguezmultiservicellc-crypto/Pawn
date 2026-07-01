@@ -13,60 +13,69 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 46 (2026-06-30, fifth pass)
-                  — NEW REPAIR TICKET REDESIGN (two-pane
-                  work surface + navy rail), from operator
-                  mockup new-repair-ticket.html. Shipped +
-                  build-clean. Uncommitted before checkpoint.
+  Last session:   Session 47 (2026-06-30, sixth pass)
+                  — REPAIR TICKET MULTI-ITEM REDESIGN.
+                  A repair ticket now holds MULTIPLE customer
+                  items; each item = a composed title built
+                  from attribute chips + its own service_type
+                  + a work-needed line. Replaces the single
+                  title / item_description / description triple.
+                  Shipped + build-clean. Committed + pushed.
 
-                  - Rewrote ONLY src/app/(staff)/repair/new/
-                    form.tsx into the two-pane layout
-                    (grid [1fr_360px]); createRepairTicketAction
-                    + FormData contract + validation UNCHANGED
-                    (repair intake is a regulated write, so
-                    same pattern as Session 43 POS/pawn-new).
-                  - Left work surface: Customer (picker +
-                    "Create new customer" -> QuickCustomerModal,
-                    same as pawn-new) + Item & service (7
-                    service-type TILES replacing the <select>,
-                    submitting hidden service_type) + title +
-                    item description + work-needed + inline
-                    stones editor (gated stone_setting/custom)
-                    + intake photos (big dropzone) + internal
-                    notes.
-                  - Right navy rail: customer chip, service-
-                    type row, assign technician (name=
-                    assigned_to), promised pickup (name=
-                    promised_date), ESTIMATE (labor + materials
-                    -> estimated total, deposit -> balance due)
-                    — DISPLAY-ONLY calculator, NOT submitted;
-                    Open ticket (disabled until customer +
-                    title + item desc) + Cancel.
-                  - StoneRowEditor + Input helpers unchanged.
-                  - New repair.new_ rail i18n (en+es):
-                    railSummaryTitle / railNoCustomer /
-                    railServiceNone / serviceHelp / photosHelp /
-                    estimateLabel / estimateHelp / laborLabel /
-                    materialsLabel / estimatedTotal /
-                    depositLabel / balanceDue / railMissingHint.
+                  - NEW TABLE repair_ticket_line_items
+                    (patches/0046): structured attrs (item_type,
+                    karat, weight_grams numeric(10,4), dimension)
+                    + composed title + per-item service_type +
+                    work_needed, soft-delete, staff RLS, lock-
+                    immutability trigger (rule #14), + backfill
+                    of one row per existing ticket.
+                  - repair/new/form.tsx rewritten: per-item card
+                    with item-type chips (Ring/Necklace/Bracelet/
+                    Earrings/Pendant/Chain/Watch/Other), karat
+                    chips (10k-24k/925/950), typed weight(g) +
+                    length/size, per-item service chips (7), work-
+                    needed input, LIVE composed title preview.
+                    Add/remove items; rail lists items + count.
+                  - createRepairTicketAction now parses li_<n>_*
+                    + line_item_count, validates line_items[],
+                    and DERIVES ticket title / item_description /
+                    service_type from the items so every existing
+                    reader (list/board/detail/portal/feed/audit)
+                    keeps working with no rewrite. Inserts line
+                    items via generic-client cast (table not in
+                    database.ts until db:types).
+                  - [id] detail ItemPanel now lists the line
+                    items (title + ServiceTypeBadge + work);
+                    legacy item_description shown only when a
+                    ticket has zero line items.
+                  - Pure helper lib/repair/line-items.ts
+                    (composeLineItemTitle / normalizeWeightGrams /
+                    deriveItemDescription / deriveTicketTitle /
+                    ITEM_TYPES / KARAT_OPTIONS) + 11 vitest cases.
 
-  Context budget: ~68% at save time.
-  Last worked on: Repair-new redesign shipped. tsc clean,
-                  eslint clean, npm run build green, 413 tests
-                  pass, i18n en/es parity verified. Clean stop.
+  Context budget: ~55% at save time.
+  Last worked on: Repair multi-item redesign shipped. tsc
+                  clean, eslint clean, npm run build green,
+                  vitest 424/424, i18n en/es parity type-
+                  guaranteed (es: Dictionary). Clean stop.
 
   ACTIVE FILE(S) this session:
-    - src/app/(staff)/repair/new/form.tsx (rewritten two-pane)
-    - src/lib/i18n/en.ts + es.ts (repair.new_ rail block)
-    - new-repair-ticket.html (operator mockup, repo root)
+    - patches/0046-repair-line-items.sql (NEW)
+    - src/lib/repair/line-items.ts (NEW) + .test.ts (NEW)
+    - src/lib/validations/repair.ts (line-item schema)
+    - src/app/(staff)/repair/new/{form,actions}.tsx
+    - src/app/(staff)/repair/[id]/{page,content}.tsx
+    - src/lib/i18n/en.ts + es.ts (repair.new_ items block)
 
   RESUME POINT:
     Clean stopping point — everything committed + pushed.
-    *** STILL OUTSTANDING FROM SESSION 45 (do FIRST): apply
-    patches/0045-loan-drafts.sql in Supabase, then run
-    `npm run db:types`, so the Save-as-draft feature works at
-    runtime (loan_drafts table absent until then; build clean
-    regardless). ***
+    *** OPERATOR STEPS (do FIRST, both pending): (1) apply
+    patches/0046-repair-line-items.sql in Supabase then
+    `npm run db:types` so repair line items persist/read at
+    runtime; (2) still-outstanding from Session 45 — apply
+    patches/0045-loan-drafts.sql + db:types for Save-as-draft.
+    Both build clean without applying (generic-client casts +
+    `as never` bridge the missing types). ***
 
     The next defined BIG work is PAWN REDESIGN PHASE 2,
     steps 2-3:
@@ -81,79 +90,70 @@ SEE ALSO (do not duplicate here):
 
     ALSO QUEUED:
     - REPAIR quote/deposit at intake: the rail estimate is
-      display-only this pass. Persisting an initial quote +
-      deposit at intake would need the repair quote workflow
-      (quote_set event + status->'quoted' + quote_set_at,
-      deposit event + deposit_collected_at) — its own pass,
-      not a silent write at create time.
+      still display-only. Persisting an initial quote + deposit
+      at intake needs the repair quote workflow (quote_set
+      event + status->'quoted' + quote_set_at, deposit event +
+      deposit_collected_at) — its own pass.
+    - Consider per-item stones (stones are still ticket-level,
+      shown when any item is stone_setting/custom).
     - FL Pawnbroker Transaction Form alignment pass on the
       pawn-ticket PDF (/api/print/loan) + back page.
 
   OPEN ISSUES / BLOCKERS:
+    - REPAIR LINE ITEMS (Session 47): patches/0046 not applied
+      + db:types not run -> repair_ticket_line_items table
+      absent at runtime. Build clean (generic-client casts);
+      new tickets insert items + detail reads them only after
+      apply. Backfill row per existing ticket runs on apply.
     - DRAFT FEATURE (Session 45): patches/0045 not applied +
       db:types not run -> loan_drafts table absent at runtime.
-      Build clean; feature non-functional until operator
-      applies.
     - Repair rail ESTIMATE (labor/materials/deposit) is a
-      display-only calculator — NOT submitted/persisted (the
-      official quote/deposit are set post-intake via the
-      repair quote workflow; setting them at intake would
-      bypass the quote_set event + status transition).
-    - Repair mockup showed 5 illustrative tiles incl. an
-      "appraisal" that is NOT in the service_type enum;
-      shipped the 7 REAL enum tiles (repair/stone_setting/
-      sizing/restring/plating/engraving/custom). Speculative
-      variant fields (metal/karat/size) NOT added — server
-      doesn't persist them; free-text item desc + work-needed
-      cover it.
+      display-only calculator — NOT submitted/persisted.
     - Nothing visually verified this session (no browser):
-      new /repair/new, plus prior /pawn list, /pawn/new draft
-      flow, dashboard.
+      new multi-item /repair/new + /repair/[id] item list.
     - Pawn Phase 2 steps 2-3 (history/buy-merge) deferred.
     - CRON_SECRET still unset in Vercel Production (crons 401).
     - OPENAI_API_KEY still pending in Vercel Production.
     - LeadsOnline CSV column reconciliation (v0 draft).
 
-  KEY DECISIONS LOCKED THIS SESSION (Session 46):
-    - REPAIR-NEW = ONE COMPONENT, SERVER UNCHANGED (Session-43
-      discipline). Repair intake is a regulated write, so the
-      redesign reshaped form.tsx ONLY and submits the exact
-      same FormData the unchanged createRepairTicketAction
-      already reads (customer_id, service_type, title,
-      item_description, description, promised_date, assigned_
-      to, notes_internal, stone_count + stone_<n>_*,
-      intake_files). Build-verifiable, zero data-model change.
-    - ESTIMATE IS DISPLAY-ONLY. repair_tickets HAS quote_
-      amount + deposit_amount, but they're a deliberate POST-
-      intake workflow (intake -> quoted via quote_set event +
-      quote_set_at; deposit via its own event + collected_at;
-      immutability trigger after lock). Setting them at intake
-      would bypass that state machine, so the rail estimate is
-      a calculator (like the pawn-rail redemption preview),
-      not submitted. Persisting an initial quote is a proper
-      follow-up.
-    - SERVICE TILES = REAL ENUM ONLY. Rendered the 7 actual
-      service_type values as tiles (not the mockup's 5 with a
-      non-enum "appraisal"). Kept the stones editor (real,
-      server-backed); dropped the mockup's speculative variant
-      fields the server can't persist.
-    - CUSTOMER CREATE = SHARED MODAL. Reused QuickCustomerModal
-      (Session 44) + CustomerPicker ref/onChange instead of a
-      <Link> to /customers/new — consistent with pawn-new.
+  KEY DECISIONS LOCKED THIS SESSION (Session 47):
+    - MULTI-ITEM = NEW CHILD TABLE, DERIVED PARENT COLUMNS.
+      repair_ticket_line_items holds the items; the create
+      action DERIVES repair_tickets.title (first item + "(+N)"),
+      item_description (joined "title — work" lines), and
+      service_type (first item) so the list/board/detail/portal/
+      dashboard/audit readers need NO change. Not JSONB — a real
+      table (soft-delete, RLS, lock trigger) is the right build.
+    - SERVICE_TYPE PER ITEM (operator choice). Each line item
+      carries its own service_type chip; ticket-level service_
+      type = first item (keeps the ticket-scoped workflow /
+      kanban / quote intact).
+    - TITLE FROM CHIPS, STORED IN ENGLISH. composeLineItemTitle
+      builds "Necklace · 14k · 2.8g · 18\"" from the canonical
+      English type label so stored titles are stable regardless
+      of capture language (item titles are data snapshots, like
+      inventory descriptions). Karat chips (10k/925/etc.) are
+      fineness marks — deliberately not translated.
+    - STONES STAY TICKET-LEVEL. Shown when ANY item is
+      stone_setting|custom; per-item stones deferred.
+    - LOCK IMMUTABILITY (rule #14). Line items freeze via
+      BEFORE UPDATE/DELETE trigger once parent is_locked = TRUE
+      (matches the item_description freeze they replace).
 
   IMPORTANT CONSTANTS / PATHS:
+    - Repair line-item table: repair_ticket_line_items
+      (patches/0046 — apply + db:types pending).
+    - Line-item composer + derivers: src/lib/repair/line-items.ts.
     - Repair intake UI: src/app/(staff)/repair/new/form.tsx
-      (two-pane; hidden service_type; rail estimate display-
-      only; QuickCustomerModal for new customer).
-    - Repair intake action (UNCHANGED): repair/new/actions.ts
-      (createRepairTicketAction — intake status, stones,
-      photos, event, audit; NO quote/deposit at intake).
-    - Repair quote/deposit workflow lives on /repair/[id]
-      (quote_set / approve / deposit actions).
-    - STILL PENDING: apply patches/0045-loan-drafts.sql +
-      npm run db:types (Session 45 draft feature).
+      (multi-item chips; li_<n>_* hidden fields + line_item_
+      count; rail item list; estimate still display-only).
+    - Repair intake action: repair/new/actions.ts
+      (readLineItemRows; derives ticket title/item_desc/service;
+      generic-client insert of line items).
+    - Repair quote/deposit workflow lives on /repair/[id].
+    - STILL PENDING: apply patches/0046 + 0045 then db:types.
 
-  (Sessions 13-45 PRIOR-SESSION decision blocks are in the
+  (Sessions 13-46 PRIOR-SESSION decision blocks are in the
   SESSION HISTORY LOG below. Carried-forward architectural
   decisions live in CLAUDE.md.)
 
@@ -1619,6 +1619,78 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 47 (2026-06-30, sixth pass) — Repair ticket multi-item redesign (line items + chip title-builder + per-item service) ---
+
+ 350. REPAIR_TICKET_LINE_ITEMS TABLE (patches/0046-repair-line-items.sql,
+     NEW). A repair ticket now holds MULTIPLE customer items. New child
+     table: id, ticket_id (FK CASCADE), tenant_id, line_index, item_type
+     TEXT NOT NULL, karat TEXT, weight_grams NUMERIC(10,4) (metal-weight
+     rule), dimension TEXT, title TEXT NOT NULL (composed), service_type
+     service_type NOT NULL (PER ITEM), work_needed TEXT, created_at,
+     deleted_at. Staff RLS (read + write) mirroring repair_ticket_stones
+     (my_accessible_tenant_ids + my_is_staff). Indexes on (ticket_id,
+     line_index) and (tenant_id) WHERE deleted_at IS NULL. LOCK
+     IMMUTABILITY (rule #14): repair_line_items_enforce_lock() BEFORE
+     UPDATE/DELETE raises when the parent repair_tickets.is_locked = TRUE
+     (INSERT stays open, matching stones). BACKFILL: one line item per
+     existing non-deleted ticket derived from its title / description /
+     service_type (item_type='other'), idempotent via NOT EXISTS, so the
+     detail page renders legacy tickets through the same path. NOTIFY
+     pgrst + documented rollback. OPERATOR: apply 0046 then db:types.
+
+ 351. PURE COMPOSER + DERIVERS (src/lib/repair/line-items.ts, NEW) +
+     11 vitest cases (line-items.test.ts, NEW). composeLineItemTitle
+     builds "Necklace · 14k · 2.8g · 18\"" from canonical ENGLISH type
+     labels (ITEM_TYPES) so stored titles are language-stable;
+     normalizeWeightGrams trims trailing zeros / rejects <=0 / non-finite;
+     deriveItemDescription joins "title — work" one line per item;
+     deriveTicketTitle = first item + " (+N)" (capped 200). ITEM_TYPES
+     (ring/necklace/bracelet/earrings/pendant/chain/watch/other) +
+     KARAT_OPTIONS (10k/14k/18k/21k/22k/24k/925/950). Validation
+     (validations/repair.ts): repairLineItemSchema + repairLineItemsArray
+     Schema (min 1 'at_least_one_item', max 30); repairTicketCreateSchema
+     now takes line_items[] and DROPS the single service_type / title /
+     item_description / description (derived server-side instead).
+
+ 352. INTAKE FORM REWRITE (repair/new/form.tsx). Multi-item composer on
+     the two-pane surface: each item is a LineItemEditor card with item-
+     type chips, karat chips, typed weight(g) + length/size, per-item
+     service chips (reusing SERVICE_TILES), work-needed input, and a LIVE
+     composed title preview. Add/remove items (min 1). Hidden fields per
+     item: line_item_count + li_<n>_{item_type,karat,weight_grams,
+     dimension,title,service_type,work_needed}. Stones editor still
+     ticket-level, shown when ANY item is stone_setting|custom. Rail now
+     lists built items + count (replaced the single service-type row);
+     estimate calculator unchanged (still display-only). canOpen =
+     customer selected + >=1 item with an item_type. notes_internal
+     relabeled "Repair notes (tech)". createRepairTicketAction
+     (repair/new/actions.ts): readLineItemRows parses li_<n>_*, filters
+     to rows with an item_type, validates, derives ticket title/item_
+     description/service_type, inserts the ticket, then inserts line items
+     via a generic-client cast (repair_ticket_line_items absent from
+     database.ts until db:types). Audit adds line_items_count.
+
+ 353. DETAIL PAGE LINE-ITEM RENDER (repair/[id]/page.tsx + content.tsx).
+     page.tsx fetches repair_ticket_line_items via generic-client cast
+     (id, line_index, title, service_type, work_needed), maps to new
+     RepairLineItemView[], threads to RepairTicketDetail. content.tsx
+     ItemPanel now renders the item list (title + ServiceTypeBadge +
+     work_needed); the free-text item_description block shows ONLY as a
+     legacy fallback when a ticket has zero line items (the removed
+     ticket.description render orphaned repair.detail.workNeeded, deleted
+     from en+es). i18n: repair.new_ gained items block (itemsHelp /
+     itemLabel / itemType / itemTypes.* / karat / weightGrams /
+     weightPlaceholder / dimension / dimensionPlaceholder / service /
+     workNeeded / workNeededPlaceholder / titlePreview / titleEmpty /
+     addItem / removeItem / atLeastOneItem / railItemsTitle / railNoItems)
+     and dropped the now-orphaned single-item keys (serviceType /
+     serviceTypeHelp / titleField / titlePlaceholder / itemDescription /
+     itemDescriptionPlaceholder / description / descriptionPlaceholder /
+     railServiceNone / serviceHelp); sectionItem repurposed to "Items",
+     sectionStaff to "Repair notes", railMissingHint updated. en+es at
+     parity (es: Dictionary → tsc-guaranteed). GATE: tsc clean, eslint
+     clean, vitest 424/424 (413 + 11 new), npm run build green.
 
 --- Session 46 (2026-06-30, fifth pass) — New repair ticket redesign (two-pane work surface + rail) from new-repair-ticket.html ---
 
@@ -4329,11 +4401,14 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Apply patches/0045-loan-drafts.sql in Supabase, then run
-    `npm run db:types`, so the Save-as-draft feature works at
-    runtime (loan_drafts table). After that, smoke the draft
-    loop on the deploy: save a draft from /pawn/new, see it on
-    /pawn/drafts, Continue -> prefill -> issue -> draft gone.
+    Apply BOTH pending migrations in Supabase then run
+    `npm run db:types`: (1) patches/0046-repair-line-items.sql
+    (repair multi-item — new tickets persist/read items, backfill
+    runs); (2) patches/0045-loan-drafts.sql (Save-as-draft). Then
+    smoke on the deploy: /repair/new -> add 2 items with chips ->
+    Open ticket -> confirm both show on /repair/[id]; and the
+    draft loop (save from /pawn/new -> /pawn/drafts -> Continue ->
+    issue -> gone).
 
   BACKLOG (in priority order):
     1. Pawn Phase 2 step 2 — pawn-history re-pawn panel
@@ -4350,19 +4425,22 @@ PENDING — NEXT UP
        deposit) through the repair quote workflow (quote_set
        event + status->'quoted' + quote_set_at; deposit event
        + deposit_collected_at). Currently display-only.
-    4. FL Pawnbroker Transaction Form alignment pass on the
+    4. Repair per-item stones — stones are still ticket-level
+       (shown when any item is stone_setting/custom); move to
+       per-line-item if operators need it.
+    5. FL Pawnbroker Transaction Form alignment pass on the
        pawn-ticket PDF (/api/print/loan) + back page —
        match FL_Pawnbroker_Transaction_Form.pdf layout
        (header/control#, pledgor block incl. race + business
        phone + owner-applied#, code legends, items 1-6 with
        serial/brand/model#, APR + thumb-print line, reverse
        statutory terms + Record of Payments table).
-    5. Set CRON_SECRET in Vercel Production (all crons 401).
-    6. Reconcile LeadsOnline CSV columns vs agency spec.
-    7. Visually verify the new dashboard, /pawn list,
-       /pawn/new modal + draft flow, and the new /repair/new
-       two-pane on the deploy (no browser verification
-       in-session).
+    6. Set CRON_SECRET in Vercel Production (all crons 401).
+    7. Reconcile LeadsOnline CSV columns vs agency spec.
+    8. Visually verify the new dashboard, /pawn list,
+       /pawn/new modal + draft flow, and the new multi-item
+       /repair/new + /repair/[id] item list on the deploy
+       (no browser verification in-session).
 
   KNOWN ISSUES TO REVISIT:
     - OPENAI_API_KEY pending in Vercel Production env.

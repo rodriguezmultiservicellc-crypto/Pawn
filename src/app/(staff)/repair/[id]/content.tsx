@@ -142,6 +142,14 @@ export type RepairPartView = {
   notes: string | null
 }
 
+export type RepairLineItemView = {
+  id: string
+  line_index: number
+  title: string
+  service_type: ServiceType
+  work_needed: string | null
+}
+
 export type RepairPhotoView = {
   id: string
   storage_path: string
@@ -182,6 +190,7 @@ type DialogKind =
 
 export default function RepairTicketDetail({
   ticket,
+  lineItems,
   stones,
   parts,
   photos,
@@ -192,6 +201,7 @@ export default function RepairTicketDetail({
   myUserId,
 }: {
   ticket: RepairTicketView
+  lineItems: RepairLineItemView[]
   stones: RepairStoneView[]
   parts: RepairPartView[]
   photos: RepairPhotoView[]
@@ -536,7 +546,7 @@ export default function RepairTicketDetail({
       {/* Overview + Customer item */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <OverviewPanel ticket={ticket} />
-        <ItemPanel ticket={ticket} />
+        <ItemPanel ticket={ticket} lineItems={lineItems} />
         <AssignmentPanel
           ticket={ticket}
           technicians={technicians}
@@ -695,7 +705,13 @@ function OverviewPanel({ ticket }: { ticket: RepairTicketView }) {
   )
 }
 
-function ItemPanel({ ticket }: { ticket: RepairTicketView }) {
+function ItemPanel({
+  ticket,
+  lineItems,
+}: {
+  ticket: RepairTicketView
+  lineItems: RepairLineItemView[]
+}) {
   const { t } = useI18n()
   return (
     <section className="rounded-xl border border-border bg-card">
@@ -706,20 +722,39 @@ function ItemPanel({ ticket }: { ticket: RepairTicketView }) {
         </h2>
       </header>
       <div className="space-y-3 p-4 text-sm">
-        <div>
-          <div className="text-xs text-muted">
-            {t.repair.detail.itemDescription}
-          </div>
-          <div className="text-foreground">{ticket.item_description}</div>
-        </div>
-        {ticket.description ? (
+        {lineItems.length > 0 ? (
+          <ul className="space-y-2">
+            {lineItems.map((li) => (
+              <li
+                key={li.id}
+                className="rounded-md border border-border bg-background/40 p-2.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-semibold text-foreground">
+                    {li.title}
+                  </span>
+                  <ServiceTypeBadge type={li.service_type} />
+                </div>
+                {li.work_needed ? (
+                  <div className="mt-1 text-foreground/90 whitespace-pre-wrap">
+                    {li.work_needed}
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          // Legacy tickets (no line items backfilled): fall back to the
+          // free-text snapshot.
           <div>
-            <div className="text-xs text-muted">{t.repair.detail.workNeeded}</div>
+            <div className="text-xs text-muted">
+              {t.repair.detail.itemDescription}
+            </div>
             <div className="text-foreground whitespace-pre-wrap">
-              {ticket.description}
+              {ticket.item_description}
             </div>
           </div>
-        ) : null}
+        )}
         {ticket.notes_internal ? (
           <div className="rounded-md border border-warning/20 bg-warning/5 p-2">
             <div className="text-xs text-warning">

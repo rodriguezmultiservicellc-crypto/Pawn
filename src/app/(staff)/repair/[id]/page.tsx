@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getCtx } from '@/lib/supabase/ctx'
 import {
   REPAIR_PHOTOS_BUCKET,
@@ -6,6 +7,7 @@ import {
 } from '@/lib/supabase/storage'
 import RepairTicketDetail, {
   type InventoryPartChoice,
+  type RepairLineItemView,
   type RepairPartView,
   type RepairPhotoView,
   type RepairStoneView,
@@ -100,6 +102,31 @@ export default async function RepairTicketDetailPage(props: {
       .order('started_at', { ascending: false })
       .limit(50),
   ])
+
+  // Line items — not in the generated Database type until `npm run db:types`
+  // runs after patches/0046; reach it via a generic client.
+  const db = ctx.supabase as unknown as SupabaseClient
+  const { data: lineItemRows } = await db
+    .from('repair_ticket_line_items')
+    .select('id, line_index, title, service_type, work_needed')
+    .eq('ticket_id', id)
+    .is('deleted_at', null)
+    .order('line_index', { ascending: true })
+  const lineItemViews: RepairLineItemView[] = (
+    (lineItemRows ?? []) as unknown as Array<{
+      id: string
+      line_index: number
+      title: string
+      service_type: string
+      work_needed: string | null
+    }>
+  ).map((li) => ({
+    id: li.id,
+    line_index: li.line_index,
+    title: li.title,
+    service_type: li.service_type as ServiceType,
+    work_needed: li.work_needed,
+  }))
 
   // Resolve user names for assigned_to + technicians + event performers.
   const userIds = new Set<string>()
@@ -278,6 +305,7 @@ export default async function RepairTicketDetailPage(props: {
   return (
     <RepairTicketDetail
       ticket={view}
+      lineItems={lineItemViews}
       stones={stoneViews}
       parts={partViews}
       photos={photoViews}

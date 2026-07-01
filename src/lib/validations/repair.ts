@@ -132,14 +132,43 @@ export const repairInitialStonesArraySchema = z
   .optional()
   .default([])
 
+// ── Line item (per customer item on the ticket) ─────────────────────────────
+// A ticket holds one or more items. Each carries the structured attributes the
+// intake title-builder chips capture, a composed display `title`, its own
+// service_type, and the work the tech must perform.
+
+const optionalWeightGrams = z
+  .preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.coerce.number().positive().finite().nullable().optional(),
+  )
+  .transform((v) => (v === null || v === undefined ? null : v))
+
+export const repairLineItemSchema = z.object({
+  item_type: z.string().trim().min(1, 'required').max(40),
+  karat: optionalShortString,
+  weight_grams: optionalWeightGrams,
+  dimension: optionalShortString,
+  title: z.string().trim().min(1, 'required').max(200),
+  service_type: serviceTypeSchema,
+  work_needed: optionalTrimmedString,
+})
+
+export type RepairLineItemInput = z.infer<typeof repairLineItemSchema>
+
+export const repairLineItemsArraySchema = z
+  .array(repairLineItemSchema)
+  .min(1, 'at_least_one_item')
+  .max(30)
+
 // ── Create ticket ───────────────────────────────────────────────────────────
+// Ticket-level title / item_description / service_type are DERIVED from the
+// line items by the create action (see repair/new/actions.ts), so they are not
+// submitted here.
 
 export const repairTicketCreateSchema = z.object({
   customer_id: z.string().uuid(),
-  service_type: serviceTypeSchema,
-  title: z.string().trim().min(2, 'too_short').max(200),
-  item_description: z.string().trim().min(2, 'too_short').max(2000),
-  description: optionalTrimmedString,
+  line_items: repairLineItemsArraySchema,
   promised_date: optionalDate,
   assigned_to: optionalUuid,
   notes_internal: optionalTrimmedString,
