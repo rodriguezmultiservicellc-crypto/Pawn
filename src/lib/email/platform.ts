@@ -56,7 +56,7 @@ function platformResendCreds(): {
       process.env.RESEND_PLATFORM_FROM_EMAIL ??
       process.env.RESEND_FROM_EMAIL ??
       null,
-    fromName: process.env.RESEND_PLATFORM_FROM_NAME ?? 'Pawn',
+    fromName: process.env.RESEND_PLATFORM_FROM_NAME ?? 'Sol Pawn',
   }
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
@@ -34,6 +34,17 @@ export default function QuickCustomerModal({
   >(createCustomerInlineAction, {})
   const firstFieldRef = useRef<HTMLInputElement>(null)
   const handledRef = useRef(false)
+
+  // Height is captured as feet + inches and composed into the single
+  // height_inches value Zod consumes (mirrors CustomerFormFields).
+  const [heightFeet, setHeightFeet] = useState('')
+  const [heightInches, setHeightInches] = useState('')
+  const composedHeight = (() => {
+    const ft = parseInt(heightFeet, 10)
+    const inch = parseInt(heightInches, 10)
+    if (isNaN(ft) && isNaN(inch)) return ''
+    return String((isNaN(ft) ? 0 : ft) * 12 + (isNaN(inch) ? 0 : inch))
+  })()
 
   // On a successful create, hand the new customer up and close — once.
   useEffect(() => {
@@ -156,6 +167,76 @@ export default function QuickCustomerModal({
                   type="date"
                   className={inputCls(!!fe.id_expiry)}
                 />
+              </Field>
+            </div>
+          </fieldset>
+
+          <fieldset className="rounded-lg border border-border p-3">
+            <legend className="px-1 text-xs font-semibold text-muted">
+              {tc.sectionPawnRequired}
+            </legend>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Field label={tc.heightFeet} error={fe.height_inches}>
+                <input
+                  name="height_feet_display"
+                  type="number"
+                  min={1}
+                  max={8}
+                  value={heightFeet}
+                  onChange={(e) => setHeightFeet(e.target.value)}
+                  className={inputCls(!!fe.height_inches)}
+                />
+              </Field>
+              <Field label={tc.heightInches}>
+                <input
+                  name="height_inches_display"
+                  type="number"
+                  min={0}
+                  max={11}
+                  value={heightInches}
+                  onChange={(e) => setHeightInches(e.target.value)}
+                  className={inputCls(false)}
+                />
+              </Field>
+              <input type="hidden" name="height_inches" value={composedHeight} />
+              <Field label={tc.weightLbs} error={fe.weight_lbs}>
+                <input
+                  name="weight_lbs"
+                  type="number"
+                  className={inputCls(!!fe.weight_lbs)}
+                />
+              </Field>
+              <Field label={tc.sex} error={fe.sex}>
+                <input name="sex" placeholder="M / F / X" className={inputCls(!!fe.sex)} />
+              </Field>
+              <Field label={tc.hairColor} error={fe.hair_color}>
+                <input name="hair_color" className={inputCls(!!fe.hair_color)} />
+              </Field>
+              <Field label={tc.eyeColor} error={fe.eye_color}>
+                <input name="eye_color" className={inputCls(!!fe.eye_color)} />
+              </Field>
+              <div className="col-span-2">
+                <Field
+                  label={tc.placeOfEmployment}
+                  error={fe.place_of_employment}
+                >
+                  <input
+                    name="place_of_employment"
+                    className={inputCls(!!fe.place_of_employment)}
+                  />
+                </Field>
+              </div>
+            </div>
+            <div className="mt-3">
+              <Field label={tc.identifyingMarks} error={fe.identifying_marks}>
+                <textarea
+                  name="identifying_marks"
+                  rows={2}
+                  className={inputCls(!!fe.identifying_marks)}
+                />
+                <span className="text-xs text-muted">
+                  {tc.identifyingMarksHelp}
+                </span>
               </Field>
             </div>
           </fieldset>

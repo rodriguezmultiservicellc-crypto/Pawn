@@ -118,8 +118,14 @@ export async function proxy(request: NextRequest) {
 
   // Unauthenticated → sign-in page (preserve the original destination
   // for post-login redirect). Portal URLs go to the customer-facing
-  // /portal/login; everything else goes to staff /login.
+  // /portal/login; everything else goes to staff /login. EXCEPTION: the
+  // apex "/" is the public marketing landing — logged-out visitors see it
+  // instead of being bounced to /login (authenticated users are still
+  // role-routed by the "/" block below).
   if (!userId) {
+    if (pathname === '/') {
+      return response
+    }
     const url = request.nextUrl.clone()
     url.pathname = pathname.startsWith('/portal') ? '/portal/login' : '/login'
     url.searchParams.set('next', pathname)

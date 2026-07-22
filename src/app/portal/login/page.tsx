@@ -10,7 +10,7 @@ import PortalLoginForm from './form'
 export default function PortalLoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-navy px-4 py-12">
-      <h1 className="font-display text-3xl font-bold text-white">Pawn</h1>
+      <h1 className="font-display text-3xl font-bold text-white">Sol Pawn</h1>
       <div className="w-full max-w-md rounded-2xl bg-card p-10 shadow-lg">
         <PortalLoginForm />
       </div>

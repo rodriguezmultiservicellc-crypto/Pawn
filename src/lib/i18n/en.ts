@@ -12,7 +12,7 @@
 
 export const en = {
   common: {
-    appName: 'Pawn',
+    appName: 'Sol Pawn',
     loading: 'Loading…',
     customerPicker: {
       placeholder: 'Search customer by name, phone, or DL #…',
@@ -2311,13 +2311,13 @@ export const en = {
       layaway_completed: 'Sent when a layaway is paid in full.',
       custom: 'Manual one-off message — staff fills in the body at send time.',
       saas_trial_ending:
-        'Platform-sent: Pawn (RMS) notifies the tenant owner that their subscription trial ends soon. Not configurable per tenant.',
+        'Platform-sent: Sol Pawn (RMS) notifies the tenant owner that their subscription trial ends soon. Not configurable per tenant.',
       saas_payment_failed:
-        'Platform-sent: Pawn (RMS) notifies the tenant owner that a subscription payment failed.',
+        'Platform-sent: Sol Pawn (RMS) notifies the tenant owner that a subscription payment failed.',
       saas_payment_recovered:
-        'Platform-sent: Pawn (RMS) confirms a previously-failed payment has cleared.',
+        'Platform-sent: Sol Pawn (RMS) confirms a previously-failed payment has cleared.',
       saas_subscription_cancelled:
-        'Platform-sent: Pawn (RMS) confirms the tenant subscription has been cancelled.',
+        'Platform-sent: Sol Pawn (RMS) confirms the tenant subscription has been cancelled.',
       portal_invite:
         'Sent when staff invites a customer to the customer portal. Not configurable per tenant — uses a built-in bilingual template.',
       email_campaign:
@@ -3074,7 +3074,7 @@ export const en = {
     hoursUnavailable: 'Hours coming soon.',
     about: 'About us',
     closed: 'Closed',
-    poweredBy: 'Powered by Pawn',
+    poweredBy: 'Powered by Sol Pawn',
     ctaSoonHint: 'Coming soon — visit the shop in the meantime.',
     services: {
       pawn: 'Pawn loans',

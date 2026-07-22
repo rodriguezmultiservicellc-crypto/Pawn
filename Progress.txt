@@ -4,6 +4,35 @@ Operator: Rodriguez Multi Service LLC (Eddy Rodriguez)
 File:    Progress.txt
 ================================================================================
 
+################################################################################
+#  !! SECURITY — SCAFFOLD RLS HOLES — audit + fix before next release !!        #
+#  (flagged 2026-07-03 from the Tocoloro build session; Eddy deferred fixing)   #
+################################################################################
+  The saas-builder scaffold that generated this app's supabase/schema-foundation.sql
+  shipped TWO RLS holes. LUNA AZUL was CONFIRMED live-vulnerable on 2026-07-03. This
+  app shares the same scaffold origin -> assume vulnerable until a READ-ONLY audit
+  proves otherwise. NOT yet audited or fixed here.
+
+  1. profiles PRIVILEGE ESCALATION (critical). The profiles UPDATE policy pins only
+     row OWNERSHIP (WITH CHECK = auth.uid()=id) and `authenticated` holds UPDATE on
+     role / role_id / tenant_id. Any logged-in user can PATCH their own profile via
+     PostgREST to self-escalate role or jump tenants. An audit trigger only LOGS it;
+     RLS is not a column-authz control — the grant layer is.
+  2. schema_migrations RLS. If RLS is OFF on schema_migrations, Supabase default grants
+     let anon READ + INSERT the migration ledger. (Luna Azul had RLS on here; check yours.)
+
+  FIX (now in C:\Users\rodri\.claude\skills\saas-builder\assets\schema-foundation.sql;
+  applied to Tocoloro):
+   - REVOKE INSERT,UPDATE,DELETE ON profiles FROM anon, authenticated; then
+     GRANT UPDATE (<only THIS app's real self-editable cols>) TO authenticated,
+     EXCLUDING role/role_id/tenant_id/is_active*. Do NOT blind-copy Tocoloro's
+     3-column grant or you lock users out of editing their own name/phone/etc.
+     Trigger alternative: BEFORE UPDATE raising unless those cols unchanged OR superadmin.
+   - ALTER TABLE public.schema_migrations ENABLE ROW LEVEL SECURITY;
+  Read-only audit probe + full context:
+  C:\Users\rodri\.claude\projects\c--Users-rodri-OneDrive-Documents-Claude-Projects-Para-Cuba-Solutions\memory\saas-scaffold-security-holes.md
+################################################################################
+
 SEE ALSO (do not duplicate here):
   - Architecture / conventions: CLAUDE.md
   - Source of truth: the code itself

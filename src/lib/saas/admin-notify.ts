@@ -155,7 +155,7 @@ ${billingUrl}
     return { subject, text, html }
   }
 
-  const subject = `New Pawn tenant: ${args.tenantName} (${args.planName})`
+  const subject = `New Sol Pawn tenant: ${args.tenantName} (${args.planName})`
   const text = `${greeting}
 
 A new tenant just subscribed to Pawn.

@@ -32,7 +32,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Pawn',
+  title: 'Sol Pawn',
   description:
     'Multi-tenant pawn / jewelry / repair / retail SaaS. Rodriguez Multi Service LLC.',
 }

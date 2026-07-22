@@ -7,7 +7,7 @@ import type { Dictionary } from './en'
 
 export const es: Dictionary = {
   common: {
-    appName: 'Pawn',
+    appName: 'Sol Pawn',
     loading: 'Cargando…',
     customerPicker: {
       placeholder: 'Buscar cliente por nombre, teléfono o licencia…',
@@ -2313,13 +2313,13 @@ export const es: Dictionary = {
       custom:
         'Mensaje manual — el personal escribe el cuerpo al momento de enviar.',
       saas_trial_ending:
-        'Enviado por la plataforma: Pawn (RMS) avisa al dueño que el período de prueba de su suscripción termina pronto. No es configurable por inquilino.',
+        'Enviado por la plataforma: Sol Pawn (RMS) avisa al dueño que el período de prueba de su suscripción termina pronto. No es configurable por inquilino.',
       saas_payment_failed:
-        'Enviado por la plataforma: Pawn (RMS) avisa al dueño que el pago de su suscripción falló.',
+        'Enviado por la plataforma: Sol Pawn (RMS) avisa al dueño que el pago de su suscripción falló.',
       saas_payment_recovered:
-        'Enviado por la plataforma: Pawn (RMS) confirma que un pago previamente fallido se procesó correctamente.',
+        'Enviado por la plataforma: Sol Pawn (RMS) confirma que un pago previamente fallido se procesó correctamente.',
       saas_subscription_cancelled:
-        'Enviado por la plataforma: Pawn (RMS) confirma que la suscripción del inquilino fue cancelada.',
+        'Enviado por la plataforma: Sol Pawn (RMS) confirma que la suscripción del inquilino fue cancelada.',
       portal_invite:
         'Se envía cuando el personal invita a un cliente al portal. No es configurable por inquilino — usa una plantilla bilingüe integrada.',
       email_campaign:
@@ -3074,7 +3074,7 @@ export const es: Dictionary = {
     hoursUnavailable: 'Horarios próximamente.',
     about: 'Sobre nosotros',
     closed: 'Cerrado',
-    poweredBy: 'Hecho con Pawn',
+    poweredBy: 'Hecho con Sol Pawn',
     ctaSoonHint: 'Próximamente — visítanos en la tienda mientras tanto.',
     services: {
       pawn: 'Préstamos prendarios',

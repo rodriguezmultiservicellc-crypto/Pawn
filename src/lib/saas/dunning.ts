@@ -188,26 +188,26 @@ function composeBody(
         const subject = `Tu período de prueba de ${tenant.tenantName} termina ${daysCopy}`
         const text = `${greeting}
 
-Tu período de prueba de Pawn termina ${daysCopy}. Para evitar interrupciones, agrega un método de pago en:
+Tu período de prueba de Sol Pawn termina ${daysCopy}. Para evitar interrupciones, agrega un método de pago en:
 
 ${billingUrl}
 
 Si tienes preguntas, responde a este correo.
 
-— El equipo de Pawn`
+— El equipo de Sol Pawn`
         const html = paragraphHtml(text)
         return { subject, html, text }
       }
       const subject = `Your ${tenant.tenantName} trial ends ${daysCopy}`
       const text = `${greeting}
 
-Your Pawn trial ends ${daysCopy}. Add a payment method to keep your subscription active:
+Your Sol Pawn trial ends ${daysCopy}. Add a payment method to keep your subscription active:
 
 ${billingUrl}
 
 If you have any questions, just reply to this email.
 
-— The Pawn team`
+— The Sol Pawn team`
       const html = paragraphHtml(text)
       return { subject, html, text }
     }
@@ -228,7 +228,7 @@ ${billingUrl}
 
 Stripe volverá a intentar el cobro automáticamente en los próximos días. Si el cobro sigue fallando, tu suscripción quedará en estado vencido y algunas funciones podrían restringirse.
 
-— El equipo de Pawn`
+— El equipo de Sol Pawn`
         const html = paragraphHtml(text)
         return { subject, html, text }
       }
@@ -241,7 +241,7 @@ ${billingUrl}
 
 Stripe will retry automatically over the next few days. If payment keeps failing, your subscription will move to past_due and some features may be restricted.
 
-— The Pawn team`
+— The Sol Pawn team`
       const html = paragraphHtml(text)
       return { subject, html, text }
     }
@@ -253,7 +253,7 @@ Stripe will retry automatically over the next few days. If payment keeps failing
 
 Recibimos tu pago de suscripción${amountStr ? ` por ${amountStr}` : ''}. Tu cuenta vuelve al estado activo. Gracias por seguir con nosotros.
 
-— El equipo de Pawn`
+— El equipo de Sol Pawn`
         const html = paragraphHtml(text)
         return { subject, html, text }
       }
@@ -262,7 +262,7 @@ Recibimos tu pago de suscripción${amountStr ? ` por ${amountStr}` : ''}. Tu cue
 
 We received your subscription payment${amountStr ? ` of ${amountStr}` : ''}. Your account is back to active. Thanks for sticking with us.
 
-— The Pawn team`
+— The Sol Pawn team`
       const html = paragraphHtml(text)
       return { subject, html, text }
     }
@@ -272,22 +272,22 @@ We received your subscription payment${amountStr ? ` of ${amountStr}` : ''}. You
         const subject = `Suscripción cancelada`
         const text = `${greeting}
 
-Tu suscripción de Pawn ha sido cancelada. Tus datos quedan accesibles en modo de solo lectura. Si quieres reactivar tu cuenta:
+Tu suscripción de Sol Pawn ha sido cancelada. Tus datos quedan accesibles en modo de solo lectura. Si quieres reactivar tu cuenta:
 
 ${billingUrl}
 
-— El equipo de Pawn`
+— El equipo de Sol Pawn`
         const html = paragraphHtml(text)
         return { subject, html, text }
       }
       const subject = `Subscription cancelled`
       const text = `${greeting}
 
-Your Pawn subscription has been cancelled. Your data stays accessible in read-only mode. If you'd like to reactivate:
+Your Sol Pawn subscription has been cancelled. Your data stays accessible in read-only mode. If you'd like to reactivate:
 
 ${billingUrl}
 
-— The Pawn team`
+— The Sol Pawn team`
       const html = paragraphHtml(text)
       return { subject, html, text }
     }

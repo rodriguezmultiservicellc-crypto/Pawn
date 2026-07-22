@@ -2,7 +2,7 @@
 // to VERSIONS with a one-line summary — this is what shows in the footer
 // history modal.
 
-export const APP_NAME = 'Pawn'
+export const APP_NAME = 'Sol Pawn'
 export const APP_VERSION = '0.7.0'
 
 export interface VersionEntry {

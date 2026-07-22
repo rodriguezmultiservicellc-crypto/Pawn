@@ -113,7 +113,7 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             href="/billing"
             icon={<CreditCard size={20} weight="regular" />}
             title="Subscription & Billing"
-            description="Your Pawn subscription plan, recent invoices, and payment method."
+            description="Your Sol Pawn subscription plan, recent invoices, and payment method."
             status={
               view.subscription?.status === 'active' ||
               view.subscription?.status === 'trialing'

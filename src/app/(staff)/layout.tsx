@@ -9,6 +9,7 @@ import {
   type SwitcherTenant,
 } from '@/components/layout/TenantSwitcher'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { StaffTopBarActions } from '@/components/layout/StaffTopBarActions'
 
 const STAFF_ROLES = new Set([
   'owner',
@@ -90,7 +91,7 @@ export default async function StaffLayout({
                   href="/dashboard"
                   className="font-display text-xl font-bold text-navy"
                 >
-                  Pawn
+                  Sol Pawn
                 </Link>
                 <span className="text-muted">·</span>
                 <TenantSwitcher
@@ -110,9 +111,9 @@ export default async function StaffLayout({
                     <span>Console</span>
                   </Link>
                 ) : null}
-                <span className="text-text-secondary">
-                  {profile?.full_name ?? ctx.email}
-                </span>
+                <StaffTopBarActions
+                  userName={profile?.full_name ?? ctx.email ?? ''}
+                />
               </div>
             </div>
           </header>

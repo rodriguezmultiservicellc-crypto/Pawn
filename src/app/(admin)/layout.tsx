@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { getCtx } from '@/lib/supabase/ctx'
 import { I18nProvider } from '@/lib/i18n/context'
 import { isLanguage } from '@/lib/i18n/config'
+import { StaffTopBarActions } from '@/components/layout/StaffTopBarActions'
 
 /**
  * Superadmin route group. Proxy already gates /admin/* on
@@ -35,7 +36,7 @@ export default async function AdminLayout({
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
             <Link href="/admin/tenants" className="flex items-center gap-2">
               <span className="font-display text-xl font-bold text-navy">
-                Pawn
+                Sol Pawn
               </span>
               <span className="rounded-full bg-navy px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
                 Admin
@@ -79,7 +80,7 @@ export default async function AdminLayout({
               >
                 Staff →
               </Link>
-              <span className="text-text-secondary">{ctx.email}</span>
+              <StaffTopBarActions userName={ctx.email ?? ''} />
             </div>
           </div>
         </header>
