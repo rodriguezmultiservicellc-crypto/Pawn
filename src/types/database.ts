@@ -634,9 +634,11 @@ export type Database = {
           id_state: string | null
           id_type: Database["public"]["Enums"]["id_document_type"] | null
           identifying_marks: string | null
+          import_source: string | null
           is_banned: boolean
           language: string
           last_name: string
+          legacy_ref: string | null
           loyalty_points_balance: number
           marketing_opt_in: boolean
           middle_name: string | null
@@ -645,6 +647,7 @@ export type Database = {
           phone_alt: string | null
           photo_url: string | null
           place_of_employment: string | null
+          race: string | null
           referral_code: string | null
           referral_credited: boolean
           referred_by_customer_id: string | null
@@ -685,9 +688,11 @@ export type Database = {
           id_state?: string | null
           id_type?: Database["public"]["Enums"]["id_document_type"] | null
           identifying_marks?: string | null
+          import_source?: string | null
           is_banned?: boolean
           language?: string
           last_name: string
+          legacy_ref?: string | null
           loyalty_points_balance?: number
           marketing_opt_in?: boolean
           middle_name?: string | null
@@ -696,6 +701,7 @@ export type Database = {
           phone_alt?: string | null
           photo_url?: string | null
           place_of_employment?: string | null
+          race?: string | null
           referral_code?: string | null
           referral_credited?: boolean
           referred_by_customer_id?: string | null
@@ -736,9 +742,11 @@ export type Database = {
           id_state?: string | null
           id_type?: Database["public"]["Enums"]["id_document_type"] | null
           identifying_marks?: string | null
+          import_source?: string | null
           is_banned?: boolean
           language?: string
           last_name?: string
+          legacy_ref?: string | null
           loyalty_points_balance?: number
           marketing_opt_in?: boolean
           middle_name?: string | null
@@ -747,6 +755,7 @@ export type Database = {
           phone_alt?: string | null
           photo_url?: string | null
           place_of_employment?: string | null
+          race?: string | null
           referral_code?: string | null
           referral_credited?: boolean
           referred_by_customer_id?: string | null
