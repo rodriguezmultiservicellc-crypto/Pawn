@@ -22,6 +22,7 @@ export default async function AppraisalDetailPage(props: { params: Params }) {
   const { id } = await props.params
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
 
   const { data: appraisal } = await ctx.supabase
     .from('appraisals')
@@ -36,6 +37,7 @@ export default async function AppraisalDetailPage(props: { params: Params }) {
        inventory_item:inventory_items(id, sku, description)`,
     )
     .eq('id', id)
+    .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .maybeSingle()
 

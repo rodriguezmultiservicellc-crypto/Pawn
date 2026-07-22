@@ -30,6 +30,7 @@ export default async function RepairTicketDetailPage(props: {
   const { id } = await props.params
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
 
   const { data: ticket } = await ctx.supabase
     .from('repair_tickets')
@@ -44,6 +45,7 @@ export default async function RepairTicketDetailPage(props: {
        customer:customers(id, first_name, last_name, phone, email)`,
     )
     .eq('id', id)
+    .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .maybeSingle()
 

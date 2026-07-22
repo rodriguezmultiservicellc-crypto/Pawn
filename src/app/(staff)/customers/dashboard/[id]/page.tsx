@@ -16,6 +16,7 @@ export default async function CustomerDashboardPage(props: { params: Params }) {
   const { id } = await props.params
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
 
   const { data: customer } = await ctx.supabase
     .from('customers')
@@ -23,6 +24,7 @@ export default async function CustomerDashboardPage(props: { params: Params }) {
       'id, tenant_id, first_name, last_name, photo_url, phone, email, language, is_banned, banned_reason, loyalty_points_balance, created_at',
     )
     .eq('id', id)
+    .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .maybeSingle()
 

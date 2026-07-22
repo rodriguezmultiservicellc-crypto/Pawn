@@ -19,6 +19,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
   const { id } = await props.params
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
 
   const { data: loan } = await ctx.supabase
     .from('loans')
@@ -30,6 +31,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
        customer:customers(id, first_name, last_name, phone, email)`,
     )
     .eq('id', id)
+    .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .maybeSingle()
 

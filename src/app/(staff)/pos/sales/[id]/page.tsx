@@ -21,6 +21,7 @@ export default async function SaleDetailPage(props: { params: Params }) {
   const { id } = await props.params
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
 
   const { data: sale } = await ctx.supabase
     .from('sales')
@@ -31,6 +32,7 @@ export default async function SaleDetailPage(props: { params: Params }) {
        customer:customers(id, first_name, last_name, phone, email)`,
     )
     .eq('id', id)
+    .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .maybeSingle()
 

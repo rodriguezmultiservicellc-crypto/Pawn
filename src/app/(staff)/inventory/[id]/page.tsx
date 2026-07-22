@@ -25,6 +25,7 @@ export default async function InventoryItemPage(props: { params: Params }) {
   const { id } = await props.params
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
 
   const { data: item } = await ctx.supabase
     .from('inventory_items')
@@ -32,6 +33,7 @@ export default async function InventoryItemPage(props: { params: Params }) {
       'id, tenant_id, sku, sku_number, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, cost_basis, list_price, sale_price, sold_at, source, source_vendor, acquired_at, acquired_cost, hold_until, location, status, notes, staff_memo, tags, is_hidden_from_catalog, created_at, updated_at',
     )
     .eq('id', id)
+    .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .maybeSingle()
 
