@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MagnifyingGlass, Plus, Prohibit } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import DlScanner from '@/components/customers/DlScanner'
+import { findCustomerByIdNumber } from '@/lib/customers/picker-search'
+import type { DLInfo } from '@/lib/dl-parser'
 import type { IdDocumentType } from '@/types/database-aliases'
 
 export type CustomerListRow = {
@@ -34,6 +37,30 @@ export default function CustomersContent({
   const searchParams = useSearchParams()
   const [searchInput, setSearchInput] = useState(query)
   const [pending, startTransition] = useTransition()
+  const [scanNotice, setScanNotice] = useState<string | null>(null)
+  const [scanBusy, setScanBusy] = useState(false)
+
+  // Scan a customer's driver license → exact-match by id_number → jump to
+  // their record. No match: drop the scanned number into the search box (which
+  // now searches id_number) and show a "not on file" notice.
+  async function handleScan(info: DLInfo) {
+    const idNum = (info.licenseNumber ?? '').trim()
+    if (!idNum) {
+      setScanNotice(t.common.customerPicker.scanNoNumber)
+      return
+    }
+    setScanNotice(null)
+    setScanBusy(true)
+    const match = await findCustomerByIdNumber(idNum)
+    setScanBusy(false)
+    if (match) {
+      startTransition(() => router.push(`/customers/dashboard/${match.id}`))
+    } else {
+      setSearchInput(idNum)
+      setScanNotice(t.common.customerPicker.scanNoMatch)
+      pushParams({ q: idNum })
+    }
+  }
 
   function pushParams(next: { q?: string; banned?: boolean }) {
     const sp = new URLSearchParams(searchParams.toString())
@@ -91,6 +118,17 @@ export default function CustomersContent({
             {t.common.search}
           </button>
         </form>
+        <DlScanner
+          onResult={(info) => {
+            void handleScan(info)
+          }}
+          label={
+            scanBusy
+              ? t.common.customerPicker.searching
+              : t.common.customerPicker.scanButton
+          }
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
+        />
         <label className="inline-flex shrink-0 items-center gap-2 text-sm text-foreground">
           <input
             type="checkbox"
@@ -101,6 +139,18 @@ export default function CustomersContent({
           <span>{t.customers.bannedBadge}</span>
         </label>
       </div>
+
+      {scanNotice ? (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-foreground">
+          <span>{scanNotice}</span>
+          <Link
+            href="/customers/new"
+            className="shrink-0 font-medium text-blue hover:underline"
+          >
+            {t.customers.new}
+          </Link>
+        </div>
+      ) : null}
 
       {customers.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">

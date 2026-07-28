@@ -32,9 +32,11 @@ export default async function CustomersPage(props: {
     // installed, so we ilike-search the raw columns. For Phase 1's
     // expected list size (≤ a few thousand) this is fine; we'll switch
     // to a tsvector / pg_trgm index when it matters.
+    // Also match id_number (driver's license / state ID) so staff can look a
+    // customer up by scanning or typing their ID.
     const escaped = q.replace(/[%_]/g, (m) => '\\' + m)
     query = query.or(
-      `first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,phone.ilike.%${escaped}%,email.ilike.%${escaped}%`,
+      `first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,phone.ilike.%${escaped}%,email.ilike.%${escaped}%,id_number.ilike.%${escaped}%`,
     )
   }
 
