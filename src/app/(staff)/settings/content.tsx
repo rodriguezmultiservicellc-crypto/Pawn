@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Buildings,
   Tag,
+  UploadSimple,
 } from '@phosphor-icons/react'
 
 export type SettingsHubView = {
@@ -64,6 +65,8 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
   ].filter(Boolean) as string[]
 
   const isOwner = !!view.role && OWNER_ROLES.has(view.role)
+  const canImport =
+    !!view.role && ['owner', 'manager', 'chain_admin'].includes(view.role)
 
   return (
     <div className="space-y-6">
@@ -107,6 +110,17 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
           status={integrationsConfigured > 0 ? 'configured' : 'needs_setup'}
           statusDetail={`${integrationsConfigured} of 4 connected`}
         />
+
+        {canImport ? (
+          <Card
+            href="/settings/import"
+            icon={<UploadSimple size={20} weight="regular" />}
+            title="Data import"
+            description="Bring customers in from another pawn system (xPawn, Bravo, or any CSV). Preview before you commit; re-runnable without duplicates."
+            status="configured"
+            statusDetail="Import customers"
+          />
+        ) : null}
 
         {isOwner ? (
           <Card

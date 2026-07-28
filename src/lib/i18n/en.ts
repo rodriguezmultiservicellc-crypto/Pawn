@@ -3217,6 +3217,48 @@ export const en = {
       adjust_manual: 'Adjustment',
     },
   },
+
+  imports: {
+    backToSettings: 'Back to settings',
+    title: 'Data import',
+    subtitle:
+      'Bring customers in from another pawn system. Preview before you commit — re-runnable without duplicates.',
+    step1: '1. Choose the source system',
+    xpawnDesc:
+      'One-click preset. Maps every xPawn Customers.csv column automatically.',
+    genericDesc:
+      'Any CSV — Bravo and others. Auto-maps by column name; adjust before importing.',
+    vendorLabel: 'Vendor name (optional)',
+    vendorPlaceholder: 'e.g. Bravo',
+    step2: '2. Upload the CSV',
+    chooseFile: 'Choose CSV file',
+    preview: 'Preview',
+    previewing: 'Reading…',
+    failed: 'Import failed.',
+    doneTitle: 'Import complete',
+    insertedMsg: 'Inserted {n} customers.',
+    viewCustomers: 'View customers',
+    importAnother: 'Import another file',
+    mappingTitle: 'Column mapping',
+    mappingHelp:
+      'We auto-matched your columns to Sol Pawn fields. Fix any that are wrong, then update the preview.',
+    skip: '— skip —',
+    updatePreview: 'Update preview',
+    reportTitle: 'Preview',
+    rParsed: 'Rows parsed',
+    rToInsert: 'To insert',
+    rNoName: 'Skipped (no name)',
+    rDup: 'Skipped (dup key)',
+    rExisting: 'Skipped (already)',
+    rDob: 'Unparsed DOB',
+    cName: 'Name',
+    cDob: 'DOB',
+    cPhone: 'Phone',
+    cIdType: 'ID type',
+    cCity: 'City',
+    importBtn: 'Import {n} customers',
+    importing: 'Importing…',
+  },
 }
 
 export type Dictionary = typeof en
