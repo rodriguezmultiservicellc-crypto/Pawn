@@ -42,156 +42,147 @@ SEE ALSO (do not duplicate here):
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 48 (2026-07-01, seventh pass)
-                  — APPLIED MIGRATIONS 0045 + 0046 to Supabase
-                  + db:types + cast cleanup. The repair multi-
-                  item feature (Session 47) and the Save-as-
-                  draft feature (Session 45) are now LIVE at
-                  runtime — no longer blocked on pending SQL.
+  Last session:   Session 49 (2026-07-22, eighth pass)
+                  — SOL PAWN REBRAND + MARKETING LANDING +
+                  STAFF/ADMIN LOGOUT + CROSS-TENANT PAGE-LEAK
+                  FIX + CUSTOMER IMPORT (5,217 xPawn customers
+                  imported) + SELF-SERVE IMPORT SECTION +
+                  customers-list ID search & DL scan. 5 commits,
+                  all shipped tsc/lint/build-green.
 
-                  Prior Session 47 work (still current):
-                  REPAIR TICKET MULTI-ITEM REDESIGN — a repair
-                  ticket holds MULTIPLE customer items; each
-                  item = a composed title built from attribute
-                  chips + its own service_type + a work-needed
-                  line. Replaces the single title /
-                  item_description / description triple.
+                  - BRAND: app renamed "Pawn" -> "Sol Pawn"
+                    everywhere user-facing (wordmarks, <title>/
+                    OG, i18n appName + poweredBy, platform +
+                    dunning emails EN/ES, "Sol Pawn (RMS)").
+                    Pawn-DOMAIN terms untouched (module label,
+                    /pawn routes, has_pawn, PDF types, the
+                    "Pawn, jewelry & repair" tagline).
+                  - MARKETING LANDING at apex "/" (bilingual,
+                    auto-detects Accept-Language, EN/ES toggle;
+                    hero, live-stats strip, 10 modules, how-it-
+                    works, 3 pricing tiers [PLACEHOLDER prices],
+                    FAQ, footer). proxy passes logged-out "/"
+                    through; authed users still role-routed.
+                  - LOGOUT: StaffTopBarActions (lang toggle +
+                    name + Log Out) added to staff + admin top
+                    bars, which had NO logout control.
+                  - SECURITY: 8 [id] detail pages now scope the
+                    primary query to ctx.tenantId (were id-only
+                    -> cross-tenant read leak for multi-tenant
+                    staff). Write-path actions audited SAFE.
+                  - IMPORT: patches/0047 adds customers.race +
+                    legacy_ref + import_source (+ unique index);
+                    5,217 xPawn customers imported into Eddy's
+                    Jewelers via scripts/import-xpawn-customers
+                    .mjs. Then built a SELF-SERVE import section
+                    (/settings/import) — xPawn preset + generic
+                    CSV auto-map/override for Bravo & others.
+                  - CUSTOMERS LIST: search now matches id_number;
+                    "Scan ID" button (DlScanner) jumps to the
+                    matched customer.
 
-                  - NEW TABLE repair_ticket_line_items
-                    (patches/0046): structured attrs (item_type,
-                    karat, weight_grams numeric(10,4), dimension)
-                    + composed title + per-item service_type +
-                    work_needed, soft-delete, staff RLS, lock-
-                    immutability trigger (rule #14), + backfill
-                    of one row per existing ticket.
-                  - repair/new/form.tsx rewritten: per-item card
-                    with item-type chips (Ring/Necklace/Bracelet/
-                    Earrings/Pendant/Chain/Watch/Other), karat
-                    chips (10k-24k/925/950), typed weight(g) +
-                    length/size, per-item service chips (7), work-
-                    needed input, LIVE composed title preview.
-                    Add/remove items; rail lists items + count.
-                  - createRepairTicketAction now parses li_<n>_*
-                    + line_item_count, validates line_items[],
-                    and DERIVES ticket title / item_description /
-                    service_type from the items so every existing
-                    reader (list/board/detail/portal/feed/audit)
-                    keeps working with no rewrite. Inserts line
-                    items via generic-client cast (table not in
-                    database.ts until db:types).
-                  - [id] detail ItemPanel now lists the line
-                    items (title + ServiceTypeBadge + work);
-                    legacy item_description shown only when a
-                    ticket has zero line items.
-                  - Pure helper lib/repair/line-items.ts
-                    (composeLineItemTitle / normalizeWeightGrams /
-                    deriveItemDescription / deriveTicketTitle /
-                    ITEM_TYPES / KARAT_OPTIONS) + 11 vitest cases.
+  Context budget: ~30% at save time.
+  Last worked on: Self-serve customer import section shipped
+                  (6952cfd) — lib/imports engine + Route Handler
+                  + /settings/import UI + settings card, bilingual.
+                  tsc/lint/build green. Clean stop.
 
-  Context budget: ~40% at save time.
-  Last worked on: Applied 0045 + 0046 via scripts/apply-
-                  migration.mjs (Management API, one txn each,
-                  HTTP 201), ran npm run db:types, removed the
-                  now-stale generic-client/as-never casts in
-                  repair new-action + detail page. tsc clean,
-                  lint clean. Backfill verified: 1 existing
-                  repair ticket -> 1 line item. Committed +
-                  pushed (385ab6a). Clean stop.
-
-  ACTIVE FILE(S) this session:
-    - src/types/database.ts (regenerated — both new tables)
-    - src/app/(staff)/repair/new/actions.ts (typed insert)
-    - src/app/(staff)/repair/[id]/page.tsx (typed select)
-    (Session 47 files already committed a6db6be — see log.)
+  ACTIVE FILE(S) this session (all committed):
+    - src/lib/imports/{csv,catalog,engine,presets}.ts (NEW)
+    - src/app/api/imports/customers/route.ts (NEW)
+    - src/app/(staff)/settings/import/{page,content}.tsx (NEW)
+    - src/components/marketing/LandingPage.tsx (NEW)
+    - src/components/layout/StaffTopBarActions.tsx (NEW)
+    - patches/0047-customers-import-fields.sql (NEW, APPLIED)
+    - scripts/import-xpawn-customers.mjs (NEW, one-off, RAN)
+    - src/app/(staff)/customers/{page,content}.tsx (ID search+scan)
+    - src/proxy.ts (apex "/" public); src/lib/i18n/{en,es}.ts
 
   RESUME POINT:
-    Clean stopping point — everything committed + pushed, and
-    BOTH pending migrations are now applied (0045 loan_drafts
-    + 0046 repair_ticket_line_items) with db:types run. The
-    repair multi-item flow and pawn Save-as-draft are live at
-    runtime. Only open verification is a BROWSER smoke test on
-    the deploy (no in-session browser): /repair/new -> add 2
-    items via chips -> Open ticket -> confirm both show on
-    /repair/[id]; and the draft loop (save from /pawn/new ->
-    /pawn/drafts -> Continue -> issue -> gone).
-
-    The next defined BIG work is PAWN REDESIGN PHASE 2,
-    steps 2-3:
-    (2) Pawn-history re-pawn panel on /pawn/new — customer-
-        scoped server action (prior loans + collateral, re-
-        pawn-eligible status, category for filter chips);
-        panel above the category picker; redeemed -> +Add via
-        CollateralItemsList.addExtractedRow; forfeited ->
-        "shop inventory"; optional is_repawn/source_loan_id.
-    (3) In-place Buy-outright — merge the /buy/new valuation/
-        inventory/hold/compliance pipeline into /pawn/new.
+    Clean stopping point — everything committed + pushed
+    (through 6952cfd). No open code work. Two clear directions:
+    (A) SECURITY: the profiles PRIVILEGE-ESCALATION hole (see
+        the banner at the very top of this file) is still NOT
+        fixed — any logged-in user can PATCH their own role/
+        tenant_id via PostgREST. Highest-priority. Needs a
+        REVOKE/GRANT change (rule #1 — show the SQL first).
+    (B) PAWN REDESIGN PHASE 2, steps 2-3:
+        (2) Pawn-history re-pawn panel on /pawn/new (prior
+            loans + collateral, filter chips, redeemed->+Add,
+            forfeited->shop inventory, is_repawn/source_loan_id).
+        (3) In-place Buy-outright merge into /pawn/new.
 
     ALSO QUEUED:
-    - REPAIR quote/deposit at intake: the rail estimate is
-      still display-only. Persisting an initial quote + deposit
-      at intake needs the repair quote workflow (quote_set
-      event + status->'quoted' + quote_set_at, deposit event +
-      deposit_collected_at) — its own pass.
-    - Consider per-item stones (stones are still ticket-level,
-      shown when any item is stone_setting/custom).
-    - FL Pawnbroker Transaction Form alignment pass on the
-      pawn-ticket PDF (/api/print/loan) + back page.
+    - Wire customers.race into the customer add/edit forms
+      (column exists + import populates it, but no form field).
+    - Add a one-click Bravo import preset in
+      src/lib/imports/presets.ts once a Bravo sample arrives.
+    - REPAIR quote/deposit at intake (rail estimate still
+      display-only); per-item stones.
+    - FL Pawnbroker Transaction Form alignment on the pawn-
+      ticket PDF (/api/print/loan) + back page.
+    - Browser smoke of new surfaces: landing "/", logout,
+      /settings/import, customers ID scan, repair multi-item.
 
   OPEN ISSUES / BLOCKERS:
-    - RESOLVED THIS SESSION: patches 0045 + 0046 applied +
-      db:types run. loan_drafts + repair_ticket_line_items are
-      live; the runtime "table absent" blockers are cleared.
-    - Repair rail ESTIMATE (labor/materials/deposit) is a
-      display-only calculator — NOT submitted/persisted.
-    - Nothing visually verified in a browser: multi-item
-      /repair/new + /repair/[id] item list, and pawn draft loop.
-    - Pawn Phase 2 steps 2-3 (history/buy-merge) deferred.
-    - CRON_SECRET still unset in Vercel Production (crons 401).
-    - OPENAI_API_KEY still pending in Vercel Production.
+    - [SECURITY, CRITICAL] profiles PRIVILEGE ESCALATION — NOT
+      fixed. See banner at top of file. Grant-layer authz needed.
+    - [SECURITY] schema_migrations RLS — not audited here.
+    - customers.race populated by import but NOT in the add/edit
+      customer forms yet (needs field + i18n).
+    - Landing pricing tiers (Free / $79 / $149) are PLACEHOLDER
+      numbers to confirm; contact email hello@solpawn.com stub.
+    - Import route: large single commit can hit a low Vercel
+      function-timeout; idempotent (import_source + legacy_ref),
+      so re-clicking Import resumes cleanly.
+    - Nothing visually verified in a browser this session.
+    - CRON_SECRET + OPENAI_API_KEY still unset in Vercel Prod.
     - LeadsOnline CSV column reconciliation (v0 draft).
 
-  KEY DECISIONS LOCKED (Session 47 — still current):
-    - MULTI-ITEM = NEW CHILD TABLE, DERIVED PARENT COLUMNS.
-      repair_ticket_line_items holds the items; the create
-      action DERIVES repair_tickets.title (first item + "(+N)"),
-      item_description (joined "title — work" lines), and
-      service_type (first item) so the list/board/detail/portal/
-      dashboard/audit readers need NO change. Not JSONB — a real
-      table (soft-delete, RLS, lock trigger) is the right build.
-    - SERVICE_TYPE PER ITEM (operator choice). Each line item
-      carries its own service_type chip; ticket-level service_
-      type = first item (keeps the ticket-scoped workflow /
-      kanban / quote intact).
-    - TITLE FROM CHIPS, STORED IN ENGLISH. composeLineItemTitle
-      builds "Necklace · 14k · 2.8g · 18\"" from the canonical
-      English type label so stored titles are stable regardless
-      of capture language (item titles are data snapshots, like
-      inventory descriptions). Karat chips (10k/925/etc.) are
-      fineness marks — deliberately not translated.
-    - STONES STAY TICKET-LEVEL. Shown when ANY item is
-      stone_setting|custom; per-item stones deferred.
-    - LOCK IMMUTABILITY (rule #14). Line items freeze via
-      BEFORE UPDATE/DELETE trigger once parent is_locked = TRUE
-      (matches the item_description freeze they replace).
+  KEY DECISIONS LOCKED (Session 49):
+    - BRAND vs DOMAIN. "Sol Pawn" replaces the app name in every
+      user-facing surface; the pawn-loans MODULE and all /pawn/
+      has_pawn/PawnTicket* domain terms stay "Pawn".
+    - APEX "/" = PUBLIC MARKETING. proxy lets logged-out "/"
+      fall through to the landing; authed users still redirect
+      by role. Landing is a self-contained bilingual component
+      (own EN/ES + copy dict, Accept-Language sniff) — NOT the
+      product i18n system. Tenant subdomains still -> /s/<slug>.
+    - CROSS-TENANT FIX = ACTIVE-TENANT SCOPING. Detail [id]
+      pages filter .eq('tenant_id', ctx.tenantId) (RLS is
+      membership-based, so id-only leaked across a user's own
+      tenants). Chain admins switch active tenant to a child to
+      open its store-level records (by design). Write actions
+      already guard requireRoleInTenant(record.tenant_id) — SAFE.
+    - IMPORT = ENGINE + ROUTE HANDLER. lib/imports (csv parse +
+      normalizers + header auto-guess + row->customer mapper);
+      POST /api/imports/customers is a Route Handler (server
+      actions cap ~1MB; exports are multi-MB) with preview|
+      commit. Idempotent via import_source + legacy_ref (0047).
+      xPawn = fixed preset; Generic = auto-map + manual override.
+    - IMPORT DATA CALLS: SSN dropped (no column, sensitive);
+      xPawn Warning -> notes banner (NOT auto-ban); Race -> new
+      customers.race column.
 
   IMPORTANT CONSTANTS / PATHS:
-    - Repair line-item table: repair_ticket_line_items
-      (patches/0046 — APPLIED 2026-07-01; typed in database.ts).
-    - Line-item composer + derivers: src/lib/repair/line-items.ts.
-    - Repair intake UI: src/app/(staff)/repair/new/form.tsx
-      (multi-item chips; li_<n>_* hidden fields + line_item_
-      count; rail item list; estimate still display-only).
-    - Repair intake action: repair/new/actions.ts
-      (readLineItemRows; derives ticket title/item_desc/service;
-      typed insert of line items).
-    - Repair quote/deposit workflow lives on /repair/[id].
+    - ONLY TENANT: Eddy's Jewelers Corp. =
+      1abc8070-0797-4740-8dea-70cbb16060fe. Superadmin (Eddy) =
+      19e8b4b5-9f94-48cc-aa7b-59c62934e96c.
+    - Import UI: /settings/import (owner/manager/chain_admin).
+      Route: POST /api/imports/customers (source, mode=preview|
+      commit, file, mapping JSON, vendor_label).
+    - Import engine: src/lib/imports/{csv,catalog,engine,presets}.
+      Add a vendor preset in presets.ts (getPreset()).
+    - Marketing landing: src/components/marketing/LandingPage.tsx
+      (rendered by src/app/page.tsx; PLACEHOLDER pricing).
+    - Logout/topbar: src/components/layout/StaffTopBarActions.tsx
+      (staff + admin layouts).
     - Migration runner: node scripts/apply-migration.mjs
-      patches/<file>.sql (Management API, one txn); then
-      npm run db:types.
-    - Last applied migration: 0046. loan_drafts (0045) also
-      applied this session.
+      patches/<file>.sql then npm run db:types. LAST APPLIED: 0047.
+    - Prior repair line-item feature (Session 47/48) still live:
+      repair_ticket_line_items + src/lib/repair/line-items.ts.
 
-  (Sessions 13-46 PRIOR-SESSION decision blocks are in the
+  (Sessions 13-48 PRIOR-SESSION decision blocks are in the
   SESSION HISTORY LOG below. Carried-forward architectural
   decisions live in CLAUDE.md.)
 
@@ -1657,6 +1648,109 @@ Items 1-166 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 49 (2026-07-22, eighth pass) — Sol Pawn rebrand + marketing landing + logout + cross-tenant fix + customer import (5,217) + self-serve import section ---
+
+ 355. QUICKCUSTOMERMODAL PHYSICAL DESCRIPTION + SOL PAWN REBRAND
+     (commit 7db99b9). (a) QuickCustomerModal.tsx gained the "Physical
+     description & employment" fieldset (height feet+inches -> composed
+     hidden height_inches, weight, sex, hair, eyes, place_of_employment,
+     identifying marks) — the server createCustomerFromForm already read
+     these; reused existing t.customers.* keys, no new i18n. (b) Renamed
+     the app brand "Pawn" -> "Sol Pawn" across every user-facing surface:
+     wordmarks ((auth)/onboard/portal-login/root/staff/admin layouts),
+     app-version APP_NAME, layout <title>/OG, i18n common.appName +
+     landing.poweredBy (EN/ES), platform email from-name, dunning emails
+     (EN+ES bodies + signatures), admin-notify subject, "Sol Pawn (RMS)"
+     platform-notification descriptions, settings billing card. LEFT as
+     domain (not brand): pawn-loans module/nav label, /pawn routes,
+     has_pawn, "Pawn forfeit"/"Pawns" stats, PawnTicket* PDF types, the
+     "Pawn, jewelry, and repair" service tagline.
+
+ 356. MARKETING LANDING AT APEX "/" (commit 7db99b9). New
+     src/components/marketing/LandingPage.tsx — self-contained BILINGUAL
+     marketing page (own EN/ES copy dict + toggle, not the product i18n)
+     modeled on lunaazul.online but in the pawn domain + Sol Pawn design
+     tokens (navy/gold, Playfair). Sections: sticky nav, hero + gold
+     radial, live-stats strip (navy), 10-module grid, how-it-works (3
+     steps), 3 pricing tiers (Free/$79/$149 — PLACEHOLDER), FAQ accordion,
+     final CTA, footer. src/app/page.tsx renders it + sniffs Accept-
+     Language (es-* -> Spanish, else English) server-side for the initial
+     lang. proxy.ts: logged-out "/" now falls through to the landing
+     (was redirect->/login); authed users still role-routed by the "/"
+     block. Tenant subdomains still rewrite to /s/<slug>.
+
+ 357. STAFF/ADMIN LOGOUT + TOP-BAR ACTIONS (commit 7db99b9). Root cause:
+     the staff and superadmin (/admin) top bars showed the user name but
+     had NO logout control at all — operators were stuck signed in. New
+     src/components/layout/StaffTopBarActions.tsx (client): EN|ES language
+     toggle (persists to profile via I18nProvider setLang), user name, and
+     a Log Out button (supabase.auth.signOut() -> hard nav /login). Wired
+     into (staff)/layout.tsx and (admin)/layout.tsx (both also had the
+     stale "Pawn" wordmark -> "Sol Pawn"). Portal + no-tenant already had
+     logout. Reused t.nav.logOut; language codes need no i18n.
+
+ 358. [SECURITY] CROSS-TENANT DETAIL-PAGE LEAK FIXED (commit 75c5e02).
+     RLS on tenant-scoped tables is membership-based, so ctx.supabase
+     returns rows for ANY tenant the user belongs to; 8 [id] pages loaded
+     their record by .eq('id', id) ALONE, and the per-page has_pawn/
+     has_repair gate reads the RECORD's own tenant_id -> zero cross-tenant
+     protection. A user staff at 2+ tenants (or chain staff) could open
+     another of their tenants' records (loan books, full customer PII,
+     sale/payment data) by editing the URL. FIX (mirrors the /buy/[id]
+     reference): each page bails on no active tenant + adds .eq('tenant_id',
+     ctx.tenantId). Pages: pawn, customers, customers/dashboard, pos/sales,
+     pos/layaways, repair, appraisals, inventory. Audited all 9 sibling
+     actions.ts write paths — already SAFE (resolver fetches record ->
+     requireRoleInTenant(record.tenant_id) -> mutations scoped .eq(
+     'tenant_id', record.tenant_id)); no change. Removed the resolved
+     handoff SECURITY-FIXES-TODO.md.
+
+ 359. CUSTOMER IMPORT FIELDS + xPAWN IMPORT OF 5,217 (commit 18fa554).
+     patches/0047-customers-import-fields.sql: customers.race (FL
+     pawnbroker/LeadsOnline field), legacy_ref + import_source, partial
+     UNIQUE(tenant_id, legacy_ref) for idempotent re-runnable imports.
+     Applied via apply-migration.mjs; db:types regenerated. New
+     scripts/import-xpawn-customers.mjs: dry-run-default CLI with a quote-
+     aware CSV parser + per-field normalizers (M/D/YYYY dates, feet+inches
+     height 509->69", phone formatting, id_type enum mapping), junk/test-
+     row filtering, legacy_ref dedupe, batched service-role inserts + one
+     audit row. Ran --commit on the 5,218-row export: 5,217 customers
+     inserted into Eddy's Jewelers (1 dummy skipped, 4 unparseable DOBs
+     nulled). Verified: 5,217 imported / 5,217 distinct legacy_ref / with-
+     race 5,206 / with-dob 5,205. SSN dropped (no column); Warning->note;
+     Race->race column.
+
+ 360. CUSTOMERS LIST — ID SEARCH + SCAN ID (commit ec0ea1c). Root gap:
+     the /customers list search covered name/phone/email but NOT
+     id_number, and had no scan button — useless for 5k+ imported
+     customers who all carry DL numbers. page.tsx OR clause now also
+     matches id_number (ilike). content.tsx: added a "Scan ID" button
+     reusing DlScanner -> findCustomerByIdNumber (exact id_number match)
+     -> router.push to the customer's dashboard; no match drops the
+     scanned number into the search box + shows the existing scanNoMatch
+     notice with a Create-new link. Reused dlScanner/customerPicker i18n.
+
+ 361. SELF-SERVE IMPORT SECTION (commit 6952cfd). /settings/import
+     (owner/manager/chain_admin). NEW src/lib/imports/: csv.ts (RFC4180
+     parser), engine.ts (normalizers + autoGuessMapping + mapRows ->
+     records + report), catalog.ts (client-safe TARGET_FIELDS with EN/ES
+     labels + IMPORT_SOURCES + report/sample types), presets.ts (fixed
+     xPawn mapping + Warning/skip-test specials). NEW Route Handler POST
+     /api/imports/customers (runtime nodejs, maxDuration 60) — server
+     actions cap ~1MB so a Route Handler carries the multi-MB upload;
+     inline owner/manager/chain_admin role gate (+ chain-admin-parent
+     fallback like the voice route); mode=preview returns headers +
+     auto-guessed mapping + report + 10 samples and writes nothing; mode=
+     commit batch-inserts (500) via the tenant-scoped client + one audit
+     row (action 'create', kind:'import'). Idempotent: import_source +
+     legacy_ref (0047). xPawn -> fixed preset; generic -> user mapping (or
+     auto-guess), import_source = slug(vendor_label). NEW UI page/content:
+     source picker (xPawn / Generic CSV) + optional vendor label, upload,
+     Preview, a column-mapping editor (generic only; header->field <select>
+     pre-filled from auto-guess), report + sample table, "Import N
+     customers" commit, done state. Bilingual (new t.imports.* EN+ES).
+     Settings hub gains a Data-import card. gate: tsc/lint/build green.
 
 --- Session 48 (2026-07-01, seventh pass) — Apply migrations 0045 + 0046, regenerate types, drop stale casts ---
 
@@ -4468,44 +4562,45 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Browser smoke test on the deploy (patches 0045 + 0046 are
-    now applied + db:types run): /repair/new -> add 2 items via
-    chips -> Open ticket -> confirm both show on /repair/[id];
-    and the draft loop (save from /pawn/new -> /pawn/drafts ->
-    Continue -> issue -> gone). Then start Pawn Phase 2 step 2
-    (pawn-history re-pawn panel).
+    [SECURITY, HIGHEST PRIORITY] Fix the profiles PRIVILEGE-
+    ESCALATION hole (see the banner at the very top of this
+    file): any logged-in user can PATCH their own role/role_id/
+    tenant_id via PostgREST to self-escalate or jump tenants.
+    Start with a READ-ONLY audit (confirm the grant/policy on
+    profiles + schema_migrations RLS), then propose the REVOKE/
+    GRANT fix — rule #1, show the SQL before applying. If the
+    operator would rather ship features first, next is Pawn
+    Phase 2 step 2 (pawn-history re-pawn panel).
 
   BACKLOG (in priority order):
-    1. Pawn Phase 2 step 2 — pawn-history re-pawn panel
+    1. [SECURITY] profiles privilege-escalation grant fix +
+       schema_migrations RLS (banner at top of file).
+    2. Wire customers.race into the customer add/edit forms
+       (column exists + import populates it; add field + i18n).
+    3. Bravo import preset — add to src/lib/imports/presets.ts
+       once a Bravo Customers export sample is provided (mirrors
+       the xPawn preset; ~15 lines).
+    4. Pawn Phase 2 step 2 — pawn-history re-pawn panel
        (customer-scoped server action for prior loans +
        collateral; filter chips; redeemed -> + Add via
        CollateralItemsList.addExtractedRow; forfeited ->
        "shop inventory"; optional is_repawn/source_loan_id).
-    2. Pawn Phase 2 step 3 — in-place Buy-outright merge
+    5. Pawn Phase 2 step 3 — in-place Buy-outright merge
        (embed buy valuation/inventory/hold/compliance with
-       its own buy item fields; currently bridged to
-       /buy/new).
-    3. Repair initial quote/deposit at intake — wire the
-       /repair/new rail estimate (labor+materials -> quote,
-       deposit) through the repair quote workflow (quote_set
-       event + status->'quoted' + quote_set_at; deposit event
-       + deposit_collected_at). Currently display-only.
-    4. Repair per-item stones — stones are still ticket-level
-       (shown when any item is stone_setting/custom); move to
-       per-line-item if operators need it.
-    5. FL Pawnbroker Transaction Form alignment pass on the
-       pawn-ticket PDF (/api/print/loan) + back page —
-       match FL_Pawnbroker_Transaction_Form.pdf layout
-       (header/control#, pledgor block incl. race + business
-       phone + owner-applied#, code legends, items 1-6 with
-       serial/brand/model#, APR + thumb-print line, reverse
-       statutory terms + Record of Payments table).
-    6. Set CRON_SECRET in Vercel Production (all crons 401).
-    7. Reconcile LeadsOnline CSV columns vs agency spec.
-    8. Visually verify the new dashboard, /pawn list,
-       /pawn/new modal + draft flow, and the new multi-item
-       /repair/new + /repair/[id] item list on the deploy
-       (no browser verification in-session).
+       its own buy item fields; currently bridged to /buy/new).
+    6. Confirm/replace landing PLACEHOLDER pricing (Free/$79/
+       $149) + contact email; wire real signup for "Start free".
+    7. Repair initial quote/deposit at intake — wire the
+       /repair/new rail estimate through the repair quote
+       workflow. Repair per-item stones.
+    8. FL Pawnbroker Transaction Form alignment pass on the
+       pawn-ticket PDF (/api/print/loan) + back page (now that
+       customers.race exists, the pledgor block can include it).
+    9. Set CRON_SECRET in Vercel Production (all crons 401).
+    10. Reconcile LeadsOnline CSV columns vs agency spec.
+    11. Browser smoke of new surfaces: landing "/", staff/admin
+        logout, /settings/import, customers ID search + Scan ID,
+        repair multi-item + pawn draft loop.
 
   KNOWN ISSUES TO REVISIT:
     - OPENAI_API_KEY pending in Vercel Production env.
