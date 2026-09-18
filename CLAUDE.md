@@ -96,9 +96,11 @@ Never kill node processes by image name — always by PID.
 
 13. **Customer ID retention is regulated.** ID scans persist as long as
     the loan is active + jurisdiction-mandated retention period after
-    redemption / forfeiture (FL = 2 years post-transaction). The DELETE
-    button on a customer record is gated on no active loans + no
-    retention-window holds.
+    redemption / forfeiture (FL = 3 years post-transaction, Fla. Stat.
+    § 539.001(12)(c) — verified 2026-09-18). The DELETE button on a
+    customer record is gated on no active loans + no retention-window
+    holds (`canDeleteCustomer`, driven by
+    `jurisdictions.record_retention_years`).
 
 14. **Pawn ticket immutability after print.** Once a pawn ticket has
     been printed and signed, the loan record's core fields (collateral
@@ -124,6 +126,18 @@ Never kill node processes by image name — always by PID.
     `C:\ClaudeMemory\Sass Memory Coonection\` is shared across all three
     Claudes — that's the only shared resource. Cross-app data flows
     through documented integrations, not shared infrastructure.
+
+18. **Statutory limits come from `jurisdictions`, never constants.**
+    Rate caps, loan term, grace before forfeiture, buy hold, repair
+    abandonment, record retention and ticket legal text live in the
+    global `jurisdictions` table (patches/0048); tenants point at one via
+    `tenants.jurisdiction_code`. Read them through
+    `loadTenantRules()` (`src/lib/jurisdictions/`). DB triggers enforce
+    the caps/grace/hold — app checks exist only to give translated
+    errors first. Never hardcode a state value (no `0.25`, no `30`).
+    Date rules use the shop's `tenants.timezone`, not UTC. Only add a
+    jurisdiction row after verifying the current statute
+    (`verified_on` + `verified_source`).
 
 ---
 
@@ -610,9 +624,10 @@ Both flows share the same per-tenant webhook endpoint.
 - Output: file format the agency expects (CSV / fixed-width / API call —
   varies by jurisdiction). FL LeadsOnline = upload format documented at
   https://leadsonline.com/ — confirm exact spec before going live.
-- ID retention rules: `lib/compliance/retention.ts` — minimum hold per
-  format. FL = 2 years post-redemption / forfeiture. Customer DELETE
-  blocked while any loan + any retention window is active.
+- ID retention rules: `lib/compliance/retention.ts` — window per
+  jurisdiction (`jurisdictions.record_retention_years`). FL = 3 years
+  post-transaction. Customer DELETE blocked while any loan + any
+  retention window is active.
 
 ---
 

@@ -2,7 +2,7 @@
  * Cron — release expired buy-outright holds.
  *
  * Buy-outright items are inserted with `status='held'` and `hold_until` set
- * to today + tenants.settings.buy_hold_period_days (FL = 30). During the
+ * to today + the effective hold (tenant setting floored by statute). During the
  * hold window the item is NOT sellable. When `hold_until` passes the item
  * should flip to `status='available'`.
  *
@@ -35,6 +35,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { todayDateString } from '@/lib/pawn/math'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -69,7 +70,21 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  const candidates = (rows ?? []) as ReleasedRow[]
+  // `today` above is UTC and only a coarse pre-filter. The statutory hold is
+  // measured in the shop's local calendar (and the inventory trigger from
+  // patches/0048 rejects an early release), so re-check per tenant timezone.
+  const tenantIds = [...new Set((rows ?? []).map((r) => r.tenant_id))]
+  const { data: tzRows } = tenantIds.length
+    ? await admin.from('tenants').select('id, timezone').in('id', tenantIds)
+    : { data: [] as { id: string; timezone: string }[] }
+  const localToday = new Map(
+    (tzRows ?? []).map((t) => [t.id, todayInTimezone(t.timezone)]),
+  )
+  const candidates = ((rows ?? []) as ReleasedRow[]).filter(
+    (r) =>
+      r.hold_until != null &&
+      r.hold_until <= (localToday.get(r.tenant_id) ?? today),
+  )
   if (candidates.length === 0) {
     return NextResponse.json({ ok: true, today, released: 0, tenants: 0 })
   }

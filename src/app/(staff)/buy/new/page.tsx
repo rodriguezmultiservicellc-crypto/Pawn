@@ -10,6 +10,7 @@ import type {
   MetalType,
   SpotPriceOverrideRow,
 } from '@/types/database-aliases'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import BuyForm, { type SpotPriceMap, type OverrideMap } from './form'
 
 const PURITY_COMBOS: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }> = [
@@ -34,7 +35,7 @@ const PURITY_COMBOS: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }
  * pawn intake.
  *
  * Server-side preload: latest spot price per (metal, purity) + tenant
- * pay-rate override multipliers + buy_hold_period_days. The form does
+ * pay-rate override multipliers + the effective buy hold. The form does
  * the live melt math client-side using those values so each keystroke
  * doesn't round-trip the server.
  */
@@ -59,17 +60,13 @@ export default async function NewBuyPage() {
 
   const admin = createAdminClient()
 
-  const [spotMap, overridesRes, settingsRes] = await Promise.all([
+  const [spotMap, overridesRes, rules] = await Promise.all([
     getLatestSpotPrices(PURITY_COMBOS),
     admin
       .from('spot_price_overrides')
       .select('metal_type, purity, multiplier')
       .eq('tenant_id', ctx.tenantId),
-    admin
-      .from('settings')
-      .select('buy_hold_period_days')
-      .eq('tenant_id', ctx.tenantId)
-      .maybeSingle(),
+    loadTenantRules(admin, ctx.tenantId),
   ])
 
   // Flatten the spot map into a plain Record<key, perGram> the client
@@ -96,11 +93,8 @@ export default async function NewBuyPage() {
     }
   }
 
-  const buyHoldDays =
-    settingsRes.data?.buy_hold_period_days != null &&
-    settingsRes.data.buy_hold_period_days >= 0
-      ? settingsRes.data.buy_hold_period_days
-      : 30
+  // GREATEST(tenant setting, statutory hold) — patches/0048.
+  const buyHoldDays = rules.buyHoldDays
 
   return (
     <BuyForm

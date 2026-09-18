@@ -7,6 +7,8 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/audit'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { exceedsCap, maxMonthlyRate } from '@/lib/jurisdictions/rules'
 
 const ROLES = ['owner', 'chain_admin', 'manager'] as const
 
@@ -21,7 +23,8 @@ const optionalMoney = z
 
 const rateSchema = z
   .object({
-    rate_monthly: z.coerce.number().min(0).max(0.25),
+    // Physical bound; the statutory cap is per jurisdiction (checked below).
+    rate_monthly: z.coerce.number().min(0).max(1),
     // Optional floor on monthly interest. NULL = no floor.
     min_monthly_charge: optionalMoney,
     label: z.string().trim().min(1).max(80),
@@ -74,6 +77,28 @@ export async function saveLoanRateAction(
   const v = parsed.data
 
   const admin = createAdminClient()
+
+  // Statutory ceilings from the tenant's jurisdiction (patches/0048). The
+  // tenant_loan_rates trigger enforces the same; this returns field errors.
+  const { jurisdiction } = await loadTenantRules(admin, ctx.tenantId)
+  if (jurisdiction && v.is_active) {
+    const cap = maxMonthlyRate(jurisdiction, null)
+    if (exceedsCap(v.rate_monthly, cap)) {
+      return {
+        fieldErrors: { rate_monthly: `jurisdiction_rate_cap:${cap!.toFixed(4)}` },
+      }
+    }
+    if (
+      jurisdiction.min_charge_cap != null &&
+      (v.min_monthly_charge ?? 0) > jurisdiction.min_charge_cap
+    ) {
+      return {
+        fieldErrors: {
+          min_monthly_charge: `jurisdiction_min_charge_cap:${jurisdiction.min_charge_cap}`,
+        },
+      }
+    }
+  }
 
   // Enforce single-default invariant — if the new/edited row is being
   // marked default, clear is_default on every other row first. RLS on
@@ -227,8 +252,8 @@ export type SaveBackpageState = {
 
 /**
  * Save the per-tenant pawn-ticket reverse-side legal disclosure. NULL =
- * fall back to the FL Ch. 539 default shipped in
- * src/lib/pdf/pawn-ticket-backpage-default.ts. The field is English-only
+ * fall back to the tenant jurisdiction's ticket_backpage (patches/0048).
+ * The field is English-only
  * by operator policy — the ticket is a legal document.
  */
 export async function saveTicketBackpageAction(

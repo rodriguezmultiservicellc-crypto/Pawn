@@ -35,6 +35,9 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
+import { addDaysIso } from '@/lib/pawn/math'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
   canTransition,
   shouldOpenTimerOnEnter,
@@ -791,6 +794,29 @@ export async function markAbandonedAction(
   const fromStatus = ticket.status as RepairStatus
   if (!canTransition(fromStatus, 'abandoned'))
     return { error: 'illegalTransition' }
+
+  // Abandonment period: GREATEST(settings.abandoned_repair_days, statute),
+  // counted from the promised pickup date (falling back to completion,
+  // then intake) in the shop's calendar.
+  const rules = await loadTenantRules(supabase, tenantId)
+  const { data: dates } = await supabase
+    .from('repair_tickets')
+    .select('promised_date, completed_at, created_at')
+    .eq('id', ticket.id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  const anchor =
+    dates?.promised_date ??
+    dates?.completed_at?.slice(0, 10) ??
+    dates?.created_at?.slice(0, 10) ??
+    null
+  if (anchor && rules.repairAbandonDays > 0) {
+    const eligibleOn = addDaysIso(anchor, rules.repairAbandonDays)
+    if (todayInTimezone(rules.timezone) < eligibleOn) {
+      return { error: `repair_abandon_not_eligible_until:${eligibleOn}` }
+    }
+  }
+
   if (shouldStopTimerOnLeave(fromStatus)) {
     await stopRunningTimers({
       supabase,

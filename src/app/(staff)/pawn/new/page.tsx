@@ -1,7 +1,13 @@
 import { redirect } from 'next/navigation'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getCtx } from '@/lib/supabase/ctx'
-import NewPawnLoanForm, { type LoanRateOption, type DraftInitial } from './form'
+import NewPawnLoanForm, {
+  type LoanRateOption,
+  type DraftInitial,
+  type IntakeLoanRules,
+} from './form'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import { parseDraftPayload } from '@/lib/pawn/intake-form'
 import type { PawnIntakeCategory } from '@/components/pawn/CategoryPicker'
 
@@ -60,6 +66,17 @@ export default async function NewPawnLoanPage(props: {
     settingsRes.data?.min_loan_amount == null
       ? null
       : Number(settingsRes.data.min_loan_amount)
+
+  const rules = await loadTenantRules(ctx.supabase, ctx.tenantId)
+  const j = rules.jurisdiction
+  const loanRules: IntakeLoanRules = {
+    jurisdictionName: j?.name ?? null,
+    minTermDays: j?.min_term_days ?? null,
+    maxTermDays: j?.max_term_days ?? null,
+    rateCapMonthly: j?.rate_cap_monthly ?? null,
+    rateTiers: j?.rate_tiers ?? null,
+    today: todayInTimezone(rules.timezone),
+  }
 
   // Pawn intake categories — operator-editable, RLS-scoped to this
   // tenant. Two-level hierarchy: top-levels have parent_id IS NULL,
@@ -134,6 +151,7 @@ export default async function NewPawnLoanPage(props: {
     <NewPawnLoanForm
       rates={rates}
       minLoanAmount={minLoanAmount}
+      loanRules={loanRules}
       categories={categories}
       initialDraft={initialDraft}
     />

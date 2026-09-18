@@ -11,7 +11,13 @@ import {
 import Link from 'next/link'
 import { CheckCircle, Upload, User, FloppyDisk } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { addDaysIso, todayDateString } from '@/lib/pawn/math'
+import { addDaysIso } from '@/lib/pawn/math'
+import {
+  exceedsCap,
+  maxMonthlyRate,
+  type RateTier,
+} from '@/lib/jurisdictions/rules'
+import { ruleErrorText } from '@/lib/jurisdictions/messages'
 import { saveLoanDraft } from '../drafts/actions'
 import {
   type LoanDraftPayload,
@@ -48,6 +54,17 @@ export type DraftInitial = {
   payload: LoanDraftPayload
 }
 
+/** Statutory limits from the tenant's jurisdiction (patches/0048). */
+export type IntakeLoanRules = {
+  jurisdictionName: string | null
+  minTermDays: number | null
+  maxTermDays: number | null
+  rateCapMonthly: number | null
+  rateTiers: RateTier[] | null
+  /** Shop-local today (tenant timezone). */
+  today: string
+}
+
 function fmtMoney(v: number): string {
   if (!isFinite(v)) return '—'
   return v.toLocaleString('en-US', {
@@ -60,11 +77,13 @@ function fmtMoney(v: number): string {
 export default function NewPawnLoanForm({
   rates,
   minLoanAmount,
+  loanRules,
   categories,
   initialDraft,
 }: {
   rates: LoanRateOption[]
   minLoanAmount: number | null
+  loanRules: IntakeLoanRules
   categories: PawnIntakeCategory[]
   initialDraft: DraftInitial | null
 }) {
@@ -78,10 +97,16 @@ export default function NewPawnLoanForm({
 
   // Issue date locked to today (no back-dating from intake). Server also
   // defaults to today when missing.
-  const today = todayDateString()
+  const today = loanRules.today
   const issueDate = today
+  // Fixed-term jurisdictions (FL: maturity is exactly 30 days) lock the
+  // input; otherwise default to the statutory minimum or 30.
+  const termFixed =
+    loanRules.minTermDays != null &&
+    loanRules.minTermDays === loanRules.maxTermDays
+  const defaultTerm = String(loanRules.minTermDays ?? 30)
   const [termDays, setTermDays] = useState<string>(
-    initialDraft?.payload.term_days || '30',
+    termFixed ? defaultTerm : initialDraft?.payload.term_days || defaultTerm,
   )
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
     initialDraft?.customerId ?? null,
@@ -176,6 +201,13 @@ export default function NewPawnLoanForm({
   const interest = principalNum * rateMonthly * months
   const redemption = principalNum + interest
 
+  // Tiered caps depend on principal — warn before the server rejects.
+  const rateCap = maxMonthlyRate(
+    { rate_cap_monthly: loanRules.rateCapMonthly, rate_tiers: loanRules.rateTiers },
+    principalNum > 0 ? principalNum : null,
+  )
+  const overCap = selectedRate != null && exceedsCap(rateMonthly, rateCap)
+
   const ltvState: 'neutral' | 'ok' | 'over' =
     principalNum <= 0 || collateralValue <= 0
       ? 'neutral'
@@ -187,7 +219,11 @@ export default function NewPawnLoanForm({
 
   const revealReady = selectedCustomerId != null
   const canIssue =
-    !pending && revealReady && principalNum > 0 && collateralCount > 0
+    !pending &&
+    revealReady &&
+    principalNum > 0 &&
+    collateralCount > 0 &&
+    !overCap
 
   return (
     <form
@@ -212,7 +248,7 @@ export default function NewPawnLoanForm({
 
           {state.error ? (
             <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-              {state.error}
+              {ruleErrorText(t, state.error)}
             </div>
           ) : state.fieldErrors &&
             Object.keys(state.fieldErrors).length > 0 ? (
@@ -447,6 +483,14 @@ export default function NewPawnLoanForm({
             <span className="mt-1 block text-[11px] text-white/45">
               {selectedRateDescription ?? tn.manageRatesHint}
             </span>
+            {overCap && rateCap != null ? (
+              <span className="mt-1 block text-[11.5px] font-semibold text-gold-2">
+                {t.jurisdiction.errors.jurisdiction_rate_cap.replace(
+                  '{value}',
+                  `${(rateCap * 100).toFixed(2)}%`,
+                )}
+              </span>
+            ) : null}
           </label>
 
           {/* Term + issue date */}
@@ -457,13 +501,16 @@ export default function NewPawnLoanForm({
               </span>
               <input
                 type="number"
-                min={1}
-                max={180}
+                min={loanRules.minTermDays ?? 1}
+                max={loanRules.maxTermDays ?? 180}
                 name="term_days"
                 required
+                readOnly={termFixed}
                 value={termDays}
                 onChange={(e) => setTermDays(e.target.value)}
-                className="h-[42px] w-full rounded-lg border border-white/15 bg-white/[0.07] px-3 text-sm font-bold tabular-nums text-white outline-none focus:border-gold"
+                className={`h-[42px] w-full rounded-lg border border-white/15 px-3 text-sm font-bold tabular-nums outline-none focus:border-gold ${
+                  termFixed ? 'bg-white/[0.04] text-white/70' : 'bg-white/[0.07] text-white'
+                }`}
               />
             </label>
             <label className="block">
@@ -480,6 +527,13 @@ export default function NewPawnLoanForm({
             </label>
           </div>
           <input type="hidden" name="due_date" value={computedDueDate} />
+          {termFixed && loanRules.jurisdictionName ? (
+            <p className="mt-1 text-[11px] text-white/45">
+              {t.jurisdiction.termFixed
+                .replace('{days}', defaultTerm)
+                .replace('{name}', loanRules.jurisdictionName)}
+            </p>
+          ) : null}
 
           <div className="mt-2 flex items-center justify-between px-0.5 py-2 text-[13px]">
             <span className="font-semibold text-white/60">

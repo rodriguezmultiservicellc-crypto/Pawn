@@ -15,13 +15,11 @@
  * signature IS embedded if present (passed in as a base64 data URL or
  * absolute http/https URL via PawnTicketData.signatureImage).
  *
- * TODO (Eddy, before going live in any state): the legal disclosure block
- * is a generic placeholder. Florida has specific pawn-loan disclosure
- * requirements (Ch. 539 F.S.) that must be vetted with counsel. The
- * placeholder is rendered via i18n keys (pawn.print.legal.*) so updating
- * it is a translation patch, not a component rewrite. Add a per-tenant
- * override field on `tenants` (or `settings`) when we land the second
- * jurisdiction.
+ * Legal disclosure block: the statutory statements come from the tenant's
+ * jurisdiction row (jurisdictions.ticket_notices, patches/0048), printed
+ * EN + ES side by side. Tenants with no jurisdiction on file fall back to
+ * the generic placeholder in i18n (pawn.print.legal.*). The Spanish column
+ * is a courtesy translation; the English text is the statutory statement.
  *
  * Type discipline: PawnTicketData is exported and the route handler /
  * render helper builds it from the user-scoped Supabase client. Every
@@ -39,6 +37,7 @@ import {
 } from '@react-pdf/renderer'
 import { reportColors } from '@/lib/tokens'
 import type { Dictionary } from '@/lib/i18n/en'
+import type { TicketNotice } from '@/lib/jurisdictions/rules'
 import type {
   InventoryCategory,
   LoanStatus,
@@ -139,9 +138,12 @@ export type PawnTicketData = {
   /** English-only legal disclosure printed on the reverse side. The pawn
    *  ticket is a legal document — operator confirmed this block must be
    *  English regardless of customer language preference. Resolved upstream
-   *  from settings.pawn_ticket_backpage with the FL Ch. 539 default as
-   *  fallback. */
+   *  from settings.pawn_ticket_backpage, falling back to the tenant
+   *  jurisdiction's ticket_backpage (patches/0048). Empty = no reverse page. */
   backpage_text: string
+  /** Statutory statements from the tenant's jurisdiction, printed EN + ES in
+   *  the legal block. Empty = generic placeholder (no jurisdiction on file). */
+  legal_notices: ReadonlyArray<TicketNotice>
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -920,20 +922,35 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
           </Text>
         </View>
         <View style={styles.legalRow}>
-          <View style={styles.legalCol}>
-            <Text style={styles.legalLang}>EN</Text>
-            <Text style={styles.legalText}>{en.legal.placeholder}</Text>
-            <Text style={[styles.legalText, { marginTop: 4 }]}>
-              {en.legal.terms}
-            </Text>
-          </View>
-          <View style={styles.legalCol}>
-            <Text style={styles.legalLang}>ES</Text>
-            <Text style={styles.legalText}>{es.legal.placeholder}</Text>
-            <Text style={[styles.legalText, { marginTop: 4 }]}>
-              {es.legal.terms}
-            </Text>
-          </View>
+          {(['en', 'es'] as const).map((lang) => {
+            const dict = lang === 'en' ? en : es
+            return (
+              <View key={lang} style={styles.legalCol}>
+                <Text style={styles.legalLang}>{lang.toUpperCase()}</Text>
+                {data.legal_notices.length > 0 ? (
+                  data.legal_notices.map((n, i) => (
+                    <Text
+                      key={i}
+                      style={[
+                        styles.legalText,
+                        i > 0 ? { marginTop: 4 } : {},
+                        n.bold ? { fontWeight: 700 } : {},
+                      ]}
+                    >
+                      {lang === 'en' ? n.en : n.es || n.en}
+                    </Text>
+                  ))
+                ) : (
+                  <>
+                    <Text style={styles.legalText}>{dict.legal.placeholder}</Text>
+                    <Text style={[styles.legalText, { marginTop: 4 }]}>
+                      {dict.legal.terms}
+                    </Text>
+                  </>
+                )}
+              </View>
+            )
+          })}
         </View>
 
         {data.notes ? (
@@ -1000,7 +1017,9 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
       </Page>
 
       {/* ── Reverse side: legal disclosure / policy. English-only by
-          operator policy — the ticket is a legal document. */}
+          operator policy — the ticket is a legal document. Omitted when
+          neither the tenant nor its jurisdiction supplies any text. */}
+      {data.backpage_text.trim() ? (
       <Page size="LETTER" style={styles.backpagePage} wrap>
         <Text style={styles.backpageHeader}>
           {en.backpage.header}
@@ -1039,6 +1058,7 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
           />
         </View>
       </Page>
+      ) : null}
     </Document>
   )
 }

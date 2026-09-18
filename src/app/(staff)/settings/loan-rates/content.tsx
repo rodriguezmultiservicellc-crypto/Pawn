@@ -21,7 +21,15 @@ import {
   type SavePolicyState,
   type SaveBackpageState,
 } from './actions'
-import { PAWN_TICKET_BACKPAGE_DEFAULT } from '@/lib/pdf/pawn-ticket-backpage-default'
+import { ruleErrorText } from '@/lib/jurisdictions/messages'
+
+/** Statutory limits from the tenant's jurisdiction (patches/0048). */
+export type StatutoryRateLimits = {
+  jurisdictionName: string | null
+  rateCap: number | null
+  minChargeCap: number | null
+  defaultBackpage: string
+}
 
 export type LoanRateRow = {
   id: string
@@ -40,10 +48,12 @@ export default function LoanRatesContent({
   rows,
   minLoanAmount,
   ticketBackpage,
+  statutory,
 }: {
   rows: LoanRateRow[]
   minLoanAmount: number | null
   ticketBackpage: string | null
+  statutory: StatutoryRateLimits
 }) {
   const { t } = useI18n()
   const [editing, setEditing] = useState<LoanRateRow | 'new' | null>(null)
@@ -71,6 +81,19 @@ export default function LoanRatesContent({
           <p className="mt-1 text-sm text-muted">
             {t.settingsLoanRates.subtitle}
           </p>
+          {statutory.jurisdictionName && statutory.rateCap != null ? (
+            <p className="mt-1 text-xs text-muted">
+              {t.jurisdiction.rateCapNote
+                .replace('{name}', statutory.jurisdictionName)
+                .replace('{rate}', `${(statutory.rateCap * 100).toFixed(2)}%`)
+                .replace(
+                  '{min}',
+                  statutory.minChargeCap != null
+                    ? `$${statutory.minChargeCap.toFixed(2)}`
+                    : '—',
+                )}
+            </p>
+          ) : null}
         </div>
         <button
           type="button"
@@ -84,7 +107,10 @@ export default function LoanRatesContent({
 
       <PolicyCard initial={minLoanAmount} />
 
-      <BackpageCard initial={ticketBackpage} />
+      <BackpageCard
+        initial={ticketBackpage}
+        defaultText={statutory.defaultBackpage}
+      />
 
       <RateTable
         title={t.settingsLoanRates.activeTitle}
@@ -107,6 +133,7 @@ export default function LoanRatesContent({
           existingDefault={
             rows.find((r) => r.isDefault)?.id ?? null
           }
+          rateCap={statutory.rateCap}
           onClose={() => setEditing(null)}
         />
       ) : null}
@@ -183,7 +210,13 @@ function PolicyCard({ initial }: { initial: number | null }) {
   )
 }
 
-function BackpageCard({ initial }: { initial: string | null }) {
+function BackpageCard({
+  initial,
+  defaultText,
+}: {
+  initial: string | null
+  defaultText: string
+}) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<
     SaveBackpageState,
@@ -209,7 +242,7 @@ function BackpageCard({ initial }: { initial: string | null }) {
           rows={16}
           spellCheck={false}
           className="block w-full rounded-md border border-border bg-card px-3 py-2 font-mono text-xs text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
-          placeholder={PAWN_TICKET_BACKPAGE_DEFAULT}
+          placeholder={defaultText}
         />
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs text-muted">
@@ -351,10 +384,12 @@ function RateTable({
 function EditDialog({
   row,
   existingDefault,
+  rateCap,
   onClose,
 }: {
   row: LoanRateRow | null
   existingDefault: string | null
+  rateCap: number | null
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -367,7 +402,10 @@ function EditDialog({
     FormData
   >(deleteLoanRateAction, {})
 
-  const fe = (k: string) => state.fieldErrors?.[k]
+  const fe = (k: string) => {
+    const raw = state.fieldErrors?.[k]
+    return raw ? ruleErrorText(t, raw) : undefined
+  }
 
   if (state.ok || delState.ok) {
     setTimeout(onClose, 250)
@@ -427,7 +465,7 @@ function EditDialog({
                 required
                 step="0.0001"
                 min={0}
-                max={0.25}
+                max={rateCap ?? 1}
                 defaultValue={row?.rateMonthly?.toString() ?? '0.10'}
                 className={`block w-32 rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10 ${
                   fe('rate_monthly') ? 'border-danger/60' : 'border-border'
@@ -606,5 +644,5 @@ function translateError(
     not_found: t.common.error,
     invalid: t.common.error,
   }
-  return map[reason] ?? reason
+  return map[reason] ?? ruleErrorText(t, reason)
 }

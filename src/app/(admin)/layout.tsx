@@ -3,7 +3,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { getCtx } from '@/lib/supabase/ctx'
 import { I18nProvider } from '@/lib/i18n/context'
-import { isLanguage } from '@/lib/i18n/config'
+import { getDictionary, isLanguage } from '@/lib/i18n/config'
 import { StaffTopBarActions } from '@/components/layout/StaffTopBarActions'
 
 /**
@@ -60,6 +60,12 @@ export default async function AdminLayout({
                 className="text-text-secondary transition-colors hover:text-blue"
               >
                 Watches
+              </Link>
+              <Link
+                href="/admin/jurisdictions"
+                className="text-text-secondary transition-colors hover:text-blue"
+              >
+                {getDictionary(initialLang).jurisdiction.admin.navLabel}
               </Link>
               <Link
                 href="/admin/market-data"

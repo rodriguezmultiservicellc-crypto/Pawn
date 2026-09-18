@@ -20,7 +20,13 @@ import {
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
 import { readCollateralRows } from '@/lib/pawn/intake-form'
-import { addDaysIso, todayDateString } from '@/lib/pawn/math'
+import { addDaysIso } from '@/lib/pawn/math'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import {
+  exceedsCap,
+  maxMonthlyRate,
+  todayInTimezone,
+} from '@/lib/jurisdictions/rules'
 import { checkPlanLimit, countActiveLoans } from '@/lib/saas/gates'
 import {
   computeSuggestedLoan,
@@ -193,19 +199,13 @@ export async function createLoanAction(
     }
   }
 
-  // Auto-compute due_date if not provided.
-  const issueDateRaw = String(formData.get('issue_date') ?? '').trim()
-  const issueDate =
-    /^\d{4}-\d{2}-\d{2}$/.test(issueDateRaw) ? issueDateRaw : todayDateString()
+  // Issue date is always the shop's local today (no back-dating from
+  // intake); maturity is derived from it below.
+  const rules = await loadTenantRules(supabase, tenantId)
+  const issueDate = todayInTimezone(rules.timezone)
   const termDaysRaw = String(formData.get('term_days') ?? '').trim()
   const termDays = parseInt(termDaysRaw || '0', 10) || 0
-  const dueDateRaw = String(formData.get('due_date') ?? '').trim()
-  const computedDueDate =
-    /^\d{4}-\d{2}-\d{2}$/.test(dueDateRaw)
-      ? dueDateRaw
-      : termDays > 0
-      ? addDaysIso(issueDate, termDays)
-      : null
+  const computedDueDate = termDays > 0 ? addDaysIso(issueDate, termDays) : null
 
   const collateralRaw = readCollateralRows(formData)
 
@@ -258,6 +258,29 @@ export async function createLoanAction(
     }
   }
 
+  // Statutory limits (patches/0048). The loans trigger enforces the same
+  // rules; checking here returns a translatable code instead of a raw
+  // Postgres error.
+  const { jurisdiction } = rules
+  if (jurisdiction) {
+    if (jurisdiction.min_term_days != null && v.term_days < jurisdiction.min_term_days) {
+      return { error: `jurisdiction_term_min:${jurisdiction.min_term_days}` }
+    }
+    if (jurisdiction.max_term_days != null && v.term_days > jurisdiction.max_term_days) {
+      return { error: `jurisdiction_term_max:${jurisdiction.max_term_days}` }
+    }
+    const cap = maxMonthlyRate(jurisdiction, v.principal)
+    if (exceedsCap(v.interest_rate_monthly, cap)) {
+      return { error: `jurisdiction_rate_cap:${cap!.toFixed(4)}` }
+    }
+    if (
+      jurisdiction.min_charge_cap != null &&
+      (v.min_monthly_charge ?? 0) > jurisdiction.min_charge_cap
+    ) {
+      return { error: `jurisdiction_min_charge_cap:${jurisdiction.min_charge_cap}` }
+    }
+  }
+
   // Defense in depth: re-validate the customer belongs to this tenant.
   const { data: customer } = await supabase
     .from('customers')
@@ -285,7 +308,9 @@ export async function createLoanAction(
       min_monthly_charge: v.min_monthly_charge,
       term_days: v.term_days,
       issue_date: v.issue_date,
-      due_date: v.due_date ?? addDaysIso(v.issue_date, v.term_days),
+      // Always derived: maturity = issue + term (FL 539.001(8)(b)6.b). A
+      // client-sent due_date is never trusted.
+      due_date: addDaysIso(v.issue_date, v.term_days),
       status: 'active',
       is_printed: false,
       notes: v.notes,

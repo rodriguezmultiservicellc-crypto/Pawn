@@ -11,6 +11,8 @@ import {
   loanVoidSchema,
 } from '@/lib/validations/loan'
 import { logAudit } from '@/lib/audit'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { loanForfeitEligibility } from '@/lib/jurisdictions/rules'
 import {
   addDaysIso,
   payoffFromLoan,
@@ -413,6 +415,14 @@ export async function forfeitLoanAction(
   const { loan, supabase, userId, tenantId } = await resolveLoanScope(v.loan_id)
   if (isTerminalStatus(loan.status as LoanStatus)) {
     return { error: 'terminal_status' }
+  }
+
+  // Statutory grace (patches/0048): forfeiture only after maturity + grace,
+  // evaluated in the shop's timezone. The loans trigger enforces the same.
+  const rules = await loadTenantRules(supabase, tenantId)
+  const eligibility = loanForfeitEligibility(rules, loan.due_date)
+  if (!eligibility.eligible) {
+    return { error: `forfeit_not_eligible_until:${eligibility.eligibleOn}` }
   }
 
   // Update loan -> forfeited.

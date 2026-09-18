@@ -127,12 +127,14 @@ export default function PawnLoanDetail({
   events,
   payoff,
   today,
+  forfeit,
 }: {
   loan: LoanView
   collateral: LoanCollateralView[]
   events: LoanEventView[]
   payoff: PayoffResult
   today: string
+  forfeit: { eligible: boolean; eligibleOn: string; lastRedemptionDate: string }
 }) {
   const { t } = useI18n()
   const [dialog, setDialog] = useState<DialogKind>(null)
@@ -263,6 +265,19 @@ export default function PawnLoanDetail({
             </div>
             <div className="font-mono text-sm text-foreground">{loan.due_date}</div>
           </div>
+          {!isTerminal ? (
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted">
+                {t.jurisdiction.lastRedemptionDay}
+              </div>
+              <div className="font-mono text-sm text-foreground">
+                {forfeit.lastRedemptionDate}
+              </div>
+              <div className="text-xs text-muted">
+                {t.jurisdiction.forfeitEligibleOn.replace('{date}', forfeit.eligibleOn)}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -270,6 +285,7 @@ export default function PawnLoanDetail({
       <ActionRow
         loanId={loan.id}
         isTerminal={isTerminal}
+        canForfeit={forfeit.eligible}
         onAction={(k) => setDialog(k)}
         onPrint={onPrint}
         printPending={printPending}
@@ -359,6 +375,7 @@ async function actionWithToast(p: Promise<ActionResult>): Promise<ActionResult> 
 function ActionRow({
   loanId,
   isTerminal,
+  canForfeit,
   onAction,
   onPrint,
   printPending,
@@ -366,6 +383,7 @@ function ActionRow({
 }: {
   loanId: string
   isTerminal: boolean
+  canForfeit: boolean
   onAction: (k: NonNullable<DialogKind>) => void
   onPrint: () => void
   printPending: boolean
@@ -398,7 +416,7 @@ function ActionRow({
         label={t.pawn.actions.forfeit}
         icon={<Warning size={14} weight="bold" />}
         onClick={() => onAction('forfeit')}
-        disabled={isTerminal}
+        disabled={isTerminal || !canForfeit}
         tone="warning"
       />
       <ActionButton

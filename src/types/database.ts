@@ -1545,6 +1545,105 @@ export type Database = {
           },
         ]
       }
+      jurisdictions: {
+        Row: {
+          buy_hold_days: number
+          code: string
+          country: string
+          created_at: string
+          default_timezone: string
+          grace_days: number
+          grace_rolls_to_business_day: boolean
+          is_active: boolean
+          max_term_days: number | null
+          min_charge_cap: number | null
+          min_term_days: number | null
+          name: string
+          notes: string | null
+          period_days: number
+          police_report_format:
+            | Database["public"]["Enums"]["police_report_format"]
+            | null
+          police_reporting_required: boolean
+          rate_cap_monthly: number | null
+          rate_tiers: Json | null
+          record_retention_years: number | null
+          region: string
+          repair_abandon_days: number | null
+          statute: string | null
+          ticket_backpage: string | null
+          ticket_notices: Json
+          updated_at: string
+          updated_by: string | null
+          verified_on: string | null
+          verified_source: string | null
+        }
+        Insert: {
+          buy_hold_days?: number
+          code: string
+          country: string
+          created_at?: string
+          default_timezone?: string
+          grace_days?: number
+          grace_rolls_to_business_day?: boolean
+          is_active?: boolean
+          max_term_days?: number | null
+          min_charge_cap?: number | null
+          min_term_days?: number | null
+          name: string
+          notes?: string | null
+          period_days?: number
+          police_report_format?:
+            | Database["public"]["Enums"]["police_report_format"]
+            | null
+          police_reporting_required?: boolean
+          rate_cap_monthly?: number | null
+          rate_tiers?: Json | null
+          record_retention_years?: number | null
+          region: string
+          repair_abandon_days?: number | null
+          statute?: string | null
+          ticket_backpage?: string | null
+          ticket_notices?: Json
+          updated_at?: string
+          updated_by?: string | null
+          verified_on?: string | null
+          verified_source?: string | null
+        }
+        Update: {
+          buy_hold_days?: number
+          code?: string
+          country?: string
+          created_at?: string
+          default_timezone?: string
+          grace_days?: number
+          grace_rolls_to_business_day?: boolean
+          is_active?: boolean
+          max_term_days?: number | null
+          min_charge_cap?: number | null
+          min_term_days?: number | null
+          name?: string
+          notes?: string | null
+          period_days?: number
+          police_report_format?:
+            | Database["public"]["Enums"]["police_report_format"]
+            | null
+          police_reporting_required?: boolean
+          rate_cap_monthly?: number | null
+          rate_tiers?: Json | null
+          record_retention_years?: number | null
+          region?: string
+          repair_abandon_days?: number | null
+          statute?: string | null
+          ticket_backpage?: string | null
+          ticket_notices?: Json
+          updated_at?: string
+          updated_by?: string | null
+          verified_on?: string | null
+          verified_source?: string | null
+        }
+        Relationships: []
+      }
       layaway_payments: {
         Row: {
           amount: number
@@ -3362,6 +3461,7 @@ export type Database = {
           google_reviews_daily_quota: number | null
           google_reviews_hidden_review_times: number[]
           google_reviews_min_star_floor: number
+          grace_period_days: number | null
           loyalty_earn_rate_loan_interest: number
           loyalty_earn_rate_retail: number
           loyalty_enabled: boolean
@@ -3392,6 +3492,7 @@ export type Database = {
           google_reviews_daily_quota?: number | null
           google_reviews_hidden_review_times?: number[]
           google_reviews_min_star_floor?: number
+          grace_period_days?: number | null
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
           loyalty_enabled?: boolean
@@ -3422,6 +3523,7 @@ export type Database = {
           google_reviews_daily_quota?: number | null
           google_reviews_hidden_review_times?: number[]
           google_reviews_min_star_floor?: number
+          grace_period_days?: number | null
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
           loyalty_enabled?: boolean
@@ -4022,6 +4124,7 @@ export type Database = {
           has_retail: boolean
           id: string
           is_active: boolean
+          jurisdiction_code: string | null
           license_key: string | null
           logo_url: string | null
           name: string
@@ -4036,6 +4139,7 @@ export type Database = {
           public_slug: string | null
           state: string | null
           tenant_type: Database["public"]["Enums"]["tenant_type"]
+          timezone: string
           updated_at: string
           zip: string | null
         }
@@ -4053,6 +4157,7 @@ export type Database = {
           has_retail?: boolean
           id?: string
           is_active?: boolean
+          jurisdiction_code?: string | null
           license_key?: string | null
           logo_url?: string | null
           name: string
@@ -4067,6 +4172,7 @@ export type Database = {
           public_slug?: string | null
           state?: string | null
           tenant_type?: Database["public"]["Enums"]["tenant_type"]
+          timezone?: string
           updated_at?: string
           zip?: string | null
         }
@@ -4084,6 +4190,7 @@ export type Database = {
           has_retail?: boolean
           id?: string
           is_active?: boolean
+          jurisdiction_code?: string | null
           license_key?: string | null
           logo_url?: string | null
           name?: string
@@ -4098,10 +4205,18 @@ export type Database = {
           public_slug?: string | null
           state?: string | null
           tenant_type?: Database["public"]["Enums"]["tenant_type"]
+          timezone?: string
           updated_at?: string
           zip?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenants_jurisdiction_code_fkey"
+            columns: ["jurisdiction_code"]
+            isOneToOne: false
+            referencedRelation: "jurisdictions"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "tenants_parent_tenant_id_fkey"
             columns: ["parent_tenant_id"]
@@ -4285,6 +4400,14 @@ export type Database = {
         Args: { p_kind: string; p_tenant_id: string }
         Returns: string
       }
+      jurisdiction_max_rate: {
+        Args: { p_code: string; p_principal: number }
+        Returns: number
+      }
+      loan_forfeit_eligible_date: {
+        Args: { p_due_date: string; p_tenant_id: string }
+        Returns: string
+      }
       my_accessible_tenant_ids: { Args: never; Returns: string[] }
       my_chain_tenant_ids: { Args: never; Returns: string[] }
       my_is_owner: { Args: { p_tenant_id: string }; Returns: boolean }
@@ -4310,6 +4433,9 @@ export type Database = {
         Args: { p_kind: string; p_tenant_id: string; p_value: string }
         Returns: string
       }
+      tenant_buy_hold_days: { Args: { p_tenant_id: string }; Returns: number }
+      tenant_grace_days: { Args: { p_tenant_id: string }; Returns: number }
+      tenant_today: { Args: { p_tenant_id: string }; Returns: string }
     }
     Enums: {
       appraisal_photo_kind:
@@ -4559,12 +4685,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4588,11 +4714,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4613,11 +4739,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4638,11 +4764,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4655,11 +4781,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

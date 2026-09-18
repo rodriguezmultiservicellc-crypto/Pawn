@@ -174,7 +174,10 @@ export const loanCreateSchema = z.object({
   interest_rate_monthly: z
     .preprocess(
       (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
-      z.coerce.number().min(0).max(0.25).finite(),
+      // Physical bound only — the statutory cap depends on the tenant's
+      // jurisdiction and is enforced in createLoanAction + the loans
+      // trigger (patches/0048).
+      z.coerce.number().min(0).max(1).finite(),
     ),
   // Optional snapshot of the selected rate's min_monthly_charge floor.
   // Empty/null = no per-rate floor (custom rate selection or rate has

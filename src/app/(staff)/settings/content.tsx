@@ -16,7 +16,9 @@ import {
   Buildings,
   Tag,
   UploadSimple,
+  Scales,
 } from '@phosphor-icons/react'
+import { useI18n } from '@/lib/i18n/context'
 
 export type SettingsHubView = {
   tenantId: string
@@ -40,17 +42,17 @@ export type SettingsHubView = {
     trialEndsAt: string | null
     periodEndsAt: string | null
   } | null
-  pawnDefaults: {
-    interestRateMonthly: number
-    termDays: number
-    abandonedRepairDays: number
-    buyHoldPeriodDays: number
-  } | null
+  legalRules: {
+    jurisdictionName: string | null
+    graceDays: number
+    buyHoldDays: number
+  }
 }
 
 const OWNER_ROLES = new Set(['owner', 'chain_admin'])
 
 export default function SettingsContent({ view }: { view: SettingsHubView }) {
+  const { t } = useI18n()
   const integrationsConfigured = [
     view.integrations.stripeConnect.connected,
     view.integrations.twilio.connected,
@@ -214,33 +216,21 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
           </SectionCard>
         )}
 
-        {view.modules.pawn && view.pawnDefaults ? (
-          <SectionCard
-            icon={<Coins size={20} weight="regular" />}
-            title="Pawn defaults"
-            status="configured"
-            statusDetail={`${(view.pawnDefaults.interestRateMonthly * 100).toFixed(2)}% / mo · ${view.pawnDefaults.termDays}d`}
-          >
-            <dl className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
-              <Stat
-                label="Interest"
-                value={`${(view.pawnDefaults.interestRateMonthly * 100).toFixed(2)}%/mo`}
-              />
-              <Stat
-                label="Term"
-                value={`${view.pawnDefaults.termDays} days`}
-              />
-              <Stat
-                label="Buy hold"
-                value={`${view.pawnDefaults.buyHoldPeriodDays} days`}
-              />
-              <Stat
-                label="Repair abandon"
-                value={`${view.pawnDefaults.abandonedRepairDays} days`}
-              />
-            </dl>
-          </SectionCard>
-        ) : null}
+        <Card
+          href="/settings/compliance"
+          icon={<Scales size={20} weight="regular" />}
+          title={t.jurisdiction.settings.title}
+          description={t.jurisdiction.settings.cardDescription}
+          status={view.legalRules.jurisdictionName ? 'configured' : 'needs_setup'}
+          statusDetail={
+            view.legalRules.jurisdictionName
+              ? t.jurisdiction.settings.cardStatus
+                  .replace('{name}', view.legalRules.jurisdictionName)
+                  .replace('{grace}', String(view.legalRules.graceDays))
+                  .replace('{hold}', String(view.legalRules.buyHoldDays))
+              : t.jurisdiction.settings.jurisdictionNone
+          }
+        />
 
         <SectionCard
           icon={<Wrench size={20} weight="regular" />}
@@ -389,15 +379,6 @@ function ModuleLine({
         {enabled ? 'on' : 'off'}
       </span>
     </li>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-muted">{label}</dt>
-      <dd className="font-mono text-foreground">{value}</dd>
-    </div>
   )
 }
 

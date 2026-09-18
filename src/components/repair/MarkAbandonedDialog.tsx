@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { ruleErrorText } from '@/lib/jurisdictions/messages'
 import { Modal, Footer } from '@/components/pawn/RecordPaymentDialog'
 
 export function MarkAbandonedDialog({
@@ -39,7 +40,7 @@ export function MarkAbandonedDialog({
     <Modal title={t.repair.dialogs.markAbandoned.title} onClose={onClose}>
       {error ? (
         <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {error}
+          {ruleErrorText(t, error)}
         </div>
       ) : null}
       <div className="mb-3 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-warning">

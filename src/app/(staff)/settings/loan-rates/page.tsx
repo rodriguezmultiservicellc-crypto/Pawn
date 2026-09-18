@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { maxMonthlyRate } from '@/lib/jurisdictions/rules'
 import LoanRatesContent, { type LoanRateRow } from './content'
 
 const SETTINGS_ROLES = new Set(['owner', 'chain_admin', 'manager'])
@@ -61,11 +63,19 @@ export default async function LoanRatesPage() {
 
   const ticketBackpage = settingsRes.data?.pawn_ticket_backpage ?? null
 
+  const { jurisdiction } = await loadTenantRules(admin, ctx.tenantId)
+
   return (
     <LoanRatesContent
       rows={items}
       minLoanAmount={minLoanAmount}
       ticketBackpage={ticketBackpage}
+      statutory={{
+        jurisdictionName: jurisdiction?.name ?? null,
+        rateCap: maxMonthlyRate(jurisdiction, null),
+        minChargeCap: jurisdiction?.min_charge_cap ?? null,
+        defaultBackpage: jurisdiction?.ticket_backpage ?? '',
+      }}
     />
   )
 }

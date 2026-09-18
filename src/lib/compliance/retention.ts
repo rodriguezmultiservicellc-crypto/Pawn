@@ -1,204 +1,137 @@
 /**
  * Customer-record retention rules per CLAUDE.md Rule 13.
  *
- * Customer ID scans + customer rows persist as long as:
- *   - any active loan (status not in {'redeemed','forfeited','voided'}), OR
- *   - the per-jurisdiction retention window after the most recent
- *     redemption / forfeiture has not yet expired, OR
- *   - any active layaway, OR
- *   - any in-flight repair ticket, OR
- *   - any sale where the buy-outright hold period has not yet expired
- *     (we treat sales.completed_at + tenant.buy_hold_period_days as the
- *     compliance hold marker for the customer record's perspective —
- *     individual inventory holds are tracked on inventory_items.hold_until).
+ * A customer record may not be deleted while:
+ *   - any loan is still open, OR
+ *   - the jurisdiction's record-retention window after the most recent
+ *     closed (redeemed / forfeited) loan has not expired, OR
+ *   - the same window after the most recent buy-outright has not expired
+ *     (the pawnbroker transaction form covers purchases too), OR
+ *   - any repair ticket is in flight, OR
+ *   - any layaway is active.
  *
- * The DELETE button on a customer record is gated on this. The function
- * returns a structured result so the caller can show a friendly reason.
- *
- * v1 ships FL only. Add new states to RETENTION_RULES + update the
- * resolveRetentionDays() lookup.
+ * The retention period comes from jurisdictions.record_retention_years
+ * (patches/0048; FL = 3 years, Fla. Stat. § 539.001(12)(c)). Tenants with
+ * no jurisdiction on file have no statutory window — only the open-work
+ * checks apply.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import type { PoliceReportFormat } from '@/types/database-aliases'
-
-/** Per-jurisdiction retention windows in DAYS after a transaction terminates. */
-export const RETENTION_RULES: Record<
-  PoliceReportFormat,
-  {
-    /** Pawn loans (post-redemption / post-forfeiture). FL = 2 years. */
-    pawnAfterClose: number
-    /** Buy-outright hold period (the inventory.hold_until window). FL = 30
-     *  days for jewelry; configurable per-tenant in `settings`. The number
-     *  here is the JURISDICTION FALLBACK when a tenant hasn't overridden. */
-    buyHoldPeriod: number
-  }
-> = {
-  fl_leadsonline: {
-    pawnAfterClose: 365 * 2, // FL = 2 years post-redemption / forfeiture
-    buyHoldPeriod: 30, // FL jewelry hold period
-  },
-}
-
-export function resolveRetentionDays(
-  format: PoliceReportFormat,
-): { pawnAfterClose: number; buyHoldPeriod: number } {
-  return RETENTION_RULES[format] ?? RETENTION_RULES.fl_leadsonline
-}
+import type { EffectiveRules } from '@/lib/jurisdictions/rules'
 
 export type DeleteBlockReason =
   | 'active_loan'
   | 'pawn_retention_window'
+  | 'buy_retention_window'
   | 'active_repair'
   | 'active_layaway'
-  | 'buy_hold_period'
 
 export type CanDeleteCustomerResult =
   | { canDelete: true }
   | {
       canDelete: false
       reasons: ReadonlyArray<DeleteBlockReason>
-      /** ISO date when the EARLIEST blocking window expires. Null when one
-       *  of the reasons is open-ended (e.g. an active loan). */
-      earliestExpiresAt: string | null
+      /** ISO date the LATEST retention window expires (the record can be
+       *  deleted after this). Null when every reason is open-ended (e.g. an
+       *  active loan). */
+      blockedUntil: string | null
     }
 
+function addYearsIso(ts: string, years: number): string {
+  const d = new Date(ts)
+  d.setUTCFullYear(d.getUTCFullYear() + years)
+  return d.toISOString().slice(0, 10)
+}
+
 /**
- * Determine whether a customer record may be hard-deleted today.
- *
- * Pure read against tenant-scoped tables; uses the user-scoped client (RLS
- * applies). The caller is expected to have already gated by tenant role.
+ * Determine whether a customer record may be deleted today. Pure reads
+ * against tenant-scoped tables; the caller has already gated by role.
  */
 export async function canDeleteCustomer(args: {
   supabase: SupabaseClient<Database>
   customerId: string
   tenantId: string
-  format: PoliceReportFormat
+  rules: EffectiveRules
 }): Promise<CanDeleteCustomerResult> {
-  const { supabase, customerId, tenantId, format } = args
-  const rules = resolveRetentionDays(format)
-  const now = new Date()
+  const { supabase, customerId, tenantId, rules } = args
+  const today = new Date().toISOString().slice(0, 10)
+  const years = rules.retentionYears
   const reasons: DeleteBlockReason[] = []
-  let earliest = null as string | null
-  const setEarliest = (iso: string) => {
-    earliest = earliest != null && earliest < iso ? earliest : iso
+  let blockedUntil: string | null = null
+  const extend = (iso: string) => {
+    blockedUntil = blockedUntil != null && blockedUntil > iso ? blockedUntil : iso
   }
 
-  // ── 1. Active loans (no terminal status).
-  {
-    const { data: openLoans } = await supabase
-      .from('loans')
-      .select('id, status, due_date')
-      .eq('customer_id', customerId)
-      .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
-      .in('status', ['active', 'extended', 'partial_paid'])
-      .limit(1)
-    if (openLoans && openLoans.length > 0) {
-      reasons.push('active_loan')
-    }
-  }
+  const [openLoans, closedLoan, lastBuy, openRepairs, openLayaways] =
+    await Promise.all([
+      supabase
+        .from('loans')
+        .select('id')
+        .eq('customer_id', customerId)
+        .eq('tenant_id', tenantId)
+        .is('deleted_at', null)
+        .in('status', ['active', 'extended', 'partial_paid'])
+        .limit(1),
+      supabase
+        .from('loans')
+        .select('updated_at')
+        .eq('customer_id', customerId)
+        .eq('tenant_id', tenantId)
+        .is('deleted_at', null)
+        .in('status', ['redeemed', 'forfeited'])
+        .order('updated_at', { ascending: false })
+        .limit(1),
+      supabase
+        .from('compliance_log')
+        .select('occurred_at')
+        .eq('tenant_id', tenantId)
+        .eq('event_type', 'buy_outright')
+        .eq('customer_snapshot->>id', customerId)
+        .order('occurred_at', { ascending: false })
+        .limit(1),
+      supabase
+        .from('repair_tickets')
+        .select('id')
+        .eq('customer_id', customerId)
+        .eq('tenant_id', tenantId)
+        .is('deleted_at', null)
+        .not('status', 'in', '("picked_up","abandoned","voided")')
+        .limit(1),
+      supabase
+        .from('layaways')
+        .select('id')
+        .eq('customer_id', customerId)
+        .eq('tenant_id', tenantId)
+        .is('deleted_at', null)
+        .eq('status', 'active')
+        .limit(1),
+    ])
 
-  // ── 2. Pawn retention window — most recent terminal-state loan.
-  {
-    const { data: closedLoans } = await supabase
-      .from('loans')
-      .select('id, status, updated_at')
-      .eq('customer_id', customerId)
-      .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
-      .in('status', ['redeemed', 'forfeited'])
-      .order('updated_at', { ascending: false })
-      .limit(1)
-    if (closedLoans && closedLoans.length > 0) {
-      const closedAt = new Date(closedLoans[0].updated_at)
-      const expires = new Date(closedAt)
-      expires.setUTCDate(expires.getUTCDate() + rules.pawnAfterClose)
-      if (expires.getTime() > now.getTime()) {
+  if ((openLoans.data ?? []).length > 0) reasons.push('active_loan')
+
+  if (years != null) {
+    const closedAt = closedLoan.data?.[0]?.updated_at
+    if (closedAt) {
+      const until = addYearsIso(closedAt, years)
+      if (until > today) {
         reasons.push('pawn_retention_window')
-        const iso = expires.toISOString().slice(0, 10)
-        setEarliest(iso)
+        extend(until)
+      }
+    }
+    const boughtAt = lastBuy.data?.[0]?.occurred_at
+    if (boughtAt) {
+      const until = addYearsIso(boughtAt, years)
+      if (until > today) {
+        reasons.push('buy_retention_window')
+        extend(until)
       }
     }
   }
 
-  // ── 3. Active repair tickets.
-  {
-    const { data: openRepairs } = await supabase
-      .from('repair_tickets')
-      .select('id, status')
-      .eq('customer_id', customerId)
-      .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
-      .not('status', 'in', '("picked_up","abandoned","voided")')
-      .limit(1)
-    if (openRepairs && openRepairs.length > 0) {
-      reasons.push('active_repair')
-    }
-  }
-
-  // ── 4. Active layaways.
-  {
-    const { data: openLayaways } = await supabase
-      .from('layaways')
-      .select('id, status')
-      .eq('customer_id', customerId)
-      .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
-      .eq('status', 'active')
-      .limit(1)
-    if (openLayaways && openLayaways.length > 0) {
-      reasons.push('active_layaway')
-    }
-  }
-
-  // ── 5. Buy-hold inventory referencing this customer (via the most
-  //   recent compliance_log row of buy_outright type — items are not
-  //   directly customer-FK'd in inventory).
-  {
-    const { data: holds } = await supabase
-      .from('compliance_log')
-      .select('id, occurred_at')
-      .eq('tenant_id', tenantId)
-      .eq('event_type', 'buy_outright')
-      .order('occurred_at', { ascending: false })
-      .limit(50)
-    if (holds && holds.length > 0) {
-      // We can't filter by customer_id at query time (it's a JSONB snapshot
-      // field). Fetch the recent batch and filter in-memory.
-      const recent = holds.find((h) => {
-        const occurred = new Date(h.occurred_at)
-        const expires = new Date(occurred)
-        expires.setUTCDate(expires.getUTCDate() + rules.buyHoldPeriod)
-        return expires.getTime() > now.getTime()
-      })
-      if (recent) {
-        // Verify that the snapshot points at this customer by re-reading
-        // the row's JSONB. Cheap — we already have the id.
-        const { data: detail } = await supabase
-          .from('compliance_log')
-          .select('id, customer_snapshot, occurred_at')
-          .eq('id', recent.id)
-          .maybeSingle()
-        const customerIdInSnapshot =
-          detail?.customer_snapshot &&
-          typeof detail.customer_snapshot === 'object' &&
-          !Array.isArray(detail.customer_snapshot)
-            ? (detail.customer_snapshot as Record<string, unknown>).customer_id
-            : null
-        if (customerIdInSnapshot === customerId) {
-          reasons.push('buy_hold_period')
-          const occurred = new Date(detail!.occurred_at)
-          const expires = new Date(occurred)
-          expires.setUTCDate(expires.getUTCDate() + rules.buyHoldPeriod)
-          const iso = expires.toISOString().slice(0, 10)
-          setEarliest(iso)
-        }
-      }
-    }
-  }
+  if ((openRepairs.data ?? []).length > 0) reasons.push('active_repair')
+  if ((openLayaways.data ?? []).length > 0) reasons.push('active_layaway')
 
   if (reasons.length === 0) return { canDelete: true }
-  return { canDelete: false, reasons, earliestExpiresAt: earliest }
+  return { canDelete: false, reasons, blockedUntil }
 }

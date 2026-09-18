@@ -20,6 +20,8 @@ import {
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { canDeleteCustomer } from '@/lib/compliance/retention'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { recordManualAdjust, resetReferralCode } from '@/lib/loyalty/events'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 
@@ -220,15 +222,28 @@ export async function banCustomerAction(formData: FormData): Promise<void> {
   revalidatePath('/customers')
 }
 
-export async function deleteCustomerAction(formData: FormData): Promise<void> {
+export async function deleteCustomerAction(
+  formData: FormData,
+): Promise<{ error?: string }> {
   const id = (formData.get('id') as string | null)?.trim()
-  if (!id) return
+  if (!id) return { error: 'missing_id' }
 
   const { tenantId, supabase, userId } = await resolveCustomerTenant(id)
 
-  // Soft-delete only. Hard delete is gated on no active loans / sales /
-  // repairs (those tables ship in later phases — gate is enforced at app
-  // layer + DB FK as those land).
+  // CLAUDE.md Rule 13: no delete while work is open or the jurisdiction's
+  // record-retention window is running. Soft delete only, even then.
+  const gate = await canDeleteCustomer({
+    supabase,
+    customerId: id,
+    tenantId,
+    rules: await loadTenantRules(supabase, tenantId),
+  })
+  if (!gate.canDelete) {
+    return {
+      error: `delete_blocked:${gate.reasons.join(',')}:${gate.blockedUntil ?? ''}`,
+    }
+  }
+
   await supabase
     .from('customers')
     .update({ deleted_at: new Date().toISOString(), updated_by: userId })

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { ruleErrorText } from '@/lib/jurisdictions/messages'
 import { Modal, Footer } from './RecordPaymentDialog'
 
 export function ForfeitConfirmDialog({
@@ -37,7 +38,7 @@ export function ForfeitConfirmDialog({
     <Modal title={t.pawn.forfeit.title} onClose={onClose}>
       {error ? (
         <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {error}
+          {ruleErrorText(t, error)}
         </div>
       ) : null}
 

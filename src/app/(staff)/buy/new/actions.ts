@@ -16,7 +16,9 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
-import { todayDateString, addDaysIso, r4 } from '@/lib/pawn/math'
+import { addDaysIso, r4 } from '@/lib/pawn/math'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
   computeMeltValue,
   meltMetalFromItem,
@@ -96,10 +98,11 @@ function readBuyItemRows(
  * at the FIRST inventory_item created in the transaction so the audit
  * trail can navigate from compliance row → inventory.
  *
- * Hold period: settings.buy_hold_period_days from per-tenant settings
- * (default 30 in FL). hold_until = today + that many days. Item starts
- * as status='held'; a separate cron / manual step flips it to 'available'
- * after the hold expires (out of scope here).
+ * Hold period: GREATEST(settings.buy_hold_period_days, statutory hold)
+ * via loadTenantRules (patches/0048). hold_until = shop-local today +
+ * that many days. Item starts as status='held'; the release-buy-holds
+ * cron flips it to 'available' after the hold expires, and a DB trigger
+ * refuses any earlier release.
  */
 export async function createBuyOutrightAction(
   _prev: CreateBuyState,
@@ -168,19 +171,12 @@ export async function createBuyOutrightAction(
 
   if (!customer) return { error: 'customer_not_found', values: echo }
 
-  // Per-tenant hold-period setting (default 30).
-  const admin = createAdminClient()
-  const { data: settingsRow } = await admin
-    .from('settings')
-    .select('buy_hold_period_days')
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
-  const buyHoldDays =
-    settingsRow?.buy_hold_period_days != null && settingsRow.buy_hold_period_days >= 0
-      ? settingsRow.buy_hold_period_days
-      : 30
+  // Hold period = GREATEST(tenant setting, statutory hold) — patches/0048.
+  // Dates are the shop's local calendar day.
+  const rules = await loadTenantRules(createAdminClient(), tenantId)
+  const buyHoldDays = rules.buyHoldDays
 
-  const acquiredAt = todayDateString()
+  const acquiredAt = todayInTimezone(rules.timezone)
   const holdUntil = buyHoldDays > 0 ? addDaysIso(acquiredAt, buyHoldDays) : null
 
   // Insert N inventory items. Each row is independent — if one fails the
@@ -376,7 +372,7 @@ export async function createBuyOutrightAction(
   })) as unknown as ComplianceInsertChanges
 
   const firstItemId = inserted[0].id
-  await supabase.from('compliance_log').insert({
+  const { error: complianceErr } = await supabase.from('compliance_log').insert({
     tenant_id: tenantId,
     source_table: 'inventory_items',
     source_id: firstItemId,
@@ -385,6 +381,21 @@ export async function createBuyOutrightAction(
     items_snapshot: itemsSnapshot,
     amount: totalPayout,
   })
+  if (complianceErr) {
+    // A purchase that can't reach the police-report ledger must not stand.
+    // Withdraw the just-inserted items (soft delete) and surface the error
+    // before the operator pays out.
+    console.error('[buy.create] compliance_log insert failed', complianceErr)
+    await supabase
+      .from('inventory_items')
+      .update({ deleted_at: new Date().toISOString(), updated_by: userId })
+      .in(
+        'id',
+        inserted.map((it) => it.id),
+      )
+      .eq('tenant_id', tenantId)
+    return { error: 'compliance_log_failed', values: echo }
+  }
 
   await logAudit({
     tenantId,

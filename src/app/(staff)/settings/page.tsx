@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { loadConfiguredSecretKinds } from '@/lib/secrets/vault'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import SettingsContent, { type SettingsHubView } from './content'
 
 const SETTINGS_ROLES = new Set(['owner', 'chain_admin', 'manager'])
@@ -37,7 +38,7 @@ export default async function SettingsPage() {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid, default_loan_interest_rate, default_loan_term_days, abandoned_repair_days, buy_hold_period_days',
+        'twilio_account_sid',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -60,6 +61,7 @@ export default async function SettingsPage() {
       .maybeSingle(),
     loadConfiguredSecretKinds(ctx.tenantId),
   ])
+  const rules = await loadTenantRules(admin, ctx.tenantId)
 
   const tenant = tenantRes.data
   const settings = settingsRes.data
@@ -114,14 +116,11 @@ export default async function SettingsPage() {
           periodEndsAt: sub.current_period_end,
         }
       : null,
-    pawnDefaults: settings
-      ? {
-          interestRateMonthly: Number(settings.default_loan_interest_rate ?? 0),
-          termDays: settings.default_loan_term_days ?? 0,
-          abandonedRepairDays: settings.abandoned_repair_days ?? 0,
-          buyHoldPeriodDays: settings.buy_hold_period_days ?? 0,
-        }
-      : null,
+    legalRules: {
+      jurisdictionName: rules.jurisdiction?.name ?? null,
+      graceDays: rules.graceDays,
+      buyHoldDays: rules.buyHoldDays,
+    },
   }
 
   return <SettingsContent view={view} />

@@ -836,27 +836,48 @@ function BanSection({
 function DeleteCustomerButton({ customerId }: { customerId: string }) {
   const { t } = useI18n()
   const [pending, startTransition] = useTransition()
+  const [blocked, setBlocked] = useState<string | null>(null)
 
   function onClick() {
     if (!confirm(t.customers.confirmDelete)) return
     const fd = new FormData()
     fd.set('id', customerId)
-    startTransition(() => {
-      deleteCustomerAction(fd)
+    setBlocked(null)
+    startTransition(async () => {
+      const res = await deleteCustomerAction(fd)
+      if (res?.error) setBlocked(deleteBlockedText(t, res.error))
     })
   }
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={pending}
-      className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
-    >
-      <Trash size={14} weight="bold" />
-      {pending ? t.common.saving : t.common.delete}
-    </button>
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={pending}
+        className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
+      >
+        <Trash size={14} weight="bold" />
+        {pending ? t.common.saving : t.common.delete}
+      </button>
+      {blocked ? <p className="max-w-md text-xs text-danger">{blocked}</p> : null}
+    </div>
   )
+}
+
+/** "delete_blocked:<reason,reason>:<YYYY-MM-DD|>" → translated sentence. */
+function deleteBlockedText(t: ReturnType<typeof useI18n>['t'], raw: string): string {
+  const m = /^delete_blocked:([^:]*):(.*)$/.exec(raw)
+  if (!m) return raw
+  const labels = t.customers.deleteBlocked.reasons
+  const reasons = m[1]
+    .split(',')
+    .map((r) => labels[r as keyof typeof labels] ?? r)
+    .join('; ')
+  const until = m[2]
+    ? ` ${t.customers.deleteBlocked.until.replace('{date}', m[2])}`
+    : ''
+  return `${t.customers.deleteBlocked.prefix} ${reasons}.${until}`
 }
 
 function DocumentsPanel({

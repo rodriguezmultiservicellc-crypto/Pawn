@@ -13,8 +13,8 @@
  *   2. Empty enums (placeholder "—") on metal_type drop to null.
  *   3. Required positive decimals reject 0 (principal) but allow 0
  *      where the schema says nonnegative (interest paid, fees).
- *   4. interest_rate_monthly hard cap at 0.25 (legal interest cap;
- *      the Florida default rates table reads through this).
+ *   4. interest_rate_monthly physical bound 0..1. The legal cap is
+ *      per jurisdiction (patches/0048 + src/lib/jurisdictions).
  *   5. term_days bounds (1..180) — an extension cannot zero-out the
  *      term and cannot exceed 6 months.
  *   6. Payment split must sum to amount within a $0.0001 tolerance.
@@ -183,15 +183,15 @@ describe('loanCreateSchema', () => {
     expect(r.success).toBe(false)
   })
 
-  it('caps interest_rate_monthly at 0.25', () => {
+  it('bounds interest_rate_monthly to 0..1 (statutory cap is per jurisdiction)', () => {
     expect(
       loanCreateSchema.safeParse(
-        validLoanCreate({ interest_rate_monthly: 0.25 }),
+        validLoanCreate({ interest_rate_monthly: 0.26 }),
       ).success,
     ).toBe(true)
     expect(
       loanCreateSchema.safeParse(
-        validLoanCreate({ interest_rate_monthly: 0.26 }),
+        validLoanCreate({ interest_rate_monthly: 1.01 }),
       ).success,
     ).toBe(false)
   })

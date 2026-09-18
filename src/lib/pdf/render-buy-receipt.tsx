@@ -17,6 +17,7 @@ import type { Database } from '@/types/database'
 import { en } from '@/lib/i18n/en'
 import { es } from '@/lib/i18n/es'
 import { todayDateString } from '@/lib/pawn/math'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { registerPdfFonts } from './fonts'
 import BuyReceiptPDF, {
   type BuyReceiptPDFCustomer,
@@ -61,17 +62,8 @@ export async function renderBuyReceiptPdf(args: {
   if (tenantErr) throw new Error(`tenant_lookup_failed: ${tenantErr.message}`)
   if (!tenant) throw new Error('tenant_not_found')
 
-  // ── 3. Tenant settings (for buy_hold_period_days)
-  const { data: settings } = await admin
-    .from('settings')
-    .select('buy_hold_period_days')
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
-
-  const holdPeriodDays =
-    settings && typeof settings.buy_hold_period_days === 'number'
-      ? settings.buy_hold_period_days
-      : 30 // FL default; documented per CLAUDE.md domain spec
+  // ── 3. Effective hold period (tenant setting floored by statute)
+  const holdPeriodDays = (await loadTenantRules(admin, tenantId)).buyHoldDays
 
   // ── 4. Live item rows (for hold_until — we want the actual stamped value)
   const itemsSnap = (

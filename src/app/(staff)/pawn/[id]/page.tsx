@@ -6,6 +6,8 @@ import {
   getSignedUrl,
 } from '@/lib/supabase/storage'
 import { payoffFromLoan, todayDateString } from '@/lib/pawn/math'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { loanForfeitEligibility } from '@/lib/jurisdictions/rules'
 import PawnLoanDetail, {
   type LoanCollateralView,
   type LoanEventView,
@@ -141,6 +143,8 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
   }))
 
   const today = todayDateString()
+  const rules = await loadTenantRules(ctx.supabase, loan.tenant_id)
+  const forfeit = loanForfeitEligibility(rules, loan.due_date)
   const payoff = payoffFromLoan(
     {
       principal: loan.principal,
@@ -184,6 +188,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
       events={events}
       payoff={payoff}
       today={today}
+      forfeit={forfeit}
     />
   )
 }

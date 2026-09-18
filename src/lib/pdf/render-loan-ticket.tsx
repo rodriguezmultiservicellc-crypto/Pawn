@@ -37,7 +37,7 @@ import {
   toMoney,
 } from '@/lib/pawn/math'
 import { registerPdfFonts } from './fonts'
-import { PAWN_TICKET_BACKPAGE_DEFAULT } from './pawn-ticket-backpage-default'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import PawnTicketPDF, {
   type PawnTicketCollateral,
   type PawnTicketCustomer,
@@ -107,12 +107,14 @@ export async function renderLoanTicketPdf(args: {
   if (tenantErr) throw new Error(`tenant_lookup_failed: ${tenantErr.message}`)
   if (!tenant) throw new Error('tenant_not_found')
 
-  // settings row may not exist yet for a fresh tenant — fall back to default.
+  // Reverse side: tenant override, else the jurisdiction's statutory text
+  // (patches/0048), else none.
+  const rules = await loadTenantRules(supabase, tenantId)
   const backpageOverride = settingsRes.data?.pawn_ticket_backpage ?? null
   const backpageText =
     backpageOverride && backpageOverride.trim()
       ? backpageOverride
-      : PAWN_TICKET_BACKPAGE_DEFAULT
+      : rules.jurisdiction?.ticket_backpage ?? ''
 
   // ── 3. Collateral items
   const { data: collateralRows } = await supabase
@@ -267,6 +269,7 @@ export async function renderLoanTicketPdf(args: {
     i18n: { en, es },
     printed_on: todayDateString(),
     backpage_text: backpageText,
+    legal_notices: rules.jurisdiction?.ticket_notices ?? [],
   }
 
   registerPdfFonts()
