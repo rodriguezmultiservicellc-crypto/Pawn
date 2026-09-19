@@ -53,3 +53,933 @@ human reference only.
   161-166. Admin notify on new tenant signup + inline pawn calculator +
      self-service plan-CHANGE + watch-model DB + diamond cert scaffold +
      variable-rate menu module.
+
+--- Archived 2026-09-19 (sessions 12-21) ---
+
+--- Session 12 (2026-04-29 evening) — Loan-rate minimums + repair tech workflow ---
+  167-168. Per-rate min_monthly_charge + tenant-wide min_loan_amount;
+     repair tech workflow with assigned + tech_qa stages, auto-timer
+     hooks driven by workflow.ts helpers, and tech-inbox auto-filter.
+
+--- Session 13 (2026-04-29 evening — late) — Dashboard polish + watch typeahead + manager kanban + receipt PDFs + NUMERIC cleanup + test scaffold ---
+
+ 169. PHASE 8 — DASHBOARD CHARTS WIRED TO REAL DATA. The 3 charts that
+     were on demoBars/demoSeries PRNG are now live. dashboard/page.tsx
+     adds 4 new aggregations folded into the existing
+     dailyRevenueWindowStart 14-day window: pawnsCreated14d (loans
+     COUNT by created_at day), redemptions14d (loan_events COUNT by
+     occurred_at where event_type='redemption' — append-only, so the
+     date is preserved across edits, unlike loans.updated_at),
+     layawayPayments14d (layaway_payments SUM where amount > 0 —
+     refunds excluded so chart shows gross collections), and
+     repairsCompleted14d (repair_tickets COUNT where completed_at IS
+     NOT NULL — covers markCompleteAction → ready and approveQaAction
+     → ready). dashboard/content.tsx LayawaysPanel / PawnPanel /
+     RepairsPanel consume real props with sane empty-tenant zero-fill;
+     each chart axis caps at seriesMax * 1.1 with minima for empty
+     series. demoBars + demoSeries removed entirely. Sparkline on the
+     OverviewPanel module cards is left unchanged (separate visual
+     element, not in scope). Commit pending.
+
+ 170. WATCH-MODELS TYPEAHEAD — LIVE INSIDE InlinePawnCalculator. New
+     `WatchLookupSection` mounts above the LTV row in
+     components/pawn/InlinePawnCalculator.tsx. Debounced search
+     (200ms, AbortController-cancelled, onChange-handler-driven per
+     the project gotcha) hits /api/watch-models/search, lists matches
+     as the user types, and on selection displays a card with brand /
+     model / ref / year-range plus Min/Mid/Max stat tiles and a
+     copy-to-clipboard button for the descriptive text. Read-only by
+     design — CollateralItemsList rows are React-controlled, so DOM
+     writes via the native-setter shim would be fragile and tightly
+     couple the lookup to internal form state. Bilingual disclaimer
+     locked: "wholesale floors — anchor only, not a formal appraisal."
+     i18n keys at pawn.inlineCalc.watchLookup.* in both en.ts +
+     es.ts. Resolves the open Session-11 polish note (item 164).
+     Future enhancement on backlog: imperative-handle integration to
+     auto-fill row description + est_value when the operator selects
+     a model. Commit pending.
+
+ 171. MANAGER REPAIR KANBAN — /repair/board (NEW). New route at
+     app/(staff)/repair/board/{page,content}.tsx. Manager-only role
+     gate (owner/manager/chain_admin); non-managers redirect to
+     /repair (NOT /no-tenant — they keep their normal access).
+     Module-gated on has_repair. Five status columns in workflow
+     order: assigned → in_progress → needs_parts → tech_qa → ready.
+     Terminal states excluded — list page handles those. Sort within
+     column: promised_date asc nulls-last, then created_at asc.
+     Tech chip strip with active-count badges, sorted by load
+     (count desc, then alphabetic). Service-type filter. Cards show
+     ticket number, customer "Last, First", service-type badge,
+     title (line-clamp-2), assigned tech (or "Unassigned"), and a
+     due-date column with overdue/due-soon coloring. Click-through
+     to /repair/[id]. Responsive grid: 1 / 3 / 5 cols across
+     breakpoints. /repair list gets an "Open work-order board"
+     button visible only to managers (isManager prop threads down
+     from page.tsx). i18n keys at repair.board.* + repair.list
+     .openBoard. Resolves backlog item #24 (Session 12 added the
+     data + workflow; Session 13 ships the view). Commit pending.
+
+ 172. PRE-EXISTING SET-STATE-IN-EFFECT LINT ERRORS FIXED. buy/new/
+     form.tsx had two offending useEffects: one syncing items[].
+     payout from melt-value computation (driven off a joined item
+     signature), and one repopulating scalars from validation echo.
+     Both rewrote as compute-during-render per the Session 8
+     pattern: signature-tracking sentinel state + conditional
+     setStates outside any effect body. customers/new/form.tsx had
+     one useEffect for validation echo — same pattern. Removed
+     unused `useEffect` imports from both files. Net: -3 errors
+     against react-hooks/set-state-in-effect (the 5 reported by
+     lint at start of session were 3 from these files + 2
+     pre-existing react/no-unescaped-entities in admin/billing/
+     content.tsx which are NOT mine and stay open). Commit pending.
+
+ 173. CROSS-MODULE ACTIVITY FEED — DASHBOARD OVERVIEW. dashboard/
+     page.tsx queries 6 module sources in parallel (customers,
+     inventory_items, loans gated by has_pawn, sales + layaways
+     gated by has_retail, repair_tickets gated by has_repair),
+     6 most-recent rows per source, merged into a unified top-10
+     timeline sorted by created_at desc. Each row carries kind
+     ('customer' | 'inventory' | 'pawn' | 'sale' | 'layaway' |
+     'repair'), title (customer name OR item description), subtitle
+     (ticket / sale / layaway number), amount (principal / total /
+     list_price / quote_amount / null), and href (drill-down URL).
+     dashboard/content.tsx ActivityRow component renders kind-
+     tagged feed items with click-through to /customers/[id],
+     /inventory/[id], /pawn/[id], /pos/sales/[id], /pos/layaways/
+     [id], or /repair/[id]. Replaces the recentCustomers +
+     recentItems split feed. Tag tones reuse the dashboard's
+     per-module CSS variables (--m-pawn-text / --m-sales-text /
+     --m-layaway-text / --m-repair-text). Commit pending.
+
+ 174. POS RECEIPT PDF — BILINGUAL EN+ES. Three new files. lib/pdf/
+     SaleReceiptPDF.tsx (component): Letter paper, header with
+     tenant + sale number + status pill, customer + sale-meta block
+     (customer name OR "Anonymous walk-in" / phone / type / tax
+     rate), items table (description / SKU / qty / unit / line
+     total), totals breakdown (subtotal / discount only when > 0 /
+     tax / grand total), payments list with grand-total + balance-
+     due if nonzero, optional notes, return-policy block, footer
+     with page X of Y. Stacked-pair labels for bilingual rows.
+     lib/pdf/render-sale-receipt.tsx: server-side renderer pulls
+     sale + customer (single embedded select) + tenant + sale_items
+     with inventory.sku join + sale_payments via user-scoped
+     supabase (RLS enforces tenant). app/api/print/sale/[id]/
+     route.ts: gates getCtx → tenant lookup → requireRoleInTenant
+     (['owner','manager','pawn_clerk','chain_admin']) → render →
+     audit-log 'update' (kind: 'print_render') → application/pdf
+     inline. pos/sales/[id]/content.tsx printReceipt() rewired
+     from window.print() (which would print the staff UI itself)
+     to window.open('/api/print/sale/'+id, '_blank'). i18n keys
+     at pos.print.* in both en.ts + es.ts. Commit pending.
+
+ 175. BUY-OUTRIGHT RECEIPT PDF — BILINGUAL EN+ES. Three new files.
+     lib/pdf/BuyReceiptPDF.tsx (component): Letter, header with
+     receipt number `BO-{LAST8(compliance_log.id)}`, customer
+     block (name + DOB + address + phone + ID type + ID number),
+     items table (description with optional S/N suffix / metal+
+     karat / weight in grams / melt value at buy / payout), total
+     payout (no balance — buy-outright is paid in full at intake
+     by definition), mandatory hold-period notice (parameterized
+     by days from settings.buy_hold_period_days, default 30 = FL),
+     customer-acknowledgement block ("I am the lawful owner...
+     received the total payout shown above in full satisfaction"),
+     three signature lines (customer / staff / date), footer.
+     lib/pdf/render-buy-receipt.tsx: sources from compliance_log
+     (write-once buy snapshot — Rule 15), reads settings.buy_hold_
+     period_days for the hold-period text, queries live
+     inventory_items.hold_until and uses the LONGEST across the
+     transaction's items (defensive against legal-hold extensions
+     that override the tenant-default). app/api/print/buy/[id]/
+     route.ts: path param is the anchor inventory_item_id (same
+     convention as /buy/[id] page). Resolves item → tenant via
+     admin (uniform with the receipt page itself) →
+     requireRoleInTenant → render → audit-log → inline PDF.
+     /buy/[id]/content.tsx Print button rewired from window.
+     print() to the PDF endpoint, gated on the anchor item id
+     being present. New i18n namespace buy.print.* in both en.ts
+     + es.ts. Commit pending.
+
+ 176. NUMERIC `as any` CLEANUP — 19 CASTS REMOVED. Every `as any`
+     cast in src/ turned out to be a missing-table-type or
+     missing-column-type cast that's now resolved because
+     database.ts has been regenerated since the casts were added
+     (spot_prices, spot_price_overrides, ebay_listings, ebay_
+     listing_events, stripe_payment_links, watch_models, and
+     customers.auth_user_id are all in the generated types now).
+     Removed across 13 files: lib/ebay/listings.ts (loadListing +
+     persistListingPatch, 2), inventory/[id]/ebay-actions.ts
+     (createEbayDraft + updateEbayDraft + publish + endListing +
+     syncListing, 5), lib/ebay/client.ts (event insert, 1),
+     (portal)/layout.tsx (portal customer lookup, 1), supabase/
+     guards.ts (requireClientInTenant, 1), portal/stripe-payment-
+     links.ts (table() helper, 1), portal/customer.ts (1),
+     inventory/spot-prices/page.tsx (1), inventory/spot-prices/
+     actions.tsx (1), spot-prices/refresh.ts (1), spot-prices/
+     melt.ts (1), spot-prices/lookup.ts (getLatest + history, 2),
+     api/portal/sign-in-bridge/route.ts (1). Where supabase-js's
+     generic narrowing trips on NUMERIC's string-vs-number
+     divergence at upsert/update time, the call site uses `as
+     never` (single-call surface, NOT a project-wide cast).
+     Where hand-rolled row types use `number` for NUMERIC fields,
+     the row boundary uses `as unknown as T` to bridge the
+     type-system gap with the runtime shape. Project-wide
+     Database<'public'> override mapping NUMERIC → number remains
+     on backlog as a proper fix that would replace the
+     `as unknown as` pattern. Commit pending.
+
+ 177. VITEST SCAFFOLD + 36 PASSING TESTS ON lib/pawn/math.ts. New:
+     vitest.config.ts (test environment 'node', `@/` alias
+     mirroring next.config.ts, src/**/*.test.ts include glob,
+     globals: false). package.json scripts: test (vitest run),
+     test:watch (vitest), test:coverage (vitest run --coverage).
+     devDeps: vitest@4.1.5 + @vitest/coverage-v8@4.1.5. Test
+     file src/lib/pawn/math.test.ts covers 36 cases across r4
+     (rounding contract + non-finite handling), toMoney (string
+     / null / undefined paths), dailyRateFromMonthly,
+     interestAccrued (zero-principal / zero-days / classic /
+     partial-month / min_monthly_charge floor —
+     REGRESSION-LOCKING the Session-12 Stripe-webhook
+     under-billing incident — small-principal-with-min cases at
+     30/15/1 days, large-principal-no-floor, zero-rate-with-min,
+     min<=0 = no-floor), daysBetween (1 day, negative, zero
+     same-day, month boundary, year boundary), addDaysIso
+     (forward + backward), todayDateString (ISO format match),
+     appliedPayments (string + number Supabase shapes, empty
+     events), payoffBalance (zero-days = principal, classic
+     30-day, prior interest-payment netting, partial principal,
+     overpayment-of-interest clamped to 0, fully-paid principal
+     stops billing further interest, min-charge passthrough,
+     null-min = no-floor), splitPayment (zero-amount, ≤-owed,
+     >-owed, zero-owed, negative-clamp). All 36 pass. Build
+     floor, not ceiling — React rendering tests + Supabase mock
+     surface deferred until a regression worth locking down
+     arrives. Commit pending.
+
+--- Session 14 (2026-04-29 night) — Wire production crons via vercel.json ---
+
+ 178. PRODUCTION CRONS WIRED — ROOT CAUSE OF SILENT FEED FAILURE.
+     Diagnostic session triggered by the operator question "why isn't
+     the live spot-price feed working?". Investigation: 5 cron routes
+     under src/app/api/cron/* (refresh-spot-prices, maturity-
+     reminders, layaway-reminders, repair-ready-reminders, ebay-sync)
+     are each gated by `Authorization: Bearer ${CRON_SECRET}`. Two
+     compounding causes for "no automatic runs": (1) vercel.json
+     never existed in the repo, so Vercel has no schedule pointing
+     at any /api/cron/* path — the routes had shipped over Sessions
+     5/6/7/8/9 but never fired automatically since deploy; (2)
+     CRON_SECRET still unset in Vercel project env (Phase 0 punch
+     list item, open since Session 9). New vercel.json adds 6 cron
+     entries: refresh-spot-prices x2 (`*/15 13-21 * * 1-5` + `0 *
+     * * *`), maturity / layaway / repair-ready reminders staggered
+     daily at 14:00 / 14:05 / 14:10 UTC, and ebay-sync at
+     `0,30 13-21 * * 1-5` (STUBBED route; schedule lands preemptively
+     so eBay wire-up needs no further config). Single-file commit
+     c753654 pushed to main. CRON_SECRET still pending — schedules
+     fire, route bodies return 401 until the operator sets it in
+     Vercel project env. Confirmed Session 13 NUMERIC cleanup edit
+     to refresh.ts did NOT cause the feed staleness — it improved
+     inserted-count accuracy by chaining .select('id') after the
+     upsert, but the insert path itself is unchanged. Plan caveat
+     noted: Vercel Hobby tier rejects the sub-daily schedules and
+     falls back to once-per-day; Pro+ accepts as written.
+
+--- Session 15 (2026-04-29 night — late) — Spot-price source swap ---
+
+ 179. [CRITICAL] DEAD UPSTREAM — METALS.LIVE TLS ENDPOINT GONE.
+     Operator reported "the pawn saas spot-price feature is not
+     working" mid-session after a brief detour into the unrelated
+     paracubasolutions.com gold widget (cleanly reverted). Live
+     diagnostic via curl revealed api.metals.live returns
+     SEC_E_ILLEGAL_MESSAGE on the TLS handshake — service is
+     dead/decommissioned. Combined with Session 14's CRON_SECRET
+     gap, the Pawn cron has been silently producing zero rows
+     since whenever metals.live went down. Inventory melt values
+     across the platform have been pinned to the migration 0013
+     'seed' placeholder rows (gold=2400, silver=28, platinum=950,
+     palladium=1100 USD/oz). Replaced with Yahoo Finance v8 chart
+     endpoint — verified live for all four metals via curl + Node
+     native fetch (gold $4575, silver $72.78, platinum $1915,
+     palladium $1470 USD/oz at save time). Files touched:
+     src/lib/spot-prices/sources/yahoo-finance.ts (NEW), deleted
+     metals-live.ts, src/lib/spot-prices/refresh.ts (import +
+     type rename + 5x source-label literals + comment),
+     src/app/api/cron/refresh-spot-prices/route.ts (comment),
+     src/app/(staff)/inventory/[id]/content.tsx (comment).
+     Project tsc --noEmit clean. Commit ea68bdc pushed to main.
+     Stooq (xauusd/xagusd/xptusd CSV, no auth) documented as a
+     one-line swap if true LBMA spot ever matters.
+
+--- Session 16 (2026-04-30 early-AM) — Stooq swap (Kitco-matching spot) ---
+
+ 180. [BUG] FUTURES-VS-SPOT GAP — YAHOO QUOTED $15 ABOVE KITCO.
+     Operator compared the Session 15 Yahoo source against Kitco
+     immediately after deploy: $4575 (Yahoo GC=F) vs $4559.70
+     (Kitco). Web Claude diagnosed the gap correctly (COMEX gold
+     futures trade in contango above LBMA spot — typical $5–15/oz
+     premium) and recommended swapping `GC=F` → `XAUUSD=X`
+     (Yahoo's spot ticker). Live test against Yahoo's v8/chart
+     endpoint returned "No data found, symbol may be delisted"
+     for XAUUSD=X. Yahoo has dropped that ticker from the chart
+     endpoint as of 2026-04. Probed alternates: ^XAU is the
+     Philadelphia gold/silver INDEX (not bullion), GLD is the
+     SPDR Gold Trust ETF (NAV ~1/10th spot, expense-ratio drift),
+     GOLD is the equity ticker for Barrick Gold — none return
+     USD/oz spot. Pivoted to Stooq (the swap path I'd already
+     documented as the alternative in yahoo-finance.ts). Stooq
+     returns Close prices for xauusd / xagusd / xptusd / xpdusd
+     within pennies of Kitco — verified live: gold $4562.105 vs
+     Kitco $4559.70 = $2.40 gap (normal tick spread). Files:
+     src/lib/spot-prices/sources/stooq.ts (NEW — CSV parser,
+     polite UA, no auth), deleted yahoo-finance.ts, refresh.ts
+     (import path swap; source label 'yahoo-finance' → 'stooq'
+     across 5 places + header comment + error message),
+     src/app/api/cron/refresh-spot-prices/route.ts (comment),
+     src/app/(staff)/inventory/[id]/content.tsx (comment now
+     enumerates 4 historical source values: 'stooq' / 'manual' /
+     'seed' / older 'yahoo-finance' / 'metals.live'). tsc clean.
+     Commit 344d822 pushed to main.
+
+--- Session 17 (2026-04-30 mid-day) — Backlog sweep: lint debt + agency_store_id + buy-hold cron + kanban DnD + tests 36→312 ---
+
+ 181. LINT DEBT ZEROED. Pre-existing 2 errors + 7 warnings on
+     `npm run lint` cleared. Files:
+     src/app/(admin)/admin/billing/content.tsx line 33 — `"Set
+     plan"` quotes escaped to `&ldquo;Set plan&rdquo;` (the 2
+     react/no-unescaped-entities errors); 3 truly-unused imports
+     deleted: `buyItemSchema` from src/app/(staff)/buy/new/
+     actions.ts, `TenantEbayCredentialsRow` from src/app/(staff)/
+     inventory/[id]/page.tsx, `requireOwner` from src/app/api/
+     stripe/saas/checkout/route.ts (the inline-style check
+     comment was already in place). The 4 remaining unused-var
+     warnings were `_prev` / `_formData` in two server actions
+     (admin/billing/actions.ts syncStripePlansAction +
+     inventory/spot-prices/actions.tsx refreshSpotPricesAction)
+     — these are React 19 useActionState shape and CAN'T be
+     deleted. Configured eslint.config.mjs with
+     `@typescript-eslint/no-unused-vars` argsIgnorePattern: '^_'
+     to honor the convention. Lint = 0 / 0 after.
+
+ 182. TENANTS.AGENCY_STORE_ID MIGRATION + UI WIRING. Patch
+     0011-reporting.sql had documented this column as a
+     "land when we have a paying tenant with a LeadsOnline
+     store_id" deferred work; Session 17 builds it now since
+     police-report path is shipped and the UUID fallback is
+     visible in code. Files: patches/0024-tenant-agency-store-
+     id.sql (NEW — `ADD COLUMN IF NOT EXISTS agency_store_id
+     TEXT` + COMMENT explaining fallback semantics + NOTIFY
+     pgrst), src/lib/reports/tenant-scope.ts (selects the
+     column with .maybeSingle<T>() typed-row override; trims +
+     prefers it when non-empty, else uses tenant.id),
+     src/app/(staff)/settings/general/page.tsx (selects column
+     with typed override), src/app/(staff)/settings/general/
+     content.tsx (split fieldset into "Compliance" [editable]
+     + "Modules" [read-only]; agency_store_id Field with hint
+     "Falls back to tenant UUID when blank"), src/app/(staff)/
+     settings/general/actions.ts (zod 1-64 chars validation;
+     SPLIT WRITE pattern — typed update for base columns
+     followed by `update({ agency_store_id } as never)` second
+     update; the cast goes away once `npm run db:types` runs
+     after migration apply). tsc + lint + tests all clean.
+     OPERATOR: apply patch 0024 in Supabase, then run
+     `npm run db:types`.
+
+ 183. RELEASE-BUY-HOLDS CRON ROUTE. Buy-outright items are
+     inserted with `status='held'` + `hold_until = today +
+     buy_hold_period_days` (FL = 30) and need to flip to
+     'available' once the regulatory window passes. Until
+     Session 17 the flip required a manual page action or
+     a sale-time check. New file: src/app/api/cron/release-
+     buy-holds/route.ts (selects items where status='held'
+     AND hold_until IS NOT NULL AND hold_until <= today AND
+     deleted_at IS NULL; bulk update via .in('id', ids); per-
+     tenant audit_log row with item_ids + skus +
+     hold_until_max for traceability; idempotent — second
+     run finds zero matches). vercel.json gains a 6th cron
+     entry: `15 14 * * *` daily (10:15 AM ET, well past
+     midnight in any US TZ so all timezones have crossed
+     into the new day). LOAD-BEARING DESIGN: the
+     `hold_until IS NOT NULL` filter excludes layaway-held
+     items (those use NULL because the layaway state
+     machine flips them, not the date) — without the
+     filter, the cron would incorrectly release reserved
+     layaway items. Commit a1ef4ad pushed to main with
+     items 181 + 182 + 183.
+
+ 184. NUMERIC OVERRIDE TASK CLOSED AS MOOT. Backlog item 16
+     (Session 16 RESUME) called for a project-wide
+     `Database<'public'>` override mapping NUMERIC → number
+     to replace `as unknown as T` patterns. Verified the
+     premise no longer holds: `src/types/database.ts`
+     autogen already types every NUMERIC column as `number`
+     (loans.principal: number, loans.interest_rate_monthly:
+     number, layaways.balance_remaining: number,
+     sales.subtotal: number, repair_ticket_items.unit_cost:
+     number, appraisals.replacement_value: number, etc.). The
+     Session 11 Progress.txt note about NUMERIC returning as
+     `string` from db:types was true at that time but
+     supabase-cli has since shipped a typegen update that
+     maps NUMERIC → number directly. The 76 surviving `as
+     unknown as` casts in src/ cover unrelated patterns: FK
+     join relation shapes (~25 — supabase-js join inference
+     is partial), JSONB column shapes (~10 — `Json` type is
+     untyped), `as never` write bypasses (~5), partial-
+     select bridging to full Row aliases (~20), and tables
+     added since the last db:types run (~16). These are
+     future cleanup targets but each requires a different
+     pattern; lumping them under "NUMERIC override" was the
+     wrong frame. Reported back; Eddy accepted the closure
+     and asked for kanban DnD + tests instead.
+
+ 185. KANBAN DRAG-AND-DROP. /repair/board cards now drag
+     between the 5 active-status columns. Adds @dnd-kit/core
+     + @dnd-kit/sortable + @dnd-kit/utilities (touch +
+     keyboard out of the box, no polyfills — jewelry shops
+     often run tablets). Files: src/app/(staff)/repair/
+     board/actions.ts (NEW — `moveTicketStatusAction`,
+     manager-only role gate, `moveDescriptor()` maps each
+     legal (from, to) pair to the matching event_type AND
+     existing audit verb so both timeline + audit_log read
+     consistent with buttoned actions; stamps claimed_at
+     when first claim happens via DnD, completed_at on
+     ready transition; auto-timer hooks — stop on leaving
+     in_progress, open on entering with assigned tech),
+     src/app/(staff)/repair/board/content.tsx (REWRITE —
+     DndContext + PointerSensor with 8px activation
+     constraint + KeyboardSensor; useDraggable on each
+     card, useDroppable on each column; client-side
+     canTransition() guard short-circuits illegal drops
+     without server round-trip; optimistic update on drop,
+     reverts + surfaces error banner on server failure;
+     legal target columns tint green during drag, illegal
+     ones dim to 50%; DragOverlay for the dragged card
+     preview; Card stays a `<button>` so click navigation
+     to /repair/[id] works without intercepting the drag),
+     src/lib/i18n/{en,es}.ts (added repair.board.moveSaving
+     / moveIllegal / moveFailed; updated board.subtitle to
+     mention drag). DESIGN: audit log uses existing per-
+     action verbs (claim_ticket / mark_needs_parts /
+     send_to_qa / mark_complete / parts_received /
+     approve_qa / return_from_qa) and writes `via: 'board'`
+     into the changes JSONB — keeps audit-log queries
+     filtered by action type working. Commit 5f074e1
+     pushed to main.
+
+ 186. TEST SUITE EXPANSION 36 → 312 (+276 tests). Eddy
+     asked for vitest coverage of lib/repair/workflow,
+     lib/saas/gates, lib/validations/*. Per Session 13
+     vitest convention (pure-logic only — no Supabase
+     mocks, no React rendering), wrote 6 new test files
+     totaling 276 cases. (1) src/lib/repair/workflow.test.
+     ts (89 tests): every legal/illegal (from, to) the
+     buttoned actions and kanban DnD touch, terminal
+     status zero-exit invariants, LEGAL_TRANSITIONS table
+     integrity check (no self-maps; all values reference
+     valid statuses), shouldOpenTimerOnEnter/Leave hooks
+     pinned to in_progress only, nextSuggestedStatus per
+     (current status, event type) pair. (2) src/lib/saas/
+     types.test.ts (29 tests): formatCents handles null /
+     zero / fractional cents (cents-display quirk —
+     trailing zero drops because minimumFractionDigits=0,
+     pinned with the actual behavior so refactors notice),
+     statusTone for every SubscriptionStatus, isTrialing
+     strictness ("active with trial_ends_at in future" is
+     NOT trialing), trialDaysRemaining ceiling rounding,
+     planFeatures/planHasFeature/planLimit JSONB
+     tolerance — null map / missing key / explicit-null
+     value / zero-as-hard-limit (the `?? null` guard
+     correctly distinguishes 0-as-limit from null-as-
+     unlimited). (3) src/lib/validations/loan.test.ts (38
+     tests): empty-string shield (Session 8 pattern),
+     metal placeholder, principal positive vs interest
+     non-negative contracts, interest cap at 0.25, term
+     1..180, payment-split sum within $0.0001, void
+     reason min 10 chars, collateral 1..50. (4)
+     customer.test.ts (32 tests): empty-shield across
+     every optional field, country US default + 2-char
+     gate, email format, id_type empty shield, height
+     12..108 / weight 1..999, tags comma-string +
+     array, banCustomer is_banned coercion, doc upload
+     kind enum. (5) buy-outright.test.ts (24 tests):
+     payout required, metal placeholder, items 1..20,
+     payment_method 'cash' default, per-item validation
+     bubbling. (6) inventory.test.ts (32 tests):
+     description required, source enum tightness,
+     defaults (other / case / available, acquired_at =
+     today), SKU empty-as-null delegation to BEFORE
+     INSERT trigger, stones array 0..50, stone count
+     1..999, is_total_carat coercion. NOTE: zod-4 uuid
+     validator is RFC-strict (variant byte must be
+     8/9/a/b, version field 1-8) — used `crypto.
+     randomUUID()` instead of "00000000-..." fixtures.
+     Commit 9763c7f pushed to main.
+
+--- Session 18 (2026-04-30 evening) — DL scanner trio + watch typeahead → collateral integration ---
+
+ 187. DL_RAW_PAYLOAD MIGRATION + WRITE PATH. Backlog item
+     8a from Session 17 PENDING (DL scanner upgrade list)
+     closed. patches/0025-customer-dl-raw-payload.sql adds
+     `dl_raw_payload TEXT` to customers — the form already
+     passed the field as a hidden input since Session 13;
+     the server action ignored it until the column landed.
+     customer.ts schema gains dl_raw_payload via the
+     standard empty-string-shield pattern (1..4000 char
+     cap). new/actions.ts FIELDS array adds the key,
+     insertPayload moves to a named const + `as never`
+     cast at boundary for the untyped column (drops on
+     db:types regen). Audit log records
+     `dl_scan_captured: true|false` — NOT the raw payload —
+     to avoid duplicating PII into the staff-readable
+     audit viewer. Migration is append-only with documented
+     rollback. OPERATOR: apply 0025, run db:types.
+
+ 188. EXPIRED-LICENSE WARNING BANNER. Backlog item 8b
+     closed. customers/new/form.tsx handleScanResult now
+     compares info.expirationDate to today via lexical
+     YYYY-MM-DD compare (correct because both are
+     zero-padded ISO calendar dates, no timezone math).
+     When the parsed expiry is in the past, the form
+     shows a warning banner with the actual expiry date.
+     Non-blocking: operator decides whether to save
+     anyway. dlScanner.expiredWarning EN+ES added.
+
+ 189. WEBCAM CAPTURE — FRONT OF LICENSE. Backlog item 8c
+     closed. New WebcamCapture.tsx component:
+     getUserMedia({video:{facingMode:'environment'},
+     audio:false}) → live <video> preview → drawImage to
+     hidden <canvas> → canvas.toBlob → JPEG @ 0.92
+     quality at native video resolution (typically
+     1080p+). Modal lifecycle: open → acquire → preview
+     → snap → preview JPEG via blob URL → Retake or
+     Confirm → close. Stream cleanup on every exit
+     (close button, X, click-outside, escape via close()
+     handler, confirm). createPortal modal for z-index
+     correctness. set-state-in-effect avoided per
+     Session 8 — captured/error reset by close(), not
+     in the useEffect body. customer detail page wraps
+     it in WebcamCaptureForId which hands the JPEG to
+     uploadCustomerDocumentAction with kind='id_scan'
+     and inherits id_type/number/state/expiry from the
+     existing customer record. document grid widened to
+     md:grid-cols-3 so the new button sits next to the
+     two existing UploadButtons. Rear-cam preference
+     means jewelry shops on tablets default to the
+     correct side. Front-of-license retention follows
+     the same FL 2-year window as the back PDF417 scan.
+
+ 190. WATCH-TYPEAHEAD → COLLATERAL INTEGRATION. Backlog
+     item 13 (Session 17 numbering) / item 14 (Session
+     16) closed. CollateralItemsList converted to
+     forwardRef<CollateralListHandle>; exposes
+     addWatchRow(match) — builds a populated row with
+     description = "$brand $model ref $reference_no
+     ($year_label)", category='watch', est_value =
+     midpoint of min/max. If the list still holds the
+     pristine seed row from initial mount, replaces it
+     in place; else appends. Metal/karat/weight stay
+     blank because watches are valued by reference, not
+     melt. InlinePawnCalculator accepts an optional
+     onAddWatchToCollateral?(match) prop; SelectedWatch
+     Card renders an "Add to collateral" button next
+     to the existing Copy button when the prop is
+     wired. /pawn/new form holds collateralRef + passes
+     the callback. State stays in CollateralItemsList
+     — keystroke re-renders don't bubble to the parent.
+     pawn.inlineCalc.watchLookup.addToCollateral +
+     .added EN+ES added.
+
+--- Session 19 (2026-04-30 late evening) — Phase 10 Path A session 1/N: public per-tenant landing pages ---
+
+ 191. PATCHES/0026 + TENANT-RESOLVER + PUBLIC-READ RLS.
+     Phase 10 Path A backlog item 8 (Session 18 PENDING)
+     opens with the data spine. patches/0026-tenant-
+     public-landing.sql adds 4 columns to `tenants`:
+     `public_slug CITEXT` (CITEXT for case-insensitive
+     UNIQUE without a normalizing trigger), `public_
+     landing_enabled BOOLEAN NOT NULL DEFAULT FALSE`,
+     `public_about TEXT`, `public_hours JSONB`. Slug
+     shape enforced by CHECK constraint:
+     `length(public_slug::text) BETWEEN 3 AND 40 AND
+     public_slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'` — blocks
+     leading/trailing/consecutive hyphens at the DB
+     level; reserved-name list (admin/api/www/portal/
+     staff/etc.) lives in app code so platform-infra
+     additions don't need a migration. UNIQUE partial
+     index on `public_slug WHERE NOT NULL` allows
+     multiple NULL slugs while enforcing uniqueness on
+     claimed ones. New RLS policy
+     `tenants_public_landing_select` grants anon +
+     authenticated SELECT when `public_landing_enabled
+     = TRUE AND public_slug IS NOT NULL AND is_active
+     = TRUE` — first policy in the project that grants
+     anon-role row visibility on a tenant-scoped table;
+     column-level filtering is handled by the resolver's
+     PUBLIC_TENANT_COLUMNS const, not at the DB layer.
+     CREATE EXTENSION citext + NOTIFY pgrst at the
+     bottom. Append-only with documented rollback.
+     OPERATOR: applied 0024 + 0025 + 0026 in order.
+     `npm run db:types` regenerated database.ts —
+     dropped 4 `as never` boundary casts (3 from this
+     session, 1 lingering from Session 18). Companion
+     library: src/lib/tenant-resolver.ts (NEW) exports
+     `extractTenantSubdomain(host, baseDomain)` — pure
+     edge-safe parser (strips port, lowercases, rejects
+     apex / multi-level / reserved / malformed) — and
+     `fetchPublicTenant(slug)` — async via the anon SSR
+     client so the RLS policy is the gate, narrows
+     public_slug from string|null at the boundary, and
+     normalizes the public_hours JSONB through
+     normalizePublicHours so bad data renders as
+     no-hours instead of crashing.
+
+ 192. PROXY SUBDOMAIN REWRITE. proxy.ts gains a branch
+     BEFORE the public-paths check that reads
+     NEXT_PUBLIC_BASE_DOMAIN, extracts the tenant
+     subdomain via extractTenantSubdomain(host,
+     baseDomain), and rewrites `acme.basedomain.com/X`
+     → `/s/acme/X`. Same RSC handles both URL forms.
+     Short-circuits cleanly when NEXT_PUBLIC_BASE_DOMAIN
+     is empty — the path form `/s/<slug>` works in
+     local dev pre-DNS and on Vercel preview URLs
+     without any DNS configuration. `/s` added to
+     PUBLIC_PATHS so /s/<slug> bypasses auth. Path /
+     subdomain branching avoids tenant-subdomain hosts
+     hitting the staff dashboard at staff path, and
+     vice versa: tenant subdomains serve the landing
+     surface only (anything else under acme.basedomain
+     .com 404s by design).
+
+ 193. (PUBLIC) ROUTE GROUP — BILINGUAL LANDING. New
+     `src/app/(public)/` route group. layout.tsx async-
+     reads the Accept-Language header server-side
+     (es-* → 'es', everything else → 'en'), wraps
+     children in I18nProvider with persistRemote=false
+     so the language toggle writes only to localStorage.
+     s/[slug]/page.tsx — params: Promise<{slug:string}>;
+     fetchPublicTenant → notFound() on miss;
+     generateMetadata renders title + description + og:
+     fields from tenant data, falls back to a city-
+     templated subline when public_about is null.
+     content.tsx — bilingual landing: sticky header
+     (logo OR Storefront fallback + LanguageToggle),
+     hero with display name + city-templated subline
+     (`heroWithCity` uses .replace('{city}', ...) per
+     the established placeholder-string i18n pattern;
+     no function-style dictionary entries),
+     ServiceBadges pill row gated by has_pawn / has_
+     repair / has_retail, two cards (Visit: address
+     with Google Maps deep-link + tel: + mailto:,
+     Hours: 7-day list, formatDay returns "open – close"
+     or dict.closed for missing/closed days), About
+     section if public_about set, CTA grid (placeholder
+     CTAs for getQuote / dropOffRepair / shopInventory
+     gated on module flags + persistent portal-login
+     link), footer with copyright + Powered by Pawn.
+     LanguageToggle.tsx — pill-style EN | ES with
+     aria-pressed semantics. not-found.tsx — generic
+     "Not found" message that doesn't confirm slug
+     existence to a probe.
+
+ 194. SETTINGS/GENERAL — PUBLIC LANDING FIELDSET.
+     /settings/general (owner / chain_admin gate,
+     unchanged) gains a "Public landing page" fieldset
+     between Compliance and Modules. Inputs: URL slug
+     Field with hint, Publish landing-page checkbox
+     (decoupled from slug — operators can reserve a
+     slug without publishing for typo-squat
+     protection), About textarea (2000 char cap), and a
+     7-day Hours grid using `<input type="time">` per
+     row with a Closed checkbox. defaultsFromTenant
+     returns hours_map shape sourced from
+     hoursFromUnknown(tenant.public_hours).
+     actions.ts — new zod members + buildHoursPayload
+     validates 21 form fields imperatively (cross-day
+     rules: both open+close set or both blank, open<
+     close, 24h HH:MM regex; partial-day rejection
+     surfaces day-specific error messages). Slug
+     pre-checks: isReservedOrInvalidSlug guard +
+     enabled-without-slug cross-validate + uniqueness
+     pre-check via `.eq('public_slug', v.public_slug)
+     .neq('id', ctx.tenantId)`. UNIQUE-violation path
+     translates the DB constraint error to a slug field
+     error (TOCTOU defense). Single combined update
+     post-db:types — Sessions 17/18's split-write
+     pattern collapses to one statement. revalidatePath
+     fires for /settings, /settings/general, AND
+     /s/<slug> so a slug/landing flip clears the public
+     landing's RSC cache.
+
+ 195. I18N PROVIDER `persistRemote` + 27 LANDING.* KEYS.
+     I18nProvider in lib/i18n/context.tsx gains
+     `persistRemote?: boolean` (default true preserves
+     staff/portal behavior). When false the setLang
+     callback skips the fetch('/api/profile/language')
+     call so unauthenticated surfaces don't generate
+     401-spam. Two layouts (staff/portal) need profile
+     sync; one (public) doesn't — single prop avoids
+     forking the provider. en.ts + es.ts gain a
+     `landing` block with 27 keys: heroDefault,
+     heroWithCity (with {city}/{state} placeholders),
+     visit, openInMaps, addressUnavailable, hours,
+     hoursUnavailable, about, closed, poweredBy,
+     ctaSoonHint, services.{pawn,repair,retail},
+     ctas.{getQuote,dropOffRepair,shopInventory,
+     portalLogin}, days.{mon,tue,wed,thu,fri,sat,sun}.
+     Key parity 2158/2158.
+
+ 196. RESOLVER UNIT TESTS — 312→327 (+15). New
+     src/lib/tenant-resolver.test.ts covers the two
+     pure helpers per Session 13 vitest convention
+     (pure-logic only, no Supabase mocks).
+     extractTenantSubdomain (10 tests): single-level
+     subdomain extraction, port stripping +
+     case-folding, apex / non-base-suffix / undefined-
+     base / multi-level rejection, reserved-subdomain
+     blocklist (www / admin / api / app / portal /
+     staff), malformed slugs (leading/trailing hyphen,
+     underscore, empty), staging-style multi-segment
+     base domain, leading-dot base normalization,
+     null/empty host short-circuit. isReservedOrInvalidSlug
+     (5 tests): well-formed slugs across the allowed
+     length range (3..40, digits-only OK), too-short /
+     too-long rejection, malformed cases (uppercase,
+     leading/trailing hyphen, consecutive hyphens,
+     underscore, space, dot), reserved-name rejection.
+     fetchPublicTenant intentionally NOT covered — it
+     hits live RLS-gated Supabase, manual smoke-test
+     covers it.
+
+--- Session 20 (2026-05-04) — Phase 10 Path A slice 2/N: public catalog ---
+
+ 197. PATCHES/0027 — PUBLIC CATALOG MIGRATION. Two
+     columns + three RLS policies + partial index
+     for the public catalog surface. tenants gains
+     `public_catalog_enabled BOOLEAN NOT NULL DEFAULT
+     FALSE` — decoupled from public_landing_enabled
+     so a tenant can publish a landing without
+     exposing inventory. inventory_items gains
+     `is_hidden_from_catalog BOOLEAN NOT NULL DEFAULT
+     FALSE` — per-item escape hatch for consigned-
+     under-negotiation, photos-pending-retake,
+     back-room stock. Three SELECT-only RLS policies:
+     `inventory_items_public_catalog_select`,
+     `inventory_item_photos_public_catalog_select`,
+     `inventory_item_stones_public_catalog_select`.
+     All gated on three-AND tenant flags
+     (public_landing_enabled + public_catalog_enabled
+     + has_retail + is_active) plus per-row
+     predicates (status='available' AND
+     is_hidden_from_catalog = FALSE AND list_price
+     IS NOT NULL AND deleted_at IS NULL). Photo +
+     stone policies join through inventory_items so
+     the gate cascades. New partial index
+     idx_inventory_public_catalog matches the RLS
+     USING clause for cheap public reads regardless
+     of total inventory size. NOTIFY pgrst at
+     bottom; documented rollback (DROP POLICY x3 +
+     DROP INDEX + DROP COLUMN x2). OPERATOR: applied
+     0027; `npm run db:types` regenerated.
+
+ 198. PUBLIC CATALOG RESOLVER — fetchPublicCatalog +
+     fetchPublicCatalogItem in
+     src/lib/tenant-resolver.ts. PUBLIC_CATALOG_
+     COLUMNS allowlist locks the public-safe SELECT
+     list; FORBIDDEN set tested by
+     tenant-resolver.catalog.test.ts (cost_basis,
+     acquired_cost, sale_price, sold_at, source*,
+     staff_memo, notes, location, hold_until*,
+     created_by, updated_by — all explicitly NOT in
+     the allowlist, regression-locked).
+     escapeIlikeLiteral helper for safe ILIKE
+     patterns (escapes %, _, \\). resolveCatalogPagination
+     pure pagination math with silent normalize on
+     edge cases (page=0 / negative / NaN /
+     too-large all collapse to page=1).
+     fetchPublicCatalog runs count-then-range
+     (avoids 416 from postgrest on too-large pages)
+     + photo primary-pick via single .in() round-
+     trip + admin-mints-signed-URLs via existing
+     getSignedUrl helper (1h TTL). fetchPublicCatalogItem
+     loads the item + all photos + stones in
+     parallel; same anon-RLS-gated read + admin-
+     mint-signed-URL split. shapeListItem + numericOrNull
+     coerce supabase-js's NUMERIC-as-string returns
+     to numbers at the row boundary. PublicTenant
+     + PUBLIC_TENANT_COLUMNS gain
+     public_catalog_enabled so the landing's CTA
+     can read it. New tenant-resolver.catalog.test.ts:
+     15 pure-logic tests, total 327→342.
+
+ 199. PUBLIC CATALOG ROUTES — list at
+     /s/<slug>/catalog and detail at
+     /s/<slug>/catalog/<sku>. List page.tsx: tenant
+     gate (!has_retail OR !public_catalog_enabled
+     → notFound()); parses ?page=&category=&q=
+     from Promise searchParams (Next 16); calls
+     fetchPublicCatalog with pageSize=24;
+     generateMetadata renders city-templated
+     description + og:image from tenant.logo_url.
+     List content.tsx ('use client'): sticky header
+     with back-to-home + LanguageToggle; debounced
+     search input (300ms, router.replace, page
+     resets to 1); category pills auto-built from
+     items present (hides empty categories);
+     responsive grid 2/3/4 cols; cards: square
+     photo or category-icon fallback + line-clamp-2
+     description + price + category; empty +
+     emptyAll states with Clear filters link;
+     server-rendered Prev/PageOf/Next pagination
+     with disabled state. Detail page.tsx: same
+     tenant gate; fetchPublicCatalogItem →
+     notFound() on miss; generateMetadata picks
+     description format based on what's set
+     (brand+model OR karat+metal+grams OR raw
+     description). Detail content.tsx: photo
+     carousel with thumbnail strip + prev/next
+     buttons; right column has category pill + h1
+     description + brand·model + price + sku;
+     SpecTable renders only rows with data
+     (metal/karat/weight/serial); StonesTable
+     renders only when stones present; tel: +
+     mailto: CTAs with pre-filled subject for
+     email. Both routes ship probe-resistant
+     not-found.tsx files that don't confirm
+     slug/sku existence.
+
+ 200. LANDING CTA WIRED. The shopInventory
+     CTAPlaceholder in src/app/(public)/s/[slug]/
+     content.tsx swaps to a real <Link> when
+     tenant.has_retail && tenant.public_catalog_
+     enabled (anchor: /s/<slug>/catalog with
+     ArrowUpRight icon). Falls back to placeholder
+     when has_retail is on but catalog flag is off
+     — preserves "coming soon" affordance for
+     tenants who reserve has_retail but haven't
+     published. Null when has_retail is off
+     entirely.
+
+ 201. SETTINGS UI EXTENSION. /settings/general
+     gains a "Publish public catalog" checkbox
+     inside the existing Public landing page
+     fieldset (Session 19's footprint).
+     TenantGeneralView gains public_catalog_enabled;
+     page.tsx selects + threads it; content.tsx
+     renders the new checkbox below the landing
+     toggle, disabled when !has_retail with
+     explanatory hint. actions.ts adds the zod
+     member, the combined update payload, the
+     audit-log fields_changed entry, and extends
+     the revalidatePath block to fire
+     /s/<slug>/catalog when the slug is set.
+     Hardcoded English labels per the Session 19
+     pattern (staff form i18n is a separate
+     sweep).
+
+ 202. INVENTORY FORM EXTENSION. is_hidden_from_
+     catalog wired through the existing inventory
+     edit + create stack. lib/validations/
+     inventory.ts gains the field on
+     inventoryItemCreateSchema (BOOLEAN with
+     checkbox preprocess); inheritance via
+     .extend() picks it up on update. components/
+     inventory/InventoryFormFields.tsx renders a
+     "Hide from public catalog" checkbox in the
+     Staff-only section between staff_memo and
+     tags; defaults from emptyInventoryItem(). The
+     edit flow ([id]/page.tsx + [id]/content.tsx
+     + [id]/actions.ts) selects the new column,
+     threads it through the values type +
+     echoToInventoryFieldValues, adds to FIELDS,
+     writes in payload, and (after the existing
+     /inventory revalidates) does a cheap
+     tenants.public_slug lookup to fire
+     revalidatePath(/s/<slug>/catalog) +
+     revalidatePath(/s/<slug>/catalog/<sku>) so
+     the public RSC cache flushes when an
+     operator changes anything that could affect
+     the public surface. The create flow (new/
+     actions.ts + new/form.tsx) gets the same
+     wiring minus the per-sku revalidate (no
+     stable detail URL for a brand-new item yet).
+
+ 203. PUBLIC CATALOG i18n. New `catalog` block in
+     en.ts + es.ts under the existing landing
+     block. ~30 keys: metaTitle / metaDescription
+     (both with {name}/{city}/{state} placeholders)
+     / metaDescriptionFallback / backToHome / shop
+     / filterAll / searchPlaceholder / clearFilters
+     / empty / emptyAll / pageOf (with {page}+{total})
+     / prevPage / nextPage / categories.{ring,
+     necklace, bracelet, earrings, pendant, chain,
+     watch, coin, bullion, loose_stone, electronics,
+     tool, instrument, other} / specs.{metal,
+     karat, weight, serialNumber, stones, sku} /
+     metals.{gold, silver, platinum, palladium,
+     rose_gold, white_gold, tungsten, titanium,
+     stainless_steel, mixed, none, other} /
+     stonesTable.{count, type, cut, carat, color,
+     clarity, totalCarat} / inquireByPhone /
+     inquireByEmail / backToAll. EN + ES at full
+     parity. Diamond grading letters (D / VVS1 /
+     etc.) intentionally NOT translated —
+     international standards. ES uses `usted`
+     register matching the landing.
+
+ 204. SUPERPOWERS LOOP — SPEC + PLAN DOCS. First
+     end-to-end use of the brainstorming +
+     writing-plans + executing-plans superpowers
+     skills on this project. docs/superpowers/
+     specs/2026-05-04-public-catalog-design.md:
+     full design doc with locked-in decisions
+     table, RLS policy SQL, allowlist sets, route
+     structure, i18n surface, testing scope, out-
+     of-scope deferrals, and operator smoke
+     checklist. docs/superpowers/plans/2026-05-04-
+     public-catalog.md: 13 bite-sized tasks each
+     with file paths, complete code blocks, and
+     verification commands. Override on the skill
+     default: NO per-task commits — this project
+     commits once per session via /progress at
+     the end. Process worth keeping for single-PR
+     slices where the design space is genuinely
+     uncertain; for obvious edits the ceremony
+     adds friction.
+
+--- Session 21 (2026-05-05, mid-session checkpoint) — Phase 10 Path A slice 3/N: loyalty + referrals (DESIGN ONLY) ---
+
+ 205. LOYALTY/REFERRALS SPEC LOCKED. Brainstorming
+     skill drove a 5-question design Q&A:
+     (Q1) earning model → points wallet (vs store
+     credit vs both); (Q2) earning events →
+     retail subtotal + loan interest paid (vs
+     retail-only / +repair / +layaway); (Q3)
+     referral attribution → on referred customer's
+     first qualifying transaction (vs on signup
+     /  per-transaction kickback / no-referral);
+     (Q4) POS redemption flow → cashier-driven
+     points→discount on existing sales.discount
+     (vs reward catalog / customer-generated code
+     / auto-apply); (Q5a) gate+config in
+     `settings` table (vs split with tenants);
+     (Q5b) forward-only earning (no backfill);
+     (Q5c) manual staff adjustments allowed
+     (manager+, audit-logged, required reason).
+     Architecture choice locked: materialized
+     customers.loyalty_points_balance + AFTER
+     INSERT trigger on loyalty_events
+     (SECURITY DEFINER + locked search_path).
+     Idempotency: partial UNIQUE index on
+     (customer_id, source_kind, source_id, kind)
+     WHERE kind IN auto-credit set so manual +
+     redeem events can repeat freely. Referral
+     codes: 6-char A-Z + 2-9 (no I/O/0/1), per-
+     tenant unique, lazy-generated via
+     ensureReferralCode. Spec written to
+     docs/superpowers/specs/2026-05-04-loyalty-
+     referrals-design.md (extensive — 8 sections
+     covering DB + integration hooks + staff UX +
+     portal UX + i18n + testing + out-of-scope
+     deferrals + 15-step migration sequencing).
+     Self-review fixed two ambiguities inline.
+     Awaiting Eddy's review before invoking the
+     writing-plans skill. NO CODE CHANGES YET.
+
