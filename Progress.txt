@@ -41,129 +41,154 @@ SEE ALSO (do not duplicate here):
 OPERATION IN FLIGHT: none
 
 ────────────────────────────────────────────────────────────────────────────────
-│  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK                │
+│  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 50 (2026-09-19, crash-interrupted,
-                  recovered) — PAWNSMARTS-PARITY FEATURES 1-3:
-                  JURISDICTION RULES (0048), COMMS AUTOMATIONS
-                  (0049-0050), OFAC SDN SCREENING (0051).
-                  3 commits, each tsc/lint/test/build-green.
+  Last session:   Session 51 (2026-09-19) — PAWNSMARTS-PARITY FEATURE 4
+                  COMPLETE: STORE CREDIT (0052-0053) + CONSIGNMENT
+                  (0054-0055). All four parity features now shipped.
+                  tsc / lint / 504 tests / production build all green;
+                  every DB rule verified against the live database
+                  inside a transaction that rolled back.
 
-                  - COMPETITIVE READ: pulled app.pawnsmarts.com's
-                    public JS bundle and mapped their feature set
-                    (pricing $49/$89/$129, 61 jurisdictions, offline
-                    mode, firearms/ATF, OFAC, store credit,
-                    consignment, drip marketing). Their scoring is
-                    the source of the 4-feature plan; features 1-3
-                    are done, 4 (store credit + consignment) is next.
-                  - F1 JURISDICTIONS (0048, d636939): global
-                    jurisdictions table (US-FL seeded, VERIFIED
-                    against 2026 Fla. Stat. 539.001) + tenants
-                    .jurisdiction_code/.timezone + settings
-                    .grace_period_days. DB TRIGGERS enforce rate cap,
-                    min-charge cap, term, grace-before-forfeiture and
-                    the statutory buy hold — app checks only produce
-                    translated errors first. /settings/compliance +
-                    /admin/jurisdictions. Ticket legal block + back
-                    page now come from the jurisdiction row.
-                  - F2 COMMS AUTOMATIONS (0049-0050, 906ce3d):
-                    comm_automations (per-tenant on/off + offsets over
-                    code defaults) + comm_automation_sends (permanent
-                    send-once ledger, replaces the old 24h window).
-                    maturity-reminders rewritten on the runner; new
-                    lifecycle-messages cron (birthday, dormant
-                    win-back, forfeiture win-back, redemption
-                    thank-you — marketing, OFF by default, opt-in
-                    customers only, 7-day cap). Default templates now
-                    seeded for EVERY tenant (was one hard-coded id).
-                  - F3 OFAC (0051, b19cca5): Treasury SDN list loaded
-                    daily (7,535 individuals / 16,185 names, published
-                    2026-09-17), trigram candidates + token-set
-                    Jaro-Winkler scoring tuned so common Hispanic
-                    names don't false-positive. Pawn + buy intake now
-                    refuse banned customers (previously NEVER enforced
-                    server-side), unreviewed matches and confirmed
-                    matches.
+                  - STORE CREDIT. payment_method gained 'store_credit'
+                    in its own patch (0052) because Postgres refuses to
+                    use a new enum value in the transaction that adds
+                    it — same split as 0049/0050. 0053 adds
+                    customers.store_credit_balance (materialized by a
+                    trigger, CHECK >= 0), the append-only
+                    store_credit_events ledger with a sign CHECK per
+                    kind, and THREE RPCs. Spending credit goes through
+                    store_credit_redeem_on_sale(), which writes the
+                    ledger debit + the sale_payments row + the
+                    sales.paid_total bump in ONE transaction, under a
+                    row lock on the customer. 'store_credit' is
+                    deliberately kept OUT of paymentMethodSchema so the
+                    generic add-payment dialog can never record a tender
+                    nobody was charged for. Surfaces: a POS tender block
+                    on the sale detail, a balance + ledger panel on the
+                    customer (owner/manager can adjust, reason
+                    mandatory), store credit as a RETURN refund method
+                    and as a BUY-OUTRIGHT payout method, and
+                    /settings/store-credit.
+                  - CONSIGNMENT. 0054 adds consignors (always backed by
+                    a customers row), four consignment columns on
+                    inventory_items, consignment_payouts, and the
+                    consignment_payables SIGNED ledger. All accounting
+                    is TRIGGER-owned: accrue on sale completion (retail
+                    AND layaway payoff, both flip the sale to
+                    'completed'), reverse on void, reverse pro-rata on
+                    return. A floor-price trigger refuses any sale line
+                    whose EFFECTIVE unit price (after the line discount)
+                    falls below what was agreed with the consignor.
+                    consignment_pay_out() settles the whole open balance
+                    in one transaction. Staff RLS on payables/payouts is
+                    SELECT-only — nothing hand-edits the book.
+                  - BUG FOUND AND FIXED IN THE SMOKE TEST (0055). The
+                    0054 reversal triggers reversed the FULL accrual
+                    without looking at reversals already written, so a
+                    fully-returned line that was then voided clawed back
+                    160 twice on a 160 accrual — and voidSaleAction IS
+                    reachable on a 'fully_returned' sale. Both triggers
+                    now clamp to the unreversed remainder. Verified:
+                    three 1-unit returns against a 2-unit line, then a
+                    void, leave the line at exactly 0.
+                  - Rule 13 delete gate now also blocks on unspent store
+                    credit and on open consignment (goods on the floor
+                    or an unsettled balance) — both are money the shop
+                    owes a person whose record would otherwise vanish.
+                  - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~45% at save time.
-  Last worked on: Feature 3 committed (b19cca5) after the 2026-09-19
-                  machine crash; OFAC list load verified intact
-                  (one current version, 16,185 rows).
+  Context budget: ~40% at save time.
+  Last worked on: Feature 4 finished end to end and verified. Clean
+                  stopping point.
 
   ACTIVE FILE(S) (all committed):
-    - patches/0048-jurisdictions.sql, 0049-message-kinds-lifecycle.sql,
-      0050-comm-automations.sql, 0051-ofac-screening.sql (ALL APPLIED)
-    - src/lib/jurisdictions/{rules,load,messages,timezones}.ts (+tests)
-    - src/lib/comms/{automations,automation-runner}.ts (+tests)
-    - src/lib/compliance/ofac/{match,screen,refresh}.ts (+tests)
-    - src/app/api/cron/{maturity-reminders,lifecycle-messages,
-      refresh-ofac}/route.ts
-    - src/app/(staff)/settings/compliance/*, (admin)/admin/jurisdictions/*
-    - src/components/customers/OfacPanel.tsx,
-      src/components/comms/AutomationsPanel.tsx
+    - patches/0052-payment-method-store-credit.sql,
+      0053-store-credit.sql, 0054-consignment.sql,
+      0055-consignment-reversal-remainder.sql (ALL APPLIED)
+    - src/lib/store-credit/{math,events}.ts (+math tests)
+    - src/lib/consignment/{math,payables}.ts (+math tests)
+    - src/lib/validations/{store-credit,consignment}.ts
+    - src/app/(staff)/consignors/** (list, new, [id] detail + payout)
+    - src/app/(staff)/settings/{store-credit,consignment}/**
+    - src/app/(staff)/customers/[id]/store-credit-actions.ts
+    - src/app/(staff)/pos/sales/[id]/store-credit-actions.ts
+    - src/components/store-credit/**, src/components/consignment/**
 
   RESUME POINT:
-    Clean stopping point — features 1-3 committed and pushed. Next is
-    FEATURE 4: store credit + consignment (patches/0052). Design agreed
-    in-session: store credit = customers.store_credit_balance + an
-    append-only store_credit_events ledger (the loyalty_events pattern,
-    balance kept by trigger, CHECK >= 0), payment_method enum gains
-    'store_credit' (needs its OWN patch first — Postgres can't use a new
-    enum value in the transaction that adds it, same split as 0049/0050),
-    redeemable as a POS tender through an RPC that writes the ledger row
-    and the sale_payment atomically; returns can refund to store credit;
-    buy-outright can pay out as store credit. Consignment = consignors
-    (linked to a customer) + inventory_items.consignor_id/commission/
-    min price/expiry + consignment_payables created by DB TRIGGERS on
-    sale completion, reversed/clawed back on void + return.
+    Clean stopping point — all four PawnSmarts-parity features are
+    shipped. Both new modules are OFF by default
+    (settings.store_credit_enabled / settings.consignment_enabled), so
+    nothing changes for a tenant until an owner flips them on at
+    /settings/store-credit and /settings/consignment. Neither module has
+    been opened in a browser yet — the DB rules were proven against the
+    live database, the UI was not. Next is either the browser smoke of
+    features 1-4 or the still-open [SECURITY] profiles
+    privilege-escalation grant fix (banner at the top of this file,
+    open four sessions now).
 
   OPEN ISSUES / BLOCKERS:
     - [SECURITY, CRITICAL] profiles PRIVILEGE ESCALATION — STILL NOT
       fixed. See banner at top of file. Grant-layer authz needed.
     - [SECURITY] schema_migrations RLS — not audited here.
-    - Nothing from features 1-3 has been smoke-tested in a browser.
-      The DB rules, crons and OFAC list were verified directly against
-      the live DB; the UI surfaces were not opened.
+    - Nothing from features 1-4 has been smoke-tested in a browser.
+      Feature 4's database behaviour WAS verified end to end against
+      the live DB (transaction rolled back, nothing persisted); its UI
+      surfaces have not been opened.
     - CRON_SECRET still unset in Vercel Production, so refresh-ofac,
       maturity-reminders and lifecycle-messages all 401 in prod. The
       OFAC list was loaded manually from a local dev server; without
       the secret it will NOT refresh daily.
-    - Git Bash wedged mid-session (cygheap fork failure, Win32 error
-      299) and the machine was powered off by hand. If it recurs, close
-      stray node/dev servers or run the command through PowerShell —
-      see CRASH-RECOVERY-2026-09-19.md (delete once read).
+    - Store credit is NOT accepted on layaway payments — layaway
+      payments mirror into sale_payments and the register close already
+      double-counts them (known issue below), so wiring a third money
+      path through that mirror was left for when the mirror is fixed.
+    - The customer portal has no store-credit surface yet. The RLS
+      policy for it exists (store_credit_events_portal_select), so it
+      is a page away.
+    - Consigned goods are counted at cost_basis 0 in inventory
+      valuation / turn reports. They are not the shop's property, so
+      the reports should exclude or separate them — not yet done.
+    - A cash consignment payout leaves the drawer but does not appear
+      in the daily register. Store-credit tenders correctly do NOT
+      (they are neither cash nor a card batch).
     - Settings hub (/settings) and the buy receipt page (/buy/[id]) are
       hardcoded English — pre-existing Rule 6 debt, not from this work.
 
-  KEY DECISIONS LOCKED (Session 50):
-    - STATUTORY LIMITS ARE DATA, NOT CONSTANTS. jurisdictions rows +
-      DB triggers; CLAUDE.md rule 18 records it. Only FL is seeded and
-      it carries verified_on/verified_source — new states are added
-      after reading the statute, never bulk-imported from a competitor.
-    - FL CORRECTIONS FROM THE STATUTE: record retention is 3 YEARS
-      (was 2 in CLAUDE.md + retention.ts); maturity must be exactly
-      30 days; the $5 minimum is a CEILING on what a shop may charge,
-      not a floor; forfeiture is the day after due+30, rolled to the
-      next business day when it lands on a weekend.
-    - DATES USE THE SHOP TIMEZONE (tenants.timezone), never UTC, for
-      forfeiture, holds, reminders and intake issue dates.
-    - MARKETING IS OPT-IN AND OFF BY DEFAULT. Lifecycle messages only
-      reach marketing_opt_in customers (0 of the 5,217 imported), max
-      one per customer per week. Loan reminders stay transactional.
-    - OFAC SCORING IS DELIBERATELY NARROWED. 70% customer coverage /
-      30% SDN coverage; a DOB-year conflict records the match but
-      does not block. A potential match is an alert for review, never
-      an identity determination.
-    - TWO BUGS FOUND AND FIXED IN PASSING: compliance_log rejected
-      every buy-outright row since 0001 (CHECK allowed only
-      loans/sales), so buys never reached the police report; and
-      canDeleteCustomer was never called by the delete action (Rule 13
-      ungated) and matched buys on the wrong JSONB key.
+  KEY DECISIONS LOCKED (Session 51):
+    - A TENDER THAT MOVES SOMEONE'S BALANCE IS ONE TRANSACTION OR IT IS
+      NOTHING. Store credit on a sale is an RPC, not three PostgREST
+      calls, because three calls have three ways to half-apply.
+    - CONSIGNMENT ACCOUNTING IS THE DATABASE'S JOB. Every payable row
+      comes from a trigger or the payout RPC; staff RLS is SELECT-only.
+      Money owed to someone who is not in the room is exactly where the
+      app layer should not be the authority.
+    - A SIGNED LEDGER, NOT EDITED ROWS. A reversal that lands after the
+      consignor was paid leaves a NEGATIVE open balance and the next
+      payout nets it off. Mutating the original accrual would silently
+      erase a payment that actually happened.
+    - REVERSALS CLAMP TO WHAT STILL STANDS. Found by the smoke test,
+      fixed in 0055 before any shop had data.
+    - THE FLOOR PRICE IS A CONTRACT. The trigger checks the effective
+      per-unit price after the line discount, not unit_price — a
+      discount must not walk through a promise made to the consignor.
+    - NOTHING EXPIRES STORE CREDIT AUTOMATICALLY.
+      settings.store_credit_expiry_days is what the shop TELLS the
+      customer; unclaimed credit is a liability and several states
+      treat it as unclaimed property. Wire an expiry job only after
+      reading the statute.
+    - TURNING A MODULE OFF NEVER HIDES AN OBLIGATION. Balances stay
+      visible and consignment accruals keep firing when the gate is
+      off; the gate only stops NEW activity.
+    - COMMISSION IS A FRACTION EVERYWHERE (0.2 = 20%) — column, Zod
+      schema and trigger all agree. The UI takes a percent and converts
+      in a shared CommissionField, so "20" can never become 2000%.
 
   (Sessions 13-48 PRIOR-SESSION decision blocks are in the
   SESSION HISTORY LOG below. Carried-forward architectural
   decisions live in CLAUDE.md.)
+
 
 ================================================================================
 PHASE OVERVIEW
@@ -221,6 +246,15 @@ PHASE OVERVIEW
           (Sessions 29-32. 14 commits, ~250+ files
           touched, 0 logic changes. Final audit
           and production build green.)
+  12      PawnSmarts competitive parity              COMPLETE    2026-09-19
+          (Sessions 50-51, four features:
+          1 jurisdiction rules (0048),
+          2 comms automations (0049-0050),
+          3 OFAC SDN screening (0051),
+          4 store credit + consignment
+          (0052-0055). Offline-first mode and
+          firearms/ATF deliberately skipped —
+          see OUT OF SCOPE.)
 
 ================================================================================
 SESSION HISTORY LOG
@@ -700,6 +734,147 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 51 (2026-09-19) — PawnSmarts-parity feature 4: store credit + consignment ---
+
+ 368. STORE CREDIT (patches/0052 + 0053). 0052 is enum-only —
+     payment_method += 'store_credit' — because the Management API sends
+     a patch as ONE transaction and Postgres refuses to use a new enum
+     value in the transaction that adds it (same split as 0049/0050).
+     0053 adds customers.store_credit_balance NUMERIC(18,4) maintained
+     by an AFTER INSERT trigger on the new append-only
+     store_credit_events ledger, with CHECK (>= 0) as the safety net and
+     a per-kind sign CHECK so an app-side sign slip cannot corrupt a
+     balance. Seven kinds: issue_return / issue_buy / issue_manual /
+     redeem_pos / redeem_undo / clawback / adjust_manual. A partial
+     unique index gives idempotency on the issue + undo kinds (a
+     double-submitted return cannot credit twice; one redemption cannot
+     be undone twice) while leaving redeem_pos and manual adjustments
+     repeatable on purpose. settings.store_credit_enabled (off by
+     default) + settings.store_credit_expiry_days (informational ONLY —
+     nothing expires credit, it is a liability and several states treat
+     unclaimed balances as unclaimed property).
+
+ 369. THE REDEEM RPC IS THE WHOLE POINT (0053). A store-credit tender is
+     three writes that must be atomic: the ledger debit, the
+     sale_payments row, and the sales.paid_total roll-up. Doing them as
+     three PostgREST calls from a server action leaves three ways to
+     half-apply a tender — credit taken with no payment recorded, or a
+     payment recorded against credit nobody was charged for. So
+     store_credit_redeem_on_sale(tenant, sale, amount, by) does all
+     three under FOR UPDATE locks on the sale and the customer, and
+     'store_credit' is deliberately EXCLUDED from paymentMethodSchema
+     so the generic add-payment path cannot reach it. Companions:
+     store_credit_undo_sale_redemption() (open sale — soft-deletes the
+     payment, backs out paid_total, writes the compensating row) and
+     store_credit_restore_for_sale() (void path — leaves the payment
+     rows as history, exactly like the card-refund path, and puts the
+     credit back). All three are service_role-only; the guards run
+     first (Rule 10). Errors are raised as stable tokens
+     (store_credit_insufficient_balance etc.) so the UI translates them
+     instead of showing Postgres text.
+
+ 370. STORE-CREDIT SURFACES. POS: a tender block on the sale detail
+     (balance, "use max" capped by BOTH the balance and what the sale
+     still owes, per-redemption undo). Customer detail: balance +
+     5-row ledger + an owner/manager adjust modal where direction is a
+     CHOICE and a reason is mandatory (a clerk typing "-50" for "50"
+     must not be able to hand out money). Returns: 'store_credit' as a
+     refund method, offered only with an identified customer and the
+     module on, checked BEFORE the return row is written. Buy-outright:
+     'store_credit' as a payout method — issued AFTER compliance_log so
+     a purchase that never reached the police-report ledger cannot
+     leave credit behind; if the credit write fails the purchase STANDS
+     (compliance_log is write-once by design, Rule 15) and the error
+     tells staff to issue it by hand. Receipt PDF prints "Store credit /
+     Crédito de tienda". The daily register correctly ignores
+     store-credit payments — they are neither drawer cash nor a card
+     batch.
+
+ 371. CONSIGNMENT (patches/0054). consignors are ALWAYS backed by a
+     customers row (never a second copy of someone's identity), carry
+     the DEFAULT commission + payout method, and get a per-tenant
+     'CN-000001'. inventory_items gains consignor_id +
+     consignment_commission_pct (FROZEN at intake — changing the
+     consignor default never re-prices goods already on the floor) +
+     consignment_min_price + consignment_expires_on, with a CHECK that
+     a consignor implies source='consigned' AND a commission.
+     consignment_payables is a SIGNED ledger, not a mutable row:
+     kind='accrual' when a consigned line sells, kind='reversal' when
+     the sale voids or the line comes back. Balance = SUM(payable_amount)
+     WHERE status='open'. Negative is a VALID state — a reversal landing
+     after the consignor was paid means they owe the shop, and the next
+     payout nets it off; mutating the accrual instead would silently
+     erase a payment that actually happened. consignment_payouts records
+     each cash-out, and consignment_pay_out() settles every open row in
+     one transaction (refusing a zero or negative net). Staff RLS on
+     payables and payouts is SELECT-ONLY — every write is a trigger or
+     that RPC.
+
+ 372. THE ACCOUNTING IS TRIGGER-OWNED (0054). accrue on sales.status →
+     'completed' (covers retail completion AND layaway payoff, because
+     both flip the sale to 'completed'); reverse in full on → 'voided';
+     reverse pro-rata on return_items INSERT. Gross is sale_items
+     .line_total — what the line actually realized after any LINE
+     discount; a cart-level discount (where loyalty redemption also
+     lands) is the shop's own giveaway and is NOT prorated onto
+     consigned lines. A separate BEFORE trigger on sale_items refuses
+     any line whose EFFECTIVE per-unit price (line_total / quantity,
+     i.e. after the line discount) falls below consignment_min_price —
+     guarding unit_price alone would let a discount walk straight
+     through the floor promised to the consignor. Same-tenant guards on
+     consignors.customer_id and inventory_items.consignor_id.
+
+ 373. [BUG] CONSIGNMENT REVERSALS DOUBLE-COUNTED (found by the smoke
+     test, fixed in patches/0055 before any shop had data). Root cause:
+     consignment_reverse_on_void() reversed the FULL accrual for every
+     line on the sale and consignment_reverse_on_return() reversed its
+     pro-rata share of the FULL accrual — neither looked at reversals
+     that had already landed. So a line fully returned (−160) and then
+     voided (−160 again) put the consignor at −160 on an item that only
+     ever accrued +160, and voidSaleAction IS reachable on a
+     'fully_returned' sale. Repeated partial returns summing past the
+     quantity sold had the same shape. 0055 adds
+     consignment_unreversed_fraction() and both triggers now clamp:
+     return reverses MIN(pro-rata, remainder), void reverses exactly the
+     remainder, either skips when the remainder is already zero.
+     Verified: three 1-unit returns against a 2-unit line followed by a
+     void leave the line at exactly 0.00, never negative.
+
+ 374. CONSIGNMENT SURFACES. /consignors (list with live open balances +
+     items on the floor, "owes shop" when negative), /consignors/new
+     (customer picker + terms), /consignors/[id] (terms editor, items
+     with agreement-expiry countdown in the SHOP's timezone and a
+     return-to-consignor action, the full payable ledger naming
+     Sold / Returned / Sale voided distinctly, payout history, and a
+     payout dialog). Consignment fields appear on the inventory form
+     only when source='consigned' and unmount otherwise — the Zod
+     schema also CLEARS them server-side, because switching an item from
+     consigned to bought without clearing would keep accruing a payable
+     on goods the shop now owns. Commission is a FRACTION everywhere
+     (column, schema, trigger); a shared CommissionField takes a percent
+     and converts, so "20" can never become 2000%. /settings/consignment
+     + a Consignors sidebar entry gated on settings.consignment_enabled.
+
+ 375. RULE 13 DELETE GATE EXTENDED. canDeleteCustomer() now also blocks
+     on unspent store credit and on open consignment (goods still on the
+     floor or an unsettled payable balance). Both are money the shop
+     owes a person whose record would otherwise vanish. Reasons are
+     translated EN+ES like the existing ones. CLAUDE.md rule 19 records
+     both module conventions.
+
+ 376. VERIFICATION. Everything above was exercised against the LIVE
+     database inside a DO block ending in a deliberate RAISE, so the
+     whole transaction rolled back and nothing persisted (confirmed
+     after: 0 consignors, 0 payables, 0 payouts, 0 credit events, both
+     gates still FALSE). 26 assertions covering the sign CHECK, the
+     append-only trigger, overdraw / overpay refusal, undo + double-undo,
+     undo refused on a closed sale, void restore + idempotent re-restore,
+     the coherence CHECK, the floor price with and without a line
+     discount, no accrual before completion, no double accrual on
+     re-completion, payout + "nothing payable", pro-rata partial return,
+     the over-return clamp and the void clamp. tsc, eslint, 504 unit
+     tests and the production build are all green.
 
 --- Session 50 (2026-09-19) — PawnSmarts-parity: jurisdiction rules + comms automations + OFAC screening ---
 
@@ -3717,66 +3892,78 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    FEATURE 4 — store credit + consignment (patches/0052, and a tiny
-    0052a first for the payment_method enum value, same split reason as
-    0049/0050). Design is locked in the RESUME POINT above: append-only
-    store_credit_events ledger + customers.store_credit_balance kept by
-    trigger; an RPC that writes the ledger row and the sale_payment in
-    one transaction so a POS tender can never half-apply; returns
-    refundable to store credit; buy-outright payable as store credit.
-    Consignors linked to a customer, consigned inventory carrying
-    commission / floor price / expiry, and consignment_payables created
-    by DB triggers on sale completion (reversed or clawed back on void
-    and return).
+    [SECURITY] Close the profiles privilege-escalation hole (banner at
+    the top of this file). It has been open for four sessions and it is
+    the only thing here that lets one logged-in user become another
+    role. Read-only audit first, show the SQL before applying (rule #1):
+    REVOKE INSERT/UPDATE/DELETE on profiles from anon + authenticated,
+    then GRANT UPDATE on only THIS app's genuinely self-editable columns
+    (do NOT blind-copy Tocoloro's 3-column grant or users lose the
+    ability to edit their own name/phone). Same pass: check whether RLS
+    is on schema_migrations.
 
   BACKLOG (in priority order):
-    1. [SECURITY] profiles privilege-escalation grant fix +
-       schema_migrations RLS (banner at top of file). Still open after
-       three sessions — read-only audit first, show the SQL before
-       applying (rule #1).
-    2. Set CRON_SECRET in Vercel Production. Until it is set,
+    1. Set CRON_SECRET in Vercel Production. Until it is set,
        refresh-ofac / maturity-reminders / lifecycle-messages /
        release-buy-holds / leadsonline-export all 401 — the OFAC list
        will NOT refresh daily and no reminder will ever send in prod.
-    3. Browser smoke of everything built in Session 50: /settings/
-       compliance, /admin/jurisdictions, the Automations panel under
-       /settings/communications, the OFAC panel on a customer, a pawn
-       intake against the new term/rate/grace rules, and a forfeit
-       attempt before the grace date (should be refused).
-    4. Wire customers.race into the customer add/edit forms (column
+    2. Browser smoke of Sessions 50-51. Feature 4's DATABASE behaviour
+       is verified; nothing has been opened in a browser. Walk:
+       /settings/store-credit + /settings/consignment (flip both on),
+       issue credit on a customer, spend it on a POS sale, undo it,
+       void the sale and watch it come back; create a consignor, take
+       an item in on consignment, try to sell it under the floor
+       (should refuse), sell it properly, check the payable, pay the
+       consignor out, return the item and watch the balance go
+       negative. Then /settings/compliance, /admin/jurisdictions, the
+       Automations panel and the OFAC panel from Session 50.
+    3. Register close double-counts layaway cash: layaway payments are
+       mirrored into sale_payments and the close sums both tables.
+       Found Session 50, still open. Fixing the mirror is also what
+       unblocks store credit as a layaway tender (deliberately left out
+       in Session 51 for exactly this reason).
+    4. Customer-portal store-credit surface. The RLS policy already
+       exists (store_credit_events_portal_select) — it needs a page
+       under /portal showing the balance and recent activity.
+    5. Exclude (or separate) consigned goods from inventory valuation
+       and turn reports. They sit at cost_basis 0 and are not the
+       shop's property, so today they quietly flatter the numbers.
+    6. A cash consignment payout leaves the drawer but never reaches
+       the daily register. Decide whether payouts post a register line
+       or stay outside the drawer reconciliation.
+    7. Wire customers.race into the customer add/edit forms (column
        exists + import populates it; add field + i18n).
-    5. Bravo import preset in src/lib/imports/presets.ts once a Bravo
+    8. Bravo import preset in src/lib/imports/presets.ts once a Bravo
        export sample is provided (mirrors the xPawn preset; ~15 lines).
-    6. Pawn Phase 2 step 2 — pawn-history re-pawn panel (customer-
+    9. Pawn Phase 2 step 2 — pawn-history re-pawn panel (customer-
        scoped prior loans + collateral, filter chips, redeemed -> +Add,
        forfeited -> shop inventory, is_repawn / source_loan_id).
-    7. Pawn Phase 2 step 3 — in-place Buy-outright merge into
-       /pawn/new (currently bridged to /buy/new).
-    8. Confirm/replace landing PLACEHOLDER pricing (Free/$79/$149) +
-       contact email; wire real signup for "Start free". PawnSmarts
-       charges $49 / $89 / $129 — worth a look before committing.
-    9. Repair initial quote/deposit at intake; repair per-item stones.
-    10. FL Pawnbroker Transaction Form alignment pass on the pawn-ticket
+    10. Pawn Phase 2 step 3 — in-place Buy-outright merge into
+        /pawn/new (currently bridged to /buy/new).
+    11. Confirm/replace landing PLACEHOLDER pricing (Free/$79/$149) +
+        contact email; wire real signup for "Start free". PawnSmarts
+        charges $49 / $89 / $129 — worth a look before committing.
+    12. Repair initial quote/deposit at intake; repair per-item stones.
+    13. FL Pawnbroker Transaction Form alignment pass on the pawn-ticket
         PDF (/api/print/loan) + back page (customers.race now exists, so
         the pledgor block can include it).
-    11. Reconcile LeadsOnline CSV columns vs the agency spec.
-    12. Backfill the one buy-outright that never got a compliance_log
+    14. Reconcile LeadsOnline CSV columns vs the agency spec.
+    15. Backfill the one buy-outright that never got a compliance_log
         row (item 364) — decide whether to write a corrected row or
         leave it, since compliance_log is write-once by design.
 
   KNOWN ISSUES TO REVISIT:
     - Settings hub (/settings) and buy receipt (/buy/[id]) are hardcoded
-      English — pre-existing Rule 6 debt found during Session 50.
+      English — pre-existing Rule 6 debt.
     - OPENAI_API_KEY pending in Vercel Production env.
     - POS tender selector is UI-only (payment finalized on the sale
-      detail page).
+      detail page). Store credit follows the same shape — it is applied
+      on the sale detail, not in the cart.
     - No tenant default tax rate column (POS tax defaults 0).
-    - Register close double-counts layaway cash: layaway payments are
-      mirrored into sale_payments and the close sums both tables.
-      Found in Session 50, NOT fixed — touch it with feature 4, which
-      is already in the POS tender path.
+    - Register close double-counts layaway cash (see backlog 3).
     - Git Bash can wedge (cygheap fork failure). Close stray node
       processes or use PowerShell; do not debug the code.
+
 
   OUT OF SCOPE (noted for later):
     - PawnSmarts parity we deliberately skipped: offline-first mode

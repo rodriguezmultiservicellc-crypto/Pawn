@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useI18n } from '@/lib/i18n/context'
+import { CommissionField } from '@/components/consignment/CommissionField'
 import type {
   InventoryCategory,
   InventoryLocation,
@@ -35,6 +36,10 @@ export type InventoryFieldValues = {
   staff_memo: string | null
   tags: string[]
   is_hidden_from_catalog: boolean
+  consignor_id: string | null
+  consignment_commission_pct: string | null
+  consignment_min_price: string | null
+  consignment_expires_on: string | null
 }
 
 export function emptyInventoryItem(): InventoryFieldValues {
@@ -63,23 +68,39 @@ export function emptyInventoryItem(): InventoryFieldValues {
     staff_memo: null,
     tags: [],
     is_hidden_from_catalog: false,
+    consignor_id: null,
+    consignment_commission_pct: null,
+    consignment_min_price: null,
+    consignment_expires_on: null,
   }
 }
+
+export type ConsignorOption = { id: string; label: string }
 
 export function InventoryFormFields({
   initial,
   fieldError,
   isEdit = false,
+  consignmentEnabled = false,
+  consignors = [],
+  defaultCommissionPct = 0.2,
 }: {
   initial?: InventoryFieldValues
   fieldError?: (key: string) => string | undefined
   isEdit?: boolean
+  /** Tenant has consignment switched on (settings.consignment_enabled). */
+  consignmentEnabled?: boolean
+  consignors?: ConsignorOption[]
+  /** settings.consignment_default_commission_pct, as a fraction. */
+  defaultCommissionPct?: number
 }) {
   const { t } = useI18n()
   const v = initial ?? emptyInventoryItem()
 
   const [tags, setTags] = useState<string[]>(v.tags)
   const [tagInput, setTagInput] = useState('')
+  // Sourcing drives whether the consignment block exists at all.
+  const [source, setSource] = useState<InventorySource>(v.source)
 
   function addTag() {
     const x = tagInput.trim()
@@ -240,7 +261,8 @@ export function InventoryFormFields({
           <Select
             label={t.inventory.source}
             name="source"
-            defaultValue={v.source}
+            value={source}
+            onChange={(next) => setSource(next as InventorySource)}
             error={fieldError?.('source')}
             options={[
               { value: 'bought', label: t.inventory.sourceBought },
@@ -286,6 +308,60 @@ export function InventoryFormFields({
           />
         </div>
       </Section>
+
+      {/* Consignment — only for goods the shop does not own. The fields are
+          unmounted for any other source so a stale consignor cannot ride
+          along on a sourcing change; the schema clears them server-side too. */}
+      {consignmentEnabled && source === 'consigned' ? (
+        <Section label={t.consignment.item.sectionLabel}>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Select
+              label={t.consignment.item.consignor}
+              name="consignor_id"
+              defaultValue={v.consignor_id ?? ''}
+              help={t.consignment.item.consignorHelp}
+              error={
+                fieldError?.('consignor_id')
+                  ? t.consignment.errors.consignor_required
+                  : undefined
+              }
+              options={[
+                { value: '', label: '—' },
+                ...consignors.map((c) => ({ value: c.id, label: c.label })),
+              ]}
+            />
+            <CommissionField
+              name="consignment_commission_pct"
+              label={t.consignment.item.commission}
+              defaultFraction={
+                v.consignment_commission_pct == null
+                  ? defaultCommissionPct
+                  : Number(v.consignment_commission_pct)
+              }
+              error={
+                fieldError?.('consignment_commission_pct')
+                  ? t.consignment.errors.commission_required
+                  : undefined
+              }
+            />
+            <Field
+              label={t.consignment.item.minPrice}
+              name="consignment_min_price"
+              type="number"
+              step="0.01"
+              defaultValue={v.consignment_min_price ?? ''}
+              help={t.consignment.item.minPriceHelp}
+            />
+            <Field
+              label={t.consignment.item.expiresOn}
+              name="consignment_expires_on"
+              type="date"
+              defaultValue={v.consignment_expires_on ?? ''}
+              help={t.consignment.item.expiresOnHelp}
+            />
+          </div>
+        </Section>
+      ) : null}
 
       <Section label={t.inventory.sectionLocationStatus}>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -468,23 +544,33 @@ function Select({
   label,
   name,
   defaultValue,
+  value,
+  onChange,
   options,
   error,
+  help,
   className,
 }: {
   label: string
   name: string
   defaultValue?: string
+  /** Pass with onChange to drive the select from parent state instead. */
+  value?: string
+  onChange?: (value: string) => void
   options: ReadonlyArray<{ value: string; label: string }>
   error?: string
+  help?: string
   className?: string
 }) {
+  const controlled = value !== undefined && onChange !== undefined
   return (
     <label className={`block space-y-1 ${className ?? ''}`}>
       <span className="text-sm font-medium text-foreground">{label}</span>
       <select
         name={name}
-        defaultValue={defaultValue}
+        {...(controlled
+          ? { value, onChange: (e) => onChange(e.target.value) }
+          : { defaultValue })}
         className={`block w-full rounded-md border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
           error
             ? 'border-danger focus:border-danger'
@@ -497,6 +583,7 @@ function Select({
           </option>
         ))}
       </select>
+      {help ? <span className="text-xs text-muted">{help}</span> : null}
       {error ? <span className="text-xs text-danger">{error}</span> : null}
     </label>
   )

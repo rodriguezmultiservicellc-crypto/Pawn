@@ -23,6 +23,7 @@ import {
   recordRedemption,
 } from '@/lib/loyalty/events'
 import { computeRedemptionDiscount } from '@/lib/loyalty/math'
+import { restoreForSale as restoreStoreCreditForSale } from '@/lib/store-credit/events'
 import type { PaymentMethod, SaleStatus } from '@/types/database-aliases'
 
 export type SaleActionResult = { error?: string; ok?: boolean }
@@ -306,6 +307,38 @@ export async function voidSaleAction(
     recordId: sale.id,
     changes: { reason: v.reason, total: sale.total },
   })
+
+  // ── Store credit: put every redemption on this sale back ───────────────
+  //
+  // The payment rows stay on the voided sale as history — same as the card
+  // refund above, which leaves its row and marks it refunded. What matters
+  // is that the customer gets their credit back. Not gated on
+  // settings.store_credit_enabled: a shop that switched the module off
+  // after taking someone's credit still owes it.
+  if (sale.customer_id) {
+    const restored = await restoreStoreCreditForSale({
+      admin: createAdminClient(),
+      tenantId: sale.tenant_id,
+      saleId: sale.id,
+      performedBy: userId,
+    })
+    if (restored.restoredCount > 0) {
+      await logAudit({
+        tenantId: sale.tenant_id,
+        userId,
+        action: 'store_credit_restore',
+        tableName: 'store_credit_events',
+        recordId: sale.id,
+        changes: {
+          reason: 'sale_voided',
+          customer_id: sale.customer_id,
+          restored_count: restored.restoredCount,
+          restored_amount: restored.restoredAmount,
+        },
+      })
+      revalidatePath(`/customers/${sale.customer_id}`)
+    }
+  }
 
   // ── Loyalty clawback + redemption reversal (gated) ─────────────────────
   if (sale.customer_id) {

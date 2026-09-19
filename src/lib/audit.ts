@@ -126,6 +126,17 @@ export type AuditAction =
   // OFAC screening (patches/0051)
   | 'ofac_screen'
   | 'ofac_review'
+  // Store credit (patches/0052-0053)
+  | 'store_credit_issue'
+  | 'store_credit_adjust'
+  | 'store_credit_redeem'
+  | 'store_credit_redeem_undo'
+  | 'store_credit_restore'
+  // Consignment (patches/0054)
+  | 'consignor_create'
+  | 'consignor_update'
+  | 'consignment_payout'
+  | 'consignment_item_returned'
 
 export async function logAudit(args: {
   tenantId: string

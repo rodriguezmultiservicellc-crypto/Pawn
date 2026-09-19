@@ -23,6 +23,9 @@ import { VoidSaleDialog } from '@/components/pos/VoidSaleDialog'
 import PosRedemptionBlock, {
   type RedemptionEventView,
 } from '@/components/loyalty/PosRedemptionBlock'
+import PosStoreCreditBlock, {
+  type StoreCreditRedemptionView,
+} from '@/components/store-credit/PosStoreCreditBlock'
 import {
   addPaymentAction,
   completeSaleAction,
@@ -91,18 +94,47 @@ export type SaleDetailLoyalty = {
   redemptionsOnThisSale: RedemptionEventView[]
 }
 
+/** Tender label for the payments list. 'store_credit' would otherwise
+ *  render as a raw enum with an underscore in it. */
+function paymentMethodLabel(
+  method: PaymentMethod,
+  t: ReturnType<typeof useI18n>['t'],
+): string {
+  switch (method) {
+    case 'cash':
+      return t.pos.payment.methodCash
+    case 'card':
+      return t.pos.payment.methodCard
+    case 'check':
+      return t.pos.payment.methodCheck
+    case 'store_credit':
+      return t.storeCredit.title
+    default:
+      return t.pos.payment.methodOther
+  }
+}
+
+export type SaleDetailStoreCredit = {
+  enabled: boolean
+  customerFirstName: string
+  balance: number
+  redemptionsOnThisSale: StoreCreditRedemptionView[]
+}
+
 export default function SaleDetailContent({
   sale,
   items,
   payments,
   layawayId,
   loyalty,
+  storeCredit,
 }: {
   sale: SaleDetailView
   items: SaleDetailItem[]
   payments: SaleDetailPayment[]
   layawayId: string | null
   loyalty: SaleDetailLoyalty
+  storeCredit: SaleDetailStoreCredit
 }) {
   const { t } = useI18n()
   const [showPay, setShowPay] = useState(false)
@@ -313,6 +345,19 @@ export default function SaleDetailContent({
         />
       )}
 
+      {/* Store credit tender */}
+      {sale.customer_id &&
+      (storeCredit.enabled || storeCredit.redemptionsOnThisSale.length > 0) ? (
+        <PosStoreCreditBlock
+          saleId={sale.id}
+          customerFirstName={storeCredit.customerFirstName}
+          balance={storeCredit.balance}
+          balanceDue={sale.balance}
+          saleStatus={sale.status}
+          redemptionsOnThisSale={storeCredit.redemptionsOnThisSale}
+        />
+      ) : null}
+
       {/* Items */}
       <ItemsPanel items={items} />
 
@@ -433,7 +478,7 @@ function PaymentsPanel({
                 </div>
               </div>
               <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground">
-                {p.payment_method}
+                {paymentMethodLabel(p.payment_method, t)}
               </span>
               {p.payment_method === 'card' ? (
                 <CardPresentBadge status={p.card_present_status} />

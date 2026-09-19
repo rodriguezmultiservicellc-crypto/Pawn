@@ -17,6 +17,8 @@ import {
   Tag,
   UploadSimple,
   Scales,
+  Wallet,
+  HandCoins,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 
@@ -47,6 +49,8 @@ export type SettingsHubView = {
     graceDays: number
     buyHoldDays: number
   }
+  storeCredit: { enabled: boolean }
+  consignment: { enabled: boolean; defaultCommissionPct: number }
 }
 
 const OWNER_ROLES = new Set(['owner', 'chain_admin'])
@@ -231,6 +235,36 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
               : t.jurisdiction.settings.jurisdictionNone
           }
         />
+
+        {isOwner && (
+          <Card
+            href="/settings/store-credit"
+            icon={<Wallet size={20} weight="regular" />}
+            title={t.storeCredit.settings.title}
+            description={t.storeCredit.settings.subtitle}
+            status={view.storeCredit.enabled ? 'configured' : 'needs_setup'}
+            statusDetail={
+              view.storeCredit.enabled
+                ? t.storeCredit.settings.toggle
+                : t.storeCredit.disabled
+            }
+          />
+        )}
+
+        {isOwner && (
+          <Card
+            href="/settings/consignment"
+            icon={<HandCoins size={20} weight="regular" />}
+            title={t.consignment.settings.title}
+            description={t.consignment.settings.subtitle}
+            status={view.consignment.enabled ? 'configured' : 'needs_setup'}
+            statusDetail={
+              view.consignment.enabled
+                ? `${(view.consignment.defaultCommissionPct * 100).toFixed(0)}%`
+                : t.consignment.disabled
+            }
+          />
+        )}
 
         <SectionCard
           icon={<Wrench size={20} weight="regular" />}

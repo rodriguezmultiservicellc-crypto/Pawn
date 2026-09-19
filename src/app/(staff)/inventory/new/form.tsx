@@ -6,6 +6,7 @@ import { useI18n } from '@/lib/i18n/context'
 import {
   InventoryFormFields,
   emptyInventoryItem,
+  type ConsignorOption,
   type InventoryFieldValues,
 } from '@/components/inventory/InventoryFormFields'
 import type {
@@ -65,10 +66,22 @@ function echoToFieldValues(
         ? echo.tags.split(',').map((t) => t.trim()).filter(Boolean)
         : [],
     is_hidden_from_catalog: echo.is_hidden_from_catalog === 'on',
+    consignor_id: s('consignor_id'),
+    consignment_commission_pct: s('consignment_commission_pct'),
+    consignment_min_price: s('consignment_min_price'),
+    consignment_expires_on: s('consignment_expires_on'),
   }
 }
 
-export default function NewInventoryItemForm() {
+export default function NewInventoryItemForm({
+  consignmentEnabled = false,
+  consignors = [],
+  defaultCommissionPct = 0.2,
+}: {
+  consignmentEnabled?: boolean
+  consignors?: ConsignorOption[]
+  defaultCommissionPct?: number
+}) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<
     CreateInventoryItemState,
@@ -120,6 +133,9 @@ export default function NewInventoryItemForm() {
           key={formGen}
           initial={initial}
           fieldError={fieldError}
+          consignmentEnabled={consignmentEnabled}
+          consignors={consignors}
+          defaultCommissionPct={defaultCommissionPct}
         />
 
         <div className="flex items-center justify-end gap-3">

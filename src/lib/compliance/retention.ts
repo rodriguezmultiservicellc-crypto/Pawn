@@ -26,6 +26,10 @@ export type DeleteBlockReason =
   | 'buy_retention_window'
   | 'active_repair'
   | 'active_layaway'
+  // Money the shop still owes this person. Deleting the record would erase
+  // the debt (patches/0053-0054).
+  | 'unspent_store_credit'
+  | 'open_consignment'
 
 export type CanDeleteCustomerResult =
   | { canDelete: true }
@@ -63,8 +67,15 @@ export async function canDeleteCustomer(args: {
     blockedUntil = blockedUntil != null && blockedUntil > iso ? blockedUntil : iso
   }
 
-  const [openLoans, closedLoan, lastBuy, openRepairs, openLayaways] =
-    await Promise.all([
+  const [
+    openLoans,
+    closedLoan,
+    lastBuy,
+    openRepairs,
+    openLayaways,
+    creditRow,
+    consignorRows,
+  ] = await Promise.all([
       supabase
         .from('loans')
         .select('id')
@@ -106,6 +117,18 @@ export async function canDeleteCustomer(args: {
         .is('deleted_at', null)
         .eq('status', 'active')
         .limit(1),
+      supabase
+        .from('customers')
+        .select('store_credit_balance')
+        .eq('id', customerId)
+        .eq('tenant_id', tenantId)
+        .maybeSingle(),
+      supabase
+        .from('consignors')
+        .select('id')
+        .eq('customer_id', customerId)
+        .eq('tenant_id', tenantId)
+        .is('deleted_at', null),
     ])
 
   if ((openLoans.data ?? []).length > 0) reasons.push('active_loan')
@@ -131,6 +154,39 @@ export async function canDeleteCustomer(args: {
 
   if ((openRepairs.data ?? []).length > 0) reasons.push('active_repair')
   if ((openLayaways.data ?? []).length > 0) reasons.push('active_layaway')
+
+  // Unspent store credit is money the shop holds for this person. Deleting
+  // the record would make the liability disappear, so the balance has to be
+  // spent or written off first.
+  if (Number(creditRow.data?.store_credit_balance ?? 0) > 0) {
+    reasons.push('unspent_store_credit')
+  }
+
+  // Same for consignment: goods on the floor or an unsettled balance both
+  // mean an open account with this person.
+  const consignorIds = (consignorRows.data ?? []).map((c) => c.id)
+  if (consignorIds.length > 0) {
+    const [{ data: floorItems }, { data: openPayables }] = await Promise.all([
+      supabase
+        .from('inventory_items')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .in('consignor_id', consignorIds)
+        .in('status', ['available', 'held'])
+        .is('deleted_at', null)
+        .limit(1),
+      supabase
+        .from('consignment_payables')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .in('consignor_id', consignorIds)
+        .eq('status', 'open')
+        .limit(1),
+    ])
+    if ((floorItems ?? []).length > 0 || (openPayables ?? []).length > 0) {
+      reasons.push('open_consignment')
+    }
+  }
 
   if (reasons.length === 0) return { canDelete: true }
   return { canDelete: false, reasons, blockedUntil }

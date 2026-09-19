@@ -122,7 +122,22 @@ const tagsSchema = z
   )
   .default([])
 
-export const inventoryItemCreateSchema = z.object({
+const optionalUuid = z
+  .preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.string().uuid().nullable().optional(),
+  )
+  .transform((v) => (v == null ? null : v))
+
+/** Commission as a FRACTION (0.2 = shop keeps 20%), matching the column. */
+const optionalCommissionFraction = z
+  .preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.coerce.number().min(0).max(1).finite().nullable().optional(),
+  )
+  .transform((v) => (v == null ? null : v))
+
+const inventoryItemBaseSchema = z.object({
   // Optional — when blank, the BEFORE INSERT trigger assigns the next
   // per-tenant SKU. When provided, must be unique within the tenant.
   sku: optionalTrimmedString,
@@ -170,12 +185,73 @@ export const inventoryItemCreateSchema = z.object({
   is_hidden_from_catalog: z
     .preprocess((v) => v === 'on' || v === true || v === 'true', z.boolean())
     .default(false),
+
+  // ── Consignment (patches/0054). Only meaningful when source='consigned'.
+  consignor_id: optionalUuid,
+  consignment_commission_pct: optionalCommissionFraction,
+  consignment_min_price: optionalDecimal,
+  consignment_expires_on: optionalDate,
 })
 
-export const inventoryItemUpdateSchema = inventoryItemCreateSchema.extend({
-  id: z.string().uuid(),
-  sale_price: optionalDecimal,
-})
+/**
+ * Keep consignment fields coherent BEFORE they reach the database, so the
+ * clerk gets a translated field error instead of the
+ * inventory_items_consignment_coherent CHECK violation.
+ *
+ *   consigned source ⇒ a consignor and a commission are required
+ *   any other source ⇒ consignment fields are cleared, not silently kept
+ *
+ * The clear matters: switching an item from 'consigned' to 'bought' without
+ * it would leave the shop accruing a payable on goods it now owns.
+ */
+type ConsignmentShape = {
+  source: string
+  consignor_id: string | null
+  consignment_commission_pct: number | null
+  consignment_min_price: number | null
+  consignment_expires_on: string | null
+}
+
+function checkConsignment(val: ConsignmentShape, ctx: z.RefinementCtx): void {
+  if (val.source !== 'consigned') return
+  if (!val.consignor_id) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['consignor_id'],
+      message: 'consignor_required',
+    })
+  }
+  if (val.consignment_commission_pct == null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['consignment_commission_pct'],
+      message: 'commission_required',
+    })
+  }
+}
+
+function clearConsignment<T extends ConsignmentShape>(val: T): T {
+  if (val.source === 'consigned') return val
+  return {
+    ...val,
+    consignor_id: null,
+    consignment_commission_pct: null,
+    consignment_min_price: null,
+    consignment_expires_on: null,
+  }
+}
+
+export const inventoryItemCreateSchema = inventoryItemBaseSchema
+  .superRefine(checkConsignment)
+  .transform(clearConsignment)
+
+export const inventoryItemUpdateSchema = inventoryItemBaseSchema
+  .extend({
+    id: z.string().uuid(),
+    sale_price: optionalDecimal,
+  })
+  .superRefine(checkConsignment)
+  .transform(clearConsignment)
 
 export type InventoryItemCreateInput = z.infer<typeof inventoryItemCreateSchema>
 export type InventoryItemUpdateInput = z.infer<typeof inventoryItemUpdateSchema>

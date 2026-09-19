@@ -95,7 +95,12 @@ export type BuyItemInput = z.infer<typeof buyItemSchema>
 
 export const buyOutrightSchema = z.object({
   customer_id: z.string().uuid(),
-  payment_method: z.enum(['cash', 'card', 'check', 'other']).default('cash'),
+  // 'store_credit' pays the seller in credit instead of cash — the action
+  // writes a store_credit_events row for the payout and refuses the method
+  // when the tenant has store credit switched off.
+  payment_method: z
+    .enum(['cash', 'card', 'check', 'other', 'store_credit'])
+    .default('cash'),
   notes: optionalTrimmedString,
   items: z.array(buyItemSchema).min(1, 'at_least_one_item').max(20),
 })

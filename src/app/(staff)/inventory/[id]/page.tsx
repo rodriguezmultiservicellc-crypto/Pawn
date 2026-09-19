@@ -11,6 +11,11 @@ import {
 } from '@/lib/spot-prices/melt'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isEbayConnected } from '@/lib/ebay/auth'
+import {
+  defaultCommissionPct,
+  isConsignmentEnabled,
+  loadConsignorOptions,
+} from '@/lib/consignment/payables'
 import InventoryDetail, {
   type InventoryMeltSummary,
   type InventoryPhotoItem,
@@ -30,7 +35,7 @@ export default async function InventoryItemPage(props: { params: Params }) {
   const { data: item } = await ctx.supabase
     .from('inventory_items')
     .select(
-      'id, tenant_id, sku, sku_number, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, cost_basis, list_price, sale_price, sold_at, source, source_vendor, acquired_at, acquired_cost, hold_until, location, status, notes, staff_memo, tags, is_hidden_from_catalog, created_at, updated_at',
+      'id, tenant_id, sku, sku_number, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, cost_basis, list_price, sale_price, sold_at, source, source_vendor, acquired_at, acquired_cost, hold_until, location, status, notes, staff_memo, tags, is_hidden_from_catalog, consignor_id, consignment_commission_pct, consignment_min_price, consignment_expires_on, created_at, updated_at',
     )
     .eq('id', id)
     .eq('tenant_id', ctx.tenantId)
@@ -149,6 +154,19 @@ export default async function InventoryItemPage(props: { params: Params }) {
       }
     : null
 
+  // Consignment block on the edit form (patches/0054).
+  const consignAdmin = createAdminClient()
+  const consignmentEnabled = await isConsignmentEnabled(
+    consignAdmin,
+    item.tenant_id,
+  )
+  const [consignors, commissionPct] = consignmentEnabled
+    ? await Promise.all([
+        loadConsignorOptions(consignAdmin, item.tenant_id),
+        defaultCommissionPct(consignAdmin, item.tenant_id),
+      ])
+    : [[], 0.2]
+
   return (
     <InventoryDetail
       item={item}
@@ -157,6 +175,9 @@ export default async function InventoryItemPage(props: { params: Params }) {
       melt={melt}
       ebayConnected={ebayConnected}
       ebayListing={ebayListing}
+      consignmentEnabled={consignmentEnabled}
+      consignors={consignors}
+      defaultCommissionPct={commissionPct}
     />
   )
 }

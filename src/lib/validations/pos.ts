@@ -59,7 +59,27 @@ const boolFromForm = z.preprocess((v) => {
   return v
 }, z.boolean())
 
+/**
+ * Tenders that can be taken directly. 'store_credit' is deliberately absent:
+ * a store-credit payment has to debit the customer's balance in the same
+ * transaction as the sale_payments row, which only
+ * store_credit_redeem_on_sale() (patches/0053) does. Letting it through here
+ * would let the POS record a payment against credit nobody was charged for.
+ */
 export const paymentMethodSchema = z.enum(['cash', 'card', 'check', 'other'])
+
+/**
+ * How a refund goes back to the customer. Store credit IS allowed here —
+ * it creates credit rather than spending it, and the return action requires
+ * an identified customer before offering it.
+ */
+export const refundMethodSchema = z.enum([
+  'cash',
+  'card',
+  'check',
+  'other',
+  'store_credit',
+])
 
 // ── Register session ────────────────────────────────────────────────────────
 
@@ -142,7 +162,7 @@ export type ReturnLineInput = z.infer<typeof returnLineSchema>
 export const returnCreateSchema = z.object({
   sale_id: z.string().uuid(),
   reason: z.string().trim().min(10, 'too_short').max(2000),
-  refund_method: paymentMethodSchema.default('cash'),
+  refund_method: refundMethodSchema.default('cash'),
   items: z.array(returnLineSchema).min(1, 'at_least_one_item').max(200),
 })
 export type ReturnCreateInput = z.infer<typeof returnCreateSchema>

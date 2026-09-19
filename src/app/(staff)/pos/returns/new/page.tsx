@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
+import { createAdminClient } from '@/lib/supabase/admin'
 import NewReturnForm, { type NewReturnSale } from './form'
 import { toMoney } from '@/lib/pos/cart'
 import type { ReturnPickerSaleItem } from '@/components/pos/ReturnPicker'
@@ -27,7 +28,7 @@ export default async function NewReturnPage(props: {
   const { data: sale } = await ctx.supabase
     .from('sales')
     .select(
-      'id, tenant_id, sale_number, status, total, paid_total, returned_total',
+      'id, tenant_id, sale_number, status, total, paid_total, returned_total, customer_id',
     )
     .eq('id', saleId)
     .is('deleted_at', null)
@@ -52,6 +53,14 @@ export default async function NewReturnPage(props: {
     has_inventory: !!it.inventory_item_id,
   }))
 
+  // Refunding to store credit is only offered when the module is on AND
+  // the sale has a customer to credit (patches/0053).
+  const { data: scSettings } = await createAdminClient()
+    .from('settings')
+    .select('store_credit_enabled')
+    .eq('tenant_id', sale.tenant_id)
+    .maybeSingle()
+
   const view: NewReturnSale = {
     id: sale.id,
     sale_number: sale.sale_number ?? '',
@@ -61,5 +70,12 @@ export default async function NewReturnPage(props: {
     returned_total: toMoney(sale.returned_total ?? 0),
   }
 
-  return <NewReturnForm sale={view} items={items} />
+  return (
+    <NewReturnForm
+      sale={view}
+      items={items}
+      storeCreditEnabled={scSettings?.store_credit_enabled === true}
+      hasCustomer={!!sale.customer_id}
+    />
+  )
 }

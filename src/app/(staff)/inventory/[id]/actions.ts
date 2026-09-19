@@ -81,6 +81,10 @@ export async function updateInventoryItemAction(
     'staff_memo',
     'tags',
     'is_hidden_from_catalog',
+    'consignor_id',
+    'consignment_commission_pct',
+    'consignment_min_price',
+    'consignment_expires_on',
   ] as const
 
   const raw: Record<string, FormDataEntryValue | null> = { id }
@@ -151,6 +155,10 @@ export async function updateInventoryItemAction(
       staff_memo: v.staff_memo,
       tags: v.tags,
       is_hidden_from_catalog: v.is_hidden_from_catalog,
+      consignor_id: v.consignor_id,
+      consignment_commission_pct: v.consignment_commission_pct,
+      consignment_min_price: v.consignment_min_price,
+      consignment_expires_on: v.consignment_expires_on,
       updated_by: userId,
     })
     .eq('id', id)

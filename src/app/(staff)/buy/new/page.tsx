@@ -60,13 +60,18 @@ export default async function NewBuyPage() {
 
   const admin = createAdminClient()
 
-  const [spotMap, overridesRes, rules] = await Promise.all([
+  const [spotMap, overridesRes, rules, scSettings] = await Promise.all([
     getLatestSpotPrices(PURITY_COMBOS),
     admin
       .from('spot_price_overrides')
       .select('metal_type, purity, multiplier')
       .eq('tenant_id', ctx.tenantId),
     loadTenantRules(admin, ctx.tenantId),
+    admin
+      .from('settings')
+      .select('store_credit_enabled')
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle(),
   ])
 
   // Flatten the spot map into a plain Record<key, perGram> the client
@@ -101,6 +106,7 @@ export default async function NewBuyPage() {
       spotPriceMap={spotPriceMap}
       overrideMap={overrideMap}
       buyHoldDays={buyHoldDays}
+      storeCreditEnabled={scSettings?.data?.store_credit_enabled === true}
     />
   )
 }

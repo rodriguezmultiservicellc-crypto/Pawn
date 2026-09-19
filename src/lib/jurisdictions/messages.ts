@@ -11,13 +11,16 @@ const INTAKE_BLOCK_CODES = [
 /**
  * Translate a rule / intake-block error code (from a server action or a DB
  * trigger message) into the user's language: jurisdiction limits
- * (patches/0048), repair abandonment, and the intake gate (banned list +
- * OFAC, patches/0051). Anything else is returned unchanged so existing
- * raw-code displays keep working.
+ * (patches/0048), repair abandonment, the intake gate (banned list + OFAC,
+ * patches/0051) and store credit (patches/0053). Anything else is returned
+ * unchanged so existing raw-code displays keep working.
  */
 export function ruleErrorText(t: Dictionary, raw: string): string {
   const block = INTAKE_BLOCK_CODES.find((c) => raw === c)
   if (block) return t.ofac.intakeErrors[block]
+
+  const storeCredit = (t.storeCredit.errors as Record<string, string>)[raw]
+  if (storeCredit) return storeCredit
 
   const parsed = parseJurisdictionError(raw) ?? parseRepairAbandon(raw)
   if (!parsed) return raw

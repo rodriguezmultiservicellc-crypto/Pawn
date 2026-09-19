@@ -139,6 +139,32 @@ Never kill node processes by image name — always by PID.
     jurisdiction row after verifying the current statute
     (`verified_on` + `verified_source`).
 
+19. **Other people's money moves through the database, not app code.**
+    - **Store credit** (patches/0052-0053). `customers.store_credit_balance`
+      is materialized by a trigger on the append-only `store_credit_events`
+      ledger — NEVER write the balance column directly. Spending credit on
+      a sale goes through `store_credit_redeem_on_sale()`, which writes the
+      ledger debit, the `sale_payments` row and the `sales.paid_total` bump
+      in one transaction; `'store_credit'` is deliberately excluded from
+      `paymentMethodSchema` so the generic add-payment path can't record a
+      tender nobody was charged for. Reversals are compensating rows, never
+      edits. Nothing expires credit automatically — unclaimed balances are
+      a liability and several states treat them as unclaimed property.
+    - **Consignment** (patches/0054-0055). `consignment_payables` is written
+      ONLY by triggers (accrual on sale completion, reversal on void or
+      return) and by `consignment_pay_out()`. App code never inserts or
+      edits a payable — staff RLS on that table is SELECT-only. A consignor's
+      balance is `SUM(payable_amount) WHERE status='open'`; negative is a
+      valid state (a reversal landed after they were paid). Reversals clamp
+      to the unreversed remainder so a line can never be clawed back twice.
+      `inventory_items.consignment_min_price` is a contract — a DB trigger
+      refuses any sale line whose effective unit price falls below it,
+      line discounts included.
+    - Both modules gate on `settings` flags (`store_credit_enabled`,
+      `consignment_enabled`), off by default. Turning a module OFF never
+      hides or stops an existing obligation — balances stay visible and
+      accruals keep firing.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

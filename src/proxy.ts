@@ -37,6 +37,7 @@ const STAFF_PATH_PREFIXES = [
   '/dashboard',
   '/customers',
   '/inventory',
+  '/consignors',
   '/pawn',
   '/repair',
   '/pos',

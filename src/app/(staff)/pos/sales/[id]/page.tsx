@@ -6,6 +6,7 @@ import SaleDetailContent, {
   type SaleDetailPayment,
   type SaleDetailView,
   type SaleDetailLoyalty,
+  type SaleDetailStoreCredit,
 } from './content'
 import { computeBalance, toMoney } from '@/lib/pos/cart'
 import type {
@@ -185,6 +186,66 @@ export default async function SaleDetailPage(props: { params: Params }) {
     redemptionsOnThisSale,
   }
 
+  // Store credit (patches/0053). The redemptions on this sale are read even
+  // when the module is off so a closed sale still shows how it was paid.
+  const { data: scSettings } = await adminClient
+    .from('settings')
+    .select('store_credit_enabled')
+    .eq('tenant_id', sale.tenant_id)
+    .maybeSingle()
+
+  let storeCreditBalance = 0
+  let storeCreditFirstName = customerFirstName
+  let storeCreditRedemptions: SaleDetailStoreCredit['redemptionsOnThisSale'] = []
+  if (sale.customer_id) {
+    const [{ data: cust }, { data: scRows }] = await Promise.all([
+      adminClient
+        .from('customers')
+        .select('first_name, store_credit_balance')
+        .eq('id', sale.customer_id)
+        .maybeSingle(),
+      adminClient
+        .from('store_credit_events')
+        .select('id, amount_delta, created_at')
+        .eq('source_kind', 'sale')
+        .eq('source_id', sale.id)
+        .eq('kind', 'redeem_pos')
+        .order('created_at', { ascending: false }),
+    ])
+    storeCreditBalance = toMoney(cust?.store_credit_balance)
+    storeCreditFirstName = cust?.first_name ?? customerFirstName
+
+    // An entry that has already been undone is spent history, not a
+    // reversible tender — drop it so the sale doesn't offer "Undo" twice.
+    const redeemIds = (scRows ?? []).map((r) => r.id)
+    const undone = new Set<string>()
+    if (redeemIds.length > 0) {
+      const { data: undoRows } = await adminClient
+        .from('store_credit_events')
+        .select('source_id')
+        .eq('kind', 'redeem_undo')
+        .eq('source_kind', 'store_credit_event')
+        .in('source_id', redeemIds)
+      for (const u of undoRows ?? []) {
+        if (u.source_id) undone.add(u.source_id)
+      }
+    }
+    storeCreditRedemptions = (scRows ?? [])
+      .filter((r) => !undone.has(r.id))
+      .map((r) => ({
+        id: r.id,
+        amount: Math.abs(toMoney(r.amount_delta)),
+        created_at: r.created_at,
+      }))
+  }
+
+  const storeCredit: SaleDetailStoreCredit = {
+    enabled: scSettings?.store_credit_enabled === true,
+    customerFirstName: storeCreditFirstName,
+    balance: storeCreditBalance,
+    redemptionsOnThisSale: storeCreditRedemptions,
+  }
+
   return (
     <SaleDetailContent
       sale={view}
@@ -192,6 +253,7 @@ export default async function SaleDetailPage(props: { params: Params }) {
       payments={payments}
       layawayId={layawayId}
       loyalty={loyalty}
+      storeCredit={storeCredit}
     />
   )
 }

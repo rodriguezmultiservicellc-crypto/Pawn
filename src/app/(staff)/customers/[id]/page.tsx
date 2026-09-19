@@ -16,6 +16,7 @@ import type {
   SaleKind,
   SaleStatus,
   ServiceType,
+  StoreCreditEventKind,
 } from '@/types/database-aliases'
 
 const PORTAL_MANAGE_ROLES = new Set(['owner', 'chain_admin', 'manager'])
@@ -211,13 +212,31 @@ export default async function CustomerDetailPage(props: { params: Params }) {
     .order('created_at', { ascending: false })
     .limit(5)
 
-  // Customer balance + referral code (requires re-read since the original
+  // Customer balances + referral code (requires re-read since the original
   // SELECT didn't include them).
   const { data: loyaltyExtra } = await admin
     .from('customers')
-    .select('loyalty_points_balance, referral_code')
+    .select('loyalty_points_balance, referral_code, store_credit_balance')
     .eq('id', id)
     .maybeSingle()
+
+  // Store credit (patches/0053). The ledger is read regardless of the
+  // tenant gate: a shop that switched the module off still owes whatever
+  // it already issued, and hiding the balance would hide a liability.
+  const [{ data: storeCreditSettings }, { data: storeCreditEvents }] =
+    await Promise.all([
+      admin
+        .from('settings')
+        .select('store_credit_enabled')
+        .eq('tenant_id', customer.tenant_id)
+        .maybeSingle(),
+      admin
+        .from('store_credit_events')
+        .select('id, kind, amount_delta, reason, created_at')
+        .eq('customer_id', id)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ])
 
   // Lazy-generate referral code if missing AND loyalty is enabled.
   let referralCode = loyaltyExtra?.referral_code ?? null
@@ -306,6 +325,18 @@ export default async function CustomerDetailPage(props: { params: Params }) {
           created_at: e.created_at,
         })),
         redemptionRate,
+        canAdjust,
+      }}
+      storeCredit={{
+        enabled: storeCreditSettings?.store_credit_enabled === true,
+        balance: Number(loyaltyExtra?.store_credit_balance ?? 0),
+        recentEvents: (storeCreditEvents ?? []).map((e) => ({
+          id: e.id,
+          kind: e.kind as StoreCreditEventKind,
+          amount_delta: Number(e.amount_delta),
+          reason: e.reason,
+          created_at: e.created_at,
+        })),
         canAdjust,
       }}
       loans={(loanRows ?? []).map((l) => ({

@@ -90,6 +90,9 @@ export const en = {
     settings: 'Settings',
     communications: 'Communications',
     loyalty: 'Loyalty',
+    consignors: 'Consignors',
+    storeCredit: 'Store credit',
+    consignment: 'Consignment',
     billing: 'Billing',
     logOut: 'Log out',
     portal: 'My Account',
@@ -427,6 +430,9 @@ export const en = {
         buy_retention_window: 'a purchase still inside the legal record-retention period',
         active_repair: 'a repair in progress',
         active_layaway: 'an active layaway',
+        unspent_store_credit: 'unspent store credit the shop still owes them',
+        open_consignment:
+          'consigned goods on the floor or an unsettled consignment balance',
       },
     },
     deleteBlockedActiveLoans:
@@ -1881,6 +1887,7 @@ export const en = {
         card: 'Card',
         check: 'Check',
         other: 'Other',
+        storeCredit: 'Store credit',
       },
       notes: 'Notes',
       returnPolicy: {
@@ -3478,6 +3485,250 @@ export const en = {
       help: 'Runs at every pawn and buy. A possible match blocks the transaction until an owner or manager reviews it.',
       listStatus: 'List in use: published {date}, {n} individuals. Refreshed daily.',
       listMissing: 'The SDN list has not been loaded yet — it refreshes daily.',
+    },
+  },
+
+  storeCredit: {
+    title: 'Store credit',
+    balance: 'Store credit balance',
+    disabled: 'Store credit is turned off for this shop.',
+    enableHint: 'Turn it on in Settings → Store credit.',
+
+    kinds: {
+      issue_return: 'Refund to store credit',
+      issue_buy: 'Buy paid in store credit',
+      issue_manual: 'Credit issued',
+      redeem_pos: 'Spent at checkout',
+      redeem_undo: 'Redemption reversed',
+      clawback: 'Credit reversed',
+      adjust_manual: 'Adjustment',
+    },
+
+    panel: {
+      subtitle: 'Credit the shop owes this customer. Spendable at checkout.',
+      recentActivity: 'Recent activity',
+      noActivity: 'No store credit activity yet.',
+      adjustButton: 'Adjust credit',
+      viewAll: 'View all activity',
+    },
+
+    adjust: {
+      title: 'Adjust store credit',
+      help: 'Issuing or removing credit moves real money on a customer account. The reason is written to the audit log.',
+      direction: 'Direction',
+      add: 'Add credit',
+      remove: 'Remove credit',
+      amount: 'Amount',
+      reason: 'Reason',
+      reasonPlaceholder: 'e.g. goodwill for the delayed repair on RT-000123',
+      submit: 'Save adjustment',
+      submitting: 'Saving…',
+      currentBalance: 'Current balance: {amount}',
+    },
+
+    pos: {
+      title: 'Store credit',
+      available: '{name} has {amount} in store credit',
+      amount: 'Amount to apply',
+      useMax: 'Use {amount}',
+      apply: 'Apply store credit',
+      applying: 'Applying…',
+      appliedLine: 'Applied {amount} from store credit',
+      undo: 'Undo',
+      remainingAfter: 'Credit left after this: {amount}',
+    },
+
+    refundMethod: 'Store credit',
+    refundMethodHelp:
+      'Adds the refund to the customer account instead of handing back cash. Needs an identified customer.',
+    buyPayout: 'Store credit',
+    buyPayoutHelp:
+      'Pays the seller in credit at this shop instead of cash.',
+
+    settings: {
+      title: 'Store credit',
+      subtitle:
+        'Let customers hold a balance at the shop — from refunds, buy payouts or goodwill — and spend it at checkout.',
+      toggle: 'Enable store credit',
+      toggleHelp:
+        'When off, store credit disappears as a refund method, as a buy payout and as a tender. Balances already issued are never erased — the shop still owes them.',
+      expiryDays: 'Tell customers credit lasts (days)',
+      expiryDaysHelp:
+        'Shown on receipts only. Nothing expires automatically: unclaimed store credit is a liability, and several states treat it as unclaimed property. Leave blank for no stated limit.',
+      save: 'Save',
+      saving: 'Saving…',
+      saved: 'Saved.',
+    },
+
+    errors: {
+      store_credit_disabled: 'Store credit is turned off for this shop.',
+      store_credit_invalid_amount: 'Enter an amount greater than zero.',
+      store_credit_sale_not_found: 'That sale could not be found.',
+      store_credit_sale_not_open:
+        'This sale is already closed. Void it to reverse a payment.',
+      store_credit_no_customer:
+        'Add a customer to the sale before applying store credit.',
+      store_credit_customer_not_found: 'That customer could not be found.',
+      store_credit_exceeds_balance_due:
+        'That is more than this sale still owes.',
+      store_credit_insufficient_balance:
+        'That is more store credit than this customer has.',
+      store_credit_event_not_found: 'That credit entry could not be found.',
+      store_credit_issue_failed:
+        'The transaction was saved but the store credit was NOT issued. Issue it by hand from the customer page.',
+      store_credit_failed: 'Store credit could not be applied. Try again.',
+    },
+  },
+
+  consignment: {
+    title: 'Consignors',
+    subtitle:
+      'People who leave goods with the shop to sell. The shop keeps a commission; the rest is theirs.',
+    disabled: 'Consignment is turned off for this shop.',
+    enableHint: 'Turn it on in Settings → Consignment.',
+
+    list: {
+      newConsignor: 'New consignor',
+      empty: 'No consignors yet.',
+      emptyHint: 'Add one to start taking goods on consignment.',
+      colNumber: 'Number',
+      colName: 'Consignor',
+      colCommission: 'Commission',
+      colItems: 'On floor',
+      colBalance: 'Owed',
+      colStatus: 'Status',
+      statusActive: 'Active',
+      statusInactive: 'Inactive',
+      owesShop: 'Owes shop',
+    },
+
+    form: {
+      newTitle: 'New consignor',
+      editTitle: 'Consignor terms',
+      customer: 'Customer',
+      customerHelp:
+        'Pick the customer record. Consignors are never a second copy of someone — ID, phone and language stay on the customer.',
+      businessName: 'Business name (optional)',
+      commission: 'Shop commission (%)',
+      commissionHelp:
+        'What the shop keeps when an item sells. Changing it later never re-prices goods already on the floor — each item keeps the rate it came in under.',
+      payoutMethod: 'Default payout method',
+      status: 'Status',
+      notes: 'Notes',
+      create: 'Create consignor',
+      creating: 'Creating…',
+      save: 'Save terms',
+      saving: 'Saving…',
+      saved: 'Saved.',
+    },
+
+    detail: {
+      backToList: 'Back to consignors',
+      terms: 'Terms',
+      commissionLine: 'Shop keeps {pct} · consignor gets {rest}',
+      balanceOwed: 'Owed to consignor',
+      balanceOwedToShop: 'Consignor owes the shop',
+      lifetimeGross: 'Sold (lifetime)',
+      lifetimeCommission: 'Commission earned',
+      itemsTitle: 'Items on the floor',
+      itemsEmpty: 'Nothing on the floor right now.',
+      colSku: 'SKU',
+      colDescription: 'Item',
+      colListPrice: 'List',
+      colFloor: 'Floor',
+      colExpires: 'Agreement ends',
+      colItemStatus: 'Status',
+      expiresIn: 'in {days} days',
+      expiredAgo: 'ended {days} days ago',
+      expiresToday: 'ends today',
+      noExpiry: 'no end date',
+      returnItem: 'Return to consignor',
+      returnItemConfirm:
+        'Hand this item back to the consignor? It leaves the floor unsold and nothing is owed either way.',
+      returning: 'Returning…',
+      ledgerTitle: 'Payable ledger',
+      ledgerEmpty: 'Nothing has sold yet.',
+      colDate: 'Date',
+      colEvent: 'Event',
+      colGross: 'Sold for',
+      colCommissionAmount: 'Commission',
+      colPayable: 'Consignor',
+      colLedgerStatus: 'Status',
+      eventAccrual: 'Sold',
+      eventReversalReturn: 'Returned',
+      eventReversalVoid: 'Sale voided',
+      statusOpen: 'Unpaid',
+      statusPaid: 'Paid',
+      payoutsTitle: 'Payouts',
+      payoutsEmpty: 'No payouts yet.',
+      colPayoutNumber: 'Payout',
+      colAmount: 'Amount',
+      colMethod: 'Method',
+      colReference: 'Reference',
+    },
+
+    payout: {
+      button: 'Pay out {amount}',
+      nothingToPay: 'Nothing to pay out',
+      owesShopHint:
+        'A return or void landed after the last payout, so the balance is negative. The next sale nets it off.',
+      title: 'Pay out consignor',
+      help: 'Settles everything unpaid in one payment. The ledger rows are stamped paid and cannot be paid twice.',
+      amountLine: 'Paying {amount} across {count} entries',
+      method: 'Payout method',
+      reference: 'Reference (optional)',
+      referencePlaceholder: 'e.g. check #1042',
+      submit: 'Record payout',
+      submitting: 'Recording…',
+      done: 'Payout {number} recorded for {amount}.',
+    },
+
+    item: {
+      sectionLabel: 'Consignment',
+      consignor: 'Consignor',
+      consignorHelp: 'Required when the source is Consigned.',
+      commission: 'Shop commission (%)',
+      minPrice: 'Floor price',
+      minPriceHelp:
+        'The lowest this item may sell for. The register refuses a line below it, discounts included.',
+      expiresOn: 'Agreement ends',
+      expiresOnHelp:
+        'When the goods should go back if unsold. Nothing happens automatically.',
+      badge: 'On consignment',
+      badgeOwed: 'Consignor gets {amount} when sold',
+    },
+
+    settings: {
+      title: 'Consignment',
+      subtitle:
+        'Sell goods the shop does not own, track what each consignor is owed, and pay them out.',
+      toggle: 'Enable consignment',
+      toggleHelp:
+        'When off, the Consignors page and the consignment fields on inventory hide. Items already on consignment keep accruing — switching the module off must not stop paying people.',
+      defaultCommission: 'Default shop commission (%)',
+      defaultCommissionHelp:
+        'Seeds the consignor form. Each item still freezes its own rate at intake.',
+      save: 'Save',
+      saving: 'Saving…',
+      saved: 'Saved.',
+    },
+
+    errors: {
+      consignment_disabled: 'Consignment is turned off for this shop.',
+      consignment_consignor_not_found: 'That consignor could not be found.',
+      consignment_nothing_payable: 'There is nothing to pay out right now.',
+      consignment_below_floor_price:
+        'That price is below the floor agreed with the consignor.',
+      consignor_already_exists:
+        'This customer is already set up as a consignor.',
+      customer_not_found: 'That customer could not be found.',
+      consignor_required: 'Pick a consignor for a consigned item.',
+      commission_required: 'Set the shop commission for a consigned item.',
+      item_not_found: 'That item could not be found.',
+      not_consigned: 'That item is not on consignment.',
+      item_not_returnable:
+        'Only an item still on the floor can go back to the consignor.',
+      consignment_failed: 'That could not be saved. Try again.',
     },
   },
 }

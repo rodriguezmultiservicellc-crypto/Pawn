@@ -10,6 +10,10 @@ import { r4, toMoney } from '@/lib/pos/cart'
 import { refundCardPayment } from '@/lib/stripe/terminal'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recordEarnClawback } from '@/lib/loyalty/events'
+import {
+  isStoreCreditEnabled,
+  issueForReturn as issueStoreCreditForReturn,
+} from '@/lib/store-credit/events'
 import type { PaymentMethod, SaleStatus } from '@/types/database-aliases'
 
 export type ReturnActionResult = { error?: string; ok?: boolean; redirectTo?: string }
@@ -71,6 +75,17 @@ export async function createReturnAction(
     STAFF_ROLES,
   )
   const tenantId = sale.tenant_id
+
+  // Refunding to store credit needs someone to credit, and the module has
+  // to be on. Checked BEFORE the return row is written — a return that
+  // records a store-credit refund but issues none is money the customer
+  // never gets back.
+  if (v.refund_method === 'store_credit') {
+    if (!sale.customer_id) return { error: 'store_credit_no_customer' }
+    if (!(await isStoreCreditEnabled(createAdminClient(), tenantId))) {
+      return { error: 'store_credit_disabled' }
+    }
+  }
 
   // Pull the live sale_items to verify quantities + read unit prices.
   const itemIds = v.items.map((i) => i.sale_item_id)
@@ -189,6 +204,30 @@ export async function createReturnAction(
         console.error('[pos.return] card refund failed', e)
       }
     }
+  }
+
+  // Refund issued as store credit: write the ledger row. Idempotent per
+  // return id, so a double-submitted form cannot credit twice.
+  if (v.refund_method === 'store_credit' && sale.customer_id) {
+    const issued = await issueStoreCreditForReturn({
+      admin: createAdminClient(),
+      tenantId,
+      customerId: sale.customer_id,
+      returnId: ret.id,
+      amount: returnTotal,
+      performedBy: userId,
+    })
+    if (issued.ok === false) {
+      // The return and the restock already landed. Say so plainly rather
+      // than pretending the refund went out — staff need to issue the
+      // credit by hand from the customer's panel.
+      console.error('[pos.return] store credit issue failed', issued.error)
+      return {
+        error: 'store_credit_issue_failed',
+        redirectTo: `/pos/sales/${sale.id}`,
+      }
+    }
+    revalidatePath(`/customers/${sale.customer_id}`)
   }
 
   await logAudit({

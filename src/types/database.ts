@@ -588,6 +588,239 @@ export type Database = {
           },
         ]
       }
+      consignment_payables: {
+        Row: {
+          commission_amount: number
+          commission_pct: number
+          consignor_id: string
+          created_at: string
+          gross_amount: number
+          id: string
+          inventory_item_id: string
+          kind: string
+          payable_amount: number
+          payout_id: string | null
+          reason: string | null
+          return_item_id: string | null
+          sale_id: string
+          sale_item_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          commission_amount: number
+          commission_pct: number
+          consignor_id: string
+          created_at?: string
+          gross_amount: number
+          id?: string
+          inventory_item_id: string
+          kind: string
+          payable_amount: number
+          payout_id?: string | null
+          reason?: string | null
+          return_item_id?: string | null
+          sale_id: string
+          sale_item_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_pct?: number
+          consignor_id?: string
+          created_at?: string
+          gross_amount?: number
+          id?: string
+          inventory_item_id?: string
+          kind?: string
+          payable_amount?: number
+          payout_id?: string | null
+          reason?: string | null
+          return_item_id?: string | null
+          sale_id?: string
+          sale_item_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consignment_payables_consignor_id_fkey"
+            columns: ["consignor_id"]
+            isOneToOne: false
+            referencedRelation: "consignors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_payables_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_payables_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "consignment_payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_payables_return_item_id_fkey"
+            columns: ["return_item_id"]
+            isOneToOne: false
+            referencedRelation: "return_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_payables_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_payables_sale_item_id_fkey"
+            columns: ["sale_item_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_payables_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consignment_payouts: {
+        Row: {
+          amount: number
+          consignor_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          paid_at: string
+          paid_by: string | null
+          payout_method: Database["public"]["Enums"]["payment_method"]
+          payout_number: string | null
+          reference: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          consignor_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          paid_by?: string | null
+          payout_method?: Database["public"]["Enums"]["payment_method"]
+          payout_number?: string | null
+          reference?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          consignor_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          paid_by?: string | null
+          payout_method?: Database["public"]["Enums"]["payment_method"]
+          payout_number?: string | null
+          reference?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consignment_payouts_consignor_id_fkey"
+            columns: ["consignor_id"]
+            isOneToOne: false
+            referencedRelation: "consignors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_payouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consignors: {
+        Row: {
+          business_name: string | null
+          consignor_number: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          default_commission_pct: number
+          default_payout_method: Database["public"]["Enums"]["payment_method"]
+          deleted_at: string | null
+          id: string
+          notes: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          consignor_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          default_commission_pct?: number
+          default_payout_method?: Database["public"]["Enums"]["payment_method"]
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          consignor_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          default_commission_pct?: number
+          default_payout_method?: Database["public"]["Enums"]["payment_method"]
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consignors_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignors_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_documents: {
         Row: {
           byte_size: number | null
@@ -759,6 +992,7 @@ export type Database = {
           referred_by_customer_id: string | null
           sex: string | null
           state: string | null
+          store_credit_balance: number
           tags: string[] | null
           tenant_id: string
           updated_at: string
@@ -813,6 +1047,7 @@ export type Database = {
           referred_by_customer_id?: string | null
           sex?: string | null
           state?: string | null
+          store_credit_balance?: number
           tags?: string[] | null
           tenant_id: string
           updated_at?: string
@@ -867,6 +1102,7 @@ export type Database = {
           referred_by_customer_id?: string | null
           sex?: string | null
           state?: string | null
+          store_credit_balance?: number
           tags?: string[] | null
           tenant_id?: string
           updated_at?: string
@@ -1364,6 +1600,10 @@ export type Database = {
           acquired_cost: number | null
           brand: string | null
           category: Database["public"]["Enums"]["inventory_category"]
+          consignment_commission_pct: number | null
+          consignment_expires_on: string | null
+          consignment_min_price: number | null
+          consignor_id: string | null
           cost_basis: number
           created_at: string
           created_by: string | null
@@ -1402,6 +1642,10 @@ export type Database = {
           acquired_cost?: number | null
           brand?: string | null
           category?: Database["public"]["Enums"]["inventory_category"]
+          consignment_commission_pct?: number | null
+          consignment_expires_on?: string | null
+          consignment_min_price?: number | null
+          consignor_id?: string | null
           cost_basis?: number
           created_at?: string
           created_by?: string | null
@@ -1440,6 +1684,10 @@ export type Database = {
           acquired_cost?: number | null
           brand?: string | null
           category?: Database["public"]["Enums"]["inventory_category"]
+          consignment_commission_pct?: number | null
+          consignment_expires_on?: string | null
+          consignment_min_price?: number | null
+          consignor_id?: string | null
           cost_basis?: number
           created_at?: string
           created_by?: string | null
@@ -1474,6 +1722,13 @@ export type Database = {
           weight_grams?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_items_consignor_id_fkey"
+            columns: ["consignor_id"]
+            isOneToOne: false
+            referencedRelation: "consignors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_items_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -3721,6 +3976,8 @@ export type Database = {
         Row: {
           abandoned_repair_days: number
           buy_hold_period_days: number
+          consignment_default_commission_pct: number
+          consignment_enabled: boolean
           created_at: string
           default_currency: string
           default_loan_interest_rate: number
@@ -3741,6 +3998,8 @@ export type Database = {
           pawn_ticket_backpage: string | null
           resend_from_email: string | null
           resend_from_name: string | null
+          store_credit_enabled: boolean
+          store_credit_expiry_days: number | null
           tenant_id: string
           twilio_account_sid: string | null
           twilio_messaging_service_sid: string | null
@@ -3753,6 +4012,8 @@ export type Database = {
         Insert: {
           abandoned_repair_days?: number
           buy_hold_period_days?: number
+          consignment_default_commission_pct?: number
+          consignment_enabled?: boolean
           created_at?: string
           default_currency?: string
           default_loan_interest_rate?: number
@@ -3773,6 +4034,8 @@ export type Database = {
           pawn_ticket_backpage?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
+          store_credit_enabled?: boolean
+          store_credit_expiry_days?: number | null
           tenant_id: string
           twilio_account_sid?: string | null
           twilio_messaging_service_sid?: string | null
@@ -3785,6 +4048,8 @@ export type Database = {
         Update: {
           abandoned_repair_days?: number
           buy_hold_period_days?: number
+          consignment_default_commission_pct?: number
+          consignment_enabled?: boolean
           created_at?: string
           default_currency?: string
           default_loan_interest_rate?: number
@@ -3805,6 +4070,8 @@ export type Database = {
           pawn_ticket_backpage?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
+          store_credit_enabled?: boolean
+          store_credit_expiry_days?: number | null
           tenant_id?: string
           twilio_account_sid?: string | null
           twilio_messaging_service_sid?: string | null
@@ -3903,6 +4170,63 @@ export type Database = {
           source_request_id?: string | null
         }
         Relationships: []
+      }
+      store_credit_events: {
+        Row: {
+          amount_delta: number
+          created_at: string
+          customer_id: string
+          id: string
+          kind: string
+          performed_by: string | null
+          reason: string | null
+          sale_payment_id: string | null
+          source_id: string | null
+          source_kind: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount_delta: number
+          created_at?: string
+          customer_id: string
+          id?: string
+          kind: string
+          performed_by?: string | null
+          reason?: string | null
+          sale_payment_id?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount_delta?: number
+          created_at?: string
+          customer_id?: string
+          id?: string
+          kind?: string
+          performed_by?: string | null
+          reason?: string | null
+          sale_payment_id?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_credit_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_credit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stripe_payment_links: {
         Row: {
@@ -4635,6 +4959,21 @@ export type Database = {
         Args: { p_license_key: string; p_user_id: string }
         Returns: string
       }
+      consignment_pay_out: {
+        Args: {
+          p_consignor_id: string
+          p_payout_method?: Database["public"]["Enums"]["payment_method"]
+          p_performed_by?: string
+          p_reference?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          o_amount: number
+          o_payout_id: string
+          o_payout_number: string
+          o_row_count: number
+        }[]
+      }
       consume_google_reviews_quota: {
         Args: { p_cap: number; p_place_id: string; p_tenant_id: string }
         Returns: boolean
@@ -4736,6 +5075,41 @@ export type Database = {
       set_tenant_secret: {
         Args: { p_kind: string; p_tenant_id: string; p_value: string }
         Returns: string
+      }
+      store_credit_redeem_on_sale: {
+        Args: {
+          p_amount: number
+          p_performed_by?: string
+          p_sale_id: string
+          p_tenant_id: string
+        }
+        Returns: {
+          o_event_id: string
+          o_new_balance: number
+          o_sale_payment_id: string
+        }[]
+      }
+      store_credit_restore_for_sale: {
+        Args: {
+          p_performed_by?: string
+          p_sale_id: string
+          p_tenant_id: string
+        }
+        Returns: {
+          o_restored_amount: number
+          o_restored_count: number
+        }[]
+      }
+      store_credit_undo_sale_redemption: {
+        Args: {
+          p_event_id: string
+          p_performed_by?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          o_event_id: string
+          o_new_balance: number
+        }[]
       }
       tenant_buy_hold_days: { Args: { p_tenant_id: string }; Returns: number }
       tenant_grace_days: { Args: { p_tenant_id: string }; Returns: number }
@@ -4903,7 +5277,7 @@ export type Database = {
         | "mixed"
         | "none"
         | "other"
-      payment_method: "cash" | "card" | "check" | "other"
+      payment_method: "cash" | "card" | "check" | "other" | "store_credit"
       police_report_format: "fl_leadsonline"
       register_session_status: "open" | "closed" | "reconciled"
       repair_event_type:
@@ -5284,7 +5658,7 @@ export const Constants = {
         "none",
         "other",
       ],
-      payment_method: ["cash", "card", "check", "other"],
+      payment_method: ["cash", "card", "check", "other", "store_credit"],
       police_report_format: ["fl_leadsonline"],
       register_session_status: ["open", "closed", "reconciled"],
       repair_event_type: [

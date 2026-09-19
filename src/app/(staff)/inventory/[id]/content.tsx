@@ -16,6 +16,7 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import {
   InventoryFormFields,
+  type ConsignorOption,
   type InventoryFieldValues,
 } from '@/components/inventory/InventoryFormFields'
 import {
@@ -117,6 +118,10 @@ type ItemRecord = {
   staff_memo: string | null
   tags: string[] | null
   is_hidden_from_catalog: boolean | null
+  consignor_id: string | null
+  consignment_commission_pct: number | string | null
+  consignment_min_price: number | string | null
+  consignment_expires_on: string | null
   created_at: string
   updated_at: string
 }
@@ -181,6 +186,9 @@ export default function InventoryDetail({
   melt,
   ebayConnected,
   ebayListing,
+  consignmentEnabled = false,
+  consignors = [],
+  defaultCommissionPct = 0.2,
 }: {
   item: ItemRecord
   photos: InventoryPhotoItem[]
@@ -188,6 +196,9 @@ export default function InventoryDetail({
   melt: InventoryMeltSummary | null
   ebayConnected: boolean
   ebayListing: EbayPanelListing | null
+  consignmentEnabled?: boolean
+  consignors?: ConsignorOption[]
+  defaultCommissionPct?: number
 }) {
   const { t } = useI18n()
 
@@ -223,6 +234,10 @@ export default function InventoryDetail({
     staff_memo: item.staff_memo,
     tags: item.tags ?? [],
     is_hidden_from_catalog: item.is_hidden_from_catalog ?? false,
+    consignor_id: item.consignor_id,
+    consignment_commission_pct: asFieldStr(item.consignment_commission_pct),
+    consignment_min_price: asFieldStr(item.consignment_min_price),
+    consignment_expires_on: item.consignment_expires_on,
   }
 
   // Form-reset workaround: React 19 auto-resets <form action={fn}> after
@@ -288,6 +303,9 @@ export default function InventoryDetail({
           initial={initial}
           fieldError={fieldError}
           isEdit
+          consignmentEnabled={consignmentEnabled}
+          consignors={consignors}
+          defaultCommissionPct={defaultCommissionPct}
         />
 
         <div className="flex items-center justify-end gap-3">

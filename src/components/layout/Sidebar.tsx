@@ -27,6 +27,7 @@ import {
   HandCoins,
   Receipt,
   Trophy,
+  Wallet,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -86,10 +87,13 @@ export function Sidebar({
   modules,
   tenantRole,
   tenant,
+  consignmentEnabled = false,
 }: {
   modules: Modules
   tenantRole: TenantRole | null
   tenant?: Tenant
+  /** settings.consignment_enabled — hides the Consignors entry when off. */
+  consignmentEnabled?: boolean
 }) {
   const { t } = useI18n()
   const pathname = usePathname()
@@ -161,6 +165,15 @@ export function Sidebar({
       label: t.nav.ebayListings,
       icon: <Storefront size={18} weight="regular" />,
       visible: modules.has_retail,
+    },
+    // Consignors sit under Inventory: consigned goods ARE inventory, the
+    // shop just doesn't own them.
+    {
+      kind: 'item',
+      href: '/consignors',
+      label: t.nav.consignors,
+      icon: <HandCoins size={18} weight="regular" />,
+      visible: consignmentEnabled,
     },
     {
       kind: 'item',
@@ -261,6 +274,13 @@ export function Sidebar({
       href: '/settings/loyalty',
       label: t.nav.loyalty,
       icon: <Trophy size={18} weight="regular" />,
+      visible: canSeeLoyalty,
+    },
+    {
+      kind: 'item',
+      href: '/settings/store-credit',
+      label: t.nav.storeCredit,
+      icon: <Wallet size={18} weight="regular" />,
       visible: canSeeLoyalty,
     },
     {

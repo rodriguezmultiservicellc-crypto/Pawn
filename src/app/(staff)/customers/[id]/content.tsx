@@ -47,6 +47,9 @@ import {
   LayawayStatusBadge,
   SaleStatusBadge,
 } from '@/components/pos/Badges'
+import StoreCreditPanel, {
+  type StoreCreditEventView,
+} from '@/components/store-credit/StoreCreditPanel'
 import LoyaltyPanel, {
   type LoyaltyEventView,
 } from '@/components/loyalty/LoyaltyPanel'
@@ -226,6 +229,7 @@ export default function CustomerDetail({
   layaways = [],
   portal,
   loyalty,
+  storeCredit,
   ofac,
 }: {
   customer: CustomerRecord
@@ -245,6 +249,12 @@ export default function CustomerDetail({
     referralCode: string | null
     recentEvents: LoyaltyEventView[]
     redemptionRate: number
+    canAdjust: boolean
+  }
+  storeCredit: {
+    enabled: boolean
+    balance: number
+    recentEvents: StoreCreditEventView[]
     canAdjust: boolean
   }
   ofac: { enabled: boolean; latest: OfacScreeningView | null; canReview: boolean }
@@ -422,6 +432,15 @@ export default function CustomerDetail({
         recentEvents={loyalty.recentEvents}
         redemptionRate={loyalty.redemptionRate}
         canAdjust={loyalty.canAdjust}
+      />
+
+      <StoreCreditPanel
+        enabled={storeCredit.enabled}
+        customerId={customer.id}
+        customerName={`${customer.first_name} ${customer.last_name}`}
+        balance={storeCredit.balance}
+        recentEvents={storeCredit.recentEvents}
+        canAdjust={storeCredit.canAdjust}
       />
 
       <PortalInvitePanel

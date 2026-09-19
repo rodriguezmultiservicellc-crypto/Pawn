@@ -85,6 +85,9 @@ export const es: Dictionary = {
     settings: 'Ajustes',
     communications: 'Comunicaciones',
     loyalty: 'Lealtad',
+    consignors: 'Consignatarios',
+    storeCredit: 'Crédito de tienda',
+    consignment: 'Consignación',
     billing: 'Facturación',
     logOut: 'Cerrar sesión',
     portal: 'Mi cuenta',
@@ -423,6 +426,10 @@ export const es: Dictionary = {
         buy_retention_window: 'una compra aún dentro del período legal de conservación de registros',
         active_repair: 'una reparación en curso',
         active_layaway: 'un apartado activo',
+        unspent_store_credit:
+          'crédito de tienda sin usar que el negocio aún le debe',
+        open_consignment:
+          'mercancía en consignación en piso o un saldo de consignación pendiente',
       },
     },
     deleteBlockedActiveLoans:
@@ -1878,6 +1885,7 @@ export const es: Dictionary = {
         card: 'Tarjeta',
         check: 'Cheque',
         other: 'Otro',
+        storeCredit: 'Crédito de tienda',
       },
       notes: 'Notas',
       returnPolicy: {
@@ -3478,6 +3486,255 @@ export const es: Dictionary = {
       help: 'Se ejecuta en cada empeño y compra. Una posible coincidencia bloquea la transacción hasta que un propietario o gerente la revise.',
       listStatus: 'Lista en uso: publicada el {date}, {n} personas. Se actualiza a diario.',
       listMissing: 'La lista SDN aún no se ha cargado — se actualiza a diario.',
+    },
+  },
+
+  storeCredit: {
+    title: 'Crédito de tienda',
+    balance: 'Saldo de crédito',
+    disabled: 'El crédito de tienda está desactivado en esta tienda.',
+    enableHint: 'Actívalo en Ajustes → Crédito de tienda.',
+
+    kinds: {
+      issue_return: 'Devolución a crédito',
+      issue_buy: 'Compra pagada en crédito',
+      issue_manual: 'Crédito otorgado',
+      redeem_pos: 'Usado en caja',
+      redeem_undo: 'Uso revertido',
+      clawback: 'Crédito revertido',
+      adjust_manual: 'Ajuste',
+    },
+
+    panel: {
+      subtitle:
+        'Crédito que la tienda le debe a este cliente. Se puede usar en caja.',
+      recentActivity: 'Actividad reciente',
+      noActivity: 'Aún no hay movimientos de crédito.',
+      adjustButton: 'Ajustar crédito',
+      viewAll: 'Ver toda la actividad',
+    },
+
+    adjust: {
+      title: 'Ajustar crédito de tienda',
+      help: 'Otorgar o quitar crédito mueve dinero real en la cuenta del cliente. El motivo queda en la bitácora de auditoría.',
+      direction: 'Operación',
+      add: 'Agregar crédito',
+      remove: 'Quitar crédito',
+      amount: 'Monto',
+      reason: 'Motivo',
+      reasonPlaceholder:
+        'ej. cortesía por el retraso en la reparación RT-000123',
+      submit: 'Guardar ajuste',
+      submitting: 'Guardando…',
+      currentBalance: 'Saldo actual: {amount}',
+    },
+
+    pos: {
+      title: 'Crédito de tienda',
+      available: '{name} tiene {amount} en crédito de tienda',
+      amount: 'Monto a aplicar',
+      useMax: 'Usar {amount}',
+      apply: 'Aplicar crédito',
+      applying: 'Aplicando…',
+      appliedLine: 'Se aplicaron {amount} de crédito de tienda',
+      undo: 'Deshacer',
+      remainingAfter: 'Crédito restante: {amount}',
+    },
+
+    refundMethod: 'Crédito de tienda',
+    refundMethodHelp:
+      'Agrega el reembolso a la cuenta del cliente en lugar de devolver efectivo. Requiere un cliente identificado.',
+    buyPayout: 'Crédito de tienda',
+    buyPayoutHelp:
+      'Le paga al vendedor con crédito en esta tienda en lugar de efectivo.',
+
+    settings: {
+      title: 'Crédito de tienda',
+      subtitle:
+        'Permite que los clientes tengan saldo en la tienda — por devoluciones, compras o cortesías — y lo usen en caja.',
+      toggle: 'Activar crédito de tienda',
+      toggleHelp:
+        'Al desactivarlo, el crédito desaparece como método de reembolso, como pago de compra y como forma de pago. Los saldos ya otorgados nunca se borran — la tienda los sigue debiendo.',
+      expiryDays: 'Vigencia informada al cliente (días)',
+      expiryDaysHelp:
+        'Solo se muestra en los recibos. Nada vence automáticamente: el crédito no usado es un pasivo y varios estados lo tratan como propiedad no reclamada. Déjalo vacío si no declaras límite.',
+      save: 'Guardar',
+      saving: 'Guardando…',
+      saved: 'Guardado.',
+    },
+
+    errors: {
+      store_credit_disabled:
+        'El crédito de tienda está desactivado en esta tienda.',
+      store_credit_invalid_amount: 'Ingresa un monto mayor que cero.',
+      store_credit_sale_not_found: 'No se encontró esa venta.',
+      store_credit_sale_not_open:
+        'Esta venta ya está cerrada. Anúlala para revertir un pago.',
+      store_credit_no_customer:
+        'Agrega un cliente a la venta antes de aplicar crédito de tienda.',
+      store_credit_customer_not_found: 'No se encontró ese cliente.',
+      store_credit_exceeds_balance_due:
+        'Eso es más de lo que esta venta aún debe.',
+      store_credit_insufficient_balance:
+        'Eso es más crédito del que tiene este cliente.',
+      store_credit_event_not_found: 'No se encontró ese movimiento de crédito.',
+      store_credit_issue_failed:
+        'La transacción se guardó pero el crédito NO se otorgó. Otórgalo a mano desde la página del cliente.',
+      store_credit_failed:
+        'No se pudo aplicar el crédito de tienda. Inténtalo de nuevo.',
+    },
+  },
+
+  consignment: {
+    title: 'Consignatarios',
+    subtitle:
+      'Personas que dejan mercancía en la tienda para vender. La tienda se queda con una comisión; el resto es de ellos.',
+    disabled: 'La consignación está desactivada en esta tienda.',
+    enableHint: 'Actívala en Ajustes → Consignación.',
+
+    list: {
+      newConsignor: 'Nuevo consignatario',
+      empty: 'Aún no hay consignatarios.',
+      emptyHint: 'Agrega uno para empezar a recibir mercancía en consignación.',
+      colNumber: 'Número',
+      colName: 'Consignatario',
+      colCommission: 'Comisión',
+      colItems: 'En piso',
+      colBalance: 'Se le debe',
+      colStatus: 'Estado',
+      statusActive: 'Activo',
+      statusInactive: 'Inactivo',
+      owesShop: 'Debe a la tienda',
+    },
+
+    form: {
+      newTitle: 'Nuevo consignatario',
+      editTitle: 'Términos del consignatario',
+      customer: 'Cliente',
+      customerHelp:
+        'Elige el registro del cliente. Un consignatario nunca es una segunda copia de una persona — identificación, teléfono e idioma viven en el cliente.',
+      businessName: 'Nombre del negocio (opcional)',
+      commission: 'Comisión de la tienda (%)',
+      commissionHelp:
+        'Lo que la tienda se queda cuando un artículo se vende. Cambiarlo después nunca reprecia la mercancía que ya está en piso — cada artículo conserva la tasa con la que entró.',
+      payoutMethod: 'Forma de pago predeterminada',
+      status: 'Estado',
+      notes: 'Notas',
+      create: 'Crear consignatario',
+      creating: 'Creando…',
+      save: 'Guardar términos',
+      saving: 'Guardando…',
+      saved: 'Guardado.',
+    },
+
+    detail: {
+      backToList: 'Volver a consignatarios',
+      terms: 'Términos',
+      commissionLine: 'La tienda se queda {pct} · el consignatario recibe {rest}',
+      balanceOwed: 'Se le debe al consignatario',
+      balanceOwedToShop: 'El consignatario le debe a la tienda',
+      lifetimeGross: 'Vendido (histórico)',
+      lifetimeCommission: 'Comisión ganada',
+      itemsTitle: 'Artículos en piso',
+      itemsEmpty: 'Nada en piso por ahora.',
+      colSku: 'SKU',
+      colDescription: 'Artículo',
+      colListPrice: 'Precio',
+      colFloor: 'Mínimo',
+      colExpires: 'Fin del acuerdo',
+      colItemStatus: 'Estado',
+      expiresIn: 'en {days} días',
+      expiredAgo: 'terminó hace {days} días',
+      expiresToday: 'termina hoy',
+      noExpiry: 'sin fecha de fin',
+      returnItem: 'Devolver al consignatario',
+      returnItemConfirm:
+        '¿Devolver este artículo al consignatario? Sale del piso sin venderse y nadie queda debiendo nada.',
+      returning: 'Devolviendo…',
+      ledgerTitle: 'Libro de cuentas por pagar',
+      ledgerEmpty: 'Aún no se ha vendido nada.',
+      colDate: 'Fecha',
+      colEvent: 'Movimiento',
+      colGross: 'Vendido en',
+      colCommissionAmount: 'Comisión',
+      colPayable: 'Consignatario',
+      colLedgerStatus: 'Estado',
+      eventAccrual: 'Vendido',
+      eventReversalReturn: 'Devuelto',
+      eventReversalVoid: 'Venta anulada',
+      statusOpen: 'Sin pagar',
+      statusPaid: 'Pagado',
+      payoutsTitle: 'Pagos',
+      payoutsEmpty: 'Aún no hay pagos.',
+      colPayoutNumber: 'Pago',
+      colAmount: 'Monto',
+      colMethod: 'Método',
+      colReference: 'Referencia',
+    },
+
+    payout: {
+      button: 'Pagar {amount}',
+      nothingToPay: 'Nada que pagar',
+      owesShopHint:
+        'Una devolución o anulación entró después del último pago, así que el saldo quedó negativo. La próxima venta lo compensa.',
+      title: 'Pagar al consignatario',
+      help: 'Liquida todo lo pendiente en un solo pago. Los movimientos quedan marcados como pagados y no se pueden pagar dos veces.',
+      amountLine: 'Pagando {amount} en {count} movimientos',
+      method: 'Forma de pago',
+      reference: 'Referencia (opcional)',
+      referencePlaceholder: 'ej. cheque #1042',
+      submit: 'Registrar pago',
+      submitting: 'Registrando…',
+      done: 'Pago {number} registrado por {amount}.',
+    },
+
+    item: {
+      sectionLabel: 'Consignación',
+      consignor: 'Consignatario',
+      consignorHelp: 'Obligatorio cuando el origen es Consignación.',
+      commission: 'Comisión de la tienda (%)',
+      minPrice: 'Precio mínimo',
+      minPriceHelp:
+        'Lo mínimo por lo que puede venderse este artículo. La caja rechaza cualquier línea por debajo, descuentos incluidos.',
+      expiresOn: 'Fin del acuerdo',
+      expiresOnHelp:
+        'Cuándo debe devolverse la mercancía si no se vende. No ocurre nada automáticamente.',
+      badge: 'En consignación',
+      badgeOwed: 'El consignatario recibe {amount} al venderse',
+    },
+
+    settings: {
+      title: 'Consignación',
+      subtitle:
+        'Vende mercancía que la tienda no posee, lleva el control de lo que se le debe a cada consignatario y págale.',
+      toggle: 'Activar consignación',
+      toggleHelp:
+        'Al desactivarla se ocultan la página de Consignatarios y los campos de consignación en inventario. Los artículos ya consignados siguen acumulando — apagar el módulo no debe dejar de pagarle a nadie.',
+      defaultCommission: 'Comisión predeterminada de la tienda (%)',
+      defaultCommissionHelp:
+        'Solo inicializa el formulario del consignatario. Cada artículo igual congela su propia tasa al ingresar.',
+      save: 'Guardar',
+      saving: 'Guardando…',
+      saved: 'Guardado.',
+    },
+
+    errors: {
+      consignment_disabled: 'La consignación está desactivada en esta tienda.',
+      consignment_consignor_not_found: 'No se encontró ese consignatario.',
+      consignment_nothing_payable: 'No hay nada que pagar en este momento.',
+      consignment_below_floor_price:
+        'Ese precio está por debajo del mínimo acordado con el consignatario.',
+      consignor_already_exists:
+        'Este cliente ya está registrado como consignatario.',
+      customer_not_found: 'No se encontró ese cliente.',
+      consignor_required: 'Elige un consignatario para un artículo consignado.',
+      commission_required:
+        'Define la comisión de la tienda para un artículo consignado.',
+      item_not_found: 'No se encontró ese artículo.',
+      not_consigned: 'Ese artículo no está en consignación.',
+      item_not_returnable:
+        'Solo un artículo que sigue en piso puede volver al consignatario.',
+      consignment_failed: 'No se pudo guardar. Inténtalo de nuevo.',
     },
   },
 }

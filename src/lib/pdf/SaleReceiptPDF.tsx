@@ -34,7 +34,7 @@ export type SaleReceiptItem = {
 
 export type SaleReceiptPayment = {
   amount: number
-  method: 'cash' | 'card' | 'check' | 'other' | string
+  method: 'cash' | 'card' | 'check' | 'other' | 'store_credit' | string
   occurred_at: string
 }
 
@@ -672,6 +672,10 @@ function paymentMethodLabel(
     card: { en: en.payment.card, es: es.payment.card },
     check: { en: en.payment.check, es: es.payment.check },
     other: { en: en.payment.other, es: es.payment.other },
+    store_credit: {
+      en: en.payment.storeCredit,
+      es: es.payment.storeCredit,
+    },
   }
   const m = map[method]
   if (!m) return method

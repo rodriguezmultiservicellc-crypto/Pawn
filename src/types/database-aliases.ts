@@ -170,7 +170,19 @@ export type LoanEventType =
   | 'forfeiture'
   | 'void'
 
-export type PaymentMethod = 'cash' | 'card' | 'check' | 'other'
+export type PaymentMethod =
+  | 'cash'
+  | 'card'
+  | 'check'
+  | 'other'
+  // patches/0052. NOT a tender the generic add-payment path accepts — a
+  // store-credit payment on a sale must go through the
+  // store_credit_redeem_on_sale RPC so the customer's balance is debited in
+  // the same transaction. See DirectPaymentMethod below.
+  | 'store_credit'
+
+/** Methods the POS add-payment dialog and layaway payments accept. */
+export type DirectPaymentMethod = Exclude<PaymentMethod, 'store_credit'>
 
 // ── Phase 2 — Row / Insert / Update shortcuts.
 //
@@ -736,3 +748,33 @@ export type EbayListingEventInsert = Partial<EbayListingEventRow> & {
   tenant_id: string
   kind: EbayListingEventKind
 }
+
+// ── Feature 4 (store credit + consignment) — patches/0052-0054
+
+export type StoreCreditEventKind =
+  | 'issue_return'
+  | 'issue_buy'
+  | 'issue_manual'
+  | 'redeem_pos'
+  | 'redeem_undo'
+  | 'clawback'
+  | 'adjust_manual'
+
+export type StoreCreditEventRow =
+  Database['public']['Tables']['store_credit_events']['Row']
+export type StoreCreditEventInsert =
+  Database['public']['Tables']['store_credit_events']['Insert']
+
+export type ConsignorStatus = 'active' | 'inactive'
+
+export type ConsignorRow    = Database['public']['Tables']['consignors']['Row']
+export type ConsignorInsert = Database['public']['Tables']['consignors']['Insert']
+export type ConsignorUpdate = Database['public']['Tables']['consignors']['Update']
+
+export type ConsignmentPayableKind = 'accrual' | 'reversal'
+export type ConsignmentPayableStatus = 'open' | 'paid'
+
+export type ConsignmentPayableRow =
+  Database['public']['Tables']['consignment_payables']['Row']
+export type ConsignmentPayoutRow =
+  Database['public']['Tables']['consignment_payouts']['Row']

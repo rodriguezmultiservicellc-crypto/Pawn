@@ -122,14 +122,32 @@ function fmt(n: number): string {
   })
 }
 
+/** How the shop pays the seller. 'store_credit' writes a credit ledger row
+ *  instead of handing over cash (patches/0053). */
+type BuyPayoutMethod = 'cash' | 'card' | 'check' | 'other' | 'store_credit'
+
+const BUY_PAYOUT_METHODS: readonly BuyPayoutMethod[] = [
+  'cash',
+  'card',
+  'check',
+  'other',
+  'store_credit',
+]
+
+function isBuyPayoutMethod(v: string): v is BuyPayoutMethod {
+  return (BUY_PAYOUT_METHODS as readonly string[]).includes(v)
+}
+
 export default function BuyForm({
   spotPriceMap,
   overrideMap,
   buyHoldDays,
+  storeCreditEnabled = false,
 }: {
   spotPriceMap: SpotPriceMap
   overrideMap: OverrideMap
   buyHoldDays: number
+  storeCreditEnabled?: boolean
 }) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<CreateBuyState, FormData>(
@@ -137,9 +155,7 @@ export default function BuyForm({
     {},
   )
 
-  const [paymentMethod, setPaymentMethod] = useState<
-    'cash' | 'card' | 'check' | 'other'
-  >('cash')
+  const [paymentMethod, setPaymentMethod] = useState<BuyPayoutMethod>('cash')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<ItemRow[]>(() => [blankItem()])
   const [formGen, setFormGen] = useState(0)
@@ -154,9 +170,7 @@ export default function BuyForm({
     if (state.values) {
       if (state.values.payment_method) {
         const pm = state.values.payment_method
-        if (pm === 'cash' || pm === 'card' || pm === 'check' || pm === 'other') {
-          setPaymentMethod(pm)
-        }
+        if (isBuyPayoutMethod(pm)) setPaymentMethod(pm)
       }
       if (state.values.notes != null) setNotes(state.values.notes)
       setFormGen((g) => g + 1)
@@ -349,23 +363,31 @@ export default function BuyForm({
             <Stat label="Total payout" value={fmt(totalPayout)} highlight />
             <label className="block space-y-1">
               <span className="text-xs uppercase tracking-wide text-muted">
-                Payment method
+                {t.pos.payment.method}
               </span>
               <select
                 name="payment_method"
                 value={paymentMethod}
                 onChange={(e) =>
-                  setPaymentMethod(
-                    e.target.value as 'cash' | 'card' | 'check' | 'other',
-                  )
+                  setPaymentMethod(e.target.value as BuyPayoutMethod)
                 }
                 className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
               >
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="check">Check</option>
-                <option value="other">Other</option>
+                <option value="cash">{t.pos.payment.methodCash}</option>
+                <option value="card">{t.pos.payment.methodCard}</option>
+                <option value="check">{t.pos.payment.methodCheck}</option>
+                <option value="other">{t.pos.payment.methodOther}</option>
+                {storeCreditEnabled ? (
+                  <option value="store_credit">
+                    {t.storeCredit.buyPayout}
+                  </option>
+                ) : null}
               </select>
+              {paymentMethod === 'store_credit' ? (
+                <span className="block text-xs text-muted">
+                  {t.storeCredit.buyPayoutHelp}
+                </span>
+              ) : null}
             </label>
           </div>
           <label className="mt-3 block space-y-1">

@@ -38,7 +38,7 @@ export default async function SettingsPage() {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid',
+        'twilio_account_sid, store_credit_enabled, consignment_enabled, consignment_default_commission_pct',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -120,6 +120,13 @@ export default async function SettingsPage() {
       jurisdictionName: rules.jurisdiction?.name ?? null,
       graceDays: rules.graceDays,
       buyHoldDays: rules.buyHoldDays,
+    },
+    storeCredit: { enabled: settings?.store_credit_enabled === true },
+    consignment: {
+      enabled: settings?.consignment_enabled === true,
+      defaultCommissionPct: Number(
+        settings?.consignment_default_commission_pct ?? 0.2,
+      ),
     },
   }
 

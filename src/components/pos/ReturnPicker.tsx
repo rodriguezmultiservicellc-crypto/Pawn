@@ -25,12 +25,18 @@ export function ReturnPicker({
   saleId,
   saleItems,
   onSubmit,
+  storeCreditEnabled = false,
+  hasCustomer = false,
 }: {
   saleId: string
   saleItems: ReturnPickerSaleItem[]
   onSubmit: (
     formData: FormData,
   ) => Promise<{ error?: string; ok?: boolean }>
+  /** Tenant has store credit switched on (settings.store_credit_enabled). */
+  storeCreditEnabled?: boolean
+  /** The sale has an identified customer to credit. */
+  hasCustomer?: boolean
 }) {
   const { t } = useI18n()
   const [pending, startTransition] = useTransition()
@@ -228,7 +234,19 @@ export function ReturnPicker({
               <option value="card">{t.pos.payment.methodCard}</option>
               <option value="check">{t.pos.payment.methodCheck}</option>
               <option value="other">{t.pos.payment.methodOther}</option>
+              {/* Only offered with an identified customer — there is no
+                  account to credit on an anonymous walk-in sale. */}
+              {storeCreditEnabled && hasCustomer ? (
+                <option value="store_credit">
+                  {t.storeCredit.refundMethod}
+                </option>
+              ) : null}
             </select>
+            {refundMethod === 'store_credit' ? (
+              <span className="block text-xs text-muted">
+                {t.storeCredit.refundMethodHelp}
+              </span>
+            ) : null}
           </label>
           <div className="rounded-md border border-border bg-background/40 p-3 text-sm">
             <div className="text-xs text-muted">

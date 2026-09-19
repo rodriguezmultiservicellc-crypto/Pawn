@@ -17,6 +17,10 @@ import {
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
+import {
+  isStoreCreditEnabled,
+  issueForBuy as issueStoreCreditForBuy,
+} from '@/lib/store-credit/events'
 import { addDaysIso, r4 } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
@@ -171,6 +175,15 @@ export async function createBuyOutrightAction(
     .maybeSingle()
 
   if (!customer) return { error: 'customer_not_found', values: echo }
+
+  // Paying the seller in store credit needs the module on. Checked before
+  // anything is written — a purchase recorded as "paid in store credit"
+  // with no credit issued is a seller who walked out with nothing.
+  if (v.payment_method === 'store_credit') {
+    if (!(await isStoreCreditEnabled(createAdminClient(), tenantId))) {
+      return { error: 'store_credit_disabled', values: echo }
+    }
+  }
 
   // Banned list + OFAC SDN screening (patches/0051).
   const gate = await intakeGate({
@@ -407,6 +420,32 @@ export async function createBuyOutrightAction(
       )
       .eq('tenant_id', tenantId)
     return { error: 'compliance_log_failed', values: echo }
+  }
+
+  // Payout as store credit (patches/0053). Runs AFTER compliance_log, so a
+  // purchase that never reached the police-report ledger — and was therefore
+  // withdrawn above — cannot leave credit sitting on the seller's account.
+  // Idempotent per buy (keyed to the anchor item id).
+  if (v.payment_method === 'store_credit') {
+    const issued = await issueStoreCreditForBuy({
+      admin: createAdminClient(),
+      tenantId,
+      customerId: v.customer_id,
+      buyAnchorItemId: firstItemId,
+      amount: totalPayout,
+      performedBy: userId,
+    })
+    if (issued.ok === false) {
+      // The purchase itself stands: the items are in inventory and the
+      // compliance_log row is written, and that row is write-once by
+      // design (Rule 15) — withdrawing the items now would leave the
+      // police report describing a purchase that supposedly never
+      // happened. So the transaction is real and the shop owes the seller;
+      // say so, and staff issues the credit from the customer's panel.
+      console.error('[buy.create] store credit payout failed', issued.error)
+      return { error: 'store_credit_issue_failed', values: echo }
+    }
+    revalidatePath(`/customers/${v.customer_id}`)
   }
 
   await logAudit({

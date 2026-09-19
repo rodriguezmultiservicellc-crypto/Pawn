@@ -23,9 +23,13 @@ export type NewReturnSale = {
 export default function NewReturnForm({
   sale,
   items,
+  storeCreditEnabled = false,
+  hasCustomer = false,
 }: {
   sale: NewReturnSale
   items: ReturnPickerSaleItem[]
+  storeCreditEnabled?: boolean
+  hasCustomer?: boolean
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -36,7 +40,11 @@ export default function NewReturnForm({
     const res = await createReturnAction(fd)
     if (res.error) {
       const errors = t.pos.errors as Record<string, string>
-      return { error: errors[res.error] ?? errors.generic }
+      const storeCreditErrors = t.storeCredit.errors as Record<string, string>
+      return {
+        error:
+          errors[res.error] ?? storeCreditErrors[res.error] ?? errors.generic,
+      }
     }
     if (res.redirectTo) router.push(res.redirectTo)
     return { ok: true }
@@ -70,6 +78,8 @@ export default function NewReturnForm({
         saleId={sale.id}
         saleItems={items}
         onSubmit={onSubmit}
+        storeCreditEnabled={storeCreditEnabled}
+        hasCustomer={hasCustomer}
       />
     </div>
   )

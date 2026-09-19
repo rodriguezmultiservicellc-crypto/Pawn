@@ -67,7 +67,6 @@ describe('inventoryItemCreateSchema', () => {
     for (const s of [
       'pawn_forfeit',
       'bought',
-      'consigned',
       'new_stock',
       'repair_excess',
       'abandoned_repair',
@@ -77,6 +76,70 @@ describe('inventoryItemCreateSchema', () => {
       )
       expect(r.success).toBe(true)
     }
+  })
+
+  // 'consigned' is the one source with extra requirements (patches/0054):
+  // goods the shop does not own need an owner and an agreed split.
+  it('consigned source requires a consignor and a commission', () => {
+    const r = inventoryItemCreateSchema.safeParse(
+      validItem({ source: 'consigned' }),
+    )
+    expect(r.success).toBe(false)
+    const paths = r.success
+      ? []
+      : r.error.issues.map((i) => i.path.join('.'))
+    expect(paths).toContain('consignor_id')
+    expect(paths).toContain('consignment_commission_pct')
+  })
+
+  it('consigned source passes once both are supplied', () => {
+    const r = inventoryItemCreateSchema.safeParse(
+      validItem({
+        source: 'consigned',
+        consignor_id: '11111111-1111-4111-8111-111111111111',
+        consignment_commission_pct: '0.2',
+        consignment_min_price: '150',
+        consignment_expires_on: '2027-01-01',
+      }),
+    )
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.consignment_commission_pct).toBe(0.2)
+      expect(r.data.consignment_min_price).toBe(150)
+    }
+  })
+
+  it('clears consignment fields when the source is not consigned', () => {
+    // Switching an item from consigned to bought without clearing these
+    // would keep accruing a payable on goods the shop now owns.
+    const r = inventoryItemCreateSchema.safeParse(
+      validItem({
+        source: 'bought',
+        consignor_id: '11111111-1111-4111-8111-111111111111',
+        consignment_commission_pct: '0.2',
+        consignment_min_price: '150',
+        consignment_expires_on: '2027-01-01',
+      }),
+    )
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.consignor_id).toBeNull()
+      expect(r.data.consignment_commission_pct).toBeNull()
+      expect(r.data.consignment_min_price).toBeNull()
+      expect(r.data.consignment_expires_on).toBeNull()
+    }
+  })
+
+  it('rejects a commission outside 0..1', () => {
+    // A clerk typing "20" for twenty percent must not become 2000%.
+    const r = inventoryItemCreateSchema.safeParse(
+      validItem({
+        source: 'consigned',
+        consignor_id: '11111111-1111-4111-8111-111111111111',
+        consignment_commission_pct: '20',
+      }),
+    )
+    expect(r.success).toBe(false)
   })
 
   it('source rejects unknown values', () => {

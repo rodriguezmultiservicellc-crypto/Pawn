@@ -75,6 +75,17 @@ export default async function StaffLayout({
 
   const initialLang = isLanguage(profile?.language) ? profile.language : 'en'
 
+  // Consignment is a per-tenant module gate in `settings`, not a column on
+  // `tenants` — it rides on top of inventory rather than being a surface of
+  // its own (same reasoning as loyalty, patches/0028).
+  const { data: tenantSettings } = ctx.tenantId
+    ? await ctx.supabase
+        .from('settings')
+        .select('consignment_enabled')
+        .eq('tenant_id', ctx.tenantId)
+        .maybeSingle()
+    : { data: null }
+
   return (
     <I18nProvider initialLang={initialLang}>
       <div className="flex min-h-screen bg-background">
@@ -82,6 +93,7 @@ export default async function StaffLayout({
           modules={modules}
           tenantRole={ctx.tenantRole}
           tenant={sidebarTenant}
+          consignmentEnabled={tenantSettings?.consignment_enabled === true}
         />
         <div className="flex flex-1 flex-col">
           <header className="h-16 border-b border-border bg-card">
