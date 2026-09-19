@@ -9,8 +9,9 @@
  *
  * Channel selection precedence (when no explicit channel passed):
  *   1. customer.comm_preference  (sms | whatsapp | email | none)
- *   2. fallback to email if email available, else sms
- *   3. 'none' returns ok=false reason='opted_out_preference' WITHOUT
+ *   2. if that channel has no destination on file, switch email <-> phone
+ *   3. whatsapp without an enabled, SID-approved template falls back to sms
+ *   4. 'none' returns ok=false reason='opted_out_preference' WITHOUT
  *      writing a message_log row — preference 'none' means no contact.
  *
  * Always-bilingual rule: customer.language picks template language; if
@@ -117,6 +118,9 @@ export async function dispatchMessage(
       }
     }
     channel = pref as MessageChannel
+    // Preferred channel has no destination on file → use the other one.
+    if (channel === 'email' && !customer.email && customer.phone) channel = 'sms'
+    else if (channel !== 'email' && !customer.phone && customer.email) channel = 'email'
   }
 
   // 4. Pick destination address.
@@ -135,7 +139,18 @@ export async function dispatchMessage(
 
   // 5. Pick template (preferred lang then fallback to en).
   const language: Language = (customer.language ?? 'en') as Language
-  const template = await loadTemplate(args.tenantId, args.kind, language, channel)
+  let template = await loadTemplate(args.tenantId, args.kind, language, channel)
+  // WhatsApp Business only delivers approved templates (Content SID). Until
+  // the shop has one enabled for this kind, a WhatsApp-preferring customer
+  // gets the SMS version on the same number.
+  if (
+    channel === 'whatsapp' &&
+    !args.channelOverride &&
+    (!template || !template.is_enabled || !template.whatsapp_content_sid)
+  ) {
+    channel = 'sms'
+    template = await loadTemplate(args.tenantId, args.kind, language, channel)
+  }
   if (!template) {
     return {
       ok: false,
@@ -173,6 +188,8 @@ export async function dispatchMessage(
       relatedLoanId: args.related?.loanId ?? null,
       relatedRepairTicketId: args.related?.repairTicketId ?? null,
       relatedLayawayId: args.related?.layawayId ?? null,
+      // The template actually used (may be the en fallback) sets the footer.
+      language: template.language === 'es' ? 'es' : 'en',
     })
     return res.ok
       ? { ok: true, messageLogId: res.messageLogId, providerId: res.providerId, channel: 'sms' }

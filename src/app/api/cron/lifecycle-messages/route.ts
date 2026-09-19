@@ -1,23 +1,20 @@
 /**
- * Cron — pawn-loan reminders + final notice before forfeiture.
+ * Cron — customer lifecycle messages (patches/0050): birthday greeting,
+ * dormant win-back, post-forfeiture win-back, post-redemption thank-you.
  *
- * For every active pawn tenant, evaluates the tenant's comm_automations
- * config (patches/0050; code defaults when unset) against its open loans:
- * due-date reminders at configurable offsets, and a final notice N days
- * before the statutory forfeiture date (patches/0048). Every send claims a
- * unique key in comm_automation_sends first, so a message goes out once
- * per loan / step / due date — re-runs and retries are safe. "Today" is
- * the shop's local date.
+ * All four are marketing: disabled until the shop turns them on in
+ * Settings → Communications, and they only reach customers with
+ * marketing_opt_in = TRUE (re-checked at send time, 7-day frequency cap).
+ * Idempotent via comm_automation_sends keys.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { authorizeCron } from '@/lib/cron/auth'
-import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
   loadAutomationConfigs,
-  runLoanAutomations,
+  runLifecycleAutomations,
   type RunCounts,
 } from '@/lib/comms/automation-runner'
 
@@ -31,8 +28,7 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient()
   const { data: tenants } = await admin
     .from('tenants')
-    .select('id')
-    .eq('has_pawn', true)
+    .select('id, timezone')
     .eq('is_active', true)
 
   const total: RunCounts = { sent: 0, skipped: 0, failed: 0 }
@@ -40,14 +36,13 @@ export async function GET(req: NextRequest) {
 
   for (const tenant of tenants ?? []) {
     try {
-      const rules = await loadTenantRules(admin, tenant.id)
       const configs = await loadAutomationConfigs(admin, tenant.id)
-      const counts = await runLoanAutomations({
+      if (!configs.some((c) => c.group === 'lifecycle' && c.isEnabled)) continue
+      const counts = await runLifecycleAutomations({
         admin,
         tenantId: tenant.id,
-        rules,
         configs,
-        today: todayInTimezone(rules.timezone),
+        today: todayInTimezone(tenant.timezone),
       })
       total.sent += counts.sent
       total.skipped += counts.skipped

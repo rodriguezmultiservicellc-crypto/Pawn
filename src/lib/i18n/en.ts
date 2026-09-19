@@ -2290,11 +2290,16 @@ export const en = {
     channelWhatsapp: 'WhatsApp',
     channelEmail: 'Email',
     kindLabels: {
-      loan_maturity_t7: 'Loan due in 7 days',
-      loan_maturity_t1: 'Loan due tomorrow',
-      loan_due_today: 'Loan due today',
-      loan_overdue_t1: 'Loan 1 day overdue',
-      loan_overdue_t7: 'Loan 7 days overdue',
+      loan_maturity_t7: 'Loan reminder — first, before due',
+      loan_maturity_t1: 'Loan reminder — second, before due',
+      loan_due_today: 'Loan reminder — due date',
+      loan_overdue_t1: 'Loan past due — first',
+      loan_overdue_t7: 'Loan past due — second',
+      loan_final_notice: 'Final notice before forfeiture',
+      birthday_greeting: 'Birthday greeting',
+      dormant_winback: 'We miss you (inactive customer)',
+      forfeiture_winback: 'Win-back after forfeiture',
+      redemption_thankyou: 'Thank you after redemption',
       repair_ready: 'Repair ready for pickup',
       repair_pickup_reminder: 'Repair pickup reminder',
       layaway_payment_due: 'Layaway payment due',
@@ -2309,11 +2314,21 @@ export const en = {
       email_campaign: 'Email campaign',
     },
     kindDescriptions: {
-      loan_maturity_t7: 'Sent automatically 7 days before a loan due date.',
-      loan_maturity_t1: 'Sent automatically 1 day before a loan due date.',
-      loan_due_today: 'Sent automatically on the loan due date.',
-      loan_overdue_t1: 'Sent automatically 1 day after the due date.',
-      loan_overdue_t7: 'Sent automatically 7 days after the due date.',
+      loan_maturity_t7: 'Automatic reminder before the due date (default: 7 days before).',
+      loan_maturity_t1: 'Automatic reminder before the due date (default: 1 day before).',
+      loan_due_today: 'Automatic reminder on the due date.',
+      loan_overdue_t1: 'Automatic past-due reminder (default: 1 day after).',
+      loan_overdue_t7: 'Automatic past-due reminder (default: 7 days after).',
+      loan_final_notice:
+        'Automatic final notice before the legal forfeiture date (default: 5 days before). Uses {{forfeit_date}}.',
+      birthday_greeting:
+        'Marketing — birthday greeting to customers who opted in to marketing.',
+      dormant_winback:
+        'Marketing — sent once when an opted-in customer with no open loan has been inactive for the set number of days.',
+      forfeiture_winback:
+        'Marketing — sent to an opted-in customer after one of their loans is forfeited.',
+      redemption_thankyou:
+        'Marketing — thank-you after an opted-in customer redeems a loan.',
       repair_ready: 'Sent when a repair ticket is marked ready for pickup.',
       repair_pickup_reminder:
         'Sent when a ready repair has not been picked up after 24h.',
@@ -2335,7 +2350,31 @@ export const en = {
         'Operator-authored bulk email blast. Composed and scheduled from the Campaigns page; not template-keyed.',
     },
     editorHelp:
-      'Use {{variable}} placeholders. Available variables: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, portal_link.',
+      'Use {{variable}} placeholders. Available variables: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, days, forfeit_date, portal_link, unsubscribe_url.',
+    automations: {
+      title: 'Automations',
+      subtitle:
+        "Choose which messages go out automatically and when. Each message is sent once per customer per event, in the customer's language and preferred channel.",
+      loanGroup: 'Pawn loan reminders',
+      loanNote:
+        'Service messages about an open loan — sent to every customer with a phone or email on file (unless their preference is "no contact").',
+      lifecycleGroup: 'Customer lifecycle (marketing)',
+      marketingNote:
+        'Only reaches customers who opted in to marketing ({n} today), at most one per customer per week. Off until you turn it on.',
+      defaultBadge: 'default',
+      days: 'days',
+      beforeDue: 'before the due date',
+      afterDue: 'after the due date',
+      anchors: {
+        due: 'days from the due date',
+        forfeit: 'days before the forfeiture date',
+        birthday: 'days before the birthday',
+        last_activity: 'days after the last visit',
+        forfeited: 'days after the forfeiture',
+        redeemed: 'days after the redemption',
+      },
+      invalidOffset: 'Enter a whole number from {min} to {max}.',
+    },
     editorSubject: 'Subject (email only)',
     editorBody: 'Body',
     editorBodyHelp: 'Plain text. Newlines render as line breaks in email.',

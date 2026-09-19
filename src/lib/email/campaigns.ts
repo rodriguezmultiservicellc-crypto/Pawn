@@ -136,13 +136,7 @@ export async function snapshotRecipients(
   // same link across multiple campaigns.
   const tokenless = customers.filter((c) => !c.email_unsubscribe_token)
   for (const c of tokenless) {
-    const token = randomUUID()
-    const { error } = await admin
-      .from('customers')
-      .update({ email_unsubscribe_token: token })
-      .eq('id', c.id)
-      .is('email_unsubscribe_token', null) // race-safe: another caller may have set it
-    if (!error) c.email_unsubscribe_token = token
+    c.email_unsubscribe_token = await ensureUnsubscribeToken(c.id, null)
   }
 
   if (customers.length === 0) {
@@ -310,6 +304,33 @@ export async function dispatchCampaign(
  * thing that appears in the URL — no tenant_id, no customer_id, no
  * email. The /unsubscribe page does the reverse-lookup server-side.
  */
+/**
+ * Return the customer's unsubscribe token, generating one on first use.
+ * Race-safe: if another caller set it concurrently, re-read theirs.
+ */
+export async function ensureUnsubscribeToken(
+  customerId: string,
+  existing: string | null,
+): Promise<string | null> {
+  if (existing) return existing
+  const admin = createAdminClient()
+  const token = randomUUID()
+  const { data } = await admin
+    .from('customers')
+    .update({ email_unsubscribe_token: token })
+    .eq('id', customerId)
+    .is('email_unsubscribe_token', null)
+    .select('email_unsubscribe_token')
+    .maybeSingle()
+  if (data?.email_unsubscribe_token) return data.email_unsubscribe_token
+  const { data: row } = await admin
+    .from('customers')
+    .select('email_unsubscribe_token')
+    .eq('id', customerId)
+    .maybeSingle()
+  return row?.email_unsubscribe_token ?? null
+}
+
 export function buildUnsubscribeUrl(token: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? ''
   if (!base) return `/unsubscribe?t=${encodeURIComponent(token)}`

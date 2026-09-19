@@ -33,10 +33,12 @@ export type SendSmsArgs = {
   relatedLoanId?: string | null
   relatedRepairTicketId?: string | null
   relatedLayawayId?: string | null
+  /** Customer language — picks the opt-out footer language. */
+  language?: 'en' | 'es'
 }
 
 export async function sendSms(args: SendSmsArgs): Promise<SendSmsResult> {
-  const body = withComplianceFooter(args.body)
+  const body = withComplianceFooter(args.body, args.language ?? 'en')
 
   return runTwilioSend({
     channel: 'sms',

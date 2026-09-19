@@ -34,6 +34,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { authorizeCron } from '@/lib/cron/auth'
 import { todayDateString } from '@/lib/pawn/math'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
 
@@ -151,10 +152,3 @@ export async function GET(req: NextRequest) {
   })
 }
 
-function authorizeCron(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization')
-  if (!auth) return false
-  const expected = process.env.CRON_SECRET
-  if (!expected) return false
-  return auth === `Bearer ${expected}`
-}

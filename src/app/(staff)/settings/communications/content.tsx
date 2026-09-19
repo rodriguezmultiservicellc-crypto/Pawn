@@ -6,13 +6,17 @@ import {
   EnvelopeSimple,
   Gear,
   PaperPlaneTilt,
+  Timer,
   WhatsappLogo,
 } from '@phosphor-icons/react'
+import { AutomationsPanel } from '@/components/comms/AutomationsPanel'
+import type { AutomationConfig } from '@/lib/comms/automations'
 import { useI18n } from '@/lib/i18n/context'
 import { CredsForm } from '@/components/comms/CredsForm'
 import { TemplateEditor } from '@/components/comms/TemplateEditor'
 import { TestSendDialog } from '@/components/comms/TestSendDialog'
 import {
+  saveAutomationAction,
   testSendTemplateAction,
   toggleMessageTemplateAction,
   updateCommsSettingsAction,
@@ -49,20 +53,29 @@ const KIND_ORDER: MessageKind[] = [
   'loan_due_today',
   'loan_overdue_t1',
   'loan_overdue_t7',
+  'loan_final_notice',
   'repair_ready',
   'repair_pickup_reminder',
   'layaway_payment_due',
   'layaway_overdue',
   'layaway_completed',
+  'birthday_greeting',
+  'dormant_winback',
+  'forfeiture_winback',
+  'redemption_thankyou',
   'custom',
 ]
 
 export default function CommunicationsContent({
   settings,
   templates,
+  automations,
+  marketingOptInCount,
 }: {
   settings: CommsSettingsView
   templates: TemplateRowView[]
+  automations: AutomationConfig[]
+  marketingOptInCount: number
 }) {
   const { t } = useI18n()
   const [editing, setEditing] = useState<TemplateRowView | null>(null)
@@ -95,6 +108,20 @@ export default function CommunicationsContent({
           </h2>
         </header>
         <CredsForm settings={settings} action={updateCommsSettingsAction} />
+      </section>
+
+      <section className="space-y-3">
+        <header className="flex items-center gap-2">
+          <Timer size={16} weight="regular" className="text-muted" />
+          <h2 className="text-lg font-semibold text-foreground">
+            {t.comms.automations.title}
+          </h2>
+        </header>
+        <AutomationsPanel
+          configs={automations}
+          marketingOptInCount={marketingOptInCount}
+          action={saveAutomationAction}
+        />
       </section>
 
       <section className="space-y-3">

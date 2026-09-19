@@ -23,4 +23,16 @@ describe('withComplianceFooter', () => {
   test('returns empty body untouched (no footer on nothing)', () => {
     expect(withComplianceFooter('')).toBe('')
   })
+
+  test('appends the Spanish footer for Spanish-speaking customers', () => {
+    expect(withComplianceFooter('Su boleto vence mañana.', 'es')).toBe(
+      'Su boleto vence mañana.\n\nResponda STOP para cancelar. Pueden aplicar tarifas de mensajes y datos.',
+    )
+  })
+
+  test('recognizes a Spanish STOP instruction already in the body', () => {
+    const body = 'Feliz cumpleaños. Responda STOP para no recibir más.'
+    expect(withComplianceFooter(body, 'es')).toBe(body)
+    expect(withComplianceFooter('Aviso. Responde STOP.', 'es')).toBe('Aviso. Responde STOP.')
+  })
 })

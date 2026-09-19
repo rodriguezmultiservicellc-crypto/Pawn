@@ -3,11 +3,12 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
-import { requireOwner, requireStaff } from '@/lib/supabase/guards'
+import { requireOwner, requireRoleInTenant, requireStaff } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { setTenantSecret } from '@/lib/secrets/vault'
 import { logAudit } from '@/lib/audit'
 import { dispatchMessage } from '@/lib/comms/dispatch'
+import { getAutomationDef } from '@/lib/comms/automations'
 import { renderEmailTemplate, renderTemplate } from '@/lib/comms/render'
 import { sendSms } from '@/lib/twilio/sms'
 import { sendWhatsApp } from '@/lib/twilio/whatsapp'
@@ -489,4 +490,61 @@ function formatUsd(n: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(n)
+}
+
+// ── Automations (patches/0050) ─────────────────────────────────────────────
+
+/**
+ * Upsert one comm_automations override: enable/disable + day offset.
+ * Owner / chain_admin / manager (same audience as the rate menu).
+ */
+export async function saveAutomationAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
+  const { userId } = await requireRoleInTenant(ctx.tenantId, [
+    'owner',
+    'chain_admin',
+    'manager',
+  ])
+
+  const def = getAutomationDef(String(formData.get('kind') ?? ''))
+  if (!def) return { error: 'invalid_input' }
+
+  const raw = Number(formData.get('offset_days'))
+  // Due-anchored steps submit a direction (before / after) + magnitude.
+  const direction = formData.get('direction')
+  const offset =
+    def.anchor === 'due' && direction === 'before' ? -Math.abs(raw) : raw
+  if (!Number.isInteger(offset) || offset < def.minOffset || offset > def.maxOffset) {
+    return { error: 'invalid_offset', fieldErrors: { offset_days: 'invalid_offset' } }
+  }
+  const isEnabled = formData.get('is_enabled') === 'on'
+
+  const admin = createAdminClient()
+  const { error } = await admin.from('comm_automations').upsert(
+    {
+      tenant_id: ctx.tenantId,
+      kind: def.kind,
+      is_enabled: isEnabled,
+      offset_days: offset,
+      updated_by: userId,
+    },
+    { onConflict: 'tenant_id,kind' },
+  )
+  if (error) return { error: error.message }
+
+  await logAudit({
+    tenantId: ctx.tenantId,
+    userId,
+    action: 'update',
+    tableName: 'comm_automations',
+    recordId: def.kind,
+    changes: { is_enabled: isEnabled, offset_days: offset },
+  })
+  revalidatePath('/settings/communications')
+  return { ok: true }
 }

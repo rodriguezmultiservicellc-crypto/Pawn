@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { loadConfiguredSecretKinds } from '@/lib/secrets/vault'
+import { mergeAutomations } from '@/lib/comms/automations'
 import CommunicationsContent, {
   type CommsSettingsView,
   type TemplateRowView,
@@ -27,7 +28,12 @@ export default async function CommunicationsSettingsPage() {
 
   const admin = createAdminClient()
 
-  const [{ data: settingsRow }, configuredSecrets] = await Promise.all([
+  const [
+    { data: settingsRow },
+    configuredSecrets,
+    { data: automationRows },
+    { count: optInCount },
+  ] = await Promise.all([
     admin
       .from('settings')
       .select(
@@ -36,6 +42,16 @@ export default async function CommunicationsSettingsPage() {
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle<SettingsCommsColumns>(),
     loadConfiguredSecretKinds(ctx.tenantId),
+    admin
+      .from('comm_automations')
+      .select('kind, is_enabled, offset_days')
+      .eq('tenant_id', ctx.tenantId),
+    admin
+      .from('customers')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', ctx.tenantId)
+      .eq('marketing_opt_in', true)
+      .is('deleted_at', null),
   ])
 
   const settings: CommsSettingsView = {
@@ -99,6 +115,11 @@ export default async function CommunicationsSettingsPage() {
   }))
 
   return (
-    <CommunicationsContent settings={settings} templates={templates} />
+    <CommunicationsContent
+      settings={settings}
+      templates={templates}
+      automations={mergeAutomations(automationRows ?? [])}
+      marketingOptInCount={optInCount ?? 0}
+    />
   )
 }

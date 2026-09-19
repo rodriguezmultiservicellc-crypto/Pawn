@@ -370,6 +370,112 @@ export type Database = {
           },
         ]
       }
+      comm_automation_sends: {
+        Row: {
+          automation_key: string
+          created_at: string
+          customer_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          message_log_id: string | null
+          reason: string | null
+          related_loan_id: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          automation_key: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          message_log_id?: string | null
+          reason?: string | null
+          related_loan_id?: string | null
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          automation_key?: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["message_kind"]
+          message_log_id?: string | null
+          reason?: string | null
+          related_loan_id?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comm_automation_sends_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_automation_sends_message_log_id_fkey"
+            columns: ["message_log_id"]
+            isOneToOne: false
+            referencedRelation: "message_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_automation_sends_related_loan_id_fkey"
+            columns: ["related_loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_automation_sends_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comm_automations: {
+        Row: {
+          created_at: string
+          is_enabled: boolean
+          kind: Database["public"]["Enums"]["message_kind"]
+          offset_days: number
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          is_enabled: boolean
+          kind: Database["public"]["Enums"]["message_kind"]
+          offset_days: number
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          is_enabled?: boolean
+          kind?: Database["public"]["Enums"]["message_kind"]
+          offset_days?: number
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comm_automations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_export_batches: {
         Row: {
           created_at: string
@@ -4404,6 +4510,19 @@ export type Database = {
         Args: { p_code: string; p_principal: number }
         Returns: number
       }
+      lifecycle_birthday_customers: {
+        Args: { p_on: string; p_tenant_id: string }
+        Returns: {
+          customer_id: string
+        }[]
+      }
+      lifecycle_dormant_customers: {
+        Args: { p_from: string; p_tenant_id: string; p_to: string }
+        Returns: {
+          customer_id: string
+          last_activity: string
+        }[]
+      }
       loan_forfeit_eligible_date: {
         Args: { p_due_date: string; p_tenant_id: string }
         Returns: string
@@ -4420,6 +4539,10 @@ export type Database = {
       next_tenant_counter: {
         Args: { p_counter_name: string; p_tenant_id: string }
         Returns: number
+      }
+      seed_default_message_templates: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
       }
       seed_pawn_intake_categories: {
         Args: { p_tenant_id: string }
@@ -4570,6 +4693,11 @@ export type Database = {
         | "saas_subscription_cancelled"
         | "portal_invite"
         | "email_campaign"
+        | "loan_final_notice"
+        | "birthday_greeting"
+        | "dormant_winback"
+        | "forfeiture_winback"
+        | "redemption_thankyou"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
       metal_purity:
         | "pure_24k"
@@ -4943,6 +5071,11 @@ export const Constants = {
         "saas_subscription_cancelled",
         "portal_invite",
         "email_campaign",
+        "loan_final_notice",
+        "birthday_greeting",
+        "dormant_winback",
+        "forfeiture_winback",
+        "redemption_thankyou",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
       metal_purity: [

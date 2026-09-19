@@ -2291,11 +2291,16 @@ export const es: Dictionary = {
     channelWhatsapp: 'WhatsApp',
     channelEmail: 'Correo',
     kindLabels: {
-      loan_maturity_t7: 'Empeño vence en 7 días',
-      loan_maturity_t1: 'Empeño vence mañana',
-      loan_due_today: 'Empeño vence hoy',
-      loan_overdue_t1: 'Empeño vencido 1 día',
-      loan_overdue_t7: 'Empeño vencido 7 días',
+      loan_maturity_t7: 'Recordatorio de empeño — primero, antes del vencimiento',
+      loan_maturity_t1: 'Recordatorio de empeño — segundo, antes del vencimiento',
+      loan_due_today: 'Recordatorio de empeño — día del vencimiento',
+      loan_overdue_t1: 'Empeño vencido — primero',
+      loan_overdue_t7: 'Empeño vencido — segundo',
+      loan_final_notice: 'Aviso final antes de la pérdida',
+      birthday_greeting: 'Felicitación de cumpleaños',
+      dormant_winback: 'Le extrañamos (cliente inactivo)',
+      forfeiture_winback: 'Recuperación tras pérdida',
+      redemption_thankyou: 'Agradecimiento tras rescate',
       repair_ready: 'Reparación lista',
       repair_pickup_reminder: 'Recordatorio de recogida',
       layaway_payment_due: 'Pago de apartado próximo',
@@ -2310,11 +2315,21 @@ export const es: Dictionary = {
       email_campaign: 'Campaña de correo',
     },
     kindDescriptions: {
-      loan_maturity_t7: 'Se envía automáticamente 7 días antes del vencimiento.',
-      loan_maturity_t1: 'Se envía automáticamente 1 día antes del vencimiento.',
-      loan_due_today: 'Se envía automáticamente el día del vencimiento.',
-      loan_overdue_t1: 'Se envía automáticamente 1 día después del vencimiento.',
-      loan_overdue_t7: 'Se envía automáticamente 7 días después del vencimiento.',
+      loan_maturity_t7: 'Recordatorio automático antes del vencimiento (predeterminado: 7 días antes).',
+      loan_maturity_t1: 'Recordatorio automático antes del vencimiento (predeterminado: 1 día antes).',
+      loan_due_today: 'Recordatorio automático el día del vencimiento.',
+      loan_overdue_t1: 'Recordatorio automático de atraso (predeterminado: 1 día después).',
+      loan_overdue_t7: 'Recordatorio automático de atraso (predeterminado: 7 días después).',
+      loan_final_notice:
+        'Aviso final automático antes de la fecha legal de pérdida (predeterminado: 5 días antes). Usa {{forfeit_date}}.',
+      birthday_greeting:
+        'Mercadeo — felicitación de cumpleaños a clientes que aceptaron recibir mercadeo.',
+      dormant_winback:
+        'Mercadeo — se envía una vez cuando un cliente que aceptó mercadeo, sin préstamo abierto, lleva inactivo los días configurados.',
+      forfeiture_winback:
+        'Mercadeo — se envía a un cliente que aceptó mercadeo después de que uno de sus préstamos se pierde.',
+      redemption_thankyou:
+        'Mercadeo — agradecimiento después de que un cliente que aceptó mercadeo rescata un préstamo.',
       repair_ready: 'Se envía cuando una reparación se marca como lista.',
       repair_pickup_reminder:
         'Se envía cuando una reparación lista no se ha recogido tras 24 h.',
@@ -2337,7 +2352,31 @@ export const es: Dictionary = {
         'Envío masivo de correo redactado por el operador. Se compone y programa desde la página de Campañas; no usa plantillas.',
     },
     editorHelp:
-      'Usa marcadores {{variable}}. Disponibles: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, portal_link.',
+      'Usa marcadores {{variable}}. Disponibles: shop_name, customer_first_name, customer_last_name, ticket_number, due_date, amount, days, forfeit_date, portal_link, unsubscribe_url.',
+    automations: {
+      title: 'Automatizaciones',
+      subtitle:
+        'Elige qué mensajes se envían automáticamente y cuándo. Cada mensaje se envía una sola vez por cliente y evento, en el idioma y canal preferido del cliente.',
+      loanGroup: 'Recordatorios de empeño',
+      loanNote:
+        'Mensajes de servicio sobre un préstamo abierto — se envían a todo cliente con teléfono o correo registrado (salvo que su preferencia sea "sin contacto").',
+      lifecycleGroup: 'Ciclo de vida del cliente (mercadeo)',
+      marketingNote:
+        'Solo llega a clientes que aceptaron recibir mercadeo ({n} hoy), máximo uno por cliente por semana. Apagado hasta que lo actives.',
+      defaultBadge: 'predeterminado',
+      days: 'días',
+      beforeDue: 'antes del vencimiento',
+      afterDue: 'después del vencimiento',
+      anchors: {
+        due: 'días desde el vencimiento',
+        forfeit: 'días antes de la fecha de pérdida',
+        birthday: 'días antes del cumpleaños',
+        last_activity: 'días después de la última visita',
+        forfeited: 'días después de la pérdida',
+        redeemed: 'días después del rescate',
+      },
+      invalidOffset: 'Ingresa un número entero de {min} a {max}.',
+    },
     editorSubject: 'Asunto (solo correo)',
     editorBody: 'Cuerpo',
     editorBodyHelp: 'Texto plano. Los saltos de línea se convierten en <br/> en el correo.',

@@ -22,6 +22,10 @@
       "schedule": "10 14 * * *"
     },
     {
+      "path": "/api/cron/lifecycle-messages",
+      "schedule": "20 15 * * *"
+    },
+    {
       "path": "/api/cron/release-buy-holds",
       "schedule": "15 14 * * *"
     },
