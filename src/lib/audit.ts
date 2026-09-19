@@ -123,6 +123,9 @@ export type AuditAction =
   | 'email_campaign_unsubscribe'
   | 'email_campaign_bounce'
   | 'email_campaign_complaint'
+  // OFAC screening (patches/0051)
+  | 'ofac_screen'
+  | 'ofac_review'
 
 export async function logAudit(args: {
   tenantId: string

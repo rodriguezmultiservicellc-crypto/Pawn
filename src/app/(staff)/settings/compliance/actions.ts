@@ -29,6 +29,7 @@ const schema = z.object({
   grace_period_days: optionalDays,
   buy_hold_period_days: z.coerce.number().int().min(0).max(365),
   abandoned_repair_days: z.coerce.number().int().min(1).max(3650),
+  ofac_screening_enabled: z.boolean(),
 })
 
 export type SaveComplianceState = {
@@ -60,6 +61,7 @@ export async function saveComplianceSettingsAction(
     grace_period_days: formData.get('grace_period_days'),
     buy_hold_period_days: formData.get('buy_hold_period_days'),
     abandoned_repair_days: formData.get('abandoned_repair_days'),
+    ofac_screening_enabled: formData.get('ofac_screening_enabled') === 'on',
   })
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {}
@@ -110,6 +112,7 @@ export async function saveComplianceSettingsAction(
       grace_period_days: v.grace_period_days,
       buy_hold_period_days: v.buy_hold_period_days,
       abandoned_repair_days: v.abandoned_repair_days,
+      ofac_screening_enabled: v.ofac_screening_enabled,
       updated_at: new Date().toISOString(),
     })
     .eq('tenant_id', tenantId)
@@ -127,6 +130,7 @@ export async function saveComplianceSettingsAction(
       grace_period_days: v.grace_period_days,
       buy_hold_period_days: v.buy_hold_period_days,
       abandoned_repair_days: v.abandoned_repair_days,
+      ofac_screening_enabled: v.ofac_screening_enabled,
     },
   })
 

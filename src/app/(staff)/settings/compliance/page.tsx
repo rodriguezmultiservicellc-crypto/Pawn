@@ -20,7 +20,7 @@ export default async function ComplianceSettingsPage() {
   if (!ctx.tenantRole || !VIEW_ROLES.has(ctx.tenantRole)) redirect('/dashboard')
 
   const admin = createAdminClient()
-  const [jurRes, tenantRes, settingsRes, rules] = await Promise.all([
+  const [jurRes, tenantRes, settingsRes, rules, listRes] = await Promise.all([
     admin
       .from('jurisdictions')
       .select(JURISDICTION_COLUMNS)
@@ -34,10 +34,17 @@ export default async function ComplianceSettingsPage() {
       .maybeSingle(),
     admin
       .from('settings')
-      .select('grace_period_days, buy_hold_period_days, abandoned_repair_days')
+      .select(
+        'grace_period_days, buy_hold_period_days, abandoned_repair_days, ofac_screening_enabled',
+      )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
     loadTenantRules(admin, ctx.tenantId),
+    admin
+      .from('ofac_list_versions')
+      .select('published_on, fetched_at, individual_count')
+      .eq('is_current', true)
+      .maybeSingle(),
   ])
 
   return (
@@ -50,7 +57,17 @@ export default async function ComplianceSettingsPage() {
         gracePeriodDays: settingsRes.data?.grace_period_days ?? null,
         buyHoldPeriodDays: settingsRes.data?.buy_hold_period_days ?? 30,
         abandonedRepairDays: settingsRes.data?.abandoned_repair_days ?? 90,
+        ofacEnabled: settingsRes.data?.ofac_screening_enabled ?? true,
       }}
+      ofacList={
+        listRes.data
+          ? {
+              publishedOn: listRes.data.published_on,
+              fetchedAt: listRes.data.fetched_at,
+              individuals: listRes.data.individual_count,
+            }
+          : null
+      }
       effective={{
         graceDays: rules.graceDays,
         buyHoldDays: rules.buyHoldDays,

@@ -749,6 +749,8 @@ export const en = {
       // Customer-specific
       ban: 'Banned',
       unban: 'Unbanned',
+      ofac_screen: 'OFAC screening run',
+      ofac_review: 'OFAC match reviewed',
       doc_upload: 'Uploaded document',
       doc_delete: 'Deleted document',
       // Inventory-specific
@@ -3425,6 +3427,57 @@ export const en = {
       verifiedSource: 'Verified against (citation)',
       notes: 'Notes',
       active: 'Active (tenants can select it)',
+    },
+  },
+
+  ofac: {
+    intakeErrors: {
+      customer_banned: 'This customer is on the banned list. The transaction cannot proceed.',
+      ofac_review_required:
+        "Possible OFAC sanctions-list match. A manager must review it on the customer's record before this transaction can proceed.",
+      ofac_confirmed_match:
+        'This customer is a confirmed OFAC sanctions-list match. The transaction cannot proceed.',
+      compliance_log_failed:
+        "The transaction couldn't be written to the police-report log, so it was not saved. Try again or contact support.",
+    },
+    panel: {
+      title: 'OFAC sanctions screening',
+      subtitle: 'Checked against the U.S. Treasury SDN list at every pawn and buy.',
+      disabled: 'Screening is turned off for this shop (Settings → Jurisdiction & legal rules).',
+      screenNow: 'Screen now',
+      screening: 'Screening…',
+      statusNever: 'Not screened yet.',
+      statusUnavailable: 'List not loaded yet — screening could not run.',
+      statusClear: 'Clear — no match on the SDN list.',
+      statusPending: 'Possible match — review required before any pawn or buy.',
+      statusConfirmed: 'Confirmed match — customer blocked.',
+      statusCleared: 'Reviewed — cleared as a false positive.',
+      statusCarried: 'Cleared — same entries were reviewed and cleared before.',
+      screenedOn: 'Screened {date} against the list published {list}.',
+      colName: 'SDN name',
+      colPrograms: 'Programs',
+      colDob: 'Birth year(s)',
+      colScore: 'Match',
+      alias: 'alias',
+      dobConflict: 'birth year differs',
+      reviewNote: 'Review note',
+      managerOnly: 'An owner or manager must review this match.',
+      reviewTitle: 'Review this match',
+      reviewHelp:
+        'Compare ID, date of birth, and address with the SDN entry. Only clear it if you are confident this is a different person. Document why.',
+      decisionCleared: 'Not a match (false positive)',
+      decisionConfirmed: 'Confirmed match',
+      notePlaceholder: 'Why? e.g. DOB 1985 vs SDN 1951; FL driver license verified.',
+      noteRequired: 'Write at least 10 characters explaining the decision.',
+      submitReview: 'Save review',
+      confirmPrompt:
+        'Confirming places this customer on the banned list and blocks all pawn and buy transactions. Report the match to OFAC as required. Continue?',
+    },
+    settings: {
+      toggle: 'Screen customers against the OFAC SDN list',
+      help: 'Runs at every pawn and buy. A possible match blocks the transaction until an owner or manager reviews it.',
+      listStatus: 'List in use: published {date}, {n} individuals. Refreshed daily.',
+      listMissing: 'The SDN list has not been loaded yet — it refreshes daily.',
     },
   },
 }

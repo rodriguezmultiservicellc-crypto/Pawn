@@ -18,6 +18,7 @@ import {
   type CustomerFieldValues,
 } from '@/components/customers/CustomerFormFields'
 import { PortalInvitePanel } from '@/components/customers/PortalInvitePanel'
+import { OfacPanel, type OfacScreeningView } from '@/components/customers/OfacPanel'
 import WebcamCapture from '@/components/customers/WebcamCapture'
 import {
   banCustomerAction,
@@ -225,6 +226,7 @@ export default function CustomerDetail({
   layaways = [],
   portal,
   loyalty,
+  ofac,
 }: {
   customer: CustomerRecord
   documents: CustomerDocumentItem[]
@@ -245,6 +247,7 @@ export default function CustomerDetail({
     redemptionRate: number
     canAdjust: boolean
   }
+  ofac: { enabled: boolean; latest: OfacScreeningView | null; canReview: boolean }
 }) {
   const { t } = useI18n()
 
@@ -347,6 +350,13 @@ export default function CustomerDetail({
           ) : null}
         </div>
       </div>
+
+      <OfacPanel
+        customerId={customer.id}
+        enabled={ofac.enabled}
+        latest={ofac.latest}
+        canReview={ofac.canReview}
+      />
 
       {state.error ? (
         <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">

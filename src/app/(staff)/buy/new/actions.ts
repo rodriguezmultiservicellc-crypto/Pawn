@@ -16,6 +16,7 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
+import { intakeGate } from '@/lib/compliance/ofac/screen'
 import { addDaysIso, r4 } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
@@ -170,6 +171,16 @@ export async function createBuyOutrightAction(
     .maybeSingle()
 
   if (!customer) return { error: 'customer_not_found', values: echo }
+
+  // Banned list + OFAC SDN screening (patches/0051).
+  const gate = await intakeGate({
+    admin: createAdminClient(),
+    tenantId,
+    customerId: v.customer_id,
+    context: 'buy_intake',
+    userId,
+  })
+  if (!gate.ok) return { error: gate.code, values: echo }
 
   // Hold period = GREATEST(tenant setting, statutory hold) — patches/0048.
   // Dates are the shop's local calendar day.
@@ -330,6 +341,7 @@ export async function createBuyOutrightAction(
   // item's id (consistent navigation target).
   const customerSnapshot = {
     id: customer.id,
+    ofac_screening_id: gate.screeningId,
     first_name: customer.first_name,
     last_name: customer.last_name,
     middle_name: customer.middle_name,

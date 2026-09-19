@@ -11,6 +11,20 @@ export type ParsedCsv = {
 }
 
 export function parseCsv(text: string): ParsedCsv {
+  const grid = parseCsvGrid(text)
+  const headers = (grid.shift() ?? []).map((h) => h.trim())
+  const rows = grid
+    .filter((r) => r.length > 1 || (r[0] ?? '').trim() !== '')
+    .map((r) => {
+      const o: Record<string, string> = {}
+      headers.forEach((h, idx) => { o[h] = (r[idx] ?? '').trim() })
+      return o
+    })
+  return { headers, rows }
+}
+
+/** Raw rows × cells, no header handling (headerless feeds, e.g. OFAC SDN). */
+export function parseCsvGrid(text: string): string[][] {
   const s = text.replace(/^﻿/, '') // strip BOM
   const grid: string[][] = []
   let field = ''
@@ -31,14 +45,5 @@ export function parseCsv(text: string): ParsedCsv {
     else field += c
   }
   if (field !== '' || row.length) { row.push(field); grid.push(row) }
-
-  const headers = (grid.shift() ?? []).map((h) => h.trim())
-  const rows = grid
-    .filter((r) => r.length > 1 || (r[0] ?? '').trim() !== '')
-    .map((r) => {
-      const o: Record<string, string> = {}
-      headers.forEach((h, idx) => { o[h] = (r[idx] ?? '').trim() })
-      return o
-    })
-  return { headers, rows }
+  return grid
 }

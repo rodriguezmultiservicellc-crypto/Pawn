@@ -17,6 +17,13 @@ type Current = {
   gracePeriodDays: number | null
   buyHoldPeriodDays: number
   abandonedRepairDays: number
+  ofacEnabled: boolean
+}
+
+type OfacListInfo = {
+  publishedOn: string | null
+  fetchedAt: string
+  individuals: number
 }
 
 type Effective = {
@@ -34,11 +41,13 @@ export default function ComplianceSettingsContent({
   jurisdictions,
   current,
   effective,
+  ofacList,
 }: {
   canEdit: boolean
   jurisdictions: Jurisdiction[]
   current: Current
   effective: Effective
+  ofacList: OfacListInfo | null
 }) {
   const { t } = useI18n()
   const tj = t.jurisdiction.settings
@@ -160,6 +169,27 @@ export default function ComplianceSettingsContent({
             disabled={!canEdit}
             required
           />
+        </div>
+
+        <div className="rounded-xl border border-border bg-background p-3">
+          <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <input
+              type="checkbox"
+              name="ofac_screening_enabled"
+              defaultChecked={current.ofacEnabled}
+              disabled={!canEdit}
+              className="h-4 w-4 accent-[var(--color-blue)]"
+            />
+            {t.ofac.settings.toggle}
+          </label>
+          <p className="mt-1 text-xs text-muted">{t.ofac.settings.help}</p>
+          <p className="mt-1 text-xs text-muted">
+            {ofacList
+              ? t.ofac.settings.listStatus
+                  .replace('{date}', ofacList.publishedOn ?? ofacList.fetchedAt.slice(0, 10))
+                  .replace('{n}', ofacList.individuals.toLocaleString())
+              : t.ofac.settings.listMissing}
+          </p>
         </div>
 
         <p className="text-xs text-muted">

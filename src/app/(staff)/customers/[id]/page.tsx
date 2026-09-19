@@ -7,6 +7,8 @@ import {
   getSignedUrl,
 } from '@/lib/supabase/storage'
 import CustomerDetail, { type CustomerDocumentItem } from './content'
+import type { OfacScreeningView } from '@/components/customers/OfacPanel'
+import type { OfacMatch } from '@/lib/compliance/ofac/match'
 import type {
   LayawayStatus,
   Language,
@@ -228,6 +230,38 @@ export default async function CustomerDetailPage(props: { params: Params }) {
     !!ctx.tenantRole &&
     ['owner', 'chain_admin', 'manager'].includes(ctx.tenantRole)
 
+  // OFAC screening status (patches/0051) — latest screening + tenant toggle.
+  const [{ data: ofacRows }, { data: ofacSettings }] = await Promise.all([
+    admin
+      .from('ofac_screenings')
+      .select(
+        'id, result, review_status, review_note, reviewed_at, created_at, list_fetched_at, matches, carried_from',
+      )
+      .eq('tenant_id', ctx.tenantId)
+      .eq('customer_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1),
+    admin
+      .from('settings')
+      .select('ofac_screening_enabled')
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle(),
+  ])
+  const ofacRow = ofacRows?.[0]
+  const ofacLatest: OfacScreeningView | null = ofacRow
+    ? {
+        id: ofacRow.id,
+        result: ofacRow.result as OfacScreeningView['result'],
+        reviewStatus: ofacRow.review_status as OfacScreeningView['reviewStatus'],
+        reviewNote: ofacRow.review_note,
+        reviewedAt: ofacRow.reviewed_at,
+        createdAt: ofacRow.created_at,
+        listFetchedAt: ofacRow.list_fetched_at,
+        matches: (ofacRow.matches as unknown as OfacMatch[]) ?? [],
+        carried: ofacRow.carried_from != null,
+      }
+    : null
+
   return (
     <CustomerDetail
       customer={customerNarrowed}
@@ -247,6 +281,11 @@ export default async function CustomerDetailPage(props: { params: Params }) {
           : null,
         canManage: canManagePortal,
         portalLoginUrl,
+      }}
+      ofac={{
+        enabled: ofacSettings?.ofac_screening_enabled !== false,
+        latest: ofacLatest,
+        canReview: canAdjust,
       }}
       loyalty={{
         enabled: loyaltyEnabled,

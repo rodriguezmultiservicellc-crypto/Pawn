@@ -2518,6 +2518,169 @@ export type Database = {
           },
         ]
       }
+      ofac_list_versions: {
+        Row: {
+          fetched_at: string
+          id: string
+          individual_count: number
+          is_current: boolean
+          name_count: number
+          published_on: string | null
+          source_sha256: string
+        }
+        Insert: {
+          fetched_at?: string
+          id?: string
+          individual_count?: number
+          is_current?: boolean
+          name_count?: number
+          published_on?: string | null
+          source_sha256: string
+        }
+        Update: {
+          fetched_at?: string
+          id?: string
+          individual_count?: number
+          is_current?: boolean
+          name_count?: number
+          published_on?: string | null
+          source_sha256?: string
+        }
+        Relationships: []
+      }
+      ofac_screenings: {
+        Row: {
+          carried_from: string | null
+          context: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          list_fetched_at: string | null
+          list_version_id: string | null
+          matches: Json
+          result: string
+          review_note: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          screened_dob: string | null
+          screened_name: string
+          tenant_id: string
+          top_score: number
+        }
+        Insert: {
+          carried_from?: string | null
+          context: string
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          list_fetched_at?: string | null
+          list_version_id?: string | null
+          matches?: Json
+          result: string
+          review_note?: string | null
+          review_status: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screened_dob?: string | null
+          screened_name: string
+          tenant_id: string
+          top_score?: number
+        }
+        Update: {
+          carried_from?: string | null
+          context?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          list_fetched_at?: string | null
+          list_version_id?: string | null
+          matches?: Json
+          result?: string
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screened_dob?: string | null
+          screened_name?: string
+          tenant_id?: string
+          top_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ofac_screenings_carried_from_fkey"
+            columns: ["carried_from"]
+            isOneToOne: false
+            referencedRelation: "ofac_screenings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofac_screenings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofac_screenings_list_version_id_fkey"
+            columns: ["list_version_id"]
+            isOneToOne: false
+            referencedRelation: "ofac_list_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofac_screenings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ofac_sdn_names: {
+        Row: {
+          ent_num: number
+          id: number
+          is_alias: boolean
+          name: string
+          name_norm: string
+          programs: string | null
+          remarks: string | null
+          version_id: string
+        }
+        Insert: {
+          ent_num: number
+          id?: never
+          is_alias?: boolean
+          name: string
+          name_norm: string
+          programs?: string | null
+          remarks?: string | null
+          version_id: string
+        }
+        Update: {
+          ent_num?: number
+          id?: never
+          is_alias?: boolean
+          name?: string
+          name_norm?: string
+          programs?: string | null
+          remarks?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ofac_sdn_names_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "ofac_list_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pawn_intake_categories: {
         Row: {
           created_at: string
@@ -3574,6 +3737,7 @@ export type Database = {
           loyalty_redemption_rate: number
           loyalty_referral_bonus: number
           min_loan_amount: number | null
+          ofac_screening_enabled: boolean
           pawn_ticket_backpage: string | null
           resend_from_email: string | null
           resend_from_name: string | null
@@ -3605,6 +3769,7 @@ export type Database = {
           loyalty_redemption_rate?: number
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
+          ofac_screening_enabled?: boolean
           pawn_ticket_backpage?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
@@ -3636,6 +3801,7 @@ export type Database = {
           loyalty_redemption_rate?: number
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
+          ofac_screening_enabled?: boolean
           pawn_ticket_backpage?: string | null
           resend_from_email?: string | null
           resend_from_name?: string | null
@@ -4539,6 +4705,21 @@ export type Database = {
       next_tenant_counter: {
         Args: { p_counter_name: string; p_tenant_id: string }
         Returns: number
+      }
+      ofac_activate_version: {
+        Args: { p_version_id: string }
+        Returns: undefined
+      }
+      ofac_candidates: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          ent_num: number
+          is_alias: boolean
+          name: string
+          programs: string
+          remarks: string
+          version_id: string
+        }[]
       }
       seed_default_message_templates: {
         Args: { p_tenant_id: string }

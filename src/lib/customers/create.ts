@@ -4,6 +4,7 @@ import { customerCreateSchema } from '@/lib/validations/customer'
 import { logAudit } from '@/lib/audit'
 import { applyReferredByCode } from '@/lib/loyalty/events'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { screenCustomer } from '@/lib/compliance/ofac/screen'
 import type { requireStaff } from '@/lib/supabase/guards'
 
 /** Form keys we read off FormData for a customer create. Shared by the full
@@ -162,6 +163,28 @@ export async function createCustomerFromForm(args: {
       dl_scan_captured: v.dl_raw_payload != null,
     },
   })
+
+  // OFAC screening on creation (patches/0051) — informational here; the
+  // pawn / buy intake gate is what enforces. Never blocks creation.
+  try {
+    const admin = createAdminClient()
+    const { data: s } = await admin
+      .from('settings')
+      .select('ofac_screening_enabled')
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    if (s?.ofac_screening_enabled !== false) {
+      await screenCustomer({
+        admin,
+        tenantId,
+        customerId: data.id,
+        context: 'customer_create',
+        userId,
+      })
+    }
+  } catch (err) {
+    console.error('[customers.create] OFAC screening failed', err)
+  }
 
   return { ok: true, id: data.id, firstName: v.first_name, lastName: v.last_name }
 }

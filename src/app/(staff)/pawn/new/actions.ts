@@ -19,6 +19,8 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { logAudit } from '@/lib/audit'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { intakeGate } from '@/lib/compliance/ofac/screen'
 import { readCollateralRows } from '@/lib/pawn/intake-form'
 import { addDaysIso } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
@@ -294,6 +296,17 @@ export async function createLoanAction(
 
   if (!customer) return { error: 'customer_not_found' }
 
+  // Banned list + OFAC SDN screening (patches/0051). Refuses the intake on
+  // a ban, an unreviewed potential match, or a confirmed match.
+  const gate = await intakeGate({
+    admin: createAdminClient(),
+    tenantId,
+    customerId: v.customer_id,
+    context: 'pawn_intake',
+    userId,
+  })
+  if (!gate.ok) return { error: gate.code }
+
   // Phase 1 of intake: insert the loan first to obtain the id (for storage paths).
   // Trigger assigns ticket_number.
   const { data: loanRow, error: loanErr } = await supabase
@@ -461,6 +474,7 @@ export async function createLoanAction(
   // are JSONB so the police-report exporter has a deterministic source.
   const customerSnapshot = {
     id: customer.id,
+    ofac_screening_id: gate.screeningId,
     first_name: customer.first_name,
     last_name: customer.last_name,
     middle_name: customer.middle_name,

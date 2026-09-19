@@ -751,6 +751,8 @@ export const es: Dictionary = {
       // Customer-specific
       ban: 'Bloqueado',
       unban: 'Desbloqueado',
+      ofac_screen: 'Revisión OFAC realizada',
+      ofac_review: 'Coincidencia OFAC revisada',
       doc_upload: 'Documento subido',
       doc_delete: 'Documento eliminado',
       // Inventory-specific
@@ -3425,6 +3427,57 @@ export const es: Dictionary = {
       verifiedSource: 'Verificado contra (cita)',
       notes: 'Notas',
       active: 'Activa (las tiendas pueden elegirla)',
+    },
+  },
+
+  ofac: {
+    intakeErrors: {
+      customer_banned: 'Este cliente está en la lista de bloqueados. La transacción no puede continuar.',
+      ofac_review_required:
+        'Posible coincidencia en la lista de sanciones OFAC. Un gerente debe revisarla en el expediente del cliente antes de continuar con esta transacción.',
+      ofac_confirmed_match:
+        'Este cliente es una coincidencia confirmada en la lista de sanciones OFAC. La transacción no puede continuar.',
+      compliance_log_failed:
+        'La transacción no se pudo registrar en el reporte policial, así que no se guardó. Intenta de nuevo o contacta a soporte.',
+    },
+    panel: {
+      title: 'Revisión de sanciones OFAC',
+      subtitle: 'Se verifica contra la lista SDN del Tesoro de EE. UU. en cada empeño y compra.',
+      disabled: 'La revisión está apagada en esta tienda (Configuración → Jurisdicción y reglas legales).',
+      screenNow: 'Revisar ahora',
+      screening: 'Revisando…',
+      statusNever: 'Aún no se ha revisado.',
+      statusUnavailable: 'La lista aún no está cargada — no se pudo revisar.',
+      statusClear: 'Sin coincidencias en la lista SDN.',
+      statusPending: 'Posible coincidencia — requiere revisión antes de cualquier empeño o compra.',
+      statusConfirmed: 'Coincidencia confirmada — cliente bloqueado.',
+      statusCleared: 'Revisado — descartado como falso positivo.',
+      statusCarried: 'Descartado — las mismas entradas ya se revisaron y descartaron antes.',
+      screenedOn: 'Revisado el {date} contra la lista publicada el {list}.',
+      colName: 'Nombre en la lista SDN',
+      colPrograms: 'Programas',
+      colDob: 'Año(s) de nacimiento',
+      colScore: 'Coincidencia',
+      alias: 'alias',
+      dobConflict: 'año de nacimiento distinto',
+      reviewNote: 'Nota de revisión',
+      managerOnly: 'Un propietario o gerente debe revisar esta coincidencia.',
+      reviewTitle: 'Revisar esta coincidencia',
+      reviewHelp:
+        'Compara la identificación, fecha de nacimiento y dirección con la entrada SDN. Descártala solo si estás seguro de que es otra persona. Documenta el motivo.',
+      decisionCleared: 'No coincide (falso positivo)',
+      decisionConfirmed: 'Coincidencia confirmada',
+      notePlaceholder: '¿Por qué? p. ej. nacimiento 1985 vs SDN 1951; licencia de FL verificada.',
+      noteRequired: 'Escribe al menos 10 caracteres explicando la decisión.',
+      submitReview: 'Guardar revisión',
+      confirmPrompt:
+        'Confirmar pone a este cliente en la lista de bloqueados y bloquea todo empeño y compra. Reporta la coincidencia a OFAC según corresponda. ¿Continuar?',
+    },
+    settings: {
+      toggle: 'Revisar clientes contra la lista SDN de OFAC',
+      help: 'Se ejecuta en cada empeño y compra. Una posible coincidencia bloquea la transacción hasta que un propietario o gerente la revise.',
+      listStatus: 'Lista en uso: publicada el {date}, {n} personas. Se actualiza a diario.',
+      listMissing: 'La lista SDN aún no se ha cargado — se actualiza a diario.',
     },
   },
 }

@@ -1,12 +1,24 @@
 import type { Dictionary } from '@/lib/i18n/en'
 import { parseJurisdictionError } from './rules'
 
+const INTAKE_BLOCK_CODES = [
+  'customer_banned',
+  'ofac_review_required',
+  'ofac_confirmed_match',
+  'compliance_log_failed',
+] as const
+
 /**
- * Translate a jurisdiction-rule error code (from a server action or the DB
- * trigger message) into the user's language. Anything that isn't a rule
- * error is returned unchanged so existing raw-code displays keep working.
+ * Translate a rule / intake-block error code (from a server action or a DB
+ * trigger message) into the user's language: jurisdiction limits
+ * (patches/0048), repair abandonment, and the intake gate (banned list +
+ * OFAC, patches/0051). Anything else is returned unchanged so existing
+ * raw-code displays keep working.
  */
 export function ruleErrorText(t: Dictionary, raw: string): string {
+  const block = INTAKE_BLOCK_CODES.find((c) => raw === c)
+  if (block) return t.ofac.intakeErrors[block]
+
   const parsed = parseJurisdictionError(raw) ?? parseRepairAbandon(raw)
   if (!parsed) return raw
   const m = t.jurisdiction.errors
