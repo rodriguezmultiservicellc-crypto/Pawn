@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft,
+  HandCoins,
   Image as ImageIcon,
   Plus,
   Star,
@@ -14,6 +15,8 @@ import {
   X,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { formatMoney } from '@/lib/format/money'
+import { splitConsignment, toMoney } from '@/lib/consignment/math'
 import {
   InventoryFormFields,
   type ConsignorOption,
@@ -132,6 +135,20 @@ function asFieldStr(v: number | string | null | undefined): string | null {
 }
 
 /**
+ * What the consignor would take home if this item sold at its current
+ * price. Uses the same splitConsignment() the accrual trigger mirrors, so
+ * the preview and the eventual payable agree.
+ */
+function consignedPayoutPreview(item: ItemRecord): string {
+  const price = toMoney(item.sale_price ?? item.list_price)
+  const { payable } = splitConsignment({
+    gross: price,
+    commissionPct: toMoney(item.consignment_commission_pct),
+  })
+  return formatMoney(payable)
+}
+
+/**
  * Map a flat string-only echo from the server-action error response back
  * into InventoryFieldValues so uncontrolled inputs can be repopulated
  * after React 19's auto-form-reset.
@@ -176,6 +193,10 @@ function echoToInventoryFieldValues(
         ? echo.tags.split(',').map((t) => t.trim()).filter(Boolean)
         : [],
     is_hidden_from_catalog: echo.is_hidden_from_catalog === 'on',
+    consignor_id: s('consignor_id'),
+    consignment_commission_pct: s('consignment_commission_pct'),
+    consignment_min_price: s('consignment_min_price'),
+    consignment_expires_on: s('consignment_expires_on'),
   }
 }
 
@@ -268,8 +289,25 @@ export default function InventoryDetail({
         <span className="font-mono text-xs text-muted">{item.sku}</span>
       </div>
 
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-bold">{item.description}</h1>
+        {/* Consigned goods are not the shop's property, and the register
+            refuses a line under the agreed floor. Say both here, where a
+            clerk looks before quoting a price. */}
+        {item.consignor_id ? (
+          <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs text-foreground">
+            <HandCoins size={14} weight="bold" className="text-gold" />
+            {t.consignment.item.badge}
+            {item.consignment_commission_pct != null ? (
+              <span className="font-mono text-muted">
+                {t.consignment.item.badgeOwed.replace(
+                  '{amount}',
+                  consignedPayoutPreview(item),
+                )}
+              </span>
+            ) : null}
+          </span>
+        ) : null}
       </div>
 
       <PhotosPanel itemId={item.id} photos={photos} />

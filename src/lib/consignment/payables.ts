@@ -3,7 +3,7 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import type { PaymentMethod } from '@/types/database-aliases'
-import { openBalance, toMoney } from './math'
+import { toMoney } from './math'
 
 type AdminClient = SupabaseClient<Database>
 
@@ -52,24 +52,6 @@ export async function defaultCommissionPct(
     .maybeSingle()
   const pct = toMoney(data?.consignment_default_commission_pct)
   return pct > 0 && pct <= 1 ? pct : 0.2
-}
-
-/**
- * What the shop currently owes one consignor. Reads the ledger rather than
- * a cached column: payables are written by triggers, and a stale cache on a
- * money figure is worse than one extra query.
- */
-export async function consignorBalance(
-  admin: AdminClient,
-  args: { tenantId: string; consignorId: string },
-): Promise<number> {
-  const { data } = await admin
-    .from('consignment_payables')
-    .select('payable_amount, status')
-    .eq('tenant_id', args.tenantId)
-    .eq('consignor_id', args.consignorId)
-    .eq('status', 'open')
-  return openBalance(data ?? [])
 }
 
 /** Open balances for many consignors at once — for the list page. */

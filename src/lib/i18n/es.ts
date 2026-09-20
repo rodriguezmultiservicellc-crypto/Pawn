@@ -3511,7 +3511,6 @@ export const es: Dictionary = {
       recentActivity: 'Actividad reciente',
       noActivity: 'Aún no hay movimientos de crédito.',
       adjustButton: 'Ajustar crédito',
-      viewAll: 'Ver toda la actividad',
     },
 
     adjust: {
@@ -3629,7 +3628,6 @@ export const es: Dictionary = {
 
     detail: {
       backToList: 'Volver a consignatarios',
-      terms: 'Términos',
       commissionLine: 'La tienda se queda {pct} · el consignatario recibe {rest}',
       balanceOwed: 'Se le debe al consignatario',
       balanceOwedToShop: 'El consignatario le debe a la tienda',

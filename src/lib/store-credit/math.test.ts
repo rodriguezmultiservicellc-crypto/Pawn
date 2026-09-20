@@ -3,7 +3,6 @@ import {
   maxRedeemable,
   r2,
   r4,
-  sumDeltas,
   toMoney,
   validateRedemption,
 } from './math'
@@ -92,21 +91,5 @@ describe('validateRedemption', () => {
       balanceDue: 0.3,
     })
     expect(res).toEqual({ ok: true, amount: 0.3 })
-  })
-})
-
-describe('sumDeltas', () => {
-  it('nets issues against redemptions', () => {
-    expect(
-      sumDeltas([
-        { amount_delta: 100 },
-        { amount_delta: '-25.5000' },
-        { amount_delta: -10 },
-      ]),
-    ).toBe(64.5)
-  })
-
-  it('is zero for an empty ledger', () => {
-    expect(sumDeltas([])).toBe(0)
   })
 })

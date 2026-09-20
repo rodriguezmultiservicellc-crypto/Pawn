@@ -6,22 +6,11 @@
  * helper the POS cart uses. Display rounds to 2.
  */
 
-/** Round to 4 decimal places — the numeric(18,4) grid money lives on. */
-export function r4(n: number): number {
-  return Math.round((n + Number.EPSILON) * 10000) / 10000
-}
+import { r2, r4, toMoney } from '@/lib/money'
 
-/** Round to cents. Use for anything a human reads or types. */
-export function r2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100
-}
-
-/** Coerce a Supabase numeric (string | number | null) to a JS number. */
-export function toMoney(v: unknown): number {
-  if (v == null) return 0
-  const n = typeof v === 'number' ? v : Number(v)
-  return Number.isFinite(n) ? n : 0
-}
+// Re-exported so callers of this module keep one import for store-credit
+// arithmetic. The implementations live in lib/money.ts.
+export { r2, r4, toMoney }
 
 /**
  * The most store credit that can go onto a sale right now: never more than
@@ -76,12 +65,3 @@ export function validateRedemption(args: {
   return { ok: true, amount }
 }
 
-/**
- * Sum a ledger slice. Used for the customer panel's running total and for
- * reconciling the materialized balance against the events that built it.
- */
-export function sumDeltas(
-  events: ReadonlyArray<{ amount_delta: number | string }>,
-): number {
-  return r4(events.reduce((acc, e) => acc + toMoney(e.amount_delta), 0))
-}

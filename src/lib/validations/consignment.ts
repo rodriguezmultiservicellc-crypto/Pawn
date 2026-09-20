@@ -20,24 +20,6 @@ const optionalTrimmedString = z
   )
   .transform((v) => v ?? null)
 
-const optionalDate = z
-  .preprocess(
-    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
-    z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'invalid_date')
-      .nullable()
-      .optional(),
-  )
-  .transform((v) => (v === '' || v == null ? null : v))
-
-const optionalMoney = z
-  .preprocess(
-    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
-    z.coerce.number().nonnegative().finite().max(10_000_000).nullable().optional(),
-  )
-  .transform((v) => (v == null ? null : v))
-
 /** 0..1 inclusive — the same domain as the NUMERIC(6,4) CHECK. */
 const commissionFraction = z.preprocess(
   (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
@@ -71,22 +53,6 @@ export const consignorPayoutSchema = z.object({
   reference: optionalTrimmedString,
 })
 export type ConsignorPayoutInput = z.infer<typeof consignorPayoutSchema>
-
-/**
- * The consignment block on the inventory form. Only read when
- * source === 'consigned'; a consignor with no commission is refused by the
- * inventory_items_consignment_coherent CHECK, so the schema requires it
- * rather than letting the DB produce an untranslated error.
- */
-export const inventoryConsignmentSchema = z.object({
-  consignor_id: z.string().uuid('invalid_consignor'),
-  consignment_commission_pct: commissionFraction,
-  consignment_min_price: optionalMoney,
-  consignment_expires_on: optionalDate,
-})
-export type InventoryConsignmentInput = z.infer<
-  typeof inventoryConsignmentSchema
->
 
 /** Hand a consigned item back to its owner, unsold. */
 export const consignmentReturnItemSchema = z.object({

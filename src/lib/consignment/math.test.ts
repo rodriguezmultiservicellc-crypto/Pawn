@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  checkFloorPrice,
   daysUntilExpiry,
   lifetimeCommission,
   lifetimeGross,
@@ -80,53 +79,6 @@ describe('lifetime totals', () => {
 
   it('nets reversals out of commission earned', () => {
     expect(lifetimeCommission(rows)).toBe(150)
-  })
-})
-
-describe('checkFloorPrice', () => {
-  it('passes an item with no floor agreed', () => {
-    expect(
-      checkFloorPrice({ unitPrice: 5, quantity: 1, floor: null }),
-    ).toEqual({ ok: true })
-  })
-
-  it('passes at exactly the floor', () => {
-    expect(checkFloorPrice({ unitPrice: 300, quantity: 1, floor: 300 })).toEqual(
-      { ok: true },
-    )
-  })
-
-  it('catches a unit price under the floor', () => {
-    expect(checkFloorPrice({ unitPrice: 250, quantity: 1, floor: 300 })).toEqual(
-      { ok: false, effective: 250, floor: 300 },
-    )
-  })
-
-  it('catches a line discount that walks through the floor', () => {
-    // This is the case a unit_price-only check would miss: sticker is at
-    // the floor, but $60 off the line puts the realized price under it.
-    expect(
-      checkFloorPrice({
-        unitPrice: 300,
-        quantity: 1,
-        lineDiscount: 60,
-        floor: 300,
-      }),
-    ).toEqual({ ok: false, effective: 240, floor: 300 })
-  })
-
-  it('compares per unit, not per line, on multi-quantity lines', () => {
-    expect(
-      checkFloorPrice({ unitPrice: 300, quantity: 3, floor: 300 }),
-    ).toEqual({ ok: true })
-    expect(
-      checkFloorPrice({
-        unitPrice: 300,
-        quantity: 3,
-        lineDiscount: 90,
-        floor: 300,
-      }),
-    ).toEqual({ ok: false, effective: 270, floor: 300 })
   })
 })
 

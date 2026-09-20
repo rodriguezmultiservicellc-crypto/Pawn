@@ -3509,7 +3509,6 @@ export const en = {
       recentActivity: 'Recent activity',
       noActivity: 'No store credit activity yet.',
       adjustButton: 'Adjust credit',
-      viewAll: 'View all activity',
     },
 
     adjust: {
@@ -3624,7 +3623,6 @@ export const en = {
 
     detail: {
       backToList: 'Back to consignors',
-      terms: 'Terms',
       commissionLine: 'Shop keeps {pct} · consignor gets {rest}',
       balanceOwed: 'Owed to consignor',
       balanceOwedToShop: 'Consignor owes the shop',

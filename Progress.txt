@@ -99,9 +99,12 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~40% at save time.
-  Last worked on: Feature 4 finished end to end and verified. Clean
-                  stopping point.
+  Context budget: ~45% at save time (checkpointed twice: the feature
+                  commit, then the pre-save quality gate).
+  Last worked on: Feature 4 finished, verified, then swept by the
+                  pre-save quality gate — which found a real echo bug
+                  on the inventory edit form, 4 orphan i18n keys and
+                  5 dead helpers (items 377-379). Clean stopping point.
 
   ACTIVE FILE(S) (all committed):
     - patches/0052-payment-method-store-credit.sql,
@@ -115,6 +118,7 @@ OPERATION IN FLIGHT: none
     - src/app/(staff)/customers/[id]/store-credit-actions.ts
     - src/app/(staff)/pos/sales/[id]/store-credit-actions.ts
     - src/components/store-credit/**, src/components/consignment/**
+    - src/lib/money.ts (new — the one r4 / r2 / toMoney)
 
   RESUME POINT:
     Clean stopping point — all four PawnSmarts-parity features are
@@ -155,6 +159,11 @@ OPERATION IN FLIGHT: none
       (they are neither cash nor a card batch).
     - Settings hub (/settings) and the buy receipt page (/buy/[id]) are
       hardcoded English — pre-existing Rule 6 debt, not from this work.
+    - r4 / toMoney are duplicated across lib/pawn/math.ts,
+      lib/pos/cart.ts and lib/repair/billing.ts. src/lib/money.ts is now
+      the one implementation for new code; folding those three into it
+      is a repo-wide money refactor on three shipped surfaces and needs
+      an explicit go-ahead.
 
   KEY DECISIONS LOCKED (Session 51):
     - A TENDER THAT MOVES SOMEONE'S BALANCE IS ONE TRANSACTION OR IT IS
@@ -875,6 +884,43 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      re-completion, payout + "nothing payable", pro-rata partial return,
      the over-return clamp and the void clamp. tsc, eslint, 504 unit
      tests and the production build are all green.
+
+ 377. PRE-SAVE QUALITY GATE — 4 ORPHAN i18n KEYS. storeCredit.panel
+     .viewAll and consignment.detail.terms were written and never wired
+     (the terms heading reuses form.editTitle); both deleted from EN+ES.
+     consignment.item.badge / .badgeOwed were written for a consigned-
+     item badge that never got built — BUILT it instead of deleting:
+     the inventory detail header now shows "On consignment" plus what
+     the consignor takes home at the current price, via the shared
+     splitConsignment() so the preview and the eventual accrual agree.
+     That page previously said nothing about an item not being the
+     shop's property, which is exactly what a clerk needs to know
+     before quoting a price under a trigger-enforced floor.
+
+ 378. [BUG] CONSIGNMENT FIELDS LOST ON A VALIDATION ERROR.
+     echoToInventoryFieldValues() in inventory/[id]/content.tsx never
+     mapped the four consignment fields, so a failed save on the EDIT
+     form silently reverted the clerk's typed consignor / commission /
+     floor / expiry back to the DB values — the exact wipe the echo
+     mechanism exists to prevent. (The NEW form was already correct.)
+     Mapped them.
+
+ 379. DEAD CODE + DUPLICATE LOGIC SWEEP. Deleted five helpers written
+     ahead of consumers that nothing called: readBalance,
+     consignorBalance (the singular — the list uses the plural, the
+     detail computes from the ledger it already has), sumDeltas,
+     checkFloorPrice (the DB trigger is the authority; a second copy of
+     that rule in dead TS is pure drift risk) and
+     inventoryConsignmentSchema, plus their tests and two now-unused
+     Zod helpers. Extracted src/lib/money.ts for r4 / r2 / toMoney,
+     which this session had copy-pasted into TWO new modules;
+     store-credit/math.ts and consignment/math.ts now re-export from
+     it. FLAGGED, NOT TOUCHED: r4 / toMoney also sit duplicated in
+     lib/pawn/math.ts, lib/pos/cart.ts and lib/repair/billing.ts —
+     pre-existing, load-bearing on three shipped surfaces, and a
+     repo-wide money refactor is the operator's call, not a gate fix.
+     497 tests (down from 504 — the seven that only exercised deleted
+     helpers went with them), lint / tsc / build green.
 
 --- Session 50 (2026-09-19) — PawnSmarts-parity: jurisdiction rules + comms automations + OFAC screening ---
 

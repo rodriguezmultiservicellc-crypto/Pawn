@@ -7,19 +7,11 @@
  * formula so a clerk's preview matches what the trigger will book.
  */
 
-export function r4(n: number): number {
-  return Math.round((n + Number.EPSILON) * 10000) / 10000
-}
+import { r2, r4, toMoney } from '@/lib/money'
 
-export function r2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100
-}
-
-export function toMoney(v: unknown): number {
-  if (v == null) return 0
-  const n = typeof v === 'number' ? v : Number(v)
-  return Number.isFinite(n) ? n : 0
-}
+// Re-exported so callers of this module keep one import for consignment
+// arithmetic. The implementations live in lib/money.ts.
+export { r2, r4, toMoney }
 
 export type ConsignmentSplit = {
   /** What the line realized. */
@@ -78,38 +70,6 @@ export function lifetimeCommission(
   rows: ReadonlyArray<{ commission_amount: number | string }>,
 ): number {
   return r4(rows.reduce((acc, r) => acc + toMoney(r.commission_amount), 0))
-}
-
-export type FloorCheck =
-  | { ok: true }
-  | { ok: false; effective: number; floor: number }
-
-/**
- * Would this line break the consignor's floor price?
- *
- * Checks the EFFECTIVE unit price — after the line discount — because that
- * is what the shop actually collects and what
- * trg_sale_items_consignment_floor enforces. A UI that only checked
- * unit_price would let a clerk build a cart the database then refuses.
- */
-export function checkFloorPrice(args: {
-  unitPrice: number
-  quantity: number
-  lineDiscount?: number
-  floor: number | null | undefined
-}): FloorCheck {
-  const floor = args.floor == null ? null : r4(toMoney(args.floor))
-  if (floor == null) return { ok: true }
-
-  const qty = toMoney(args.quantity)
-  const unit = r4(toMoney(args.unitPrice))
-  if (!(qty > 0)) {
-    return unit < floor ? { ok: false, effective: unit, floor } : { ok: true }
-  }
-
-  const lineTotal = r4(unit * qty - toMoney(args.lineDiscount))
-  const effective = r4(lineTotal / qty)
-  return effective < floor ? { ok: false, effective, floor } : { ok: true }
 }
 
 /**

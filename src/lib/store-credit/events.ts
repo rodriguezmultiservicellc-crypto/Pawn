@@ -45,18 +45,6 @@ export async function isStoreCreditEnabled(
   return data?.store_credit_enabled === true
 }
 
-export async function readBalance(
-  admin: AdminClient,
-  customerId: string,
-): Promise<number> {
-  const { data } = await admin
-    .from('customers')
-    .select('store_credit_balance')
-    .eq('id', customerId)
-    .maybeSingle()
-  return toMoney(data?.store_credit_balance)
-}
-
 // ── Issuing ───────────────────────────────────────────────────────────────
 
 type IssueResult =
