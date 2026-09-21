@@ -5,31 +5,47 @@ File:    Progress.txt
 ================================================================================
 
 ################################################################################
-#  !! SECURITY — SCAFFOLD RLS HOLES — audit + fix before next release !!        #
-#  (flagged 2026-07-03 from the Tocoloro build session; Eddy deferred fixing)   #
+#  SECURITY — SCAFFOLD HOLES: AUDITED + CLOSED 2026-09-21 (Session 52)          #
+#  (flagged 2026-07-03 from the Tocoloro build session; deferred until now)     #
 ################################################################################
-  The saas-builder scaffold that generated this app's supabase/schema-foundation.sql
-  shipped TWO RLS holes. LUNA AZUL was CONFIRMED live-vulnerable on 2026-07-03. This
-  app shares the same scaffold origin -> assume vulnerable until a READ-ONLY audit
-  proves otherwise. NOT yet audited or fixed here.
+  Both saas-builder scaffold holes are now resolved on THIS project. Patch
+  patches/0056-profiles-privilege-escalation-fix.sql, applied to the live DB.
 
-  1. profiles PRIVILEGE ESCALATION (critical). The profiles UPDATE policy pins only
-     row OWNERSHIP (WITH CHECK = auth.uid()=id) and `authenticated` holds UPDATE on
-     role / role_id / tenant_id. Any logged-in user can PATCH their own profile via
-     PostgREST to self-escalate role or jump tenants. An audit trigger only LOGS it;
-     RLS is not a column-authz control — the grant layer is.
-  2. schema_migrations RLS. If RLS is OFF on schema_migrations, Supabase default grants
-     let anon READ + INSERT the migration ledger. (Luna Azul had RLS on here; check yours.)
+  1. profiles PRIVILEGE ESCALATION (critical) — WAS CONFIRMED LIVE VULNERABLE
+     here by read-only audit on 2026-09-21. `anon` AND `authenticated` held
+     table-level UPDATE on every profiles column including role + tenant_id,
+     while policy profiles_update_own pinned only row ownership (USING
+     id = auth.uid(), no WITH CHECK). Any logged-in user could PATCH their own
+     profile to role='superadmin'. Payoff was total: my_is_superadmin() short-
+     circuits every tenant policy, and billing_invoices + tenant_subscriptions
+     gate directly on profiles.role.
+     CLOSED by two layers:
+       - GRANT layer (the actual control): REVOKE INSERT/UPDATE/DELETE/TRUNCATE/
+         REFERENCES from anon+authenticated, then GRANT UPDATE
+         (full_name, avatar_url, language) TO authenticated. `email` is
+         deliberately excluded — it mirrors auth.users.email and is rendered as
+         identity in /audit and /team.
+       - Guard trigger trg_profiles_guard_privilege_columns: refuses any change
+         to role/tenant_id under an end-user JWT, so the invariant survives a
+         future careless re-GRANT. Escape hatch is a transaction-local GUC
+         (app.profile_privilege_write) set only by
+         claim_tenant_with_license_key, which 0056 re-creates for that purpose.
+     No RLS policy was touched (CLAUDE.md rule 1).
+  2. schema_migrations RLS — NOT APPLICABLE HERE. This project has no
+     schema_migrations table (migrations run via scripts/apply-migration.mjs),
+     and the audit confirmed every table in `public` already has RLS enabled.
 
-  FIX (now in C:\Users\rodri\.claude\skills\saas-builder\assets\schema-foundation.sql;
-  applied to Tocoloro):
-   - REVOKE INSERT,UPDATE,DELETE ON profiles FROM anon, authenticated; then
-     GRANT UPDATE (<only THIS app's real self-editable cols>) TO authenticated,
-     EXCLUDING role/role_id/tenant_id/is_active*. Do NOT blind-copy Tocoloro's
-     3-column grant or you lock users out of editing their own name/phone/etc.
-     Trigger alternative: BEFORE UPDATE raising unless those cols unchanged OR superadmin.
-   - ALTER TABLE public.schema_migrations ENABLE ROW LEVEL SECURITY;
-  Read-only audit probe + full context:
+  VERIFIED against the live DB (all tests forced to roll back):
+     exploit as `authenticated` SET role=superadmin  -> BLOCKED 42501
+     exploit as `authenticated` SET tenant_id        -> BLOCKED 42501
+     grant layer bypassed (owner role) + user JWT    -> BLOCKED by trigger
+     service_role / admin client writing role        -> still allowed
+     license-key onboarding escape hatch             -> still allowed
+     hatch does not leak to a later statement        -> BLOCKED
+     regression: language / full_name / avatar_url   -> still self-editable
+
+  Sister apps NOT yet fixed: LUNA AZUL is confirmed live-vulnerable (audited
+  2026-07-03, still open). Abacus + Apostilla unaudited. Full context:
   C:\Users\rodri\.claude\projects\c--Users-rodri-OneDrive-Documents-Claude-Projects-Para-Cuba-Solutions\memory\saas-scaffold-security-holes.md
 ################################################################################
 
@@ -121,25 +137,28 @@ OPERATION IN FLIGHT: none
     - src/lib/money.ts (new — the one r4 / r2 / toMoney)
 
   RESUME POINT:
-    Clean stopping point — all four PawnSmarts-parity features are
-    shipped. Both new modules are OFF by default
-    (settings.store_credit_enabled / settings.consignment_enabled), so
-    nothing changes for a tenant until an owner flips them on at
-    /settings/store-credit and /settings/consignment. Neither module has
-    been opened in a browser yet — the DB rules were proven against the
-    live database, the UI was not. Next is either the browser smoke of
-    features 1-4 or the still-open [SECURITY] profiles
-    privilege-escalation grant fix (banner at the top of this file,
-    open four sessions now).
+    Clean stopping point. Session 52 closed the profiles privilege-
+    escalation hole (0056, applied + verified — see banner at top) and
+    ran an authenticated HTTP smoke over every feature 1-4 surface:
+    33 routes exercised as a real logged-in superadmin/owner session,
+    30 clean, 3 correct-by-design non-200s, 0 server exceptions, 0 i18n
+    key echoes. Two surfaces remain UNEXERCISED for lack of seed data:
+    the sale detail page (store-credit tender block) and the consignor
+    detail page (payout) — this tenant has zero sales and zero
+    consignors. Next is either seeding one sale + one consignor to
+    finish those two, or the CRON_SECRET op item (below), which is the
+    only thing still broken in production.
 
   OPEN ISSUES / BLOCKERS:
-    - [SECURITY, CRITICAL] profiles PRIVILEGE ESCALATION — STILL NOT
-      fixed. See banner at top of file. Grant-layer authz needed.
-    - [SECURITY] schema_migrations RLS — not audited here.
-    - Nothing from features 1-4 has been smoke-tested in a browser.
-      Feature 4's database behaviour WAS verified end to end against
-      the live DB (transaction rolled back, nothing persisted); its UI
-      surfaces have not been opened.
+    - No true BROWSER smoke was possible — this session had no browser
+      automation (no Playwright in the repo, no browser tool). The smoke
+      was HTTP-level: it proves every route compiles, renders and does
+      not throw, and that the module gates flip correctly. It does NOT
+      cover visual layout or client-side interactivity (dialogs, form
+      submits, the POS cart). Those are still unverified.
+    - Store-credit tender block (/pos/sales/[id]) and consignor payout
+      (/consignors/[id]) never rendered — no sale and no consignor
+      exists in the tenant. Seed one of each to finish the smoke.
     - CRON_SECRET still unset in Vercel Production, so refresh-ofac,
       maturity-reminders and lifecycle-messages all 401 in prod. The
       OFAC list was loaded manually from a local dev server; without
