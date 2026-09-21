@@ -50,3 +50,6 @@ next-env.d.ts
 # supabase cli scratch (from `supabase gen types` runs)
 /supabase/.temp/
 /supabase/.branches/
+
+# Browser-smoke screenshots (npm run smoke:browser)
+.smoke/

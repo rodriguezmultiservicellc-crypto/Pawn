@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   X,
   Tag,
@@ -65,7 +65,22 @@ export default function VersionFooter() {
   const [showHistory, setShowHistory] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const buildAge = relativeTime(buildTime)
+  // Computed AFTER mount, never during render. relativeTime() reads Date.now(),
+  // so rendering it on the server and again on the client produced two
+  // different strings ("12s ago" vs "13s ago") whenever the two renders
+  // straddled a second boundary — a hydration mismatch that fired on every
+  // page, because this footer sits in the root layout. Starting empty means
+  // server and client agree on the first paint; the interval also keeps the
+  // value fresh instead of freezing at page-load time.
+  const [buildAge, setBuildAge] = useState('')
+
+  useEffect(() => {
+    if (!buildTime) return
+    const tick = () => setBuildAge(relativeTime(buildTime))
+    tick()
+    const id = setInterval(tick, 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   function copySha() {
     if (!rawSha) return

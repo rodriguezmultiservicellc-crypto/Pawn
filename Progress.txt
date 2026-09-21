@@ -138,27 +138,55 @@ OPERATION IN FLIGHT: none
 
   RESUME POINT:
     Clean stopping point. Session 52 closed the profiles privilege-
-    escalation hole (0056, applied + verified — see banner at top) and
-    ran an authenticated HTTP smoke over every feature 1-4 surface:
-    33 routes exercised as a real logged-in superadmin/owner session,
-    30 clean, 3 correct-by-design non-200s, 0 server exceptions, 0 i18n
-    key echoes. Two surfaces remain UNEXERCISED for lack of seed data:
-    the sale detail page (store-credit tender block) and the consignor
-    detail page (payout) — this tenant has zero sales and zero
-    consignors. Next is either seeding one sale + one consignor to
-    finish those two, or the CRON_SECRET op item (below), which is the
-    only thing still broken in production.
+    escalation hole (0056, applied + verified — see banner at top),
+    built a REAL browser smoke harness (scripts/smoke-browser.mjs,
+    `npm run smoke:browser`) and used it to find + fix a hydration bug
+    that fired on every page in the app. 30 routes driven in headless
+    Chrome as a genuinely authenticated superadmin/owner session:
+    30/30 clean after the fix, tsc + lint + 497 tests green.
+    Two surfaces remain UNEXERCISED for lack of seed data: the sale
+    detail page (store-credit tender block) and the consignor detail
+    page (payout) — this tenant has zero sales and zero consignors.
+    Next is either seeding one sale + one consignor to finish those two,
+    or the CRON_SECRET op item (below), the only thing still broken in
+    production.
+
+  HOW TO RUN THE BROWSER SMOKE (new this session):
+    npm run dev                       # server must be up on :3060
+    npm run smoke:browser -- --gates  # --gates flips store_credit_enabled
+                                      # + consignment_enabled ON for the run
+                                      # and RESTORES them in a finally block
+    Flags: --only=<substr>  one route   --repeat=N  flakiness hunting
+           --verbose        full React hydration diff
+           SMOKE_HEADED=1   watch it drive
+    It signs in for real (admin generateLink -> verifyOtp -> cookies
+    produced by driving @supabase/ssr itself, not by hand-rolling its
+    cookie format), then reports per route: HTTP status, unexpected
+    redirects, uncaught exceptions, console errors, failed subresource
+    requests and untranslated i18n keys found in rendered text.
+    Screenshots land in .smoke/ (gitignored). Exit 1 on any failure.
+
+    IMPORTANT — a WARM dev server hides hydration bugs. The first run of
+    this harness reported 30/30 clean against an already-compiled server
+    and that was a FALSE NEGATIVE; the same code failed 30/30 against a
+    cold one. To trust a clean result: stop the server, delete .next,
+    restart, then smoke. Kill the server BY PID (CLAUDE.md), and note
+    that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
-    - No true BROWSER smoke was possible — this session had no browser
-      automation (no Playwright in the repo, no browser tool). The smoke
-      was HTTP-level: it proves every route compiles, renders and does
-      not throw, and that the module gates flip correctly. It does NOT
-      cover visual layout or client-side interactivity (dialogs, form
-      submits, the POS cart). Those are still unverified.
+    - The browser smoke covers render + hydration + console health. It
+      does NOT yet drive interactions — no dialog opens, no form submits,
+      no POS cart run. Adding a few interaction paths is the obvious next
+      increment now that the harness exists.
     - Store-credit tender block (/pos/sales/[id]) and consignor payout
       (/consignors/[id]) never rendered — no sale and no consignor
       exists in the tenant. Seed one of each to finish the smoke.
+    - Pawn has NO privesc regression guard. Luna Azul has one worth
+      porting: a SECURITY DEFINER profile_privesc_report() plus
+      scripts/audit-profile-privesc.ts wired into `npm run
+      audit:isolation`, which fails the build if anon/authenticated ever
+      regain UPDATE on role/tenant_id. 0056 closed the hole here but
+      nothing yet detects it reopening.
     - CRON_SECRET still unset in Vercel Production, so refresh-ofac,
       maturity-reminders and lifecycle-messages all 401 in prod. The
       OFAC list was loaded manually from a local dev server; without
