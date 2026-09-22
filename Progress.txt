@@ -60,12 +60,38 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 51 (2026-09-19) — PAWNSMARTS-PARITY FEATURE 4
-                  COMPLETE: STORE CREDIT (0052-0053) + CONSIGNMENT
-                  (0054-0055). All four parity features now shipped.
-                  tsc / lint / 504 tests / production build all green;
-                  every DB rule verified against the live database
-                  inside a transaction that rolled back.
+  Last session:   Session 52 (2026-09-21 17:45) — SECURITY: profiles
+                  PRIVILEGE ESCALATION CLOSED (0056) + REAL BROWSER
+                  SMOKE HARNESS, which immediately found and fixed an
+                  app-wide hydration mismatch. tsc / lint / 497 tests
+                  green; 30/30 routes clean in headless Chrome against
+                  a COLD server.
+
+                  - The scaffold privesc hole was CONFIRMED LIVE
+                    VULNERABLE here, not theoretical: anon AND
+                    authenticated held UPDATE on every profiles column
+                    including role + tenant_id, while the UPDATE policy
+                    pinned row ownership only. Closed at the GRANT layer
+                    (the real column-authz control) and backed by a
+                    guard trigger so a future re-GRANT cannot silently
+                    reopen it. No RLS policy touched. Items 380-383.
+                  - scripts/smoke-browser.mjs drives 30 staff routes in
+                    real Chrome as a genuinely authenticated superadmin/
+                    owner session. Item 384 for what it checks, and the
+                    RESUME POINT below for how to run it.
+                  - VersionFooter computed a Date.now()-derived relative
+                    time during render, throwing a hydration error on
+                    EVERY page (root layout). Item 385.
+                  - METHODOLOGY: a warm dev server HIDES hydration bugs.
+                    The first smoke said 30/30 clean and was a false
+                    negative. Item 386 — read it before trusting a
+                    green smoke.
+
+                  PRIOR SESSION (51): PawnSmarts-parity feature 4 —
+                  store credit (0052-0053) + consignment (0054-0055);
+                  all four parity features shipped, every DB rule
+                  verified against the live database in a transaction
+                  that rolled back.
 
                   - STORE CREDIT. payment_method gained 'store_credit'
                     in its own patch (0052) because Postgres refuses to
@@ -115,26 +141,22 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~45% at save time (checkpointed twice: the feature
-                  commit, then the pre-save quality gate).
-  Last worked on: Feature 4 finished, verified, then swept by the
-                  pre-save quality gate — which found a real echo bug
-                  on the inventory edit form, 4 orphan i18n keys and
-                  5 dead helpers (items 377-379). Clean stopping point.
+  Context budget: ~35% at save time (two commits shipped before this
+                  checkpoint: 328f05d security fix, 6504c9e harness +
+                  hydration fix).
+  Last worked on: Pre-save quality gate on the session diff — found one
+                  dead field in the new harness (per-route screenshot
+                  path was captured but never read; now printed with
+                  each failure). Clean stopping point.
 
   ACTIVE FILE(S) (all committed):
-    - patches/0052-payment-method-store-credit.sql,
-      0053-store-credit.sql, 0054-consignment.sql,
-      0055-consignment-reversal-remainder.sql (ALL APPLIED)
-    - src/lib/store-credit/{math,events}.ts (+math tests)
-    - src/lib/consignment/{math,payables}.ts (+math tests)
-    - src/lib/validations/{store-credit,consignment}.ts
-    - src/app/(staff)/consignors/** (list, new, [id] detail + payout)
-    - src/app/(staff)/settings/{store-credit,consignment}/**
-    - src/app/(staff)/customers/[id]/store-credit-actions.ts
-    - src/app/(staff)/pos/sales/[id]/store-credit-actions.ts
-    - src/components/store-credit/**, src/components/consignment/**
-    - src/lib/money.ts (new — the one r4 / r2 / toMoney)
+    - patches/0056-profiles-privilege-escalation-fix.sql (APPLIED to
+      the live DB 2026-09-21, verified — see banner at top of file)
+    - scripts/smoke-browser.mjs (new — the browser smoke harness)
+    - src/components/version-footer.tsx (hydration fix)
+    - package.json (+playwright-core devDep, +smoke:browser script)
+    - .gitignore (+.smoke/)
+    - Progress.txt (this file)
 
   RESUME POINT:
     Clean stopping point. Session 52 closed the profiles privilege-
@@ -790,6 +812,113 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 52 (2026-09-21) — Security: profiles privesc CLOSED + real browser smoke harness ---
+
+ 380. [CRITICAL] profiles PRIVILEGE ESCALATION — CONFIRMED LIVE
+     VULNERABLE, THEN CLOSED (patches/0056). The scaffold hole flagged
+     2026-07-03 and deferred four sessions was real here. Read-only
+     audit against the live DB found `anon` AND `authenticated` holding
+     table-level UPDATE on EVERY profiles column — role and tenant_id
+     included — while policy profiles_update_own was
+     FOR UPDATE USING (id = auth.uid()) with NO WITH CHECK, so Postgres
+     reuses USING for the check and it pins row ownership only.
+     ROOT CAUSE: RLS was being asked to do column authorization, which
+     it cannot do. A row policy says WHICH ROWS you may touch, never
+     WHICH COLUMNS. The grant layer is the column control, and Supabase's
+     default grants had handed out everything.
+     Exploit: PATCH /rest/v1/profiles?id=eq.<self> {"role":"superadmin"}.
+     Payoff verified as total — my_is_superadmin() short-circuits every
+     tenant policy, AND billing_invoices + tenant_subscriptions gate
+     directly on profiles.role = 'superadmin'.
+
+ 381. THE FIX IS TWO LAYERS, NOT ONE (patches/0056).
+     (a) GRANT layer — the actual control. REVOKE INSERT/UPDATE/DELETE/
+         TRUNCATE/REFERENCES on profiles FROM anon, authenticated; then
+         GRANT UPDATE (full_name, avatar_url, language) TO authenticated.
+         Column list chosen for THIS app, not copied from Tocoloro.
+         `email` deliberately excluded: it mirrors auth.users.email and
+         renders as identity in /audit and /team, so self-editing it lets
+         one staffer impersonate another in the audit trail.
+         created_at/updated_at excluded — a trigger writing a column does
+         not require the CALLER to hold UPDATE on it.
+     (b) Guard trigger trg_profiles_guard_privilege_columns — refuses any
+         role/tenant_id change made under an end-user JWT. Exists because
+         a lone REVOKE is one careless GRANT ALL (or one scaffold re-run)
+         away from being undone. Escape hatch is a TRANSACTION-LOCAL GUC
+         (app.profile_privilege_write) set only by
+         claim_tenant_with_license_key, which 0056 re-creates for that
+         purpose — that RPC is SECURITY DEFINER but is CALLED by the
+         onboarding user, so their JWT is still on the connection.
+     NO RLS POLICY WAS TOUCHED (CLAUDE.md rule 1).
+
+ 382. COMPANION SCAFFOLD HOLE — NOT APPLICABLE HERE. The
+     schema_migrations-without-RLS hole does not exist in this project:
+     there is no schema_migrations table (migrations run through
+     scripts/apply-migration.mjs), and the audit confirmed every table in
+     `public` already has RLS enabled. Also swept every other
+     role-bearing table for the same ownership-pinned-UPDATE pattern —
+     profiles_update_own was the ONLY one. user_tenants has no UPDATE
+     policy at all, so the per-tenant role table was never exposed.
+
+ 383. VERIFICATION (live DB, every test forced to roll back via a
+     sentinel RAISE inside its own subtransaction).
+       authenticated SET role=superadmin       -> BLOCKED 42501
+       authenticated SET tenant_id             -> BLOCKED 42501
+       grant layer bypassed (owner) + user JWT -> BLOCKED by trigger
+       service_role / admin client writes role -> still allowed
+       license-key onboarding escape hatch     -> still allowed
+       hatch off again in same txn             -> BLOCKED (no leak)
+       language / full_name / avatar_url       -> still self-editable
+     NOTE FOR FUTURE PROBES: the first trigger test produced a FALSE
+     NEGATIVE ("trigger did not fire"). This DB has exactly one profile
+     and it is already role='superadmin', so the test set superadmin ->
+     superadmin; the trigger correctly saw no privileged change. A
+     privilege-column test must assert the value actually CHANGES.
+
+ 384. REAL BROWSER SMOKE HARNESS (scripts/smoke-browser.mjs,
+     `npm run smoke:browser`). Checked Luna Azul as Eddy suggested — its
+     Playwright is playwright-core driving a REMOTE Browserbase session
+     for the DViajero scraping agent (src/lib/dviajero/agent.ts), not an
+     e2e harness, and there are no local browsers. So Pawn got its own:
+     playwright-core as a devDependency, driving installed Chrome via
+     executablePath (no browser download, no revision-matching against
+     the ms-playwright cache). Signs in FOR REAL — admin generateLink ->
+     verifyOtp -> session cookies produced by driving @supabase/ssr
+     itself rather than hand-rolling its cookie format — then drives 30
+     staff routes reporting per route: HTTP status, unexpected redirects,
+     uncaught exceptions, console errors, failed subresource requests and
+     untranslated i18n keys found in RENDERED TEXT. --gates flips the two
+     feature-4 module flags on for the run and restores them in a finally
+     block. --only / --repeat / --verbose for chasing flaky failures.
+     Screenshots to .smoke/ (gitignored). Exit 1 on any failure.
+
+ 385. [BUG] APP-WIDE HYDRATION MISMATCH, FOUND BY THE NEW HARNESS
+     (src/components/version-footer.tsx). VersionFooter called
+     relativeTime(buildTime) DURING RENDER, and relativeTime reads
+     Date.now(). Server emitted "12s ago", client hydrated "13s ago"
+     whenever the two renders straddled a second boundary. React's diff
+     named it exactly: +13s ago / -12s ago under <VersionFooter>.
+     ROOT CAUSE: a time-derived value computed in render on both sides of
+     the SSR boundary. Because the footer sits in the ROOT LAYOUT, the
+     hydration error fired on EVERY page and React threw away the server
+     HTML for that subtree to re-render it client-side.
+     Worst in dev (buildTime is seconds old, so the Ns granularity makes
+     a mismatch near-certain) but live too — right after a deploy and at
+     any unit boundary (59s->60s, 59m->60m).
+     FIX: buildAge starts as '' and is filled in from a useEffect after
+     mount, so first paint agrees on both sides; a 30s interval also
+     keeps it fresh instead of frozen at page-load time.
+
+ 386. A WARM DEV SERVER HIDES HYDRATION BUGS — the methodology lesson of
+     this session. The harness's FIRST run reported 30/30 clean and that
+     was a FALSE NEGATIVE: it had hit an already-compiled dev server
+     (an orphan — TaskStop killed the npm wrapper but left `next dev`
+     listening on :3060). The SAME code failed 30/30 against a cold one,
+     because a warm server renders fast enough that both sides usually
+     produce the same string. A clean smoke only counts from cold: stop
+     the server BY PID, delete .next, restart, then smoke. Verified the
+     fix that exact way -> 30/30 clean, tsc + lint + 497 tests green.
 
 --- Session 51 (2026-09-19) — PawnSmarts-parity feature 4: store credit + consignment ---
 
@@ -3985,75 +4114,85 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    [SECURITY] Close the profiles privilege-escalation hole (banner at
-    the top of this file). It has been open for four sessions and it is
-    the only thing here that lets one logged-in user become another
-    role. Read-only audit first, show the SQL before applying (rule #1):
-    REVOKE INSERT/UPDATE/DELETE on profiles from anon + authenticated,
-    then GRANT UPDATE on only THIS app's genuinely self-editable columns
-    (do NOT blind-copy Tocoloro's 3-column grant or users lose the
-    ability to edit their own name/phone). Same pass: check whether RLS
-    is on schema_migrations.
+    Set CRON_SECRET in Vercel Production. It is now the only thing
+    still BROKEN in prod: refresh-ofac / maturity-reminders /
+    lifecycle-messages / release-buy-holds / leadsonline-export all 401
+    without it, so the OFAC list will NOT refresh daily and no reminder
+    will ever send. Everything else below is improvement, not breakage.
 
   BACKLOG (in priority order):
-    1. Set CRON_SECRET in Vercel Production. Until it is set,
-       refresh-ofac / maturity-reminders / lifecycle-messages /
-       release-buy-holds / leadsonline-export all 401 — the OFAC list
-       will NOT refresh daily and no reminder will ever send in prod.
-    2. Browser smoke of Sessions 50-51. Feature 4's DATABASE behaviour
-       is verified; nothing has been opened in a browser. Walk:
-       /settings/store-credit + /settings/consignment (flip both on),
-       issue credit on a customer, spend it on a POS sale, undo it,
-       void the sale and watch it come back; create a consignor, take
-       an item in on consignment, try to sell it under the floor
-       (should refuse), sell it properly, check the payable, pay the
-       consignor out, return the item and watch the balance go
-       negative. Then /settings/compliance, /admin/jurisdictions, the
-       Automations panel and the OFAC panel from Session 50.
-    3. Register close double-counts layaway cash: layaway payments are
+    1. Port Luna Azul's privesc REGRESSION GUARD to Pawn. 0056 closed
+       the hole but NOTHING detects it reopening, and a re-GRANT is
+       exactly how it would come back. Luna Azul has the pattern already
+       (src/scripts/audit-profile-privesc.ts + a SECURITY DEFINER
+       public.profile_privesc_report() returning one row per check,
+       wired into `npm run audit:isolation`, exit 1 on any regression).
+       Worth taking its two siblings in the same pass:
+       audit-tenant-isolation.ts and probe-rls-anon.ts.
+       NOTE: Luna Azul's own privesc hole IS fixed (its script guards
+       "the S340 fix") — the memory note saying otherwise is stale.
+       Abacus + Apostilla remain UNAUDITED and share the scaffold.
+    2. Finish the feature 1-4 walkthrough. The browser smoke now proves
+       every route RENDERS and hydrates cleanly, but it drives no
+       interactions and two surfaces never rendered at all for lack of
+       seed data (/pos/sales/[id] store-credit tender block,
+       /consignors/[id] payout — this tenant has zero sales and zero
+       consignors). Seed one sale + one consignor, then walk the money
+       paths by hand: issue credit on a customer, spend it on a POS
+       sale, undo it, void the sale and watch it come back; take an item
+       in on consignment, try to sell it under the floor (should
+       refuse), sell it properly, check the payable, pay out, return the
+       item and watch the balance go negative.
+    3. Teach smoke-browser.mjs to drive interactions (open a dialog,
+       submit a form, run a POS cart) now that the harness exists.
+    4. Register close double-counts layaway cash: layaway payments are
        mirrored into sale_payments and the close sums both tables.
        Found Session 50, still open. Fixing the mirror is also what
        unblocks store credit as a layaway tender (deliberately left out
        in Session 51 for exactly this reason).
-    4. Customer-portal store-credit surface. The RLS policy already
+    5. Customer-portal store-credit surface. The RLS policy already
        exists (store_credit_events_portal_select) — it needs a page
        under /portal showing the balance and recent activity.
-    5. Exclude (or separate) consigned goods from inventory valuation
+    6. Exclude (or separate) consigned goods from inventory valuation
        and turn reports. They sit at cost_basis 0 and are not the
        shop's property, so today they quietly flatter the numbers.
-    6. A cash consignment payout leaves the drawer but never reaches
+    7. A cash consignment payout leaves the drawer but never reaches
        the daily register. Decide whether payouts post a register line
        or stay outside the drawer reconciliation.
-    7. Wire customers.race into the customer add/edit forms (column
+    8. Wire customers.race into the customer add/edit forms (column
        exists + import populates it; add field + i18n).
-    8. Bravo import preset in src/lib/imports/presets.ts once a Bravo
+    9. Bravo import preset in src/lib/imports/presets.ts once a Bravo
        export sample is provided (mirrors the xPawn preset; ~15 lines).
-    9. Pawn Phase 2 step 2 — pawn-history re-pawn panel (customer-
-       scoped prior loans + collateral, filter chips, redeemed -> +Add,
-       forfeited -> shop inventory, is_repawn / source_loan_id).
-    10. Pawn Phase 2 step 3 — in-place Buy-outright merge into
+    10. Pawn Phase 2 step 2 — pawn-history re-pawn panel (customer-
+        scoped prior loans + collateral, filter chips, redeemed -> +Add,
+        forfeited -> shop inventory, is_repawn / source_loan_id).
+    11. Pawn Phase 2 step 3 — in-place Buy-outright merge into
         /pawn/new (currently bridged to /buy/new).
-    11. Confirm/replace landing PLACEHOLDER pricing (Free/$79/$149) +
+    12. Confirm/replace landing PLACEHOLDER pricing (Free/$79/$149) +
         contact email; wire real signup for "Start free". PawnSmarts
         charges $49 / $89 / $129 — worth a look before committing.
-    12. Repair initial quote/deposit at intake; repair per-item stones.
-    13. FL Pawnbroker Transaction Form alignment pass on the pawn-ticket
+    13. Repair initial quote/deposit at intake; repair per-item stones.
+    14. FL Pawnbroker Transaction Form alignment pass on the pawn-ticket
         PDF (/api/print/loan) + back page (customers.race now exists, so
         the pledgor block can include it).
-    14. Reconcile LeadsOnline CSV columns vs the agency spec.
-    15. Backfill the one buy-outright that never got a compliance_log
+    15. Reconcile LeadsOnline CSV columns vs the agency spec.
+    16. Backfill the one buy-outright that never got a compliance_log
         row (item 364) — decide whether to write a corrected row or
         leave it, since compliance_log is write-once by design.
 
   KNOWN ISSUES TO REVISIT:
-    - Settings hub (/settings) and buy receipt (/buy/[id]) are hardcoded
-      English — pre-existing Rule 6 debt.
+    - Settings hub (/settings), buy receipt (/buy/[id]) and
+      src/components/version-footer.tsx ("Version & Deploy", "Latest
+      deploy", "Commit", "Branch", "Author", "Built", "Version history",
+      "Current") are hardcoded English — pre-existing Rule 6 debt. The
+      footer one was seen while fixing item 385 and deliberately left
+      alone: out of scope for a hydration fix.
     - OPENAI_API_KEY pending in Vercel Production env.
     - POS tender selector is UI-only (payment finalized on the sale
       detail page). Store credit follows the same shape — it is applied
       on the sale detail, not in the cart.
     - No tenant default tax rate column (POS tax defaults 0).
-    - Register close double-counts layaway cash (see backlog 3).
+    - Register close double-counts layaway cash (see backlog 4).
     - Git Bash can wedge (cygheap fork failure). Close stray node
       processes or use PowerShell; do not debug the code.
 

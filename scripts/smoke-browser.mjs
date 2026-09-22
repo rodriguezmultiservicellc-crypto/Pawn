@@ -301,6 +301,9 @@ const bad = results.filter((r) => r.problems.length)
 console.log(`\n${results.length - bad.length}/${results.length} clean · screenshots in ${OUT_DIR}`)
 if (bad.length) {
   console.log('\nfailures:')
-  for (const r of bad) console.log(`  ${r.path}\n    ${r.problems.join('\n    ')}`)
+  for (const r of bad) {
+    console.log(`  ${r.path}\n    ${r.problems.join('\n    ')}`)
+    if (r.shot) console.log(`    shot: ${r.shot}`)
+  }
 }
 process.exit(bad.length ? 1 : 0)
