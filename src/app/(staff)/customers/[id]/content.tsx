@@ -101,6 +101,7 @@ function echoToCustomerFieldValues(
     sex: s('sex'),
     hair_color: s('hair_color'),
     eye_color: s('eye_color'),
+    race: s('race'),
     identifying_marks: s('identifying_marks'),
     place_of_employment: s('place_of_employment'),
     notes: s('notes'),
@@ -193,6 +194,7 @@ type CustomerRecord = {
   sex: string | null
   hair_color: string | null
   eye_color: string | null
+  race: string | null
   identifying_marks: string | null
   place_of_employment: string | null
   notes: string | null
@@ -295,6 +297,7 @@ export default function CustomerDetail({
     sex: customer.sex,
     hair_color: customer.hair_color,
     eye_color: customer.eye_color,
+    race: customer.race,
     identifying_marks: customer.identifying_marks,
     place_of_employment: customer.place_of_employment,
     notes: customer.notes,

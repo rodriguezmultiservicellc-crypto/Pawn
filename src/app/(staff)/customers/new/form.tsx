@@ -64,6 +64,7 @@ function echoToFieldValues(
     sex: s('sex'),
     hair_color: s('hair_color'),
     eye_color: s('eye_color'),
+    race: s('race'),
     identifying_marks: s('identifying_marks'),
     place_of_employment: s('place_of_employment'),
     notes: s('notes'),

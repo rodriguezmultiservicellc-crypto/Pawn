@@ -2,6 +2,13 @@
 
 import { useState } from 'react'
 import { useI18n } from '@/lib/i18n/context'
+import {
+  descriptionOptions,
+  EYE_COLOR_OPTIONS,
+  HAIR_COLOR_OPTIONS,
+  RACE_OPTIONS,
+  SEX_OPTIONS,
+} from '@/lib/customers/physical-description'
 import type {
   CommPreference,
   IdDocumentType,
@@ -36,6 +43,7 @@ export type CustomerFieldValues = {
   sex: string | null
   hair_color: string | null
   eye_color: string | null
+  race: string | null
   identifying_marks: string | null
   place_of_employment: string | null
   notes: string | null
@@ -69,6 +77,7 @@ const EMPTY: CustomerFieldValues = {
   sex: null,
   hair_color: null,
   eye_color: null,
+  race: null,
   identifying_marks: null,
   place_of_employment: null,
   notes: null,
@@ -327,21 +336,49 @@ export function CustomerFormFields({
                 initial.weight_lbs != null ? String(initial.weight_lbs) : ''
               }
             />
-            <Field
+            <Select
               label={t.customers.sex}
               name="sex"
               defaultValue={initial.sex ?? ''}
-              placeholder="M / F / X"
+              error={fieldError?.('sex')}
+              options={descriptionOptions(
+                SEX_OPTIONS,
+                t.customers.sexOptions,
+                initial.sex,
+              )}
             />
-            <Field
+            <Select
               label={t.customers.hairColor}
               name="hair_color"
               defaultValue={initial.hair_color ?? ''}
+              error={fieldError?.('hair_color')}
+              options={descriptionOptions(
+                HAIR_COLOR_OPTIONS,
+                t.customers.hairColorOptions,
+                initial.hair_color,
+              )}
             />
-            <Field
+            <Select
               label={t.customers.eyeColor}
               name="eye_color"
               defaultValue={initial.eye_color ?? ''}
+              error={fieldError?.('eye_color')}
+              options={descriptionOptions(
+                EYE_COLOR_OPTIONS,
+                t.customers.eyeColorOptions,
+                initial.eye_color,
+              )}
+            />
+            <Select
+              label={t.customers.race}
+              name="race"
+              defaultValue={initial.race ?? ''}
+              error={fieldError?.('race')}
+              options={descriptionOptions(
+                RACE_OPTIONS,
+                t.customers.raceOptions,
+                initial.race,
+              )}
             />
             <Field
               label={t.customers.placeOfEmployment}

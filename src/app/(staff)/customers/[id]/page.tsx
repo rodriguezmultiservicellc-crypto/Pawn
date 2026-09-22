@@ -32,7 +32,7 @@ export default async function CustomerDetailPage(props: { params: Params }) {
   const { data: customer } = await ctx.supabase
     .from('customers')
     .select(
-      'id, tenant_id, first_name, last_name, middle_name, date_of_birth, photo_url, phone, phone_alt, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_country, id_expiry, comm_preference, language, marketing_opt_in, height_inches, weight_lbs, sex, hair_color, eye_color, identifying_marks, place_of_employment, notes, tags, is_banned, banned_reason, banned_at, banned_by, auth_user_id, created_at, updated_at',
+      'id, tenant_id, first_name, last_name, middle_name, date_of_birth, photo_url, phone, phone_alt, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_country, id_expiry, comm_preference, language, marketing_opt_in, height_inches, weight_lbs, sex, hair_color, eye_color, race, identifying_marks, place_of_employment, notes, tags, is_banned, banned_reason, banned_at, banned_by, auth_user_id, created_at, updated_at',
     )
     .eq('id', id)
     .eq('tenant_id', ctx.tenantId)

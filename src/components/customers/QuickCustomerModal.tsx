@@ -5,6 +5,13 @@ import { createPortal } from 'react-dom'
 import { X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import {
+  descriptionOptions,
+  EYE_COLOR_OPTIONS,
+  HAIR_COLOR_OPTIONS,
+  RACE_OPTIONS,
+  SEX_OPTIONS,
+} from '@/lib/customers/physical-description'
+import {
   createCustomerInlineAction,
   type InlineCustomerState,
 } from '@/app/(staff)/customers/new/inline-actions'
@@ -207,13 +214,52 @@ export default function QuickCustomerModal({
                 />
               </Field>
               <Field label={tc.sex} error={fe.sex}>
-                <input name="sex" placeholder="M / F / X" className={inputCls(!!fe.sex)} />
+                <select name="sex" className={inputCls(!!fe.sex)}>
+                  {descriptionOptions(SEX_OPTIONS, tc.sexOptions, null).map(
+                    (o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ),
+                  )}
+                </select>
               </Field>
               <Field label={tc.hairColor} error={fe.hair_color}>
-                <input name="hair_color" className={inputCls(!!fe.hair_color)} />
+                <select name="hair_color" className={inputCls(!!fe.hair_color)}>
+                  {descriptionOptions(
+                    HAIR_COLOR_OPTIONS,
+                    tc.hairColorOptions,
+                    null,
+                  ).map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label={tc.eyeColor} error={fe.eye_color}>
-                <input name="eye_color" className={inputCls(!!fe.eye_color)} />
+                <select name="eye_color" className={inputCls(!!fe.eye_color)}>
+                  {descriptionOptions(
+                    EYE_COLOR_OPTIONS,
+                    tc.eyeColorOptions,
+                    null,
+                  ).map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={tc.race} error={fe.race}>
+                <select name="race" className={inputCls(!!fe.race)}>
+                  {descriptionOptions(RACE_OPTIONS, tc.raceOptions, null).map(
+                    (o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ),
+                  )}
+                </select>
               </Field>
               <div className="col-span-2">
                 <Field

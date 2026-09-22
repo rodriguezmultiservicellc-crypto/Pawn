@@ -141,6 +141,11 @@ export const customerCreateSchema = z.object({
   sex: optionalTrimmedString,
   hair_color: optionalTrimmedString,
   eye_color: optionalTrimmedString,
+  // Kept as free text rather than an enum: the dropdowns constrain what staff
+  // can pick, but 5,218 imported rows carry values that predate those lists
+  // (casing variants, 'Multicolor', 'Other'). A strict enum would reject an
+  // edit to an unrelated field on any of those records.
+  race: optionalTrimmedString,
   identifying_marks: optionalTrimmedString,
   place_of_employment: optionalTrimmedString,
 
