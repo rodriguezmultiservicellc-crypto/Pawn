@@ -10,6 +10,7 @@ import {
   HAIR_COLOR_OPTIONS,
   RACE_OPTIONS,
   SEX_OPTIONS,
+  type DescriptionOption,
 } from '@/lib/customers/physical-description'
 import {
   createCustomerInlineAction,
@@ -214,52 +215,36 @@ export default function QuickCustomerModal({
                 />
               </Field>
               <Field label={tc.sex} error={fe.sex}>
-                <select name="sex" className={inputCls(!!fe.sex)}>
-                  {descriptionOptions(SEX_OPTIONS, tc.sexOptions, null).map(
-                    (o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ),
-                  )}
-                </select>
+                <DescriptionSelect
+                  name="sex"
+                  options={SEX_OPTIONS}
+                  labels={tc.sexOptions}
+                  invalid={!!fe.sex}
+                />
               </Field>
               <Field label={tc.hairColor} error={fe.hair_color}>
-                <select name="hair_color" className={inputCls(!!fe.hair_color)}>
-                  {descriptionOptions(
-                    HAIR_COLOR_OPTIONS,
-                    tc.hairColorOptions,
-                    null,
-                  ).map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                <DescriptionSelect
+                  name="hair_color"
+                  options={HAIR_COLOR_OPTIONS}
+                  labels={tc.hairColorOptions}
+                  invalid={!!fe.hair_color}
+                />
               </Field>
               <Field label={tc.eyeColor} error={fe.eye_color}>
-                <select name="eye_color" className={inputCls(!!fe.eye_color)}>
-                  {descriptionOptions(
-                    EYE_COLOR_OPTIONS,
-                    tc.eyeColorOptions,
-                    null,
-                  ).map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                <DescriptionSelect
+                  name="eye_color"
+                  options={EYE_COLOR_OPTIONS}
+                  labels={tc.eyeColorOptions}
+                  invalid={!!fe.eye_color}
+                />
               </Field>
               <Field label={tc.race} error={fe.race}>
-                <select name="race" className={inputCls(!!fe.race)}>
-                  {descriptionOptions(RACE_OPTIONS, tc.raceOptions, null).map(
-                    (o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ),
-                  )}
-                </select>
+                <DescriptionSelect
+                  name="race"
+                  options={RACE_OPTIONS}
+                  labels={tc.raceOptions}
+                  invalid={!!fe.race}
+                />
               </Field>
               <div className="col-span-2">
                 <Field
@@ -337,4 +322,32 @@ function inputCls(hasError: boolean): string {
   return `w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-blue ${
     hasError ? 'border-danger' : 'border-border'
   }`
+}
+
+/**
+ * One physical-description dropdown (sex / hair / eyes / race). This modal only
+ * ever CREATES a customer, so there is no stored value to preserve — that is
+ * why `current` is null here, unlike the add/edit form which passes the record's
+ * value through so an off-list legacy entry survives.
+ */
+function DescriptionSelect({
+  name,
+  options,
+  labels,
+  invalid,
+}: {
+  name: string
+  options: readonly DescriptionOption[]
+  labels: Record<string, string>
+  invalid: boolean
+}) {
+  return (
+    <select name={name} className={inputCls(invalid)}>
+      {descriptionOptions(options, labels, null).map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  )
 }

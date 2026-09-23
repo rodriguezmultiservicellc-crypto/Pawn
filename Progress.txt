@@ -60,12 +60,31 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 52 (2026-09-21 17:45) — SECURITY: profiles
-                  PRIVILEGE ESCALATION CLOSED (0056) + REAL BROWSER
-                  SMOKE HARNESS, which immediately found and fixed an
-                  app-wide hydration mismatch. tsc / lint / 497 tests
-                  green; 30/30 routes clean in headless Chrome against
-                  a COLD server.
+  Last session:   Session 53 (2026-09-22) — CUSTOMER PHYSICAL-DESCRIPTION
+                  DROPDOWNS. sex / hair_color / eye_color / race are now
+                  dropdowns on all three customer surfaces, and race is
+                  wired end to end for the first time. tsc / lint / 523
+                  tests green; dropdowns + the inline modal verified in a
+                  real browser.
+
+                  - The option values reproduce the vocabulary already in
+                    the data (Title-case English, audited across all
+                    5,218 customers) instead of NCIC codes — item 389 for
+                    why that choice matters to the police-report export.
+                  - Off-list legacy values are PRESERVED and preselected,
+                    so an edit can never blank a statutorily-required
+                    field. Item 390.
+                  - patches/0057 is written but NOT APPLIED — it mutates
+                    regulated customer records and needs a go-ahead.
+                    Item 392. THIS IS THE ONE OPEN DECISION.
+
+                  PRIOR SESSION (52): profiles privilege escalation
+                  CLOSED (0056, applied + verified — see banner at top)
+                  and the real browser smoke harness built, which
+                  immediately found and fixed an app-wide hydration
+                  mismatch in VersionFooter. 30/30 routes clean against
+                  a COLD server (a warm one hides hydration bugs —
+                  item 386).
 
                   - The scaffold privesc hole was CONFIRMED LIVE
                     VULNERABLE here, not theoretical: anon AND
@@ -141,37 +160,50 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~35% at save time (two commits shipped before this
-                  checkpoint: 328f05d security fix, 6504c9e harness +
-                  hydration fix).
-  Last worked on: Pre-save quality gate on the session diff — found one
-                  dead field in the new harness (per-route screenshot
-                  path was captured but never read; now printed with
-                  each failure). Clean stopping point.
+  Context budget: ~40% at save time (04743a1 shipped the dropdowns
+                  before this checkpoint).
+  Last worked on: Pre-save quality gate on the session diff — de-duped
+                  the four repeated <select> blocks in
+                  QuickCustomerModal into a DescriptionSelect component,
+                  and added i18n coverage tests because a missing option
+                  label falls back to the raw value silently. Stopping
+                  point is clean; work then moved to the customer-header
+                  ID image (see RESUME POINT).
 
   ACTIVE FILE(S) (all committed):
-    - patches/0056-profiles-privilege-escalation-fix.sql (APPLIED to
-      the live DB 2026-09-21, verified — see banner at top of file)
-    - scripts/smoke-browser.mjs (new — the browser smoke harness)
-    - src/components/version-footer.tsx (hydration fix)
-    - package.json (+playwright-core devDep, +smoke:browser script)
-    - .gitignore (+.smoke/)
+    - src/lib/customers/physical-description.ts (new — the option
+      vocabularies + descriptionOptions builder) + its test
+    - src/components/customers/CustomerFormFields.tsx (add + edit)
+    - src/components/customers/QuickCustomerModal.tsx (inline add)
+    - src/lib/i18n/{en,es}.ts (race + 4 option dictionaries)
+    - src/lib/validations/customer.ts, src/lib/customers/create.ts,
+      src/app/(staff)/customers/[id]/{page.tsx,content.tsx,actions.ts},
+      src/app/(staff)/customers/new/form.tsx  (race wiring)
+    - patches/0057-normalize-customer-description-values.sql
+      (written, NOT APPLIED — see item 392)
     - Progress.txt (this file)
 
   RESUME POINT:
-    Clean stopping point. Session 52 closed the profiles privilege-
-    escalation hole (0056, applied + verified — see banner at top),
-    built a REAL browser smoke harness (scripts/smoke-browser.mjs,
-    `npm run smoke:browser`) and used it to find + fix a hydration bug
-    that fired on every page in the app. 30 routes driven in headless
-    Chrome as a genuinely authenticated superadmin/owner session:
-    30/30 clean after the fix, tsc + lint + 497 tests green.
-    Two surfaces remain UNEXERCISED for lack of seed data: the sale
-    detail page (store-credit tender block) and the consignor detail
-    page (payout) — this tenant has zero sales and zero consignors.
-    Next is either seeding one sale + one consignor to finish those two,
-    or the CRON_SECRET op item (below), the only thing still broken in
-    production.
+    IN FLIGHT — customer-header ID image. Eddy asked (with a screenshot
+    marking the empty band to the right of the customer name on
+    /customers/[id]) to surface the customer's ID scan there so it is
+    visible immediately. Nothing has been written for it yet; this
+    checkpoint was taken first so the dropdown work shipped clean.
+    Build it as a THUMBNAIL with click-to-enlarge, not a hero image:
+    DESIGN-lunaazul.md says ID scans are "never rendered at hero scale,
+    never shown in any browse surface", and CLAUDE.md rule 12 requires a
+    signed URL (1h) from a private bucket. The customer DETAIL page is
+    the record itself, not a browse surface, so a gated thumbnail there
+    is consistent with both — a full-bleed hero would not be.
+    Start at src/app/(staff)/customers/[id]/content.tsx (the header with
+    the avatar circle + name) and customer_documents for the stored
+    scan; there is already signed-URL plumbing for ID scans elsewhere in
+    the app — find and reuse it rather than writing a second one.
+
+    Session 53 itself is DONE and clean: sex / hair / eyes / race are
+    dropdowns on all three customer surfaces, race is wired end to end,
+    tsc + lint + 523 tests green, dropdowns and the inline modal both
+    verified in a real browser.
 
   HOW TO RUN THE BROWSER SMOKE (new this session):
     npm run dev                       # server must be up on :3060
@@ -196,10 +228,17 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
+    - The LeadsOnline exporter still does not read sex / hair_color /
+      eye_color / race AT ALL, even though the forms now capture them
+      consistently (Session 53). Checked while choosing the dropdown
+      vocabulary. Backlog 13-14.
     - The browser smoke covers render + hydration + console health. It
       does NOT yet drive interactions — no dialog opens, no form submits,
       no POS cart run. Adding a few interaction paths is the obvious next
-      increment now that the harness exists.
+      increment now that the harness exists. NOTE: QuickCustomerModal was
+      verified this session with a throwaway Playwright script that
+      clicked "Create new customer" — that click path is worth folding
+      into the harness rather than rewriting next time.
     - Store-credit tender block (/pos/sales/[id]) and consignor payout
       (/consignors/[id]) never rendered — no sale and no consignor
       exists in the tenant. Seed one of each to finish the smoke.
@@ -812,6 +851,84 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 53 (2026-09-22) — Customer physical-description dropdowns + race wired end to end ---
+
+ 387. DESCRIPTION FIELDS ARE DROPDOWNS NOW (sex / hair_color / eye_color /
+     race). FL Stat. § 539.001 requires a physical description of the
+     pledgor, but these were free-text boxes, so the same person could be
+     'Brown', 'brown' or 'BROWN' depending on who wrote the ticket — and
+     the police-report export would inherit the mess. Converted on ALL
+     THREE customer surfaces, not just the two Eddy named:
+       - /customers/new          (add)
+       - /customers/[id]         (edit)
+       - QuickCustomerModal      (inline add during pawn intake — same
+                                  free-text fields, would have stayed
+                                  inconsistent)
+     The first two share src/components/customers/CustomerFormFields.tsx,
+     so one change covered both.
+
+ 388. race WAS DEAD WEIGHT — NOW WIRED END TO END (closes old backlog 8).
+     The column has existed since patch 0047 and the xPawn import fills
+     it, but it was in NO read query, NO form, NO validator and NEITHER
+     write path — so imported values were invisible and unreachable from
+     the UI. Added to: the [id]/page.tsx select list (without this the
+     dropdown would load blank and blank the column on save), the shared
+     form type + EMPTY, both echo-rebuild paths, customerSchema,
+     lib/customers/create.ts and customers/[id]/actions.ts.
+
+ 389. THE OPTION VALUES ARE THE DATA'S OWN VOCABULARY — the real decision
+     here. Audited all 5,218 customers BEFORE choosing. They already
+     carry a vocabulary from xPawn: Title-case English words ('Black',
+     'Red Or Auburn', 'Hispanic'), NOT NCIC three-letter codes
+     (BLK/BRO/HAZ). So src/lib/customers/physical-description.ts
+     reproduces that vocabulary verbatim, casing included, and the
+     dropdowns select data that is already there. Choosing NCIC codes
+     would have split the column into two vocabularies and forced every
+     future reader — starting with the LeadsOnline exporter, which does
+     not read these fields yet — to understand both forever.
+     Observed distribution: sex M 2944 / F 2262 / 'm' 1; hair 16 distinct
+     (Black 2023, Brown 1921, Grey 441, Blonde 405, Bald 194 …); eyes 9
+     distinct; race 8 distinct (Hispanic 3691, White 857, Black 616 …).
+
+ 390. OFF-LIST VALUES ARE PRESERVED — the correctness property that makes
+     this safe. descriptionOptions() appends any stored value that is not
+     a canonical option as its own option and preselects it, so editing
+     an unrelated field (a phone number) can NEVER silently blank a field
+     the statute requires the shop to hold. race also stays free text in
+     Zod for the same reason — a strict enum would reject an unrelated
+     edit on any legacy row.
+     Verified in a real browser against the record that actually has the
+     problem (Eddy's own: sex 'm', hair_color 'BLACK'): the edit form
+     renders 6 and 17 options instead of 5 and 16, both preselected, and
+     all four fields round-trip their stored value. The add form shows
+     the clean lists (5 / 16 / 11 / 9 including the blank).
+
+ 391. PRE-SAVE GATE FINDINGS, fixed in the same checkpoint.
+     (a) DUPLICATE LOGIC: the four <select> blocks in QuickCustomerModal
+         repeated the same options-map. Extracted a local
+         DescriptionSelect component. Behaviour-preserving, and verified
+         by driving the modal in a real browser (it only mounts on click,
+         so the route-level smoke never reaches it) — 5/16/11/9 options,
+         zero console errors.
+     (b) i18n BLIND SPOT: descriptionOptions falls back to the raw value
+         when a label is missing, so a half-translated locale renders
+         'Pacific Islander' in Spanish instead of failing — invisible to
+         tsc AND to a screenshot. Added tests asserting every option key
+         has a non-blank label in EVERY locale and that no dictionary
+         carries a label for an option that no longer exists.
+     523 tests total (26 new). tsc + lint clean.
+
+ 392. patches/0057-normalize-customer-description-values.sql WRITTEN BUT
+     NOT APPLIED — awaiting Eddy's go-ahead, because it UPDATEs customer
+     records the statute requires the shop to hold. It normalizes the 3
+     casing-variant rows ('m' -> 'M', 'BLACK'/'black' -> 'Black').
+     Nothing is broken without it: those rows display and save correctly
+     via the preserve-off-list rule; the patch only stops 'BLACK' sitting
+     next to 'Black' in the menu like two different colors.
+     DELIBERATELY EXCLUDED: hair 'Auburn' (36 rows) vs 'Red Or Auburn'
+     (87 rows). Both are offered as separate options. Merging them is a
+     judgement call about what the shop means, not a casing fix.
 
 --- Session 52 (2026-09-21) — Security: profiles privesc CLOSED + real browser smoke harness ---
 
@@ -4114,11 +4231,20 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Set CRON_SECRET in Vercel Production. It is now the only thing
-    still BROKEN in prod: refresh-ofac / maturity-reminders /
+    Set CRON_SECRET in Vercel Production. It is still the only thing
+    BROKEN in prod: refresh-ofac / maturity-reminders /
     lifecycle-messages / release-buy-holds / leadsonline-export all 401
     without it, so the OFAC list will NOT refresh daily and no reminder
     will ever send. Everything else below is improvement, not breakage.
+
+  AWAITING A DECISION FROM EDDY (not blocking anything):
+    - Apply patches/0057? It normalizes 3 casing-variant customer rows
+      ('m' -> 'M', 'BLACK'/'black' -> 'Black'). Written, NOT run,
+      because it mutates records FL Stat. § 539.001 requires the shop
+      to hold. Nothing is broken without it (item 392).
+    - Merge hair_color 'Auburn' (36 rows) into 'Red Or Auburn' (87)?
+      Both ship as separate dropdown options today. This is a judgement
+      call about what the shop means, so it was left alone.
 
   BACKLOG (in priority order):
     1. Port Luna Azul's privesc REGRESSION GUARD to Pawn. 0056 closed
@@ -4159,24 +4285,26 @@ PENDING — NEXT UP
     7. A cash consignment payout leaves the drawer but never reaches
        the daily register. Decide whether payouts post a register line
        or stay outside the drawer reconciliation.
-    8. Wire customers.race into the customer add/edit forms (column
-       exists + import populates it; add field + i18n).
-    9. Bravo import preset in src/lib/imports/presets.ts once a Bravo
+    8. Bravo import preset in src/lib/imports/presets.ts once a Bravo
        export sample is provided (mirrors the xPawn preset; ~15 lines).
-    10. Pawn Phase 2 step 2 — pawn-history re-pawn panel (customer-
-        scoped prior loans + collateral, filter chips, redeemed -> +Add,
-        forfeited -> shop inventory, is_repawn / source_loan_id).
-    11. Pawn Phase 2 step 3 — in-place Buy-outright merge into
+    9. Pawn Phase 2 step 2 — pawn-history re-pawn panel (customer-
+       scoped prior loans + collateral, filter chips, redeemed -> +Add,
+       forfeited -> shop inventory, is_repawn / source_loan_id).
+    10. Pawn Phase 2 step 3 — in-place Buy-outright merge into
         /pawn/new (currently bridged to /buy/new).
-    12. Confirm/replace landing PLACEHOLDER pricing (Free/$79/$149) +
+    11. Confirm/replace landing PLACEHOLDER pricing (Free/$79/$149) +
         contact email; wire real signup for "Start free". PawnSmarts
         charges $49 / $89 / $129 — worth a look before committing.
-    13. Repair initial quote/deposit at intake; repair per-item stones.
-    14. FL Pawnbroker Transaction Form alignment pass on the pawn-ticket
-        PDF (/api/print/loan) + back page (customers.race now exists, so
-        the pledgor block can include it).
-    15. Reconcile LeadsOnline CSV columns vs the agency spec.
-    16. Backfill the one buy-outright that never got a compliance_log
+    12. Repair initial quote/deposit at intake; repair per-item stones.
+    13. FL Pawnbroker Transaction Form alignment pass on the pawn-ticket
+        PDF (/api/print/loan) + back page — customers.race is now
+        captured in the UI (Session 53), so the pledgor block can
+        include it.
+    14. Reconcile LeadsOnline CSV columns vs the agency spec. Worth
+        doing alongside 13: the exporter still does not read sex /
+        hair_color / eye_color / race at all, even though the forms now
+        collect them consistently.
+    15. Backfill the one buy-outright that never got a compliance_log
         row (item 364) — decide whether to write a corrected row or
         leave it, since compliance_log is write-once by design.
 

@@ -6,6 +6,8 @@ import {
   RACE_OPTIONS,
   SEX_OPTIONS,
 } from './physical-description'
+import { en } from '@/lib/i18n/en'
+import { es } from '@/lib/i18n/es'
 
 const hairLabels = {
   black: 'Black',
@@ -101,4 +103,43 @@ describe('option vocabularies', () => {
       expect.arrayContaining(['M', 'F']),
     )
   })
+})
+
+// descriptionOptions falls back to the raw value when a label is missing, which
+// means a half-translated locale renders 'Pacific Islander' in Spanish instead
+// of failing — invisible to tsc and to a screenshot. These assert every option
+// has a label in every locale, and that no dictionary carries a label for an
+// option that no longer exists.
+describe('i18n coverage for every locale', () => {
+  const locales = { en, es } as const
+  const fields = [
+    ['sexOptions', SEX_OPTIONS],
+    ['hairColorOptions', HAIR_COLOR_OPTIONS],
+    ['eyeColorOptions', EYE_COLOR_OPTIONS],
+    ['raceOptions', RACE_OPTIONS],
+  ] as const
+
+  for (const [localeName, dict] of Object.entries(locales)) {
+    for (const [dictKey, list] of fields) {
+      it(`${localeName}.customers.${dictKey} matches its option list exactly`, () => {
+        const labels = (
+          dict.customers as unknown as Record<string, Record<string, string>>
+        )[dictKey]
+        expect(labels, `${localeName}.customers.${dictKey} missing`).toBeTruthy()
+
+        const optionKeys = [...list.map((o) => o.key)].sort()
+        const labelKeys = Object.keys(labels).sort()
+        expect(labelKeys).toEqual(optionKeys)
+
+        for (const k of optionKeys) {
+          expect(labels[k]?.trim(), `${dictKey}.${k} is blank`).toBeTruthy()
+        }
+      })
+    }
+
+    it(`${localeName} has a label for the race field itself`, () => {
+      const c = dict.customers as unknown as Record<string, unknown>
+      expect(typeof c.race === 'string' && c.race.trim() !== '').toBe(true)
+    })
+  }
 })
