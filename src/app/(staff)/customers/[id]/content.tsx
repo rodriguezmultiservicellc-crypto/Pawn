@@ -13,6 +13,7 @@ import {
   User,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { isBrowserRenderableImage } from '@/lib/uploads/mime'
 import {
   CustomerFormFields,
   type CustomerFieldValues,
@@ -756,7 +757,10 @@ function IdScanBlock({ documents }: { documents: CustomerDocumentItem[] }) {
     )
   }
 
-  const isImage = (scan.mime_type ?? '').startsWith('image/')
+  // NOT just startsWith('image/') — HEIC is an image that Chrome, Edge and
+  // Firefox refuse to paint, so an <img> would render broken on the shop's
+  // own machines. Those fall through to the link tile below.
+  const isImage = isBrowserRenderableImage(scan.mime_type)
 
   return (
     <div className="hidden w-44 shrink-0 sm:block">
@@ -855,7 +859,7 @@ function PhotoBlock({
       <input
         ref={ref}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
         onChange={onChange}
         className="sr-only"
       />
@@ -1169,7 +1173,7 @@ function UploadButton({
       <input
         ref={ref}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
         onChange={onChange}
         className="sr-only"
       />

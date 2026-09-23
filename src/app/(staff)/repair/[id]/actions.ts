@@ -34,6 +34,7 @@ import {
   deleteFromBucket,
   uploadToBucket,
 } from '@/lib/supabase/storage'
+import { resolveUploadMime } from '@/lib/uploads/mime'
 import { logAudit } from '@/lib/audit'
 import { addDaysIso } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
@@ -701,16 +702,17 @@ export async function recordPickupAction(
   if (sigFile instanceof File && sigFile.size > 0) {
     if (sigFile.size > MAX_REPAIR_SIGNATURE_BYTES)
       return { error: 'tooLarge' }
-    if (!ALLOWED_REPAIR_SIGNATURE_MIME_TYPES.includes(sigFile.type as never))
+    const sigMime = resolveUploadMime(sigFile)
+    if (!ALLOWED_REPAIR_SIGNATURE_MIME_TYPES.includes(sigMime as never))
       return { error: 'mimeNotAllowed' }
-    const ext = pickExt(sigFile.type, sigFile.name)
+    const ext = pickExt(sigMime, sigFile.name)
     const path = `${tenantId}/${ticket.id}/pickup/signature_${newUuid()}.${ext}`
     try {
       await uploadToBucket({
         bucket: REPAIR_PHOTOS_BUCKET,
         path,
         body: sigFile,
-        contentType: sigFile.type,
+        contentType: sigMime,
       })
       signaturePath = path
     } catch (err) {
@@ -1596,17 +1598,18 @@ export async function addPhotoAction(
   if (!(file instanceof File) || file.size === 0)
     return { error: 'missing_file' }
   if (file.size > MAX_REPAIR_PHOTO_BYTES) return { error: 'tooLarge' }
-  if (!ALLOWED_REPAIR_PHOTO_MIME_TYPES.includes(file.type as never))
+  const mime = resolveUploadMime(file)
+  if (!ALLOWED_REPAIR_PHOTO_MIME_TYPES.includes(mime as never))
     return { error: 'mimeNotAllowed' }
 
-  const ext = pickExt(file.type, file.name)
+  const ext = pickExt(mime, file.name)
   const path = `${tenantId}/${ticket.id}/${v.kind}/${newUuid()}.${ext}`
   try {
     await uploadToBucket({
       bucket: REPAIR_PHOTOS_BUCKET,
       path,
       body: file,
-      contentType: file.type,
+      contentType: mime,
     })
   } catch (err) {
     return {

@@ -143,7 +143,7 @@ export function RecordPickupDialog({
           <input
             ref={sigRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
             onChange={onSigChange}
             className="sr-only"
           />

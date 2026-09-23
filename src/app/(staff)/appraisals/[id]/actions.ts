@@ -18,6 +18,7 @@ import {
   deleteFromBucket,
   uploadToBucket,
 } from '@/lib/supabase/storage'
+import { resolveUploadMime } from '@/lib/uploads/mime'
 import { logAudit } from '@/lib/audit'
 import { canTransition, checkFinalizeReadiness } from '@/lib/appraisals/workflow'
 import type {
@@ -409,17 +410,18 @@ export async function addPhotoAction(
   if (!(file instanceof File) || file.size === 0)
     return { error: 'validation_failed' }
   if (file.size > MAX_APPRAISAL_PHOTO_BYTES) return { error: 'tooLarge' }
-  if (!ALLOWED_APPRAISAL_PHOTO_MIME_TYPES.includes(file.type as never))
+  const mime = resolveUploadMime(file)
+  if (!ALLOWED_APPRAISAL_PHOTO_MIME_TYPES.includes(mime as never))
     return { error: 'mimeNotAllowed' }
 
-  const ext = pickExt(file.type, file.name)
+  const ext = pickExt(mime, file.name)
   const path = `${tenantId}/${appraisal.id}/${v.kind}/${newUuid()}.${ext}`
   try {
     await uploadToBucket({
       bucket: APPRAISAL_PHOTOS_BUCKET,
       path,
       body: file,
-      contentType: file.type,
+      contentType: mime,
     })
   } catch (err) {
     return {

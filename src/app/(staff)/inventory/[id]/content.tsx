@@ -452,7 +452,7 @@ function PhotosPanel({
           <input
             ref={ref}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
             onChange={onChange}
             className="sr-only"
           />

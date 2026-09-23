@@ -18,6 +18,7 @@ import {
   deleteFromBucket,
   uploadToBucket,
 } from '@/lib/supabase/storage'
+import { resolveUploadMime } from '@/lib/uploads/mime'
 import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { canDeleteCustomer } from '@/lib/compliance/retention'
@@ -281,7 +282,10 @@ export async function uploadCustomerDocumentAction(
   const file = formData.get('file')
   if (!(file instanceof File) || file.size === 0) return { error: 'no_file' }
   if (file.size > MAX_DOCUMENT_BYTES) return { error: 'too_large' }
-  if (!ALLOWED_DOCUMENT_MIME_TYPES.includes(file.type as never)) {
+  // Not file.type — Windows reports '' for iPhone .HEIC files. See
+  // src/lib/uploads/mime.ts.
+  const mime = resolveUploadMime(file)
+  if (!ALLOWED_DOCUMENT_MIME_TYPES.includes(mime as never)) {
     return { error: 'mime_not_allowed' }
   }
 
@@ -293,7 +297,7 @@ export async function uploadCustomerDocumentAction(
     tenantId,
     customerId: parsed.data.customer_id,
     kind: parsed.data.kind,
-    mimeType: file.type,
+    mimeType: mime,
     filename: file.name,
   })
 
@@ -301,7 +305,7 @@ export async function uploadCustomerDocumentAction(
     bucket: CUSTOMER_DOCUMENTS_BUCKET,
     path,
     body: file,
-    contentType: file.type,
+    contentType: mime,
   })
 
   const { data: docRow, error } = await supabase
@@ -311,7 +315,7 @@ export async function uploadCustomerDocumentAction(
       customer_id: parsed.data.customer_id,
       kind: parsed.data.kind,
       storage_path: path,
-      mime_type: file.type,
+      mime_type: mime,
       byte_size: file.size,
       id_type: parsed.data.id_type ?? null,
       id_number: parsed.data.id_number,
@@ -359,7 +363,8 @@ export async function uploadCustomerPhotoAction(
   const file = formData.get('file')
   if (!(file instanceof File) || file.size === 0) return { error: 'no_file' }
   if (file.size > MAX_DOCUMENT_BYTES) return { error: 'too_large' }
-  if (!ALLOWED_DOCUMENT_MIME_TYPES.includes(file.type as never)) {
+  const mime = resolveUploadMime(file)
+  if (!ALLOWED_DOCUMENT_MIME_TYPES.includes(mime as never)) {
     return { error: 'mime_not_allowed' }
   }
 
@@ -377,7 +382,7 @@ export async function uploadCustomerPhotoAction(
   const path = customerPhotoPath({
     tenantId,
     customerId,
-    mimeType: file.type,
+    mimeType: mime,
     filename: file.name,
   })
 
@@ -385,7 +390,7 @@ export async function uploadCustomerPhotoAction(
     bucket: CUSTOMER_DOCUMENTS_BUCKET,
     path,
     body: file,
-    contentType: file.type,
+    contentType: mime,
   })
 
   const { error } = await supabase

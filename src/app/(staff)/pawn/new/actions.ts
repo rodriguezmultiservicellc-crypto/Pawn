@@ -18,6 +18,7 @@ import {
   INVENTORY_PHOTOS_BUCKET,
   uploadToBucket,
 } from '@/lib/supabase/storage'
+import { resolveUploadMime } from '@/lib/uploads/mime'
 import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
@@ -347,17 +348,18 @@ export async function createLoanAction(
     if (sigFile.size > MAX_SIGNATURE_BYTES) {
       return { error: 'signature_too_large' }
     }
-    if (!ALLOWED_SIGNATURE_MIME_TYPES.includes(sigFile.type as never)) {
+    const sigMime = resolveUploadMime(sigFile)
+    if (!ALLOWED_SIGNATURE_MIME_TYPES.includes(sigMime as never)) {
       return { error: 'signature_mime_not_allowed' }
     }
-    const ext = pickExt(sigFile.type, sigFile.name)
+    const ext = pickExt(sigMime, sigFile.name)
     const path = `${tenantId}/${v.customer_id}/loans/${loanId}/signature_${newUuid()}.${ext}`
     try {
       await uploadToBucket({
         bucket: CUSTOMER_DOCUMENTS_BUCKET,
         path,
         body: sigFile,
-        contentType: sigFile.type,
+        contentType: sigMime,
       })
       signaturePath = path
     } catch (err) {
@@ -377,17 +379,18 @@ export async function createLoanAction(
       if (file.size > MAX_LOAN_PHOTO_BYTES) {
         return { error: 'photo_too_large' }
       }
-      if (!ALLOWED_LOAN_PHOTO_MIME_TYPES.includes(file.type as never)) {
+      const mime = resolveUploadMime(file)
+      if (!ALLOWED_LOAN_PHOTO_MIME_TYPES.includes(mime as never)) {
         return { error: 'photo_mime_not_allowed' }
       }
-      const ext = pickExt(file.type, file.name)
+      const ext = pickExt(mime, file.name)
       const path = `${tenantId}/loans/${loanId}/${newUuid()}.${ext}`
       try {
         await uploadToBucket({
           bucket: INVENTORY_PHOTOS_BUCKET,
           path,
           body: file,
-          contentType: file.type,
+          contentType: mime,
         })
         photoPath = path
       } catch (err) {

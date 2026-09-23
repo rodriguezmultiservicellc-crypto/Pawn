@@ -570,7 +570,7 @@ function CollateralRow({
             ref={photoInputRef}
             type="file"
             name={`collateral_${index}_photo`}
-            accept="image/jpeg,image/png,image/webp,image/heic"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
             onChange={onPhotoChange}
             className="sr-only"
           />

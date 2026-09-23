@@ -16,6 +16,7 @@ import {
   inventoryPhotoPath,
   uploadToBucket,
 } from '@/lib/supabase/storage'
+import { resolveUploadMime } from '@/lib/uploads/mime'
 import { logAudit } from '@/lib/audit'
 
 export type UpdateInventoryItemState = {
@@ -257,7 +258,8 @@ export async function uploadInventoryPhotoAction(
   const file = formData.get('file')
   if (!(file instanceof File) || file.size === 0) return { error: 'no_file' }
   if (file.size > MAX_PHOTO_BYTES) return { error: 'too_large' }
-  if (!ALLOWED_PHOTO_MIME_TYPES.includes(file.type as never)) {
+  const mime = resolveUploadMime(file)
+  if (!ALLOWED_PHOTO_MIME_TYPES.includes(mime as never)) {
     return { error: 'mime_not_allowed' }
   }
 
@@ -278,7 +280,7 @@ export async function uploadInventoryPhotoAction(
   const path = inventoryPhotoPath({
     tenantId,
     itemId,
-    mimeType: file.type,
+    mimeType: mime,
     filename: file.name,
   })
 
@@ -286,7 +288,7 @@ export async function uploadInventoryPhotoAction(
     bucket: INVENTORY_PHOTOS_BUCKET,
     path,
     body: file,
-    contentType: file.type,
+    contentType: mime,
   })
 
   const { data: photoRow, error } = await supabase
@@ -295,7 +297,7 @@ export async function uploadInventoryPhotoAction(
       tenant_id: tenantId,
       item_id: itemId,
       storage_path: path,
-      mime_type: file.type,
+      mime_type: mime,
       byte_size: file.size,
       position: nextPosition,
       is_primary: isFirst, // first uploaded photo becomes primary by default
@@ -318,7 +320,7 @@ export async function uploadInventoryPhotoAction(
       action: 'photo_upload',
       tableName: 'inventory_item_photos',
       recordId: photoRow.id,
-      changes: { item_id: itemId, mime_type: file.type, position: nextPosition },
+      changes: { item_id: itemId, mime_type: mime, position: nextPosition },
     })
   }
 
