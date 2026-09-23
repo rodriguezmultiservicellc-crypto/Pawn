@@ -18,6 +18,7 @@ import {
   deriveTicketTitle,
 } from '@/lib/repair/line-items'
 import { resolveUploadMime } from '@/lib/uploads/mime'
+import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 
 export type CreateRepairTicketState = {
@@ -245,14 +246,15 @@ export async function createRepairTicketAction(
     if (f.size > MAX_REPAIR_PHOTO_BYTES) continue
     const mime = resolveUploadMime(f)
     if (!ALLOWED_REPAIR_PHOTO_MIME_TYPES.includes(mime as never)) continue
-    const ext = pickExt(mime, f.name)
+    const up = await prepareUpload(f, mime)
+    const ext = pickExt(up.mime, up.filename)
     const path = `${tenantId}/${ticketId}/intake/${newUuid()}.${ext}`
     try {
       await uploadToBucket({
         bucket: REPAIR_PHOTOS_BUCKET,
         path,
-        body: f,
-        contentType: mime,
+        body: up.body,
+        contentType: up.mime,
       })
       await supabase.from('repair_ticket_photos').insert({
         ticket_id: ticketId,

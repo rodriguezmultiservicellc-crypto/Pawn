@@ -14,6 +14,7 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { resolveUploadMime } from '@/lib/uploads/mime'
+import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 import type { TenantRole } from '@/types/database-aliases'
 
@@ -206,15 +207,16 @@ export async function createAppraisalAction(
     if (f.size > MAX_APPRAISAL_PHOTO_BYTES) continue
     const mime = resolveUploadMime(f)
     if (!ALLOWED_APPRAISAL_PHOTO_MIME_TYPES.includes(mime as never)) continue
-    const ext = pickExt(mime, f.name)
+    const up = await prepareUpload(f, mime)
+    const ext = pickExt(up.mime, up.filename)
     const kind = i === 0 ? 'front' : 'detail'
     const path = `${tenantId}/${appraisalId}/${kind}/${newUuid()}.${ext}`
     try {
       await uploadToBucket({
         bucket: APPRAISAL_PHOTOS_BUCKET,
         path,
-        body: f,
-        contentType: mime,
+        body: up.body,
+        contentType: up.mime,
       })
       await supabase.from('appraisal_photos').insert({
         appraisal_id: appraisalId,

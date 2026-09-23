@@ -35,6 +35,7 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { resolveUploadMime } from '@/lib/uploads/mime'
+import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 import { addDaysIso } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
@@ -705,14 +706,15 @@ export async function recordPickupAction(
     const sigMime = resolveUploadMime(sigFile)
     if (!ALLOWED_REPAIR_SIGNATURE_MIME_TYPES.includes(sigMime as never))
       return { error: 'mimeNotAllowed' }
-    const ext = pickExt(sigMime, sigFile.name)
+    const sigUp = await prepareUpload(sigFile, sigMime)
+    const ext = pickExt(sigUp.mime, sigUp.filename)
     const path = `${tenantId}/${ticket.id}/pickup/signature_${newUuid()}.${ext}`
     try {
       await uploadToBucket({
         bucket: REPAIR_PHOTOS_BUCKET,
         path,
-        body: sigFile,
-        contentType: sigMime,
+        body: sigUp.body,
+        contentType: sigUp.mime,
       })
       signaturePath = path
     } catch (err) {
@@ -1602,14 +1604,15 @@ export async function addPhotoAction(
   if (!ALLOWED_REPAIR_PHOTO_MIME_TYPES.includes(mime as never))
     return { error: 'mimeNotAllowed' }
 
-  const ext = pickExt(mime, file.name)
+  const up = await prepareUpload(file, mime)
+  const ext = pickExt(up.mime, up.filename)
   const path = `${tenantId}/${ticket.id}/${v.kind}/${newUuid()}.${ext}`
   try {
     await uploadToBucket({
       bucket: REPAIR_PHOTOS_BUCKET,
       path,
-      body: file,
-      contentType: mime,
+      body: up.body,
+      contentType: up.mime,
     })
   } catch (err) {
     return {

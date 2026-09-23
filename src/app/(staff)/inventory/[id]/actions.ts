@@ -17,6 +17,7 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { resolveUploadMime } from '@/lib/uploads/mime'
+import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 
 export type UpdateInventoryItemState = {
@@ -277,18 +278,20 @@ export async function uploadInventoryPhotoAction(
   const nextPosition = (existing?.[0]?.position ?? -1) + 1
   const isFirst = !existing || existing.length === 0
 
+  const up = await prepareUpload(file, mime)
+
   const path = inventoryPhotoPath({
     tenantId,
     itemId,
-    mimeType: mime,
-    filename: file.name,
+    mimeType: up.mime,
+    filename: up.filename,
   })
 
   await uploadToBucket({
     bucket: INVENTORY_PHOTOS_BUCKET,
     path,
-    body: file,
-    contentType: mime,
+    body: up.body,
+    contentType: up.mime,
   })
 
   const { data: photoRow, error } = await supabase
@@ -297,7 +300,7 @@ export async function uploadInventoryPhotoAction(
       tenant_id: tenantId,
       item_id: itemId,
       storage_path: path,
-      mime_type: mime,
+      mime_type: up.mime,
       byte_size: file.size,
       position: nextPosition,
       is_primary: isFirst, // first uploaded photo becomes primary by default
@@ -320,7 +323,7 @@ export async function uploadInventoryPhotoAction(
       action: 'photo_upload',
       tableName: 'inventory_item_photos',
       recordId: photoRow.id,
-      changes: { item_id: itemId, mime_type: mime, position: nextPosition },
+      changes: { item_id: itemId, mime_type: up.mime, position: nextPosition },
     })
   }
 

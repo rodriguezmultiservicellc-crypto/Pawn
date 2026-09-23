@@ -19,6 +19,7 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { resolveUploadMime } from '@/lib/uploads/mime'
+import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
@@ -352,14 +353,15 @@ export async function createLoanAction(
     if (!ALLOWED_SIGNATURE_MIME_TYPES.includes(sigMime as never)) {
       return { error: 'signature_mime_not_allowed' }
     }
-    const ext = pickExt(sigMime, sigFile.name)
+    const sigUp = await prepareUpload(sigFile, sigMime)
+    const ext = pickExt(sigUp.mime, sigUp.filename)
     const path = `${tenantId}/${v.customer_id}/loans/${loanId}/signature_${newUuid()}.${ext}`
     try {
       await uploadToBucket({
         bucket: CUSTOMER_DOCUMENTS_BUCKET,
         path,
-        body: sigFile,
-        contentType: sigMime,
+        body: sigUp.body,
+        contentType: sigUp.mime,
       })
       signaturePath = path
     } catch (err) {
@@ -383,14 +385,15 @@ export async function createLoanAction(
       if (!ALLOWED_LOAN_PHOTO_MIME_TYPES.includes(mime as never)) {
         return { error: 'photo_mime_not_allowed' }
       }
-      const ext = pickExt(mime, file.name)
+      const up = await prepareUpload(file, mime)
+      const ext = pickExt(up.mime, up.filename)
       const path = `${tenantId}/loans/${loanId}/${newUuid()}.${ext}`
       try {
         await uploadToBucket({
           bucket: INVENTORY_PHOTOS_BUCKET,
           path,
-          body: file,
-          contentType: mime,
+          body: up.body,
+          contentType: up.mime,
         })
         photoPath = path
       } catch (err) {

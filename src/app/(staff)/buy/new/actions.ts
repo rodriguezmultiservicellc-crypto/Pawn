@@ -16,6 +16,7 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { resolveUploadMime } from '@/lib/uploads/mime'
+import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
 import {
@@ -283,14 +284,15 @@ export async function createBuyOutrightAction(
       if (!ALLOWED_BUY_PHOTO_MIME_TYPES.includes(mime as never)) {
         return { error: `photo_mime_not_allowed_row_${i + 1}`, values: echo }
       }
-      const ext = pickExt(mime, file.name)
+      const up = await prepareUpload(file, mime)
+      const ext = pickExt(up.mime, up.filename)
       const path = `${tenantId}/${invRow.id}/${newUuid()}.${ext}`
       try {
         await uploadToBucket({
           bucket: INVENTORY_PHOTOS_BUCKET,
           path,
-          body: file,
-          contentType: mime,
+          body: up.body,
+          contentType: up.mime,
         })
         photoPath = path
 
@@ -299,7 +301,7 @@ export async function createBuyOutrightAction(
           tenant_id: tenantId,
           item_id: invRow.id,
           storage_path: path,
-          mime_type: mime,
+          mime_type: up.mime,
           byte_size: file.size,
           position: 0,
           is_primary: true,

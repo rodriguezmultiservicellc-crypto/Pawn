@@ -19,6 +19,7 @@ import {
   uploadToBucket,
 } from '@/lib/supabase/storage'
 import { resolveUploadMime } from '@/lib/uploads/mime'
+import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { canDeleteCustomer } from '@/lib/compliance/retention'
@@ -293,19 +294,23 @@ export async function uploadCustomerDocumentAction(
     parsed.data.customer_id,
   )
 
+  // HEIC in, JPEG out — otherwise the scan is a file staff can download but
+  // never see inline. See src/lib/uploads/convert.ts.
+  const up = await prepareUpload(file, mime)
+
   const path = customerDocumentPath({
     tenantId,
     customerId: parsed.data.customer_id,
     kind: parsed.data.kind,
-    mimeType: mime,
-    filename: file.name,
+    mimeType: up.mime,
+    filename: up.filename,
   })
 
   await uploadToBucket({
     bucket: CUSTOMER_DOCUMENTS_BUCKET,
     path,
-    body: file,
-    contentType: mime,
+    body: up.body,
+    contentType: up.mime,
   })
 
   const { data: docRow, error } = await supabase
@@ -315,8 +320,8 @@ export async function uploadCustomerDocumentAction(
       customer_id: parsed.data.customer_id,
       kind: parsed.data.kind,
       storage_path: path,
-      mime_type: mime,
-      byte_size: file.size,
+      mime_type: up.mime,
+      byte_size: up.size,
       id_type: parsed.data.id_type ?? null,
       id_number: parsed.data.id_number,
       id_state: parsed.data.id_state,
@@ -345,7 +350,10 @@ export async function uploadCustomerDocumentAction(
       changes: {
         customer_id: parsed.data.customer_id,
         kind: parsed.data.kind,
-        mime_type: file.type,
+        mime_type: up.mime,
+        // Record the transcode so the audit trail explains why the stored
+        // bytes differ from what the clerk picked.
+        converted_from: up.converted ? mime : undefined,
       },
     })
   }
@@ -379,18 +387,20 @@ export async function uploadCustomerPhotoAction(
     .maybeSingle()
   const priorPath = prior?.photo_url ?? null
 
+  const up = await prepareUpload(file, mime)
+
   const path = customerPhotoPath({
     tenantId,
     customerId,
-    mimeType: mime,
-    filename: file.name,
+    mimeType: up.mime,
+    filename: up.filename,
   })
 
   await uploadToBucket({
     bucket: CUSTOMER_DOCUMENTS_BUCKET,
     path,
-    body: file,
-    contentType: mime,
+    body: up.body,
+    contentType: up.mime,
   })
 
   const { error } = await supabase
