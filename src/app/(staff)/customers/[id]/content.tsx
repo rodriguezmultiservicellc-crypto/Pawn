@@ -362,6 +362,7 @@ export default function CustomerDetail({
             </div>
           ) : null}
         </div>
+        <IdScanBlock documents={documents} />
       </div>
 
       <OfacPanel
@@ -716,6 +717,82 @@ function CustomerLoansPanel({
         </ul>
       )}
     </fieldset>
+  )
+}
+
+/**
+ * The customer's ID scan, surfaced in the record header so staff can eyeball it
+ * against the person in front of them without scrolling to Documents.
+ *
+ * Deliberately a THUMBNAIL that opens the full scan in a new tab, not a banner.
+ * DESIGN-lunaazul.md: ID scans are "never rendered at hero scale, never shown
+ * in any browse surface". A customer's detail page is the record itself rather
+ * than a browse surface, so a small gated tile here is consistent — a
+ * full-bleed image of someone's driver's license on a shop-floor monitor is
+ * not. The URL is the same 1h signed URL the Documents section uses (rule 12);
+ * the bucket stays private.
+ *
+ * Shows an explicit empty tile when nothing is on file: for a pawn the missing
+ * ID is the thing staff most need to notice, so it should not render as blank
+ * space.
+ */
+function IdScanBlock({ documents }: { documents: CustomerDocumentItem[] }) {
+  const { t } = useI18n()
+
+  // Most recent first — page.tsx orders by created_at desc.
+  const scan = documents.find(
+    (d) => d.kind === 'id_scan' && Boolean(d.signed_url),
+  )
+
+  if (!scan) {
+    return (
+      <div className="hidden w-44 shrink-0 sm:block">
+        <div className="flex h-28 w-full items-center justify-center rounded-xl border border-dashed border-border bg-background text-center">
+          <span className="px-2 text-xs text-muted">
+            {t.customers.idScanNone}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  const isImage = (scan.mime_type ?? '').startsWith('image/')
+
+  return (
+    <div className="hidden w-44 shrink-0 sm:block">
+      <a
+        href={scan.signed_url ?? undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={t.customers.idScanOpen}
+        className="group relative block h-28 w-full overflow-hidden rounded-xl border border-border bg-background transition-all hover:-translate-y-0.5 hover:shadow-lg"
+      >
+        {isImage ? (
+          <Image
+            src={scan.signed_url as string}
+            alt={t.customers.documentIdScan}
+            fill
+            sizes="176px"
+            unoptimized
+            className="object-cover"
+          />
+        ) : (
+          // PDFs and anything else that cannot render as an <img>.
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted">
+            <Eye size={20} weight="light" />
+            <span className="text-xs">{t.customers.idScanOpen}</span>
+          </div>
+        )}
+        <div className="absolute inset-0 flex items-center justify-center bg-navy/40 opacity-0 transition-opacity group-hover:opacity-100">
+          <Eye size={20} weight="bold" className="text-white" />
+        </div>
+      </a>
+      <div className="mt-1 truncate text-center text-xs text-muted">
+        {scan.id_type
+          ? `${labelForIdType(scan.id_type, t)}${scan.id_state ? ` · ${scan.id_state}` : ''}`
+          : t.customers.documentIdScan}
+      </div>
+    </div>
   )
 }
 

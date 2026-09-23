@@ -461,6 +461,8 @@ export const es: Dictionary = {
     uploadIdScan: 'Subir foto de ID',
     uploadSignature: 'Subir firma',
     documentIdScan: 'Foto de ID',
+    idScanNone: 'Sin ID en archivo',
+    idScanOpen: 'Abrir la foto de ID completa',
     documentSignature: 'Firma',
     documentNone: 'Aún no hay documentos en archivo.',
     viewDocument: 'Ver',

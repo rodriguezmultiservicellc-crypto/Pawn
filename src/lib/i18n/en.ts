@@ -465,6 +465,8 @@ export const en = {
     uploadIdScan: 'Upload ID scan',
     uploadSignature: 'Upload signature',
     documentIdScan: 'ID scan',
+    idScanNone: 'No ID on file',
+    idScanOpen: 'Open full ID scan',
     documentSignature: 'Signature',
     documentNone: 'No documents on file yet.',
     viewDocument: 'View',
