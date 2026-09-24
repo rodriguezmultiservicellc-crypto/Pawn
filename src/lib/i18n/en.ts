@@ -2307,7 +2307,42 @@ export const en = {
     captureCancel: 'Cancel',
     captureRetake: 'Retake',
     captureConfirm: 'Use this photo',
+    // Kept as the fallback wording; per-cause advice lives in t.media below.
     captureCameraError: 'Could not access camera. Check browser permissions.',
+  },
+
+  // Advice matched to what getUserMedia actually reported. See
+  // src/lib/media/errors.ts — 'inUse' (NotReadableError) is the common
+  // desktop case and is NOT a permissions problem.
+  media: {
+    camera: {
+      denied:
+        'Camera access was blocked. Allow the camera for this site in your browser, then try again.',
+      inUse:
+        'The camera is being used by another app. Close Zoom, Teams, or the Camera app and try again.',
+      notFound:
+        'No camera was found. Connect one, or upload a photo of the ID instead.',
+      constraints:
+        'No connected camera matches what this page needs. Try a different camera.',
+      insecure:
+        'The camera only works over a secure connection. Open this page via https.',
+      unknown:
+        'The camera could not be started. Close any app that might be using it, then try again.',
+    },
+    mic: {
+      denied:
+        'Microphone access was blocked. Allow the microphone for this site in your browser, then try again.',
+      inUse:
+        'The microphone is being used by another app. Close Zoom, Teams, or any recorder and try again.',
+      notFound:
+        'No microphone was found. Connect one to use voice intake.',
+      constraints:
+        'No connected microphone matches what this page needs. Try a different one.',
+      insecure:
+        'The microphone only works over a secure connection. Open this page via https.',
+      unknown:
+        'The microphone could not be started. Close any app that might be using it, then try again.',
+    },
   },
 
   comms: {

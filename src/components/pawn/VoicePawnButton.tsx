@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Microphone, CircleNotch } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { mediaErrorMessage } from '@/lib/media/errors'
 import type {
   InventoryCategory,
   MetalType,
@@ -157,10 +158,12 @@ export default function VoicePawnButton({ onDataExtracted }: Props) {
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    } catch {
+    } catch (e) {
       armingRef.current = null
       setPhase('idle')
-      setError(t.pawn.new_.voice.micDenied)
+      // Was `catch {}` with a hardcoded "denied" message, so a microphone
+      // that was merely busy reported itself as blocked.
+      setError(mediaErrorMessage(e, t.media.mic))
       return
     }
 

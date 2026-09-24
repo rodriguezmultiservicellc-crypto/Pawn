@@ -2308,8 +2308,43 @@ export const es: Dictionary = {
     captureCancel: 'Cancelar',
     captureRetake: 'Volver a tomar',
     captureConfirm: 'Usar esta foto',
+    // Se mantiene como texto de respaldo; el consejo por causa está en t.media.
     captureCameraError:
       'No se pudo acceder a la cámara. Revisa los permisos del navegador.',
+  },
+
+  // Consejo según lo que getUserMedia reportó realmente. Ver
+  // src/lib/media/errors.ts — 'inUse' (NotReadableError) es el caso común en
+  // computadoras y NO es un problema de permisos.
+  media: {
+    camera: {
+      denied:
+        'Se bloqueó el acceso a la cámara. Permite la cámara para este sitio en tu navegador e inténtalo de nuevo.',
+      inUse:
+        'Otra aplicación está usando la cámara. Cierra Zoom, Teams o la app Cámara e inténtalo de nuevo.',
+      notFound:
+        'No se encontró ninguna cámara. Conecta una o sube una foto de la identificación.',
+      constraints:
+        'Ninguna cámara conectada cumple con lo que necesita esta página. Prueba con otra cámara.',
+      insecure:
+        'La cámara solo funciona con una conexión segura. Abre esta página por https.',
+      unknown:
+        'No se pudo iniciar la cámara. Cierra cualquier aplicación que pueda estar usándola e inténtalo de nuevo.',
+    },
+    mic: {
+      denied:
+        'Se bloqueó el acceso al micrófono. Permite el micrófono para este sitio en tu navegador e inténtalo de nuevo.',
+      inUse:
+        'Otra aplicación está usando el micrófono. Cierra Zoom, Teams o cualquier grabadora e inténtalo de nuevo.',
+      notFound:
+        'No se encontró ningún micrófono. Conecta uno para usar la intake por voz.',
+      constraints:
+        'Ningún micrófono conectado cumple con lo que necesita esta página. Prueba con otro.',
+      insecure:
+        'El micrófono solo funciona con una conexión segura. Abre esta página por https.',
+      unknown:
+        'No se pudo iniciar el micrófono. Cierra cualquier aplicación que pueda estar usándola e inténtalo de nuevo.',
+    },
   },
 
   comms: {

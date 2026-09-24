@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Camera, X, ArrowsClockwise, Check } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { mediaErrorMessage } from '@/lib/media/errors'
 
 interface Props {
   /** Called once the operator confirms the captured image. The Blob is
@@ -82,11 +83,9 @@ export default function WebcamCapture({
         }
       } catch (e) {
         if (!cancelled) {
-          setError(
-            e instanceof Error
-              ? `${t.dlScanner.captureCameraError} (${e.name})`
-              : t.dlScanner.captureCameraError,
-          )
+          // NOT a blanket "check permissions" — NotReadableError means the
+          // camera is busy, and that advice would be actively wrong.
+          setError(mediaErrorMessage(e, t.media.camera))
         }
       }
     }
