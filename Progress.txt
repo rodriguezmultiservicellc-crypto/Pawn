@@ -60,31 +60,31 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 53 (2026-09-22) — CUSTOMER PHYSICAL-DESCRIPTION
-                  DROPDOWNS. sex / hair_color / eye_color / race are now
-                  dropdowns on all three customer surfaces, and race is
-                  wired end to end for the first time. tsc / lint / 523
-                  tests green; dropdowns + the inline modal verified in a
-                  real browser.
+  Last session:   Session 54 (2026-09-23) — ID SCAN VISIBLE IN THE
+                  CUSTOMER HEADER, and HEIC fixed end to end so iPhone
+                  photos actually work. tsc / lint / 538 tests / green
+                  production build; 30/30 routes clean in the browser
+                  smoke; the ID image confirmed DECODED in real Chrome.
 
-                  - The option values reproduce the vocabulary already in
-                    the data (Title-case English, audited across all
-                    5,218 customers) instead of NCIC codes — item 389 for
-                    why that choice matters to the police-report export.
-                  - Off-list legacy values are PRESERVED and preselected,
-                    so an edit can never blank a statutorily-required
-                    field. Item 390.
-                  - patches/0057 is written but NOT APPLIED — it mutates
-                    regulated customer records and needs a go-ahead.
-                    Item 392. THIS IS THE ONE OPEN DECISION.
+                  - The ID tile is a thumbnail that opens the full scan,
+                    not a banner — DESIGN-lunaazul.md bars ID scans at
+                    hero scale. Item 393.
+                  - HEIC was never an allowlist problem. Every upload
+                    validated the BROWSER-DECLARED file.type, which
+                    Windows reports as '' for iPhone .HEIC. Fixed at all
+                    11 call sites. Items 394-395.
+                  - Uploading was not enough: no mainstream browser but
+                    Safari paints HEIC, so it is now transcoded to JPEG
+                    at upload. Items 396-398.
+                  - Item 400 is a time-saver: a mid-session npm install
+                    desyncs Turbopack and makes EVERY route 500 on a font
+                    module. Looks like broken code, is not.
 
-                  PRIOR SESSION (52): profiles privilege escalation
-                  CLOSED (0056, applied + verified — see banner at top)
-                  and the real browser smoke harness built, which
-                  immediately found and fixed an app-wide hydration
-                  mismatch in VersionFooter. 30/30 routes clean against
-                  a COLD server (a warm one hides hydration bugs —
-                  item 386).
+                  PRIOR SESSION (53): sex / hair / eyes / race became
+                  dropdowns on all three customer surfaces and race was
+                  wired end to end; option values reproduce the
+                  vocabulary already in the data (item 389) and off-list
+                  legacy values are preserved (item 390).
 
                   - The scaffold privesc hole was CONFIRMED LIVE
                     VULNERABLE here, not theoretical: anon AND
@@ -160,50 +160,49 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~40% at save time (04743a1 shipped the dropdowns
-                  before this checkpoint).
-  Last worked on: Pre-save quality gate on the session diff — de-duped
-                  the four repeated <select> blocks in
-                  QuickCustomerModal into a DescriptionSelect component,
-                  and added i18n coverage tests because a missing option
-                  label falls back to the raw value silently. Stopping
-                  point is clean; work then moved to the customer-header
-                  ID image (see RESUME POINT).
+  Context budget: ~55% at save time (three commits shipped before this
+                  checkpoint: 4251b87 ID tile, b3a470c HEIC mime fix,
+                  1700743 HEIC conversion).
+  Last worked on: Pre-save quality gate on the session diff — found
+                  SEVEN private copies of pickExt across six upload
+                  actions plus lib/supabase/storage.ts and consolidated
+                  them into one extensionForUpload() (item 399). Clean
+                  stopping point.
 
   ACTIVE FILE(S) (all committed):
-    - src/lib/customers/physical-description.ts (new — the option
-      vocabularies + descriptionOptions builder) + its test
-    - src/components/customers/CustomerFormFields.tsx (add + edit)
-    - src/components/customers/QuickCustomerModal.tsx (inline add)
-    - src/lib/i18n/{en,es}.ts (race + 4 option dictionaries)
-    - src/lib/validations/customer.ts, src/lib/customers/create.ts,
-      src/app/(staff)/customers/[id]/{page.tsx,content.tsx,actions.ts},
-      src/app/(staff)/customers/new/form.tsx  (race wiring)
+    - src/lib/uploads/mime.ts (new — resolveUploadMime,
+      extensionForUpload, isBrowserRenderableImage) + its test
+    - src/lib/uploads/convert.ts (new — prepareUpload, HEIC -> JPEG.
+      SERVER ONLY, never import from a client component)
+    - src/app/(staff)/customers/[id]/content.tsx (IdScanBlock)
+    - The 8 upload server actions: customers/[id], inventory/[id],
+      pawn/new, buy/new, repair/new, repair/[id], appraisals/new,
+      appraisals/[id]
+    - 10 upload forms (accept="" now lists extensions too)
+    - src/lib/supabase/storage.ts (pickExtension removed)
+    - src/lib/i18n/{en,es}.ts (idScanNone, idScanOpen)
+    - package.json (+heic-convert, +@types/heic-convert)
     - patches/0057-normalize-customer-description-values.sql
       (written, NOT APPLIED — see item 392)
     - Progress.txt (this file)
 
   RESUME POINT:
-    IN FLIGHT — customer-header ID image. Eddy asked (with a screenshot
-    marking the empty band to the right of the customer name on
-    /customers/[id]) to surface the customer's ID scan there so it is
-    visible immediately. Nothing has been written for it yet; this
-    checkpoint was taken first so the dropdown work shipped clean.
-    Build it as a THUMBNAIL with click-to-enlarge, not a hero image:
-    DESIGN-lunaazul.md says ID scans are "never rendered at hero scale,
-    never shown in any browse surface", and CLAUDE.md rule 12 requires a
-    signed URL (1h) from a private bucket. The customer DETAIL page is
-    the record itself, not a browse surface, so a gated thumbnail there
-    is consistent with both — a full-bleed hero would not be.
-    Start at src/app/(staff)/customers/[id]/content.tsx (the header with
-    the avatar circle + name) and customer_documents for the stored
-    scan; there is already signed-URL plumbing for ID scans elsewhere in
-    the app — find and reuse it rather than writing a second one.
+    CLEAN STOPPING POINT — no work in flight. Session 54 finished the
+    customer-header ID tile and chased the HEIC problem all the way
+    down: uploads were being rejected (items 394-395), then uploaded but
+    invisible (396-398). The image Eddy could not see now renders in
+    real Chrome, confirmed by img.naturalWidth rather than by eye.
+    Everything green: tsc, lint, 538 tests, production build, 30/30
+    routes in the browser smoke.
 
-    Session 53 itself is DONE and clean: sex / hair / eyes / race are
-    dropdowns on all three customer surfaces, race is wired end to end,
-    tsc + lint + 523 tests green, dropdowns and the inline modal both
-    verified in a real browser.
+    Pick up from PENDING below. CRON_SECRET is still the only thing
+    actually BROKEN in production. The two decisions waiting on Eddy
+    (patches/0057, and whether to merge hair 'Auburn' into 'Red Or
+    Auburn') are unchanged and block nothing.
+
+    If the next session touches uploads, read item 400 FIRST — a
+    mid-session npm install desyncs Turbopack and makes every route 500
+    on a font module, which looks exactly like broken code.
 
   HOW TO RUN THE BROWSER SMOKE (new this session):
     npm run dev                       # server must be up on :3060
@@ -228,10 +227,23 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
+    - UPLOAD PATHS ARE STILL UNTESTED END TO END BY AUTOMATION. The HEIC
+      work (394-398) is covered by unit tests on the resolver plus one
+      real conversion measured against a genuine iPhone file, and the
+      customer ID scan was confirmed in a browser — but no automated
+      test actually POSTs a file through a server action. The other ten
+      call sites were verified by tsc and reading, not by uploading.
+      Worth an interaction test once the smoke can drive forms.
     - The LeadsOnline exporter still does not read sex / hair_color /
       eye_color / race AT ALL, even though the forms now capture them
       consistently (Session 53). Checked while choosing the dropdown
       vocabulary. Backlog 13-14.
+    - Only ONE customer in the whole database has an ID scan on file
+      (5,218 customers, one id_scan row). FL Stat. § 539.001 requires ID
+      at pawn, and both the customer DELETE gate (canDeleteCustomer) and
+      lib/compliance/retention.ts assume scans exist. Either the shop
+      keeps IDs on paper or the xPawn import dropped them — worth asking
+      Eddy before the first real pawn is written.
     - The browser smoke covers render + hydration + console health. It
       does NOT yet drive interactions — no dialog opens, no form submits,
       no POS cart run. Adding a few interaction paths is the obvious next
@@ -851,6 +863,106 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 54 (2026-09-23) — ID scan in the customer header + HEIC uploads fixed end to end ---
+
+ 393. ID SCAN IN THE CUSTOMER HEADER
+     (src/app/(staff)/customers/[id]/content.tsx, IdScanBlock). Eddy asked
+     for the ID to be visible immediately, marking the empty band right of
+     the customer name. Built as a THUMBNAIL that opens the full scan in a
+     new tab, NOT a banner filling the band: DESIGN-lunaazul.md says ID
+     scans are "never rendered at hero scale, never shown in any browse
+     surface". A customer's own detail page is the record itself rather
+     than a browse surface, so a small gated tile is consistent; a
+     full-bleed driver's license on a shop-floor monitor is not. Reuses
+     the 1h signed URL the Documents section already builds (rule 12) —
+     no new plumbing, bucket stays private. Renders an explicit "No ID on
+     file" tile rather than blank space, because for a pawn a missing ID
+     is the thing staff most need to notice.
+
+ 394. [BUG] HEIC UPLOADS REJECTED EVERYWHERE — THE ALLOWLIST WAS NEVER THE
+     PROBLEM. 'image/heic' was already in all seven ALLOWED_*_MIME_TYPES
+     lists. The bug was that every check read the BROWSER-DECLARED type:
+         ALLOWED_DOCUMENT_MIME_TYPES.includes(file.type)
+     ROOT CAUSE: file.type comes from the OPERATING SYSTEM's type
+     registry, not from the file. Windows has no registered MIME for HEIC
+     unless the HEIF Image Extensions are installed, so Chrome hands the
+     server file.type === '' for a valid IMG_1234.HEIC straight off an
+     iPhone. Empty string is not in the allowlist -> mime_not_allowed,
+     while the format sat in the allowlist the whole time. Some sources
+     report 'image/heif' instead, which also missed.
+     FIX: src/lib/uploads/mime.ts resolveUploadMime() — believe file.type
+     when recognised, else fall back to the filename extension, and
+     normalise aliases (image/heif, image/jpg, *-sequence). The resolved
+     value is also what gets STORED, so files uploaded with a blank type
+     no longer land in the bucket labelled Content-Type ''.
+     Applied at ALL 11 call sites, not just the customer ID scan Eddy hit:
+     the identical check was silently rejecting iPhone photos on pawn
+     collateral, buy outright, repair intake, repair pickup signatures,
+     appraisals and inventory.
+     Still an allowlist gate — callers reject anything not on their list,
+     and neither an extension nor a declared type proves file contents.
+     Private buckets + signed URLs remain what actually contains a
+     mislabelled upload.
+
+ 395. [BUG] THE FILE PICKER WAS HIDING .heic BEFORE IT COULD BE CHOSEN.
+     accept="" listed MIME types only, and on Windows the picker maps
+     those through the same registry, so .heic files were greyed out.
+     Added explicit extensions across all 10 upload forms.
+
+ 396. HEIC CONVERTED TO JPEG AT UPLOAD (src/lib/uploads/convert.ts).
+     After 394 the file uploaded but STILL could not be seen — Chrome,
+     Edge and Firefox refuse to paint HEIC (only Safari renders it), so
+     an iPhone ID scan was a file staff could download and never view,
+     which defeats item 393 entirely. prepareUpload() transcodes HEIC to
+     JPEG via heic-convert (pure JS, no native binaries, runs on Vercel)
+     BEFORE the bytes reach storage. Measured on the real 449KB scan
+     already in the bucket: 429ms, 144MB peak RSS, 509KB out at quality
+     0.85, 2557x1601 preserved.
+     Converting on the way IN, not on every view: it happens once per
+     file, and the stored bytes and the recorded mime_type stay honest
+     about each other, so every downstream reader (header tile, documents
+     list, ticket PDFs, portal) just sees a JPEG.
+     DELIBERATE FAILURE MODE: on any conversion error the ORIGINAL file is
+     stored rather than throwing. Losing a pawn's ID scan because a
+     decoder tripped is worse than storing a file the browser cannot
+     inline — the record still exists for compliance, the download still
+     works, and mime_type still describes the real bytes. Files over 20MB
+     skip conversion rather than risk the function's memory. byte_size now
+     records the STORED length, not the input length.
+
+ 397. isBrowserRenderableImage() — HEIC passes startsWith('image/') but no
+     mainstream browser paints it, so item 393's tile would have rendered
+     a broken image on the shop's own machines. Lives in mime.ts (not
+     convert.ts) precisely so a CLIENT component can ask the question
+     without dragging the Node-only decoder into the bundle.
+
+ 398. BACKFILLED THE ONE HEIC ALREADY IN THE BUCKET. Non-destructive:
+     wrote the .jpg, repointed customer_documents.storage_path +
+     mime_type + byte_size, LEFT the original .heic object in place.
+     Verified in a real browser — img.naturalWidth is 2557, i.e. Chrome
+     genuinely decoded it; rendered 185x117 in the header tile, zero
+     console errors.
+
+ 399. PRE-SAVE GATE — SEVEN COPIES OF pickExt CONSOLIDATED. Six upload
+     actions plus lib/supabase/storage.ts each carried a private
+     pickExt/pickExtension with identical filename-first logic, differing
+     only in which types the fallback covered (appraisals omitted pdf;
+     only storage.ts knew gif). Now one extensionForUpload() in
+     lib/uploads/mime.ts with the SUPERSET map, so the only behaviour
+     change is that a file with no usable extension and a pdf/gif type
+     gets 'pdf'/'gif' instead of 'bin'. Pinned by tests so a future edit
+     cannot quietly change storage paths. 538 tests, green build.
+
+ 400. GOTCHA WORTH REMEMBERING: npm install MID-SESSION desynced
+     Turbopack's dev module graph and every route started 500ing on
+     `[next]/internal/font/google/dm_sans_*.module.css — Can't resolve
+     '@vercel/turbopack-next/internal/font/google/font'`. It looked like
+     the app had been broken by the upload refactor; it had not. The
+     production build was green throughout, which is the fastest way to
+     tell the two apart. Cure: stop the dev server BY PID, delete .next,
+     restart. First cold run after an install may still show it on a
+     route or two before settling.
 
 --- Session 53 (2026-09-22) — Customer physical-description dropdowns + race wired end to end ---
 
@@ -4271,6 +4383,9 @@ PENDING — NEXT UP
        item and watch the balance go negative.
     3. Teach smoke-browser.mjs to drive interactions (open a dialog,
        submit a form, run a POS cart) now that the harness exists.
+       Highest-value first target: POST a real file through an upload
+       action. Session 54 changed all 11 upload call sites and only ONE
+       of them was proven by an actual upload.
     4. Register close double-counts layaway cash: layaway payments are
        mirrored into sale_payments and the close sums both tables.
        Found Session 50, still open. Fixing the mirror is also what

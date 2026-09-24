@@ -24,6 +24,7 @@
  */
 
 import { createAdminClient } from './admin'
+import { extensionForUpload } from '@/lib/uploads/mime'
 
 export const CUSTOMER_DOCUMENTS_BUCKET = 'customer-documents' as const
 export const INVENTORY_PHOTOS_BUCKET = 'inventory-photos' as const
@@ -32,33 +33,6 @@ export const APPRAISAL_PHOTOS_BUCKET = 'appraisal-photos' as const
 export const APPRAISAL_SIGNATURES_BUCKET = 'appraisal-signatures' as const
 
 const DEFAULT_SIGNED_URL_TTL_SECONDS = 3600
-
-/**
- * Pick a safe file extension from a MIME type or filename. Falls back to
- * 'bin' so we always have something. Lowercases for path consistency.
- */
-function pickExtension(mimeType: string | null | undefined, filename?: string): string {
-  if (filename) {
-    const dot = filename.lastIndexOf('.')
-    if (dot >= 0 && dot < filename.length - 1) {
-      const ext = filename.slice(dot + 1).toLowerCase()
-      if (/^[a-z0-9]{1,8}$/.test(ext)) return ext
-    }
-  }
-  if (mimeType) {
-    const map: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/jpg': 'jpg',
-      'image/png': 'png',
-      'image/webp': 'webp',
-      'image/heic': 'heic',
-      'image/gif': 'gif',
-      'application/pdf': 'pdf',
-    }
-    if (map[mimeType]) return map[mimeType]
-  }
-  return 'bin'
-}
 
 function newUuid(): string {
   // Web Crypto is available in the Next runtime on both Node and edge.
@@ -76,7 +50,7 @@ export function customerDocumentPath(args: {
   mimeType?: string | null
   filename?: string
 }): string {
-  const ext = pickExtension(args.mimeType, args.filename)
+  const ext = extensionForUpload(args.mimeType, args.filename)
   return `${args.tenantId}/${args.customerId}/${args.kind}/${newUuid()}.${ext}`
 }
 
@@ -92,7 +66,7 @@ export function customerPhotoPath(args: {
   mimeType?: string | null
   filename?: string
 }): string {
-  const ext = pickExtension(args.mimeType, args.filename)
+  const ext = extensionForUpload(args.mimeType, args.filename)
   return `${args.tenantId}/${args.customerId}/photo/${newUuid()}.${ext}`
 }
 
@@ -105,7 +79,7 @@ export function inventoryPhotoPath(args: {
   mimeType?: string | null
   filename?: string
 }): string {
-  const ext = pickExtension(args.mimeType, args.filename)
+  const ext = extensionForUpload(args.mimeType, args.filename)
   return `${args.tenantId}/${args.itemId}/${newUuid()}.${ext}`
 }
 
@@ -120,7 +94,7 @@ export function repairPhotoPath(args: {
   mimeType?: string | null
   filename?: string
 }): string {
-  const ext = pickExtension(args.mimeType, args.filename)
+  const ext = extensionForUpload(args.mimeType, args.filename)
   return `${args.tenantId}/${args.ticketId}/${args.kind}/${newUuid()}.${ext}`
 }
 
@@ -135,7 +109,7 @@ export function repairPickupSignaturePath(args: {
   mimeType?: string | null
   filename?: string
 }): string {
-  const ext = pickExtension(args.mimeType, args.filename)
+  const ext = extensionForUpload(args.mimeType, args.filename)
   return `${args.tenantId}/${args.ticketId}/pickup/signature_${newUuid()}.${ext}`
 }
 
@@ -150,7 +124,7 @@ export function appraisalPhotoPath(args: {
   mimeType?: string | null
   filename?: string
 }): string {
-  const ext = pickExtension(args.mimeType, args.filename)
+  const ext = extensionForUpload(args.mimeType, args.filename)
   return `${args.tenantId}/${args.appraisalId}/${args.kind}/${newUuid()}.${ext}`
 }
 
@@ -164,7 +138,7 @@ export function appraisalSignaturePath(args: {
   mimeType?: string | null
   filename?: string
 }): string {
-  const ext = pickExtension(args.mimeType, args.filename)
+  const ext = extensionForUpload(args.mimeType, args.filename)
   return `${args.tenantId}/${args.appraisalId}/${args.role}/${newUuid()}.${ext}`
 }
 

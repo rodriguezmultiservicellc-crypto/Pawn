@@ -18,7 +18,7 @@ import {
   INVENTORY_PHOTOS_BUCKET,
   uploadToBucket,
 } from '@/lib/supabase/storage'
-import { resolveUploadMime } from '@/lib/uploads/mime'
+import { extensionForUpload as pickExt, resolveUploadMime } from '@/lib/uploads/mime'
 import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -141,24 +141,6 @@ export async function suggestLoanFromCollateralAction(
 
 type ComplianceInsertChanges =
   Database['public']['Tables']['compliance_log']['Insert']['customer_snapshot']
-
-function pickExt(mime: string | null | undefined, filename?: string): string {
-  if (filename) {
-    const dot = filename.lastIndexOf('.')
-    if (dot >= 0 && dot < filename.length - 1) {
-      const ext = filename.slice(dot + 1).toLowerCase()
-      if (/^[a-z0-9]{1,8}$/.test(ext)) return ext
-    }
-  }
-  if (mime) {
-    if (mime === 'image/jpeg' || mime === 'image/jpg') return 'jpg'
-    if (mime === 'image/png') return 'png'
-    if (mime === 'image/webp') return 'webp'
-    if (mime === 'image/heic') return 'heic'
-    if (mime === 'application/pdf') return 'pdf'
-  }
-  return 'bin'
-}
 
 function newUuid(): string {
   return crypto.randomUUID()

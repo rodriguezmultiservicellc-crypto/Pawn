@@ -32,6 +32,16 @@ const EXTENSION_TO_MIME: Record<string, string> = {
   pdf: 'application/pdf',
 }
 
+/** Storage-path extension for a known type. Superset of every former copy. */
+const MIME_TO_EXTENSION: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'image/gif': 'gif',
+  'application/pdf': 'pdf',
+}
+
 /** Aliases browsers and phones report for the same format. */
 const MIME_ALIASES: Record<string, string> = {
   'image/jpg': 'image/jpeg',
@@ -69,6 +79,35 @@ export function resolveUploadMime(file: File): string {
   // Unknown on both counts: hand back whatever was declared so the caller's
   // allowlist rejects it and the error stays truthful.
   return normalised
+}
+
+/**
+ * Extension to give a stored object, preferring the one the user's filename
+ * already carries and falling back to the type.
+ *
+ * This replaced seven near-identical private `pickExt` / `pickExtension` copies
+ * (six upload actions plus lib/supabase/storage.ts) that differed only in which
+ * types their fallback covered — appraisals omitted pdf, only storage.ts knew
+ * gif. The map here is the superset, so the only behaviour change is that a
+ * file with NO usable extension and a pdf/gif type now gets 'pdf'/'gif'
+ * instead of 'bin'.
+ */
+export function extensionForUpload(
+  mime: string | null | undefined,
+  filename?: string,
+): string {
+  if (filename) {
+    const dot = filename.lastIndexOf('.')
+    if (dot >= 0 && dot < filename.length - 1) {
+      const ext = filename.slice(dot + 1).toLowerCase()
+      if (/^[a-z0-9]{1,8}$/.test(ext)) return ext
+    }
+  }
+  if (mime) {
+    const normalised = MIME_ALIASES[mime.toLowerCase()] ?? mime.toLowerCase()
+    if (MIME_TO_EXTENSION[normalised]) return MIME_TO_EXTENSION[normalised]
+  }
+  return 'bin'
 }
 
 /**

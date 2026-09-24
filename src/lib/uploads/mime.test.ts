@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { isBrowserRenderableImage, resolveUploadMime } from './mime'
+import {
+  extensionForUpload,
+  isBrowserRenderableImage,
+  resolveUploadMime,
+} from './mime'
 
 /** Minimal File stand-in — only name + type are read. */
 function fakeFile(name: string, type: string): File {
@@ -52,6 +56,43 @@ describe('resolveUploadMime', () => {
   it('handles a filename with no extension or a trailing dot', () => {
     expect(resolveUploadMime(fakeFile('archive.', ''))).toBe('')
     expect(resolveUploadMime(fakeFile('', ''))).toBe('')
+  })
+})
+
+// Replaced seven near-identical private copies. These pin the shared
+// behaviour so a future edit cannot quietly change storage paths.
+describe('extensionForUpload', () => {
+  it('prefers the extension already on the filename', () => {
+    expect(extensionForUpload('image/jpeg', 'scan.png')).toBe('png')
+    expect(extensionForUpload('image/jpeg', 'IMG.JPG')).toBe('jpg')
+  })
+
+  it('falls back to the type when the filename has no usable extension', () => {
+    expect(extensionForUpload('image/jpeg', 'noextension')).toBe('jpg')
+    expect(extensionForUpload('image/png', undefined)).toBe('png')
+    expect(extensionForUpload('image/heic', '')).toBe('heic')
+  })
+
+  it('covers the union of what the old copies knew', () => {
+    // appraisals' copy omitted pdf; only storage.ts knew gif.
+    expect(extensionForUpload('application/pdf', undefined)).toBe('pdf')
+    expect(extensionForUpload('image/gif', undefined)).toBe('gif')
+  })
+
+  it('normalises aliases before looking up the extension', () => {
+    expect(extensionForUpload('image/jpg', undefined)).toBe('jpg')
+    expect(extensionForUpload('image/heif', undefined)).toBe('heic')
+  })
+
+  it('rejects absurd extensions and falls back', () => {
+    expect(extensionForUpload('image/png', 'file.thisistoolong')).toBe('png')
+    expect(extensionForUpload('image/png', 'file.')).toBe('png')
+    expect(extensionForUpload(null, 'file.')).toBe('bin')
+  })
+
+  it('returns bin when nothing is known', () => {
+    expect(extensionForUpload(null, undefined)).toBe('bin')
+    expect(extensionForUpload('application/x-msdownload', 'x')).toBe('bin')
   })
 })
 
