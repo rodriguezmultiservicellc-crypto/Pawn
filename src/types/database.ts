@@ -3108,6 +3108,62 @@ export type Database = {
           },
         ]
       }
+      repair_stages: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          maps_to_statuses: Database["public"]["Enums"]["repair_status"][]
+          name_en: string
+          name_es: string
+          percent: number
+          service_type: Database["public"]["Enums"]["service_type"]
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          maps_to_statuses?: Database["public"]["Enums"]["repair_status"][]
+          name_en: string
+          name_es: string
+          percent: number
+          service_type: Database["public"]["Enums"]["service_type"]
+          sort_order: number
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          maps_to_statuses?: Database["public"]["Enums"]["repair_status"][]
+          name_en?: string
+          name_es?: string
+          percent?: number
+          service_type?: Database["public"]["Enums"]["service_type"]
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_stages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       repair_ticket_events: {
         Row: {
           amount: number | null
@@ -3446,6 +3502,10 @@ export type Database = {
           pickup_id_check: string | null
           pickup_signature_path: string | null
           promised_date: string | null
+          public_stage_id: string | null
+          public_stage_updated_at: string | null
+          public_token: string | null
+          public_token_created_at: string | null
           quote_amount: number | null
           quote_approved_at: string | null
           quote_set_at: string | null
@@ -3481,6 +3541,10 @@ export type Database = {
           pickup_id_check?: string | null
           pickup_signature_path?: string | null
           promised_date?: string | null
+          public_stage_id?: string | null
+          public_stage_updated_at?: string | null
+          public_token?: string | null
+          public_token_created_at?: string | null
           quote_amount?: number | null
           quote_approved_at?: string | null
           quote_set_at?: string | null
@@ -3516,6 +3580,10 @@ export type Database = {
           pickup_id_check?: string | null
           pickup_signature_path?: string | null
           promised_date?: string | null
+          public_stage_id?: string | null
+          public_stage_updated_at?: string | null
+          public_token?: string | null
+          public_token_created_at?: string | null
           quote_amount?: number | null
           quote_approved_at?: string | null
           quote_set_at?: string | null
@@ -3534,6 +3602,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_tickets_public_stage_id_fkey"
+            columns: ["public_stage_id"]
+            isOneToOne: false
+            referencedRelation: "repair_stages"
             referencedColumns: ["id"]
           },
           {
@@ -3996,6 +4071,7 @@ export type Database = {
           min_loan_amount: number | null
           ofac_screening_enabled: boolean
           pawn_ticket_backpage: string | null
+          repair_ready_auto_notify: boolean
           resend_from_email: string | null
           resend_from_name: string | null
           store_credit_enabled: boolean
@@ -4032,6 +4108,7 @@ export type Database = {
           min_loan_amount?: number | null
           ofac_screening_enabled?: boolean
           pawn_ticket_backpage?: string | null
+          repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null
           store_credit_enabled?: boolean
@@ -4068,6 +4145,7 @@ export type Database = {
           min_loan_amount?: number | null
           ofac_screening_enabled?: boolean
           pawn_ticket_backpage?: string | null
+          repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null
           store_credit_enabled?: boolean
@@ -5123,8 +5201,18 @@ export type Database = {
           version_id: string
         }[]
       }
+      repair_public_ticket: { Args: { p_token: string }; Returns: Json }
+      repair_public_token: { Args: never; Returns: string }
       seed_default_message_templates: {
         Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      seed_default_repair_stages: {
+        Args: {
+          p_reset?: boolean
+          p_service_type?: Database["public"]["Enums"]["service_type"]
+          p_tenant_id: string
+        }
         Returns: undefined
       }
       seed_pawn_intake_categories: {
@@ -5132,6 +5220,10 @@ export type Database = {
         Returns: undefined
       }
       seed_pawn_intake_subcategories: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      seed_repair_tracking_templates: {
         Args: { p_tenant_id: string }
         Returns: undefined
       }
@@ -5316,6 +5408,7 @@ export type Database = {
         | "dormant_winback"
         | "forfeiture_winback"
         | "redemption_thankyou"
+        | "repair_tracking_link"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
       metal_purity:
         | "pure_24k"
@@ -5694,6 +5787,7 @@ export const Constants = {
         "dormant_winback",
         "forfeiture_winback",
         "redemption_thankyou",
+        "repair_tracking_link",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
       metal_purity: [

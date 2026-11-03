@@ -1328,6 +1328,49 @@ export const es: Dictionary = {
       'Reparaciones, montaje de piedras, ajuste de talla, ensartado, baño, grabado, custom.',
     new: 'Nueva orden de reparación',
     backToList: 'Volver a reparaciones',
+    // Enlace de seguimiento + etapa visible al cliente (patches/0061).
+    tracking: {
+      title: 'Enlace de seguimiento para el cliente',
+      help:
+        'Una página de solo lectura que el cliente abre sin iniciar sesión: avance, fecha prometida y saldo. No muestra datos personales.',
+      revoked:
+        'Enlace revocado: la página del cliente muestra "no encontrado" hasta que generes uno nuevo.',
+      copy: 'Copiar enlace',
+      copied: 'Copiado',
+      open: 'Abrir',
+      sendSms: 'Enviar por SMS',
+      sending: 'Enviando…',
+      sent: 'Enviado por SMS',
+      regenerate: 'Nuevo enlace',
+      regenerateConfirm:
+        '¿Generar un enlace nuevo? El anterior deja de funcionar de inmediato.',
+      revoke: 'Revocar',
+      revokeConfirm:
+        '¿Revocar el enlace? La página del cliente deja de funcionar hasta que generes uno nuevo.',
+      stageTitle: 'Etapa visible al cliente',
+      stageNone: 'Sin etapa',
+      nextStage: 'Siguiente etapa',
+      setStage: 'Fijar etapa',
+      lastStage: 'Se alcanzó la etapa final.',
+      stagesMissing:
+        'No hay etapas configuradas para este tipo de servicio. Configúralas en Configuración → Etapas de reparación.',
+      manageStages: 'Administrar etapas',
+      autoAdvanceNote:
+        'Las etapas ligadas a un estado del flujo avanzan solas; las demás se avanzan aquí o desde el tablero.',
+      errors: {
+        no_destination: 'Este cliente no tiene teléfono registrado.',
+        link_revoked: 'El enlace está revocado: genera uno nuevo primero.',
+        provider_failed: 'No se pudo enviar el mensaje.',
+        opted_out_preference: 'Este cliente optó por no recibir mensajes.',
+        template_missing:
+          'No hay plantilla SMS para el enlace de seguimiento: revisa Configuración → Comunicaciones.',
+        template_disabled:
+          'La plantilla SMS del enlace está desactivada: actívala en Configuración → Comunicaciones.',
+        last_stage: 'Esta orden ya está en la etapa final.',
+        no_stages: 'No hay etapas configuradas para este tipo de servicio.',
+        not_found: 'Orden no encontrada.',
+      },
+    },
     list: {
       filterAll: 'Todas',
       filterIntake: 'Recibidas',
@@ -2399,6 +2442,7 @@ export const es: Dictionary = {
       redemption_thankyou: 'Agradecimiento tras rescate',
       repair_ready: 'Reparación lista',
       repair_pickup_reminder: 'Recordatorio de recogida',
+      repair_tracking_link: 'Enlace de seguimiento de reparación',
       layaway_payment_due: 'Pago de apartado próximo',
       layaway_overdue: 'Apartado vencido',
       layaway_completed: 'Apartado pagado',
@@ -2429,6 +2473,8 @@ export const es: Dictionary = {
       repair_ready: 'Se envía cuando una reparación se marca como lista.',
       repair_pickup_reminder:
         'Se envía cuando una reparación lista no se ha recogido tras 24 h.',
+      repair_tracking_link:
+        'Se envía desde una orden de reparación ("Enviar por SMS"): la página pública de avance del cliente. Usa {{tracking_link}}.',
       layaway_payment_due: 'Se envía cuando un pago vence en 3 días o menos.',
       layaway_overdue: 'Se envía cuando un pago de apartado está vencido.',
       layaway_completed: 'Se envía cuando un apartado queda totalmente pagado.',
@@ -3254,6 +3300,72 @@ export const es: Dictionary = {
       ended: 'Terminado',
       sold: 'Vendido',
       error: 'Error',
+    },
+  },
+
+  // Página pública de seguimiento — /t/<token> (patches/0061). Para el cliente.
+  tracking: {
+    title: 'Estado de la reparación',
+    ticket: 'Orden',
+    piece: 'Su pieza',
+    promised: 'Fecha prometida',
+    promisedNone: 'Por confirmar',
+    progress: 'Avance',
+    stage: 'Etapa actual',
+    stageNone: 'Recibido',
+    quoted: 'Cotizado',
+    notQuoted: 'Cotización pendiente',
+    paid: 'Pagado hasta ahora',
+    balance: 'Saldo pendiente',
+    readyBanner: '¡Su pieza está lista para recoger!',
+    pickedUpBanner: 'Recogida — ¡gracias!',
+    closedBanner: 'Esta orden está cerrada. Por favor comuníquese con la tienda.',
+    questions: '¿Preguntas? Llámenos.',
+    call: 'Llamar a la tienda',
+    visitSite: 'Visite nuestro sitio web',
+    updated: 'Última actualización',
+    photoAlt: 'Foto de referencia de su pieza',
+    privacyNote: 'Esta página muestra solo el estado de esta reparación. No se muestra información personal.',
+    notFoundTitle: 'Enlace no encontrado',
+    notFoundBody:
+      'Este enlace de seguimiento no es válido, expiró o fue reemplazado por uno nuevo. Comuníquese con la tienda para obtener un enlace actualizado.',
+  },
+
+  // /settings/repair-stages — etapas visibles al cliente por tipo de servicio.
+  settingsRepairStages: {
+    hubTitle: 'Etapas de reparación',
+    hubDescription:
+      'Los pasos con nombre que el cliente ve en su página de seguimiento, por tipo de servicio, cada uno con un % de avance. También el interruptor "avisar al estar lista".',
+    hubDetail: 'Administrar etapas',
+    title: 'Etapas de reparación',
+    subtitle:
+      'Los pasos con nombre que el cliente ve en su página de seguimiento, por tipo de servicio. Cada paso tiene un porcentaje de avance; los pasos ligados a un estado del flujo avanzan solos, los demás se avanzan a mano desde el tablero o la orden.',
+    serviceType: 'Tipo de servicio',
+    columnOrder: '#',
+    nameEn: 'Nombre (inglés)',
+    nameEs: 'Nombre (español)',
+    percent: '% de avance',
+    mapsTo: 'Avanza solo con el estado',
+    mapsToHelp: 'Cuando la orden entra en uno de estos estados salta a esta etapa. Déjalo vacío para un paso que se avanza a mano.',
+    active: 'Activa',
+    addStage: 'Agregar etapa',
+    remove: 'Quitar',
+    moveUp: 'Subir',
+    moveDown: 'Bajar',
+    save: 'Guardar etapas',
+    saved: 'Etapas guardadas.',
+    resetDefaults: 'Restablecer predeterminadas',
+    resetConfirm:
+      '¿Reemplazar las etapas de este tipo de servicio por las predeterminadas? Las órdenes siguen funcionando: se reasignan a la etapa predeterminada correspondiente.',
+    autoNotifyTitle: 'Avisar al cliente cuando esté lista',
+    autoNotifyHelp:
+      'Cuando una orden llega a "Lista para recoger", envía de inmediato el mensaje "Reparación lista para recoger" (incluye el enlace de seguimiento). Apagado: el recordatorio diario lo envía a la mañana siguiente.',
+    autoNotifyLabel: 'Enviar de inmediato cuando una orden quede lista',
+    errors: {
+      invalid: 'Revisa los campos marcados.',
+      min_one: 'Conserva al menos una etapa.',
+      name_required: 'Ambos nombres son obligatorios.',
+      percent_range: 'El avance debe estar entre 0 y 100.',
     },
   },
 

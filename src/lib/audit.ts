@@ -137,6 +137,14 @@ export type AuditAction =
   | 'consignor_update'
   | 'consignment_payout'
   | 'consignment_item_returned'
+  // Repair tracking link + customer-facing stages (patches/0061)
+  | 'repair_tracking_link_send'
+  | 'repair_tracking_link_regenerate'
+  | 'repair_tracking_link_revoke'
+  | 'repair_stage_set'
+  | 'repair_stages_update'
+  | 'repair_stages_reset'
+  | 'repair_notify_setting'
 
 export async function logAudit(args: {
   tenantId: string

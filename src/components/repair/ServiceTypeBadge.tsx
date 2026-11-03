@@ -1,6 +1,7 @@
 'use client'
 
 import { useI18n } from '@/lib/i18n/context'
+import type { Dictionary } from '@/lib/i18n/en'
 import type { ServiceType } from '@/types/database-aliases'
 
 // Category badges use neutral surface + a colored dot to distinguish.
@@ -16,22 +17,29 @@ const TONE: Record<ServiceType, { dot: string }> = {
   custom: { dot: 'bg-navy' },
 }
 
+/** Translated service-type name — shared by the badge, the stages editor
+ *  and the public tracking page. */
+export function serviceTypeLabel(t: Dictionary, type: ServiceType): string {
+  const m = t.repair.serviceTypes
+  const map: Record<ServiceType, string> = {
+    repair: m.repair,
+    stone_setting: m.stoneSetting,
+    sizing: m.sizing,
+    restring: m.restring,
+    plating: m.plating,
+    engraving: m.engraving,
+    custom: m.custom,
+  }
+  return map[type]
+}
+
 export function ServiceTypeBadge({ type }: { type: ServiceType }) {
   const { t } = useI18n()
   const tone = TONE[type]
-  const map: Record<ServiceType, string> = {
-    repair: t.repair.serviceTypes.repair,
-    stone_setting: t.repair.serviceTypes.stoneSetting,
-    sizing: t.repair.serviceTypes.sizing,
-    restring: t.repair.serviceTypes.restring,
-    plating: t.repair.serviceTypes.plating,
-    engraving: t.repair.serviceTypes.engraving,
-    custom: t.repair.serviceTypes.custom,
-  }
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold text-foreground">
       <span className={`inline-block h-1.5 w-1.5 rounded-full ${tone.dot}`} />
-      {map[type]}
+      {serviceTypeLabel(t, type)}
     </span>
   )
 }

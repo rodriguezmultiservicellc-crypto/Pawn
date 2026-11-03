@@ -1336,6 +1336,49 @@ export const en = {
     subtitle: 'Repairs, stone setting, sizing, restring, plating, engraving, custom.',
     new: 'New repair ticket',
     backToList: 'Back to repair tickets',
+    // Customer tracking link + customer-facing stage (patches/0061).
+    tracking: {
+      title: 'Customer tracking link',
+      help:
+        'A read-only page the customer can open without logging in: progress, promised date and balance. No personal data is shown.',
+      revoked:
+        'Link revoked — the customer page shows "not found" until you generate a new one.',
+      copy: 'Copy link',
+      copied: 'Copied',
+      open: 'Open',
+      sendSms: 'Send by SMS',
+      sending: 'Sending…',
+      sent: 'Sent by SMS',
+      regenerate: 'New link',
+      regenerateConfirm:
+        'Generate a new link? The old one stops working immediately.',
+      revoke: 'Revoke',
+      revokeConfirm:
+        'Revoke the link? The customer page stops working until you generate a new one.',
+      stageTitle: 'Customer-facing stage',
+      stageNone: 'No stage set',
+      nextStage: 'Next stage',
+      setStage: 'Set stage',
+      lastStage: 'Final stage reached.',
+      stagesMissing:
+        'No stages configured for this service type. Set them up in Settings → Repair stages.',
+      manageStages: 'Manage stages',
+      autoAdvanceNote:
+        'Stages tied to a workflow status move on their own; the others advance here or from the board.',
+      errors: {
+        no_destination: 'This customer has no phone number on file.',
+        link_revoked: 'The link is revoked — generate a new one first.',
+        provider_failed: 'The message could not be sent.',
+        opted_out_preference: 'This customer has opted out of messages.',
+        template_missing:
+          'No SMS template for the tracking link — check Settings → Communications.',
+        template_disabled:
+          'The tracking-link SMS template is disabled — enable it in Settings → Communications.',
+        last_stage: 'This ticket is already at the final stage.',
+        no_stages: 'No stages configured for this service type.',
+        not_found: 'Ticket not found.',
+      },
+    },
     list: {
       filterAll: 'All',
       filterIntake: 'Intake',
@@ -2397,6 +2440,7 @@ export const en = {
       redemption_thankyou: 'Thank you after redemption',
       repair_ready: 'Repair ready for pickup',
       repair_pickup_reminder: 'Repair pickup reminder',
+      repair_tracking_link: 'Repair tracking link',
       layaway_payment_due: 'Layaway payment due',
       layaway_overdue: 'Layaway overdue',
       layaway_completed: 'Layaway paid in full',
@@ -2427,6 +2471,8 @@ export const en = {
       repair_ready: 'Sent when a repair ticket is marked ready for pickup.',
       repair_pickup_reminder:
         'Sent when a ready repair has not been picked up after 24h.',
+      repair_tracking_link:
+        'Sent from a repair ticket ("Send by SMS") — the customer\'s public progress page. Uses {{tracking_link}}.',
       layaway_payment_due: 'Sent when a layaway payment is due within 3 days.',
       layaway_overdue: 'Sent when a layaway payment is past due.',
       layaway_completed: 'Sent when a layaway is paid in full.',
@@ -3253,6 +3299,72 @@ export const en = {
       ended: 'Ended',
       sold: 'Sold',
       error: 'Error',
+    },
+  },
+
+  // Public repair tracking page — /t/<token> (patches/0061). Customer-facing.
+  tracking: {
+    title: 'Repair status',
+    ticket: 'Ticket',
+    piece: 'Your piece',
+    promised: 'Promised date',
+    promisedNone: 'To be confirmed',
+    progress: 'Progress',
+    stage: 'Current stage',
+    stageNone: 'Received',
+    quoted: 'Quoted',
+    notQuoted: 'Quote pending',
+    paid: 'Paid so far',
+    balance: 'Balance due',
+    readyBanner: 'Your piece is ready for pickup!',
+    pickedUpBanner: 'Picked up — thank you!',
+    closedBanner: 'This ticket is closed. Please contact the store.',
+    questions: 'Questions? Give us a call.',
+    call: 'Call the store',
+    visitSite: 'Visit our website',
+    updated: 'Last updated',
+    photoAlt: 'Reference photo of your piece',
+    privacyNote: 'This page shows only the status of this repair. No personal information is displayed.',
+    notFoundTitle: 'Link not found',
+    notFoundBody:
+      'This tracking link is invalid, has expired, or was replaced by a new one. Please contact the store for an updated link.',
+  },
+
+  // /settings/repair-stages — per-service-type customer-facing stages.
+  settingsRepairStages: {
+    hubTitle: 'Repair stages',
+    hubDescription:
+      'The named steps customers see on their tracking page, per service type, with a progress % each. Also the "text when ready" switch.',
+    hubDetail: 'Manage stages',
+    title: 'Repair stages',
+    subtitle:
+      'The named steps customers see on their tracking page, per service type. Each step has a progress percentage; steps tied to a workflow status advance automatically, the rest advance by hand from the board or the ticket.',
+    serviceType: 'Service type',
+    columnOrder: '#',
+    nameEn: 'Name (English)',
+    nameEs: 'Name (Spanish)',
+    percent: 'Progress %',
+    mapsTo: 'Auto-advance on status',
+    mapsToHelp: 'When the ticket enters one of these statuses it jumps to this stage. Leave empty for a hand-advanced step.',
+    active: 'Active',
+    addStage: 'Add stage',
+    remove: 'Remove',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    save: 'Save stages',
+    saved: 'Stages saved.',
+    resetDefaults: 'Reset to defaults',
+    resetConfirm:
+      'Replace the stages for this service type with the defaults? Tickets keep working — they are re-pointed to the matching default stage.',
+    autoNotifyTitle: 'Text the customer when ready',
+    autoNotifyHelp:
+      'When a ticket reaches "Ready for pickup", send the "Repair ready for pickup" message right away (it includes the tracking link). Off: the daily reminder job still sends it the next morning.',
+    autoNotifyLabel: 'Send immediately when a ticket becomes ready',
+    errors: {
+      invalid: 'Check the highlighted fields.',
+      min_one: 'Keep at least one stage.',
+      name_required: 'Both names are required.',
+      percent_range: 'Progress must be between 0 and 100.',
     },
   },
 

@@ -11,6 +11,7 @@ import {
   shouldOpenTimerOnEnter,
   shouldStopTimerOnLeave,
 } from '@/lib/repair/workflow'
+import { notifyRepairReadyIfEnabled } from '@/lib/repair/notify'
 import type { AuditAction } from '@/lib/audit'
 import type {
   RepairEventType,
@@ -194,6 +195,11 @@ export async function moveTicketStatusAction(
       via: 'board',
     },
   })
+
+  // Optional "text the customer when ready" (settings.repair_ready_auto_notify).
+  if (to_status === 'ready') {
+    await notifyRepairReadyIfEnabled({ tenantId: ticket.tenant_id, ticketId: ticket.id })
+  }
 
   revalidatePath('/repair/board')
   revalidatePath(`/repair/${ticket.id}`)

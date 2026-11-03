@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { dispatchMessage } from '@/lib/comms/dispatch'
+import { trackingUrl } from '@/lib/repair/stages'
 import type { MessageKind } from '@/types/database-aliases'
 
 export const runtime = 'nodejs'
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
   for (const tenant of tenants ?? []) {
     const { data: tickets } = await admin
       .from('repair_tickets')
-      .select('id, tenant_id, customer_id, ticket_number, status, balance_due, completed_at')
+      .select('id, tenant_id, customer_id, ticket_number, status, balance_due, completed_at, public_token')
       .eq('tenant_id', tenant.id)
       .eq('status', 'ready')
       .is('deleted_at', null)
@@ -71,6 +72,8 @@ export async function GET(req: NextRequest) {
         vars: {
           ticket_number: ticket.ticket_number ?? '',
           amount: formatUsd(Number(ticket.balance_due ?? 0)),
+          // Public tracking page (patches/0061); '' when the link is revoked.
+          tracking_link: trackingUrl(ticket.public_token) ?? '',
         },
         related: { repairTicketId: ticket.id },
       })

@@ -30,6 +30,7 @@ const PUBLIC_PATHS = [
   '/auth/callback',
   '/portal/login',
   '/s', // public tenant landing — /s/<slug>
+  '/t', // public repair tracking page — /t/<token> (patches/0061)
   '/unsubscribe', // email-campaign unsubscribe link target
 ]
 

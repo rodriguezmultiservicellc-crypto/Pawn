@@ -30,6 +30,8 @@ import {
   type RepairEventItem,
 } from '@/components/repair/TimelinePanel'
 import { TimerPanel, type RepairTimeLogItem } from '@/components/repair/TimerPanel'
+import { TrackingPanel } from '@/components/repair/TrackingPanel'
+import type { RepairStageLite } from '@/lib/repair/stages'
 import { SetQuoteDialog } from '@/components/repair/SetQuoteDialog'
 import { CollectDepositDialog } from '@/components/repair/CollectDepositDialog'
 import { RecordPickupDialog } from '@/components/repair/RecordPickupDialog'
@@ -114,6 +116,8 @@ export type RepairTicketView = {
   is_locked: boolean
   notes_internal: string | null
   source_inventory_item_id: string | null
+  /** Customer-facing stage pointer (patches/0061). */
+  public_stage_id: string | null
   created_at: string
 }
 
@@ -199,6 +203,8 @@ export default function RepairTicketDetail({
   technicians,
   inventoryOptions,
   myUserId,
+  trackingLink,
+  stages,
 }: {
   ticket: RepairTicketView
   lineItems: RepairLineItemView[]
@@ -210,6 +216,10 @@ export default function RepairTicketDetail({
   technicians: TechnicianOption[]
   inventoryOptions: InventoryPartChoice[]
   myUserId: string | null
+  /** Absolute /t/<token> URL, null when the link is revoked. */
+  trackingLink: string | null
+  /** Active customer-facing stages for this ticket's service type. */
+  stages: RepairStageLite[]
 }) {
   const { t } = useI18n()
   const [dialog, setDialog] = useState<DialogKind>(null)
@@ -542,6 +552,15 @@ export default function RepairTicketDetail({
           {readableError(error, t)}
         </div>
       ) : null}
+
+      {/* Customer tracking link + customer-facing stage (patches/0061) */}
+      <TrackingPanel
+        ticketId={ticket.id}
+        link={trackingLink}
+        stages={stages}
+        currentStageId={ticket.public_stage_id}
+        isTerminal={isTerminal}
+      />
 
       {/* Overview + Customer item */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

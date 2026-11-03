@@ -46,6 +46,7 @@ import {
   shouldStopTimerOnLeave,
 } from '@/lib/repair/workflow'
 import { computeBalanceDue, lineTotalCost, r4 } from '@/lib/repair/billing'
+import { notifyRepairReadyIfEnabled } from '@/lib/repair/notify'
 import type {
   RepairStatus,
   RepairTicketUpdate,
@@ -655,6 +656,9 @@ export async function markCompleteAction(
     changes: { new_status: 'ready' },
   })
 
+  // Optional "text the customer when ready" (settings.repair_ready_auto_notify).
+  await notifyRepairReadyIfEnabled({ tenantId, ticketId: ticket.id })
+
   revalidatePath(`/repair/${ticket.id}`)
   revalidatePath('/repair')
   return { ok: true }
@@ -1252,6 +1256,9 @@ export async function approveQaAction(
     recordId: ticket.id,
     changes: { new_status: 'ready' },
   })
+
+  // Optional "text the customer when ready" (settings.repair_ready_auto_notify).
+  await notifyRepairReadyIfEnabled({ tenantId, ticketId: ticket.id })
 
   revalidatePath(`/repair/${ticket.id}`)
   revalidatePath('/repair')

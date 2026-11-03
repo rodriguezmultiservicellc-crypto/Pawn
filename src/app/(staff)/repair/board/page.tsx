@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { todayDateString } from '@/lib/pawn/math'
 import BoardContent, { type BoardCard, type TechOption } from './content'
+import type { RepairStageLite } from '@/lib/repair/stages'
 import type {
   RepairStatus,
   ServiceType,
@@ -73,7 +74,7 @@ export default async function RepairBoardPage(props: {
     .from('repair_tickets')
     .select(
       `id, ticket_number, customer_id, service_type, title, promised_date,
-       status, assigned_to, balance_due, created_at,
+       status, assigned_to, balance_due, created_at, public_stage_id,
        customer:customers(first_name, last_name)`,
     )
     .eq('tenant_id', ctx.tenantId)
@@ -100,6 +101,27 @@ export default async function RepairBoardPage(props: {
   }
 
   const { data: tickets } = await query
+
+  // Customer-facing stages, grouped by service type, for the card footer's
+  // stage chip + one-tap "Next stage" (patches/0061).
+  const { data: stageRows } = await ctx.supabase
+    .from('repair_stages')
+    .select('id, service_type, name_en, name_es, percent, sort_order')
+    .eq('tenant_id', ctx.tenantId)
+    .eq('is_active', true)
+    .order('sort_order')
+  const stagesByType: Partial<Record<ServiceType, RepairStageLite[]>> = {}
+  for (const s of stageRows ?? []) {
+    const arr = stagesByType[s.service_type] ?? []
+    arr.push({
+      id: s.id,
+      name_en: s.name_en,
+      name_es: s.name_es,
+      percent: s.percent,
+      sort_order: s.sort_order,
+    })
+    stagesByType[s.service_type] = arr
+  }
 
   // Resolve assignee names + build the tech filter chip strip. We pull
   // EVERY active staff member (not just those currently assigned) so the
@@ -171,6 +193,7 @@ export default async function RepairBoardPage(props: {
         : null,
       balance_due: t.balance_due == null ? null : Number(t.balance_due),
       created_at: t.created_at,
+      public_stage_id: t.public_stage_id,
     }
   })
 
@@ -201,6 +224,7 @@ export default async function RepairBoardPage(props: {
       unassignedCount={unassignedCount}
       serviceTypeFilter={serviceTypeFilter}
       today={todayDateString()}
+      stagesByType={stagesByType}
     />
   )
 }

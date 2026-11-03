@@ -21,6 +21,8 @@ import { daysBetween } from '@/lib/pawn/math'
 import { ServiceTypeBadge } from '@/components/repair/ServiceTypeBadge'
 import { StatusBadge } from '@/components/repair/StatusBadge'
 import { canTransition } from '@/lib/repair/workflow'
+import { StageQuickRow } from '@/components/repair/TrackingPanel'
+import type { RepairStageLite } from '@/lib/repair/stages'
 import { moveTicketStatusAction } from './actions'
 import type { RepairStatus, ServiceType } from '@/types/database-aliases'
 
@@ -42,9 +44,12 @@ export type BoardCard = {
   assigned_to_name: string | null
   balance_due: number | null
   created_at: string
+  /** Customer-facing stage pointer (patches/0061). */
+  public_stage_id: string | null
 }
 
 type BoardCardMap = Record<RepairStatus, BoardCard[]>
+export type StagesByType = Partial<Record<ServiceType, RepairStageLite[]>>
 
 export default function BoardContent({
   columns,
@@ -54,6 +59,7 @@ export default function BoardContent({
   unassignedCount,
   serviceTypeFilter,
   today,
+  stagesByType,
 }: {
   columns: ReadonlyArray<RepairStatus>
   cardsByStatus: BoardCardMap
@@ -62,6 +68,7 @@ export default function BoardContent({
   unassignedCount: number
   serviceTypeFilter: string
   today: string
+  stagesByType: StagesByType
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -277,6 +284,8 @@ export default function BoardContent({
               today={today}
               activeCardStatus={activeCard?.status ?? null}
               onCardClick={(id) => router.push(`/repair/${id}`)}
+              stagesByType={stagesByType}
+              onStageMoved={() => router.refresh()}
             />
           ))}
         </div>
@@ -299,12 +308,16 @@ function Column({
   today,
   activeCardStatus,
   onCardClick,
+  stagesByType,
+  onStageMoved,
 }: {
   status: RepairStatus
   cards: BoardCard[]
   today: string
   activeCardStatus: RepairStatus | null
   onCardClick: (id: string) => void
+  stagesByType: StagesByType
+  onStageMoved: () => void
 }) {
   const { t } = useI18n()
   const { isOver, setNodeRef } = useDroppable({ id: status })
@@ -346,12 +359,20 @@ function Column({
           </div>
         ) : (
           cards.map((card) => (
-            <DraggableCard
-              key={card.id}
-              card={card}
-              today={today}
-              onClick={() => onCardClick(card.id)}
-            />
+            <div key={card.id}>
+              <DraggableCard
+                card={card}
+                today={today}
+                onClick={() => onCardClick(card.id)}
+              />
+              {/* Outside the draggable <button> — a button can't nest a button. */}
+              <StageQuickRow
+                ticketId={card.id}
+                stages={stagesByType[card.service_type] ?? []}
+                currentStageId={card.public_stage_id}
+                onMoved={onStageMoved}
+              />
+            </div>
           ))
         )}
       </div>

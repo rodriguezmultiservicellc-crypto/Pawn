@@ -60,32 +60,51 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 55 (2026-11-03) — PHASE 0 of
+  Last session:   Session 55 (2026-11-03) — PHASES 0 AND 1 of
                   sol-pawn-brief-for-armando.md (the "Sol Pawn" fixes +
                   features brief; Eddy confirmed it is for THIS session
-                  and cleared production). Spot prices un-frozen after
-                  SIX MONTHS, provider fallback chain, fetch log, 24h
-                  stale-price guard with manager confirm, 18K pay-rate
-                  display fixed, dev text removed from /pawn/new. tsc /
-                  lint / 562 tests / green production build; cron route
-                  exercised 401 + 200 against the built app.
+                  and cleared production). Both on main.
 
-                  - ROOT CAUSE WAS TWO THINGS, not one. Stooq's CSV
-                    endpoint 404s for every symbol since ~May; AND the
-                    cron never ran once (CRON_SECRET unset → 401 before
-                    any logging). Item 402.
-                  - Provider chain gold-api.com → Yahoo futures → Stooq;
-                    every attempt lands in spot_price_fetches (0058) and
-                    shows on the Spot Prices page. Items 403-405.
-                  - The ×0.6000 on 18K is Eddy's own PAY-RATE override
-                    from 2026-04-28, not a purity bug. The card showed raw
-                    spot next to a badge that read like a correction; it
-                    now shows "You pay $X/g" + "Spot $Y/g". Item 407.
-                  - "24.96% — 111" rate: used by ONE redeemed loan
-                    (2026-05-07). NOT touched — awaiting Eddy. Item 408.
-                  - Brief said "branch, don't deploy"; Eddy overrode
-                    mid-session with "you can deploy to production", so
-                    this landed on main. Phases 1-4 still pending.
+                  PHASE 1 — CUSTOMER TRACKING LINK (items 411-420):
+                  - Every repair ticket has an unguessable public_token;
+                    /t/<token> is a no-login, read-only page with store
+                    branding, progress bar of named STAGES, promised
+                    date, quoted/paid/balance, store phone. Verified on
+                    the built app: 200 for a real token with zero
+                    customer data in the HTML, 404 (custom, bilingual)
+                    for unknown / malformed tokens.
+                  - The ONLY input is the token: SECURITY DEFINER RPC
+                    repair_public_ticket() resolves tenant+ticket and
+                    returns a customer-safe jsonb; lib/repair/public-
+                    ticket.ts re-applies the allowlist and a test locks
+                    the forbidden keys. Item 412.
+                  - repair_stages per tenant × service_type (0061), seeded
+                    with the brief's defaults; a DB TRIGGER keeps the
+                    ticket's stage coherent with every status change made
+                    anywhere; hand-advanced sub-stages ("Casting") move by
+                    one tap on the board or the ticket. Item 413.
+                  - Send by SMS = new message_kind repair_tracking_link
+                    (0060) through the normal dispatcher; repair_ready /
+                    pickup_reminder texts now carry {{tracking_link}}.
+                    Optional immediate "text when ready" switch. 415-417.
+                  - /settings/repair-stages editor (EN/ES names, %, auto-
+                    advance statuses, reorder, reset to defaults). 418.
+                  - GOTCHA: a 'use client' not-found.tsx under a dynamic
+                    segment rendered Next's DEFAULT 404 in production (no
+                    error logged); the server-component version works.
+                    Item 420.
+
+                  PHASE 0 — SPOT PRICES (items 402-410): un-frozen after
+                  SIX MONTHS. Two independent causes: Stooq's CSV
+                  endpoint 404s for every symbol since ~May; AND the cron
+                  never ran once (CRON_SECRET unset → 401 before any
+                  logging). Provider chain gold-api.com → Yahoo futures →
+                  Stooq; every attempt lands in spot_price_fetches (0058);
+                  24h stale-price guard with manager confirm; the ×0.6000
+                  on 18K is Eddy's own PAY-RATE override (now shown as
+                  "You pay $X/g" + "Spot $Y/g", item 407); "24.96% — 111"
+                  rate used by ONE redeemed loan — NOT touched (item 408).
+                  CRON_SECRET finally set in Vercel Production.
 
                   PRIOR SESSION (54): ID scan tile in the customer header
                   (item 393); HEIC uploads fixed end to end — browser-
@@ -175,54 +194,68 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~20% at save time (Phase 0 shipped as one commit on
-                  feature/sol-pawn-brief, fast-forwarded into main).
-  Last worked on: Phase 0 summary for Eddy (what changed, migrations,
+  Context budget: ~35% at save time (Phase 0 = b3603ce on main; Phase 1
+                  = this checkpoint, also fast-forwarded into main).
+  Last worked on: Phase 1 summary for Eddy (what changed, migrations,
                   how to test) — the brief says stop after each phase.
 
   ACTIVE FILE(S) (all committed):
-    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4; Phase 0 done)
-    - src/lib/spot-prices/sources/{types,http,gold-api,yahoo-futures,
-      stooq,index}.ts (+ index.test.ts) — provider chain
-    - src/lib/spot-prices/refresh.ts (rewritten: chain + fetch log)
-    - src/lib/spot-prices/staleness.ts (+ test) — pure 24h rule
-    - src/lib/spot-prices/stale-gate.ts — server half of the guard
-    - src/lib/spot-prices/lookup.ts (getSpotFreshness, getSpotFetchLog)
-    - src/components/inventory/StalePriceBanner.tsx (banner + confirm)
-    - src/app/(staff)/inventory/spot-prices/{page,content,actions}.tsx
-    - src/app/(staff)/buy/new/{page,form,actions}.ts(x)
-    - src/app/(staff)/pawn/new/{page,form,actions}.ts(x)
-    - src/app/(staff)/pawn/calculator/{page,content}.tsx
-    - src/app/api/cron/refresh-spot-prices/route.ts
-    - src/lib/jurisdictions/messages.ts (ruleErrorText → spotPrices.errors)
-    - src/lib/i18n/{en,es}.ts (spotPrices.* — ~45 keys)
-    - patches/0058-spot-price-fetch-log.sql (APPLIED)
-    - patches/0059-clear-seeded-loan-rate-description.sql (APPLIED)
-    - scripts/refresh-spot-prices.ts (CLI refresh)
+    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4; 0 + 1 done)
+    Phase 1:
+    - patches/0060-repair-tracking-link-kind.sql (APPLIED — enum value)
+    - patches/0061-repair-tracking.sql (APPLIED — repair_stages, ticket
+      public_token / public_stage_id, sync trigger, RPC
+      repair_public_ticket, templates, backfill)
+    - src/lib/repair/stages.ts (+ test) — pure stage/token helpers,
+      SERVICE_TYPES, MAPPABLE_STATUSES
+    - src/lib/repair/public-ticket.ts (+ test) — public allowlist shaper
+    - src/lib/repair/notify.ts — notifyRepairReadyIfEnabled
+    - src/lib/i18n/server.ts — detectLanguageFromHeaders (moved out of
+      the (public) layout so not-found pages can use it)
+    - src/app/(public)/t/[token]/{page,content,not-found}.tsx
+    - src/app/(staff)/repair/stage-actions.ts (shared: set stage, send
+      SMS, regenerate, revoke)
+    - src/components/repair/TrackingPanel.tsx (+ StageQuickRow for board)
+    - src/components/repair/ServiceTypeBadge.tsx (serviceTypeLabel export)
+    - src/app/(staff)/repair/[id]/{page,content,actions}.ts(x)
+    - src/app/(staff)/repair/board/{page,content,actions}.ts(x)
+    - src/app/(staff)/settings/repair-stages/{page,content,actions}.ts(x)
+    - src/app/(staff)/settings/content.tsx (hub card)
+    - src/app/api/cron/repair-ready-reminders/route.ts (tracking_link var)
+    - src/proxy.ts ('/t' public), src/lib/audit.ts (7 actions),
+      src/lib/validations/communications.ts, settings/communications
+      KIND_ORDER, SendReminderDialog ALL_KINDS
+    - src/lib/i18n/{en,es}.ts (repair.tracking.*, tracking.*,
+      settingsRepairStages.*, comms kind label/description)
+    Phase 0: src/lib/spot-prices/** (sources chain, refresh, staleness,
+      stale-gate, lookup), StalePriceBanner, spot-prices / buy / pawn /
+      calculator pages, cron refresh-spot-prices, patches/0058-0059,
+      scripts/refresh-spot-prices.ts
     - patches/0057-normalize-customer-description-values.sql
       (written, NOT APPLIED — see item 392)
     - Progress.txt (this file)
 
   RESUME POINT:
-    CLEAN STOPPING POINT — Phase 0 of the brief is complete and on main.
-    Next is PHASE 1: public read-only customer tracking link for repair
-    tickets (unguessable token, no ticket#/customer id in the URL, store
-    branding, progress bar with per-service-type configurable stages,
-    quoted/paid/balance, phone; NEVER customer ID / address / other
-    tickets / internal notes; Copy link + Send by SMS via existing
-    /settings/communications; optional auto-text at Ready; revoke /
-    regenerate). Read the brief's Phase 1 section first, then the repair
-    module (src/lib/repair/, src/app/(staff)/repair/, patches for
-    repair_tickets). Design decisions to make BEFORE coding: a public
-    route group with NO auth that reads through a narrow SECURITY
-    DEFINER RPC keyed by token (service-role reads bypass RLS — rule 8
-    says the token must resolve the tenant, so a view/RPC that returns
-    ONLY the allowed fields is the right shape); photo via 1h signed URL
-    (rule 12); stages table + ticket.stage pointer with a % per stage.
+    CLEAN STOPPING POINT — Phases 0 and 1 of the brief are complete and
+    on main. Next is PHASE 2: the custom-piece quoter (The piece → The
+    price → The payment; metal × weight at today's spot, wax/3D, labor,
+    stones from inventory or by hand, extras; sticky footer "Total $X —
+    you keep $Y — margin Z%" live; default + minimum margin in Settings;
+    saving FREEZES the metal price ("Priced at $__/g on [date]"); quotes
+    expire after N days; accepted quote → repair/custom ticket in one
+    tap (Phase 1 stages + link); deposit through the existing POS
+    payment flow; customer-facing PDF + public link without cost
+    breakdown unless enabled; a documented hook to fill weight from the
+    laser nameplate app — interface + TODO only). Read the brief's
+    Phase 2 section, then: lib/spot-prices (getLatestSpotPrice,
+    computeMeltValue — reuse, do not re-derive), lib/repair + the
+    repair/new intake action (to convert a quote into a ticket), the POS
+    payment flow (sale_payments / collectDepositAction), lib/pdf for the
+    PDF pattern, and the /t/[token] public page as the template for a
+    public quote page (same token + SECURITY DEFINER RPC shape).
 
-    Wait for Eddy's answers on the two Phase 0 questions (item 408 rate
-    "111"; whether the 60% 18K pay rate is intended) — neither blocks
-    Phase 1.
+    Open questions for Eddy from Phase 0 (item 408 rate "111"; the 60%
+    18K pay rate) still unanswered — neither blocks Phase 2.
 
     If the next session touches uploads, read item 400 FIRST — a
     mid-session npm install desyncs Turbopack and makes every route 500
@@ -892,7 +925,152 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
---- Session 55 (2026-11-03) — Brief Phase 0: spot prices un-frozen, fallback chain, fetch log, stale guard, 18K display, dev text ---
+--- Session 55 (2026-11-03) — Brief Phase 0 (spot prices) + Phase 1 (customer tracking link) ---
+
+ 411. PHASE 1 SCOPE (brief): a public, read-only link per repair ticket
+     that staff text or WhatsApp to the customer so "is my piece ready?"
+     stops being a phone call. Shows store name/logo, ticket number, the
+     piece, a reference photo, promised date, a progress bar of NAMED
+     STAGES (configurable per service type), quoted / paid / balance and
+     the store phone — never the customer's identity, address, other
+     tickets or internal notes. Everything below is on main.
+
+ 412. PUBLIC PAGE /t/<token> (src/app/(public)/t/[token]/). The token is
+     the ONLY input (rule 8: the tenant comes from the token). page.tsx
+     validates the shape (32 hex), calls the SECURITY DEFINER RPC
+     repair_public_ticket(p_token) through the ANON SSR client (granted
+     to anon; no table policy opened), then lib/repair/public-ticket.ts
+     shapePublicTicket() REBUILDS the document key-by-key from an
+     allowlist so a future "helpful" column in the RPC cannot leak;
+     public-ticket.test.ts feeds a deliberately leaky document and
+     asserts the forbidden keys (customer_id, customer_*, first/last
+     name, email, address, notes_internal, description, assigned_to,
+     pickup_signature_path, public_token, …) and the customer's actual
+     values are absent. The reference photo (kind reference, else
+     intake; never the pickup signature) leaves the RPC as a storage
+     PATH and is signed for 1h with the service role (rule 12). The RPC
+     returns NULL — one generic not-found — for unknown / revoked token,
+     deleted or voided ticket, inactive tenant. robots noindex. Opens in
+     the CUSTOMER's language (customers.language is the one customer
+     field that crosses) with the EN|ES toggle. Verified against the
+     built app: 200 + full content for RT-000001's token, HTML free of
+     the customer's name/phone/email/ids; 404 for an unknown and a
+     malformed token; Spanish via Accept-Language.
+
+ 413. STAGES — patches/0061 repair_stages (tenant_id, service_type,
+     sort_order, name_en, name_es, percent 0-100, maps_to_statuses
+     repair_status[], is_active; UNIQUE(tenant, type, sort_order); RLS
+     staff read / owner-chain_admin-manager write, mirroring
+     tenant_loan_rates). seed_default_repair_stages(tenant, type?,
+     reset?) loads the brief's defaults — Repair/Sizing etc.: Received →
+     Diagnosed/Quoted → Approved → In progress → Quality check → Ready
+     for pickup → Picked up; Custom: Design → Design approved → Wax/3D
+     print → Casting → Metal work → Stone setting → Finishing → Quality
+     check → Ready for pickup → Delivered — for every existing tenant
+     and, via trg_tenant_after_insert_seed_repair_tracking, every new
+     one. repair_tickets gained public_token (nullable = revoked),
+     public_token_created_at, public_stage_id (FK, ON DELETE SET NULL),
+     public_stage_updated_at. STAGE ↔ STATUS IS THE DATABASE'S JOB: the
+     BEFORE INSERT OR UPDATE OF status trigger
+     repair_tickets_sync_public_stage moves the pointer to the stage
+     whose maps_to_statuses contains the new status — first match going
+     forward, last match going back — UNLESS the current stage already
+     covers that status, so a custom piece sitting at "Casting" is not
+     yanked back to "Wax" by a timer-driven in_progress re-entry. That
+     one trigger covers the 20+ detail actions and the board drag
+     without any of them knowing. Hand-advanced sub-stages move via
+     setPublicStageAction ('next' or a stage id) — one tap on the board
+     card footer (StageQuickRow, rendered OUTSIDE the draggable <button>
+     because a button cannot nest a button) and on the ticket's
+     TrackingPanel (Next stage + a picker). Backfill gave the existing
+     ticket a token and a stage (UPDATE … SET status = status fires an
+     UPDATE OF status trigger even when unchanged).
+
+ 414. STAFF UI (components/repair/TrackingPanel.tsx on /repair/[id]):
+     the link (selectable), Copy (clipboard), Open, Send by SMS, New
+     link (confirm; old one dies immediately), Revoke (confirm; page →
+     not-found until regenerated); the stage name + % bar + Next stage +
+     picker; link to Settings → Repair stages. All actions in
+     src/app/(staff)/repair/stage-actions.ts (shared with the board),
+     any pawn/repair staff role; every one writes audit_log
+     (repair_tracking_link_send / _regenerate / _revoke,
+     repair_stage_set — the token itself is never logged) and a
+     repair_ticket_events 'note' row so the timeline shows it.
+
+ 415. SEND BY SMS — new message_kind 'repair_tracking_link' (patches/
+     0060, its own apply because Postgres cannot use a new enum value in
+     the transaction that adds it — same split as 0049/0050, 0052/0053).
+     0061's seed_repair_tracking_templates() seeds EN/ES SMS + email
+     (WhatsApp disabled until a Content SID exists) for every tenant and
+     new tenants; registered in messageKindSchema, the comms settings
+     KIND_ORDER, SendReminderDialog and i18n kindLabels/Descriptions.
+     sendTrackingLinkAction goes through dispatchMessage with
+     channelOverride 'sms' (the button says SMS; a WhatsApp-preferring
+     customer still gets a text), so tenant Twilio creds, customer
+     language, message_log and the STOP footer all come from
+     /settings/communications as the brief required. Dispatcher failure
+     reasons (no_destination, opted_out_preference, template_missing,
+     template_disabled, provider_failed) are translated in
+     t.repair.tracking.errors.
+
+ 416. {{tracking_link}} IN THE READY TEXTS. 0061 appends " Track it
+     here: {{tracking_link}}" / " Siga su reparación: {{tracking_link}}"
+     to every repair_ready and repair_pickup_reminder template body that
+     lacks it (operator edits otherwise preserved; verified 6/6 rows).
+     The repair-ready-reminders cron now passes tracking_link ('' when
+     revoked). NOTE this cron — like every cron — had NEVER fired in
+     production until CRON_SECRET was set this session (item 402).
+
+ 417. AUTO-TEXT WHEN READY (optional setting) — settings.
+     repair_ready_auto_notify (default FALSE). lib/repair/notify.ts
+     notifyRepairReadyIfEnabled() runs after markCompleteAction,
+     approveQaAction and the board move to 'ready': sends repair_ready
+     (with tracking_link) immediately, skips if a repair_ready row
+     already exists in message_log for the ticket, never throws (a
+     comms hiccup must not undo a status change). The daily cron stays
+     the catch-up and already skips tickets that got the ready text.
+     Toggle lives on /settings/repair-stages.
+
+ 418. /settings/repair-stages (owner / chain_admin / manager; has_repair
+     gate; hub card on /settings when the repair module is on). Tabs per
+     service type; rows: EN name, ES name, %, auto-advance statuses
+     (chips; 'voided' deliberately not mappable — a voided ticket's page
+     is a not-found), active, reorder, remove, add; Save; Reset to
+     defaults (confirm → seed_default_repair_stages(…, reset=TRUE)).
+     saveRepairStagesAction renumbers in TWO passes (park survivors on
+     negative sort_order, then final (i+1)*10) because the UNIQUE
+     (tenant, type, sort_order) index would bounce a swap mid-way;
+     deletes removed rows (ticket pointers go NULL via the FK) and
+     re-points those tickets to the first active stage mapping their
+     status — the same rule the trigger applies when a ticket has no
+     usable stage. Audit: repair_stages_update / _reset /
+     repair_notify_setting.
+
+ 419. PURE HELPERS + TESTS: lib/repair/stages.ts (nextStage, stageIndex,
+     progressPercent clamp, stageName, isValidPublicToken, trackingUrl —
+     /t/<token>, never a ticket number or customer id in the URL) with
+     stages.test.ts; public-ticket.test.ts (item 412). Suite: 576 tests.
+     serviceTypeLabel() extracted from ServiceTypeBadge and shared by
+     the badge, the stages editor and the public page (pre-save gate:
+     duplicate logic consolidated); detectLanguageFromHeaders() moved
+     from the (public) layout into lib/i18n/server.ts for the same
+     reason.
+
+ 420. GOTCHA — 'use client' not-found.tsx UNDER A DYNAMIC SEGMENT. The
+     first /t/[token]/not-found.tsx was a client component (useI18n for
+     the bilingual copy). In the PRODUCTION build, notFound() from the
+     page rendered Next's DEFAULT "404: This page could not be found"
+     instead — no error in the server log, tsc/lint/build all green —
+     while the sibling /s/[slug]/not-found.tsx (a server component)
+     worked. Rewritten as a server component that reads Accept-Language
+     via detectLanguageFromHeaders() + getDictionary(); custom 404 then
+     rendered in EN and ES. Next's bundled docs (not-found.md) note that
+     client hooks in not-found need client-side data fetching — treat
+     not-found.tsx as server-only in this repo.
+
+ PHASE 0 (items 401-410 below).
+
+
 
  401. CAMERA / MICROPHONE ERRORS CLASSIFIED (commit 3407dd1, 2026-09-24,
      shipped between checkpoints and not logged until now). Eddy hit
@@ -4513,14 +4691,14 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Phase 1 of sol-pawn-brief-for-armando.md — the public customer
-    tracking link for repair tickets (see RESUME POINT). Before coding,
-    confirm the Phase 0 deploy is live: Vercel production should show
-    the new Spot Prices page (Refresh history panel) and
-    /api/cron/refresh-spot-prices should now return 200 on its schedule
-    — check spot_price_fetches for trigger='cron' rows after the next
-    quarter-hour (CRON_SECRET was set in Vercel Production on
-    2026-11-03; it was the reason EVERY cron had 401'd since launch).
+    Phase 2 of sol-pawn-brief-for-armando.md — the custom-piece quoter
+    (see RESUME POINT). Before coding, confirm the deploys are live:
+    Vercel production should serve /t/<token> (200 for RT-000001's
+    token from Progress item 412's smoke, custom 404 otherwise), the
+    Spot Prices page should show the Refresh history panel, and
+    spot_price_fetches should have trigger='cron' rows (CRON_SECRET was
+    set in Vercel Production on 2026-11-03; it was the reason EVERY cron
+    had 401'd since launch).
 
   AWAITING A DECISION FROM EDDY (not blocking anything):
     - Phase 0 / item 408: deactivate the "24.96% — 111" loan rate

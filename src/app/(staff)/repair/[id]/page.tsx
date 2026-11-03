@@ -4,6 +4,7 @@ import {
   REPAIR_PHOTOS_BUCKET,
   getSignedUrl,
 } from '@/lib/supabase/storage'
+import { trackingUrl, type RepairStageLite } from '@/lib/repair/stages'
 import RepairTicketDetail, {
   type InventoryPartChoice,
   type RepairLineItemView,
@@ -41,6 +42,7 @@ export default async function RepairTicketDetailPage(props: {
        promised_date, completed_at, picked_up_at, pickup_by_name,
        pickup_signature_path, pickup_id_check, assigned_to, status,
        source_inventory_item_id, is_locked, notes_internal,
+       public_token, public_stage_id,
        created_at, updated_at,
        customer:customers(id, first_name, last_name, phone, email)`,
     )
@@ -65,6 +67,7 @@ export default async function RepairTicketDetailPage(props: {
     { data: photos },
     { data: events },
     { data: timeLogs },
+    { data: stageRows },
   ] = await Promise.all([
     ctx.supabase
       .from('repair_ticket_stones')
@@ -102,6 +105,14 @@ export default async function RepairTicketDetailPage(props: {
       .eq('ticket_id', id)
       .order('started_at', { ascending: false })
       .limit(50),
+    // Customer-facing stages for this service type (patches/0061).
+    ctx.supabase
+      .from('repair_stages')
+      .select('id, name_en, name_es, percent, sort_order')
+      .eq('tenant_id', ticket.tenant_id)
+      .eq('service_type', ticket.service_type)
+      .eq('is_active', true)
+      .order('sort_order'),
   ])
 
   // Line items (one row per customer item).
@@ -246,6 +257,7 @@ export default async function RepairTicketDetailPage(props: {
     is_locked: ticket.is_locked,
     notes_internal: ticket.notes_internal,
     source_inventory_item_id: ticket.source_inventory_item_id,
+    public_stage_id: ticket.public_stage_id,
     created_at: ticket.created_at,
   }
 
@@ -305,6 +317,8 @@ export default async function RepairTicketDetailPage(props: {
       technicians={technicianOptions}
       inventoryOptions={inventoryOptions}
       myUserId={ctx.userId}
+      trackingLink={trackingUrl(ticket.public_token)}
+      stages={(stageRows ?? []) as RepairStageLite[]}
     />
   )
 }

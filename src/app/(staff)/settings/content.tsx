@@ -19,6 +19,7 @@ import {
   Scales,
   Wallet,
   HandCoins,
+  ListChecks,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 
@@ -176,6 +177,17 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             description="Tile buttons shown on /pawn/new step 1 (Jewelry / Electronics / Firearms / Tools / General). Edit, reorder, or add custom categories. Firearms gate lives here too."
             status="configured"
             statusDetail="Manage categories"
+          />
+        ) : null}
+
+        {view.modules.repair ? (
+          <Card
+            href="/settings/repair-stages"
+            icon={<ListChecks size={20} weight="regular" />}
+            title={t.settingsRepairStages.hubTitle}
+            description={t.settingsRepairStages.hubDescription}
+            status="configured"
+            statusDetail={t.settingsRepairStages.hubDetail}
           />
         ) : null}
 

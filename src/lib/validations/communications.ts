@@ -48,6 +48,7 @@ export const messageKindSchema = z.enum([
   'dormant_winback',
   'forfeiture_winback',
   'redemption_thankyou',
+  'repair_tracking_link',
 ])
 
 export const messageChannelSchema = z.enum(['sms', 'whatsapp', 'email'])

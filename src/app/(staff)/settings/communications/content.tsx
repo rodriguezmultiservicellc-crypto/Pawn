@@ -56,6 +56,7 @@ const KIND_ORDER: MessageKind[] = [
   'loan_final_notice',
   'repair_ready',
   'repair_pickup_reminder',
+  'repair_tracking_link',
   'layaway_payment_due',
   'layaway_overdue',
   'layaway_completed',
