@@ -3014,9 +3014,9 @@ export const en = {
     backToInventory: 'Back to inventory',
     refreshNow: 'Refresh now',
     refreshing: 'Refreshing…',
-    refreshOk: 'Inserted {inserted} of {attempted} new rows.',
+    refreshOk: 'Prices updated from {source} — {inserted} new rows.',
     refreshFailed: 'Refresh failed.',
-    noPrices: 'No spot prices loaded yet. Click "Refresh now" or wait for the next cron tick.',
+    noPrices: 'No spot prices loaded yet. Press "Refresh now" or wait for the next scheduled update.',
     perGram: '/ g',
     perOz: '/ oz',
     lastFetched: 'Last fetched',
@@ -3030,6 +3030,53 @@ export const en = {
     spotPerGramLabel: 'Spot / g',
     payRateMultiplier: 'Pay rate',
     purityResolved: 'Purity',
+    // Card: spot vs what the shop pays after its override.
+    spotLabel: 'Spot',
+    youPay: 'You pay',
+    payRateBadge: 'Pay rate {pct}%',
+    // Card visibility controls.
+    hiddenCount: '{count} hidden',
+    hiddenClickToShow: '(click to show)',
+    showAll: 'Show all',
+    showCard: 'Show this card',
+    hideCard: 'Hide this card',
+    trendLabel: '24h price trend',
+    // Stale-price guard (24h rule).
+    staleTitle: 'Spot prices are stale',
+    staleBody:
+      'The newest price is {hours} hours old (fetched {when}). Every melt value, buy payout and loan suggestion is being calculated from it.',
+    staleBodyNoData:
+      'No spot price has ever been loaded, so melt values cannot be calculated.',
+    staleRefreshHint:
+      'An owner or manager can press "Refresh now" on Spot Prices to pull a current price.',
+    staleOpen: 'Open Spot Prices',
+    staleConfirmTitle: 'Manager confirmation required',
+    staleConfirmBody:
+      'Issuing against a stale spot price needs a manager. Tick the box to confirm you understand the melt values may be wrong.',
+    staleConfirmLabel: 'I confirm issuing at a stale spot price',
+    staleManagerOnly:
+      'Only an owner or manager can confirm this. Ask a manager to refresh the prices, or to sign in and confirm.',
+    errors: {
+      stale_spot_price_confirm_required:
+        'Spot prices are stale. Tick the manager confirmation box to issue anyway, or refresh the prices first.',
+      stale_spot_price_manager_required:
+        'Spot prices are stale and only an owner or manager can confirm issuing at a stale price. Ask a manager to refresh the prices.',
+    },
+    // Refresh history (patches/0058).
+    fetchLogTitle: 'Refresh history',
+    fetchLogHelp:
+      'Every scheduled and manual refresh, newest first. A failed row shows which provider failed and why.',
+    fetchLogEmpty: 'No refresh has run since this log was added.',
+    fetchLogWhen: 'When',
+    fetchLogTrigger: 'Trigger',
+    fetchLogResult: 'Result',
+    fetchLogSource: 'Source',
+    fetchLogRows: 'Rows',
+    fetchLogDetail: 'Detail',
+    triggerCron: 'Scheduled',
+    triggerManual: 'Manual',
+    resultOk: 'OK',
+    resultFailed: 'Failed',
     metals: {
       gold: 'Gold',
       silver: 'Silver',

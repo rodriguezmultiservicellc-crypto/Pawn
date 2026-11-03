@@ -60,25 +60,40 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 54 (2026-09-23) — ID SCAN VISIBLE IN THE
-                  CUSTOMER HEADER, and HEIC fixed end to end so iPhone
-                  photos actually work. tsc / lint / 538 tests / green
-                  production build; 30/30 routes clean in the browser
-                  smoke; the ID image confirmed DECODED in real Chrome.
+  Last session:   Session 55 (2026-11-03) — PHASE 0 of
+                  sol-pawn-brief-for-armando.md (the "Sol Pawn" fixes +
+                  features brief; Eddy confirmed it is for THIS session
+                  and cleared production). Spot prices un-frozen after
+                  SIX MONTHS, provider fallback chain, fetch log, 24h
+                  stale-price guard with manager confirm, 18K pay-rate
+                  display fixed, dev text removed from /pawn/new. tsc /
+                  lint / 562 tests / green production build; cron route
+                  exercised 401 + 200 against the built app.
 
-                  - The ID tile is a thumbnail that opens the full scan,
-                    not a banner — DESIGN-lunaazul.md bars ID scans at
-                    hero scale. Item 393.
-                  - HEIC was never an allowlist problem. Every upload
-                    validated the BROWSER-DECLARED file.type, which
-                    Windows reports as '' for iPhone .HEIC. Fixed at all
-                    11 call sites. Items 394-395.
-                  - Uploading was not enough: no mainstream browser but
-                    Safari paints HEIC, so it is now transcoded to JPEG
-                    at upload. Items 396-398.
-                  - Item 400 is a time-saver: a mid-session npm install
-                    desyncs Turbopack and makes EVERY route 500 on a font
-                    module. Looks like broken code, is not.
+                  - ROOT CAUSE WAS TWO THINGS, not one. Stooq's CSV
+                    endpoint 404s for every symbol since ~May; AND the
+                    cron never ran once (CRON_SECRET unset → 401 before
+                    any logging). Item 402.
+                  - Provider chain gold-api.com → Yahoo futures → Stooq;
+                    every attempt lands in spot_price_fetches (0058) and
+                    shows on the Spot Prices page. Items 403-405.
+                  - The ×0.6000 on 18K is Eddy's own PAY-RATE override
+                    from 2026-04-28, not a purity bug. The card showed raw
+                    spot next to a badge that read like a correction; it
+                    now shows "You pay $X/g" + "Spot $Y/g". Item 407.
+                  - "24.96% — 111" rate: used by ONE redeemed loan
+                    (2026-05-07). NOT touched — awaiting Eddy. Item 408.
+                  - Brief said "branch, don't deploy"; Eddy overrode
+                    mid-session with "you can deploy to production", so
+                    this landed on main. Phases 1-4 still pending.
+
+                  PRIOR SESSION (54): ID scan tile in the customer header
+                  (item 393); HEIC uploads fixed end to end — browser-
+                  declared mime was '' on Windows (394-395), then
+                  transcoded to JPEG at upload (396-398). Item 400: a
+                  mid-session npm install desyncs Turbopack and 500s
+                  every route on a font module — looks like broken code,
+                  is not.
 
                   PRIOR SESSION (53): sex / hair / eyes / race became
                   dropdowns on all three customer surfaces and race was
@@ -160,45 +175,54 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~55% at save time (three commits shipped before this
-                  checkpoint: 4251b87 ID tile, b3a470c HEIC mime fix,
-                  1700743 HEIC conversion).
-  Last worked on: Pre-save quality gate on the session diff — found
-                  SEVEN private copies of pickExt across six upload
-                  actions plus lib/supabase/storage.ts and consolidated
-                  them into one extensionForUpload() (item 399). Clean
-                  stopping point.
+  Context budget: ~20% at save time (Phase 0 shipped as one commit on
+                  feature/sol-pawn-brief, fast-forwarded into main).
+  Last worked on: Phase 0 summary for Eddy (what changed, migrations,
+                  how to test) — the brief says stop after each phase.
 
   ACTIVE FILE(S) (all committed):
-    - src/lib/uploads/mime.ts (new — resolveUploadMime,
-      extensionForUpload, isBrowserRenderableImage) + its test
-    - src/lib/uploads/convert.ts (new — prepareUpload, HEIC -> JPEG.
-      SERVER ONLY, never import from a client component)
-    - src/app/(staff)/customers/[id]/content.tsx (IdScanBlock)
-    - The 8 upload server actions: customers/[id], inventory/[id],
-      pawn/new, buy/new, repair/new, repair/[id], appraisals/new,
-      appraisals/[id]
-    - 10 upload forms (accept="" now lists extensions too)
-    - src/lib/supabase/storage.ts (pickExtension removed)
-    - src/lib/i18n/{en,es}.ts (idScanNone, idScanOpen)
-    - package.json (+heic-convert, +@types/heic-convert)
+    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4; Phase 0 done)
+    - src/lib/spot-prices/sources/{types,http,gold-api,yahoo-futures,
+      stooq,index}.ts (+ index.test.ts) — provider chain
+    - src/lib/spot-prices/refresh.ts (rewritten: chain + fetch log)
+    - src/lib/spot-prices/staleness.ts (+ test) — pure 24h rule
+    - src/lib/spot-prices/stale-gate.ts — server half of the guard
+    - src/lib/spot-prices/lookup.ts (getSpotFreshness, getSpotFetchLog)
+    - src/components/inventory/StalePriceBanner.tsx (banner + confirm)
+    - src/app/(staff)/inventory/spot-prices/{page,content,actions}.tsx
+    - src/app/(staff)/buy/new/{page,form,actions}.ts(x)
+    - src/app/(staff)/pawn/new/{page,form,actions}.ts(x)
+    - src/app/(staff)/pawn/calculator/{page,content}.tsx
+    - src/app/api/cron/refresh-spot-prices/route.ts
+    - src/lib/jurisdictions/messages.ts (ruleErrorText → spotPrices.errors)
+    - src/lib/i18n/{en,es}.ts (spotPrices.* — ~45 keys)
+    - patches/0058-spot-price-fetch-log.sql (APPLIED)
+    - patches/0059-clear-seeded-loan-rate-description.sql (APPLIED)
+    - scripts/refresh-spot-prices.ts (CLI refresh)
     - patches/0057-normalize-customer-description-values.sql
       (written, NOT APPLIED — see item 392)
     - Progress.txt (this file)
 
   RESUME POINT:
-    CLEAN STOPPING POINT — no work in flight. Session 54 finished the
-    customer-header ID tile and chased the HEIC problem all the way
-    down: uploads were being rejected (items 394-395), then uploaded but
-    invisible (396-398). The image Eddy could not see now renders in
-    real Chrome, confirmed by img.naturalWidth rather than by eye.
-    Everything green: tsc, lint, 538 tests, production build, 30/30
-    routes in the browser smoke.
+    CLEAN STOPPING POINT — Phase 0 of the brief is complete and on main.
+    Next is PHASE 1: public read-only customer tracking link for repair
+    tickets (unguessable token, no ticket#/customer id in the URL, store
+    branding, progress bar with per-service-type configurable stages,
+    quoted/paid/balance, phone; NEVER customer ID / address / other
+    tickets / internal notes; Copy link + Send by SMS via existing
+    /settings/communications; optional auto-text at Ready; revoke /
+    regenerate). Read the brief's Phase 1 section first, then the repair
+    module (src/lib/repair/, src/app/(staff)/repair/, patches for
+    repair_tickets). Design decisions to make BEFORE coding: a public
+    route group with NO auth that reads through a narrow SECURITY
+    DEFINER RPC keyed by token (service-role reads bypass RLS — rule 8
+    says the token must resolve the tenant, so a view/RPC that returns
+    ONLY the allowed fields is the right shape); photo via 1h signed URL
+    (rule 12); stages table + ticket.stage pointer with a % per stage.
 
-    Pick up from PENDING below. CRON_SECRET is still the only thing
-    actually BROKEN in production. The two decisions waiting on Eddy
-    (patches/0057, and whether to merge hair 'Auburn' into 'Red Or
-    Auburn') are unchanged and block nothing.
+    Wait for Eddy's answers on the two Phase 0 questions (item 408 rate
+    "111"; whether the 60% 18K pay rate is intended) — neither blocks
+    Phase 1.
 
     If the next session touches uploads, read item 400 FIRST — a
     mid-session npm install desyncs Turbopack and makes every route 500
@@ -260,10 +284,14 @@ OPERATION IN FLIGHT: none
       audit:isolation`, which fails the build if anon/authenticated ever
       regain UPDATE on role/tenant_id. 0056 closed the hole here but
       nothing yet detects it reopening.
-    - CRON_SECRET still unset in Vercel Production, so refresh-ofac,
-      maturity-reminders and lifecycle-messages all 401 in prod. The
-      OFAC list was loaded manually from a local dev server; without
-      the secret it will NOT refresh daily.
+    - CRON_SECRET SET in Vercel Production on 2026-11-03 (Session 55),
+      Production only — the `vercel env add … preview` call bailed on a
+      prompt and was not retried; previews don't run crons anyway. Not
+      yet OBSERVED firing: confirm spot_price_fetches gains
+      trigger='cron' rows and the OFAC list refreshes at 11:00 UTC.
+      Vercel MCP connector cannot read or write env vars on this project
+      (403); the local `vercel` CLI (logged in as
+      rodriguezmultiservicellc-crypto, folder now linked) can.
     - Store credit is NOT accepted on layaway payments — layaway
       payments mirror into sale_payments and the register close already
       double-counts them (known issue below), so wiring a third money
@@ -863,6 +891,148 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 55 (2026-11-03) — Brief Phase 0: spot prices un-frozen, fallback chain, fetch log, stale guard, 18K display, dev text ---
+
+ 401. CAMERA / MICROPHONE ERRORS CLASSIFIED (commit 3407dd1, 2026-09-24,
+     shipped between checkpoints and not logged until now). Eddy hit
+     "Could not access camera. Check browser permissions.
+     (NotReadableError)" — the one getUserMedia error that is NOT about
+     permissions (device busy in another app). src/lib/media/errors.ts
+     classifies the DOMException into denied / inUse / notFound /
+     constraints / insecure / unknown with matching EN+ES advice; the
+     mic path previously swallowed the error in `catch {}` and always
+     said "denied". 18 tests pin NotReadableError → inUse.
+
+ 402. [CRITICAL] SPOT PRICES FROZEN SINCE 2026-04-30 — ROOT CAUSE. Brief
+     item 0.1. Every melt value and buy payout had been computed from
+     24K = $148.52/g for six months while the market was ~$126/g (shop
+     overpaying ~18%). Two independent failures, found by read-only
+     diagnosis before touching code:
+       (a) Stooq's quote endpoint (`stooq.com/q/l/?s=xauusd&f=sd2t2c&h&
+           e=csv`) returns HTTP 404 for EVERY symbol and host variant,
+           and its /q/d/l/ history endpoint now sits behind a JavaScript
+           proof-of-work challenge. Eight manual "Refresh now" attempts
+           failed with "No quotes returned from Stooq" (last
+           2026-07-01); the failure was only visible as a one-line echo
+           under the button and as audit rows nobody looks at.
+       (b) The cron NEVER ran once: zero spot_price_refresh audit rows
+           with tenant_id NULL in the whole table. CRON_SECRET was not
+           set in Vercel Production, so /api/cron/refresh-spot-prices
+           returned 401 before any logging — the same unset secret
+           Progress.txt had carried as IMMEDIATE for several sessions.
+     Verified live providers the same day: gold-api.com (free, no key,
+     spot XAU/XAG/XPT/XPD), Yahoo v8 chart futures GC=F/SI=F/PL=F/PA=F
+     (contango caveat), Yahoo XAUUSD=X delisted, goldprice.org 403,
+     metals.dev / goldapi.io need keys.
+
+ 403. PROVIDER FALLBACK CHAIN (src/lib/spot-prices/sources/). A
+     SpotSource interface ({id, label, fetch({fetchedAt})} that NEVER
+     throws) with three implementations: gold-api.ts (primary, spot),
+     yahoo-futures.ts (fallback, futures — documented why it is not
+     primary), stooq.ts (last resort, documented as 404 since 2026-11).
+     http.ts is the one shared fetch (8s timeout, no-store, UA, string
+     errors). index.ts `fetchSpotQuotesWithFallback(sources)` walks the
+     chain: first provider returning ALL FOUR metals wins; otherwise
+     gaps fill metal-by-metal from whichever provider had that metal
+     first, so one flaky symbol cannot freeze the feed. Each SpotQuote
+     carries its provider → spot_prices.source is now per-row truth
+     ('gold-api' | 'yahoo-futures' | 'stooq'). 10 unit tests on the
+     chain + parsers (sources accept an injected list; no network in
+     tests).
+
+ 404. FETCH LOG (patches/0058, APPLIED). New platform-wide table
+     spot_price_fetches: trigger ('cron'|'manual'), triggered_by,
+     tenant_id (attribution only), started/finished, ok, source, quotes,
+     attempted, inserted, error, attempts JSONB (one entry per provider
+     tried: source, ok, quotes, ms, error). RLS enabled; ONE policy,
+     spot_price_fetches_read_all FOR SELECT USING (auth.uid() IS NOT
+     NULL) — an exact mirror of spot_prices_read_all (0013); no write
+     policy, service role only. refresh.ts writes a row on EVERY run,
+     success or failure, in a non-fatal `finish()` (a logging failure
+     can never break a refresh). Spot Prices page gained a "Refresh
+     history" table (last 20) showing the provider trail, e.g.
+     "stooq ✗ (gold: HTTP 404 …) 812ms → yahoo-futures ✓ 320ms".
+
+ 405. refresh.ts REWRITTEN around the chain. refreshSpotPrices({trigger,
+     userId?, tenantId?}) → RefreshSummary {ok, source, quotes,
+     attempted, inserted, attempts, error?, fetchLogId}. Partial
+     coverage (<4 metals) is ok:true with an explanatory error string.
+     Cron route mirrors the summary into audit_log (record_id =
+     fetchLogId) and now logs LOUDLY when CRON_SECRET is unset instead of
+     silently 401ing. scripts/refresh-spot-prices.ts is a CLI for the
+     same path (`npx tsx --env-file=.env.local scripts/refresh-spot-
+     prices.ts`). Verified: real run → gold-api, 4 quotes, 10/10 rows,
+     24K $126.0920/g ($3,921.90/oz), 18K $94.5690/g; then the built app
+     on :3061 with a test CRON_SECRET → no header 401, wrong secret 401,
+     right secret 200 + another real refresh + fetch-log row.
+
+ 406. STALE-PRICE GUARD (24h). src/lib/spot-prices/staleness.ts is pure
+     (SPOT_STALE_AFTER_HOURS=24, assessSpotFreshness, newestFetchedAt;
+     no price at all = stale; 6 tests). lookup.getSpotFreshness() reads
+     the newest fetched_at (cached, fail-CLOSED on read error).
+     components/inventory/StalePriceBanner.tsx renders a red danger
+     banner on Spot Prices, Buy Outright, New Pawn Ticket and the Loan
+     Calculator; StaleSpotConfirm renders the manager checkbox
+     (name=stale_spot_ack). stale-gate.ts is the server half:
+     checkStaleSpotGate({formData, tenantRole, involvesMetal}) — holds
+     the submission only when prices are stale AND the items price
+     precious metal (meltMetalFromItem != null; a loan on a laptop
+     passes), requires role ∈ owner/manager/chain_admin AND the ack
+     field, returns translated codes stale_spot_price_confirm_required /
+     stale_spot_price_manager_required (wired into ruleErrorText via
+     t.spotPrices.errors). Buy form blocks submit client-side (it knows
+     per-row metal); pawn form shows the confirm and lets the server
+     decide (it only gets collateral counts). Both audit rows record
+     stale_spot_ack {confirmed_by, spot_fetched_at, spot_age_hours}.
+     No PIN system exists, so "manager confirms" = a manager-role
+     session ticks the box; a clerk is told to get a manager to refresh.
+
+ 407. 18K "×0.6000" EXPLAINED AND FIXED (brief 0.2). Not a purity bug:
+     18K spot was exactly 0.75 × 24K (correct). The badge was tenant
+     1abc8070's PAY-RATE OVERRIDE on gold/18k = 0.6000, set by Eddy on
+     2026-04-28 (the only override in the table). The card showed the
+     RAW spot ($111.39) beside a badge that read like a correction, while
+     melt math quietly paid 60%. Cards and the headline now show "You
+     pay $X/g" (spot × rate) first with "Spot $Y/g" underneath, and the
+     badge reads "Pay rate 60%". Melt math unchanged. Whether 60% on 18K
+     is INTENDED is Eddy's call — flagged, not changed.
+
+ 408. DEVELOPER TEXT ON /pawn/new (brief 0.3). "Default rate seeded by
+     migration 0021. Edit at /settings/loan-rates." was
+     tenant_loan_rates.description on the seeded default row, rendered
+     under the rate picker. patches/0059 (APPLIED) nulls that exact
+     string; the form falls back to the translated manageRatesHint. No
+     provisioning code reuses the text. The "24.96% — 111" option is row
+     dd6ec17f (rate 0.2496, label "111", created by Eddy 2026-05-05,
+     active, not default) — used by exactly ONE loan (status redeemed,
+     2026-05-07), zero drafts. NOT deleted per the brief ("show it to me
+     first"); deactivating (is_active=false) would hide it from the
+     picker and leave that loan untouched since loans copy the rate
+     value. Repo-wide sweep for other dev text: /admin/market-data
+     subtitle says "See patches/0036 for the warehouse design"
+     (superadmin-only, left for now); i18n `templatesEmpty: 'No templates
+     seeded yet…'` (mild); DB scan of message_templates, intake
+     categories, comm_automations, settings, jurisdictions: clean.
+
+ 409. SPOT PRICES PAGE RULE-6 DEBT CLEARED while in the file: "hidden",
+     "(click to show)", "Show all", "Show/Hide this card", "override",
+     "24h price trend" were hardcoded English — all now i18n (EN+ES).
+     refreshOk reworded from "Inserted N of M new rows" to "Prices
+     updated from {source} — N new rows"; noPrices no longer says "cron
+     tick". Pre-existing hardcoded English on /buy/new and
+     /pawn/calculator headers was NOT touched (out of Phase 0 scope —
+     backlog).
+
+ 410. PROCESS: the brief said "leave changes on a branch, don't deploy";
+     Eddy overrode mid-session ("you can deploy to production"), so
+     0058/0059 were applied to the live DB and the work merged to main.
+     Branch feature/sol-pawn-brief kept for Phases 1-4. CRON_SECRET
+     finally SET in Vercel Production: the Vercel MCP connector returned
+     404/403 for env operations on this project, so it went through the
+     logged-in `vercel` CLI after `vercel link --yes --project pawn`
+     (.vercel/ is gitignored). The push of this checkpoint is the first
+     deployment that carries it.
 
 --- Session 54 (2026-09-23) — ID scan in the customer header + HEIC uploads fixed end to end ---
 
@@ -4343,13 +4513,23 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Set CRON_SECRET in Vercel Production. It is still the only thing
-    BROKEN in prod: refresh-ofac / maturity-reminders /
-    lifecycle-messages / release-buy-holds / leadsonline-export all 401
-    without it, so the OFAC list will NOT refresh daily and no reminder
-    will ever send. Everything else below is improvement, not breakage.
+    Phase 1 of sol-pawn-brief-for-armando.md — the public customer
+    tracking link for repair tickets (see RESUME POINT). Before coding,
+    confirm the Phase 0 deploy is live: Vercel production should show
+    the new Spot Prices page (Refresh history panel) and
+    /api/cron/refresh-spot-prices should now return 200 on its schedule
+    — check spot_price_fetches for trigger='cron' rows after the next
+    quarter-hour (CRON_SECRET was set in Vercel Production on
+    2026-11-03; it was the reason EVERY cron had 401'd since launch).
 
   AWAITING A DECISION FROM EDDY (not blocking anything):
+    - Phase 0 / item 408: deactivate the "24.96% — 111" loan rate
+      (tenant_loan_rates dd6ec17f)? Used by exactly one redeemed loan
+      (2026-05-07); deactivating hides it from the picker and leaves
+      that loan untouched. Soft (is_active=false), never a hard delete.
+    - Phase 0 / item 407: is the 60% pay rate on gold/18k intended? It
+      is the only override in the table (set 2026-04-28) and it means
+      the shop pays 60% of 18K melt while every other karat pays 100%.
     - Apply patches/0057? It normalizes 3 casing-variant customer rows
       ('m' -> 'M', 'BLACK'/'black' -> 'Black'). Written, NOT run,
       because it mutates records FL Stat. § 539.001 requires the shop

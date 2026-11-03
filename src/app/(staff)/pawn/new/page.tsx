@@ -9,6 +9,8 @@ import NewPawnLoanForm, {
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import { parseDraftPayload } from '@/lib/pawn/intake-form'
+import { getSpotFreshness } from '@/lib/spot-prices/lookup'
+import { canConfirmStaleSpot } from '@/lib/spot-prices/stale-gate'
 import type { PawnIntakeCategory } from '@/components/pawn/CategoryPicker'
 
 type SearchParams = Promise<{ draft?: string }>
@@ -29,7 +31,7 @@ export default async function NewPawnLoanPage(props: {
   if (!tenant?.has_pawn) redirect('/dashboard')
   const hasFirearms = !!tenant?.has_firearms
 
-  const [ratesRes, settingsRes] = await Promise.all([
+  const [ratesRes, settingsRes, spotFreshness] = await Promise.all([
     // Per-tenant rate menu — patches/0021 + 0022 (min_monthly_charge).
     // Active rates only, sorted by sort_order then rate_monthly so the
     // dropdown matches the configured menu order.
@@ -49,6 +51,8 @@ export default async function NewPawnLoanPage(props: {
       .select('min_loan_amount')
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
+    // 24h stale-price rule — banner + manager confirm on the form.
+    getSpotFreshness(),
   ])
 
   // NUMERIC → string in the generated types; coerce.
@@ -154,6 +158,8 @@ export default async function NewPawnLoanPage(props: {
       loanRules={loanRules}
       categories={categories}
       initialDraft={initialDraft}
+      spotFreshness={spotFreshness}
+      canConfirmStale={canConfirmStaleSpot(ctx.tenantRole)}
     />
   )
 }

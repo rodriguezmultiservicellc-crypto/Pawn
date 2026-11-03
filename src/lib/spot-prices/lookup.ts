@@ -11,9 +11,11 @@
  */
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assessSpotFreshness, type SpotFreshness } from './staleness'
 import type {
   MetalPurity,
   MetalType,
+  SpotPriceFetchRow,
   SpotPriceRow,
 } from '@/types/database-aliases'
 
@@ -26,12 +28,60 @@ type CacheEntry = {
 
 const cache = new Map<string, CacheEntry>()
 
+/** Newest fetched_at across the whole table — one query, cached like the rows. */
+let newestCache: { value: string | null; expiresAt: number } | null = null
+
 function cacheKey(metalType: MetalType, purity: MetalPurity): string {
   return `${metalType}::${purity}`
 }
 
 export function clearSpotPriceCache(): void {
   cache.clear()
+  newestCache = null
+}
+
+/**
+ * Is the feed fresh? Reads the single newest spot_prices row (any metal)
+ * and applies the 24h rule. Pages render the stale banner from this and
+ * the buy / pawn actions re-check it before accepting a submission.
+ */
+export async function getSpotFreshness(): Promise<SpotFreshness> {
+  const now = Date.now()
+  if (newestCache && newestCache.expiresAt > now) {
+    return assessSpotFreshness(newestCache.value, now)
+  }
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('spot_prices')
+    .select('fetched_at')
+    .order('fetched_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    console.error('[spot-prices] freshness lookup failed', error.message)
+    // Fail closed: an unreadable feed is treated as stale, not fresh.
+    return assessSpotFreshness(null, now)
+  }
+  const value = data?.fetched_at ?? null
+  newestCache = { value, expiresAt: now + CACHE_TTL_MS }
+  return assessSpotFreshness(value, now)
+}
+
+/** Most recent refresh attempts (cron + manual), newest first. */
+export async function getSpotFetchLog(limit = 20): Promise<SpotPriceFetchRow[]> {
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('spot_price_fetches')
+    .select(
+      'id, trigger, triggered_by, tenant_id, started_at, finished_at, ok, source, quotes, attempted, inserted, error, attempts, created_at',
+    )
+    .order('started_at', { ascending: false })
+    .limit(limit)
+  if (error) {
+    console.error('[spot-prices] fetch log read failed', error.message)
+    return []
+  }
+  return (data ?? []) as unknown as SpotPriceFetchRow[]
 }
 
 export async function getLatestSpotPrice(args: {

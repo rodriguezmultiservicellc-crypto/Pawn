@@ -3,6 +3,8 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   getLatestSpotPrices,
+  getSpotFetchLog,
+  getSpotFreshness,
   getSpotPriceHistory,
 } from '@/lib/spot-prices/lookup'
 import SpotPricesContent, {
@@ -50,10 +52,12 @@ export default async function SpotPricesPage() {
     redirect('/inventory')
   }
 
-  const [latestMap, history, overrideRows] = await Promise.all([
+  const [latestMap, history, overrideRows, freshness, fetchLog] = await Promise.all([
     getLatestSpotPrices(COMBOS),
     getSpotPriceHistory({ windowHours: 24 }),
     loadOverrides(ctx.tenantId),
+    getSpotFreshness(),
+    getSpotFetchLog(20),
   ])
 
   const overridesByKey = new Map<string, string>()
@@ -104,6 +108,8 @@ export default async function SpotPricesPage() {
       history={historyPoints}
       overrides={overrideTuples}
       canRefresh={canRefresh}
+      freshness={freshness}
+      fetchLog={fetchLog}
     />
   )
 }

@@ -15,6 +15,10 @@ import {
   Trash,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import StalePriceBanner, {
+  StaleSpotConfirm,
+} from '@/components/inventory/StalePriceBanner'
+import type { SpotFreshness } from '@/lib/spot-prices/staleness'
 import { ruleErrorText } from '@/lib/jurisdictions/messages'
 import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
@@ -143,11 +147,17 @@ export default function BuyForm({
   overrideMap,
   buyHoldDays,
   storeCreditEnabled = false,
+  spotFreshness,
+  canConfirmStale,
 }: {
   spotPriceMap: SpotPriceMap
   overrideMap: OverrideMap
   buyHoldDays: number
   storeCreditEnabled?: boolean
+  /** 24h stale-price rule — drives the red banner + manager confirm. */
+  spotFreshness: SpotFreshness
+  /** owner / manager / chain_admin may confirm issuing at a stale price. */
+  canConfirmStale: boolean
 }) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<CreateBuyState, FormData>(
@@ -155,6 +165,7 @@ export default function BuyForm({
     {},
   )
 
+  const [staleAck, setStaleAck] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<BuyPayoutMethod>('cash')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<ItemRow[]>(() => [blankItem()])
@@ -254,8 +265,16 @@ export default function BuyForm({
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 
+  // Stale guard, client half: mirrors lib/spot-prices/stale-gate. Only a
+  // buy that prices precious metal is held; the server re-checks both the
+  // staleness and the role on submit.
+  const involvesMetal = items.some((r) => meltMetalFromMetal(r.metal) != null)
+  const staleBlocked =
+    spotFreshness.stale && involvesMetal && !(canConfirmStale && staleAck)
+
   return (
     <div className="space-y-6">
+      <StalePriceBanner freshness={spotFreshness} />
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
@@ -404,6 +423,15 @@ export default function BuyForm({
           </label>
         </fieldset>
 
+        {involvesMetal ? (
+          <StaleSpotConfirm
+            freshness={spotFreshness}
+            canConfirm={canConfirmStale}
+            checked={staleAck}
+            onChange={setStaleAck}
+          />
+        ) : null}
+
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/inventory"
@@ -413,7 +441,7 @@ export default function BuyForm({
           </Link>
           <button
             type="submit"
-            disabled={pending || items.length === 0}
+            disabled={pending || items.length === 0 || staleBlocked}
             className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? (

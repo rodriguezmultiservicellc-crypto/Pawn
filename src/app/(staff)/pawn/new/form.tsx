@@ -11,6 +11,10 @@ import {
 import Link from 'next/link'
 import { CheckCircle, Upload, User, FloppyDisk } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import StalePriceBanner, {
+  StaleSpotConfirm,
+} from '@/components/inventory/StalePriceBanner'
+import type { SpotFreshness } from '@/lib/spot-prices/staleness'
 import { addDaysIso } from '@/lib/pawn/math'
 import {
   exceedsCap,
@@ -80,12 +84,18 @@ export default function NewPawnLoanForm({
   loanRules,
   categories,
   initialDraft,
+  spotFreshness,
+  canConfirmStale,
 }: {
   rates: LoanRateOption[]
   minLoanAmount: number | null
   loanRules: IntakeLoanRules
   categories: PawnIntakeCategory[]
   initialDraft: DraftInitial | null
+  /** 24h stale-price rule — drives the red banner + manager confirm. */
+  spotFreshness: SpotFreshness
+  /** owner / manager / chain_admin may confirm issuing at a stale price. */
+  canConfirmStale: boolean
 }) {
   const { t } = useI18n()
   const tn = t.pawn.new_
@@ -93,6 +103,10 @@ export default function NewPawnLoanForm({
     createLoanAction,
     {},
   )
+  // Stale guard, client half. The form doesn't know per-row metal, so it
+  // shows the confirm whenever prices are stale and lets the server decide
+  // (lib/spot-prices/stale-gate only holds loans that price metal).
+  const [staleAck, setStaleAck] = useState(false)
   const [savingDraft, startSaveDraft] = useTransition()
 
   // Issue date locked to today (no back-dating from intake). Server also
@@ -245,6 +259,8 @@ export default function NewPawnLoanForm({
         {/* ── LEFT: work surface ─────────────────────────────────────── */}
         <div className="space-y-4">
           <VoicePawnButton onDataExtracted={handleVoiceData} />
+
+          <StalePriceBanner freshness={spotFreshness} />
 
           {state.error ? (
             <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -569,6 +585,16 @@ export default function NewPawnLoanForm({
               )}
             </p>
           ) : null}
+
+          <div className="mb-2.5">
+            <StaleSpotConfirm
+              freshness={spotFreshness}
+              canConfirm={canConfirmStale}
+              checked={staleAck}
+              onChange={setStaleAck}
+              onDark
+            />
+          </div>
 
           {/* Issue */}
           <button

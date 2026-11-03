@@ -138,7 +138,11 @@ export async function refreshSpotPricesAction(
 
   await requireRoleInTenant(ctx.tenantId, ['owner', 'manager', 'chain_admin'])
 
-  const summary = await refreshSpotPrices()
+  const summary = await refreshSpotPrices({
+    trigger: 'manual',
+    userId: ctx.userId,
+    tenantId: ctx.tenantId,
+  })
   clearSpotPriceCache()
 
   // Audit-log against the tenant that triggered the refresh (operator
@@ -148,7 +152,7 @@ export async function refreshSpotPricesAction(
     userId: ctx.userId,
     action: 'spot_price_refresh',
     tableName: 'spot_prices',
-    recordId: ctx.tenantId,
+    recordId: summary.fetchLogId ?? ctx.tenantId,
     changes: {
       ok: summary.ok,
       source: summary.source,
@@ -156,6 +160,7 @@ export async function refreshSpotPricesAction(
       attempted: summary.attempted,
       inserted: summary.inserted,
       error: summary.error ?? null,
+      attempts: summary.attempts,
     },
   })
 

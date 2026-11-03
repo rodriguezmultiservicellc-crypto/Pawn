@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
+import { getSpotFreshness } from '@/lib/spot-prices/lookup'
 import CalculatorContent from './content'
 
 /**
@@ -29,5 +30,8 @@ export default async function PawnCalculatorPage() {
     'appraiser',
   ])
 
-  return <CalculatorContent tenantId={ctx.tenantId} />
+  // 24h stale-price rule — every melt figure here comes from the feed.
+  const spotFreshness = await getSpotFreshness()
+
+  return <CalculatorContent tenantId={ctx.tenantId} spotFreshness={spotFreshness} />
 }

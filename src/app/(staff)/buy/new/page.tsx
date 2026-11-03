@@ -4,7 +4,9 @@ import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   getLatestSpotPrices,
+  getSpotFreshness,
 } from '@/lib/spot-prices/lookup'
+import { canConfirmStaleSpot } from '@/lib/spot-prices/stale-gate'
 import type {
   MetalPurity,
   MetalType,
@@ -60,7 +62,7 @@ export default async function NewBuyPage() {
 
   const admin = createAdminClient()
 
-  const [spotMap, overridesRes, rules, scSettings] = await Promise.all([
+  const [spotMap, overridesRes, rules, scSettings, spotFreshness] = await Promise.all([
     getLatestSpotPrices(PURITY_COMBOS),
     admin
       .from('spot_price_overrides')
@@ -72,6 +74,7 @@ export default async function NewBuyPage() {
       .select('store_credit_enabled')
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
+    getSpotFreshness(),
   ])
 
   // Flatten the spot map into a plain Record<key, perGram> the client
@@ -107,6 +110,8 @@ export default async function NewBuyPage() {
       overrideMap={overrideMap}
       buyHoldDays={buyHoldDays}
       storeCreditEnabled={scSettings?.data?.store_credit_enabled === true}
+      spotFreshness={spotFreshness}
+      canConfirmStale={canConfirmStaleSpot(ctx.tenantRole)}
     />
   )
 }

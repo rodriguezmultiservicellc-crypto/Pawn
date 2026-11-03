@@ -4091,6 +4091,65 @@ export type Database = {
           },
         ]
       }
+      spot_price_fetches: {
+        Row: {
+          attempted: number
+          attempts: Json
+          created_at: string
+          error: string | null
+          finished_at: string
+          id: string
+          inserted: number
+          ok: boolean
+          quotes: number
+          source: string | null
+          started_at: string
+          tenant_id: string | null
+          trigger: string
+          triggered_by: string | null
+        }
+        Insert: {
+          attempted?: number
+          attempts?: Json
+          created_at?: string
+          error?: string | null
+          finished_at: string
+          id?: string
+          inserted?: number
+          ok: boolean
+          quotes?: number
+          source?: string | null
+          started_at: string
+          tenant_id?: string | null
+          trigger: string
+          triggered_by?: string | null
+        }
+        Update: {
+          attempted?: number
+          attempts?: Json
+          created_at?: string
+          error?: string | null
+          finished_at?: string
+          id?: string
+          inserted?: number
+          ok?: boolean
+          quotes?: number
+          source?: string | null
+          started_at?: string
+          tenant_id?: string | null
+          trigger?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spot_price_fetches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spot_price_overrides: {
         Row: {
           created_at: string
@@ -4973,6 +5032,10 @@ export type Database = {
           o_payout_number: string
           o_row_count: number
         }[]
+      }
+      consignment_unreversed_fraction: {
+        Args: { p_sale_item_id: string }
+        Returns: number
       }
       consume_google_reviews_quota: {
         Args: { p_cap: number; p_place_id: string; p_tenant_id: string }

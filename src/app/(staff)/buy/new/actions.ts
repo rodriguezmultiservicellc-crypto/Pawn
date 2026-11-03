@@ -26,6 +26,7 @@ import {
 import { addDaysIso, r4 } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
+import { checkStaleSpotGate } from '@/lib/spot-prices/stale-gate'
 import {
   computeMeltValue,
   meltMetalFromItem,
@@ -149,6 +150,16 @@ export async function createBuyOutrightAction(
   }
 
   const v = parsed.data
+
+  // Stale spot-price guard (24h rule): a buy that prices precious metal
+  // off a stale feed needs a manager's confirmation. Checked before any
+  // write so a refused buy leaves nothing behind.
+  const staleGate = await checkStaleSpotGate({
+    formData,
+    tenantRole: ctx.tenantRole,
+    involvesMetal: v.items.some((it) => meltMetalFromItem(it.metal) != null),
+  })
+  if (!staleGate.ok) return { error: staleGate.error, values: echo }
 
   // Customer must belong to this tenant.
   const { data: customer } = await supabase
@@ -452,6 +463,14 @@ export async function createBuyOutrightAction(
       hold_until: holdUntil,
       item_skus: inserted.map((it) => it.sku),
       notes: v.notes,
+      // Manager confirmed issuing against a stale spot price (null when fresh).
+      stale_spot_ack: staleGate.acknowledged
+        ? {
+            confirmed_by: userId,
+            spot_fetched_at: staleGate.freshness.newestFetchedAt,
+            spot_age_hours: staleGate.freshness.ageHours,
+          }
+        : null,
     },
   })
 

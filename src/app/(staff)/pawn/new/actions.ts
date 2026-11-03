@@ -32,6 +32,8 @@ import {
   todayInTimezone,
 } from '@/lib/jurisdictions/rules'
 import { checkPlanLimit, countActiveLoans } from '@/lib/saas/gates'
+import { checkStaleSpotGate } from '@/lib/spot-prices/stale-gate'
+import { meltMetalFromItem } from '@/lib/spot-prices/melt'
 import {
   computeSuggestedLoan,
   type CollateralLoanInput,
@@ -222,6 +224,18 @@ export async function createLoanAction(
   }
 
   const v = parsed.data
+
+  // Stale spot-price guard (24h rule): a loan whose collateral is priced
+  // off a stale feed needs a manager's confirmation. A loan on a laptop
+  // never touches spot, so it passes untouched.
+  const staleGate = await checkStaleSpotGate({
+    formData,
+    tenantRole: ctx.tenantRole,
+    involvesMetal: v.collateral.some(
+      (c) => meltMetalFromItem(c.metal_type) != null,
+    ),
+  })
+  if (!staleGate.ok) return { error: staleGate.error }
 
   // Tenant-wide minimum loan amount (patches/0022). Read AFTER schema
   // validation so we don't run a query on a malformed submission, but
@@ -552,6 +566,14 @@ export async function createLoanAction(
         cat: it.pawn_category_slug,
         sub: it.pawn_subcategory_slug,
       })),
+      // Manager confirmed issuing against a stale spot price (null when fresh).
+      stale_spot_ack: staleGate.acknowledged
+        ? {
+            confirmed_by: userId,
+            spot_fetched_at: staleGate.freshness.newestFetchedAt,
+            spot_age_hours: staleGate.freshness.ageHours,
+          }
+        : null,
     },
   })
 

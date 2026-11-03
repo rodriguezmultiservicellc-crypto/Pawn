@@ -1,17 +1,20 @@
 /**
  * Cron — refresh bullion spot prices.
  *
- * Calls `refreshSpotPrices()` (which fetches Stooq LBMA spot, expands
- * per purity, and inserts into `spot_prices`). Records a
- * `spot_price_refresh`
- * row in `audit_log` with the run summary.
+ * Calls `refreshSpotPrices()` (provider chain → per-purity expansion →
+ * insert into `spot_prices`; writes its own `spot_price_fetches` row) and
+ * mirrors the run summary into `audit_log` as `spot_price_refresh`.
  *
  * Auth: `Authorization: Bearer ${CRON_SECRET}` only. Vercel Cron sets this
  *       header when CRON_SECRET is configured at the project level. The
  *       `x-vercel-cron` header is NOT a security check — any external HTTP
  *       caller can set it.
  *
- * Recommended cadence (configure in `vercel.json` at deploy time):
+ *       A MISSING secret is logged loudly: this route silently 401'd for
+ *       six months in 2026 because CRON_SECRET was never set in Production,
+ *       and nothing downstream could record a run that never started.
+ *
+ * Cadence lives in `vercel.json`:
  *   - Every 15 min during US bullion market hours (Mon–Fri 08:00–17:00 ET)
  *     -> `*\/15 13-21 * * 1-5` (UTC, accounting for ET ≈ UTC-5/-4)
  *   - Every 60 min during off-hours and weekends
@@ -23,7 +26,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { logAudit } from '@/lib/audit'
 import {
   refreshSpotPrices,
   type RefreshSummary,
@@ -38,15 +40,11 @@ export async function GET(req: NextRequest) {
     return new NextResponse('unauthorized', { status: 401 })
   }
 
-  const summary = await refreshSpotPrices()
+  const summary = await refreshSpotPrices({ trigger: 'cron' })
   // Bust the per-key 5-minute cache so subsequent reads see the new rows
   // immediately (without waiting for the TTL).
   clearSpotPriceCache()
 
-  // Audit-log the run. spot_price_refresh is platform-wide (not
-  // tenant-scoped), so we log it against the system tenant id (NULL)
-  // — audit_log allows NULL tenant_id at the column level. The cron
-  // also has no acting user; we synthesize the system-cron sentinel.
   await logCronAudit(summary)
 
   const status = summary.ok ? 200 : 502
@@ -54,17 +52,22 @@ export async function GET(req: NextRequest) {
 }
 
 function authorizeCron(req: NextRequest): boolean {
+  const expected = process.env.CRON_SECRET
+  if (!expected) {
+    console.error(
+      '[cron:spot-prices] CRON_SECRET is not set — every scheduled run is rejected with 401 and spot prices will go stale. Set it in the Vercel project environment.',
+    )
+    return false
+  }
   const auth = req.headers.get('authorization')
   if (!auth) return false
-  const expected = process.env.CRON_SECRET
-  if (!expected) return false
   return auth === `Bearer ${expected}`
 }
 
 /**
- * Audit-log the cron run. We bypass `logAudit()`'s tenant_id requirement
- * by writing directly via the admin client — spot prices are platform-wide
- * data and no tenant owns them. The audit_log row has tenant_id NULL.
+ * Mirror the run into audit_log. spot prices are platform-wide data and
+ * no tenant owns them, so we bypass `logAudit()`'s tenant_id requirement
+ * and write directly via the admin client with tenant_id NULL.
  */
 async function logCronAudit(summary: RefreshSummary): Promise<void> {
   try {
@@ -74,10 +77,7 @@ async function logCronAudit(summary: RefreshSummary): Promise<void> {
       user_id: null,
       action: 'spot_price_refresh',
       table_name: 'spot_prices',
-      // record_id is required by the column shape but the schema allows NULL;
-      // we leave it null since this is a multi-row insert summary, not a
-      // single record.
-      record_id: null,
+      record_id: summary.fetchLogId,
       changes: {
         ok: summary.ok,
         source: summary.source,
@@ -85,15 +85,11 @@ async function logCronAudit(summary: RefreshSummary): Promise<void> {
         attempted: summary.attempted,
         inserted: summary.inserted,
         error: summary.error ?? null,
+        attempts: summary.attempts,
       },
     })
     if (error) console.error('[cron:spot-prices] audit insert failed', error.message)
   } catch (err) {
     console.error('[cron:spot-prices] audit unexpected error', err)
   }
-  // Also stamp through logAudit() so the fully-shaped action union stays
-  // canonical — but only when we have a tenant id, which we don't.
-  // (Kept commented for documentation.)
-  // await logAudit({ tenantId, userId, action: 'spot_price_refresh', ... })
-  void logAudit
 }

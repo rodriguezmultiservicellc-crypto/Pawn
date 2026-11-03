@@ -6,6 +6,8 @@ import {
   calculateSuggestedLoanAction,
   type CalculatorState,
 } from './actions'
+import StalePriceBanner from '@/components/inventory/StalePriceBanner'
+import type { SpotFreshness } from '@/lib/spot-prices/staleness'
 
 type Row = {
   id: number
@@ -31,8 +33,10 @@ function blankRow(): Row {
 
 export default function CalculatorContent({
   tenantId,
+  spotFreshness,
 }: {
   tenantId: string
+  spotFreshness: SpotFreshness
 }) {
   const [rows, setRows] = useState<Row[]>(() => [blankRow()])
   const [ltv, setLtv] = useState('50')
@@ -66,6 +70,8 @@ export default function CalculatorContent({
           </p>
         </div>
       </header>
+
+      <StalePriceBanner freshness={spotFreshness} />
 
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="row_count" value={rows.length} />

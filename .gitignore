@@ -53,3 +53,5 @@ next-env.d.ts
 
 # Browser-smoke screenshots (npm run smoke:browser)
 .smoke/
+
+.vercel

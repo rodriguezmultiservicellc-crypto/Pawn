@@ -631,6 +631,33 @@ export type SpotPriceOverrideInsert = {
 
 export type SpotPriceOverrideUpdate = Partial<SpotPriceOverrideInsert>
 
+/** One provider attempt inside spot_price_fetches.attempts (patches/0058). */
+export type SpotPriceFetchAttempt = {
+  source: string
+  ok: boolean
+  quotes: number
+  ms: number
+  error: string | null
+}
+
+/** spot_price_fetches row shape (matches patches/0058-spot-price-fetch-log.sql). */
+export type SpotPriceFetchRow = {
+  id: string
+  trigger: 'cron' | 'manual'
+  triggered_by: string | null
+  tenant_id: string | null
+  started_at: string
+  finished_at: string
+  ok: boolean
+  source: string | null
+  quotes: number
+  attempted: number
+  inserted: number
+  error: string | null
+  attempts: SpotPriceFetchAttempt[]
+  created_at: string
+}
+
 // ── Phase 10 (Path B) — eBay listing publisher
 //
 // SCAFFOLD ONLY — patches/0015-ebay-listings.sql defines the underlying

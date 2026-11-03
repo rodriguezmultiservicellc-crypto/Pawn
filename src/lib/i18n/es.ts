@@ -3019,9 +3019,9 @@ export const es: Dictionary = {
     backToInventory: 'Volver a inventario',
     refreshNow: 'Actualizar ahora',
     refreshing: 'Actualizando…',
-    refreshOk: 'Se insertaron {inserted} de {attempted} filas nuevas.',
+    refreshOk: 'Precios actualizados desde {source} — {inserted} filas nuevas.',
     refreshFailed: 'Falló la actualización.',
-    noPrices: 'Aún no hay precios spot. Haz clic en "Actualizar ahora" o espera el próximo cron.',
+    noPrices: 'Aún no hay precios spot. Pulsa "Actualizar ahora" o espera la próxima actualización programada.',
     perGram: '/ g',
     perOz: '/ oz',
     lastFetched: 'Última actualización',
@@ -3035,6 +3035,53 @@ export const es: Dictionary = {
     spotPerGramLabel: 'Spot / g',
     payRateMultiplier: 'Tasa de pago',
     purityResolved: 'Pureza',
+    // Tarjeta: spot vs lo que paga la tienda tras su ajuste.
+    spotLabel: 'Spot',
+    youPay: 'Tú pagas',
+    payRateBadge: 'Tasa de pago {pct}%',
+    // Controles de visibilidad de tarjetas.
+    hiddenCount: '{count} ocultas',
+    hiddenClickToShow: '(clic para mostrar)',
+    showAll: 'Mostrar todas',
+    showCard: 'Mostrar esta tarjeta',
+    hideCard: 'Ocultar esta tarjeta',
+    trendLabel: 'Tendencia de precio 24h',
+    // Guardia de precio desactualizado (regla de 24h).
+    staleTitle: 'Los precios spot están desactualizados',
+    staleBody:
+      'El precio más reciente tiene {hours} horas (obtenido {when}). Cada valor de fundición, pago de compra y sugerencia de préstamo se está calculando con él.',
+    staleBodyNoData:
+      'Nunca se ha cargado un precio spot, así que no se pueden calcular valores de fundición.',
+    staleRefreshHint:
+      'Un propietario o gerente puede pulsar "Actualizar ahora" en Precios spot para obtener un precio actual.',
+    staleOpen: 'Abrir Precios spot',
+    staleConfirmTitle: 'Se requiere confirmación del gerente',
+    staleConfirmBody:
+      'Emitir con un precio spot desactualizado requiere un gerente. Marca la casilla para confirmar que entiendes que los valores de fundición pueden estar mal.',
+    staleConfirmLabel: 'Confirmo emitir con un precio spot desactualizado',
+    staleManagerOnly:
+      'Solo un propietario o gerente puede confirmar esto. Pide a un gerente que actualice los precios, o que inicie sesión y confirme.',
+    errors: {
+      stale_spot_price_confirm_required:
+        'Los precios spot están desactualizados. Marca la casilla de confirmación del gerente para emitir de todos modos, o actualiza los precios primero.',
+      stale_spot_price_manager_required:
+        'Los precios spot están desactualizados y solo un propietario o gerente puede confirmar la emisión con un precio desactualizado. Pide a un gerente que actualice los precios.',
+    },
+    // Historial de actualizaciones (patches/0058).
+    fetchLogTitle: 'Historial de actualizaciones',
+    fetchLogHelp:
+      'Cada actualización programada y manual, la más reciente primero. Una fila fallida muestra qué proveedor falló y por qué.',
+    fetchLogEmpty: 'No se ha ejecutado ninguna actualización desde que se agregó este historial.',
+    fetchLogWhen: 'Cuándo',
+    fetchLogTrigger: 'Origen',
+    fetchLogResult: 'Resultado',
+    fetchLogSource: 'Proveedor',
+    fetchLogRows: 'Filas',
+    fetchLogDetail: 'Detalle',
+    triggerCron: 'Programada',
+    triggerManual: 'Manual',
+    resultOk: 'OK',
+    resultFailed: 'Falló',
     metals: {
       gold: 'Oro',
       silver: 'Plata',
