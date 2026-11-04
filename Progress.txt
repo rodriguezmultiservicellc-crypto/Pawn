@@ -83,6 +83,9 @@ OPERATION IN FLIGHT: none
                   - 4.4 dashboard: live metals strip (red when stale) +
                     "Today" card; low-stock skipped (no quantity field).
                     Item 446.
+                  - PROD BUG FIX: /tools "Keep this" 500 — CALCULATORS
+                    const moved out of the 'use server' file into
+                    lib/bench/calculators.ts. Item 447.
 
                   PHASE 3 — TWO-WAY METAL COUNTER (items 432-440):
                   - Buy Outright: every item has "Enter by: Weight |
@@ -276,15 +279,16 @@ OPERATION IN FLIGHT: none
                   fix = 0a36edf, Phase 3 = a771ee1, Phase 4.1 = baf814a,
                   4.2 = 111004c, 4.3 = eb0afee, 4.4 = a9479ce; all
                   fast-forwarded into main.
-  Last worked on: Phase 4 summary for Eddy (one summary per sub-item, as
-                  the brief asks) — the whole brief is now delivered.
+  Last worked on: First production bug after the brief shipped: /tools
+                  "Keep this" → 500 ("use server" file exported a const).
+                  Fixed in 3ba0aa1, item 447. Eddy is testing production.
 
   ACTIVE FILE(S) (all committed):
     - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4, ALL DONE)
     Phase 4:
     - patches/0066-bench-calculations.sql, 0067-inventory-fields.sql,
       0068-collections-buckets.sql (ALL APPLIED)
-    - src/lib/bench/{ring-size,weight,alloy,combos}.ts (+ bench.test)
+    - src/lib/bench/{ring-size,weight,alloy,combos,calculators}.ts (+ bench.test)
     - src/app/(staff)/tools/{page,content,actions}
     - src/lib/spot-prices/purity.ts (COATINGS, isSolidMetal)
     - src/lib/inventory/pricing.ts; src/lib/validations/{inventory,loan,
@@ -1161,6 +1165,25 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      43/45 cold — the 2 are the known consignment gate and a /audit
      hydration flake (relative "Ns ago" text when the newest audit row is
      seconds old; pre-existing, see OPEN ISSUES).
+
+ 447. PRODUCTION BUG — /tools "Keep this" → "This page couldn't load"
+     (Eddy, 2026-11-04). Root cause: tools/actions.ts ('use server')
+     exported the CALCULATORS const beside the two actions. Next 16
+     allows ONLY async-function exports from a 'use server' module and
+     throws "A "use server" file can only export async functions, found
+     object" when an action is invoked — the GET renders fine, so the
+     route smoke (navigation only) never caught it; the POST was the
+     first evaluation of the actions loader. Fix (3ba0aa1): CALCULATORS
+     + CalculatorKind moved to src/lib/bench/calculators.ts. Swept every
+     other 'use server' file — none exports a non-async value (type
+     exports are fine, they erase). Reproduced + verified with a
+     headless click script (scratchpad repro-keep.mjs: smoke-style
+     login, open /tools, click Keep this): before = POST /tools 500 +
+     error page, after = "Saved to your recent calculations." The one
+     row the repro wrote was deleted afterwards. RULE: a 'use server'
+     file exports async functions only — constants and enums go in lib/.
+     LESSON: the browser smoke only navigates; every new server action
+     needs at least one real invocation before it ships.
 
  PHASE 3 (items 432-440) — two-way metal counter, buy AND sell.
 
@@ -5214,10 +5237,14 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    The brief is done. Confirm Phase 3 + 4 are live on Vercel
-    (/buy/sell, /tools, /collections, the dashboard metals strip, the
-    inventory form's Coating + Suggest price), then take Eddy's
-    production feedback. If nothing is reported: the /audit hydration
+    The brief is done. First production bug report (item 447, /tools
+    "Keep this" 500) is fixed on main. Keep taking Eddy's production
+    feedback. Because the smoke never invokes server actions, the
+    Phase 3/4 actions that have NOT had a real invocation yet are:
+    createMetalSaleAction (/buy/sell), the buy mixed tender, the
+    inventory create/update with the 0067 fields, saveSpotSellRateAction,
+    the general-settings save (target margin + buckets) — click each once
+    in production or drive them with a scratch script like item 447's. If nothing is reported: the /audit hydration
     flake is the one code smell left from this session (relative time
     text rendered with seconds granularity differs between SSR and
     hydration when the newest row is seconds old — render it client-
