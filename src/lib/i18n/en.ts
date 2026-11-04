@@ -206,6 +206,16 @@ export const en = {
     relOverdue: '{n} days overdue',
     relDueIn: 'in {n} days',
     relDueToday: 'due today',
+    // ── Brief Phase 4.4: metals strip + Today card ──
+    metalsTitle: 'Live metals',
+    metalsUpdated: 'Updated {when}',
+    metalsStale: 'STALE — last update {when}. Refresh before quoting.',
+    metalsNoData: 'No spot prices loaded yet.',
+    metalsPerGram: '/g',
+    todayTitle: 'Today',
+    todayRepairsPromised: 'Repairs promised today',
+    todayPickupsReady: 'Pickups ready',
+    todayLoansDue: 'Loans due today',
   },
 
   noTenant: {

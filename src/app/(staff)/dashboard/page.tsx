@@ -3,8 +3,54 @@ import { getCtx } from '@/lib/supabase/ctx'
 import DashboardContent, {
   type DueSoonRow,
   type ActivityRow,
+  type MetalStripItem,
 } from './content'
 import { todayDateString, daysBetween, payoffBalance } from '@/lib/pawn/math'
+import {
+  getLatestSpotPrices,
+  getSpotFreshness,
+  getSpotPriceHistory,
+} from '@/lib/spot-prices/lookup'
+import { spotKey } from '@/lib/spot-prices/purity'
+import type { MetalPurity, MetalType } from '@/types/database-aliases'
+
+/** The four headline feeds on the dashboard strip (brief Phase 4.4). */
+const STRIP_COMBOS: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }> = [
+  { metalType: 'gold', purity: 'pure_24k' },
+  { metalType: 'silver', purity: 'fine' },
+  { metalType: 'platinum', purity: 'platinum_950' },
+  { metalType: 'palladium', purity: 'palladium_950' },
+]
+
+/**
+ * Live metals strip: latest per-gram price per metal, % change against
+ * the oldest point in the last 24h, and the feed's freshness (red when
+ * stale — same 24h rule as the counters, brief 0.1).
+ */
+async function loadMetalsStrip(): Promise<{ metals: MetalStripItem[]; stale: boolean; newestFetchedAt: string | null }> {
+  const [latest, history, freshness] = await Promise.all([
+    getLatestSpotPrices(STRIP_COMBOS),
+    getSpotPriceHistory({ windowHours: 24 }),
+    getSpotFreshness(),
+  ])
+  const firstInWindow = new Map<string, number>()
+  for (const h of history) {
+    const key = spotKey(h.metal_type, h.purity)
+    if (!firstInWindow.has(key)) firstInWindow.set(key, Number(h.price_per_gram))
+  }
+  const metals: MetalStripItem[] = STRIP_COMBOS.map(({ metalType, purity }) => {
+    const key = spotKey(metalType, purity)
+    const row = latest.get(key) ?? null
+    const perGram = row?.price_per_gram == null ? null : Number(row.price_per_gram)
+    const base = firstInWindow.get(key)
+    const changePct =
+      perGram != null && base != null && base > 0 && Number.isFinite(base)
+        ? Math.round(((perGram - base) / base) * 1000) / 10
+        : null
+    return { metal: metalType, purity, perGram, changePct, fetchedAt: row?.fetched_at ?? null }
+  })
+  return { metals, stale: freshness.stale, newestFetchedAt: freshness.newestFetchedAt }
+}
 
 export default async function DashboardPage() {
   const ctx = await getCtx()
@@ -57,11 +103,15 @@ export default async function DashboardPage() {
       .eq('status', 'held'),
   ])
 
+  // Metals strip (brief Phase 4.4) — platform-wide feed, no tenant data.
+  const strip = await loadMetalsStrip()
+
   // ── Repair (gated) ─────────────────────────────────────────────────────────
   let readyForPickupCount = 0
   let repairsNeedPartsCount = 0
+  let repairsPromisedToday = 0
   if (hasRepair) {
-    const [{ count: r }, { count: np }] = await Promise.all([
+    const [{ count: r }, { count: np }, { count: pt }] = await Promise.all([
       ctx.supabase
         .from('repair_tickets')
         .select('id', { count: 'exact', head: true })
@@ -74,9 +124,18 @@ export default async function DashboardPage() {
         .eq('tenant_id', ctx.tenantId)
         .is('deleted_at', null)
         .eq('status', 'needs_parts'),
+      // "Today" card: open tickets promised for today.
+      ctx.supabase
+        .from('repair_tickets')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', ctx.tenantId)
+        .is('deleted_at', null)
+        .eq('promised_date', today)
+        .not('status', 'in', '(picked_up,abandoned,voided)'),
     ])
     readyForPickupCount = r ?? 0
     repairsNeedPartsCount = np ?? 0
+    repairsPromisedToday = pt ?? 0
   }
 
   // ── Retail (gated): today's money + recent sales for the activity feed ─────
@@ -126,6 +185,7 @@ export default async function DashboardPage() {
   let activeLoanCount = 0
   let dueThisWeekCount = 0
   let overdueLoanCount = 0
+  let loansDueToday = 0
   let onLoanNow = 0
   let interestDue7 = 0
   let overdueAtRisk = 0
@@ -234,6 +294,7 @@ export default async function DashboardPage() {
 
     for (const { po, d } of withPayoff) {
       onLoanNow += po.principalOutstanding
+      if (d === 0) loansDueToday += 1
       if (d < 0) {
         overdueLoanCount += 1
         overdueAtRisk += po.payoff
@@ -321,6 +382,14 @@ export default async function DashboardPage() {
       }}
       loansDueSoon={loansDueSoon}
       activity={activity}
+      metals={strip.metals}
+      metalsStale={strip.stale}
+      metalsUpdatedAt={strip.newestFetchedAt}
+      todayCard={{
+        repairsPromised: repairsPromisedToday,
+        pickupsReady: readyForPickupCount,
+        loansDueToday,
+      }}
       library={{
         customerCount: customerCount ?? 0,
         inventoryCount: inventoryCount ?? 0,

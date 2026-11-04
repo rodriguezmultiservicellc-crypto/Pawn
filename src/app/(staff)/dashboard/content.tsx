@@ -14,8 +14,30 @@ import {
   CheckCircle,
   HandCoins,
   ShoppingBag,
+  Scales,
+  TrendDown,
+  TrendUp,
+  Warning,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { shortDateTime } from '@/lib/format/money'
+import type { MetalPurity, MetalType } from '@/types/database-aliases'
+
+/** One tile on the live metals strip (brief Phase 4.4). */
+export type MetalStripItem = {
+  metal: MetalType
+  purity: MetalPurity
+  perGram: number | null
+  /** % vs the oldest point in the last 24h; null without two points. */
+  changePct: number | null
+  fetchedAt: string | null
+}
+
+export type TodayCard = {
+  repairsPromised: number
+  pickupsReady: number
+  loansDueToday: number
+}
 
 export type DueSoonRow = {
   id: string
@@ -72,6 +94,10 @@ export default function DashboardContent({
   activity,
   library,
   activeLoanCount,
+  metals,
+  metalsStale,
+  metalsUpdatedAt,
+  todayCard,
 }: {
   hasPawn: boolean
   hasRepair: boolean
@@ -83,6 +109,10 @@ export default function DashboardContent({
   activity: ActivityRow[]
   library: Library
   activeLoanCount: number
+  metals: MetalStripItem[]
+  metalsStale: boolean
+  metalsUpdatedAt: string | null
+  todayCard: TodayCard
 }) {
   const { t } = useI18n()
   const d = t.dashboard
@@ -98,6 +128,9 @@ export default function DashboardContent({
           {formatDateLong(today)}
         </span>
       </div>
+
+      {/* Live metals strip (brief Phase 4.4) */}
+      <MetalsStrip metals={metals} stale={metalsStale} updatedAt={metalsUpdatedAt} />
 
       {/* Quick actions */}
       {anyQuickAction ? (
@@ -134,7 +167,8 @@ export default function DashboardContent({
 
       {/* Money KPIs */}
       <SectionLabel>{d.sectionMoney}</SectionLabel>
-      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-5">
+        <TodayTile card={todayCard} hasPawn={hasPawn} hasRepair={hasRepair} />
         {hasRetail ? (
           <Kpi
             accent="bg-success"
@@ -322,6 +356,107 @@ export default function DashboardContent({
 }
 
 // ── Pieces ──────────────────────────────────────────────────────────────────
+
+/**
+ * Four tiles: gold / silver / platinum / palladium per gram with the 24h
+ * move and the time of the last fetch. Goes red when the feed is stale
+ * (same 24h rule as the buy / sell counters) so a clerk sees it before
+ * quoting anything.
+ */
+function MetalsStrip({
+  metals,
+  stale,
+  updatedAt,
+}: {
+  metals: MetalStripItem[]
+  stale: boolean
+  updatedAt: string | null
+}) {
+  const { t } = useI18n()
+  const d = t.dashboard
+  return (
+    <Link
+      href="/inventory/spot-prices"
+      className={`mt-3 block rounded-xl border p-3 transition-all hover:-translate-y-0.5 hover:shadow-sm ${
+        stale ? 'border-danger/40 bg-danger/5' : 'border-border bg-card'
+      }`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted">
+          {stale ? <Warning size={14} weight="bold" className="text-danger" /> : <Scales size={14} weight="bold" />}
+          {d.metalsTitle}
+        </span>
+        <span className={`text-[11px] font-semibold ${stale ? 'text-danger' : 'text-muted'}`}>
+          {updatedAt
+            ? (stale ? d.metalsStale : d.metalsUpdated).replace('{when}', shortDateTime(updatedAt))
+            : d.metalsNoData}
+        </span>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+        {metals.map((m) => (
+          <div key={`${m.metal}::${m.purity}`} className="rounded-lg bg-background/60 px-3 py-2">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-muted">
+              {t.spotPrices.metals[m.metal] ?? m.metal}
+              <span className="ml-1 font-normal normal-case">{t.spotPrices.purities[m.purity] ?? m.purity}</span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className={`font-mono text-lg font-bold tabular-nums ${stale ? 'text-danger' : 'text-foreground'}`}>
+                {m.perGram == null ? '—' : fmtMoney(m.perGram)}
+                <span className="ml-1 text-[10px] font-normal text-muted">{d.metalsPerGram}</span>
+              </span>
+              {m.changePct != null ? (
+                <span
+                  className={`inline-flex items-center gap-0.5 font-mono text-[11px] font-semibold tabular-nums ${
+                    m.changePct > 0 ? 'text-success' : m.changePct < 0 ? 'text-danger' : 'text-muted'
+                  }`}
+                >
+                  {m.changePct > 0 ? <TrendUp size={11} weight="bold" /> : m.changePct < 0 ? <TrendDown size={11} weight="bold" /> : null}
+                  {m.changePct > 0 ? '+' : ''}
+                  {m.changePct}%
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Link>
+  )
+}
+
+/** "Today" — what has to happen before the doors close. */
+function TodayTile({ card, hasPawn, hasRepair }: { card: TodayCard; hasPawn: boolean; hasRepair: boolean }) {
+  const { t } = useI18n()
+  const d = t.dashboard
+  const lines: Array<{ n: number; label: string; href: string }> = []
+  if (hasRepair) {
+    // The list pages filter by window, not by day: "due in 7" is the
+    // closest view that contains today's promises / maturities.
+    lines.push({ n: card.repairsPromised, label: d.todayRepairsPromised, href: '/repair?due=dueSoon7' })
+    lines.push({ n: card.pickupsReady, label: d.todayPickupsReady, href: '/repair?status=ready' })
+  }
+  if (hasPawn) {
+    lines.push({ n: card.loansDueToday, label: d.todayLoansDue, href: '/pawn?status=active&due=dueSoon7' })
+  }
+  if (lines.length === 0) return null
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
+      <span className="absolute inset-y-0 left-0 w-1 bg-gold" />
+      <div className="text-[11px] font-bold uppercase tracking-wide text-muted">{d.todayTitle}</div>
+      <ul className="mt-1.5 space-y-1">
+        {lines.map((l) => (
+          <li key={l.label}>
+            <Link href={l.href} className="flex items-baseline justify-between gap-2 text-xs font-semibold text-muted hover:text-foreground">
+              <span>{l.label}</span>
+              <span className={`font-mono text-base font-bold tabular-nums ${l.n > 0 ? 'text-foreground' : 'text-muted'}`}>
+                {l.n}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (

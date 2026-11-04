@@ -202,6 +202,16 @@ export const es: Dictionary = {
     relOverdue: '{n} días vencido',
     relDueIn: 'en {n} días',
     relDueToday: 'vence hoy',
+    // ── Brief Fase 4.4: franja de metales + tarjeta Hoy ──
+    metalsTitle: 'Metales en vivo',
+    metalsUpdated: 'Actualizado {when}',
+    metalsStale: 'DESACTUALIZADO — última actualización {when}. Actualiza antes de cotizar.',
+    metalsNoData: 'Aún no hay precios spot cargados.',
+    metalsPerGram: '/g',
+    todayTitle: 'Hoy',
+    todayRepairsPromised: 'Reparaciones prometidas hoy',
+    todayPickupsReady: 'Listas para recoger',
+    todayLoansDue: 'Empeños que vencen hoy',
   },
 
   noTenant: {
