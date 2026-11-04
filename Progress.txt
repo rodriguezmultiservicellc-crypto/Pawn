@@ -92,6 +92,11 @@ OPERATION IN FLIGHT: none
                     mono face (item 428).
                   - Weight-from-laser-app hook: interface + TODO only
                     (lib/custom-quotes/weight-source.ts). Item 423.
+                  - [CRITICAL, found by Eddy's first real print] EVERY
+                    PDF route 500'd in PRODUCTION: the @fontsource woff
+                    files are read with fs at runtime and were never
+                    traced into the Vercel bundle. Fixed with
+                    outputFileTracingIncludes in next.config.ts. Item 431.
 
                   PHASE 1 — CUSTOMER TRACKING LINK (items 411-420):
                   - Every repair ticket has an unguessable public_token;
@@ -1161,6 +1166,25 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      quote detail / edit / PDF routes ran against a temporary draft
      quote inserted by SQL and hard-deleted afterwards (a draft quote is
      pre-sale data, not a posted financial record).
+
+ 431. [CRITICAL] EVERY PDF ROUTE WAS BROKEN IN PRODUCTION — fonts not
+     traced. Eddy printed the first real quote on pawn-three.vercel.app
+     and got "render failed"; the same quote rendered 200 locally through
+     the authenticated harness, so it was environment, not code.
+     lib/pdf/fonts.ts reads the @fontsource woff files from node_modules
+     with fs.readFileSync at RUNTIME (deliberately — Turbopack cannot
+     bundle them as imports), so Next's file tracer never saw them and
+     the serverless bundle shipped without them: the route's .nft.json
+     had 0 fontsource entries. That means buy / loan / sale / appraisal /
+     all seven report PDFs had ALSO been 500ing on Vercel the whole time
+     (nobody printed one in prod, or nobody reported it). Fix:
+     next.config.ts outputFileTracingIncludes for /api/print/**,
+     /api/appraisals/**, /api/reports/** → the four woff files (route-
+     glob keys per Next 16 docs, values relative to the project root).
+     Verified after build: 8 fontsource entries in each PDF route trace.
+     Lesson: anything read with fs at runtime from node_modules needs a
+     tracing include, and "works locally, render failed in prod" for a
+     PDF is this until proven otherwise.
 
  PHASE 1 (items 411-420 below).
 
