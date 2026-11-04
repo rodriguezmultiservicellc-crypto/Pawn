@@ -60,10 +60,29 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 55 (2026-11-03/04) — PHASES 0, 1, 2 AND 3 of
+  Last session:   Session 55 (2026-11-03/04) — ALL FIVE PHASES (0-4) of
                   sol-pawn-brief-for-armando.md (the "Sol Pawn" fixes +
                   features brief; Eddy confirmed it is for THIS session
-                  and cleared production). All on main.
+                  and cleared production). All on main. THE BRIEF IS
+                  COMPLETE.
+
+                  PHASE 4 — SMALLER ITEMS (items 441-446):
+                  - 4.1 /tools bench calculators (ring size, weight
+                    units, alloy down, raise karat, mix lots, melt/payout)
+                    — pure, formulas shown, 16 tests, per-user recent
+                    list (0066). Item 441.
+                  - 4.2 inventory fields (0067): condition, COATING,
+                    finish, shelf, legacy code, wholesale price; coating
+                    ≠ none is excluded from EVERY melt (detail, buy,
+                    pawn intake, suggested loan) and warned on both
+                    intakes; auto SKU = CAT-METAL-seq; "Suggest price"
+                    = cost ÷ (1 − target margin from Settings). 442-444.
+                  - 4.3 /collections: loans + layaways + repair balances
+                    in configurable aging buckets (0068), KPIs, call /
+                    text / record-payment per row. Item 445.
+                  - 4.4 dashboard: live metals strip (red when stale) +
+                    "Today" card; low-stock skipped (no quantity field).
+                    Item 446.
 
                   PHASE 3 — TWO-WAY METAL COUNTER (items 432-440):
                   - Buy Outright: every item has "Enter by: Weight |
@@ -252,15 +271,36 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~70% at save time (2026-11-04). Phase 0 = b3603ce,
+  Context budget: ~85% at save time (2026-11-04). Phase 0 = b3603ce,
                   Phase 1 = bba152a, Phase 2 = 3d200cb, PDF font-trace
-                  fix = 0a36edf (Eddy confirmed PDFs render in prod),
-                  Phase 3 = this checkpoint; all fast-forwarded into main.
-  Last worked on: Phase 3 summary for Eddy (what changed, migrations,
-                  how to test) — the brief says stop after each phase.
+                  fix = 0a36edf, Phase 3 = a771ee1, Phase 4.1 = baf814a,
+                  4.2 = 111004c, 4.3 = eb0afee, 4.4 = a9479ce; all
+                  fast-forwarded into main.
+  Last worked on: Phase 4 summary for Eddy (one summary per sub-item, as
+                  the brief asks) — the whole brief is now delivered.
 
   ACTIVE FILE(S) (all committed):
-    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4; 0-3 done)
+    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4, ALL DONE)
+    Phase 4:
+    - patches/0066-bench-calculations.sql, 0067-inventory-fields.sql,
+      0068-collections-buckets.sql (ALL APPLIED)
+    - src/lib/bench/{ring-size,weight,alloy,combos}.ts (+ bench.test)
+    - src/app/(staff)/tools/{page,content,actions}
+    - src/lib/spot-prices/purity.ts (COATINGS, isSolidMetal)
+    - src/lib/inventory/pricing.ts; src/lib/validations/{inventory,loan,
+      buy-outright}.ts; src/lib/pawn/{intake-form,suggested-loan}.ts
+    - src/components/inventory/InventoryFormFields.tsx (new fields,
+      Suggest price); inventory/{page,content}, new/*, [id]/*
+    - src/components/pawn/CollateralItemsList.tsx; pawn/new/actions.ts
+    - src/app/(staff)/buy/new/{form,actions} (coating)
+    - src/app/(staff)/settings/general/{page,content,actions} (target
+      margin + collections buckets)
+    - src/lib/collections/{aging,load}.ts (+ aging.test);
+      src/app/(staff)/collections/{page,content}.tsx
+    - src/app/(staff)/dashboard/{page,content}.tsx
+    - Sidebar (Bench tools, Collections); i18n tools.*, collections.*,
+      inventory.* (0067 keys), pawn.new_.itemCoating*, dashboard.metals*/
+      today*; smoke routes P4
     Phase 3:
     - patches/0064-metal-counter-enums.sql, 0065-metal-counter.sql (APPLIED)
     - src/lib/spot-prices/purity.ts (pure; melt.ts re-exports)
@@ -337,25 +377,17 @@ OPERATION IN FLIGHT: none
     - Progress.txt (this file)
 
   RESUME POINT:
-    CLEAN STOPPING POINT — Phases 0-3 of the brief are complete and on
-    main. Next is PHASE 4 ("smaller items, one summary each"), only
-    when Eddy says go. Brief text, in order: 4.1 bench calculators page
-    (ring size US↔MX↔EU↔JP↔mm, weight units g↔dwt↔ozt↔oz, alloy down,
-    raise karat, mix lots, melt/payout quick calc — pure, formulas
-    shown, unit tests for every formula, recent calcs per user); 4.2
-    inventory fields (condition, COATING — excluded from melt + "not
-    solid gold" warning on Buy Outright and New Pawn Ticket, finish,
-    shelf location, legacy code, wholesale price, auto SKU from
-    category+metal+sequence, "Suggest price" = cost + target margin);
-    4.3 Collections view (everyone who owes: overdue loans, layaway
-    balances, unpaid repair balances; configurable aging buckets; KPIs);
-    then whatever 4.4+ the brief lists (read it — this block only
-    covers what was read this session). For 4.2's coating-on-melt rule,
-    the melt math now lives in lib/spot-prices/purity.ts +
-    lib/metal-counter/math.ts (resolveRate); the buy form's derive()
-    and the pawn intake's melt helper are the two call sites to gate.
-    For 4.1, lib/metal-counter/math.ts already has grams⇄dollars; the
-    calculators page should import it rather than re-derive.
+    CLEAN STOPPING POINT — the whole Sol Pawn brief (Phases 0-4) is
+    complete, verified and on main. There is NO next phase in the
+    brief; its "Not now" list (AI gem ID, AI eBay photos, expense
+    tracking / P&L) is explicitly backlog. Next session: ask Eddy what
+    he found using it in production, and work his list. Things worth
+    confirming with him first: (a) one real scrap sale posted at
+    /buy/sell (never automation-driven); (b) the Collections
+    definitions in the page footnote match how he thinks about late
+    layaways; (c) the two Phase 0 questions below are still open.
+    Known loose ends: /audit hydration flake (OPEN ISSUES), Phase 2
+    quote form not automation-driven, quotes don't auto-expire by cron.
 
     Open questions for Eddy from Phase 0 (item 408 rate "111"; the 60%
     18K pay rate) still unanswered — neither blocks Phase 3.
@@ -387,6 +419,15 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
+    - /audit HYDRATION FLAKE (pre-existing, surfaced by the Phase 4
+      smoke): lib/format/datetime relativeTime() renders "Ns" for rows
+      under a minute old, so when the newest audit row is seconds old
+      the SSR text ("3s") and the hydration text ("4s") differ and React
+      logs "Hydration failed… server rendered text didn't match". Three
+      runs: fail, fail, clean a minute later. Harmless (tree re-renders)
+      but it is an uncaught console error. Fix: render the relative
+      time after mount (useEffect) or use suppressHydrationWarning on
+      that span / round to minutes.
     - PHASE 2 — the quote FORM SUBMISSION and the one-tap CONVERT were
       not driven end to end by automation (no quote existed to accept;
       the harness does not submit forms). Verified instead: the pure
@@ -1040,7 +1081,86 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
---- Session 55 (2026-11-03/04) — Brief Phase 0 (spot prices) + Phase 1 (tracking link) + Phase 2 (custom quoter) + Phase 3 (metal counter) ---
+--- Session 55 (2026-11-03/04) — Brief Phase 0 (spot prices) + Phase 1 (tracking link) + Phase 2 (custom quoter) + Phase 3 (metal counter) + Phase 4 (smaller items) ---
+
+ PHASE 4 (items 441-446) — "smaller items, one summary each".
+
+ 441. 4.1 BENCH CALCULATORS — /tools (sidebar "Bench tools", any staff
+     role). Six pure calculators in lib/bench/{ring-size,weight,alloy}.ts
+     with a "How this is calculated" note under each and 16 unit tests:
+     ring size (US/CA/MX — Mexico uses the US scale, verified; EU = ISO
+     8653 circumference; Japan approx. 13.0 mm + 1/3 mm per size, SAID to
+     be approximate in the UI; inside mm), weight units (g/dwt/ozt/
+     avoirdupois oz, exact constants), alloy down (W·(Kh/Kt − 1)), raise
+     karat (W·(Kt − Kl)/(24 − Kt), 24K refused), mix lots (Σwk/Σw), and a
+     melt/payout quick calc off today's spot × pay rate (+ sell price when
+     a sell rate is set) reusing lib/metal-counter/math. The ONLY write:
+     per-user "recent calculations" (patches/0066 bench_calculations,
+     own-rows RLS, hard delete allowed — scratch paper, not a ledger).
+     lib/bench/combos.ts is the client-safe twin of COUNTER_COMBOS.
+
+ 442. 4.2 INVENTORY FIELDS (patches/0067, APPLIED). inventory_items +=
+     condition (new/used/restored/vintage/antique), coating (none /
+     gold_plated / gold_filled / vermeil / pvd, NOT NULL default none),
+     finish (free text + datalist suggestions), shelf_location,
+     legacy_code (indexed, searchable), wholesale_price. All on the item
+     form (InventoryFormFields), the list (condition + coating filters,
+     coated badge, legacy/shelf in the subtitle, legacy_code in search),
+     create/update actions and the detail page. loan_collateral_items +=
+     coating so the pawn ticket records it.
+
+ 443. 4.2 COATING EXCLUDES FROM MELT — the rule with teeth. lib/spot-
+     prices/purity.ts isSolidMetal(coating); gated at every melt site:
+     inventory detail resolveMelt (panel replaced by the warning), buy
+     outright (rateForRow → no rate, no auto payout, amber line; action
+     skips the melt snapshot; stale gate ignores coated items), pawn
+     intake (CollateralItemsList coating select + warning; intake-form
+     reads it; stale gate; suggested-loan tryComputeMelt pushes
+     'coated_not_solid_metal' and returns null). Legacy rows (NULL) count
+     as solid.
+
+ 444. 4.2 AUTO SKU + SUGGEST PRICE. inventory_items_assign_sku() now
+     builds <CAT>-<METAL>-<seq> (RNG-AU-000123, ELC-000124 when the metal
+     is none/other/NULL) from the SAME per-tenant counter, so old INV-
+     SKUs keep their numbers; an app-provided SKU still wins. Verified
+     with a rolled-back insert. "Suggest price" on the item form = cost ÷
+     (1 − margin) via the quoter's priceFromCost; the margin is
+     settings.inventory_target_margin_pct (default 50%), editable on
+     Settings → Tenant info ("Inventory pricing"). lib/inventory/
+     pricing.ts loads it.
+
+ 445. 4.3 COLLECTIONS — /collections (owner/manager/chain_admin/
+     pawn_clerk). Rows from three sources: pawn loans (balance = payoff
+     TODAY via the existing payoffFromLoan — interest math untouched;
+     late = days past due_date), active layaways (late = days since the
+     first installment NOT covered by payments — lib/collections/aging
+     derives the installment dates from schedule_kind + first/final due;
+     'custom'/undated layaways are judged on the final date), repair
+     tickets ready/picked_up with balance_due > 0 (late from
+     promised_date or picked_up_at). Buckets On time / Slightly late /
+     Very late / Urgent with the edges in settings.collections_slight_
+     days / _very_days (patches/0068, APPLIED; DB CHECK very > slight;
+     editable on Settings → Tenant info). KPIs: total owed, % overdue,
+     average days to collect (days past due at payment, redemptions +
+     completed layaways, 90-day lookback), % promised payments kept
+     (layaway installments due so far that are covered), top 5 customers.
+     Row actions: tel: link, SendReminderDialog (existing manualSendAction,
+     kinds per source), "Record payment" → the existing detail page. 10
+     unit tests on the pure math. Definitions are spelled out in the
+     page footnote because the brief left them open.
+
+ 446. 4.4 DASHBOARD + VERIFICATION. Live metals strip (gold 24k / silver
+     .999 / platinum / palladium per gram, % vs the oldest point in the
+     last 24h, "Updated <time>", the whole strip RED with "STALE" when
+     the feed is older than 24h — ties to Phase 0's rule). "Today" card
+     in the money row: repairs promised today, pickups ready, loans due
+     today (links go to the dueSoon7 filters — the list pages have no
+     "today" window). Low-stock card SKIPPED on purpose: inventory_items
+     has no quantity / reorder fields (brief said skip if not). Phase 4
+     verified: tsc, lint, 638 tests, production build, browser smoke
+     43/45 cold — the 2 are the known consignment gate and a /audit
+     hydration flake (relative "Ns ago" text when the newest audit row is
+     seconds old; pre-existing, see OPEN ISSUES).
 
  PHASE 3 (items 432-440) — two-way metal counter, buy AND sell.
 
@@ -5094,12 +5214,14 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Phase 4 of sol-pawn-brief-for-armando.md (see RESUME POINT) — only
-    on Eddy's "go". Before coding, confirm Phase 3 is live on Vercel:
-    /buy/sell renders, the Spot prices page shows the Sell rate input
-    per card, and ask Eddy whether his first real scrap sale posted
-    (sale_kind='metal' in sales; /buy/sell/<id> receipt; register
-    close shows the cash). Also still worth a glance:
+    The brief is done. Confirm Phase 3 + 4 are live on Vercel
+    (/buy/sell, /tools, /collections, the dashboard metals strip, the
+    inventory form's Coating + Suggest price), then take Eddy's
+    production feedback. If nothing is reported: the /audit hydration
+    flake is the one code smell left from this session (relative time
+    text rendered with seconds granularity differs between SSR and
+    hydration when the newest row is seconds old — render it client-
+    side after mount, or round to minutes). Also still worth a glance:
     spot_price_fetches should have trigger='cron' rows by now.
 
   AWAITING A DECISION FROM EDDY (not blocking anything):
