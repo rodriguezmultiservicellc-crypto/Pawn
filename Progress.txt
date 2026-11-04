@@ -60,10 +60,38 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 55 (2026-11-03) — PHASES 0 AND 1 of
+  Last session:   Session 55 (2026-11-03) — PHASES 0, 1 AND 2 of
                   sol-pawn-brief-for-armando.md (the "Sol Pawn" fixes +
                   features brief; Eddy confirmed it is for THIS session
-                  and cleared production). Both on main.
+                  and cleared production). All on main.
+
+                  PHASE 2 — CUSTOM-PIECE QUOTER (items 421-430):
+                  - /repair/quotes: The piece → The price → The payment
+                    with the sticky "Total — you keep — margin" footer
+                    live. Every price block is a LINE with cost + price;
+                    margin is on price; target margin fills unlocked
+                    lines; a hand-typed price locks. Saving re-prices on
+                    the server and FREEZES metal at today's spot
+                    ("Priced at $X/g on <date>"). Min margin from Settings
+                    is enforced server-side. Items 421-425.
+                  - Accepted quote → custom repair ticket in one tap, born
+                    at awaiting_approval with quote set + approved so the
+                    Phase 1 stage reads "Design approved"; cost lines →
+                    parts (COGS), stones → ticket stones, photo carries
+                    over; the DEPOSIT is collected through the ticket's
+                    existing Collect-deposit flow, not written by the
+                    quote. Item 424.
+                  - Public /q/<token> page + customer PDF (price lines
+                    only when Settings → Custom quotes enables the
+                    breakdown; costs/margin never). Items 426-427.
+                  - Eddy reported "no print ticket button" on a repair
+                    ticket mid-phase: there was NO repair ticket PDF
+                    anywhere in the app. Built RepairTicketPDF + route +
+                    button (item 427). GOTCHA: JetBrains Mono ligatures
+                    ("//") crash fontkit on WOFF — URLs never go in the
+                    mono face (item 428).
+                  - Weight-from-laser-app hook: interface + TODO only
+                    (lib/custom-quotes/weight-source.ts). Item 423.
 
                   PHASE 1 — CUSTOMER TRACKING LINK (items 411-420):
                   - Every repair ticket has an unguessable public_token;
@@ -194,13 +222,37 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~35% at save time (Phase 0 = b3603ce on main; Phase 1
-                  = this checkpoint, also fast-forwarded into main).
-  Last worked on: Phase 1 summary for Eddy (what changed, migrations,
+  Context budget: ~55% at save time (Phase 0 = b3603ce, Phase 1 =
+                  bba152a, Phase 2 = this checkpoint; all fast-forwarded
+                  into main).
+  Last worked on: Phase 2 summary for Eddy (what changed, migrations,
                   how to test) — the brief says stop after each phase.
 
   ACTIVE FILE(S) (all committed):
-    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4; 0 + 1 done)
+    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4; 0-2 done)
+    Phase 2:
+    - patches/0062-custom-quote-link-kind.sql (APPLIED — enum value)
+    - patches/0063-custom-quotes.sql (APPLIED — enums, settings columns,
+      custom_quotes + custom_quote_lines, number/token trigger, freeze
+      triggers, RPC custom_quote_public, templates)
+    - src/lib/custom-quotes/{math,metals,links,weight-source,
+      public-quote}.ts (+ math.test, public-quote.test) — pure
+    - src/lib/custom-quotes/{settings,spot,load}.ts — server-only
+    - src/lib/validations/custom-quote.ts
+    - src/app/(staff)/repair/quotes/{page,content,actions}.ts(x),
+      new/page.tsx, [id]/{page,content}.tsx, [id]/edit/page.tsx
+    - src/components/custom-quotes/{QuoteForm,QuoteStatusBadge}.tsx
+    - src/app/(public)/q/[token]/{page,content,not-found}.tsx
+    - src/lib/pdf/{shared.ts,CustomQuotePDF,render-custom-quote,
+      RepairTicketPDF,render-repair-ticket}.tsx
+    - src/app/api/print/{quote,repair}/[id]/route.ts
+    - src/app/(staff)/repair/[id]/content.tsx (Print ticket button)
+    - src/app/(staff)/settings/custom-quotes/{page,content,actions}.ts(x)
+      + hub card; Sidebar "Custom quotes"; proxy '/q'
+    - src/lib/format/date.ts (formatCalendarDate — shared by /t and /q)
+    - src/lib/i18n/{en,es}.ts (quotes.*, quotePublic.*,
+      settingsCustomQuotes.*, repair.print.*, nav.quotes, comms kind)
+    - scripts/smoke-browser.mjs (+9 routes: P0/P1/P2 pages, board, PDFs)
     Phase 1:
     - patches/0060-repair-tracking-link-kind.sql (APPLIED — enum value)
     - patches/0061-repair-tracking.sql (APPLIED — repair_stages, ticket
@@ -236,26 +288,31 @@ OPERATION IN FLIGHT: none
     - Progress.txt (this file)
 
   RESUME POINT:
-    CLEAN STOPPING POINT — Phases 0 and 1 of the brief are complete and
-    on main. Next is PHASE 2: the custom-piece quoter (The piece → The
-    price → The payment; metal × weight at today's spot, wax/3D, labor,
-    stones from inventory or by hand, extras; sticky footer "Total $X —
-    you keep $Y — margin Z%" live; default + minimum margin in Settings;
-    saving FREEZES the metal price ("Priced at $__/g on [date]"); quotes
-    expire after N days; accepted quote → repair/custom ticket in one
-    tap (Phase 1 stages + link); deposit through the existing POS
-    payment flow; customer-facing PDF + public link without cost
-    breakdown unless enabled; a documented hook to fill weight from the
-    laser nameplate app — interface + TODO only). Read the brief's
-    Phase 2 section, then: lib/spot-prices (getLatestSpotPrice,
-    computeMeltValue — reuse, do not re-derive), lib/repair + the
-    repair/new intake action (to convert a quote into a ticket), the POS
-    payment flow (sale_payments / collectDepositAction), lib/pdf for the
-    PDF pattern, and the /t/[token] public page as the template for a
-    public quote page (same token + SECURITY DEFINER RPC shape).
+    CLEAN STOPPING POINT — Phases 0, 1 and 2 of the brief are complete
+    and on main. Next is PHASE 3: the two-way metal counter. Brief text:
+    on Buy Outright each item accepts EITHER grams or dollars and fills
+    the other from that karat's pay-rate ("customer wants $300 for this
+    14K — how many grams is that?"); a new SELL METAL mode (scrap or
+    bullion to a customer or refiner) at a configurable SELL RATE per
+    karat (% over spot) with sell-rate settings beside the existing
+    pay-rate overrides (spot_price_overrides, /inventory/spot-prices);
+    several karats per transaction on both sides with total grams +
+    total dollars; payment cash / transfer / mixed; BUY keeps the 30-day
+    hold + compliance_log row; SELL must NOT write a police-report row
+    but MUST hit audit_log and reports. Read the brief's Phase 3, then
+    src/app/(staff)/buy/new/{form,actions,page} (meltForItem /
+    spotPriceMap / overrideMap are the live-math pattern to extend),
+    lib/spot-prices/melt.ts, patches/0013 (spot_price_overrides — the
+    sell rate wants a sibling column or table, NOT a second meaning of
+    `multiplier`), and how sales / register close record cash so a
+    metal sale lands in the daily register. Design before coding: a
+    metal sale is a SALE of inventory? (bullion/scrap items exist in
+    inventory with source) vs a standalone metal_sales table — decide
+    with the POS module in mind (sale_items + sale_payments already
+    carry tenders and the register close reads them).
 
     Open questions for Eddy from Phase 0 (item 408 rate "111"; the 60%
-    18K pay rate) still unanswered — neither blocks Phase 2.
+    18K pay rate) still unanswered — neither blocks Phase 3.
 
     If the next session touches uploads, read item 400 FIRST — a
     mid-session npm install desyncs Turbopack and makes every route 500
@@ -284,6 +341,18 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
+    - PHASE 2 — the quote FORM SUBMISSION and the one-tap CONVERT were
+      not driven end to end by automation (no quote existed to accept;
+      the harness does not submit forms). Verified instead: the pure
+      math (17 tests), the DB triggers/RPC in a rolled-back transaction,
+      every page rendering clean, both PDFs rendering, and the public
+      page with a hand-inserted quote. First real quote Eddy saves is
+      the end-to-end test — watch audit_log for custom_quote_create and
+      the spot freeze on the metal line.
+    - PHASE 2 — quotes do not auto-expire by cron; 'expired' is computed
+      at read time (list, detail, public page) and accept/convert refuse
+      an expired quote. A sweep that stamps status='expired' can come
+      later if reports need it.
     - UPLOAD PATHS ARE STILL UNTESTED END TO END BY AUTOMATION. The HEIC
       work (394-398) is covered by unit tests on the resolver plus one
       real conversion measured against a genuine iPhone file, and the
@@ -925,7 +994,175 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
---- Session 55 (2026-11-03) — Brief Phase 0 (spot prices) + Phase 1 (customer tracking link) ---
+--- Session 55 (2026-11-03) — Brief Phase 0 (spot prices) + Phase 1 (tracking link) + Phase 2 (custom quoter) ---
+
+ 421. PHASE 2 SCOPE + MONEY MODEL (brief). A quote builder for custom
+     work: The piece → The price → The payment. Decision that shapes
+     everything: every price block is a LINE with a COST (what the shop
+     pays out — metal at spot, a wax print, a stone's cost basis,
+     outsourced labor) and a PRICE (what the customer pays); the quote
+     margin is (Σprice − Σcost)/Σprice and "you keep" is Σprice − Σcost.
+     A target margin fills price = cost/(1−m) for every cost-bearing
+     line staff did not type by hand (typing LOCKS a line; pure-price
+     lines like bench labor or an engraving fee count fully toward
+     "keep"). Because pure-price lines add to price but not cost, the
+     quote margin lands at or above the target — but a locked low price
+     can drag it under the manager's MINIMUM, and both the footer and
+     the server say so (saving is refused). Fractions everywhere (0.5 =
+     50%), matching the settings columns and DB CHECKs.
+     lib/custom-quotes/math.ts + 17 tests (lineTotals, quoteTotals,
+     priceFromCost clamped at 95%, applyTargetMargin, depositSplit,
+     laborPrice, expiryDate, metalLabel).
+
+ 422. MIGRATIONS (APPLIED). 0062 adds message_kind 'custom_quote_link'
+     alone (enum-value-in-own-transaction rule). 0063: enums
+     custom_quote_status (draft/sent/accepted/declined/expired/
+     converted/voided), custom_piece_category (ring…nameplate, grillz,
+     other), custom_quote_line_kind (metal/wax/labor/stone/setting/
+     extra); settings columns custom_quote_default_margin_pct 0.50,
+     _min_margin_pct 0.30, _default_deposit_pct 0.50, _expiry_days 14,
+     _labor_rate 75, _show_cost_breakdown FALSE; custom_quotes
+     (CQ-000001 via next_tenant_counter 'custom_quote', public_token
+     from repair_public_token(), frozen spot summary columns, deposit /
+     balance, expires_on, repair_ticket_id) + custom_quote_lines (qty,
+     unit_cost, unit_price, totals, price_locked, details jsonb,
+     inventory_item_id). FREEZE: trg_custom_quotes_lock refuses any
+     change to the piece or money columns once status leaves draft/sent
+     (status, timestamps, ticket link, token, notes still move — "void
+     and requote", same spirit as rules 2/14); lines follow the parent.
+     RLS mirrors repair_tickets. RPC custom_quote_public(token) →
+     customer-safe jsonb, NEVER a cost, lines only when the breakdown
+     setting is on (label/qty/price). Templates for the new kind seeded
+     per tenant + tenant trigger. DB SMOKE in one rolled-back
+     transaction (results carried out via RAISE): CQ-000001 assigned,
+     32-char token, public doc keys contain no cost/notes, update of
+     price_total on an accepted quote → custom_quote_locked, line
+     insert/delete on it → locked, status→converted still allowed.
+
+ 423. PURE / HOOK LIBS. lib/custom-quotes/metals.ts (QUOTE_METALS +
+     karats, spotKey), links.ts (quoteUrl → /q/<token>),
+     public-quote.ts (allowlist shaper + forbidden-key test incl.
+     unit_cost/cost_total/margin_pct/notes/customer), weight-source.ts
+     — the brief's "hook for later": a WeightSource interface
+     ({id, label, available, fetchWeightGrams}) with manual (available)
+     and laser_nameplate (declared, unavailable) entries, the form's
+     "Weight from" selector reads WEIGHT_SOURCES, details.weight_source
+     is stored per metal line, and a TODO(laser-nameplate) block spells
+     out the transport / inputs / output / availability contract.
+     Nothing else in the quoter changes when it lands.
+
+ 424. SERVER ACTIONS (src/app/(staff)/repair/quotes/actions.ts).
+     saveQuoteAction: JSON payload → zod (lib/validations/custom-quote)
+     → the browser's money is NOT trusted: metal lines get unit_cost
+     re-fetched from live spot per gram (lib/custom-quotes/spot.ts —
+     raw spot via getLatestSpotPrice, deliberately NOT the tenant's
+     pay-rate multiplier, which is a BUYING rate) and frozen into
+     details + the header's spot_price_per_gram/spot_priced_at; target
+     margin re-applied to unlocked lines; totals recomputed; min margin
+     checked twice (target and resulting); deposit split; expires_on
+     defaults to today + settings days; customer + picked stones
+     verified in-tenant; lines replaced wholesale on edit (a quote is
+     one document); frozen quotes return 'locked'. quoteStatusAction:
+     send / accept (refused when expired) / decline / void / duplicate
+     (new DRAFT copying lines — metal re-prices on next save) / CONVERT:
+     accepted only, once; repair ticket born service_type 'custom' at
+     awaiting_approval with quote_set_at + quote_approved_at stamped
+     (so the Phase 1 stage lands on "Design approved"), one line item
+     (karat + grams from the metal line), stone lines → ticket stones
+     (shop-supplied, inventory link kept), cost-bearing lines → parts
+     rows (COGS), reference photo row reuses the same storage path,
+     intake/quote_set/approved events, deposit expectation written as
+     an event note — the deposit itself is collected through the
+     ticket's EXISTING Collect-deposit flow (brief: "through the
+     existing POS payment flow"), so one tender path records it. Quote
+     flips to converted with repair_ticket_id; redirect to the ticket.
+     quoteLinkAction: regenerate / revoke / send (custom_quote_link SMS
+     via dispatchMessage, forced channel sms; a draft becomes 'sent').
+     Audit on every mutation (13 new AuditAction values); tokens never
+     logged.
+
+ 425. STAFF UI. components/custom-quotes/QuoteForm.tsx — three tabbed
+     steps; CustomerPicker + QuickCustomerModal; category / description /
+     size / one reference photo (HEIC ok via prepareUpload); blocks
+     Metal (metal + karat + grams + Weight-from, live "Spot today
+     $X/g", frozen-on-save note), Wax, Labor (hours × rate from
+     settings or flat, optional outside cost), Stones (from inventory
+     loose_stone items with cost_basis, or by hand; setting per stone →
+     a 'setting' line), Extras (engraving/rush/packaging/shipping/other
+     + optional cost); per-line Cost → Price with a lock toggle; target
+     margin input with the minimum shown and a red refusal; Payment:
+     deposit % → deposit due now + balance at pickup, method, valid
+     until, internal notes. The sticky navy footer: "Total $X — you keep
+     $Y — margin Z%" (margin red under the min) + Save. Edit mode
+     rebuilds the blocks from saved lines (setting lines fold back into
+     their stone row). /repair/quotes list (open/all/status filters),
+     /repair/quotes/[id] detail (summary with cost/keep/margin — staff
+     only —, lines table, status actions, Quote PDF, customer link
+     panel with copy/open/SMS/new/revoke, photo), [id]/edit (frozen →
+     redirect to detail). Settings → Custom quotes (whole-number % in
+     the form, fractions in the DB; min may not exceed default). Sidebar
+     "Custom quotes" under Repair; settings hub card.
+
+ 426. PUBLIC /q/<token> (src/app/(public)/q/[token]). Same shape as /t:
+     token-only input, anon SSR client → SECURITY DEFINER RPC →
+     allowlist shaper → generic bilingual server-component 404 →
+     1h-signed photo → noindex → opens in the customer's language.
+     Shows quote number, piece, total, deposit to start, balance at
+     pickup, valid-until, the "Metal priced at $X/g on <date>" note,
+     status banners (expired / accepted / in production / declined),
+     price lines only when the breakdown is enabled, store phone + site.
+     Verified on the dev server with a temporary draft quote: 200 with
+     the right numbers and ZERO occurrences of the costs, the margin or
+     the internal note; 404 for an unknown token. '/q' added to the
+     proxy PUBLIC_PATHS.
+
+ 427. PDFs. lib/pdf/shared.ts (one style sheet + money/join helpers for
+     new customer-facing documents). CustomQuotePDF +
+     render-custom-quote + /api/print/quote/[id] (staff-gated like
+     /api/print/buy; audit custom_quote_print): bilingual header,
+     prepared-for, piece, price lines only when enabled, total /
+     deposit / balance, frozen-metal note, validity terms, acceptance
+     signature. AND — Eddy reported mid-phase "no print ticket button"
+     on https://pawn-three.vercel.app/repair/<id>: there was NO repair
+     ticket PDF anywhere (only buy / loan / sale print routes existed;
+     CLAUDE.md listed RepairTicketPDF as a target). Built
+     RepairTicketPDF + render-repair-ticket + /api/print/repair/[id]
+     (audit repair_ticket_print) + a "Print ticket" button on the ticket
+     header: customer, items received, stones, quote / deposit / paid /
+     balance, the public tracking URL, the abandonment notice using the
+     JURISDICTION's repair_abandon_days (never a constant), liability
+     notice, signature lines; staff notes are not on it.
+
+ 428. GOTCHA — JETBRAINS MONO LIGATURES CRASH FONTKIT. The repair PDF
+     500'd ("RangeError: Offset is outside the bounds of the DataView"
+     in DataView.getInt16 inside renderToBuffer) while the quote PDF
+     rendered fine. A throwaway probe bisected it to the tracking URL
+     rendered in JetBrains Mono: the mono WOFF ships programming
+     ligatures ("//", "://"), and fontkit's GSUB pass over them throws.
+     Plain words, digits, colons, slashes alone all render; "//" does
+     not. URLs now render in Inter; lib/pdf/shared.ts documents the
+     rule (mono for numerals only). The probe script was deleted after
+     use.
+
+ 429. GOTCHA — `npm run build` FAILED WITH "next/font/google queries have
+     exactly one entry" (8 Turbopack errors) when run CONCURRENTLY with
+     `npm run lint` + vitest. Not item 400's npm-install case; the same
+     build passed unchanged when run alone right after. Treat a
+     font-import-map build error as "something else was compiling" and
+     retry alone before deleting .next.
+
+ 430. BROWSER SMOKE EXTENDED. scripts/smoke-browser.mjs gained
+     /inventory/spot-prices, /repair/board, /settings/repair-stages,
+     /repair/quotes, /repair/quotes/new, /repair/quotes/[id] + /edit,
+     /settings/custom-quotes and the two PDF routes (Chrome renders
+     them; the harness sees status + console). Cold dev server: 36/36
+     clean except /consignors/new → /consignors, which is the
+     consignment module gate (run with --gates), not a regression. The
+     quote detail / edit / PDF routes ran against a temporary draft
+     quote inserted by SQL and hard-deleted afterwards (a draft quote is
+     pre-sale data, not a posted financial record).
+
+ PHASE 1 (items 411-420 below).
 
  411. PHASE 1 SCOPE (brief): a public, read-only link per repair ticket
      that staff text or WhatsApp to the customer so "is my piece ready?"
@@ -4691,14 +4928,13 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Phase 2 of sol-pawn-brief-for-armando.md — the custom-piece quoter
-    (see RESUME POINT). Before coding, confirm the deploys are live:
-    Vercel production should serve /t/<token> (200 for RT-000001's
-    token from Progress item 412's smoke, custom 404 otherwise), the
-    Spot Prices page should show the Refresh history panel, and
-    spot_price_fetches should have trigger='cron' rows (CRON_SECRET was
-    set in Vercel Production on 2026-11-03; it was the reason EVERY cron
-    had 401'd since launch).
+    Phase 3 of sol-pawn-brief-for-armando.md — the two-way metal
+    counter (see RESUME POINT). Before coding, confirm the deploys are
+    live on Vercel production: /repair/quotes renders, a repair ticket
+    shows the "Print ticket" button and the PDF opens, /t/<token> and
+    /q/<token> answer, and spot_price_fetches has trigger='cron' rows
+    (CRON_SECRET was set in Vercel Production on 2026-11-03; it was the
+    reason EVERY cron had 401'd since launch).
 
   AWAITING A DECISION FROM EDDY (not blocking anything):
     - Phase 0 / item 408: deactivate the "24.96% — 111" loan rate

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { CheckCircle, Phone, Storefront, ArrowUpRight } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { formatMoney } from '@/lib/format/money'
+import { formatCalendarDate } from '@/lib/format/date'
 import {
   progressPercent,
   stageIndex,
@@ -240,13 +241,5 @@ function Banner({
   )
 }
 
-function formatDate(iso: string, lang: 'en' | 'es'): string {
-  const d = new Date(`${iso}T00:00:00`)
-  if (!Number.isFinite(d.getTime())) return iso
-  return d.toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
+const formatDate = (iso: string, lang: 'en' | 'es') =>
+  formatCalendarDate(iso, lang, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })

@@ -10,6 +10,7 @@ import {
   Coins,
   Scales,
   Wrench,
+  Sparkle,
   CashRegister,
   ChartBar,
   Shield,
@@ -211,6 +212,13 @@ export function Sidebar({
       href: '/repair',
       label: t.nav.repair,
       icon: <Wrench size={18} weight="regular" />,
+      visible: modules.has_repair,
+    },
+    {
+      kind: 'item',
+      href: '/repair/quotes',
+      label: t.nav.quotes,
+      icon: <Sparkle size={18} weight="regular" />,
       visible: modules.has_repair,
     },
     {

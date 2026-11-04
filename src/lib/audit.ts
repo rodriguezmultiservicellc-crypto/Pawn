@@ -145,6 +145,21 @@ export type AuditAction =
   | 'repair_stages_update'
   | 'repair_stages_reset'
   | 'repair_notify_setting'
+  | 'repair_ticket_print'
+  // Custom-piece quotes (patches/0063)
+  | 'custom_quote_create'
+  | 'custom_quote_update'
+  | 'custom_quote_send'
+  | 'custom_quote_accept'
+  | 'custom_quote_decline'
+  | 'custom_quote_void'
+  | 'custom_quote_convert'
+  | 'custom_quote_duplicate'
+  | 'custom_quote_link_send'
+  | 'custom_quote_link_regenerate'
+  | 'custom_quote_link_revoke'
+  | 'custom_quote_print'
+  | 'custom_quote_settings'
 
 export async function logAudit(args: {
   tenantId: string

@@ -20,6 +20,7 @@ import {
   Wallet,
   HandCoins,
   ListChecks,
+  Sparkle,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 
@@ -188,6 +189,17 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             description={t.settingsRepairStages.hubDescription}
             status="configured"
             statusDetail={t.settingsRepairStages.hubDetail}
+          />
+        ) : null}
+
+        {view.modules.repair ? (
+          <Card
+            href="/settings/custom-quotes"
+            icon={<Sparkle size={20} weight="regular" />}
+            title={t.settingsCustomQuotes.hubTitle}
+            description={t.settingsCustomQuotes.hubDescription}
+            status="configured"
+            statusDetail={t.settingsCustomQuotes.hubDetail}
           />
         ) : null}
 

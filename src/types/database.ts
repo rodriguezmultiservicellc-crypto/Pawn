@@ -821,6 +821,215 @@ export type Database = {
           },
         ]
       }
+      custom_quote_lines: {
+        Row: {
+          cost_total: number
+          created_at: string
+          details: Json
+          id: string
+          inventory_item_id: string | null
+          kind: Database["public"]["Enums"]["custom_quote_line_kind"]
+          label: string
+          position: number
+          price_locked: boolean
+          price_total: number
+          quantity: number
+          quote_id: string
+          tenant_id: string
+          unit_cost: number
+          unit_price: number
+        }
+        Insert: {
+          cost_total?: number
+          created_at?: string
+          details?: Json
+          id?: string
+          inventory_item_id?: string | null
+          kind: Database["public"]["Enums"]["custom_quote_line_kind"]
+          label: string
+          position?: number
+          price_locked?: boolean
+          price_total?: number
+          quantity?: number
+          quote_id: string
+          tenant_id: string
+          unit_cost?: number
+          unit_price?: number
+        }
+        Update: {
+          cost_total?: number
+          created_at?: string
+          details?: Json
+          id?: string
+          inventory_item_id?: string | null
+          kind?: Database["public"]["Enums"]["custom_quote_line_kind"]
+          label?: string
+          position?: number
+          price_locked?: boolean
+          price_total?: number
+          quantity?: number
+          quote_id?: string
+          tenant_id?: string
+          unit_cost?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_quote_lines_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_quote_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "custom_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_quote_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_quotes: {
+        Row: {
+          accepted_at: string | null
+          balance_due: number
+          category: Database["public"]["Enums"]["custom_piece_category"]
+          converted_at: string | null
+          cost_total: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          declined_at: string | null
+          deleted_at: string | null
+          deposit_amount: number
+          deposit_pct: number
+          description: string
+          expires_on: string | null
+          id: string
+          margin_pct: number
+          notes_internal: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_total: number
+          public_token: string | null
+          public_token_created_at: string | null
+          quote_number: string | null
+          reference_photo_path: string | null
+          repair_ticket_id: string | null
+          sent_at: string | null
+          size: string | null
+          spot_metal_label: string | null
+          spot_price_per_gram: number | null
+          spot_priced_at: string | null
+          status: Database["public"]["Enums"]["custom_quote_status"]
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          voided_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          balance_due?: number
+          category: Database["public"]["Enums"]["custom_piece_category"]
+          converted_at?: string | null
+          cost_total?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          declined_at?: string | null
+          deleted_at?: string | null
+          deposit_amount?: number
+          deposit_pct?: number
+          description: string
+          expires_on?: string | null
+          id?: string
+          margin_pct: number
+          notes_internal?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          price_total?: number
+          public_token?: string | null
+          public_token_created_at?: string | null
+          quote_number?: string | null
+          reference_photo_path?: string | null
+          repair_ticket_id?: string | null
+          sent_at?: string | null
+          size?: string | null
+          spot_metal_label?: string | null
+          spot_price_per_gram?: number | null
+          spot_priced_at?: string | null
+          status?: Database["public"]["Enums"]["custom_quote_status"]
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          voided_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          balance_due?: number
+          category?: Database["public"]["Enums"]["custom_piece_category"]
+          converted_at?: string | null
+          cost_total?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          declined_at?: string | null
+          deleted_at?: string | null
+          deposit_amount?: number
+          deposit_pct?: number
+          description?: string
+          expires_on?: string | null
+          id?: string
+          margin_pct?: number
+          notes_internal?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          price_total?: number
+          public_token?: string | null
+          public_token_created_at?: string | null
+          quote_number?: string | null
+          reference_photo_path?: string | null
+          repair_ticket_id?: string | null
+          sent_at?: string | null
+          size?: string | null
+          spot_metal_label?: string | null
+          spot_price_per_gram?: number | null
+          spot_priced_at?: string | null
+          status?: Database["public"]["Enums"]["custom_quote_status"]
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          voided_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_quotes_repair_ticket_id_fkey"
+            columns: ["repair_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "repair_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_quotes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_documents: {
         Row: {
           byte_size: number | null
@@ -4054,6 +4263,12 @@ export type Database = {
           consignment_default_commission_pct: number
           consignment_enabled: boolean
           created_at: string
+          custom_quote_default_deposit_pct: number
+          custom_quote_default_margin_pct: number
+          custom_quote_expiry_days: number
+          custom_quote_labor_rate: number
+          custom_quote_min_margin_pct: number
+          custom_quote_show_cost_breakdown: boolean
           default_currency: string
           default_loan_interest_rate: number
           default_loan_term_days: number
@@ -4091,6 +4306,12 @@ export type Database = {
           consignment_default_commission_pct?: number
           consignment_enabled?: boolean
           created_at?: string
+          custom_quote_default_deposit_pct?: number
+          custom_quote_default_margin_pct?: number
+          custom_quote_expiry_days?: number
+          custom_quote_labor_rate?: number
+          custom_quote_min_margin_pct?: number
+          custom_quote_show_cost_breakdown?: boolean
           default_currency?: string
           default_loan_interest_rate?: number
           default_loan_term_days?: number
@@ -4128,6 +4349,12 @@ export type Database = {
           consignment_default_commission_pct?: number
           consignment_enabled?: boolean
           created_at?: string
+          custom_quote_default_deposit_pct?: number
+          custom_quote_default_margin_pct?: number
+          custom_quote_expiry_days?: number
+          custom_quote_labor_rate?: number
+          custom_quote_min_margin_pct?: number
+          custom_quote_show_cost_breakdown?: boolean
           default_currency?: string
           default_loan_interest_rate?: number
           default_loan_term_days?: number
@@ -5143,6 +5370,7 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      custom_quote_public: { Args: { p_token: string }; Returns: Json }
       delete_tenant_cascade: {
         Args: { p_tenant_id: string }
         Returns: undefined
@@ -5203,6 +5431,10 @@ export type Database = {
       }
       repair_public_ticket: { Args: { p_token: string }; Returns: Json }
       repair_public_token: { Args: never; Returns: string }
+      seed_custom_quote_templates: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
       seed_default_message_templates: {
         Args: { p_tenant_id: string }
         Returns: undefined
@@ -5294,6 +5526,30 @@ export type Database = {
         | "failed"
         | "refunded"
       comm_preference: "email" | "sms" | "whatsapp" | "none"
+      custom_piece_category:
+        | "ring"
+        | "earrings"
+        | "chain"
+        | "bracelet"
+        | "pendant"
+        | "nameplate"
+        | "grillz"
+        | "other"
+      custom_quote_line_kind:
+        | "metal"
+        | "wax"
+        | "labor"
+        | "stone"
+        | "setting"
+        | "extra"
+      custom_quote_status:
+        | "draft"
+        | "sent"
+        | "accepted"
+        | "declined"
+        | "expired"
+        | "converted"
+        | "voided"
       customer_doc_kind: "id_scan" | "signature"
       ebay_environment: "sandbox" | "production"
       ebay_listing_event_kind:
@@ -5409,6 +5665,7 @@ export type Database = {
         | "forfeiture_winback"
         | "redemption_thankyou"
         | "repair_tracking_link"
+        | "custom_quote_link"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
       metal_purity:
         | "pure_24k"
@@ -5662,6 +5919,33 @@ export const Constants = {
         "refunded",
       ],
       comm_preference: ["email", "sms", "whatsapp", "none"],
+      custom_piece_category: [
+        "ring",
+        "earrings",
+        "chain",
+        "bracelet",
+        "pendant",
+        "nameplate",
+        "grillz",
+        "other",
+      ],
+      custom_quote_line_kind: [
+        "metal",
+        "wax",
+        "labor",
+        "stone",
+        "setting",
+        "extra",
+      ],
+      custom_quote_status: [
+        "draft",
+        "sent",
+        "accepted",
+        "declined",
+        "expired",
+        "converted",
+        "voided",
+      ],
       customer_doc_kind: ["id_scan", "signature"],
       ebay_environment: ["sandbox", "production"],
       ebay_listing_event_kind: [
@@ -5788,6 +6072,7 @@ export const Constants = {
         "forfeiture_winback",
         "redemption_thankyou",
         "repair_tracking_link",
+        "custom_quote_link",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
       metal_purity: [

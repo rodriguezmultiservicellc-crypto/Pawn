@@ -11,6 +11,7 @@ import {
   LockOpen,
   Pause,
   Play,
+  Printer,
   Prohibit,
   Tag,
   ThumbsUp,
@@ -325,6 +326,15 @@ export default function RepairTicketDetail({
           {t.repair.backToList}
         </Link>
         <div className="flex items-center gap-2">
+          <a
+            href={`/api/print/repair/${ticket.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
+          >
+            <Printer size={12} weight="bold" />
+            {t.repair.print.button}
+          </a>
           <button
             type="button"
             onClick={() => setShowReminder(true)}

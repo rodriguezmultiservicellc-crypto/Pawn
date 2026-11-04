@@ -631,6 +631,11 @@ export type SpotPriceOverrideInsert = {
 
 export type SpotPriceOverrideUpdate = Partial<SpotPriceOverrideInsert>
 
+// ── Custom-piece quotes (patches/0063)
+export type CustomQuoteStatus   = Database['public']['Enums']['custom_quote_status']
+export type CustomPieceCategory = Database['public']['Enums']['custom_piece_category']
+export type CustomQuoteLineKind = Database['public']['Enums']['custom_quote_line_kind']
+
 /** One provider attempt inside spot_price_fetches.attempts (patches/0058). */
 export type SpotPriceFetchAttempt = {
   source: string

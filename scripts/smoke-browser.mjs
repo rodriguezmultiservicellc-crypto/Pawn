@@ -133,6 +133,7 @@ const ids = {
   repair: await pickId('repair_tickets'),
   consignor: await pickId('consignors'),
   layaway: await pickId('layaways'),
+  quote: await pickId('custom_quotes'),
 }
 
 const ROUTES = [
@@ -165,6 +166,19 @@ const ROUTES = [
   ['loan detail', ids.loan && `/pawn/${ids.loan}`],
   ['repair', '/repair'],
   ['repair detail', ids.repair && `/repair/${ids.repair}`],
+  ['repair board', '/repair/board'],
+  // Brief Phase 0 (spot prices: fallback chain, fetch log, stale banner).
+  ['P0 spot prices', '/inventory/spot-prices'],
+  // Brief Phase 1 (tracking link + stages) and Phase 2 (custom quotes).
+  ['P1 repair stages settings', '/settings/repair-stages'],
+  ['P2 quotes list', '/repair/quotes'],
+  ['P2 quote new', '/repair/quotes/new'],
+  ['P2 quote detail', ids.quote && `/repair/quotes/${ids.quote}`],
+  ['P2 quote edit', ids.quote && `/repair/quotes/${ids.quote}/edit`],
+  ['P2 quote settings', '/settings/custom-quotes'],
+  // PDF routes: Chrome's viewer renders them; the harness only sees status + console.
+  ['print repair ticket PDF', ids.repair && `/api/print/repair/${ids.repair}`],
+  ['print quote PDF', ids.quote && `/api/print/quote/${ids.quote}`],
   ['pos', '/pos'],
   ['settings hub', '/settings'],
   ['team', '/team'],
