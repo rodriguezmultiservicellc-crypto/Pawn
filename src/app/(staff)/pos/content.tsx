@@ -16,7 +16,7 @@ import {
 import { OpenRegisterDialog } from '@/components/pos/OpenRegisterDialog'
 import { CloseRegisterDialog } from '@/components/pos/CloseRegisterDialog'
 import { closeRegisterAction, openRegisterAction } from './actions'
-import type { SaleStatus } from '@/types/database-aliases'
+import type { SaleKind, SaleStatus } from '@/types/database-aliases'
 
 export type PosHomeOpenSession = {
   id: string
@@ -33,7 +33,7 @@ export type PosHomeOpenSession = {
 export type PosHomeRecentSale = {
   id: string
   sale_number: string
-  sale_kind: 'retail' | 'layaway'
+  sale_kind: SaleKind
   status: SaleStatus
   total: number
   paid_total: number

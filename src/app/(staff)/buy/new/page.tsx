@@ -2,33 +2,15 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
-import {
-  getLatestSpotPrices,
-  getSpotFreshness,
-} from '@/lib/spot-prices/lookup'
+import { getSpotFreshness } from '@/lib/spot-prices/lookup'
 import { canConfirmStaleSpot } from '@/lib/spot-prices/stale-gate'
-import type {
-  MetalPurity,
-  MetalType,
-  SpotPriceOverrideRow,
-} from '@/types/database-aliases'
+import { loadRateMaps } from '@/lib/metal-counter/rates'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import BuyForm, { type SpotPriceMap, type OverrideMap } from './form'
-
-const PURITY_COMBOS: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }> = [
-  { metalType: 'gold', purity: 'pure_24k' },
-  { metalType: 'gold', purity: '22k' },
-  { metalType: 'gold', purity: '18k' },
-  { metalType: 'gold', purity: '14k' },
-  { metalType: 'gold', purity: '10k' },
-  { metalType: 'silver', purity: 'sterling_925' },
-  { metalType: 'silver', purity: 'fine' },
-  { metalType: 'platinum', purity: 'platinum_950' },
-  { metalType: 'palladium', purity: 'palladium_950' },
-]
+import BuyForm from './form'
 
 /**
- * Buy-outright (gold-buying) intake page.
+ * Buy-outright (gold-buying) intake page — the BUY side of the metal
+ * counter (brief Phase 3; the SELL side is /buy/sell).
  *
  * Module gate: has_pawn (FL pawn license is what authorizes outright
  * jewelry purchases from the public).
@@ -37,9 +19,9 @@ const PURITY_COMBOS: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }
  * pawn intake.
  *
  * Server-side preload: latest spot price per (metal, purity) + tenant
- * pay-rate override multipliers + the effective buy hold. The form does
- * the live melt math client-side using those values so each keystroke
- * doesn't round-trip the server.
+ * pay-rate multipliers (lib/metal-counter/rates) + the effective buy hold.
+ * The form does the live two-way grams ⇄ dollars math client-side from
+ * those values so each keystroke doesn't round-trip the server.
  */
 export default async function NewBuyPage() {
   const ctx = await getCtx()
@@ -62,12 +44,8 @@ export default async function NewBuyPage() {
 
   const admin = createAdminClient()
 
-  const [spotMap, overridesRes, rules, scSettings, spotFreshness] = await Promise.all([
-    getLatestSpotPrices(PURITY_COMBOS),
-    admin
-      .from('spot_price_overrides')
-      .select('metal_type, purity, multiplier')
-      .eq('tenant_id', ctx.tenantId),
+  const [rates, rules, scSettings, spotFreshness] = await Promise.all([
+    loadRateMaps(ctx.tenantId),
     loadTenantRules(admin, ctx.tenantId),
     admin
       .from('settings')
@@ -77,38 +55,11 @@ export default async function NewBuyPage() {
     getSpotFreshness(),
   ])
 
-  // Flatten the spot map into a plain Record<key, perGram> the client
-  // can use without server-only types.
-  const spotPriceMap: SpotPriceMap = {}
-  for (const [key, row] of spotMap.entries()) {
-    if (row?.price_per_gram != null) {
-      const n = Number(row.price_per_gram)
-      if (Number.isFinite(n)) spotPriceMap[key] = n
-    }
-  }
-
-  // Tenant override multipliers keyed by metal::purity.
-  const overrideMap: OverrideMap = {}
-  // SpotPriceOverrideRow.multiplier is `number` at runtime but the
-  // generated types narrow NUMERIC to `string`; widen via unknown.
-  const overrideRows = (overridesRes?.data ?? []) as unknown as Array<
-    Pick<SpotPriceOverrideRow, 'metal_type' | 'purity' | 'multiplier'>
-  >
-  for (const r of overrideRows) {
-    const m = Number(r.multiplier)
-    if (Number.isFinite(m)) {
-      overrideMap[`${r.metal_type}::${r.purity}`] = m
-    }
-  }
-
-  // GREATEST(tenant setting, statutory hold) — patches/0048.
-  const buyHoldDays = rules.buyHoldDays
-
   return (
     <BuyForm
-      spotPriceMap={spotPriceMap}
-      overrideMap={overrideMap}
-      buyHoldDays={buyHoldDays}
+      rates={rates}
+      // GREATEST(tenant setting, statutory hold) — patches/0048.
+      buyHoldDays={rules.buyHoldDays}
       storeCreditEnabled={scSettings?.data?.store_credit_enabled === true}
       spotFreshness={spotFreshness}
       canConfirmStale={canConfirmStaleSpot(ctx.tenantRole)}

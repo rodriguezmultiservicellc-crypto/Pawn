@@ -207,6 +207,15 @@ export function Sidebar({
       icon: <HandCoins size={18} weight="regular" />,
       visible: modules.has_pawn,
     },
+    // Sell metal (brief Phase 3) — scrap / bullion out the door. Rung up
+    // as a sale, so a retail-only shop gets it too.
+    {
+      kind: 'item',
+      href: '/buy/sell',
+      label: t.nav.sellMetal,
+      icon: <Coins size={18} weight="regular" />,
+      visible: modules.has_pawn || modules.has_retail,
+    },
     {
       kind: 'item',
       href: '/repair',

@@ -107,6 +107,8 @@ function paymentMethodLabel(
       return t.pos.payment.methodCard
     case 'check':
       return t.pos.payment.methodCheck
+    case 'transfer':
+      return t.pos.payment.methodTransfer
     case 'store_credit':
       return t.storeCredit.title
     default:

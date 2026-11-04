@@ -100,6 +100,10 @@ export type AuditAction =
   // Spot prices
   | 'spot_price_refresh'
   | 'spot_price_override_change'
+  | 'spot_price_sell_rate_change'
+  // Metal counter — scrap / bullion SOLD (patches/0064-0065). A real sale
+  // row; never a compliance_log row.
+  | 'metal_sale_create'
   // Google Reviews (Phase 10 A)
   | 'google_reviews_refresh'
   // eBay listing publisher (Phase 10, Path B)

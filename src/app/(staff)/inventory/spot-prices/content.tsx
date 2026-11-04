@@ -14,9 +14,11 @@ import { useI18n } from '@/lib/i18n/context'
 import { formatMoney, shortDateTime } from '@/lib/format/money'
 import StalePriceBanner from '@/components/inventory/StalePriceBanner'
 import type { SpotFreshness } from '@/lib/spot-prices/staleness'
+import { pctLabel } from '@/components/buy/EntryModeToggle'
 import {
   refreshSpotPricesAction,
   saveSpotOverrideAction,
+  saveSpotSellRateAction,
   type RefreshNowState,
   type SaveOverrideState,
 } from './actions'
@@ -53,8 +55,10 @@ export type SpotPriceCard = {
   currency: string
   source: string | null
   fetched_at: string | null
-  /** Tenant override multiplier, default '1.0000'. */
+  /** Tenant pay-rate multiplier, default '1.0000'. */
   multiplier: string
+  /** Tenant sell-rate multiplier (patches/0065); null = not configured. */
+  sell_multiplier: string | null
 }
 
 export type SpotPriceHistoryPoint = {
@@ -68,6 +72,7 @@ export type SpotPriceOverrideTuple = {
   metal_type: MetalType
   purity: MetalPurity
   multiplier: string
+  sell_multiplier: string | null
 }
 
 /**
@@ -81,6 +86,9 @@ function payRate(card: SpotPriceCard): {
   multiplier: number
   overrideActive: boolean
   payPerGram: number | null
+  /** Sell side (brief Phase 3): null until a sell rate is configured. */
+  sellMultiplier: number | null
+  sellPerGram: number | null
 } {
   const spotPerGram = card.price_per_gram ? Number(card.price_per_gram) : null
   const m = Number(card.multiplier)
@@ -88,7 +96,13 @@ function payRate(card: SpotPriceCard): {
   const overrideActive = multiplier !== 1
   const payPerGram =
     spotPerGram == null ? null : Math.round(spotPerGram * multiplier * 10000) / 10000
-  return { spotPerGram, multiplier, overrideActive, payPerGram }
+  const s = card.sell_multiplier == null ? NaN : Number(card.sell_multiplier)
+  const sellMultiplier = Number.isFinite(s) ? s : null
+  const sellPerGram =
+    spotPerGram == null || sellMultiplier == null
+      ? null
+      : Math.round(spotPerGram * sellMultiplier * 10000) / 10000
+  return { spotPerGram, multiplier, overrideActive, payPerGram, sellMultiplier, sellPerGram }
 }
 
 export default function SpotPricesContent({
@@ -253,10 +267,17 @@ function PayRateBadge({ multiplier }: { multiplier: number }) {
   const { t } = useI18n()
   return (
     <span className="ml-2 rounded-md bg-warning/10 px-2 py-0.5 font-mono text-xs text-warning">
-      {t.spotPrices.payRateBadge.replace(
-        '{pct}',
-        (multiplier * 100).toFixed(multiplier * 100 % 1 === 0 ? 0 : 2),
-      )}
+      {t.spotPrices.payRateBadge.replace('{pct}', pctLabel(multiplier))}
+    </span>
+  )
+}
+
+/** "Sell rate 105%" — the counter's selling price as a share of spot. */
+function SellRateBadge({ multiplier }: { multiplier: number }) {
+  const { t } = useI18n()
+  return (
+    <span className="ml-2 rounded-md bg-info/10 px-2 py-0.5 font-mono text-xs text-info">
+      {t.spotPrices.sellRateBadge.replace('{pct}', pctLabel(multiplier))}
     </span>
   )
 }
@@ -397,7 +418,8 @@ function SpotCard({
   )
 
   const perOz = card.price_per_troy_oz ? Number(card.price_per_troy_oz) : null
-  const { spotPerGram, multiplier, overrideActive, payPerGram } = payRate(card)
+  const { spotPerGram, multiplier, overrideActive, payPerGram, sellMultiplier, sellPerGram } =
+    payRate(card)
   const toggleLabel = isHidden ? t.spotPrices.showCard : t.spotPrices.hideCard
 
   return (
@@ -462,6 +484,15 @@ function SpotCard({
             </div>
           </>
         )}
+        {sellMultiplier != null && sellPerGram != null ? (
+          <div className="mt-1 text-xs">
+            <span className="text-muted">{t.spotPrices.youSell}: </span>
+            <span className="font-mono font-semibold text-foreground">
+              {formatMoney(sellPerGram)} {t.spotPrices.perGram}
+            </span>
+            <SellRateBadge multiplier={sellMultiplier} />
+          </div>
+        ) : null}
       </div>
 
       <Sparkline points={points} label={t.spotPrices.trendLabel} />
@@ -546,6 +577,7 @@ function OverridesPanel({
             metalType={o.metal_type}
             purity={o.purity}
             initialMultiplier={o.multiplier}
+            initialSellMultiplier={o.sell_multiplier}
           />
         ))}
       </div>
@@ -553,30 +585,25 @@ function OverridesPanel({
   )
 }
 
+/**
+ * One (metal, purity) card with its two rates. Each rate is its own form
+ * so saving one never touches the other — the sell upsert sends only
+ * sell_multiplier, the pay upsert only multiplier.
+ */
 function OverrideRow({
   metalType,
   purity,
   initialMultiplier,
+  initialSellMultiplier,
 }: {
   metalType: MetalType
   purity: MetalPurity
   initialMultiplier: string
+  initialSellMultiplier: string | null
 }) {
   const { t } = useI18n()
-  const [state, action, pending] = useActionState<SaveOverrideState, FormData>(
-    saveSpotOverrideAction,
-    {},
-  )
-  const [pct, setPct] = useState(() => {
-    const m = Number(initialMultiplier)
-    if (!isFinite(m)) return '100'
-    return (m * 100).toFixed(2)
-  })
-
   return (
-    <form action={action} className="rounded-md border border-border bg-background/40 p-3">
-      <input type="hidden" name="metal_type" value={metalType} />
-      <input type="hidden" name="purity" value={purity} />
+    <div className="rounded-md border border-border bg-background/40 p-3">
       <div className="mb-2 text-xs text-muted">
         <span className="font-medium text-foreground">
           {t.spotPrices.metals[metalType] ?? metalType}
@@ -584,20 +611,91 @@ function OverrideRow({
         {' · '}
         {t.spotPrices.purities[purity] ?? purity}
       </div>
+      <RateForm
+        action={saveSpotOverrideAction}
+        metalType={metalType}
+        purity={purity}
+        field="multiplier_pct"
+        label={t.spotPrices.multiplierLabel}
+        initial={toPct(initialMultiplier) ?? '100'}
+        max={200}
+      />
+      <RateForm
+        action={saveSpotSellRateAction}
+        metalType={metalType}
+        purity={purity}
+        field="sell_multiplier_pct"
+        label={t.spotPrices.sellRateLabel}
+        initial={toPct(initialSellMultiplier) ?? ''}
+        placeholder={t.spotPrices.sellRateUnset}
+        max={500}
+        clearable
+      />
+    </div>
+  )
+}
+
+function toPct(multiplier: string | null): string | null {
+  if (multiplier == null) return null
+  const m = Number(multiplier)
+  return Number.isFinite(m) ? (m * 100).toFixed(2) : null
+}
+
+function RateForm({
+  action,
+  metalType,
+  purity,
+  field,
+  label,
+  initial,
+  placeholder,
+  max,
+  clearable,
+}: {
+  action: (prev: SaveOverrideState, fd: FormData) => Promise<SaveOverrideState>
+  metalType: MetalType
+  purity: MetalPurity
+  field: string
+  label: string
+  initial: string
+  placeholder?: string
+  max: number
+  /** Blank is a legal value (= not configured) — offer a clear button. */
+  clearable?: boolean
+}) {
+  const { t } = useI18n()
+  const [state, formAction, pending] = useActionState<SaveOverrideState, FormData>(action, {})
+  const [pct, setPct] = useState(initial)
+
+  return (
+    <form action={formAction} className="mt-1 first:mt-0">
+      <input type="hidden" name="metal_type" value={metalType} />
+      <input type="hidden" name="purity" value={purity} />
       <div className="flex items-center gap-2">
+        <span className="w-24 shrink-0 text-[11px] text-muted">{label}</span>
         <input
-          name="multiplier_pct"
+          name={field}
           type="number"
           inputMode="decimal"
           step="0.01"
           min="0"
-          max="200"
+          max={max}
           value={pct}
+          placeholder={placeholder}
           onChange={(e) => setPct(e.target.value)}
-          className="h-8 w-20 rounded-md border border-border bg-card px-2 font-mono text-sm text-foreground focus:border-blue focus:outline-none"
-          aria-label={t.spotPrices.multiplierLabel}
+          className="h-8 w-20 rounded-md border border-border bg-card px-2 font-mono text-sm text-foreground placeholder:text-[10px] placeholder:font-sans focus:border-blue focus:outline-none"
+          aria-label={label}
         />
         <span className="text-xs text-muted">%</span>
+        {clearable && pct !== '' ? (
+          <button
+            type="button"
+            onClick={() => setPct('')}
+            className="text-[11px] text-muted hover:text-foreground hover:underline"
+          >
+            {t.spotPrices.clearRate}
+          </button>
+        ) : null}
         <button
           type="submit"
           disabled={pending}
@@ -606,12 +704,8 @@ function OverrideRow({
           {pending ? t.common.saving : t.common.save}
         </button>
       </div>
-      {state.error ? (
-        <div className="mt-1 text-xs text-danger">{state.error}</div>
-      ) : null}
-      {state.ok ? (
-        <div className="mt-1 text-xs text-success">{t.common.save} ✓</div>
-      ) : null}
+      {state.error ? <div className="mt-1 text-xs text-danger">{state.error}</div> : null}
+      {state.ok ? <div className="mt-1 text-xs text-success">{t.common.save} ✓</div> : null}
     </form>
   )
 }

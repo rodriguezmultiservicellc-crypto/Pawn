@@ -61,8 +61,10 @@ export default async function SpotPricesPage() {
   ])
 
   const overridesByKey = new Map<string, string>()
+  const sellByKey = new Map<string, string | null>()
   for (const r of overrideRows) {
     overridesByKey.set(`${r.metal_type}::${r.purity}`, r.multiplier)
+    sellByKey.set(`${r.metal_type}::${r.purity}`, r.sell_multiplier)
   }
 
   const cards: SpotPriceCard[] = COMBOS.map(({ metalType, purity }) => {
@@ -77,6 +79,7 @@ export default async function SpotPricesPage() {
       source: row?.source ?? null,
       fetched_at: row?.fetched_at ?? null,
       multiplier: overridesByKey.get(key) ?? '1.0000',
+      sell_multiplier: sellByKey.get(key) ?? null,
     }
   })
 
@@ -92,6 +95,7 @@ export default async function SpotPricesPage() {
       metal_type: metalType,
       purity,
       multiplier: overridesByKey.get(`${metalType}::${purity}`) ?? '1.0000',
+      sell_multiplier: sellByKey.get(`${metalType}::${purity}`) ?? null,
     }),
   )
 
@@ -123,7 +127,7 @@ async function loadOverrides(tenantId: string): Promise<SpotPriceOverrideRow[]> 
   const { data, error } = await admin
     .from('spot_price_overrides')
     .select(
-      'id, tenant_id, metal_type, purity, multiplier, updated_by, updated_at, created_at',
+      'id, tenant_id, metal_type, purity, multiplier, sell_multiplier, updated_by, updated_at, created_at',
     )
     .eq('tenant_id', tenantId)
   if (error) {

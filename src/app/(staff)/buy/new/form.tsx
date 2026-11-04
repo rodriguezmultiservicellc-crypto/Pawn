@@ -1,13 +1,8 @@
 'use client'
 
-import {
-  useActionState,
-  useMemo,
-  useState,
-} from 'react'
+import { useActionState, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
-  ArrowLeft,
   Calculator,
   CheckCircle,
   Coins,
@@ -15,19 +10,35 @@ import {
   Trash,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { formatMoney } from '@/lib/format/money'
 import StalePriceBanner, {
   StaleSpotConfirm,
 } from '@/components/inventory/StalePriceBanner'
+import MetalCounterTabs from '@/components/buy/MetalCounterTabs'
+import MetalTotalsTable from '@/components/buy/MetalTotalsTable'
+import MixedTenderFields, { mixedSplitOk } from '@/components/buy/MixedTenderFields'
+import EntryModeToggle, { pctLabel, type EntryMode } from '@/components/buy/EntryModeToggle'
 import type { SpotFreshness } from '@/lib/spot-prices/staleness'
+import { meltMetalFromItem, purityFromItem } from '@/lib/spot-prices/purity'
+import {
+  dollarsFromGrams,
+  grams3,
+  gramsFromDollars,
+  money2,
+  parseNum,
+  resolveRate,
+  sumDollars,
+  sumGrams,
+  totalsByPurity,
+  type RateMaps,
+  type ResolvedRate,
+} from '@/lib/metal-counter/math'
 import { ruleErrorText } from '@/lib/jurisdictions/messages'
 import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
   createBuyOutrightAction,
   type CreateBuyState,
 } from './actions'
-
-export type SpotPriceMap = Record<string, number>
-export type OverrideMap = Record<string, number>
 
 type ItemRow = {
   uid: string
@@ -37,39 +48,39 @@ type ItemRow = {
   karat: string
   weight_grams: string
   payout: string
-  /** Operator hasn't manually edited the payout — keep auto-syncing it
-   *  to the suggested melt-based value. Once they type something, this
-   *  flips to false and we stop overwriting. */
+  mode: EntryMode
+  /** Weight mode only: payout still tracks the melt (operator hasn't typed
+   *  a negotiated number). Re-armed whenever the weight is retyped. */
   payoutAuto: boolean
   serial_number: string
   photoFile: File | null
   photoPreview: string | null
 }
 
-const CATEGORIES: ReadonlyArray<{ value: string; label: string }> = [
-  { value: 'ring', label: 'Ring' },
-  { value: 'necklace', label: 'Necklace' },
-  { value: 'bracelet', label: 'Bracelet' },
-  { value: 'earrings', label: 'Earrings' },
-  { value: 'pendant', label: 'Pendant' },
-  { value: 'chain', label: 'Chain' },
-  { value: 'watch', label: 'Watch' },
-  { value: 'coin', label: 'Coin' },
-  { value: 'bullion', label: 'Bullion' },
-  { value: 'loose_stone', label: 'Loose stone' },
-  { value: 'other', label: 'Other' },
-]
+const CATEGORY_VALUES = [
+  'ring',
+  'necklace',
+  'bracelet',
+  'earrings',
+  'pendant',
+  'chain',
+  'watch',
+  'coin',
+  'bullion',
+  'loose_stone',
+  'other',
+] as const
 
-const METALS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: '', label: '—' },
-  { value: 'gold', label: 'Gold' },
-  { value: 'silver', label: 'Silver' },
-  { value: 'platinum', label: 'Platinum' },
-  { value: 'palladium', label: 'Palladium' },
-  { value: 'rose_gold', label: 'Rose gold' },
-  { value: 'white_gold', label: 'White gold' },
-  { value: 'other', label: 'Other' },
-]
+const METAL_VALUES = [
+  '',
+  'gold',
+  'silver',
+  'platinum',
+  'palladium',
+  'rose_gold',
+  'white_gold',
+  'other',
+] as const
 
 let rowSeq = 1
 function blankItem(): ItemRow {
@@ -81,6 +92,7 @@ function blankItem(): ItemRow {
     karat: '14',
     weight_grams: '',
     payout: '',
+    mode: 'weight',
     payoutAuto: true,
     serial_number: '',
     photoFile: null,
@@ -88,54 +100,26 @@ function blankItem(): ItemRow {
   }
 }
 
-function purityFromKarat(metal: string, karat: string): string | null {
-  if (
-    metal === 'silver' ||
-    metal === 'sterling' ||
-    metal === 'sterling_925'
-  ) {
-    return 'sterling_925'
-  }
-  if (metal === 'platinum') return 'platinum_950'
-  if (metal === 'palladium') return 'palladium_950'
-  if (metal === 'gold' || metal === 'rose_gold' || metal === 'white_gold') {
-    const k = parseFloat(karat)
-    if (!isFinite(k)) return null
-    if (k >= 23.5) return 'pure_24k'
-    if (k >= 21) return '22k'
-    if (k >= 16) return '18k'
-    if (k >= 12) return '14k'
-    if (k >= 8) return '10k'
-    return null
-  }
-  return null
-}
-
-function meltMetalFromMetal(metal: string): string | null {
-  if (!metal) return null
-  if (metal === 'gold' || metal === 'rose_gold' || metal === 'white_gold') return 'gold'
-  if (metal === 'silver' || metal === 'platinum' || metal === 'palladium') return metal
-  return null
-}
-
-function fmt(n: number): string {
-  return n.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  })
-}
-
 /** How the shop pays the seller. 'store_credit' writes a credit ledger row
- *  instead of handing over cash (patches/0053). */
-type BuyPayoutMethod = 'cash' | 'card' | 'check' | 'other' | 'store_credit'
+ *  instead of handing over cash (patches/0053); 'mixed' is cash + transfer
+ *  split into two tenders by the action (brief Phase 3). */
+type BuyPayoutMethod =
+  | 'cash'
+  | 'transfer'
+  | 'card'
+  | 'check'
+  | 'other'
+  | 'store_credit'
+  | 'mixed'
 
 const BUY_PAYOUT_METHODS: readonly BuyPayoutMethod[] = [
   'cash',
+  'transfer',
   'card',
   'check',
   'other',
   'store_credit',
+  'mixed',
 ]
 
 function isBuyPayoutMethod(v: string): v is BuyPayoutMethod {
@@ -143,15 +127,14 @@ function isBuyPayoutMethod(v: string): v is BuyPayoutMethod {
 }
 
 export default function BuyForm({
-  spotPriceMap,
-  overrideMap,
+  rates,
   buyHoldDays,
   storeCreditEnabled = false,
   spotFreshness,
   canConfirmStale,
 }: {
-  spotPriceMap: SpotPriceMap
-  overrideMap: OverrideMap
+  /** Spot per gram + this tenant's pay / sell multipliers (lib/metal-counter/rates). */
+  rates: RateMaps
   buyHoldDays: number
   storeCreditEnabled?: boolean
   /** 24h stale-price rule — drives the red banner + manager confirm. */
@@ -160,6 +143,7 @@ export default function BuyForm({
   canConfirmStale: boolean
 }) {
   const { t } = useI18n()
+  const f = t.buy.form
   const [state, formAction, pending] = useActionState<CreateBuyState, FormData>(
     createBuyOutrightAction,
     {},
@@ -167,6 +151,8 @@ export default function BuyForm({
 
   const [staleAck, setStaleAck] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<BuyPayoutMethod>('cash')
+  const [paidCash, setPaidCash] = useState('')
+  const [paidTransfer, setPaidTransfer] = useState('')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<ItemRow[]>(() => [blankItem()])
   const [formGen, setFormGen] = useState(0)
@@ -184,13 +170,59 @@ export default function BuyForm({
         if (isBuyPayoutMethod(pm)) setPaymentMethod(pm)
       }
       if (state.values.notes != null) setNotes(state.values.notes)
+      if (state.values.paid_cash != null) setPaidCash(state.values.paid_cash)
+      if (state.values.paid_transfer != null) setPaidTransfer(state.values.paid_transfer)
       setFormGen((g) => g + 1)
     }
   }
 
-  function patchItem(uid: string, patch: Partial<ItemRow>) {
+  /** Pay rate for a row: spot × pay multiplier at its (metal, karat) bucket. */
+  function rateForRow(row: Pick<ItemRow, 'metal' | 'karat'>): ResolvedRate & {
+    purity: ReturnType<typeof purityFromItem>
+  } {
+    const meltMetal = meltMetalFromItem(row.metal)
+    const purity = meltMetal ? purityFromItem({ metal: row.metal, karat: row.karat }) : null
+    return { ...resolveRate(rates, meltMetal, purity, 'pay'), purity }
+  }
+
+  /**
+   * Two-way entry. In WEIGHT mode the grams drive the payout until the
+   * operator types a payout of their own (negotiation); retyping the grams
+   * re-arms the auto payout. In AMOUNT mode the dollars drive the grams —
+   * "they want $300 for this 14K, how many grams is that?" — and the weight
+   * box is read-only.
+   */
+  function derive(row: ItemRow, changed: 'weight' | 'payout' | 'rate' | 'mode'): ItemRow {
+    const { perGram } = rateForRow(row)
+    if (row.mode === 'weight') {
+      if (changed === 'payout') return { ...row, payoutAuto: false }
+      if (!row.payoutAuto && changed !== 'weight') return row
+      const g = parseNum(row.weight_grams)
+      if (perGram == null || g == null || g <= 0) {
+        return changed === 'weight' ? { ...row, payout: '', payoutAuto: true } : row
+      }
+      return { ...row, payout: money2(dollarsFromGrams(g, perGram)), payoutAuto: true }
+    }
+    // Amount mode.
+    const d = parseNum(row.payout)
+    if (perGram == null || d == null || d <= 0) {
+      return changed === 'payout' && d == null ? { ...row, weight_grams: '' } : row
+    }
+    const g = gramsFromDollars(d, perGram)
+    return { ...row, weight_grams: g == null ? row.weight_grams : grams3(g), payoutAuto: false }
+  }
+
+  function patchItem(
+    uid: string,
+    patch: Partial<ItemRow>,
+    changed?: 'weight' | 'payout' | 'rate' | 'mode',
+  ) {
     setItems((rows) =>
-      rows.map((r) => (r.uid === uid ? { ...r, ...patch } : r)),
+      rows.map((r) => {
+        if (r.uid !== uid) return r
+        const next = { ...r, ...patch }
+        return changed ? derive(next, changed) : next
+      }),
     )
   }
   function addItem() {
@@ -200,106 +232,67 @@ export default function BuyForm({
     setItems((rows) => (rows.length > 1 ? rows.filter((r) => r.uid !== uid) : rows))
   }
 
-  function meltForItem(row: ItemRow): {
-    perGram: number | null
-    multiplier: number
-    meltValue: number | null
-    purity: string | null
-  } {
-    const meltMetal = meltMetalFromMetal(row.metal)
-    const purity = meltMetal ? purityFromKarat(row.metal, row.karat) : null
-    if (!meltMetal || !purity) {
-      return { perGram: null, multiplier: 1, meltValue: null, purity: null }
-    }
-    const key = `${meltMetal}::${purity}`
-    const perGram = spotPriceMap[key] ?? null
-    const multiplier = overrideMap[key] ?? 1
-    const grams = parseFloat(row.weight_grams)
-    if (perGram == null || !isFinite(grams) || grams <= 0) {
-      return { perGram, multiplier, meltValue: null, purity }
-    }
-    const meltValue = perGram * multiplier * grams
-    return { perGram, multiplier, meltValue, purity }
-  }
-
-  // Auto-sync the operator's payout to the computed melt as long as
-  // they haven't typed in the field. Once they do, payoutAuto flips
-  // false and we stop overwriting their value. Compute-during-render
-  // pattern per Session 8 — driven off a signature of the inputs that
-  // affect the computed melt; the conditional setItems only fires when
-  // the signature actually changes.
-  const meltSignature = items
-    .map((r) => `${r.uid}:${r.metal}:${r.karat}:${r.weight_grams}`)
-    .join('|')
-  const [lastMeltSig, setLastMeltSig] = useState(meltSignature)
-  if (meltSignature !== lastMeltSig) {
-    setLastMeltSig(meltSignature)
-    setItems((rows) =>
-      rows.map((r) => {
-        if (!r.payoutAuto) return r
-        const { meltValue } = meltForItem(r)
-        const next =
-          meltValue == null
-            ? ''
-            : (Math.round(meltValue * 100) / 100).toFixed(2)
-        if (r.payout === next) return r
-        return { ...r, payout: next }
+  const metalLines = useMemo(
+    () =>
+      items.map((r) => {
+        const { purity, perGram } = rateForRow(r)
+        const meltMetal = meltMetalFromItem(r.metal)
+        const grams = parseNum(r.weight_grams)
+        return {
+          metal: meltMetal,
+          purity,
+          grams: meltMetal && purity ? grams : null,
+          dollars: parseNum(r.payout),
+          melt:
+            perGram != null && grams != null && grams > 0 ? dollarsFromGrams(grams, perGram) : null,
+        }
       }),
-    )
-  }
-
-  const totalPayout = useMemo(() => {
-    return items.reduce((s, r) => {
-      const n = parseFloat(r.payout)
-      return s + (isFinite(n) ? n : 0)
-    }, 0)
-  }, [items])
-
-  const totalMelt = useMemo(() => {
-    return items.reduce((s, r) => {
-      const m = meltForItem(r).meltValue
-      return s + (m ?? 0)
-    }, 0)
+    // rates is stable for the life of the page; items is the only input.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items])
+    [items],
+  )
+
+  const totalPayout = sumDollars(metalLines)
+  const totalMelt = useMemo(
+    () => metalLines.reduce((s, l) => s + (l.melt ?? 0), 0),
+    [metalLines],
+  )
+  const totalGrams = sumGrams(metalLines)
+  const groups = useMemo(() => totalsByPurity(metalLines), [metalLines])
 
   const fieldError = (key: string) => state.fieldErrors?.[key]
 
   // Stale guard, client half: mirrors lib/spot-prices/stale-gate. Only a
   // buy that prices precious metal is held; the server re-checks both the
   // staleness and the role on submit.
-  const involvesMetal = items.some((r) => meltMetalFromMetal(r.metal) != null)
+  const involvesMetal = items.some((r) => meltMetalFromItem(r.metal) != null)
   const staleBlocked =
     spotFreshness.stale && involvesMetal && !(canConfirmStale && staleAck)
+  const mixedBlocked =
+    paymentMethod === 'mixed' && !mixedSplitOk(totalPayout, paidCash, paidTransfer)
+
+  const submitLabel = (items.length === 1 ? f.submitOne : f.submitMany)
+    .replace('{count}', String(items.length))
+    .replace('{amount}', formatMoney(totalPayout))
 
   return (
     <div className="space-y-6">
       <StalePriceBanner freshness={spotFreshness} />
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/inventory"
-            className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-          >
-            <ArrowLeft size={14} weight="bold" />
-            {t.inventory.backToList}
-          </Link>
-        </div>
-        <div className="text-xs text-muted">
-          Hold period: <span className="font-mono text-foreground">{buyHoldDays}d</span>
-        </div>
-      </header>
+      <MetalCounterTabs
+        active="buy"
+        right={
+          <>
+            {f.holdPeriod}: <span className="font-mono text-foreground">{buyHoldDays}d</span>
+          </>
+        }
+      />
 
       <div>
         <h1 className="font-display flex items-center gap-2 text-2xl font-bold">
           <Coins size={22} weight="bold" />
-          Buy gold (outright)
+          {f.title}
         </h1>
-        <p className="text-sm text-muted">
-          Buy items from a customer for cash. Each item enters inventory
-          marked status=held for {buyHoldDays} days, then becomes available
-          for sale. A police-report compliance row is written automatically.
-        </p>
+        <p className="text-sm text-muted">{f.subtitle.replace('{days}', String(buyHoldDays))}</p>
       </div>
 
       {state.error ? (
@@ -315,9 +308,7 @@ export default function BuyForm({
       <form action={formAction} className="space-y-6" key={formGen}>
         {/* Customer */}
         <fieldset className="rounded-xl border border-border bg-card p-4">
-          <legend className="px-1 text-sm font-semibold text-foreground">
-            Customer
-          </legend>
+          <legend className="px-1 text-sm font-semibold text-foreground">{f.customer}</legend>
           <div className="mt-2 flex items-start gap-2">
             <div className="flex-1">
               <CustomerPicker
@@ -332,19 +323,16 @@ export default function BuyForm({
               href="/customers/new?return=/buy/new"
               className="shrink-0 rounded-md border border-border bg-card px-3 py-3 text-sm text-foreground hover:bg-background hover:text-foreground"
             >
-              + New
+              {f.newCustomer}
             </Link>
           </div>
-          <p className="mt-2 text-[11px] text-muted">
-            Customer must be in this tenant&apos;s records (FL pawn law
-            requires customer ID for buy-outright).
-          </p>
+          <p className="mt-2 text-[11px] text-muted">{f.customerHelp}</p>
         </fieldset>
 
         {/* Items */}
         <fieldset className="space-y-3">
           <legend className="text-sm font-semibold text-foreground">
-            Items ({items.length})
+            {f.items.replace('{count}', String(items.length))}
           </legend>
           <input type="hidden" name="item_count" value={items.length} />
 
@@ -354,10 +342,11 @@ export default function BuyForm({
               row={row}
               idx={idx}
               fieldError={fieldError}
-              onChange={(patch) => patchItem(row.uid, patch)}
+              onPatch={(patch, changed) => patchItem(row.uid, patch, changed)}
               onRemove={() => removeItem(row.uid)}
               canRemove={items.length > 1}
-              meltInfo={meltForItem(row)}
+              rate={rateForRow(row)}
+              melt={metalLines[idx]?.melt ?? null}
             />
           ))}
 
@@ -368,18 +357,17 @@ export default function BuyForm({
             className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-3 py-2 text-sm text-foreground hover:bg-background disabled:opacity-50"
           >
             <Plus size={14} weight="bold" />
-            Add item
+            {f.addItem}
           </button>
         </fieldset>
 
         {/* Totals + payment */}
         <fieldset className="rounded-xl border border-border bg-card p-4">
-          <legend className="px-1 text-sm font-semibold text-foreground">
-            Payout
-          </legend>
-          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Stat label="Total melt" value={fmt(totalMelt)} />
-            <Stat label="Total payout" value={fmt(totalPayout)} highlight />
+          <legend className="px-1 text-sm font-semibold text-foreground">{f.totalsTitle}</legend>
+          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-4">
+            <Stat label={f.totalMelt} value={formatMoney(totalMelt)} />
+            <Stat label={f.totalGrams} value={`${totalGrams.toFixed(3)} g`} />
+            <Stat label={f.totalPayout} value={formatMoney(totalPayout)} highlight />
             <label className="block space-y-1">
               <span className="text-xs uppercase tracking-wide text-muted">
                 {t.pos.payment.method}
@@ -393,8 +381,10 @@ export default function BuyForm({
                 className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
               >
                 <option value="cash">{t.pos.payment.methodCash}</option>
-                <option value="card">{t.pos.payment.methodCard}</option>
+                <option value="transfer">{t.pos.payment.methodTransfer}</option>
+                <option value="mixed">{f.paymentMixed}</option>
                 <option value="check">{t.pos.payment.methodCheck}</option>
+                <option value="card">{t.pos.payment.methodCard}</option>
                 <option value="other">{t.pos.payment.methodOther}</option>
                 {storeCreditEnabled ? (
                   <option value="store_credit">
@@ -409,10 +399,30 @@ export default function BuyForm({
               ) : null}
             </label>
           </div>
+
+          {paymentMethod === 'mixed' ? (
+            <MixedTenderFields
+              total={totalPayout}
+              cash={paidCash}
+              transfer={paidTransfer}
+              onCashChange={setPaidCash}
+              onTransferChange={setPaidTransfer}
+            />
+          ) : null}
+
+          {groups.length > 0 ? (
+            <div className="mt-4">
+              <MetalTotalsTable
+                groups={groups}
+                totalGrams={totalGrams}
+                totalDollars={totalPayout}
+                amountLabel={f.colAmount}
+              />
+            </div>
+          ) : null}
+
           <label className="mt-3 block space-y-1">
-            <span className="text-xs uppercase tracking-wide text-muted">
-              Notes
-            </span>
+            <span className="text-xs uppercase tracking-wide text-muted">{f.notes}</span>
             <textarea
               name="notes"
               rows={2}
@@ -441,7 +451,7 @@ export default function BuyForm({
           </Link>
           <button
             type="submit"
-            disabled={pending || items.length === 0 || staleBlocked}
+            disabled={pending || items.length === 0 || staleBlocked || mixedBlocked}
             className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? (
@@ -449,8 +459,7 @@ export default function BuyForm({
             ) : (
               <>
                 <CheckCircle size={14} weight="bold" />
-                Buy {items.length} item{items.length === 1 ? '' : 's'} —{' '}
-                {fmt(totalPayout)}
+                {submitLabel}
               </>
             )}
           </button>
@@ -464,42 +473,70 @@ function ItemCard({
   row,
   idx,
   fieldError,
-  onChange,
+  onPatch,
   onRemove,
   canRemove,
-  meltInfo,
+  rate,
+  melt,
 }: {
   row: ItemRow
   idx: number
   fieldError: (k: string) => string | undefined
-  onChange: (patch: Partial<ItemRow>) => void
+  onPatch: (patch: Partial<ItemRow>, changed?: 'weight' | 'payout' | 'rate' | 'mode') => void
   onRemove: () => void
   canRemove: boolean
-  meltInfo: {
-    perGram: number | null
-    multiplier: number
-    meltValue: number | null
-    purity: string | null
-  }
+  rate: ResolvedRate & { purity: ReturnType<typeof purityFromItem> }
+  melt: number | null
 }) {
+  const { t } = useI18n()
+  const f = t.buy.form
+  const inv = t.inventory
+
+  const categoryLabel: Record<(typeof CATEGORY_VALUES)[number], string> = {
+    ring: inv.catRing,
+    necklace: inv.catNecklace,
+    bracelet: inv.catBracelet,
+    earrings: inv.catEarrings,
+    pendant: inv.catPendant,
+    chain: inv.catChain,
+    watch: inv.catWatch,
+    coin: inv.catCoin,
+    bullion: inv.catBullion,
+    loose_stone: inv.catLooseStone,
+    other: inv.catOther,
+  }
+  const categories = CATEGORY_VALUES.map((v) => ({ value: v, label: categoryLabel[v] }))
+  const metals = METAL_VALUES.map((v) => ({
+    value: v,
+    label: v === '' ? f.metalNone : (t.spotPrices.metals as Record<string, string>)[v] ?? v,
+  }))
+
   const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null
     if (!file) {
-      onChange({ photoFile: null, photoPreview: null })
+      onPatch({ photoFile: null, photoPreview: null })
       return
     }
     const url = URL.createObjectURL(file)
-    onChange({ photoFile: file, photoPreview: url })
+    onPatch({ photoFile: file, photoPreview: url })
   }
 
-  const isOverridden = meltInfo.multiplier !== 1
+  const isOverridden = rate.multiplier !== 1
   const errPrefix = `items.${idx}.`
+  const amountMode = row.mode === 'amount'
+
+  const meltHint =
+    rate.perGram == null
+      ? rate.purity == null
+        ? f.meltAddMetal
+        : f.meltNoSpot
+      : f.meltAddWeight
 
   return (
     <article className="rounded-xl border border-border bg-card p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-mono text-foreground">
-          Item {idx + 1}
+          {f.item.replace('{n}', String(idx + 1))}
         </span>
         {canRemove ? (
           <button
@@ -508,7 +545,7 @@ function ItemCard({
             className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10"
           >
             <Trash size={12} weight="bold" />
-            Remove
+            {f.remove}
           </button>
         ) : null}
       </div>
@@ -516,55 +553,56 @@ function ItemCard({
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
         <Field
           name={`item_${idx}_description`}
-          label="Description *"
+          label={f.description}
           value={row.description}
-          onChange={(v) => onChange({ description: v })}
+          onChange={(v) => onPatch({ description: v })}
           error={fieldError(`${errPrefix}description`)}
           span={3}
           required
         />
         <Select
           name={`item_${idx}_category`}
-          label="Category"
+          label={f.category}
           value={row.category}
-          onChange={(v) => onChange({ category: v })}
-          options={CATEGORIES}
+          onChange={(v) => onPatch({ category: v })}
+          options={categories}
           error={fieldError(`${errPrefix}category`)}
         />
         <Field
           name={`item_${idx}_serial_number`}
-          label="Serial / engraving"
+          label={f.serial}
           value={row.serial_number}
-          onChange={(v) => onChange({ serial_number: v })}
+          onChange={(v) => onPatch({ serial_number: v })}
           span={2}
         />
 
         <Select
           name={`item_${idx}_metal`}
-          label="Metal"
+          label={f.metal}
           value={row.metal}
-          onChange={(v) => onChange({ metal: v })}
-          options={METALS}
+          onChange={(v) => onPatch({ metal: v }, 'rate')}
+          options={metals}
         />
         <Field
           name={`item_${idx}_karat`}
-          label="Karat"
+          label={f.karat}
           value={row.karat}
-          onChange={(v) => onChange({ karat: v })}
+          onChange={(v) => onPatch({ karat: v }, 'rate')}
           placeholder="14"
         />
         <Field
           name={`item_${idx}_weight_grams`}
-          label="Weight (g)"
+          label={amountMode ? `${f.weight} · ${f.calculated}` : f.weight}
           value={row.weight_grams}
-          onChange={(v) => onChange({ weight_grams: v })}
+          onChange={(v) => onPatch({ weight_grams: v }, 'weight')}
           type="number"
-          step="0.01"
-          placeholder="0.00"
+          step="0.001"
+          placeholder="0.000"
+          readOnly={amountMode}
         />
         <div className="md:col-span-3">
           <label className="block space-y-1">
-            <span className="text-xs font-medium text-foreground">Photo</span>
+            <span className="text-xs font-medium text-foreground">{f.photo}</span>
             <input
               type="file"
               name={`item_${idx}_photo`}
@@ -577,49 +615,52 @@ function ItemCard({
       </div>
 
       <div className="mt-3 rounded-md border border-border bg-background/40 p-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             <Calculator size={14} weight="bold" className="text-muted" />
-            <span className="font-medium text-foreground">Melt:</span>
-            {meltInfo.meltValue == null ? (
-              <span className="text-muted">
-                {meltInfo.perGram == null
-                  ? meltInfo.purity == null
-                    ? 'add metal + karat'
-                    : 'no spot price'
-                  : 'add weight'}
-              </span>
+            <span className="font-medium text-foreground">{f.melt}:</span>
+            {melt == null ? (
+              <span className="text-muted">{meltHint}</span>
             ) : (
-              <span className="font-mono text-foreground">
-                {fmt(meltInfo.meltValue)}
-              </span>
+              <span className="font-mono text-foreground">{formatMoney(melt)}</span>
             )}
             {isOverridden ? (
               <span className="rounded-md bg-warning/10 px-1.5 py-0.5 font-mono text-[10px] text-warning">
-                ×{meltInfo.multiplier.toFixed(4)}
+                ×{rate.multiplier.toFixed(4)}
               </span>
             ) : null}
-            {meltInfo.purity ? (
+            {rate.purity ? (
               <span className="text-[10px] text-muted">
-                ({meltInfo.purity})
+                ({t.spotPrices.purities[rate.purity] ?? rate.purity})
+              </span>
+            ) : null}
+            {rate.perGram != null && rate.spotPerGram != null ? (
+              <span className="font-mono text-[10px] text-muted">
+                {f.rateLine
+                  .replace('{rate}', formatMoney(rate.perGram))
+                  .replace('{spot}', formatMoney(rate.spotPerGram))
+                  .replace('{pct}', pctLabel(rate.multiplier))}
               </span>
             ) : null}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-end gap-3">
+            <EntryModeToggle
+              value={row.mode}
+              onChange={(m) => onPatch({ mode: m }, 'mode')}
+              disabled={rate.perGram == null}
+            />
             <label className="block text-xs">
               <span className="block text-[10px] uppercase tracking-wide text-muted">
-                Payout *
+                {f.payout}
               </span>
               <input
                 name={`item_${idx}_payout`}
                 type="number"
                 step="0.01"
                 min="0"
+                inputMode="decimal"
                 value={row.payout}
-                onChange={(e) =>
-                  onChange({ payout: e.target.value, payoutAuto: false })
-                }
-                onFocus={() => onChange({ payoutAuto: false })}
+                onChange={(e) => onPatch({ payout: e.target.value }, 'payout')}
                 required
                 className={`block w-32 rounded-md border bg-card px-2 py-1 text-right font-mono text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
                   fieldError(`${errPrefix}payout`)
@@ -630,6 +671,9 @@ function ItemCard({
             </label>
           </div>
         </div>
+        <p className="mt-1 text-[11px] text-muted">
+          {amountMode ? f.byAmountHelp : f.byWeightHelp}
+        </p>
         {fieldError(`${errPrefix}payout`) ? (
           <p className="mt-1 text-[11px] text-danger">
             {fieldError(`${errPrefix}payout`)}
@@ -662,6 +706,7 @@ function Field({
   error,
   span = 1,
   required,
+  readOnly,
 }: {
   name: string
   label: string
@@ -673,6 +718,7 @@ function Field({
   error?: string
   span?: number
   required?: boolean
+  readOnly?: boolean
 }) {
   const colSpan =
     span === 2
@@ -691,7 +737,10 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className={`block w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+        readOnly={readOnly}
+        className={`block w-full rounded-md border px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
+          readOnly ? 'bg-background/60 font-mono' : 'bg-card'
+        } ${
           error
             ? 'border-danger focus:border-danger'
             : 'border-border focus:border-blue'

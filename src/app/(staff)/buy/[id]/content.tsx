@@ -7,6 +7,8 @@ import {
   Coins,
   Printer,
 } from '@phosphor-icons/react'
+import { useI18n } from '@/lib/i18n/context'
+import { formatMoney, shortDateTime } from '@/lib/format/money'
 
 export type BuyReceiptItem = {
   inventoryId: string | null
@@ -40,11 +42,7 @@ export type BuyReceiptView = {
 
 function fmt(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return '—'
-  return n.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  })
+  return formatMoney(n)
 }
 
 export default function BuyReceiptContent({
@@ -52,6 +50,12 @@ export default function BuyReceiptContent({
 }: {
   view: BuyReceiptView
 }) {
+  const { t } = useI18n()
+  const r = t.buy.buyReceipt
+  const summary = (view.items.length === 1 ? r.summaryOne : r.summaryMany)
+    .replace('{count}', String(view.items.length))
+    .replace('{amount}', fmt(view.totalPayout))
+
   return (
     <div className="space-y-6 print:max-w-none">
       <header className="flex items-center justify-between print:hidden">
@@ -60,7 +64,7 @@ export default function BuyReceiptContent({
           className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
-          Back to inventory
+          {r.backToInventory}
         </Link>
         <div className="flex gap-2">
           <button
@@ -81,14 +85,14 @@ export default function BuyReceiptContent({
             className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background disabled:opacity-50"
           >
             <Printer size={14} weight="bold" />
-            Print
+            {r.print}
           </button>
           <Link
             href="/buy/new"
             className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-navy hover:bg-gold-2"
           >
             <Coins size={14} weight="bold" />
-            New buy
+            {r.newBuy}
           </Link>
         </div>
       </header>
@@ -96,15 +100,13 @@ export default function BuyReceiptContent({
       <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success print:border-0 print:bg-transparent print:px-0">
         <div className="flex items-center gap-2">
           <CheckCircle size={16} weight="bold" />
-          <span className="font-semibold">Buy completed</span>
+          <span className="font-semibold">{r.completed}</span>
         </div>
         <div className="mt-0.5 text-xs text-foreground/80">
-          {view.items.length} item{view.items.length === 1 ? '' : 's'} purchased
-          for <span className="font-mono font-bold">{fmt(view.totalPayout)}</span>
+          {summary}
           {view.occurredAt
-            ? ` on ${new Date(view.occurredAt).toLocaleString()}`
+            ? ` ${r.on.replace('{when}', shortDateTime(view.occurredAt))}`
             : ''}
-          .
         </div>
       </div>
 
@@ -112,16 +114,16 @@ export default function BuyReceiptContent({
         <header className="border-b border-border pb-3">
           <h1 className="font-display flex items-center gap-2 text-2xl font-bold text-foreground">
             <Coins size={22} weight="bold" />
-            Buy receipt
+            {r.title}
           </h1>
           <div className="mt-1 font-mono text-[11px] text-muted">
-            Tx: {view.transactionId}
+            {r.tx}: {view.transactionId}
           </div>
         </header>
 
         <section className="mt-4">
           <h2 className="text-xs font-bold uppercase tracking-wide text-muted">
-            Customer
+            {r.customer}
           </h2>
           <div className="mt-1 text-sm text-foreground">
             <div className="font-medium">{view.customer.name}</div>
@@ -131,7 +133,7 @@ export default function BuyReceiptContent({
             <div className="mt-1 grid grid-cols-2 gap-1 text-xs text-muted">
               {view.customer.phone ? (
                 <div>
-                  <span className="text-muted">Phone:</span>{' '}
+                  <span className="text-muted">{r.phone}:</span>{' '}
                   <span className="font-mono text-foreground">
                     {view.customer.phone}
                   </span>
@@ -139,7 +141,7 @@ export default function BuyReceiptContent({
               ) : null}
               {view.customer.email ? (
                 <div>
-                  <span className="text-muted">Email:</span>{' '}
+                  <span className="text-muted">{r.email}:</span>{' '}
                   <span className="font-mono text-foreground">
                     {view.customer.email}
                   </span>
@@ -147,7 +149,7 @@ export default function BuyReceiptContent({
               ) : null}
               {view.customer.idType ? (
                 <div>
-                  <span className="text-muted">ID:</span>{' '}
+                  <span className="text-muted">{r.id}:</span>{' '}
                   <span className="font-mono text-foreground">
                     {view.customer.idType}
                     {view.customer.idNumber
@@ -162,17 +164,17 @@ export default function BuyReceiptContent({
 
         <section className="mt-5">
           <h2 className="text-xs font-bold uppercase tracking-wide text-muted">
-            Items
+            {r.items}
           </h2>
           <table className="mt-2 w-full text-sm">
             <thead className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
               <tr>
-                <th className="py-1">SKU</th>
-                <th className="py-1">Description</th>
-                <th className="py-1">Metal</th>
-                <th className="py-1">Weight</th>
-                <th className="py-1">Melt</th>
-                <th className="py-1 text-right">Payout</th>
+                <th className="py-1">{r.colSku}</th>
+                <th className="py-1">{r.colDescription}</th>
+                <th className="py-1">{r.colMetal}</th>
+                <th className="py-1">{r.colWeight}</th>
+                <th className="py-1">{r.colMelt}</th>
+                <th className="py-1 text-right">{r.colPayout}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -194,18 +196,22 @@ export default function BuyReceiptContent({
                     <div className="text-foreground">{it.description}</div>
                     {it.serialNumber ? (
                       <div className="font-mono text-[10px] text-muted">
-                        SN {it.serialNumber}
+                        {r.serial.replace('{serial}', it.serialNumber)}
                       </div>
                     ) : null}
                     {it.liveStatus ? (
                       <div className="mt-0.5 text-[10px] text-muted">
-                        Status: {it.liveStatus}
-                        {it.holdUntil ? ` · hold until ${it.holdUntil}` : ''}
+                        {r.status.replace('{status}', it.liveStatus)}
+                        {it.holdUntil
+                          ? ` · ${r.holdUntil.replace('{date}', it.holdUntil)}`
+                          : ''}
                       </div>
                     ) : null}
                   </td>
                   <td className="py-1.5 text-xs">
-                    {it.metal ?? '—'}
+                    {it.metal
+                      ? (t.spotPrices.metals as Record<string, string>)[it.metal] ?? it.metal
+                      : '—'}
                     {it.karat ? (
                       <span className="ml-1 text-muted">{it.karat}K</span>
                     ) : null}
@@ -225,7 +231,7 @@ export default function BuyReceiptContent({
             <tfoot>
               <tr className="border-t-2 border-navy">
                 <td colSpan={5} className="py-2 text-right text-xs uppercase tracking-wide text-muted">
-                  Total
+                  {r.total}
                 </td>
                 <td className="py-2 text-right font-mono text-base font-bold">
                   {fmt(view.totalPayout)}
@@ -238,23 +244,19 @@ export default function BuyReceiptContent({
         <section className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-4 text-xs text-muted">
           <div>
             <div className="mb-8 text-[10px] uppercase tracking-wide">
-              Customer signature
+              {r.customerSignature}
             </div>
             <div className="border-t border-navy"></div>
           </div>
           <div>
             <div className="mb-8 text-[10px] uppercase tracking-wide">
-              Staff signature
+              {r.staffSignature}
             </div>
             <div className="border-t border-navy"></div>
           </div>
         </section>
 
-        <footer className="mt-4 text-[10px] text-muted">
-          This transaction has been recorded in the police-report
-          compliance log per FL pawn-statute requirements. Items are held
-          for the state-mandated period before being available for sale.
-        </footer>
+        <footer className="mt-4 text-[10px] text-muted">{r.footer}</footer>
       </article>
     </div>
   )

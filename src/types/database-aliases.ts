@@ -180,9 +180,13 @@ export type PaymentMethod =
   // store_credit_redeem_on_sale RPC so the customer's balance is debited in
   // the same transaction. See DirectPaymentMethod below.
   | 'store_credit'
+  // patches/0064. Bank / Zelle / wire. Offered by the metal counter (buy
+  // payout + metal sale tenders); the POS add-payment dialog does not list
+  // it yet.
+  | 'transfer'
 
 /** Methods the POS add-payment dialog and layaway payments accept. */
-export type DirectPaymentMethod = Exclude<PaymentMethod, 'store_credit'>
+export type DirectPaymentMethod = Exclude<PaymentMethod, 'store_credit' | 'transfer'>
 
 // ── Phase 2 — Row / Insert / Update shortcuts.
 //
@@ -296,7 +300,8 @@ export type SaleStatus =
   | 'partial_returned'
   | 'fully_returned'
 
-export type SaleKind = 'retail' | 'layaway'
+/** 'metal' (patches/0064) = scrap / bullion sold at the metal counter. */
+export type SaleKind = 'retail' | 'layaway' | 'metal'
 
 export type ReturnStatus = 'issued' | 'voided'
 
@@ -611,8 +616,10 @@ export type SpotPriceOverrideRow = {
   tenant_id: string
   metal_type: MetalType
   purity: MetalPurity
-  /** numeric(6,4) — comes back as string from supabase-js. */
+  /** numeric(6,4) — comes back as string from supabase-js. PAY rate. */
   multiplier: string
+  /** numeric(6,4) — SELL rate (patches/0065). NULL = not configured. */
+  sell_multiplier: string | null
   updated_by: string | null
   updated_at: string
   created_at: string
@@ -623,7 +630,8 @@ export type SpotPriceOverrideInsert = {
   tenant_id: string
   metal_type: MetalType
   purity: MetalPurity
-  multiplier: string | number
+  multiplier?: string | number
+  sell_multiplier?: string | number | null
   updated_by?: string | null
   updated_at?: string
   created_at?: string

@@ -134,6 +134,9 @@ const ids = {
   consignor: await pickId('consignors'),
   layaway: await pickId('layaways'),
   quote: await pickId('custom_quotes'),
+  metalSale: (
+    await admin.from('sales').select('id').eq('tenant_id', tenantId).eq('sale_kind', 'metal').limit(1)
+  ).data?.[0]?.id ?? null,
 }
 
 const ROUTES = [
@@ -176,6 +179,9 @@ const ROUTES = [
   ['P2 quote detail', ids.quote && `/repair/quotes/${ids.quote}`],
   ['P2 quote edit', ids.quote && `/repair/quotes/${ids.quote}/edit`],
   ['P2 quote settings', '/settings/custom-quotes'],
+  // Brief Phase 3 (two-way metal counter: buy + sell).
+  ['P3 sell metal', '/buy/sell'],
+  ['P3 metal sale receipt', ids.metalSale && `/buy/sell/${ids.metalSale}`],
   // PDF routes: Chrome's viewer renders them; the harness only sees status + console.
   ['print repair ticket PDF', ids.repair && `/api/print/repair/${ids.repair}`],
   ['print quote PDF', ids.quote && `/api/print/quote/${ids.quote}`],

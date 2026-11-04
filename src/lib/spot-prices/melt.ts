@@ -26,63 +26,10 @@ import type {
   SpotPriceOverrideRow,
 } from '@/types/database-aliases'
 
-/**
- * Pick the most-likely MetalPurity for an inventory item based on its
- * metal type and (for gold) karat. Returns null when we can't pin it
- * down (mixed / non-precious metal types, missing karat for gold, etc).
- *
- * Mapping rules:
- *   - silver / sterling   → sterling_925 (most pawn silver is sterling)
- *   - silver fine bullion → call computeMeltValue with purity='fine' instead
- *   - platinum            → platinum_950
- *   - palladium           → palladium_950
- *   - gold + karat        → 24/22/18/14/10k bucket nearest to the karat
- *                           value; .999 fine bullion gold uses 'fine'
- *   - rose_gold/white_gold → resolved via the same karat bucket
- */
-export function purityFromItem(args: {
-  metal: MetalType | null | undefined
-  karat: number | string | null | undefined
-}): MetalPurity | null {
-  const metal = args.metal
-  if (!metal) return null
-
-  const karat =
-    args.karat == null
-      ? null
-      : typeof args.karat === 'string'
-      ? parseFloat(args.karat)
-      : args.karat
-
-  if (metal === 'silver') return 'sterling_925'
-  if (metal === 'platinum') return 'platinum_950'
-  if (metal === 'palladium') return 'palladium_950'
-
-  // Gold-family metals require a karat to pick a purity bucket.
-  if (metal === 'gold' || metal === 'rose_gold' || metal === 'white_gold') {
-    if (karat == null || !isFinite(karat)) return null
-    if (karat >= 23.5) return 'pure_24k'
-    if (karat >= 21) return '22k'
-    if (karat >= 16) return '18k'
-    if (karat >= 12) return '14k'
-    if (karat >= 8) return '10k'
-    return null
-  }
-
-  return null
-}
-
-/**
- * Resolve the matching pure-metal type for melt lookup. Maps rose/white
- * gold back to 'gold' since the spot price is identical (alloy color
- * varies, gold content stays the same per karat).
- */
-export function meltMetalFromItem(metal: MetalType | null | undefined): MetalType | null {
-  if (!metal) return null
-  if (metal === 'gold' || metal === 'rose_gold' || metal === 'white_gold') return 'gold'
-  if (metal === 'silver' || metal === 'platinum' || metal === 'palladium') return metal
-  return null
-}
+// The metal → spot-bucket mapping is pure and shared with client
+// components; it lives in ./purity and is re-exported here for the
+// server-side callers that always imported it from melt.
+export { meltMetalFromItem, purityFromItem } from './purity'
 
 export type MeltValueArgs = {
   metalType: MetalType

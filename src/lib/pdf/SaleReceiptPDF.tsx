@@ -672,6 +672,7 @@ function paymentMethodLabel(
     card: { en: en.payment.card, es: es.payment.card },
     check: { en: en.payment.check, es: es.payment.check },
     other: { en: en.payment.other, es: es.payment.other },
+    transfer: { en: en.payment.transfer, es: es.payment.transfer },
     store_credit: {
       en: en.payment.storeCredit,
       es: es.payment.storeCredit,

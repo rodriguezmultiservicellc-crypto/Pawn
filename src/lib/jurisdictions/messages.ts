@@ -27,6 +27,10 @@ export function ruleErrorText(t: Dictionary, raw: string): string {
   const staleSpot = (t.spotPrices.errors as Record<string, string>)[raw]
   if (staleSpot) return staleSpot
 
+  // Metal counter — mixed tenders, buyer, inventory (brief Phase 3).
+  const counter = (t.buy.errors as Record<string, string>)[raw]
+  if (counter) return counter
+
   const parsed = parseJurisdictionError(raw) ?? parseRepairAbandon(raw)
   if (!parsed) return raw
   const m = t.jurisdiction.errors

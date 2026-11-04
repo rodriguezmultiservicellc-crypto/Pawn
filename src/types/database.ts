@@ -4029,13 +4029,18 @@ export type Database = {
           inventory_item_id: string | null
           line_discount: number
           line_total: number
+          metal_type: Database["public"]["Enums"]["metal_type"] | null
           position: number
+          purity: Database["public"]["Enums"]["metal_purity"] | null
           quantity: number
+          rate_multiplier: number | null
           returned_qty: number
           sale_id: string
+          spot_per_gram: number | null
           tenant_id: string
           unit_price: number
           updated_at: string
+          weight_grams: number | null
         }
         Insert: {
           created_at?: string
@@ -4045,13 +4050,18 @@ export type Database = {
           inventory_item_id?: string | null
           line_discount?: number
           line_total?: number
+          metal_type?: Database["public"]["Enums"]["metal_type"] | null
           position?: number
+          purity?: Database["public"]["Enums"]["metal_purity"] | null
           quantity?: number
+          rate_multiplier?: number | null
           returned_qty?: number
           sale_id: string
+          spot_per_gram?: number | null
           tenant_id: string
           unit_price?: number
           updated_at?: string
+          weight_grams?: number | null
         }
         Update: {
           created_at?: string
@@ -4061,13 +4071,18 @@ export type Database = {
           inventory_item_id?: string | null
           line_discount?: number
           line_total?: number
+          metal_type?: Database["public"]["Enums"]["metal_type"] | null
           position?: number
+          purity?: Database["public"]["Enums"]["metal_purity"] | null
           quantity?: number
+          rate_multiplier?: number | null
           returned_qty?: number
           sale_id?: string
+          spot_per_gram?: number | null
           tenant_id?: string
           unit_price?: number
           updated_at?: string
+          weight_grams?: number | null
         }
         Relationships: [
           {
@@ -4162,6 +4177,7 @@ export type Database = {
       sales: {
         Row: {
           completed_at: string | null
+          counterparty_name: string | null
           created_at: string
           created_by: string | null
           customer_id: string | null
@@ -4186,6 +4202,7 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
+          counterparty_name?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -4210,6 +4227,7 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
+          counterparty_name?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -4462,6 +4480,7 @@ export type Database = {
           metal_type: Database["public"]["Enums"]["metal_type"]
           multiplier: number
           purity: Database["public"]["Enums"]["metal_purity"]
+          sell_multiplier: number | null
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -4472,6 +4491,7 @@ export type Database = {
           metal_type: Database["public"]["Enums"]["metal_type"]
           multiplier?: number
           purity: Database["public"]["Enums"]["metal_purity"]
+          sell_multiplier?: number | null
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -4482,6 +4502,7 @@ export type Database = {
           metal_type?: Database["public"]["Enums"]["metal_type"]
           multiplier?: number
           purity?: Database["public"]["Enums"]["metal_purity"]
+          sell_multiplier?: number | null
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -5690,7 +5711,13 @@ export type Database = {
         | "mixed"
         | "none"
         | "other"
-      payment_method: "cash" | "card" | "check" | "other" | "store_credit"
+      payment_method:
+        | "cash"
+        | "card"
+        | "check"
+        | "other"
+        | "store_credit"
+        | "transfer"
       police_report_format: "fl_leadsonline"
       register_session_status: "open" | "closed" | "reconciled"
       repair_event_type:
@@ -5727,7 +5754,7 @@ export type Database = {
         | "abandoned"
         | "voided"
       return_status: "issued" | "voided"
-      sale_kind: "retail" | "layaway"
+      sale_kind: "retail" | "layaway" | "metal"
       sale_status:
         | "open"
         | "completed"
@@ -6100,7 +6127,14 @@ export const Constants = {
         "none",
         "other",
       ],
-      payment_method: ["cash", "card", "check", "other", "store_credit"],
+      payment_method: [
+        "cash",
+        "card",
+        "check",
+        "other",
+        "store_credit",
+        "transfer",
+      ],
       police_report_format: ["fl_leadsonline"],
       register_session_status: ["open", "closed", "reconciled"],
       repair_event_type: [
@@ -6139,7 +6173,7 @@ export const Constants = {
         "voided",
       ],
       return_status: ["issued", "voided"],
-      sale_kind: ["retail", "layaway"],
+      sale_kind: ["retail", "layaway", "metal"],
       sale_status: [
         "open",
         "completed",

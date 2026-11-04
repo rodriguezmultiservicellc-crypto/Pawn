@@ -98,9 +98,14 @@ export const buyOutrightSchema = z.object({
   // 'store_credit' pays the seller in credit instead of cash — the action
   // writes a store_credit_events row for the payout and refuses the method
   // when the tenant has store credit switched off.
+  // 'transfer' (bank / Zelle) and 'mixed' (cash + transfer, amounts in
+  // paid_cash / paid_transfer) came with the metal counter (brief Phase 3);
+  // 'mixed' is split into tenders by lib/metal-counter/math splitTenders.
   payment_method: z
-    .enum(['cash', 'card', 'check', 'other', 'store_credit'])
+    .enum(['cash', 'transfer', 'card', 'check', 'other', 'store_credit', 'mixed'])
     .default('cash'),
+  paid_cash: optionalDecimal,
+  paid_transfer: optionalDecimal,
   notes: optionalTrimmedString,
   items: z.array(buyItemSchema).min(1, 'at_least_one_item').max(20),
 })

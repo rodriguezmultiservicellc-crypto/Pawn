@@ -120,6 +120,73 @@ export async function saveSpotOverrideAction(
   return { ok: true }
 }
 
+/**
+ * Save the SELL rate for one (metal, purity) — brief Phase 3. Blank clears
+ * it (NULL = not configured; the counter then sells at spot and warns).
+ * The upsert carries only sell_multiplier, so the pay rate on the same
+ * row is never touched.
+ */
+export async function saveSpotSellRateAction(
+  _prev: SaveOverrideState,
+  formData: FormData,
+): Promise<SaveOverrideState> {
+  const ctx = await getCtx()
+  if (!ctx) return { error: 'Not signed in.' }
+  if (!ctx.tenantId) return { error: 'No active tenant.' }
+
+  await requireStaff(ctx.tenantId)
+
+  const metalType = String(formData.get('metal_type') ?? '') as MetalType
+  const purity = String(formData.get('purity') ?? '') as MetalPurity
+  const pctRaw = String(formData.get('sell_multiplier_pct') ?? '').trim()
+
+  if (!VALID_METALS.includes(metalType)) return { error: 'Invalid metal type.' }
+  if (!VALID_PURITIES.includes(purity)) return { error: 'Invalid purity.' }
+
+  let sellMultiplier: number | null = null
+  if (pctRaw !== '') {
+    const pct = parseFloat(pctRaw)
+    if (!isFinite(pct) || pct < 0 || pct > 500) {
+      return { error: 'Sell rate must be between 0 and 500%.' }
+    }
+    sellMultiplier = toMoney(pct / 100)
+  }
+
+  const admin = createAdminClient()
+  const insert: SpotPriceOverrideInsert = {
+    tenant_id: ctx.tenantId,
+    metal_type: metalType,
+    purity,
+    sell_multiplier: sellMultiplier == null ? null : String(sellMultiplier),
+    updated_by: ctx.userId,
+    updated_at: new Date().toISOString(),
+  }
+  const { error } = await admin
+    .from('spot_price_overrides')
+    .upsert([insert] as never, { onConflict: 'tenant_id,metal_type,purity' })
+  if (error) {
+    console.error('[spot-prices] sell rate save failed', error.message)
+    return { error: error.message }
+  }
+
+  await logAudit({
+    tenantId: ctx.tenantId,
+    userId: ctx.userId,
+    action: 'spot_price_sell_rate_change',
+    tableName: 'spot_price_overrides',
+    recordId: ctx.tenantId,
+    changes: {
+      metal_type: metalType,
+      purity,
+      sell_multiplier: sellMultiplier == null ? null : String(sellMultiplier),
+    },
+  })
+
+  revalidatePath('/inventory/spot-prices')
+  revalidatePath('/buy/sell')
+  return { ok: true }
+}
+
 export type RefreshNowState = {
   summary?: RefreshSummary
   error?: string

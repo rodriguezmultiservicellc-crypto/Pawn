@@ -32,6 +32,7 @@ import {
   meltMetalFromItem,
   purityFromItem,
 } from '@/lib/spot-prices/melt'
+import { splitTenders } from '@/lib/metal-counter/math'
 import type { Database } from '@/types/database'
 
 type ComplianceInsertChanges =
@@ -124,7 +125,14 @@ export async function createBuyOutrightAction(
 
   // Echo back submission scalars (item rows are reconstructed client-
   // side via item_count).
-  const echoKeys = ['customer_id', 'payment_method', 'notes', 'item_count']
+  const echoKeys = [
+    'customer_id',
+    'payment_method',
+    'paid_cash',
+    'paid_transfer',
+    'notes',
+    'item_count',
+  ]
   const echo: Record<string, string> = {}
   for (const k of echoKeys) {
     const v = formData.get(k)
@@ -136,6 +144,8 @@ export async function createBuyOutrightAction(
   const parsed = buyOutrightSchema.safeParse({
     customer_id: formData.get('customer_id'),
     payment_method: formData.get('payment_method'),
+    paid_cash: formData.get('paid_cash'),
+    paid_transfer: formData.get('paid_transfer'),
     notes: formData.get('notes'),
     items: itemRows.map((r) => ({ ...r.raw, photo_path: null })),
   })
@@ -150,6 +160,18 @@ export async function createBuyOutrightAction(
   }
 
   const v = parsed.data
+
+  // How the seller is paid. 'mixed' = cash + transfer whose parts must add
+  // up to the total payout to the cent (brief Phase 3). Resolved before any
+  // write so a bad split leaves nothing behind. The buy has no tender
+  // ledger of its own — the tenders are recorded on the audit row.
+  const tenderSplit = splitTenders({
+    method: v.payment_method === 'store_credit' ? 'store_credit' : v.payment_method,
+    total: v.items.reduce((s, it) => s + r4(it.payout), 0),
+    cash: v.paid_cash,
+    transfer: v.paid_transfer,
+  })
+  if (!tenderSplit.ok) return { error: tenderSplit.error, values: echo }
 
   // Stale spot-price guard (24h rule): a buy that prices precious metal
   // off a stale feed needs a manager's confirmation. Checked before any
@@ -458,7 +480,12 @@ export async function createBuyOutrightAction(
       flow: 'buy_outright',
       customer_id: v.customer_id,
       payment_method: v.payment_method,
+      // One entry per tender; two for a mixed cash + transfer payout.
+      tenders: tenderSplit.tenders,
       total_payout: totalPayout,
+      total_grams: r4(
+        inserted.reduce((s, it) => s + (it.weight_grams ?? 0), 0),
+      ),
       item_count: inserted.length,
       hold_until: holdUntil,
       item_skus: inserted.map((it) => it.sku),

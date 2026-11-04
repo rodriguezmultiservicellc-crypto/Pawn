@@ -4,7 +4,7 @@ import PosHomeContent, {
   type PosHomeOpenSession,
   type PosHomeRecentSale,
 } from './content'
-import type { SaleStatus } from '@/types/database-aliases'
+import type { SaleKind, SaleStatus } from '@/types/database-aliases'
 import { r4, toMoney } from '@/lib/pos/cart'
 import { expectedCash } from '@/lib/pos/register'
 
@@ -100,7 +100,7 @@ export default async function PosHomePage() {
     return {
       id: s.id,
       sale_number: s.sale_number ?? '',
-      sale_kind: (s.sale_kind ?? 'retail') as 'retail' | 'layaway',
+      sale_kind: (s.sale_kind ?? 'retail') as SaleKind,
       status: s.status as SaleStatus,
       total: toMoney(s.total),
       paid_total: toMoney(s.paid_total),

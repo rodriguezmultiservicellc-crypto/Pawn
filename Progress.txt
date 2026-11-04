@@ -60,10 +60,35 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 55 (2026-11-03) — PHASES 0, 1 AND 2 of
+  Last session:   Session 55 (2026-11-03/04) — PHASES 0, 1, 2 AND 3 of
                   sol-pawn-brief-for-armando.md (the "Sol Pawn" fixes +
                   features brief; Eddy confirmed it is for THIS session
                   and cleared production). All on main.
+
+                  PHASE 3 — TWO-WAY METAL COUNTER (items 432-440):
+                  - Buy Outright: every item has "Enter by: Weight |
+                    Amount" — grams → payout at the pay rate, or dollars
+                    → grams ("they want $300 for this 14K"). Totals by
+                    metal & karat. Payout: cash / transfer / MIXED (cash +
+                    transfer to the cent) / check / card / other / store
+                    credit. Item 435.
+                  - NEW /buy/sell: scrap or bullion out the door at the
+                    SELL rate (spot_price_overrides.sell_multiplier, set
+                    per metal × purity on Spot prices beside the pay
+                    rate). Persisted as a real `sales` row
+                    (sale_kind='metal', completed + locked, lines carry
+                    metal/purity/grams/spot/rate, one sale_payments row
+                    per tender) → register close + sales summary + audit
+                    log. NEVER a compliance_log row. Items 432, 436-437.
+                  - Migrations 0064 (enums: payment_method 'transfer',
+                    sale_kind 'metal') + 0065 (sell_multiplier, metal
+                    columns on sale_items, sales.counterparty_name).
+                    APPLIED. Item 433.
+                  - Verified: tsc/lint/612 tests/build green; browser
+                    smoke 40/41 cold (known consignment gate); DB smoke
+                    of a metal sale rolled back clean. The sell form
+                    submission itself is NOT automation-driven — Eddy
+                    should ring up one real scrap sale. Item 440.
 
                   PHASE 2 — CUSTOM-PIECE QUOTER (items 421-430):
                   - /repair/quotes: The piece → The price → The payment
@@ -227,17 +252,33 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~60% at save time (2026-11-04). Phase 0 = b3603ce,
+  Context budget: ~70% at save time (2026-11-04). Phase 0 = b3603ce,
                   Phase 1 = bba152a, Phase 2 = 3d200cb, PDF font-trace
-                  fix = 0a36edf; all fast-forwarded into main.
-  Last worked on: Item 431 — production PDFs "render failed" because the
-                  @fontsource woff files were never traced into the Vercel
-                  functions. Fix pushed (0a36edf); Eddy still has to
-                  CONFIRM the quote PDF (CQ-000002) and a repair "Print
-                  ticket" render on pawn-three.vercel.app. Then Phase 3.
+                  fix = 0a36edf (Eddy confirmed PDFs render in prod),
+                  Phase 3 = this checkpoint; all fast-forwarded into main.
+  Last worked on: Phase 3 summary for Eddy (what changed, migrations,
+                  how to test) — the brief says stop after each phase.
 
   ACTIVE FILE(S) (all committed):
-    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4; 0-2 done)
+    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4; 0-3 done)
+    Phase 3:
+    - patches/0064-metal-counter-enums.sql, 0065-metal-counter.sql (APPLIED)
+    - src/lib/spot-prices/purity.ts (pure; melt.ts re-exports)
+    - src/lib/metal-counter/{math,rates}.ts (+ math.test)
+    - src/lib/validations/metal-sale.ts; buy-outright.ts (transfer/mixed)
+    - src/app/(staff)/buy/new/{form,page,actions} (two-way, i18n, mixed)
+    - src/app/(staff)/buy/sell/{page,form,actions,persist}.ts(x),
+      [id]/{page,content}.tsx (receipt)
+    - src/app/(staff)/buy/[id]/content.tsx (i18n'd buy receipt)
+    - src/components/buy/{MetalCounterTabs,MetalTotalsTable,
+      MixedTenderFields,EntryModeToggle}.tsx
+    - src/app/(staff)/inventory/spot-prices/{page,content,actions} (sell rate)
+    - src/types/database-aliases.ts, src/lib/audit.ts, Sidebar,
+      pos/{page,content}.tsx, pos/sales/[id]/content.tsx, SaleReceiptPDF
+    - src/lib/i18n/{en,es}.ts (buy.counter/errors/form/sell/receipt/
+      buyReceipt, nav.sellMetal, pos.payment.methodTransfer,
+      pos.print.payment.transfer, spotPrices sell-rate keys)
+    - scripts/smoke-browser.mjs (+ P3 routes, ids.metalSale)
     Phase 2:
     - patches/0062-custom-quote-link-kind.sql (APPLIED — enum value)
     - patches/0063-custom-quotes.sql (APPLIED — enums, settings columns,
@@ -296,28 +337,25 @@ OPERATION IN FLIGHT: none
     - Progress.txt (this file)
 
   RESUME POINT:
-    CLEAN STOPPING POINT — Phases 0, 1 and 2 of the brief are complete
-    and on main. Next is PHASE 3: the two-way metal counter. Brief text:
-    on Buy Outright each item accepts EITHER grams or dollars and fills
-    the other from that karat's pay-rate ("customer wants $300 for this
-    14K — how many grams is that?"); a new SELL METAL mode (scrap or
-    bullion to a customer or refiner) at a configurable SELL RATE per
-    karat (% over spot) with sell-rate settings beside the existing
-    pay-rate overrides (spot_price_overrides, /inventory/spot-prices);
-    several karats per transaction on both sides with total grams +
-    total dollars; payment cash / transfer / mixed; BUY keeps the 30-day
-    hold + compliance_log row; SELL must NOT write a police-report row
-    but MUST hit audit_log and reports. Read the brief's Phase 3, then
-    src/app/(staff)/buy/new/{form,actions,page} (meltForItem /
-    spotPriceMap / overrideMap are the live-math pattern to extend),
-    lib/spot-prices/melt.ts, patches/0013 (spot_price_overrides — the
-    sell rate wants a sibling column or table, NOT a second meaning of
-    `multiplier`), and how sales / register close record cash so a
-    metal sale lands in the daily register. Design before coding: a
-    metal sale is a SALE of inventory? (bullion/scrap items exist in
-    inventory with source) vs a standalone metal_sales table — decide
-    with the POS module in mind (sale_items + sale_payments already
-    carry tenders and the register close reads them).
+    CLEAN STOPPING POINT — Phases 0-3 of the brief are complete and on
+    main. Next is PHASE 4 ("smaller items, one summary each"), only
+    when Eddy says go. Brief text, in order: 4.1 bench calculators page
+    (ring size US↔MX↔EU↔JP↔mm, weight units g↔dwt↔ozt↔oz, alloy down,
+    raise karat, mix lots, melt/payout quick calc — pure, formulas
+    shown, unit tests for every formula, recent calcs per user); 4.2
+    inventory fields (condition, COATING — excluded from melt + "not
+    solid gold" warning on Buy Outright and New Pawn Ticket, finish,
+    shelf location, legacy code, wholesale price, auto SKU from
+    category+metal+sequence, "Suggest price" = cost + target margin);
+    4.3 Collections view (everyone who owes: overdue loans, layaway
+    balances, unpaid repair balances; configurable aging buckets; KPIs);
+    then whatever 4.4+ the brief lists (read it — this block only
+    covers what was read this session). For 4.2's coating-on-melt rule,
+    the melt math now lives in lib/spot-prices/purity.ts +
+    lib/metal-counter/math.ts (resolveRate); the buy form's derive()
+    and the pawn intake's melt helper are the two call sites to gate.
+    For 4.1, lib/metal-counter/math.ts already has grams⇄dollars; the
+    calculators page should import it rather than re-derive.
 
     Open questions for Eddy from Phase 0 (item 408 rate "111"; the 60%
     18K pay rate) still unanswered — neither blocks Phase 3.
@@ -1002,7 +1040,108 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      Slice ready for operator smoke against
      production after this commit lands.
 
---- Session 55 (2026-11-03) — Brief Phase 0 (spot prices) + Phase 1 (tracking link) + Phase 2 (custom quoter) ---
+--- Session 55 (2026-11-03/04) — Brief Phase 0 (spot prices) + Phase 1 (tracking link) + Phase 2 (custom quoter) + Phase 3 (metal counter) ---
+
+ PHASE 3 (items 432-440) — two-way metal counter, buy AND sell.
+
+ 432. PHASE 3 DESIGN DECISION: a metal SALE is a `sales` row. Brief says
+     a sell must hit the audit log and the reports but never the police
+     report. The register close and the sales summary already read
+     sales / sale_items / sale_payments, so a scrap or bullion sale is
+     persisted as sale_kind='metal' (0064), status completed + locked at
+     insert (money changed hands at the counter), with ONE sale_items row
+     per metal line and ONE sale_payments row per tender. No
+     compliance_log write anywhere on that path. Alternative (a separate
+     metal_sales table) would have needed its own register + report
+     plumbing and a second void/return story. The receipt lives at
+     /buy/sell/[id] (not under /pos) so a pawn-only shop without the
+     retail module still sees what it sold; "Open in POS" appears when
+     has_retail.
+
+ 433. MIGRATIONS 0064 + 0065 (APPLIED 2026-11-04). 0064 (own file, same
+     enum-before-use split as 0052/0060): payment_method += 'transfer',
+     sale_kind += 'metal'. 0065: spot_price_overrides.sell_multiplier
+     NUMERIC(6,4) NULL (0..5) — the SELL rate as a sibling column, not a
+     second meaning of `multiplier`; sale_items gets metal_type, purity,
+     weight_grams, spot_per_gram, rate_multiplier (NULL on retail lines);
+     sales.counterparty_name TEXT for a refiner who is not a customer.
+     Verified by SELECT; db:types regenerated.
+
+ 434. PURE LIBS. lib/spot-prices/purity.ts — purityFromItem /
+     meltMetalFromItem moved out of melt.ts (which imports the admin
+     client) so client forms stop carrying their own copies; melt.ts
+     re-exports. lib/metal-counter/math.ts — resolveRate(maps, metal,
+     purity, 'pay'|'sell') (sell unset → multiplier 1 + configured=false),
+     dollarsFromGrams / gramsFromDollars, totalsByPurity (gold first,
+     highest purity first), splitTenders ('mixed' → cash + transfer rows
+     that must sum to the cent; zero parts dropped because
+     sale_payments.amount > 0). 30 new tests (612 total).
+     lib/metal-counter/rates.ts (server) builds the plain RateMaps the
+     forms hold: spot + pay + sell per `${metal}::${purity}`.
+
+ 435. BUY OUTRIGHT — TWO-WAY ENTRY. Each item has an "Enter by: Weight |
+     Amount" toggle. Weight mode = today's behaviour (grams → payout at
+     the pay rate; a hand-typed payout is a negotiation and sticks until
+     the grams are retyped). Amount mode = the brief's "customer wants
+     $300 for this 14K — how many grams?": dollars → grams, weight box
+     read-only. Derivation runs in the change handlers (derive()), not in
+     a render-time sync, so no eslint-disable. Rate line under each item
+     shows "$X/g = spot $Y/g × pay rate Z%". Totals: melt, grams, payout
+     + a per-(metal, purity) breakdown (MetalTotalsTable). Payout
+     methods: cash, transfer, MIXED (cash + transfer with live
+     "still to split" hint), check, card, other, store credit. The buy
+     has no tender ledger, so the split is validated server-side and
+     recorded on the audit row (`tenders`, `total_grams`). The whole
+     form is now i18n'd (it was hardcoded English; buy.form.*).
+
+ 436. SELL METAL — /buy/sell (page, form, actions, persist). Gated
+     has_pawn OR has_retail; roles owner/manager/pawn_clerk/chain_admin.
+     Lines: metal (4 spot metals) + purity (buckets per metal) + grams ⇄
+     price at the SELL rate with the same Weight|Amount toggle;
+     description auto-fills "Gold 14k scrap" until edited; "Add from
+     inventory" pulls an available precious-metal item onto a line
+     (metal/karat/weight prefilled) and the sale flips it to 'sold'.
+     Unset sell rate → amber "pricing at spot (100%) — set one on Spot
+     prices" (never silent). Buyer = customer picker and/or free-text
+     refiner name (one required). Tax rate % (default 0, with the
+     refiner-exempt note). Tenders: cash, transfer, mixed, check (card
+     left out: Terminal isn't wired and a "completed" sale with a
+     pending card would lie). Attaches the open register session when
+     there is one and SAYS which case applies. Stale-spot gate applies.
+     persist.ts: sale → lines (spot_per_gram + rate_multiplier frozen
+     from the live feed at submit) → payments → inventory flip; any
+     failed step soft-deletes the sale. Audit 'metal_sale_create'.
+     DB smoke (rolled back): sale S-xxx kind=metal, 1 line, cash 400 +
+     transfer 230, locked=true, and the lock trigger refused a total
+     change.
+
+ 437. SELL RATES ON /inventory/spot-prices. Each (metal, purity) card
+     in "Pay and sell rates" now has two forms — Pay rate % and Sell
+     rate % (blank = not set, Clear button). Separate upserts carry
+     only their own column so saving one never resets the other. Cards
+     show "You sell $X/g · Sell rate 105%" beside "You pay". Audit
+     'spot_price_sell_rate_change'.
+
+ 438. ENUM WIDENING FOLLOW-THROUGH. database-aliases: PaymentMethod +
+     'transfer' (DirectPaymentMethod excludes it — the POS add-payment
+     dialog does not list it yet), SaleKind + 'metal',
+     SpotPriceOverrideRow.sell_multiplier. POS home / sale detail /
+     receipt PDF label 'transfer' (EN "Bank transfer" / ES
+     "Transferencia"); pos.ts paymentMethodSchema deliberately
+     unchanged. Sidebar: "Sell metal" entry (has_pawn || has_retail);
+     Buy ⇄ Sell tabs (MetalCounterTabs) on both counters.
+
+ 439. BUY RECEIPT (/buy/[id]) i18n'd while in the folder — it was the
+     last hardcoded-English surface on the counter (buy.buyReceipt.*).
+
+ 440. VERIFICATION. tsc clean, lint clean, 612 tests, production build
+     green, browser smoke 40/41 on a COLD dev server (the 1 is the known
+     /consignors/new consignment gate — needs --gates). Smoke routes
+     added: 'P3 sell metal', 'P3 metal sale receipt' (picks a
+     sale_kind='metal' row when one exists). NOT automation-driven: the
+     sell form submission end-to-end and the buy form's mixed tender —
+     both validated at the DB level and by the unit tests only. Eddy
+     should ring up one real scrap sale.
 
  421. PHASE 2 SCOPE + MONEY MODEL (brief). A quote builder for custom
      work: The piece → The price → The payment. Decision that shapes
@@ -4955,13 +5094,13 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Phase 3 of sol-pawn-brief-for-armando.md — the two-way metal
-    counter (see RESUME POINT). Before coding, confirm the deploys are
-    live on Vercel production: /repair/quotes renders, a repair ticket
-    shows the "Print ticket" button and the PDF opens, /t/<token> and
-    /q/<token> answer, and spot_price_fetches has trigger='cron' rows
-    (CRON_SECRET was set in Vercel Production on 2026-11-03; it was the
-    reason EVERY cron had 401'd since launch).
+    Phase 4 of sol-pawn-brief-for-armando.md (see RESUME POINT) — only
+    on Eddy's "go". Before coding, confirm Phase 3 is live on Vercel:
+    /buy/sell renders, the Spot prices page shows the Sell rate input
+    per card, and ask Eddy whether his first real scrap sale posted
+    (sale_kind='metal' in sales; /buy/sell/<id> receipt; register
+    close shows the cash). Also still worth a glance:
+    spot_price_fetches should have trigger='cron' rows by now.
 
   AWAITING A DECISION FROM EDDY (not blocking anything):
     - Phase 0 / item 408: deactivate the "24.96% — 111" loan rate
