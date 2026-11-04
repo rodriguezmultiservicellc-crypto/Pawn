@@ -9,7 +9,6 @@ import {
   buyOutrightSchema,
   ALLOWED_BUY_PHOTO_MIME_TYPES,
   MAX_BUY_PHOTO_BYTES,
-  type BuyItemInput,
 } from '@/lib/validations/buy-outright'
 import {
   INVENTORY_PHOTOS_BUCKET,
@@ -514,5 +513,7 @@ export async function createBuyOutrightAction(
   redirect(`/buy/${firstItemId}`)
 }
 
-// Used internally + re-exported for the form's preflight type.
-export type { BuyItemInput }
+// No non-function exports here, not even `export type { … }` — Turbopack's
+// 'use server' transform turns that re-export into a runtime reference
+// ("BuyItemInput is not defined") the moment any action in this file runs.
+// Types live in lib/validations/buy-outright.
