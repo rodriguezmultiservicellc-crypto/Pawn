@@ -276,14 +276,19 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~85% at save time (2026-11-04). Phase 0 = b3603ce,
-                  Phase 1 = bba152a, Phase 2 = 3d200cb, PDF font-trace
-                  fix = 0a36edf, Phase 3 = a771ee1, Phase 4.1 = baf814a,
-                  4.2 = 111004c, 4.3 = eb0afee, 4.4 = a9479ce; all
-                  fast-forwarded into main.
-  Last worked on: First production bug after the brief shipped: /tools
-                  "Keep this" → 500 ("use server" file exported a const).
-                  Fixed in 3ba0aa1, item 447. Eddy is testing production.
+  Context budget: ~40% at save time (2026-11-04, post-compaction). Phase 0
+                  = b3603ce, Phase 1 = bba152a, Phase 2 = 3d200cb, PDF
+                  font-trace fix = 0a36edf, Phase 3 = a771ee1, Phase 4.1 =
+                  baf814a, 4.2 = 111004c, 4.3 = eb0afee, 4.4 = a9479ce,
+                  prod fixes 3ba0aa1 + 0ce71b7; all fast-forwarded into
+                  main.
+  Last worked on: Two production bugs after the brief shipped, both "a
+                  'use server' file exported a non-async value": /tools
+                  "Keep this" (3ba0aa1, item 447) and Buy outright submit
+                  (0ce71b7, item 448). Every Phase 3/4 server action has
+                  been invoked once in production. Answered Eddy's
+                  pay/sell-rate question (see IMMEDIATE). Eddy is testing
+                  production.
 
   ACTIVE FILE(S) (all committed):
     - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4, ALL DONE)
@@ -5277,15 +5282,16 @@ PENDING — NEXT UP
     Next code item if nothing is reported: the spot-prices hydration
     mismatch (OPEN ISSUES) — fix shortDateTime/shortDate to use the
     tenant timezone, which also fixes the /audit flake's cousin.
-    Eddy asked (2026-11-04) where the pay / sell percentages live: the
-    "Pay and sell rates" section at the bottom of /inventory/spot-prices
-    (per metal + purity). Only gold 18k has a pay rate (60%); every sell
-    rate is unset, so the counters price at 100% and warn. If nothing is reported: the /audit hydration
-    flake is the one code smell left from this session (relative time
-    text rendered with seconds granularity differs between SSR and
-    hydration when the newest row is seconds old — render it client-
-    side after mount, or round to minutes). Also still worth a glance:
-    spot_price_fetches should have trigger='cron' rows by now.
+    Eddy asked (2026-11-04) where the pay / sell percentages live.
+    Answered: the "Pay and sell rates" section at the bottom of
+    /inventory/spot-prices (per metal + purity; Pay rate feeds Buy
+    outright + pawn melt, Sell rate feeds Sell metal). Only gold 18k has
+    a pay rate (60%); every sell rate is unset, so the counters price at
+    100% and warn until he fills them in. Offered a per-deal percent
+    override on the counters if he wants one (today you negotiate by
+    editing the line price / payout) — build it only if he asks.
+    Also still worth a glance: spot_price_fetches should have
+    trigger='cron' rows by now.
 
   AWAITING A DECISION FROM EDDY (not blocking anything):
     - Phase 0 / item 408: deactivate the "24.96% — 111" loan rate
