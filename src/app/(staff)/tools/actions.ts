@@ -4,22 +4,15 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireStaff } from '@/lib/supabase/guards'
+import { CALCULATORS } from '@/lib/bench/calculators'
 
 /**
  * The bench calculators' only writes: save / forget a recent calculation
  * for the signed-in user (patches/0066). Scratch paper, not a ledger —
  * no audit row, and the owner may hard-delete their own rows.
+ *
+ * Async functions only in this file — see lib/bench/calculators.ts.
  */
-
-export const CALCULATORS = [
-  'ring_size',
-  'weight',
-  'alloy_down',
-  'raise_karat',
-  'mix_lots',
-  'melt',
-] as const
-export type CalculatorKind = (typeof CALCULATORS)[number]
 
 const saveSchema = z.object({
   calculator: z.enum(CALCULATORS),

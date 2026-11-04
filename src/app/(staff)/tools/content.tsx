@@ -26,11 +26,8 @@ import {
   type RateMaps,
 } from '@/lib/metal-counter/math'
 import { pctLabel } from '@/components/buy/EntryModeToggle'
-import {
-  deleteCalculationAction,
-  saveCalculationAction,
-  type CalculatorKind,
-} from './actions'
+import type { CalculatorKind } from '@/lib/bench/calculators'
+import { deleteCalculationAction, saveCalculationAction } from './actions'
 
 export type RecentCalculation = {
   id: string
