@@ -227,11 +227,14 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~55% at save time (Phase 0 = b3603ce, Phase 1 =
-                  bba152a, Phase 2 = this checkpoint; all fast-forwarded
-                  into main).
-  Last worked on: Phase 2 summary for Eddy (what changed, migrations,
-                  how to test) — the brief says stop after each phase.
+  Context budget: ~60% at save time (2026-11-04). Phase 0 = b3603ce,
+                  Phase 1 = bba152a, Phase 2 = 3d200cb, PDF font-trace
+                  fix = 0a36edf; all fast-forwarded into main.
+  Last worked on: Item 431 — production PDFs "render failed" because the
+                  @fontsource woff files were never traced into the Vercel
+                  functions. Fix pushed (0a36edf); Eddy still has to
+                  CONFIRM the quote PDF (CQ-000002) and a repair "Print
+                  ticket" render on pawn-three.vercel.app. Then Phase 3.
 
   ACTIVE FILE(S) (all committed):
     - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4; 0-2 done)
