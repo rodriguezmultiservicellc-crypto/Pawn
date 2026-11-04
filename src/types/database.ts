@@ -314,6 +314,47 @@ export type Database = {
           },
         ]
       }
+      bench_calculations: {
+        Row: {
+          calculator: string
+          created_at: string
+          id: string
+          inputs: Json
+          label: string
+          result: Json
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          calculator: string
+          created_at?: string
+          id?: string
+          inputs?: Json
+          label: string
+          result?: Json
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          calculator?: string
+          created_at?: string
+          id?: string
+          inputs?: Json
+          label?: string
+          result?: Json
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bench_calculations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_invoices: {
         Row: {
           amount_cents: number

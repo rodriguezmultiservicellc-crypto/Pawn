@@ -246,6 +246,13 @@ export function Sidebar({
       label: t.nav.appraisals,
       icon: <Certificate size={18} weight="regular" />,
     },
+    // Bench calculators (brief Phase 4.1) — any staff role.
+    {
+      kind: 'item',
+      href: '/tools',
+      label: t.nav.tools,
+      icon: <Calculator size={18} weight="regular" />,
+    },
     { kind: 'item', href: '/reports', label: t.nav.reports, icon: <ChartBar size={18} weight="regular" /> },
     {
       kind: 'item',

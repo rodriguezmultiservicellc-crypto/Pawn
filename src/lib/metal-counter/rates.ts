@@ -4,21 +4,10 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getLatestSpotPrices } from '@/lib/spot-prices/lookup'
 import { spotKey } from '@/lib/spot-prices/purity'
 import type { RateMaps } from './math'
-import type { MetalPurity, MetalType } from '@/types/database-aliases'
+import { COUNTER_COMBOS_CLIENT } from '@/lib/bench/combos'
 
 /** Every (metal, purity) the counter can price — mirrors refresh.ts PURITY_MAP. */
-export const COUNTER_COMBOS: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }> = [
-  { metalType: 'gold', purity: 'pure_24k' },
-  { metalType: 'gold', purity: 'fine' },
-  { metalType: 'gold', purity: '22k' },
-  { metalType: 'gold', purity: '18k' },
-  { metalType: 'gold', purity: '14k' },
-  { metalType: 'gold', purity: '10k' },
-  { metalType: 'silver', purity: 'fine' },
-  { metalType: 'silver', purity: 'sterling_925' },
-  { metalType: 'platinum', purity: 'platinum_950' },
-  { metalType: 'palladium', purity: 'palladium_950' },
-]
+export const COUNTER_COMBOS = COUNTER_COMBOS_CLIENT
 
 /**
  * Latest spot per gram + this tenant's pay and sell multipliers, flattened
