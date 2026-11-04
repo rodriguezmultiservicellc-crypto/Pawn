@@ -100,6 +100,14 @@ const generalSchema = z.object({
       z.coerce.number().min(0).max(95).finite(),
     )
     .transform((pct) => Math.round(pct * 100) / 10000),
+  // Collections aging buckets (patches/0068). Ordering is checked below
+  // (and by the DB CHECK) so the message can name the field.
+  collections_slight_days: z
+    .preprocess((v) => (typeof v === 'string' && v.trim() === '' ? 7 : v), z.coerce.number().int().min(1).max(365))
+    .default(7),
+  collections_very_days: z
+    .preprocess((v) => (typeof v === 'string' && v.trim() === '' ? 30 : v), z.coerce.number().int().min(2).max(730))
+    .default(30),
 })
 
 export type UpdateGeneralState = {
@@ -145,6 +153,8 @@ export async function updateGeneralAction(
     'public_slug',
     'public_about',
     'inventory_target_margin_pct',
+    'collections_slight_days',
+    'collections_very_days',
   ]) {
     const v = formData.get(k)
     if (typeof v === 'string') echo[k] = v
@@ -172,6 +182,8 @@ export async function updateGeneralAction(
     public_catalog_enabled: formData.get('public_catalog_enabled'),
     public_about: formData.get('public_about'),
     inventory_target_margin_pct: formData.get('inventory_target_margin_pct'),
+    collections_slight_days: formData.get('collections_slight_days'),
+    collections_very_days: formData.get('collections_very_days'),
   })
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {}
@@ -183,6 +195,13 @@ export async function updateGeneralAction(
   }
 
   const v = parsed.data
+
+  if (v.collections_very_days <= v.collections_slight_days) {
+    return {
+      fieldErrors: { collections_very_days: 'buckets_out_of_order' },
+      values: echo,
+    }
+  }
 
   // Reserved-slug + cross-validate constraints. Done after Zod so we can
   // cite specific fields rather than form-level errors.
@@ -280,7 +299,11 @@ export async function updateGeneralAction(
   // Inventory pricing default (patches/0067) — settings row, same tenant.
   const { error: settingsErr } = await admin
     .from('settings')
-    .update({ inventory_target_margin_pct: v.inventory_target_margin_pct })
+    .update({
+      inventory_target_margin_pct: v.inventory_target_margin_pct,
+      collections_slight_days: v.collections_slight_days,
+      collections_very_days: v.collections_very_days,
+    })
     .eq('tenant_id', ctx.tenantId)
   if (settingsErr) return { error: settingsErr.message, values: echo }
 
@@ -310,8 +333,12 @@ export async function updateGeneralAction(
         'public_about',
         'public_hours',
         'settings.inventory_target_margin_pct',
+        'settings.collections_slight_days',
+        'settings.collections_very_days',
       ],
       inventory_target_margin_pct: v.inventory_target_margin_pct,
+      collections_slight_days: v.collections_slight_days,
+      collections_very_days: v.collections_very_days,
     },
   })
 

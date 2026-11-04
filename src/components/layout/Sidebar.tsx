@@ -25,6 +25,7 @@ import {
   Storefront,
   CreditCard,
   Calculator,
+  CurrencyDollar,
   HandCoins,
   Receipt,
   Trophy,
@@ -58,6 +59,8 @@ type Tenant = {
 }
 
 const AUDIT_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
+// Collections (brief Phase 4.3): whoever can take a payment can see who owes.
+const COLLECTIONS_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin', 'pawn_clerk'])
 const SETTINGS_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
 const BILLING_ROLES = new Set<TenantRole>(['owner', 'chain_admin'])
 const LOYALTY_ROLES = new Set<TenantRole>(['owner', 'chain_admin'])
@@ -125,6 +128,7 @@ export function Sidebar({
   }
 
   const canSeeAudit = !!tenantRole && AUDIT_ROLES.has(tenantRole)
+  const canSeeCollections = !!tenantRole && COLLECTIONS_ROLES.has(tenantRole)
   const canSeeSettings = !!tenantRole && SETTINGS_ROLES.has(tenantRole)
   const canSeeBilling = !!tenantRole && BILLING_ROLES.has(tenantRole)
   const canSeeLoyalty = !!tenantRole && LOYALTY_ROLES.has(tenantRole)
@@ -254,6 +258,14 @@ export function Sidebar({
       icon: <Calculator size={18} weight="regular" />,
     },
     { kind: 'item', href: '/reports', label: t.nav.reports, icon: <ChartBar size={18} weight="regular" /> },
+    // Collections (brief Phase 4.3) — everyone who owes money, all sources.
+    {
+      kind: 'item',
+      href: '/collections',
+      label: t.nav.collections,
+      icon: <CurrencyDollar size={18} weight="regular" />,
+      visible: canSeeCollections,
+    },
     {
       kind: 'item',
       href: '/reports/police-report',

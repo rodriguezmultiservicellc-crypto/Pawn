@@ -4340,6 +4340,8 @@ export type Database = {
         Row: {
           abandoned_repair_days: number
           buy_hold_period_days: number
+          collections_slight_days: number
+          collections_very_days: number
           consignment_default_commission_pct: number
           consignment_enabled: boolean
           created_at: string
@@ -4384,6 +4386,8 @@ export type Database = {
         Insert: {
           abandoned_repair_days?: number
           buy_hold_period_days?: number
+          collections_slight_days?: number
+          collections_very_days?: number
           consignment_default_commission_pct?: number
           consignment_enabled?: boolean
           created_at?: string
@@ -4428,6 +4432,8 @@ export type Database = {
         Update: {
           abandoned_repair_days?: number
           buy_hold_period_days?: number
+          collections_slight_days?: number
+          collections_very_days?: number
           consignment_default_commission_pct?: number
           consignment_enabled?: boolean
           created_at?: string

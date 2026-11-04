@@ -70,10 +70,13 @@ function hoursFromUnknown(raw: unknown): HoursMap {
 export default function GeneralSettingsContent({
   tenant,
   targetMarginPct,
+  aging,
 }: {
   tenant: TenantGeneralView
   /** settings.inventory_target_margin_pct as a fraction (patches/0067). */
   targetMarginPct: number
+  /** settings.collections_slight_days / _very_days (patches/0068). */
+  aging: { slightDays: number; veryDays: number }
 }) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<
@@ -398,6 +401,31 @@ export default function GeneralSettingsContent({
               error={fe('inventory_target_margin_pct')}
               hint={t.inventory.targetMarginHelp}
               placeholder="50"
+            />
+          </div>
+        </fieldset>
+
+        <fieldset className="rounded-xl border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
+            {t.collections.settingsTitle}
+          </legend>
+          <p className="mt-1 px-1 text-xs text-muted">{t.collections.settingsHelp}</p>
+          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Field
+              label={t.collections.settingsSlight}
+              name="collections_slight_days"
+              type="number"
+              defaultValue={state.values?.collections_slight_days ?? String(aging.slightDays)}
+              error={fe('collections_slight_days')}
+              hint={t.collections.settingsSlightHelp}
+            />
+            <Field
+              label={t.collections.settingsVery}
+              name="collections_very_days"
+              type="number"
+              defaultValue={state.values?.collections_very_days ?? String(aging.veryDays)}
+              error={fe('collections_very_days')}
+              hint={t.collections.settingsVeryHelp}
             />
           </div>
         </fieldset>

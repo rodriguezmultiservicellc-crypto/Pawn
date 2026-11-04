@@ -183,6 +183,7 @@ const ROUTES = [
   ['P4 bench tools', '/tools'],
   ['P4 inventory new', '/inventory/new'],
   ['P4 settings general', '/settings/general'],
+  ['P4 collections', '/collections'],
   // Brief Phase 3 (two-way metal counter: buy + sell).
   ['P3 sell metal', '/buy/sell'],
   ['P3 metal sale receipt', ids.metalSale && `/buy/sell/${ids.metalSale}`],
