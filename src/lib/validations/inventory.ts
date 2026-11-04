@@ -96,6 +96,10 @@ export const metalTypeSchema = z.enum([
   'other',
 ])
 
+/** patches/0067 */
+export const inventoryConditionSchema = z.enum(['new', 'used', 'restored', 'vintage', 'antique'])
+export const inventoryCoatingSchema = z.enum(['none', 'gold_plated', 'gold_filled', 'vermeil', 'pvd'])
+
 export const inventoryLocationSchema = z.enum([
   'case',
   'safe',
@@ -157,6 +161,25 @@ const inventoryItemBaseSchema = z.object({
   karat: optionalTrimmedString,
   weight_grams: optionalDecimal,
   weight_dwt: optionalDecimal,
+
+  // ── patches/0067 (brief Phase 4.2) ────────────────────────────────────
+  condition: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      inventoryConditionSchema.nullable().optional(),
+    )
+    .transform((v) => v ?? null),
+  // Not 'none' ⇒ not solid metal ⇒ no melt value anywhere.
+  coating: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? 'none' : v),
+      inventoryCoatingSchema,
+    )
+    .default('none'),
+  finish: optionalTrimmedString,
+  shelf_location: optionalTrimmedString,
+  legacy_code: optionalTrimmedString,
+  wholesale_price: optionalDecimal,
 
   cost_basis: requiredDecimalNonNeg.default(0),
   list_price: optionalDecimal,

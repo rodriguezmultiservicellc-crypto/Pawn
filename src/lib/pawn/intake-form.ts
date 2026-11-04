@@ -34,6 +34,7 @@ export function readCollateralRows(fd: FormData): CollateralRawRow[] {
         metal_type: fd.get(`collateral_${i}_metal_type`),
         karat: fd.get(`collateral_${i}_karat`),
         weight_grams: fd.get(`collateral_${i}_weight_grams`),
+        coating: fd.get(`collateral_${i}_coating`),
         jewelry_size: fd.get(`collateral_${i}_jewelry_size`),
         color: fd.get(`collateral_${i}_color`),
         gemstone_description: fd.get(`collateral_${i}_gemstone_description`),

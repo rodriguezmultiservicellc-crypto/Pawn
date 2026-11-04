@@ -107,6 +107,15 @@ export const collateralItemSchema = z.object({
     .transform((v) => v ?? null),
   karat: optionalKarat,
   weight_grams: optionalDecimal,
+  // Surface coating (patches/0067). Not 'none' ⇒ excluded from melt /
+  // suggested loan. Blank (non-jewelry rows never render the select) ⇒
+  // 'none'.
+  coating: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? 'none' : v ?? 'none'),
+      z.enum(['none', 'gold_plated', 'gold_filled', 'vermeil', 'pvd']),
+    )
+    .default('none'),
   // Free-text size (rings) or length (chains/bracelets). Jewelry-only.
   // patches/0042. Empty string normalizes to null via
   // optionalTrimmedString.

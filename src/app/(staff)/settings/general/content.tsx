@@ -69,8 +69,11 @@ function hoursFromUnknown(raw: unknown): HoursMap {
 
 export default function GeneralSettingsContent({
   tenant,
+  targetMarginPct,
 }: {
   tenant: TenantGeneralView
+  /** settings.inventory_target_margin_pct as a fraction (patches/0067). */
+  targetMarginPct: number
 }) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<
@@ -376,6 +379,26 @@ export default function GeneralSettingsContent({
                 )
               })}
             </div>
+          </div>
+        </fieldset>
+
+        <fieldset className="rounded-xl border border-border bg-card p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
+            {t.inventory.pricingSettingsTitle}
+          </legend>
+          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Field
+              label={t.inventory.targetMargin}
+              name="inventory_target_margin_pct"
+              type="number"
+              defaultValue={
+                state.values?.inventory_target_margin_pct ??
+                (Math.round(targetMarginPct * 10000) / 100).toString()
+              }
+              error={fe('inventory_target_margin_pct')}
+              hint={t.inventory.targetMarginHelp}
+              placeholder="50"
+            />
           </div>
         </fieldset>
 

@@ -4,7 +4,11 @@ import {
   INVENTORY_PHOTOS_BUCKET,
   getSignedUrl,
 } from '@/lib/supabase/storage'
-import InventoryContent, { type InventoryListRow } from './content'
+import InventoryContent, {
+  type InventoryCoatingFilter,
+  type InventoryConditionFilter,
+  type InventoryListRow,
+} from './content'
 import type {
   InventoryCategory,
   InventorySource,
@@ -16,6 +20,8 @@ type SearchParams = Promise<{
   status?: string
   source?: string
   category?: string
+  condition?: string
+  coating?: string
 }>
 
 export default async function InventoryPage(props: {
@@ -30,11 +36,13 @@ export default async function InventoryPage(props: {
   const statusFilter = (params.status ?? '') as InventoryStatus | ''
   const sourceFilter = (params.source ?? '') as InventorySource | ''
   const categoryFilter = (params.category ?? '') as InventoryCategory | ''
+  const conditionFilter = (params.condition ?? '') as InventoryConditionFilter
+  const coatingFilter = (params.coating ?? '') as InventoryCoatingFilter
 
   let query = ctx.supabase
     .from('inventory_items')
     .select(
-      'id, sku, sku_number, description, category, brand, model, serial_number, source, status, list_price, sale_price, created_at',
+      'id, sku, sku_number, description, category, brand, model, serial_number, source, status, list_price, sale_price, created_at, coating, condition, legacy_code, shelf_location',
     )
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
@@ -44,11 +52,15 @@ export default async function InventoryPage(props: {
   if (statusFilter) query = query.eq('status', statusFilter)
   if (sourceFilter) query = query.eq('source', sourceFilter)
   if (categoryFilter) query = query.eq('category', categoryFilter)
+  if (conditionFilter) query = query.eq('condition', conditionFilter)
+  // 'coated' = anything that is not solid metal (patches/0067).
+  if (coatingFilter === 'coated') query = query.neq('coating', 'none')
+  else if (coatingFilter) query = query.eq('coating', coatingFilter)
 
   if (q) {
     const escaped = q.replace(/[%_]/g, (m) => '\\' + m)
     query = query.or(
-      `sku.ilike.%${escaped}%,description.ilike.%${escaped}%,brand.ilike.%${escaped}%,serial_number.ilike.%${escaped}%`,
+      `sku.ilike.%${escaped}%,description.ilike.%${escaped}%,brand.ilike.%${escaped}%,serial_number.ilike.%${escaped}%,legacy_code.ilike.%${escaped}%`,
     )
   }
 
@@ -102,6 +114,10 @@ export default async function InventoryPage(props: {
     sale_price: r.sale_price,
     created_at: r.created_at,
     thumb_url: thumbsByItem[r.id] ?? null,
+    coating: r.coating,
+    condition: r.condition,
+    legacy_code: r.legacy_code,
+    shelf_location: r.shelf_location,
   }))
 
   return (
@@ -111,6 +127,8 @@ export default async function InventoryPage(props: {
       statusFilter={statusFilter}
       sourceFilter={sourceFilter}
       categoryFilter={categoryFilter}
+      conditionFilter={conditionFilter}
+      coatingFilter={coatingFilter}
     />
   )
 }

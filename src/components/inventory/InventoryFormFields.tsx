@@ -1,8 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { Sparkle, Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { CommissionField } from '@/components/consignment/CommissionField'
+import { priceFromCost } from '@/lib/custom-quotes/math'
+import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
+import { formatMoney } from '@/lib/format/money'
 import type {
   InventoryCategory,
   InventoryLocation,
@@ -10,6 +14,29 @@ import type {
   InventoryStatus,
   MetalType,
 } from '@/types/database-aliases'
+
+export type InventoryCondition = 'new' | 'used' | 'restored' | 'vintage' | 'antique'
+export const INVENTORY_CONDITIONS: ReadonlyArray<InventoryCondition> = [
+  'new',
+  'used',
+  'restored',
+  'vintage',
+  'antique',
+]
+
+/** Suggestions for the free-text finish field (brief Phase 4.2). */
+const FINISH_SUGGESTIONS = [
+  'polished',
+  'matte',
+  'brushed',
+  'hammered',
+  'diamond-cut',
+  'rhodium',
+  'satin',
+  'florentine',
+  'sandblasted',
+  'two-tone',
+] as const
 
 export type InventoryFieldValues = {
   sku: string | null
@@ -22,6 +49,13 @@ export type InventoryFieldValues = {
   karat: string | null
   weight_grams: string | null
   weight_dwt: string | null
+  // patches/0067
+  condition: InventoryCondition | null
+  coating: Coating
+  finish: string | null
+  shelf_location: string | null
+  legacy_code: string | null
+  wholesale_price: string | null
   cost_basis: string
   list_price: string | null
   sale_price: string | null
@@ -54,6 +88,12 @@ export function emptyInventoryItem(): InventoryFieldValues {
     karat: null,
     weight_grams: null,
     weight_dwt: null,
+    condition: null,
+    coating: 'none',
+    finish: null,
+    shelf_location: null,
+    legacy_code: null,
+    wholesale_price: null,
     cost_basis: '0',
     list_price: null,
     sale_price: null,
@@ -84,6 +124,7 @@ export function InventoryFormFields({
   consignmentEnabled = false,
   consignors = [],
   defaultCommissionPct = 0.2,
+  targetMarginPct = 0.5,
 }: {
   initial?: InventoryFieldValues
   fieldError?: (key: string) => string | undefined
@@ -93,6 +134,8 @@ export function InventoryFormFields({
   consignors?: ConsignorOption[]
   /** settings.consignment_default_commission_pct, as a fraction. */
   defaultCommissionPct?: number
+  /** settings.inventory_target_margin_pct, as a fraction — "Suggest price". */
+  targetMarginPct?: number
 }) {
   const { t } = useI18n()
   const v = initial ?? emptyInventoryItem()
@@ -101,6 +144,14 @@ export function InventoryFormFields({
   const [tagInput, setTagInput] = useState('')
   // Sourcing drives whether the consignment block exists at all.
   const [source, setSource] = useState<InventorySource>(v.source)
+  // Coating drives the "not solid gold" warning (patches/0067).
+  const [coating, setCoating] = useState<Coating>(v.coating)
+  // Cost + list price are controlled so "Suggest price" can fill the list.
+  const [costBasis, setCostBasis] = useState(v.cost_basis)
+  const [listPrice, setListPrice] = useState(v.list_price ?? '')
+  const costNum = parseFloat(costBasis)
+  const suggested =
+    Number.isFinite(costNum) && costNum > 0 ? priceFromCost(costNum, targetMarginPct) : null
 
   function addTag() {
     const x = tagInput.trim()
@@ -173,7 +224,25 @@ export function InventoryFormFields({
             label={t.inventory.serialNumber}
             name="serial_number"
             defaultValue={v.serial_number ?? ''}
-            className="md:col-span-2"
+          />
+          <Field
+            label={t.inventory.legacyCode}
+            name="legacy_code"
+            defaultValue={v.legacy_code ?? ''}
+            help={t.inventory.legacyCodeHelp}
+          />
+          <Select
+            label={t.inventory.condition}
+            name="condition"
+            defaultValue={v.condition ?? ''}
+            error={fieldError?.('condition')}
+            options={[
+              { value: '', label: '—' },
+              ...INVENTORY_CONDITIONS.map((c) => ({
+                value: c,
+                label: t.inventory.conditions[c],
+              })),
+            ]}
           />
         </div>
       </Section>
@@ -224,26 +293,84 @@ export function InventoryFormFields({
             step="0.0001"
             defaultValue={v.weight_dwt ?? ''}
           />
+          <Select
+            label={t.inventory.coating}
+            name="coating"
+            value={coating}
+            onChange={(next) => setCoating(next as Coating)}
+            error={fieldError?.('coating')}
+            options={COATINGS.map((c) => ({ value: c, label: t.inventory.coatings[c] }))}
+            className="md:col-span-2"
+          />
+          <Field
+            label={t.inventory.finish}
+            name="finish"
+            defaultValue={v.finish ?? ''}
+            list="inventory-finish-suggestions"
+            placeholder={t.inventory.finishPlaceholder}
+            className="md:col-span-2"
+          />
+          <datalist id="inventory-finish-suggestions">
+            {FINISH_SUGGESTIONS.map((f) => (
+              <option key={f} value={f} />
+            ))}
+          </datalist>
+          {!isSolidMetal(coating) ? (
+            <p
+              role="status"
+              className="md:col-span-4 inline-flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground"
+            >
+              <Warning size={14} weight="bold" className="mt-0.5 shrink-0 text-warning" />
+              <span>{t.inventory.coatingWarning}</span>
+            </p>
+          ) : null}
         </div>
       </Section>
 
       <Section label={t.inventory.sectionPricing}>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <Field
             label={t.inventory.costBasis}
             name="cost_basis"
             type="number"
             step="0.01"
             required
-            defaultValue={v.cost_basis}
+            value={costBasis}
+            onChange={setCostBasis}
           />
           <Field
-            label={t.inventory.listPrice}
-            name="list_price"
+            label={t.inventory.wholesalePrice}
+            name="wholesale_price"
             type="number"
             step="0.01"
-            defaultValue={v.list_price ?? ''}
+            defaultValue={v.wholesale_price ?? ''}
           />
+          <div className="block space-y-1">
+            <Field
+              label={t.inventory.listPrice}
+              name="list_price"
+              type="number"
+              step="0.01"
+              value={listPrice}
+              onChange={setListPrice}
+            />
+            <button
+              type="button"
+              onClick={() => suggested != null && setListPrice((Math.round(suggested * 100) / 100).toFixed(2))}
+              disabled={suggested == null}
+              title={t.inventory.suggestPriceHelp.replace(
+                '{pct}',
+                String(Math.round(targetMarginPct * 100)),
+              )}
+              className="inline-flex items-center gap-1 text-xs font-medium text-gold hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Sparkle size={12} weight="bold" />
+              {t.inventory.suggestPrice}
+              {suggested != null ? (
+                <span className="font-mono text-muted">({formatMoney(suggested)})</span>
+              ) : null}
+            </button>
+          </div>
           {isEdit ? (
             <Field
               label={t.inventory.salePrice}
@@ -380,6 +507,12 @@ export function InventoryFormFields({
               { value: 'transfer', label: t.inventory.locTransfer },
             ]}
           />
+          <Field
+            label={t.inventory.shelfLocation}
+            name="shelf_location"
+            defaultValue={v.shelf_location ?? ''}
+            placeholder={t.inventory.shelfLocationPlaceholder}
+          />
           <Select
             label={t.inventory.status}
             name="status"
@@ -498,25 +631,34 @@ function Field({
   required,
   type = 'text',
   defaultValue,
+  value,
+  onChange,
   placeholder,
   help,
   step,
   error,
   readOnly,
   className,
+  list,
 }: {
   label: string
   name: string
   required?: boolean
   type?: string
   defaultValue?: string
+  /** Pass with onChange to control the input from parent state. */
+  value?: string
+  onChange?: (value: string) => void
   placeholder?: string
   help?: string
   step?: string
   error?: string
   readOnly?: boolean
   className?: string
+  /** id of a <datalist> for suggestions. */
+  list?: string
 }) {
+  const controlled = value !== undefined && onChange !== undefined
   return (
     <label className={`block space-y-1 ${className ?? ''}`}>
       <span className="text-sm font-medium text-foreground">{label}</span>
@@ -524,10 +666,13 @@ function Field({
         type={type}
         name={name}
         required={required}
-        defaultValue={defaultValue}
+        {...(controlled
+          ? { value, onChange: (e) => onChange(e.target.value) }
+          : { defaultValue })}
         placeholder={placeholder}
         step={step}
         readOnly={readOnly}
+        list={list}
         className={`block w-full rounded-md border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
           error
             ? 'border-danger focus:border-danger'

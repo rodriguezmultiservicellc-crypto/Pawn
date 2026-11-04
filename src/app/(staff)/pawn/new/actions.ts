@@ -33,7 +33,7 @@ import {
 } from '@/lib/jurisdictions/rules'
 import { checkPlanLimit, countActiveLoans } from '@/lib/saas/gates'
 import { checkStaleSpotGate } from '@/lib/spot-prices/stale-gate'
-import { meltMetalFromItem } from '@/lib/spot-prices/melt'
+import { isSolidMetal, meltMetalFromItem } from '@/lib/spot-prices/purity'
 import {
   computeSuggestedLoan,
   type CollateralLoanInput,
@@ -113,6 +113,7 @@ export async function suggestLoanFromCollateralAction(
       weightGrams:
         String(formData.get(`collateral_${i}_weight_grams`) ?? '').trim() ||
         null,
+      coating: String(formData.get(`collateral_${i}_coating`) ?? '').trim() || null,
       estValue:
         String(formData.get(`collateral_${i}_est_value`) ?? '').trim() || null,
       appraisedValue: null, // pawn-new flow doesn't expose this; appraisal
@@ -232,7 +233,7 @@ export async function createLoanAction(
     formData,
     tenantRole: ctx.tenantRole,
     involvesMetal: v.collateral.some(
-      (c) => meltMetalFromItem(c.metal_type) != null,
+      (c) => meltMetalFromItem(c.metal_type) != null && isSolidMetal(c.coating),
     ),
   })
   if (!staleGate.ok) return { error: staleGate.error }
@@ -418,6 +419,7 @@ export async function createLoanAction(
       metal_type: it.metal_type ?? null,
       karat: it.karat,
       weight_grams: it.weight_grams,
+      coating: it.coating,
       jewelry_size: it.jewelry_size,
       color: it.color,
       gemstone_description: it.gemstone_description,
@@ -510,6 +512,7 @@ export async function createLoanAction(
     metal_type: it.metal_type,
     karat: it.karat,
     weight_grams: it.weight_grams,
+    coating: it.coating,
     jewelry_size: it.jewelry_size,
     color: it.color,
     gemstone_description: it.gemstone_description,

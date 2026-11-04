@@ -9,6 +9,8 @@ import {
   meltMetalFromItem,
   purityFromItem,
 } from '@/lib/spot-prices/melt'
+import { isSolidMetal } from '@/lib/spot-prices/purity'
+import { loadInventoryTargetMargin } from '@/lib/inventory/pricing'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isEbayConnected } from '@/lib/ebay/auth'
 import {
@@ -35,7 +37,7 @@ export default async function InventoryItemPage(props: { params: Params }) {
   const { data: item } = await ctx.supabase
     .from('inventory_items')
     .select(
-      'id, tenant_id, sku, sku_number, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, cost_basis, list_price, sale_price, sold_at, source, source_vendor, acquired_at, acquired_cost, hold_until, location, status, notes, staff_memo, tags, is_hidden_from_catalog, consignor_id, consignment_commission_pct, consignment_min_price, consignment_expires_on, created_at, updated_at',
+      'id, tenant_id, sku, sku_number, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, condition, coating, finish, shelf_location, legacy_code, wholesale_price, cost_basis, list_price, sale_price, sold_at, source, source_vendor, acquired_at, acquired_cost, hold_until, location, status, notes, staff_memo, tags, is_hidden_from_catalog, consignor_id, consignment_commission_pct, consignment_min_price, consignment_expires_on, created_at, updated_at',
     )
     .eq('id', id)
     .eq('tenant_id', ctx.tenantId)
@@ -101,12 +103,16 @@ export default async function InventoryItemPage(props: { params: Params }) {
   // Compute the estimated melt value server-side so it's never stale
   // beyond the 5-minute spot-lookup cache. Returns null when the item
   // isn't a precious-metal item OR weight/karat is missing.
-  const melt = await resolveMelt({
-    tenantId: item.tenant_id,
-    metal: item.metal,
-    karat: item.karat,
-    weightGrams: item.weight_grams,
-  })
+  // A coated piece (patches/0067) has no melt value — the panel is replaced
+  // by the "not solid gold" notice in the detail view.
+  const melt = isSolidMetal(item.coating)
+    ? await resolveMelt({
+        tenantId: item.tenant_id,
+        metal: item.metal,
+        karat: item.karat,
+        weightGrams: item.weight_grams,
+      })
+    : null
 
   // ── eBay panel data ─────────────────────────────────────────────────────
   // Load tenant credentials + most-recent draft/active listing so the
@@ -166,6 +172,7 @@ export default async function InventoryItemPage(props: { params: Params }) {
         defaultCommissionPct(consignAdmin, item.tenant_id),
       ])
     : [[], 0.2]
+  const targetMarginPct = await loadInventoryTargetMargin(consignAdmin, item.tenant_id)
 
   return (
     <InventoryDetail
@@ -178,6 +185,7 @@ export default async function InventoryItemPage(props: { params: Params }) {
       consignmentEnabled={consignmentEnabled}
       consignors={consignors}
       defaultCommissionPct={commissionPct}
+      targetMarginPct={targetMarginPct}
     />
   )
 }

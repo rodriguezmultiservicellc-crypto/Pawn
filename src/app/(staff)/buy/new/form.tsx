@@ -19,7 +19,13 @@ import MetalTotalsTable from '@/components/buy/MetalTotalsTable'
 import MixedTenderFields, { mixedSplitOk } from '@/components/buy/MixedTenderFields'
 import EntryModeToggle, { pctLabel, type EntryMode } from '@/components/buy/EntryModeToggle'
 import type { SpotFreshness } from '@/lib/spot-prices/staleness'
-import { meltMetalFromItem, purityFromItem } from '@/lib/spot-prices/purity'
+import {
+  COATINGS,
+  isSolidMetal,
+  meltMetalFromItem,
+  purityFromItem,
+  type Coating,
+} from '@/lib/spot-prices/purity'
 import {
   dollarsFromGrams,
   grams3,
@@ -46,6 +52,8 @@ type ItemRow = {
   category: string
   metal: string
   karat: string
+  /** Surface coating (patches/0067). Not 'none' ⇒ no melt, no auto payout. */
+  coating: Coating
   weight_grams: string
   payout: string
   mode: EntryMode
@@ -90,6 +98,7 @@ function blankItem(): ItemRow {
     category: 'other',
     metal: 'gold',
     karat: '14',
+    coating: 'none',
     weight_grams: '',
     payout: '',
     mode: 'weight',
@@ -177,12 +186,16 @@ export default function BuyForm({
   }
 
   /** Pay rate for a row: spot × pay multiplier at its (metal, karat) bucket. */
-  function rateForRow(row: Pick<ItemRow, 'metal' | 'karat'>): ResolvedRate & {
+  function rateForRow(row: Pick<ItemRow, 'metal' | 'karat' | 'coating'>): ResolvedRate & {
     purity: ReturnType<typeof purityFromItem>
+    coated: boolean
   } {
-    const meltMetal = meltMetalFromItem(row.metal)
+    // A plated / filled / vermeil / PVD piece has no melt value — the
+    // payout is whatever the operator types (brief Phase 4.2).
+    const coated = !isSolidMetal(row.coating)
+    const meltMetal = coated ? null : meltMetalFromItem(row.metal)
     const purity = meltMetal ? purityFromItem({ metal: row.metal, karat: row.karat }) : null
-    return { ...resolveRate(rates, meltMetal, purity, 'pay'), purity }
+    return { ...resolveRate(rates, meltMetal, purity, 'pay'), purity, coated }
   }
 
   /**
@@ -265,7 +278,9 @@ export default function BuyForm({
   // Stale guard, client half: mirrors lib/spot-prices/stale-gate. Only a
   // buy that prices precious metal is held; the server re-checks both the
   // staleness and the role on submit.
-  const involvesMetal = items.some((r) => meltMetalFromItem(r.metal) != null)
+  const involvesMetal = items.some(
+    (r) => meltMetalFromItem(r.metal) != null && isSolidMetal(r.coating),
+  )
   const staleBlocked =
     spotFreshness.stale && involvesMetal && !(canConfirmStale && staleAck)
   const mixedBlocked =
@@ -485,7 +500,7 @@ function ItemCard({
   onPatch: (patch: Partial<ItemRow>, changed?: 'weight' | 'payout' | 'rate' | 'mode') => void
   onRemove: () => void
   canRemove: boolean
-  rate: ResolvedRate & { purity: ReturnType<typeof purityFromItem> }
+  rate: ResolvedRate & { purity: ReturnType<typeof purityFromItem>; coated: boolean }
   melt: number | null
 }) {
   const { t } = useI18n()
@@ -525,8 +540,9 @@ function ItemCard({
   const errPrefix = `items.${idx}.`
   const amountMode = row.mode === 'amount'
 
-  const meltHint =
-    rate.perGram == null
+  const meltHint = rate.coated
+    ? f.meltCoated
+    : rate.perGram == null
       ? rate.purity == null
         ? f.meltAddMetal
         : f.meltNoSpot
@@ -600,7 +616,14 @@ function ItemCard({
           placeholder="0.000"
           readOnly={amountMode}
         />
-        <div className="md:col-span-3">
+        <Select
+          name={`item_${idx}_coating`}
+          label={f.coating}
+          value={row.coating}
+          onChange={(v) => onPatch({ coating: v as Coating, mode: 'weight' }, 'rate')}
+          options={COATINGS.map((c) => ({ value: c, label: t.inventory.coatings[c] }))}
+        />
+        <div className="md:col-span-2">
           <label className="block space-y-1">
             <span className="text-xs font-medium text-foreground">{f.photo}</span>
             <input
@@ -671,8 +694,8 @@ function ItemCard({
             </label>
           </div>
         </div>
-        <p className="mt-1 text-[11px] text-muted">
-          {amountMode ? f.byAmountHelp : f.byWeightHelp}
+        <p className={`mt-1 text-[11px] ${rate.coated ? 'font-medium text-warning' : 'text-muted'}`}>
+          {rate.coated ? t.inventory.coatingWarning : amountMode ? f.byAmountHelp : f.byWeightHelp}
         </p>
         {fieldError(`${errPrefix}payout`) ? (
           <p className="mt-1 text-[11px] text-danger">

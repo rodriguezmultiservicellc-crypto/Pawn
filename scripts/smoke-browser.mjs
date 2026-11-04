@@ -179,8 +179,10 @@ const ROUTES = [
   ['P2 quote detail', ids.quote && `/repair/quotes/${ids.quote}`],
   ['P2 quote edit', ids.quote && `/repair/quotes/${ids.quote}/edit`],
   ['P2 quote settings', '/settings/custom-quotes'],
-  // Brief Phase 4.1 (bench calculators).
+  // Brief Phase 4.1 (bench calculators) + 4.2 (inventory fields).
   ['P4 bench tools', '/tools'],
+  ['P4 inventory new', '/inventory/new'],
+  ['P4 settings general', '/settings/general'],
   // Brief Phase 3 (two-way metal counter: buy + sell).
   ['P3 sell metal', '/buy/sell'],
   ['P3 metal sale receipt', ids.metalSale && `/buy/sell/${ids.metalSale}`],

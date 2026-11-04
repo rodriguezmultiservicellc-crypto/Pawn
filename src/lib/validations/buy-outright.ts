@@ -79,6 +79,14 @@ export const buyItemSchema = z.object({
     .transform((v) => v ?? null),
   karat: optionalTrimmedString,
   weight_grams: optionalDecimal,
+  /** Surface coating (patches/0067). Not 'none' ⇒ not solid metal ⇒ no
+   *  melt snapshot; the item lands in inventory flagged. */
+  coating: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? 'none' : v ?? 'none'),
+      z.enum(['none', 'gold_plated', 'gold_filled', 'vermeil', 'pvd']),
+    )
+    .default('none'),
   /** Per-item payout — what the operator hands the customer for this
    *  item. Required and must be > 0 (we don't accept "free" buys). */
   payout: requiredDecimalNonNeg,

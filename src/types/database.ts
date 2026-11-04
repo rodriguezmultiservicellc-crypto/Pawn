@@ -1850,6 +1850,8 @@ export type Database = {
           acquired_cost: number | null
           brand: string | null
           category: Database["public"]["Enums"]["inventory_category"]
+          coating: Database["public"]["Enums"]["inventory_coating"]
+          condition: Database["public"]["Enums"]["inventory_condition"] | null
           consignment_commission_pct: number | null
           consignment_expires_on: string | null
           consignment_min_price: number | null
@@ -1859,10 +1861,12 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           description: string
+          finish: string | null
           hold_until: string | null
           id: string
           is_hidden_from_catalog: boolean
           karat: string | null
+          legacy_code: string | null
           list_price: number | null
           location: Database["public"]["Enums"]["inventory_location"]
           metal: Database["public"]["Enums"]["metal_type"] | null
@@ -1871,6 +1875,7 @@ export type Database = {
           released_from_hold_at: string | null
           sale_price: number | null
           serial_number: string | null
+          shelf_location: string | null
           sku: string
           sku_number: number
           sold_at: string | null
@@ -1886,12 +1891,15 @@ export type Database = {
           updated_by: string | null
           weight_dwt: number | null
           weight_grams: number | null
+          wholesale_price: number | null
         }
         Insert: {
           acquired_at?: string
           acquired_cost?: number | null
           brand?: string | null
           category?: Database["public"]["Enums"]["inventory_category"]
+          coating?: Database["public"]["Enums"]["inventory_coating"]
+          condition?: Database["public"]["Enums"]["inventory_condition"] | null
           consignment_commission_pct?: number | null
           consignment_expires_on?: string | null
           consignment_min_price?: number | null
@@ -1901,10 +1909,12 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           description: string
+          finish?: string | null
           hold_until?: string | null
           id?: string
           is_hidden_from_catalog?: boolean
           karat?: string | null
+          legacy_code?: string | null
           list_price?: number | null
           location?: Database["public"]["Enums"]["inventory_location"]
           metal?: Database["public"]["Enums"]["metal_type"] | null
@@ -1913,6 +1923,7 @@ export type Database = {
           released_from_hold_at?: string | null
           sale_price?: number | null
           serial_number?: string | null
+          shelf_location?: string | null
           sku: string
           sku_number: number
           sold_at?: string | null
@@ -1928,12 +1939,15 @@ export type Database = {
           updated_by?: string | null
           weight_dwt?: number | null
           weight_grams?: number | null
+          wholesale_price?: number | null
         }
         Update: {
           acquired_at?: string
           acquired_cost?: number | null
           brand?: string | null
           category?: Database["public"]["Enums"]["inventory_category"]
+          coating?: Database["public"]["Enums"]["inventory_coating"]
+          condition?: Database["public"]["Enums"]["inventory_condition"] | null
           consignment_commission_pct?: number | null
           consignment_expires_on?: string | null
           consignment_min_price?: number | null
@@ -1943,10 +1957,12 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           description?: string
+          finish?: string | null
           hold_until?: string | null
           id?: string
           is_hidden_from_catalog?: boolean
           karat?: string | null
+          legacy_code?: string | null
           list_price?: number | null
           location?: Database["public"]["Enums"]["inventory_location"]
           metal?: Database["public"]["Enums"]["metal_type"] | null
@@ -1955,6 +1971,7 @@ export type Database = {
           released_from_hold_at?: string | null
           sale_price?: number | null
           serial_number?: string | null
+          shelf_location?: string | null
           sku?: string
           sku_number?: number
           sold_at?: string | null
@@ -1970,6 +1987,7 @@ export type Database = {
           updated_by?: string | null
           weight_dwt?: number | null
           weight_grams?: number | null
+          wholesale_price?: number | null
         }
         Relationships: [
           {
@@ -2421,6 +2439,7 @@ export type Database = {
       loan_collateral_items: {
         Row: {
           category: Database["public"]["Enums"]["inventory_category"]
+          coating: Database["public"]["Enums"]["inventory_coating"]
           color: string | null
           created_at: string
           deleted_at: string | null
@@ -2457,6 +2476,7 @@ export type Database = {
         }
         Insert: {
           category?: Database["public"]["Enums"]["inventory_category"]
+          coating?: Database["public"]["Enums"]["inventory_coating"]
           color?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -2493,6 +2513,7 @@ export type Database = {
         }
         Update: {
           category?: Database["public"]["Enums"]["inventory_category"]
+          coating?: Database["public"]["Enums"]["inventory_coating"]
           color?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -4337,6 +4358,7 @@ export type Database = {
           google_reviews_hidden_review_times: number[]
           google_reviews_min_star_floor: number
           grace_period_days: number | null
+          inventory_target_margin_pct: number
           loyalty_earn_rate_loan_interest: number
           loyalty_earn_rate_retail: number
           loyalty_enabled: boolean
@@ -4380,6 +4402,7 @@ export type Database = {
           google_reviews_hidden_review_times?: number[]
           google_reviews_min_star_floor?: number
           grace_period_days?: number | null
+          inventory_target_margin_pct?: number
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
           loyalty_enabled?: boolean
@@ -4423,6 +4446,7 @@ export type Database = {
           google_reviews_hidden_review_times?: number[]
           google_reviews_min_star_floor?: number
           grace_period_days?: number | null
+          inventory_target_margin_pct?: number
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
           loyalty_enabled?: boolean
@@ -5665,6 +5689,13 @@ export type Database = {
         | "tool"
         | "instrument"
         | "other"
+      inventory_coating:
+        | "none"
+        | "gold_plated"
+        | "gold_filled"
+        | "vermeil"
+        | "pvd"
+      inventory_condition: "new" | "used" | "restored" | "vintage" | "antique"
       inventory_location:
         | "case"
         | "safe"
@@ -6073,6 +6104,14 @@ export const Constants = {
         "instrument",
         "other",
       ],
+      inventory_coating: [
+        "none",
+        "gold_plated",
+        "gold_filled",
+        "vermeil",
+        "pvd",
+      ],
+      inventory_condition: ["new", "used", "restored", "vintage", "antique"],
       inventory_location: [
         "case",
         "safe",

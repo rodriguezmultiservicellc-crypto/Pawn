@@ -9,8 +9,9 @@ import {
   useState,
 } from 'react'
 import Image from 'next/image'
-import { Plus, Trash, Camera } from '@phosphor-icons/react'
+import { Plus, Trash, Camera, Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
 import type { WatchModelMatch } from './InlinePawnCalculator'
 import type {
   InventoryCategory,
@@ -158,6 +159,9 @@ type Row = {
   metal_type: MetalType | ''
   karat: string
   weight_grams: string
+  /** Surface coating (patches/0067). Not 'none' ⇒ not solid gold ⇒ no
+   *  melt in the suggested loan. Jewelry-only. */
+  coating: Coating
   /** Free-text size (rings) or length (chains/bracelets). Jewelry-only.
    *  patches/0042. */
   jewelry_size: string
@@ -205,6 +209,7 @@ function newRow(): Row {
     metal_type: '',
     karat: '',
     weight_grams: '',
+    coating: 'none',
     jewelry_size: '',
     gemstone_description: '',
     color: '',
@@ -333,6 +338,7 @@ export const CollateralItemsList = forwardRef<
       r.metal_type === '' &&
       r.karat === '' &&
       r.weight_grams === '' &&
+      r.coating === 'none' &&
       r.jewelry_size === '' &&
       r.gemstone_description === '' &&
       r.color === '' &&
@@ -705,6 +711,33 @@ function CollateralRow({
                   className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
                 />
               </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  {t.pawn.new_.itemCoating}
+                </span>
+                <select
+                  name={`collateral_${index}_coating`}
+                  value={row.coating}
+                  onChange={(e) => onChange({ coating: e.target.value as Coating })}
+                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                >
+                  {COATINGS.map((c) => (
+                    <option key={c} value={c}>
+                      {t.inventory.coatings[c]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {!isSolidMetal(row.coating) ? (
+                <p
+                  role="status"
+                  className="md:col-span-6 inline-flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground"
+                >
+                  <Warning size={14} weight="bold" className="mt-0.5 shrink-0 text-warning" />
+                  <span>{t.pawn.new_.itemCoatingWarning}</span>
+                </p>
+              ) : null}
 
               <label className="md:col-span-1 block space-y-1">
                 <span className="text-xs font-medium text-foreground">

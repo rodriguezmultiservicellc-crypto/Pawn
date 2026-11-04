@@ -93,6 +93,13 @@ const generalSchema = z.object({
       z.string().min(1).max(2000).nullable().optional(),
     )
     .transform((v) => v ?? null),
+  // Percent in the form (50), fraction in the column (0.5). patches/0067.
+  inventory_target_margin_pct: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? 50 : v),
+      z.coerce.number().min(0).max(95).finite(),
+    )
+    .transform((pct) => Math.round(pct * 100) / 10000),
 })
 
 export type UpdateGeneralState = {
@@ -137,6 +144,7 @@ export async function updateGeneralAction(
     'agency_store_id',
     'public_slug',
     'public_about',
+    'inventory_target_margin_pct',
   ]) {
     const v = formData.get(k)
     if (typeof v === 'string') echo[k] = v
@@ -163,6 +171,7 @@ export async function updateGeneralAction(
     public_landing_enabled: formData.get('public_landing_enabled'),
     public_catalog_enabled: formData.get('public_catalog_enabled'),
     public_about: formData.get('public_about'),
+    inventory_target_margin_pct: formData.get('inventory_target_margin_pct'),
   })
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {}
@@ -268,6 +277,13 @@ export async function updateGeneralAction(
     return { error: error.message, values: echo }
   }
 
+  // Inventory pricing default (patches/0067) — settings row, same tenant.
+  const { error: settingsErr } = await admin
+    .from('settings')
+    .update({ inventory_target_margin_pct: v.inventory_target_margin_pct })
+    .eq('tenant_id', ctx.tenantId)
+  if (settingsErr) return { error: settingsErr.message, values: echo }
+
   await logAudit({
     tenantId: ctx.tenantId,
     userId,
@@ -293,7 +309,9 @@ export async function updateGeneralAction(
         'public_catalog_enabled',
         'public_about',
         'public_hours',
+        'settings.inventory_target_margin_pct',
       ],
+      inventory_target_margin_pct: v.inventory_target_margin_pct,
     },
   })
 

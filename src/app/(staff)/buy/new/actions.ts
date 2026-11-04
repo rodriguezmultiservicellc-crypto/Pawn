@@ -33,6 +33,7 @@ import {
   purityFromItem,
 } from '@/lib/spot-prices/melt'
 import { splitTenders } from '@/lib/metal-counter/math'
+import { isSolidMetal } from '@/lib/spot-prices/purity'
 import type { Database } from '@/types/database'
 
 type ComplianceInsertChanges =
@@ -72,6 +73,7 @@ function readBuyItemRows(
         metal: fd.get(`item_${i}_metal`),
         karat: fd.get(`item_${i}_karat`),
         weight_grams: fd.get(`item_${i}_weight_grams`),
+        coating: fd.get(`item_${i}_coating`),
         payout: fd.get(`item_${i}_payout`),
         serial_number: fd.get(`item_${i}_serial_number`),
         position: String(i),
@@ -179,7 +181,9 @@ export async function createBuyOutrightAction(
   const staleGate = await checkStaleSpotGate({
     formData,
     tenantRole: ctx.tenantRole,
-    involvesMetal: v.items.some((it) => meltMetalFromItem(it.metal) != null),
+    involvesMetal: v.items.some(
+      (it) => meltMetalFromItem(it.metal) != null && isSolidMetal(it.coating),
+    ),
   })
   if (!staleGate.ok) return { error: staleGate.error, values: echo }
 
@@ -234,6 +238,7 @@ export async function createBuyOutrightAction(
     metal: string | null
     karat: string | null
     weight_grams: number | null
+    coating: string
     payout: number
     melt_value_at_buy: number | null
     photo_path: string | null
@@ -267,6 +272,7 @@ export async function createBuyOutrightAction(
         karat: item.karat,
         weight_grams: item.weight_grams,
         weight_dwt: null,
+        coating: item.coating,
         cost_basis: acquiredCost,
         list_price: null,
         source: 'bought',
@@ -332,8 +338,8 @@ export async function createBuyOutrightAction(
     }
 
     // Best-effort melt value at acquisition time (snapshot for police
-    // report + future analytics).
-    const meltMetal = meltMetalFromItem(item.metal)
+    // report + future analytics). A coated piece has none (patches/0067).
+    const meltMetal = isSolidMetal(item.coating) ? meltMetalFromItem(item.metal) : null
     const purity = meltMetal
       ? purityFromItem({ metal: item.metal, karat: item.karat })
       : null
@@ -355,6 +361,7 @@ export async function createBuyOutrightAction(
       metal: item.metal,
       karat: item.karat,
       weight_grams: item.weight_grams,
+      coating: item.coating,
       payout: acquiredCost,
       melt_value_at_buy: meltAtBuy,
       photo_path: photoPath,
@@ -411,6 +418,7 @@ export async function createBuyOutrightAction(
     metal_type: it.metal,
     karat: it.karat,
     weight_grams: it.weight_grams,
+    coating: it.coating,
     payout: it.payout,
     melt_value_at_buy: it.melt_value_at_buy,
     serial_number: it.serial_number,

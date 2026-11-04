@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadInventoryTargetMargin } from '@/lib/inventory/pricing'
 import GeneralSettingsContent from './content'
 
 const SETTINGS_ROLES = new Set(['owner', 'chain_admin'])
@@ -53,8 +54,12 @@ export default async function GeneralSettingsPage() {
 
   if (!tenant) redirect('/settings')
 
+  // Inventory pricing default (patches/0067) lives on settings, not tenants.
+  const targetMarginPct = await loadInventoryTargetMargin(admin, ctx.tenantId)
+
   return (
     <GeneralSettingsContent
+      targetMarginPct={targetMarginPct}
       tenant={{
         id: tenant.id,
         name: tenant.name,

@@ -4,13 +4,22 @@ import { useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MagnifyingGlass, Plus, Image as ImageIcon } from '@phosphor-icons/react'
+import { MagnifyingGlass, Plus, Image as ImageIcon, Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
+import {
+  INVENTORY_CONDITIONS,
+  type InventoryCondition,
+} from '@/components/inventory/InventoryFormFields'
 import type {
   InventoryCategory,
   InventorySource,
   InventoryStatus,
 } from '@/types/database-aliases'
+
+export type InventoryConditionFilter = InventoryCondition | ''
+/** 'coated' = any coating other than 'none'. */
+export type InventoryCoatingFilter = Coating | 'coated' | ''
 
 export type InventoryListRow = {
   id: string
@@ -26,6 +35,11 @@ export type InventoryListRow = {
   sale_price: number | string | null
   created_at: string
   thumb_url: string | null
+  // patches/0067
+  coating: Coating | null
+  condition: InventoryCondition | null
+  legacy_code: string | null
+  shelf_location: string | null
 }
 
 const STATUS_BADGE: Record<InventoryStatus, { bg: string; text: string }> = {
@@ -46,12 +60,16 @@ export default function InventoryContent({
   statusFilter,
   sourceFilter,
   categoryFilter,
+  conditionFilter,
+  coatingFilter,
 }: {
   items: InventoryListRow[]
   query: string
   statusFilter: InventoryStatus | ''
   sourceFilter: InventorySource | ''
   categoryFilter: InventoryCategory | ''
+  conditionFilter: InventoryConditionFilter
+  coatingFilter: InventoryCoatingFilter
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -76,7 +94,12 @@ export default function InventoryContent({
   }
 
   const hasFilter =
-    !!query || !!statusFilter || !!sourceFilter || !!categoryFilter
+    !!query ||
+    !!statusFilter ||
+    !!sourceFilter ||
+    !!categoryFilter ||
+    !!conditionFilter ||
+    !!coatingFilter
 
   return (
     <div className="space-y-6">
@@ -172,12 +195,50 @@ export default function InventoryContent({
           <option value="other">{t.inventory.catOther}</option>
         </select>
 
+        <select
+          value={conditionFilter}
+          onChange={(e) => pushParams({ condition: e.target.value })}
+          className="sm:col-span-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+        >
+          <option value="">
+            {t.common.all} — {t.inventory.condition}
+          </option>
+          {INVENTORY_CONDITIONS.map((c) => (
+            <option key={c} value={c}>
+              {t.inventory.conditions[c]}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={coatingFilter}
+          onChange={(e) => pushParams({ coating: e.target.value })}
+          className="sm:col-span-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+        >
+          <option value="">
+            {t.common.all} — {t.inventory.coating}
+          </option>
+          <option value="coated">{t.inventory.coatedAny}</option>
+          {COATINGS.map((c) => (
+            <option key={c} value={c}>
+              {t.inventory.coatings[c]}
+            </option>
+          ))}
+        </select>
+
         {hasFilter ? (
           <button
             type="button"
             onClick={() => {
               setSearchInput('')
-              pushParams({ q: null, status: null, source: null, category: null })
+              pushParams({
+                q: null,
+                status: null,
+                source: null,
+                category: null,
+                condition: null,
+                coating: null,
+              })
             }}
             className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
           >
@@ -250,10 +311,27 @@ export default function InventoryContent({
                       {it.sku}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-foreground">{it.description}</div>
-                      {it.brand || it.model || it.serial_number ? (
+                      <div className="flex flex-wrap items-center gap-2 font-medium text-foreground">
+                        {it.description}
+                        {!isSolidMetal(it.coating) ? (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning"
+                            title={t.inventory.coatingWarning}
+                          >
+                            <Warning size={10} weight="bold" />
+                            {t.inventory.coatings[it.coating ?? 'none']}
+                          </span>
+                        ) : null}
+                      </div>
+                      {it.brand || it.model || it.serial_number || it.legacy_code || it.shelf_location ? (
                         <div className="text-xs text-muted">
-                          {[it.brand, it.model, it.serial_number]
+                          {[
+                            it.brand,
+                            it.model,
+                            it.serial_number,
+                            it.legacy_code ? `${t.inventory.legacyCode}: ${it.legacy_code}` : null,
+                            it.shelf_location,
+                          ]
                             .filter(Boolean)
                             .join(' · ')}
                         </div>

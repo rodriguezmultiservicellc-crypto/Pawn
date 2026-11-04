@@ -6,6 +6,7 @@ import {
   isConsignmentEnabled,
   loadConsignorOptions,
 } from '@/lib/consignment/payables'
+import { loadInventoryTargetMargin } from '@/lib/inventory/pricing'
 import NewInventoryItemForm from './form'
 
 export default async function NewInventoryItemPage() {
@@ -24,12 +25,14 @@ export default async function NewInventoryItemPage() {
         defaultCommissionPct(admin, ctx.tenantId),
       ])
     : [[], 0.2]
+  const targetMarginPct = await loadInventoryTargetMargin(admin, ctx.tenantId)
 
   return (
     <NewInventoryItemForm
       consignmentEnabled={consignmentEnabled}
       consignors={consignors}
       defaultCommissionPct={commissionPct}
+      targetMarginPct={targetMarginPct}
     />
   )
 }

@@ -46,6 +46,12 @@ function echoToFieldValues(
     karat: s('karat'),
     weight_grams: s('weight_grams'),
     weight_dwt: s('weight_dwt'),
+    condition: (s('condition') as InventoryFieldValues['condition']) ?? null,
+    coating: (s('coating') as InventoryFieldValues['coating']) ?? 'none',
+    finish: s('finish'),
+    shelf_location: s('shelf_location'),
+    legacy_code: s('legacy_code'),
+    wholesale_price: s('wholesale_price'),
     cost_basis: echo.cost_basis ?? '0',
     list_price: s('list_price'),
     sale_price: fallback.sale_price,
@@ -77,10 +83,12 @@ export default function NewInventoryItemForm({
   consignmentEnabled = false,
   consignors = [],
   defaultCommissionPct = 0.2,
+  targetMarginPct = 0.5,
 }: {
   consignmentEnabled?: boolean
   consignors?: ConsignorOption[]
   defaultCommissionPct?: number
+  targetMarginPct?: number
 }) {
   const { t } = useI18n()
   const [state, formAction, pending] = useActionState<
@@ -136,6 +144,7 @@ export default function NewInventoryItemForm({
           consignmentEnabled={consignmentEnabled}
           consignors={consignors}
           defaultCommissionPct={defaultCommissionPct}
+          targetMarginPct={targetMarginPct}
         />
 
         <div className="flex items-center justify-end gap-3">

@@ -107,6 +107,20 @@ export function karatForPurity(purity: MetalPurity): string | null {
   }
 }
 
+/** Surface coatings (patches/0067). Anything but 'none' is NOT solid metal. */
+export const COATINGS = ['none', 'gold_plated', 'gold_filled', 'vermeil', 'pvd'] as const
+export type Coating = (typeof COATINGS)[number]
+
+/**
+ * Melt value only exists for solid metal. A plated / filled / vermeil / PVD
+ * piece has a few microns of gold over base metal — pricing it at karat
+ * weight would overpay by 10-50×. NULL / unknown counts as solid (legacy
+ * rows predate the column).
+ */
+export function isSolidMetal(coating: string | null | undefined): boolean {
+  return coating == null || coating === '' || coating === 'none'
+}
+
 /** Map key used by every spot / override lookup: `${metal}::${purity}`. */
 export function spotKey(metal: MetalType, purity: MetalPurity): string {
   return `${metal}::${purity}`

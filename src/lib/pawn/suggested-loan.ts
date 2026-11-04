@@ -6,6 +6,7 @@ import {
   meltMetalFromItem,
   purityFromItem,
 } from '@/lib/spot-prices/melt'
+import { isSolidMetal } from '@/lib/spot-prices/purity'
 import type { MetalType } from '@/types/database-aliases'
 
 /**
@@ -31,6 +32,8 @@ export type CollateralLoanInput = {
   /** Karat (e.g. 14 for 14K). String accepted ("14", "14K"). */
   karat?: string | number | null
   weightGrams?: string | number | null
+  /** inventory_coating (patches/0067). Not 'none' ⇒ no melt value. */
+  coating?: string | null
   /** Operator-entered estimate (USD). */
   estValue?: string | number | null
   /** Appraised value from a linked finalized appraisal, if any. */
@@ -140,6 +143,13 @@ async function tryComputeMelt(
 ): Promise<number | null> {
   const meltMetal = meltMetalFromItem(row.metal ?? null)
   if (!meltMetal) return null
+
+  // Plated / filled / vermeil / PVD: a skin of gold over base metal. Never
+  // lend on its melt — there is none worth the name (brief Phase 4.2).
+  if (!isSolidMetal(row.coating)) {
+    outWarnings.push('coated_not_solid_metal')
+    return null
+  }
 
   const purity = purityFromItem({
     metal: row.metal ?? null,
