@@ -60,7 +60,39 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 55 (2026-11-03/04) — ALL FIVE PHASES (0-4) of
+  Last session:   Session 56 (2026-11-04/05) — STRIPE CONNECT PER-TENANT
+                  ONBOARDING (items 449-454), dispatched by the Manager
+                  session onto branch feature/sol-pawn-brief (NOT on
+                  main, NOT pushed). The one not-started piece every
+                  Stripe surface depended on: terminal.ts and
+                  payment-link.ts both require
+                  tenant_billing_settings.stripe_account_id and nothing
+                  ever wrote it.
+                  - Express account per tenant (platform key +
+                    Stripe-Account header, so Terminal + Checkout keep
+                    working unchanged) created idempotently at
+                    GET /api/stripe/connect/start, then an Account Link
+                    into Stripe-hosted onboarding; return_url =
+                    /api/stripe/connect/callback re-reads the Account
+                    and stores charges / payouts / details flags
+                    (0069); refresh_url = /start again. Owner-tier only.
+                  - /api/stripe/connect/dashboard mints an Express login
+                    link ("Open Stripe dashboard").
+                  - /api/stripe/webhook now handles account.updated
+                    (routes by stripe_account_id). The endpoint must be
+                    registered in Stripe as a CONNECT webhook.
+                  - Settings → Integrations: status pill (not connected /
+                    onboarding incomplete / connected), account last-4,
+                    charges + payouts, one action per state, ?stripe=
+                    result banner. EN + ES.
+                  - patches/0069 written, NOT APPLIED; database.ts hand-
+                    edited to match (item 245 precedent).
+                  - Gate fix: ONE Stripe REST transport
+                    (lib/stripe/http.ts) replaces four private copies.
+                  - NOT smoke-tested against Stripe at all (no login, no
+                    live call). See item 454 for exactly what Eddy does.
+
+                  PRIOR SESSION (55): ALL FIVE PHASES (0-4) of
                   sol-pawn-brief-for-armando.md (the "Sol Pawn" fixes +
                   features brief; Eddy confirmed it is for THIS session
                   and cleared production). All on main. THE BRIEF IS
@@ -276,21 +308,38 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~40% at save time (2026-11-04, post-compaction). Phase 0
-                  = b3603ce, Phase 1 = bba152a, Phase 2 = 3d200cb, PDF
+  Context budget: ~15% at save time (2026-11-05, worker session).
+                  Session 56 = be86068 (Connect routes + UI + 0069) and
+                  the Session 56 checkpoint on feature/sol-pawn-brief —
+                  NOT pushed, NOT merged to main. Session 55: Phase 0 =
+                  b3603ce, Phase 1 = bba152a, Phase 2 = 3d200cb, PDF
                   font-trace fix = 0a36edf, Phase 3 = a771ee1, Phase 4.1 =
                   baf814a, 4.2 = 111004c, 4.3 = eb0afee, 4.4 = a9479ce,
                   prod fixes 3ba0aa1 + 0ce71b7; all fast-forwarded into
                   main.
-  Last worked on: Two production bugs after the brief shipped, both "a
-                  'use server' file exported a non-async value": /tools
-                  "Keep this" (3ba0aa1, item 447) and Buy outright submit
-                  (0ce71b7, item 448). Every Phase 3/4 server action has
-                  been invoked once in production. Answered Eddy's
-                  pay/sell-rate question (see IMMEDIATE). Eddy is testing
-                  production.
+  Last worked on: Stripe Connect onboarding (items 449-454) — code
+                  complete and green (tsc, eslint, 655 tests, next
+                  build) but 0069 is unapplied and the flow has never
+                  touched Stripe. Next hands are Eddy's: apply 0069,
+                  set the Stripe Connect settings + webhook + Vercel env
+                  (item 454), then click "Connect with Stripe" once in
+                  test mode.
 
   ACTIVE FILE(S) (all committed):
+    Session 56 (feature/sol-pawn-brief):
+    - patches/0069-stripe-connect-status.sql (NOT APPLIED)
+    - src/lib/stripe/connect-status.ts (+ .test.ts, pure, 17 tests)
+    - src/lib/stripe/connect.ts (Stripe + DB, server-only)
+    - src/lib/stripe/connect-guard.ts (owner-tier guard for the routes)
+    - src/lib/stripe/http.ts (shared stripeFetch; terminal / payment-link
+      / saas / connect all import it now)
+    - src/app/api/stripe/connect/{start,callback,dashboard}/route.ts
+    - src/app/api/stripe/webhook/route.ts (account.updated)
+    - src/app/(staff)/settings/integrations/{page,content}.tsx
+    - src/app/(staff)/settings/page.tsx (hub "connected" = derived status)
+    - src/lib/audit.ts (2 actions), src/types/database.ts (hand-edited
+      0069 columns), src/lib/i18n/{en,es}.ts (stripeConnect.*)
+    Session 55:
     - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4, ALL DONE)
     Phase 4:
     - patches/0066-bench-calculations.sql, 0067-inventory-fields.sql,
@@ -388,15 +437,22 @@ OPERATION IN FLIGHT: none
     - Progress.txt (this file)
 
   RESUME POINT:
-    CLEAN STOPPING POINT — the whole Sol Pawn brief (Phases 0-4) is
-    complete, verified and on main. There is NO next phase in the
-    brief; its "Not now" list (AI gem ID, AI eBay photos, expense
-    tracking / P&L) is explicitly backlog. Next session: ask Eddy what
-    he found using it in production, and work his list. Things worth
-    confirming with him first: (a) one real scrap sale posted at
-    /buy/sell (never automation-driven); (b) the Collections
-    definitions in the page footnote match how he thinks about late
-    layaways; (c) the two Phase 0 questions below are still open.
+    Branch feature/sol-pawn-brief holds Session 56 (Stripe Connect
+    onboarding) on top of main's 1d2544d — unpushed, unmerged. Before
+    this ships: (1) apply patches/0069 (node scripts/apply-migration.mjs
+    patches/0069-stripe-connect-status.sql), then `npm run db:types` and
+    confirm the regen matches the hand-edit in src/types/database.ts;
+    (2) Eddy does the Stripe-side setup in item 454 (Connect platform
+    profile, CONNECT webhook with account.updated, Vercel env); (3) one
+    real "Connect with Stripe" click in TEST mode as an owner, then
+    check tenant_billing_settings + audit_log (stripe_connect_account_
+    create, stripe_connect_status_sync). Only after that: merge to main
+    / push on Eddy's "go". If the smoke fails, the three routes log
+    with a [stripe-connect/...] prefix and redirect with ?stripe=
+    stripe_error | save_failed | misconfigured — the banner text says
+    which. The Session 55 "ask Eddy what he found in production" loop
+    is still the standing instruction for anything not Stripe.
+
     Known loose ends: /audit hydration flake (OPEN ISSUES), Phase 2
     quote form not automation-driven, quotes don't auto-expire by cron.
 
@@ -430,6 +486,15 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
+    - STRIPE CONNECT (Session 56) IS UNVERIFIED AGAINST STRIPE. No
+      account was created, no Account Link minted, no account.updated
+      received — the worker session had no browser login and did not
+      spend Eddy's Stripe key on a live call. 0069 is NOT applied, so
+      /settings/integrations will 500 on the new columns until it is.
+      Express accounts make the PLATFORM (RMS) liable for a connected
+      account's negative balance (refunds/disputes it cannot cover) —
+      Eddy should read Stripe's "Express" responsibilities page before
+      the first live-mode connect. Item 454 has the exact smoke steps.
     - PRODUCTION HYDRATION MISMATCH on /inventory/spot-prices (React
       #418, seen 2026-11-04 by the production drive): shortDateTime() /
       shortDate() in lib/format/money use toLocaleString() with no
@@ -1102,6 +1167,141 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 56 (2026-11-04/05) — Stripe Connect per-tenant Express onboarding (branch feature/sol-pawn-brief, dispatched by the Manager session) ---
+
+ 449. STRIPE CONNECT — WHY AND WHICH ACCOUNT TYPE. Settings → Integrations
+     linked to /api/stripe/connect/start but only webhook/ and saas/*
+     existed under api/stripe/; lib/stripe/terminal.ts and
+     payment-link.ts both throw tenant_stripe_not_connected when
+     tenant_billing_settings.stripe_account_id is null, and nothing ever
+     wrote it. CLAUDE.md says "same OAuth flow as Abacus" (Standard
+     accounts, STRIPE_CONNECT_CLIENT_ID) but the ask was Account Links +
+     "Open Stripe dashboard", and login links exist ONLY for Express
+     accounts — so: EXPRESS. Terminal and Checkout already act on the
+     connected account via the platform STRIPE_SECRET_KEY + Stripe-
+     Account header, which is exactly how Express works, so neither
+     surface changed. No OAuth client id, no per-tenant access/refresh
+     tokens (0034 already dropped those columns), no per-account webhook
+     provisioning (Abacus did that; here ONE platform Connect webhook
+     receives every tenant's events). No `stripe` npm package — same
+     REST-over-fetch style as the three existing lib/stripe modules.
+
+ 450. ROUTES. All three are GET route handlers (runtime nodejs, force-
+     dynamic) behind lib/stripe/connect-guard.ts: getCtx() → /login when
+     signed out, /no-tenant without an active tenant, ?stripe=forbidden
+     unless tenantRole is owner | chain_admin (the same OWNER_ROLES the
+     Integrations card uses), ?stripe=misconfigured without
+     NEXT_PUBLIC_APP_URL. STRIPE_SECRET_KEY missing → misconfigured too.
+     - /api/stripe/connect/start: loadTenantBilling → reuse
+       stripe_account_id or POST /accounts (type=express, country US,
+       card_payments + transfers requested, business_profile.name = dba
+       ?? name, email, metadata.tenant_id) with Idempotency-Key
+       pawn_connect_account_<tenantId> so a double click or a failed
+       save-then-retry cannot mint two accounts; upsert the id on
+       tenant_billing_settings; audit stripe_connect_account_create;
+       POST /account_links (type=account_onboarding, return_url =
+       /api/stripe/connect/callback, refresh_url = /api/stripe/connect/
+       start) and 302 to Stripe.
+     - /api/stripe/connect/callback: the return_url carries NO proof of
+       completion, so GET /accounts/{id} and write the truth: syncAccount
+       Status() → stripe_charges_enabled / stripe_payouts_enabled /
+       stripe_details_submitted / stripe_status_synced_at,
+       billing_enabled = charges_enabled (payment-link.ts's
+       isTenantStripeConnected and the POS gate read it), and
+       stripe_connected_at stamped ONCE the first time the account is
+       fully connected (never moved, never cleared). Audit stripe_connect
+       _status_sync with requirements.currently_due + disabled_reason so
+       /audit shows WHY an account is stuck. Redirect ?stripe=connected
+       or ?stripe=incomplete.
+     - /api/stripe/connect/dashboard: POST /accounts/{id}/login_links and
+       302; not_connected → back to settings; incomplete → into /start.
+     Error paths each log with a [stripe-connect/<route>] prefix and
+     redirect ?stripe=stripe_error (Stripe refused) or save_failed (DB).
+     Links on the card are plain <a>, not <Link> — a client-side
+     navigation into a route handler that 302s off-site would try to
+     fetch an RSC payload from stripe.com.
+
+ 451. WEBHOOK account.updated. /api/stripe/webhook (the Connect endpoint,
+     STRIPE_WEBHOOK_SECRET) now routes account.updated by
+     stripe_account_id → syncAccountStatus; audits only when one of the
+     three flags actually changed (status_before/after + requirements);
+     unknown accounts (the platform's own, stale test accounts) are
+     logged and ignored. This is what flips a shop to Connected hours
+     later when Stripe finishes bank verification, and what turns
+     billing_enabled OFF if Stripe disables charges. The endpoint must
+     be registered in the Dashboard as "Listen to events on Connected
+     accounts" or account.updated never arrives (item 454).
+
+ 452. SETTINGS → INTEGRATIONS + i18n. page.tsx derives status with
+     deriveConnectStatus() (connected = details_submitted AND
+     charges_enabled; payouts pending does not block taking cards),
+     reads ?stripe= through an allowlist, and passes only the account
+     id's LAST 4 to the client. content.tsx: pill Not connected /
+     Onboarding incomplete (new warning-tone 'incomplete' pill) /
+     Connected; rows account •••• last4, connected date, charges,
+     payouts, terminal location, last checked; one action per state
+     (Connect with Stripe / Continue onboarding / Open Stripe dashboard),
+     owner-only otherwise; a banner for every ?stripe= flag. The hub
+     (/settings) "connected" flag uses the same derivation instead of
+     stripe_connected_at. New dictionary section stripeConnect.* in BOTH
+     en.ts and es.ts (es is typed Dictionary, so tsc IS the parity gate
+     — there is no .githooks/pre-push in this repo despite the en.ts
+     header comment). The rest of the integrations page stays hardcoded
+     English (pre-existing Rule 6 debt, out of scope).
+
+ 453. MIGRATION 0069 (NOT APPLIED) + PURE MODULE + GATE FIX.
+     patches/0069-stripe-connect-status.sql: three NOT NULL DEFAULT FALSE
+     booleans + stripe_status_synced_at + a UNIQUE partial index on
+     stripe_account_id (one account ↔ one tenant; the webhook routes by
+     it). src/types/database.ts hand-edited for the four columns (item
+     245 precedent) — `npm run db:types` after applying must produce the
+     same shape. lib/stripe/connect-status.ts is pure (deriveConnect
+     Status, accountIdSuffix, normalizeAppUrl, buildAccountLinkUrls,
+     buildSettingsRedirect, flagForStatus, billingPatchFromAccount) with
+     17 vitest cases. Pre-save gate: stripeFetch/encodeForm/
+     stripeSecretKey existed as three private copies in terminal.ts,
+     payment-link.ts and saas.ts and this work was about to add a
+     fourth — consolidated into src/lib/stripe/http.ts (GET/POST/DELETE,
+     optional Stripe-Account + Idempotency-Key, null/undefined body
+     values skipped — a superset of all three, byte-identical requests
+     for existing callers). Dead view field detailsSubmitted removed.
+
+ 454. VERIFIED / NOT VERIFIED / WHAT EDDY DOES. Verified: tsc --noEmit,
+     eslint, vitest 655/655 (32 files), next build green with the three
+     connect routes in the manifest — twice (before and after the gate
+     fix). NOT verified: anything against Stripe or the live DB; nobody
+     logged in; 0069 unapplied. Smoke (TEST MODE FIRST):
+       1. node scripts/apply-migration.mjs patches/0069-stripe-connect-
+          status.sql, then npm run db:types.
+       2. Stripe Dashboard (the RMS platform account that owns
+          STRIPE_SECRET_KEY) → Settings → Connect: complete the platform
+          profile / onboarding if not done; account type Express;
+          branding (name, icon, color — shown on the hosted onboarding
+          page). Read the Express responsibilities (platform covers
+          negative balances) before live mode.
+       3. Developers → Webhooks → Add endpoint → https://<prod domain>/
+          api/stripe/webhook → "Listen to: Events on Connected accounts"
+          → account.updated, checkout.session.completed,
+          payment_intent.succeeded → copy its signing secret.
+       4. Vercel env (Production + Preview): STRIPE_SECRET_KEY (sk_test_
+          first), STRIPE_WEBHOOK_SECRET = the secret from step 3 (the
+          CONNECT endpoint's, not a platform-account endpoint's),
+          NEXT_PUBLIC_APP_URL = https://<prod domain> with no trailing
+          slash — the Phase 0 punch list still has it open and the
+          Account Link return/refresh URLs are built from it.
+       5. As an owner: Settings → Integrations → Connect with Stripe →
+          fill the hosted form with Stripe's test values (phone
+          000-000-0000, SSN 000000000, routing 110000000 / account
+          000123456789) → return → card reads Connected, charges enabled
+          → Open Stripe dashboard. Check tenant_billing_settings for the
+          tenant and audit_log for stripe_connect_account_create +
+          stripe_connect_status_sync.
+       6. Local alternative: NEXT_PUBLIC_APP_URL=http://localhost:3060
+          works in test mode; forward Connect events with
+          `stripe listen --forward-connect-to localhost:3060/api/stripe/
+          webhook` and put ITS whsec in .env.local.
+     Then merge feature/sol-pawn-brief → main on Eddy's "go".
 
 --- Session 55 (2026-11-03/04) — Brief Phase 0 (spot prices) + Phase 1 (tracking link) + Phase 2 (custom quoter) + Phase 3 (metal counter) + Phase 4 (smaller items) ---
 
@@ -5275,10 +5475,16 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    The brief is done. Two production bugs fixed on main (items 447 +
-    448, both "a 'use server' file exported something that is not an
-    async function"). Every Phase 3/4 action has now been invoked once
-    in production (item 448). Keep taking Eddy's production feedback.
+    Land Stripe Connect (Session 56, branch feature/sol-pawn-brief):
+    apply 0069 + db:types regen, Eddy's Stripe/Vercel setup (item 454
+    steps 2-4), one test-mode connect as an owner (step 5), then merge
+    to main and push on "go". Until 0069 is applied the Integrations
+    page will error on the new columns, so do NOT merge first.
+    Standing from Session 55: the brief is done. Two production bugs
+    fixed on main (items 447 + 448, both "a 'use server' file exported
+    something that is not an async function"). Every Phase 3/4 action
+    has now been invoked once in production (item 448). Keep taking
+    Eddy's production feedback.
     Next code item if nothing is reported: the spot-prices hydration
     mismatch (OPEN ISSUES) — fix shortDateTime/shortDate to use the
     tenant timezone, which also fixes the /audit flake's cousin.
