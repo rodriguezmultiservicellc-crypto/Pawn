@@ -4815,8 +4815,12 @@ export type Database = {
           billing_enabled: boolean
           created_at: string
           stripe_account_id: string | null
+          stripe_charges_enabled: boolean
           stripe_connected_at: string | null
+          stripe_details_submitted: boolean
+          stripe_payouts_enabled: boolean
           stripe_publishable_key: string | null
+          stripe_status_synced_at: string | null
           stripe_terminal_location_id: string | null
           tenant_id: string
           updated_at: string
@@ -4825,8 +4829,12 @@ export type Database = {
           billing_enabled?: boolean
           created_at?: string
           stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
           stripe_connected_at?: string | null
+          stripe_details_submitted?: boolean
+          stripe_payouts_enabled?: boolean
           stripe_publishable_key?: string | null
+          stripe_status_synced_at?: string | null
           stripe_terminal_location_id?: string | null
           tenant_id: string
           updated_at?: string
@@ -4835,8 +4843,12 @@ export type Database = {
           billing_enabled?: boolean
           created_at?: string
           stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
           stripe_connected_at?: string | null
+          stripe_details_submitted?: boolean
+          stripe_payouts_enabled?: boolean
           stripe_publishable_key?: string | null
+          stripe_status_synced_at?: string | null
           stripe_terminal_location_id?: string | null
           tenant_id?: string
           updated_at?: string

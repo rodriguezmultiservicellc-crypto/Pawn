@@ -87,6 +87,9 @@ export type AuditAction =
   | 'buy_outright'
   // SaaS billing (platform-side)
   | 'tenant_plan_change'
+  // Stripe Connect per-tenant onboarding (patches/0069)
+  | 'stripe_connect_account_create'
+  | 'stripe_connect_status_sync'
   // Appraisal-specific
   | 'appraisal_create'
   | 'appraisal_update'

@@ -14,18 +14,31 @@ import {
   WarningCircle,
   WhatsappLogo,
   Plug,
+  Clock,
 } from '@phosphor-icons/react'
+import { useI18n } from '@/lib/i18n/context'
+import {
+  CONNECT_PATHS,
+  type ConnectRedirectFlag,
+  type ConnectStatus,
+} from '@/lib/stripe/connect-status'
 
 export type IntegrationsView = {
   tenantId: string
   role: string | null
   hasRetail: boolean
   stripeConnect: {
-    connected: boolean
-    stripeAccountId: string | null
+    status: ConnectStatus
+    /** Last 4 of the connected account id — never the full id. */
+    accountIdSuffix: string | null
     connectedAt: string | null
     terminalLocationId: string | null
-    billingEnabled: boolean
+    chargesEnabled: boolean
+    payoutsEnabled: boolean
+    detailsSubmitted: boolean
+    statusSyncedAt: string | null
+    /** `?stripe=` flag set by the Connect routes on redirect back here. */
+    flag: ConnectRedirectFlag | null
   }
   twilio: {
     connected: boolean
@@ -61,7 +74,39 @@ export default function IntegrationsContent({
 }: {
   view: IntegrationsView
 }) {
+  const { t } = useI18n()
   const isOwner = !!view.role && OWNER_ROLES.has(view.role)
+
+  const sc = view.stripeConnect
+  const stripeAction = (() => {
+    switch (sc.status) {
+      case 'connected':
+        return {
+          href: CONNECT_PATHS.dashboard,
+          label: t.stripeConnect.action.openDashboard,
+        }
+      case 'onboarding_incomplete':
+        return {
+          href: CONNECT_PATHS.start,
+          label: t.stripeConnect.action.continueOnboarding,
+        }
+      default:
+        return { href: CONNECT_PATHS.start, label: t.stripeConnect.action.connect }
+    }
+  })()
+  const stripePill: PillStatus =
+    sc.status === 'connected'
+      ? 'connected'
+      : sc.status === 'onboarding_incomplete'
+        ? 'incomplete'
+        : 'disconnected'
+  const bannerTone: 'ok' | 'warn' | 'error' | null = sc.flag
+    ? sc.flag === 'connected'
+      ? 'ok'
+      : sc.flag === 'incomplete' || sc.flag === 'not_connected'
+        ? 'warn'
+        : 'error'
+    : null
 
   return (
     <div className="space-y-6">
@@ -84,55 +129,90 @@ export default function IntegrationsContent({
         </p>
       </header>
 
+      {sc.flag && bannerTone ? (
+        <div
+          role="status"
+          className={
+            bannerTone === 'ok'
+              ? 'rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-foreground'
+              : bannerTone === 'warn'
+                ? 'rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-foreground'
+                : 'rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-foreground'
+          }
+        >
+          {t.stripeConnect.banner[sc.flag]}
+        </div>
+      ) : null}
+
       <section className="space-y-3">
         <Card
           icon={<CreditCard size={22} weight="regular" />}
-          title="Stripe Connect"
-          tagline="Card-present POS payments + customer-portal pay-by-link"
-          status={view.stripeConnect.connected ? 'connected' : 'disconnected'}
-          actionHref={
-            view.stripeConnect.connected
-              ? '/settings/integrations/stripe'
-              : '/api/stripe/connect/start'
-          }
-          actionLabel={
-            view.stripeConnect.connected ? 'Manage' : 'Connect Stripe'
-          }
-          actionDisabled={!isOwner && !view.stripeConnect.connected}
-          actionDisabledReason="Owner-only"
+          title={t.stripeConnect.title}
+          tagline={t.stripeConnect.tagline}
+          status={stripePill}
+          statusLabel={t.stripeConnect.status[sc.status]}
+          actionHref={stripeAction.href}
+          actionLabel={stripeAction.label}
+          actionExternal
+          actionDisabled={!isOwner}
+          actionDisabledReason={t.stripeConnect.ownerOnly}
         >
-          {view.stripeConnect.connected ? (
+          <p className="mt-2 text-xs text-muted">
+            {t.stripeConnect.help[sc.status]}
+          </p>
+          {sc.status !== 'not_connected' ? (
             <KvList
               rows={[
                 {
-                  k: 'Account',
-                  v: shortId(view.stripeConnect.stripeAccountId),
+                  k: t.stripeConnect.rows.account,
+                  v: sc.accountIdSuffix
+                    ? t.stripeConnect.rows.accountValue.replace(
+                        '{suffix}',
+                        sc.accountIdSuffix,
+                      )
+                    : '—',
                 },
                 {
-                  k: 'Connected',
-                  v: dateOnly(view.stripeConnect.connectedAt),
+                  k: t.stripeConnect.rows.connectedOn,
+                  v: dateOnly(sc.connectedAt),
                 },
                 {
-                  k: 'Terminal location',
-                  v: view.stripeConnect.terminalLocationId
-                    ? shortId(view.stripeConnect.terminalLocationId)
-                    : 'not paired',
+                  k: t.stripeConnect.rows.charges,
+                  v: sc.chargesEnabled
+                    ? t.stripeConnect.rows.enabled
+                    : t.stripeConnect.rows.pending,
+                  icon: sc.chargesEnabled ? (
+                    <CheckCircle size={11} weight="bold" />
+                  ) : (
+                    <Clock size={11} weight="bold" />
+                  ),
                 },
                 {
-                  k: 'Status',
-                  v: view.stripeConnect.billingEnabled
-                    ? 'enabled'
-                    : 'disabled',
+                  k: t.stripeConnect.rows.payouts,
+                  v: sc.payoutsEnabled
+                    ? t.stripeConnect.rows.enabled
+                    : t.stripeConnect.rows.pending,
+                  icon: sc.payoutsEnabled ? (
+                    <CheckCircle size={11} weight="bold" />
+                  ) : (
+                    <Clock size={11} weight="bold" />
+                  ),
+                },
+                {
+                  k: t.stripeConnect.rows.terminalLocation,
+                  v: sc.terminalLocationId
+                    ? shortId(sc.terminalLocationId)
+                    : t.stripeConnect.rows.notPaired,
+                },
+                {
+                  k: t.stripeConnect.rows.lastChecked,
+                  v: sc.statusSyncedAt
+                    ? dateOnly(sc.statusSyncedAt)
+                    : t.stripeConnect.rows.never,
                 },
               ]}
             />
-          ) : (
-            <p className="mt-2 text-xs text-muted">
-              Required for in-store card payments and online customer
-              payoffs. Each tenant connects its own Stripe account; charges
-              land in your bank, not RMS&apos;s.
-            </p>
-          )}
+          ) : null}
         </Card>
 
         <Card
@@ -293,13 +373,22 @@ export default function IntegrationsContent({
   )
 }
 
+type PillStatus =
+  | 'connected'
+  | 'incomplete'
+  | 'disconnected'
+  | 'sandbox'
+  | 'available'
+
 function Card({
   icon,
   title,
   tagline,
   status,
+  statusLabel,
   actionHref,
   actionLabel,
+  actionExternal,
   actionDisabled,
   actionDisabledReason,
   children,
@@ -307,13 +396,23 @@ function Card({
   icon: React.ReactNode
   title: string
   tagline: string
-  status: 'connected' | 'disconnected' | 'sandbox' | 'available'
+  status: PillStatus
+  /** Override the pill text (i18n). Defaults to the English status word. */
+  statusLabel?: string
   actionHref: string
   actionLabel: string
+  /**
+   * Render a plain anchor instead of <Link>. Required for route handlers
+   * that 302 off-site (Stripe onboarding / dashboard) — a client-side
+   * navigation would try to fetch an RSC payload from the redirect target.
+   */
+  actionExternal?: boolean
   actionDisabled?: boolean
   actionDisabledReason?: string
   children?: React.ReactNode
 }) {
+  const actionClass =
+    'inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-background'
   return (
     <article className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-start gap-3">
@@ -324,7 +423,7 @@ function Card({
               <h2 className="text-base font-semibold text-foreground">{title}</h2>
               <p className="text-xs text-muted">{tagline}</p>
             </div>
-            <StatusPill status={status} />
+            <StatusPill status={status} label={statusLabel} />
           </div>
           {children}
         </div>
@@ -336,11 +435,13 @@ function Card({
             >
               {actionLabel}
             </span>
+          ) : actionExternal ? (
+            <a href={actionHref} className={actionClass}>
+              {actionLabel}
+              <ArrowRight size={11} weight="bold" />
+            </a>
           ) : (
-            <Link
-              href={actionHref}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-background"
-            >
+            <Link href={actionHref} className={actionClass}>
               {actionLabel}
               <ArrowRight size={11} weight="bold" />
             </Link>
@@ -353,35 +454,44 @@ function Card({
 
 function StatusPill({
   status,
+  label,
 }: {
-  status: 'connected' | 'disconnected' | 'sandbox' | 'available'
+  status: PillStatus
+  label?: string
 }) {
   switch (status) {
     case 'connected':
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success">
           <CheckCircle size={10} weight="bold" />
-          Connected
+          {label ?? 'Connected'}
+        </span>
+      )
+    case 'incomplete':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
+          <Clock size={10} weight="bold" />
+          {label ?? 'Incomplete'}
         </span>
       )
     case 'sandbox':
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
           <CheckCircle size={10} weight="bold" />
-          Sandbox
+          {label ?? 'Sandbox'}
         </span>
       )
     case 'available':
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">
-          Available
+          {label ?? 'Available'}
         </span>
       )
     default:
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">
           <WarningCircle size={10} weight="bold" />
-          Disconnected
+          {label ?? 'Disconnected'}
         </span>
       )
   }

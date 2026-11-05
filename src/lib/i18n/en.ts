@@ -4664,6 +4664,57 @@ export const en = {
       consignment_failed: 'That could not be saved. Try again.',
     },
   },
+  // Settings → Integrations → Stripe Connect card (per-tenant Express
+  // onboarding; routes under /api/stripe/connect/*).
+  stripeConnect: {
+    title: 'Stripe Connect',
+    tagline: 'Card-present POS payments + customer-portal pay-by-link',
+    status: {
+      not_connected: 'Not connected',
+      onboarding_incomplete: 'Onboarding incomplete',
+      connected: 'Connected',
+    },
+    action: {
+      connect: 'Connect with Stripe',
+      continueOnboarding: 'Continue onboarding',
+      openDashboard: 'Open Stripe dashboard',
+    },
+    ownerOnly: 'Owner-only',
+    help: {
+      not_connected:
+        'Required for in-store card payments and online customer payoffs. Each shop connects its own Stripe account; charges land in your bank, not RMS’s.',
+      onboarding_incomplete:
+        'Stripe still needs information before this shop can take card payments. Continue onboarding to finish — it picks up where you left off.',
+      connected:
+        'Card payments are live. Payouts, balance, and disputes are managed in your Stripe dashboard.',
+    },
+    rows: {
+      account: 'Account',
+      accountValue: '•••• {suffix}',
+      connectedOn: 'Connected',
+      terminalLocation: 'Terminal location',
+      notPaired: 'not paired',
+      charges: 'Charges',
+      payouts: 'Payouts',
+      lastChecked: 'Last checked',
+      enabled: 'enabled',
+      pending: 'pending',
+      never: 'never',
+    },
+    banner: {
+      connected: 'Stripe is connected. This shop can take card payments.',
+      incomplete:
+        'Onboarding saved but not finished — Stripe still needs more information before charges are enabled.',
+      not_connected: 'No Stripe account is linked to this shop yet.',
+      forbidden: 'Only the shop owner can connect Stripe.',
+      misconfigured:
+        'Stripe is not configured on the platform (missing secret key or app URL). Contact Sol Pawn support.',
+      stripe_error:
+        'Stripe returned an error. Try again in a moment; if it keeps happening, contact Sol Pawn support.',
+      save_failed:
+        'Stripe responded but the status could not be saved. Try again.',
+    },
+  },
 }
 
 export type Dictionary = typeof en

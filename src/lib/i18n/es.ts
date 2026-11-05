@@ -4669,4 +4669,53 @@ export const es: Dictionary = {
       consignment_failed: 'No se pudo guardar. Inténtalo de nuevo.',
     },
   },
+  stripeConnect: {
+    title: 'Stripe Connect',
+    tagline: 'Pagos con tarjeta en tienda + pago en línea desde el portal del cliente',
+    status: {
+      not_connected: 'No conectado',
+      onboarding_incomplete: 'Registro incompleto',
+      connected: 'Conectado',
+    },
+    action: {
+      connect: 'Conectar con Stripe',
+      continueOnboarding: 'Continuar el registro',
+      openDashboard: 'Abrir panel de Stripe',
+    },
+    ownerOnly: 'Solo el dueño',
+    help: {
+      not_connected:
+        'Necesario para cobrar con tarjeta en tienda y para que los clientes paguen en línea. Cada tienda conecta su propia cuenta de Stripe; el dinero llega a tu banco, no al de RMS.',
+      onboarding_incomplete:
+        'Stripe todavía necesita información antes de que esta tienda pueda cobrar con tarjeta. Continúa el registro para terminarlo — retoma donde lo dejaste.',
+      connected:
+        'Los pagos con tarjeta están activos. Los depósitos, el saldo y las disputas se manejan en tu panel de Stripe.',
+    },
+    rows: {
+      account: 'Cuenta',
+      accountValue: '•••• {suffix}',
+      connectedOn: 'Conectado',
+      terminalLocation: 'Ubicación de terminal',
+      notPaired: 'sin vincular',
+      charges: 'Cobros',
+      payouts: 'Depósitos',
+      lastChecked: 'Última revisión',
+      enabled: 'activos',
+      pending: 'pendientes',
+      never: 'nunca',
+    },
+    banner: {
+      connected: 'Stripe está conectado. Esta tienda ya puede cobrar con tarjeta.',
+      incomplete:
+        'El registro se guardó pero no está terminado — Stripe todavía necesita más información antes de activar los cobros.',
+      not_connected: 'Esta tienda aún no tiene una cuenta de Stripe vinculada.',
+      forbidden: 'Solo el dueño de la tienda puede conectar Stripe.',
+      misconfigured:
+        'Stripe no está configurado en la plataforma (falta la clave secreta o la URL de la app). Contacta a soporte de Sol Pawn.',
+      stripe_error:
+        'Stripe devolvió un error. Inténtalo de nuevo en un momento; si persiste, contacta a soporte de Sol Pawn.',
+      save_failed:
+        'Stripe respondió pero no se pudo guardar el estado. Inténtalo de nuevo.',
+    },
+  },
 }

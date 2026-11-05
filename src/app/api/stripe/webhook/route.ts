@@ -11,6 +11,11 @@ import {
   findStripeLinkByPaymentIntentId,
   updateStripeLinkBySessionId,
 } from '@/lib/portal/stripe-payment-links'
+import {
+  findTenantByStripeAccountId,
+  syncAccountStatus,
+} from '@/lib/stripe/connect'
+import { deriveConnectStatus } from '@/lib/stripe/connect-status'
 import type {
   LoanEventInsert,
   LoanEventRow,
@@ -28,6 +33,14 @@ import type {
  *   payment_intent.succeeded     — fallback (some integrations emit this for
  *                                   Checkout sessions; we read metadata to
  *                                   resolve the right kind/source).
+ *   account.updated              — Connect onboarding status changed on a
+ *                                   tenant's Express account; mirror the
+ *                                   charges / payouts / details flags onto
+ *                                   tenant_billing_settings (patches/0069).
+ *
+ * This endpoint must be registered in the Stripe Dashboard as a CONNECT
+ * webhook ("Listen to events on Connected accounts") so events from every
+ * tenant's account arrive here with `event.account` set.
  *
  * Signature verification:
  *   Stripe signs the request with the per-endpoint signing secret. Until
@@ -67,6 +80,18 @@ type PaymentIntentLite = {
   metadata?: Record<string, string> | null
 }
 
+type AccountLite = {
+  id: string
+  charges_enabled?: boolean | null
+  payouts_enabled?: boolean | null
+  details_submitted?: boolean | null
+  metadata?: Record<string, string> | null
+  requirements?: {
+    currently_due?: string[]
+    disabled_reason?: string | null
+  } | null
+}
+
 export async function POST(request: NextRequest) {
   const raw = await request.text()
   const sig = request.headers.get('stripe-signature') ?? ''
@@ -95,6 +120,9 @@ export async function POST(request: NextRequest) {
     } else if (event.type === 'payment_intent.succeeded') {
       const pi = event.data.object as PaymentIntentLite
       await handlePaymentIntentSucceeded(pi)
+    } else if (event.type === 'account.updated') {
+      const account = event.data.object as AccountLite
+      await handleAccountUpdated(account)
     }
     return NextResponse.json({ received: true })
   } catch (err) {
@@ -208,6 +236,67 @@ async function handlePaymentIntentSucceeded(
   }
 
   await markLinkPaid(link.stripe_session_id, pi.id)
+}
+
+/**
+ * Mirror a connected account's onboarding flags onto the owning tenant.
+ * Routing is by stripe_account_id (unique partial index, 0069). Accounts
+ * we do not know (platform account itself, stale test accounts) are
+ * ignored — no row, no write.
+ */
+async function handleAccountUpdated(account: AccountLite): Promise<void> {
+  if (!account?.id) return
+  const billing = await findTenantByStripeAccountId(account.id)
+  if (!billing) {
+    console.warn('[stripe-webhook] account.updated for unknown account', account.id)
+    return
+  }
+
+  const before = deriveConnectStatus({
+    stripeAccountId: billing.stripe_account_id,
+    chargesEnabled: billing.stripe_charges_enabled,
+    payoutsEnabled: billing.stripe_payouts_enabled,
+    detailsSubmitted: billing.stripe_details_submitted,
+  })
+
+  const patch = await syncAccountStatus({
+    tenantId: billing.tenant_id,
+    account,
+    existingConnectedAt: billing.stripe_connected_at,
+  })
+
+  const after = deriveConnectStatus({
+    stripeAccountId: account.id,
+    chargesEnabled: patch.stripe_charges_enabled,
+    payoutsEnabled: patch.stripe_payouts_enabled,
+    detailsSubmitted: patch.stripe_details_submitted,
+  })
+
+  const flagsChanged =
+    billing.stripe_charges_enabled !== patch.stripe_charges_enabled ||
+    billing.stripe_payouts_enabled !== patch.stripe_payouts_enabled ||
+    billing.stripe_details_submitted !== patch.stripe_details_submitted
+  if (!flagsChanged) return
+
+  await logAudit({
+    tenantId: billing.tenant_id,
+    userId: null,
+    action: 'stripe_connect_status_sync',
+    tableName: 'tenant_billing_settings',
+    recordId: billing.tenant_id,
+    changes: {
+      via: 'stripe_webhook',
+      event: 'account.updated',
+      stripe_account_id: account.id,
+      status_before: before,
+      status_after: after,
+      charges_enabled: patch.stripe_charges_enabled,
+      payouts_enabled: patch.stripe_payouts_enabled,
+      details_submitted: patch.stripe_details_submitted,
+      requirements_currently_due: account.requirements?.currently_due ?? [],
+      disabled_reason: account.requirements?.disabled_reason ?? null,
+    },
+  })
 }
 
 async function applyLoanPayment(args: {

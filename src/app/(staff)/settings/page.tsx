@@ -3,6 +3,7 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { loadConfiguredSecretKinds } from '@/lib/secrets/vault'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { deriveConnectStatus } from '@/lib/stripe/connect-status'
 import SettingsContent, { type SettingsHubView } from './content'
 
 const SETTINGS_ROLES = new Set(['owner', 'chain_admin', 'manager'])
@@ -44,7 +45,9 @@ export default async function SettingsPage() {
       .maybeSingle(),
     admin
       .from('tenant_billing_settings')
-      .select('stripe_account_id, stripe_connected_at, billing_enabled')
+      .select(
+        'stripe_account_id, stripe_connected_at, billing_enabled, stripe_charges_enabled, stripe_details_submitted',
+      )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
     admin
@@ -97,7 +100,12 @@ export default async function SettingsPage() {
     role: ctx.tenantRole,
     integrations: {
       stripeConnect: {
-        connected: !!(billing?.stripe_account_id && billing.stripe_connected_at),
+        connected:
+          deriveConnectStatus({
+            stripeAccountId: billing?.stripe_account_id,
+            chargesEnabled: billing?.stripe_charges_enabled,
+            detailsSubmitted: billing?.stripe_details_submitted,
+          }) === 'connected',
         billingEnabled: billing?.billing_enabled ?? false,
       },
       twilio: { connected: !!(settings?.twilio_account_sid && secrets.has('twilio_auth_token')) },
