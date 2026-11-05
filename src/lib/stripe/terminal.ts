@@ -33,16 +33,7 @@
 
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-const STRIPE_API_BASE = 'https://api.stripe.com/v1'
-
-function stripeSecretKey(): string {
-  const k = process.env.STRIPE_SECRET_KEY
-  if (!k) {
-    throw new Error('stripe_secret_key_missing')
-  }
-  return k
-}
+import { stripeFetch } from './http'
 
 /**
  * Look up the connected account ID for a tenant. Throws
@@ -63,48 +54,6 @@ async function getStripeAccountId(tenantId: string): Promise<string> {
     throw new Error('tenant_stripe_not_connected')
   }
   return data.stripe_account_id
-}
-
-/**
- * URL-encode a record for Stripe's form-encoded body.
- */
-function encodeForm(body: Record<string, string | number>): string {
-  const params = new URLSearchParams()
-  for (const [k, v] of Object.entries(body)) {
-    params.append(k, String(v))
-  }
-  return params.toString()
-}
-
-async function stripeFetch<T>(
-  path: string,
-  init: {
-    method: 'POST' | 'GET'
-    body?: Record<string, string | number>
-    accountId?: string
-  },
-): Promise<T> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${stripeSecretKey()}`,
-    'Content-Type': 'application/x-www-form-urlencoded',
-  }
-  if (init.accountId) {
-    headers['Stripe-Account'] = init.accountId
-  }
-  const res = await fetch(`${STRIPE_API_BASE}${path}`, {
-    method: init.method,
-    headers,
-    body: init.body ? encodeForm(init.body) : undefined,
-    cache: 'no-store',
-  })
-  const json = (await res.json()) as unknown
-  if (!res.ok) {
-    const msg =
-      (json as { error?: { message?: string } })?.error?.message ??
-      `stripe_http_${res.status}`
-    throw new Error(msg)
-  }
-  return json as T
 }
 
 export type CardPresentPaymentIntent = {

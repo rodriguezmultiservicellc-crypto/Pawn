@@ -35,7 +35,6 @@ export type IntegrationsView = {
     terminalLocationId: string | null
     chargesEnabled: boolean
     payoutsEnabled: boolean
-    detailsSubmitted: boolean
     statusSyncedAt: string | null
     /** `?stripe=` flag set by the Connect routes on redirect back here. */
     flag: ConnectRedirectFlag | null

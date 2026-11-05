@@ -115,7 +115,6 @@ export default async function IntegrationsPage(props: {
       terminalLocationId: billing?.stripe_terminal_location_id ?? null,
       chargesEnabled: billing?.stripe_charges_enabled ?? false,
       payoutsEnabled: billing?.stripe_payouts_enabled ?? false,
-      detailsSubmitted: billing?.stripe_details_submitted ?? false,
       statusSyncedAt: billing?.stripe_status_synced_at ?? null,
       flag: stripeFlag,
     },
