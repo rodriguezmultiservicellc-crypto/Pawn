@@ -69,12 +69,13 @@ OPERATION IN FLIGHT: none
                   Para Cuba Solutions (read-only). patches/0070 APPLIED,
                   0069 APPLIED (additive; needed so database.ts could be
                   regenerated instead of hand-edited). Everything green
-                  + driven headless against a local orocut mock. On
-                  branch feature/sol-pawn-brief, pushed to origin, NOT
-                  merged to main: Session 56's Stripe Connect sits on
-                  the same branch gated on Eddy's "go" (item 454).
+                  + driven headless against a local orocut mock. Eddy
+                  said "merge it to main" (2026-11-09): main fast-
+                  forwarded to e2caeb2 and pushed — Stripe Connect (S56)
+                  and the laser orders (S57) are BOTH in production now.
                   Eddy must create the order token + webhook secret at
-                  orocut.com/account before the first real order.
+                  orocut.com/account before the first real order, and
+                  do the Stripe setup (item 454) before Connect works.
 
                   PRIOR SESSION (56, 2026-11-04/05) — STRIPE CONNECT
                   PER-TENANT ONBOARDING (items 449-454), dispatched by
@@ -325,11 +326,11 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~55% at save time (2026-11-09). Session 57 = the laser
-                  orders commit on feature/sol-pawn-brief (pushed to
-                  origin, NOT merged to main). Session 56 = be86068
-                  (Connect routes + UI + 0069) + 48deb05 + checkpoint
-                  c518613 on the same branch. Session 55: Phase 0 =
+  Context budget: ~55% at save time (2026-11-09). Session 57 = e2caeb2
+                  (laser orders); main == feature/sol-pawn-brief ==
+                  origin/main at e2caeb2 after Eddy's "merge it to main".
+                  Session 56 = be86068 (Connect routes + UI + 0069) +
+                  48deb05 + checkpoint c518613. Session 55: Phase 0 =
                   b3603ce, Phase 1 = bba152a, Phase 2 = 3d200cb, PDF
                   font-trace fix = 0a36edf, Phase 3 = a771ee1, Phase 4.1 =
                   baf814a, 4.2 = 111004c, 4.3 = eb0afee, 4.4 = a9479ce,
@@ -5628,14 +5629,14 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Branch feature/sol-pawn-brief (pushed) holds two unmerged pieces:
-    Stripe Connect (S56, item 454) and Laser nameplate orders (S57,
-    item 460). 0069 + 0070 are APPLIED, so merging no longer breaks the
-    Integrations page. On Eddy's "go": ff main + push (Vercel deploys).
-    Then Eddy's hands: orocut.com/account token + webhook secret →
-    Settings → Integrations → OroCut (item 460); Stripe setup (item 454
-    steps 2-5). If the first real order misbehaves, the row's
-    last_sync_error and audit_log (table laser_orders) say why.
+    Both S56 (Stripe Connect) and S57 (laser orders) are on main and in
+    production (e2caeb2, 2026-11-09). Eddy's hands next: orocut.com/
+    account token + webhook secret → Settings → Integrations → OroCut
+    (item 460); Stripe setup (item 454 steps 2-5). Take his feedback
+    from the first real laser order — the row's last_sync_error and
+    audit_log (table laser_orders) say why if something misbehaves.
+    Next code item if nothing is reported: the spot-prices hydration
+    mismatch (OPEN ISSUES) — tenant-timezone date formatting.
     Standing from Session 55: the brief is done. Two production bugs
     fixed on main (items 447 + 448, both "a 'use server' file exported
     something that is not an async function"). Every Phase 3/4 action
