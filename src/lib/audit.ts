@@ -167,6 +167,11 @@ export type AuditAction =
   | 'custom_quote_link_revoke'
   | 'custom_quote_print'
   | 'custom_quote_settings'
+  // Laser nameplate orders (patches/0070)
+  | 'laser_order_send'
+  | 'laser_order_cancel'
+  | 'laser_order_status'
+  | 'orocut_settings'
 
 export async function logAudit(args: {
   tenantId: string

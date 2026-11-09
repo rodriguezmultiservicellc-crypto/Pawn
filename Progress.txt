@@ -60,10 +60,26 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 56 (2026-11-04/05) — STRIPE CONNECT PER-TENANT
-                  ONBOARDING (items 449-454), dispatched by the Manager
-                  session onto branch feature/sol-pawn-brief (NOT on
-                  main, NOT pushed). The one not-started piece every
+  Last session:   Session 57 (2026-11-09) — LASER NAMEPLATE ORDERS
+                  (items 455-460): "Send to laser" on a repair ticket →
+                  orocut.com order API → OroCut on the laser PC; status
+                  back by signed webhook + polling. From the OroCut
+                  session's handoff (spec 2026-11-09-nameplate-orders-
+                  design.md) and checked against the LIVE API code in
+                  Para Cuba Solutions (read-only). patches/0070 APPLIED,
+                  0069 APPLIED (additive; needed so database.ts could be
+                  regenerated instead of hand-edited). Everything green
+                  + driven headless against a local orocut mock. On
+                  branch feature/sol-pawn-brief, pushed to origin, NOT
+                  merged to main: Session 56's Stripe Connect sits on
+                  the same branch gated on Eddy's "go" (item 454).
+                  Eddy must create the order token + webhook secret at
+                  orocut.com/account before the first real order.
+
+                  PRIOR SESSION (56, 2026-11-04/05) — STRIPE CONNECT
+                  PER-TENANT ONBOARDING (items 449-454), dispatched by
+                  the Manager session onto branch feature/sol-pawn-brief
+                  (NOT on main, NOT pushed). The one not-started piece every
                   Stripe surface depended on: terminal.ts and
                   payment-link.ts both require
                   tenant_billing_settings.stripe_account_id and nothing
@@ -85,8 +101,9 @@ OPERATION IN FLIGHT: none
                     onboarding incomplete / connected), account last-4,
                     charges + payouts, one action per state, ?stripe=
                     result banner. EN + ES.
-                  - patches/0069 written, NOT APPLIED; database.ts hand-
-                    edited to match (item 245 precedent).
+                  - patches/0069 written, NOT APPLIED in S56; database.ts
+                    hand-edited to match (item 245 precedent). S57 applied
+                    0069 and regenerated database.ts (no hand edits left).
                   - Gate fix: ONE Stripe REST transport
                     (lib/stripe/http.ts) replaces four private copies.
                   - NOT smoke-tested against Stripe at all (no login, no
@@ -308,26 +325,45 @@ OPERATION IN FLIGHT: none
                     owes a person whose record would otherwise vanish.
                   - CLAUDE.md rule 19 records both conventions.
 
-  Context budget: ~15% at save time (2026-11-05, worker session).
-                  Session 56 = be86068 (Connect routes + UI + 0069) and
-                  the Session 56 checkpoint on feature/sol-pawn-brief —
-                  NOT pushed, NOT merged to main. Session 55: Phase 0 =
+  Context budget: ~55% at save time (2026-11-09). Session 57 = the laser
+                  orders commit on feature/sol-pawn-brief (pushed to
+                  origin, NOT merged to main). Session 56 = be86068
+                  (Connect routes + UI + 0069) + 48deb05 + checkpoint
+                  c518613 on the same branch. Session 55: Phase 0 =
                   b3603ce, Phase 1 = bba152a, Phase 2 = 3d200cb, PDF
                   font-trace fix = 0a36edf, Phase 3 = a771ee1, Phase 4.1 =
                   baf814a, 4.2 = 111004c, 4.3 = eb0afee, 4.4 = a9479ce,
                   prod fixes 3ba0aa1 + 0ce71b7; all fast-forwarded into
                   main.
-  Last worked on: Stripe Connect onboarding (items 449-454) — code
-                  complete and green (tsc, eslint, 655 tests, next
-                  build) but 0069 is unapplied and the flow has never
-                  touched Stripe. Next hands are Eddy's: apply 0069,
-                  set the Stripe Connect settings + webhook + Vercel env
-                  (item 454), then click "Connect with Stripe" once in
-                  test mode.
+  Last worked on: Laser nameplate orders (items 455-460) — complete,
+                  green (tsc, eslint, 669 tests, next build) and driven
+                  headless against a local orocut.com mock (send, signed
+                  webhook, bad signature → 401, poll with cut details,
+                  cancel, timeline notes, audit). Never touched the real
+                  orocut.com: Eddy creates the order token + webhook
+                  secret at orocut.com/account first (item 460). Stripe
+                  Connect (S56) still waits on Eddy's Stripe setup +
+                  "go" (item 454); both ship together when main is
+                  fast-forwarded.
 
   ACTIVE FILE(S) (all committed):
+    Session 57 (feature/sol-pawn-brief):
+    - patches/0070-laser-orders.sql (APPLIED 2026-11-09)
+    - src/lib/orocut/{status,merge,signature,client,sync}.ts
+      (+ merge.test, signature.test — 14 tests)
+    - src/lib/validations/laser-order.ts
+    - src/app/(staff)/repair/laser-actions.ts (send / cancel / refresh)
+    - src/components/repair/LaserOrderPanel.tsx
+    - src/app/(staff)/repair/[id]/{page,content}.tsx (panel wired)
+    - src/app/(staff)/settings/integrations/orocut/{page,content,actions}
+    - src/app/(staff)/settings/integrations/{page,content}.tsx (card)
+    - src/app/api/webhooks/orocut/route.ts
+    - src/app/api/cron/sync-laser-orders/route.ts + vercel.json (*/5)
+    - src/lib/secrets/vault.ts (2 kinds), src/lib/audit.ts (4 actions),
+      src/lib/i18n/{en,es}.ts (repair.laser.*, orocut.*)
+    - src/types/database.ts (REGENERATED — 0069 + 0070 columns)
     Session 56 (feature/sol-pawn-brief):
-    - patches/0069-stripe-connect-status.sql (NOT APPLIED)
+    - patches/0069-stripe-connect-status.sql (APPLIED 2026-11-09 by S57)
     - src/lib/stripe/connect-status.ts (+ .test.ts, pure, 17 tests)
     - src/lib/stripe/connect.ts (Stripe + DB, server-only)
     - src/lib/stripe/connect-guard.ts (owner-tier guard for the routes)
@@ -337,8 +373,8 @@ OPERATION IN FLIGHT: none
     - src/app/api/stripe/webhook/route.ts (account.updated)
     - src/app/(staff)/settings/integrations/{page,content}.tsx
     - src/app/(staff)/settings/page.tsx (hub "connected" = derived status)
-    - src/lib/audit.ts (2 actions), src/types/database.ts (hand-edited
-      0069 columns), src/lib/i18n/{en,es}.ts (stripeConnect.*)
+    - src/lib/audit.ts (2 actions), src/lib/i18n/{en,es}.ts
+      (stripeConnect.*)
     Session 55:
     - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4, ALL DONE)
     Phase 4:
@@ -1167,6 +1203,123 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      `ƒ /settings/integrations/google-reviews`.
      Slice ready for operator smoke against
      production after this commit lands.
+
+--- Session 57 (2026-11-09) — Laser nameplate orders: Sol Pawn → orocut.com → OroCut (branch feature/sol-pawn-brief) ---
+
+ 455. LASER ORDERS — SCHEMA (patches/0070, APPLIED). Enum
+     laser_order_status (new / received / cut / done / rejected /
+     cancelled). Table laser_orders: one row per order SENT (created only
+     once orocut.com answered with an order_id) — tenant_id,
+     repair_ticket_id (RESTRICT), external_id = ticket_number,
+     orocut_order_id (UNIQUE — the webhook resolves the tenant from it),
+     the payload as sent (text, text2, style, quantity, metal,
+     thickness_mm, chain_length_in, height_mm, customer_name, due_at,
+     notes, picture_url), what came back (reject_reason, cut_details
+     JSONB, cut_count, status_history JSONB [{status, at, via, by,
+     reason}], remote_updated_at, last_synced_at, last_sync_error),
+     sent_by/sent_at/finished_at, soft-delete. Partial unique index: ONE
+     open order per ticket. Trigger: the payload as sent is immutable
+     and a final status never moves. RLS mirrors repair_tickets.
+     settings.orocut_style_names TEXT[] (the shop's OroCut style names,
+     typed by hand). The order token + webhook secret are vault kinds
+     orocut_order_token / orocut_webhook_secret — never a column.
+     DESIGN: the order hangs off the REPAIR TICKET, not the custom quote
+     — the quote is terminal once converted; the ticket is the thing
+     being made (number, due date, customer).
+
+ 456. LIB src/lib/orocut. status.ts (statuses, open set). merge.ts
+     (PURE): mergeRemoteStatus(row, remote, via) — a remote observation
+     counts only when NEWER than remote_updated_at (webhook retries and
+     stale polls change nothing), same status again is a no-op except
+     `cut` which bumps cut_count, rejected keeps the reason, final
+     stamps finished_at; 10 tests. signature.ts: X-OroCut-Signature
+     sha256=<hex|base64 HMAC> constant-time; 3 tests. client.ts
+     (server-only): createOrder (409 → conflict + existing order_id),
+     getOrder (tolerant parser incl. history), cancelOrder (409 →
+     refused + current status), probeToken (GET ?external_id=… — 401 vs
+     404 tells a bad token from a good one); base URL OROCUT_API_BASE
+     (platform env, mock/staging) or https://orocut.com; 15 s timeout;
+     the token never logs. sync.ts: applyRemoteStatus (merge + update +
+     audit laser_order_status/cancel + a "Laser: …" note on the ticket
+     timeline) and syncLaserOrder (GET + apply; errors land in
+     last_sync_error, never thrown).
+
+ 457. SEND TO LASER — UI + ACTIONS + ROUTES. LaserOrderPanel on the ticket
+     (under the tracking link): hidden unless the token is in the vault
+     (owners see a one-line "Connect OroCut" hint); Send to laser opens
+     an inline form (name, second line, style from the shop's list or
+     free text, qty, metal, thickness, letter height, chain length,
+     customer + due prefilled from the ticket, notes, https picture
+     link); an open order shows status badge, external id, cut count +
+     last cut size/minutes, history, Check status, Cancel order; earlier
+     orders fold under <details>; the panel re-polls every 60 s while
+     an order is open and the tab is visible. laser-actions.ts
+     (async-only 'use server'): sendToLaserAction (zod → STAFF repair
+     roles → ticket not closed → no open order → token → POST →
+     insert; 409 with an unknown order_id is ADOPTED then synced;
+     callback_url only when the webhook secret is saved AND APP_URL is
+     https), cancelLaserOrderAction (POST /cancel; 409 → sync + error
+     cancel_refused with the real status), refreshLaserOrderAction.
+     /api/webhooks/orocut: resolve row by order_id → tenant's webhook
+     secret → verify → merge; unknown order 404 (orocut.com retries),
+     bad signature 401. /api/cron/sync-laser-orders (*/5, CRON_SECRET):
+     open orders not checked in 4 min, 100 per run, one token lookup per
+     tenant. /settings/integrations/orocut (owner/chain_admin): order
+     token + webhook secret (write-only, format-checked, clear checkbox),
+     style names one per line (dedup, ≤100, ≤80 chars), webhook URL
+     shown, Test token. Integrations index card (open orders + style
+     count). Audit: laser_order_send / _cancel / _status,
+     orocut_settings. i18n repair.laser.* + orocut.* EN+ES.
+
+ 458. LIVE API CHECK. Eddy said the orders API is live (Tocoloro
+     session); the two handoff .md files are not on this disk, so the
+     contract was read from Para Cuba Solutions src/lib/licensing/
+     {orders,orders-api}.ts (read-only, other lane). Differences from
+     the spec that changed the build: (1) webhooks are signed with a
+     SEPARATE whsec_+48hex secret issued beside the token, not the token
+     → second vault kind + settings field; without it we send no
+     callback_url and rely on polling. (2) token is ord_+40hex → regex
+     field check. (3) envelope {ok, …}; 409 duplicate_external_id
+     carries order_id + status; cancel 409 invalid_transition carries
+     status; GET returns orderJson + history [{status, by, reason,
+     details, at}] — all already parsed. (4) create body is .strict():
+     we send only known keys and omit empties. (5) callback host must
+     be https, non-private, with a dot — Vercel prod URL qualifies.
+
+ 459. VERIFIED. tsc --noEmit, eslint, vitest 669/669 (34 files, +14),
+     next build. Headless drive (scratchpad drive-laser.mjs + orocut-
+     mock.mjs, dev on :3060 with OROCUT_API_BASE=http://localhost:4100,
+     live Supabase): token format rejected → save → Connected → Test
+     token OK → ticket RT-000002 Send to laser → row inserted (status
+     new) → mock pushed `received` with a VALID signature → 200 +
+     panel "At the laser" → forged signature → 401 → mock moved to
+     `cut` with details → Check status → "Cut" + "31.2×8 mm" → Cancel →
+     mock sees cancelled, Send button back → 4 timeline notes, 5 audit
+     rows. Test rows, notes, token and styles cleaned up afterwards
+     (audit rows stay — never deletable). Also applied patches/0069 (S56
+     left it unapplied with database.ts hand-edited; db:types for 0070
+     erased those edits, and the correct fix is the migration, not more
+     hand edits — additive columns, inert until Stripe is configured).
+     LESSON (drive scripts): CSS `uppercase` reaches innerText — match
+     badges in CAPS; and never clean up before the action's own insert
+     has been observed (run 1 deleted rows the insert had not written
+     yet, leaving a stale open order for run 2).
+
+ 460. NOT VERIFIED / WHAT EDDY DOES. Nothing has touched the real
+     orocut.com. To go live: (1) orocut.com/account → "Sol Pawn
+     connection" → create an order token; copy the ord_… token AND the
+     whsec_… webhook secret (both shown once). (2) Sol Pawn → Settings →
+     Integrations → OroCut: paste both, type the OroCut style names one
+     per line, Save, Test token → "accepted". (3) Open a nameplate
+     repair ticket → Send to laser → fill the name/style → within ~15 s
+     the Orders button lights up in OroCut on the laser PC and the
+     panel reads "At the laser". (4) Operator Make → Insert → Send on
+     the laser → panel reads "Cut" with size/minutes; Done → "Done".
+     Production needs this branch on main: Stripe Connect (S56) is on
+     the same branch and waits on item 454 + "go"; if the laser work
+     should go live first, cherry-pick the S57 commit onto main (it
+     touches settings/integrations/{page,content} that S56 also
+     changed — expect a small conflict there).
 
 --- Session 56 (2026-11-04/05) — Stripe Connect per-tenant Express onboarding (branch feature/sol-pawn-brief, dispatched by the Manager session) ---
 
@@ -5475,11 +5628,14 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Land Stripe Connect (Session 56, branch feature/sol-pawn-brief):
-    apply 0069 + db:types regen, Eddy's Stripe/Vercel setup (item 454
-    steps 2-4), one test-mode connect as an owner (step 5), then merge
-    to main and push on "go". Until 0069 is applied the Integrations
-    page will error on the new columns, so do NOT merge first.
+    Branch feature/sol-pawn-brief (pushed) holds two unmerged pieces:
+    Stripe Connect (S56, item 454) and Laser nameplate orders (S57,
+    item 460). 0069 + 0070 are APPLIED, so merging no longer breaks the
+    Integrations page. On Eddy's "go": ff main + push (Vercel deploys).
+    Then Eddy's hands: orocut.com/account token + webhook secret →
+    Settings → Integrations → OroCut (item 460); Stripe setup (item 454
+    steps 2-5). If the first real order misbehaves, the row's
+    last_sync_error and audit_log (table laser_orders) say why.
     Standing from Session 55: the brief is done. Two production bugs
     fixed on main (items 447 + 448, both "a 'use server' file exported
     something that is not an async function"). Every Phase 3/4 action

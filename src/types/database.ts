@@ -2273,6 +2273,123 @@ export type Database = {
         }
         Relationships: []
       }
+      laser_orders: {
+        Row: {
+          chain_length_in: number | null
+          created_at: string
+          customer_name: string | null
+          cut_count: number
+          cut_details: Json | null
+          deleted_at: string | null
+          due_at: string | null
+          external_id: string
+          finished_at: string | null
+          height_mm: number | null
+          id: string
+          last_sync_error: string | null
+          last_synced_at: string | null
+          metal: string | null
+          notes: string | null
+          orocut_order_id: string
+          picture_url: string | null
+          quantity: number
+          reject_reason: string | null
+          remote_updated_at: string | null
+          repair_ticket_id: string
+          sent_at: string
+          sent_by: string | null
+          status: Database["public"]["Enums"]["laser_order_status"]
+          status_history: Json
+          style: string | null
+          tenant_id: string
+          text: string
+          text2: string | null
+          thickness_mm: number | null
+          updated_at: string
+        }
+        Insert: {
+          chain_length_in?: number | null
+          created_at?: string
+          customer_name?: string | null
+          cut_count?: number
+          cut_details?: Json | null
+          deleted_at?: string | null
+          due_at?: string | null
+          external_id: string
+          finished_at?: string | null
+          height_mm?: number | null
+          id?: string
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          metal?: string | null
+          notes?: string | null
+          orocut_order_id: string
+          picture_url?: string | null
+          quantity?: number
+          reject_reason?: string | null
+          remote_updated_at?: string | null
+          repair_ticket_id: string
+          sent_at?: string
+          sent_by?: string | null
+          status?: Database["public"]["Enums"]["laser_order_status"]
+          status_history?: Json
+          style?: string | null
+          tenant_id: string
+          text: string
+          text2?: string | null
+          thickness_mm?: number | null
+          updated_at?: string
+        }
+        Update: {
+          chain_length_in?: number | null
+          created_at?: string
+          customer_name?: string | null
+          cut_count?: number
+          cut_details?: Json | null
+          deleted_at?: string | null
+          due_at?: string | null
+          external_id?: string
+          finished_at?: string | null
+          height_mm?: number | null
+          id?: string
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          metal?: string | null
+          notes?: string | null
+          orocut_order_id?: string
+          picture_url?: string | null
+          quantity?: number
+          reject_reason?: string | null
+          remote_updated_at?: string | null
+          repair_ticket_id?: string
+          sent_at?: string
+          sent_by?: string | null
+          status?: Database["public"]["Enums"]["laser_order_status"]
+          status_history?: Json
+          style?: string | null
+          tenant_id?: string
+          text?: string
+          text2?: string | null
+          thickness_mm?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laser_orders_repair_ticket_id_fkey"
+            columns: ["repair_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "repair_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laser_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layaway_payments: {
         Row: {
           amount: number
@@ -4368,6 +4485,7 @@ export type Database = {
           loyalty_referral_bonus: number
           min_loan_amount: number | null
           ofac_screening_enabled: boolean
+          orocut_style_names: string[]
           pawn_ticket_backpage: string | null
           repair_ready_auto_notify: boolean
           resend_from_email: string | null
@@ -4414,6 +4532,7 @@ export type Database = {
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
           ofac_screening_enabled?: boolean
+          orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
@@ -4460,6 +4579,7 @@ export type Database = {
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
           ofac_screening_enabled?: boolean
+          orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
@@ -5736,6 +5856,13 @@ export type Database = {
         | "scrapped"
         | "transferred"
         | "returned"
+      laser_order_status:
+        | "new"
+        | "received"
+        | "cut"
+        | "done"
+        | "rejected"
+        | "cancelled"
       layaway_status: "active" | "completed" | "cancelled" | "defaulted"
       loan_event_type:
         | "issued"
@@ -6154,6 +6281,14 @@ export const Constants = {
         "scrapped",
         "transferred",
         "returned",
+      ],
+      laser_order_status: [
+        "new",
+        "received",
+        "cut",
+        "done",
+        "rejected",
+        "cancelled",
       ],
       layaway_status: ["active", "completed", "cancelled", "defaulted"],
       loan_event_type: [

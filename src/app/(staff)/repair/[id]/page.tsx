@@ -5,6 +5,10 @@ import {
   getSignedUrl,
 } from '@/lib/supabase/storage'
 import { trackingUrl, type RepairStageLite } from '@/lib/repair/stages'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { isSecretConfigured } from '@/lib/secrets/vault'
+import { parseCutDetails, parseHistory } from '@/lib/orocut/merge'
+import type { LaserOrderView, LaserPanelData } from '@/components/repair/LaserOrderPanel'
 import RepairTicketDetail, {
   type InventoryPartChoice,
   type RepairLineItemView,
@@ -114,6 +118,57 @@ export default async function RepairTicketDetailPage(props: {
       .eq('is_active', true)
       .order('sort_order'),
   ])
+
+  // Laser nameplate orders (patches/0070). The token lives in the vault and
+  // the style names on `settings` (owner-only RLS) → admin client for both;
+  // the orders themselves read under RLS.
+  const admin = createAdminClient()
+  const [laserConfigured, { data: laserSettings }, { data: laserRows }] = await Promise.all([
+    isSecretConfigured(ticket.tenant_id, 'orocut_order_token'),
+    admin.from('settings').select('orocut_style_names').eq('tenant_id', ticket.tenant_id).maybeSingle(),
+    ctx.supabase
+      .from('laser_orders')
+      .select(
+        'id, external_id, orocut_order_id, status, text, text2, style, quantity, metal, thickness_mm, chain_length_in, height_mm, customer_name, due_at, notes, picture_url, reject_reason, cut_details, cut_count, status_history, sent_at, last_synced_at, last_sync_error, finished_at',
+      )
+      .eq('repair_ticket_id', id)
+      .eq('tenant_id', ticket.tenant_id)
+      .is('deleted_at', null)
+      .order('sent_at', { ascending: false })
+      .limit(50),
+  ])
+  const laserOrders: LaserOrderView[] = (laserRows ?? []).map((o) => ({
+    id: o.id,
+    external_id: o.external_id,
+    orocut_order_id: o.orocut_order_id,
+    status: o.status,
+    text: o.text,
+    text2: o.text2,
+    style: o.style,
+    quantity: o.quantity,
+    metal: o.metal,
+    thickness_mm: o.thickness_mm == null ? null : Number(o.thickness_mm),
+    chain_length_in: o.chain_length_in == null ? null : Number(o.chain_length_in),
+    height_mm: o.height_mm == null ? null : Number(o.height_mm),
+    customer_name: o.customer_name,
+    due_at: o.due_at,
+    notes: o.notes,
+    picture_url: o.picture_url,
+    reject_reason: o.reject_reason,
+    cut_details: parseCutDetails(o.cut_details),
+    cut_count: o.cut_count,
+    status_history: parseHistory(o.status_history),
+    sent_at: o.sent_at,
+    last_synced_at: o.last_synced_at,
+    last_sync_error: o.last_sync_error,
+    finished_at: o.finished_at,
+  }))
+  const laser: LaserPanelData = {
+    configured: laserConfigured,
+    canConfigure: ctx.tenantRole === 'owner' || ctx.tenantRole === 'chain_admin',
+    styleNames: laserSettings?.orocut_style_names ?? [],
+    orders: laserOrders,
+  }
 
   // Line items (one row per customer item).
   const { data: lineItemRows } = await ctx.supabase
@@ -319,6 +374,7 @@ export default async function RepairTicketDetailPage(props: {
       myUserId={ctx.userId}
       trackingLink={trackingUrl(ticket.public_token)}
       stages={(stageRows ?? []) as RepairStageLite[]}
+      laser={laser}
     />
   )
 }

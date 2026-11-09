@@ -32,6 +32,7 @@ import {
 } from '@/components/repair/TimelinePanel'
 import { TimerPanel, type RepairTimeLogItem } from '@/components/repair/TimerPanel'
 import { TrackingPanel } from '@/components/repair/TrackingPanel'
+import { LaserOrderPanel, type LaserPanelData } from '@/components/repair/LaserOrderPanel'
 import type { RepairStageLite } from '@/lib/repair/stages'
 import { SetQuoteDialog } from '@/components/repair/SetQuoteDialog'
 import { CollectDepositDialog } from '@/components/repair/CollectDepositDialog'
@@ -206,6 +207,7 @@ export default function RepairTicketDetail({
   myUserId,
   trackingLink,
   stages,
+  laser,
 }: {
   ticket: RepairTicketView
   lineItems: RepairLineItemView[]
@@ -221,6 +223,8 @@ export default function RepairTicketDetail({
   trackingLink: string | null
   /** Active customer-facing stages for this ticket's service type. */
   stages: RepairStageLite[]
+  /** Laser nameplate orders for this ticket (patches/0070). */
+  laser: LaserPanelData
 }) {
   const { t } = useI18n()
   const [dialog, setDialog] = useState<DialogKind>(null)
@@ -570,6 +574,15 @@ export default function RepairTicketDetail({
         stages={stages}
         currentStageId={ticket.public_stage_id}
         isTerminal={isTerminal}
+      />
+
+      {/* Send to laser — nameplate orders through orocut.com (patches/0070) */}
+      <LaserOrderPanel
+        ticketId={ticket.id}
+        customerName={ticket.customer_name}
+        promisedDate={ticket.promised_date}
+        isTerminal={isTerminal}
+        data={laser}
       />
 
       {/* Overview + Customer item */}

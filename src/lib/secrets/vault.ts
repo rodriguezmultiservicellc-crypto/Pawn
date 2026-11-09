@@ -23,6 +23,10 @@ export type SecretKind =
   | 'twilio_auth_token'
   | 'resend_api_key'
   | 'google_places_api_key'
+  // orocut.com laser nameplate orders (patches/0070): the order token
+  // (Bearer) and the webhook signing secret issued beside it at /account
+  | 'orocut_order_token'
+  | 'orocut_webhook_secret'
   // tenant_billing_settings
   | 'stripe_access_token'
   | 'stripe_refresh_token'

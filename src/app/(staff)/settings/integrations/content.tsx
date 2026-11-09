@@ -15,6 +15,7 @@ import {
   WhatsappLogo,
   Plug,
   Clock,
+  Lightning,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import {
@@ -63,6 +64,11 @@ export type IntegrationsView = {
     rating: number | null
     totalReviewCount: number | null
     lastError: string | null
+  }
+  orocut: {
+    connected: boolean
+    styleCount: number
+    openOrders: number
   }
 }
 
@@ -349,6 +355,29 @@ export default function IntegrationsContent({
             </p>
           ) : (
             <p className="text-sm text-muted">Not connected</p>
+          )}
+        </Card>
+
+        <Card
+          icon={<Lightning size={22} weight="regular" />}
+          title={t.orocut.title}
+          tagline={t.orocut.cardTagline}
+          status={view.orocut.connected ? 'connected' : 'disconnected'}
+          statusLabel={view.orocut.connected ? t.orocut.statusConnected : t.orocut.statusNotConnected}
+          actionHref="/settings/integrations/orocut"
+          actionLabel={view.orocut.connected ? t.orocut.manage : t.orocut.configure}
+          actionDisabled={!isOwner}
+          actionDisabledReason={t.orocut.ownerOnly}
+        >
+          {view.orocut.connected ? (
+            <KvList
+              rows={[
+                { k: t.orocut.openOrdersLabel, v: String(view.orocut.openOrders) },
+                { k: t.orocut.stylesLabel, v: String(view.orocut.styleCount) },
+              ]}
+            />
+          ) : (
+            <p className="mt-2 text-xs text-muted">{t.orocut.cardHelp}</p>
           )}
         </Card>
 

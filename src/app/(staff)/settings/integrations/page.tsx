@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { loadConfiguredSecretKinds } from '@/lib/secrets/vault'
+import { OPEN_LASER_STATUSES } from '@/lib/orocut/status'
 import {
   accountIdSuffix,
   deriveConnectStatus,
@@ -58,7 +59,7 @@ export default async function IntegrationsPage(props: {
 
   const admin = createAdminClient()
 
-  const [billingRes, settingsRes, ebayRes, tenantRes, googleRevRes, secrets] = await Promise.all([
+  const [billingRes, settingsRes, ebayRes, tenantRes, googleRevRes, secrets, laserOpenRes] = await Promise.all([
     admin
       .from('tenant_billing_settings')
       .select(
@@ -69,7 +70,7 @@ export default async function IntegrationsPage(props: {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_from_email, google_place_id',
+        'twilio_account_sid, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_from_email, google_place_id, orocut_style_names',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -89,6 +90,12 @@ export default async function IntegrationsPage(props: {
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
     loadConfiguredSecretKinds(ctx.tenantId),
+    admin
+      .from('laser_orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', ctx.tenantId)
+      .is('deleted_at', null)
+      .in('status', [...OPEN_LASER_STATUSES]),
   ])
 
   const billing = billingRes.data
@@ -143,6 +150,11 @@ export default async function IntegrationsPage(props: {
       rating: googleRev?.rating ?? null,
       totalReviewCount: googleRev?.total_review_count ?? null,
       lastError: googleRev?.last_error ?? null,
+    },
+    orocut: {
+      connected: secrets.has('orocut_order_token'),
+      styleCount: settings?.orocut_style_names?.length ?? 0,
+      openOrders: laserOpenRes.count ?? 0,
     },
   }
 
