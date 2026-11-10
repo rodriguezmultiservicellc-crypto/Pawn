@@ -51,6 +51,7 @@ describe('composeLineItemTitle', () => {
 describe('itemTypeLabelEn', () => {
   it('maps known values, falls back to Item', () => {
     expect(itemTypeLabelEn('necklace')).toBe('Necklace')
+    expect(itemTypeLabelEn('nameplate')).toBe('Nameplate')
     expect(itemTypeLabelEn('other')).toBe('Item')
     expect(itemTypeLabelEn('nonsense')).toBe('Item')
   })

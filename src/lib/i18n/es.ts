@@ -1609,6 +1609,7 @@ export const es: Dictionary = {
         bracelet: 'Pulsera',
         earrings: 'Aretes',
         pendant: 'Dije',
+        nameplate: 'Placa de nombre',
         chain: 'Cadena',
         watch: 'Reloj',
         other: 'Otro',

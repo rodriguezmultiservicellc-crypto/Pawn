@@ -19,6 +19,7 @@ export type ItemTypeValue =
   | 'bracelet'
   | 'earrings'
   | 'pendant'
+  | 'nameplate'
   | 'chain'
   | 'watch'
   | 'other'
@@ -30,6 +31,7 @@ export const ITEM_TYPES: ReadonlyArray<{ value: ItemTypeValue; en: string }> = [
   { value: 'bracelet', en: 'Bracelet' },
   { value: 'earrings', en: 'Earrings' },
   { value: 'pendant', en: 'Pendant' },
+  { value: 'nameplate', en: 'Nameplate' },
   { value: 'chain', en: 'Chain' },
   { value: 'watch', en: 'Watch' },
   { value: 'other', en: 'Item' },

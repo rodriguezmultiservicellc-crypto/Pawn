@@ -1617,6 +1617,7 @@ export const en = {
         bracelet: 'Bracelet',
         earrings: 'Earrings',
         pendant: 'Pendant',
+        nameplate: 'Nameplate',
         chain: 'Chain',
         watch: 'Watch',
         other: 'Other',
