@@ -60,8 +60,8 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 57 (2026-11-09) — LASER NAMEPLATE ORDERS
-                  (items 455-460): "Send to laser" on a repair ticket →
+  Last session:   Session 57 (2026-11-09/10) — LASER NAMEPLATE ORDERS
+                  (items 455-463): "Send to laser" on a repair ticket →
                   orocut.com order API → OroCut on the laser PC; status
                   back by signed webhook + polling. From the OroCut
                   session's handoff (spec 2026-11-09-nameplate-orders-
@@ -73,9 +73,10 @@ OPERATION IN FLIGHT: none
                   said "merge it to main" (2026-11-09): main fast-
                   forwarded to e2caeb2 and pushed — Stripe Connect (S56)
                   and the laser orders (S57) are BOTH in production now.
-                  Eddy must create the order token + webhook secret at
-                  orocut.com/account before the first real order, and
-                  do the Stripe setup (item 454) before Connect works.
+                  LIVE AND PROVEN (2026-11-10): RT-000003 (poll path)
+                  and RT-000004 (webhook path) both reached the laser
+                  PC from production; Nameplate chip added to intake
+                  (6dd07a3). Stripe setup (item 454) is still Eddy's.
 
                   PRIOR SESSION (56, 2026-11-04/05) — STRIPE CONNECT
                   PER-TENANT ONBOARDING (items 449-454), dispatched by
@@ -348,7 +349,8 @@ OPERATION IN FLIGHT: none
                   fast-forwarded.
 
   ACTIVE FILE(S) (all committed):
-    Session 57 (feature/sol-pawn-brief):
+    Session 57 (feature/sol-pawn-brief == main):
+    - src/lib/repair/line-items.ts (+ .test) — Nameplate chip (item 462)
     - patches/0070-laser-orders.sql (APPLIED 2026-11-09)
     - src/lib/orocut/{status,merge,signature,client,sync}.ts
       (+ merge.test, signature.test — 14 tests)
@@ -474,21 +476,23 @@ OPERATION IN FLIGHT: none
     - Progress.txt (this file)
 
   RESUME POINT:
-    Branch feature/sol-pawn-brief holds Session 56 (Stripe Connect
-    onboarding) on top of main's 1d2544d — unpushed, unmerged. Before
-    this ships: (1) apply patches/0069 (node scripts/apply-migration.mjs
-    patches/0069-stripe-connect-status.sql), then `npm run db:types` and
-    confirm the regen matches the hand-edit in src/types/database.ts;
-    (2) Eddy does the Stripe-side setup in item 454 (Connect platform
-    profile, CONNECT webhook with account.updated, Vercel env); (3) one
-    real "Connect with Stripe" click in TEST mode as an owner, then
-    check tenant_billing_settings + audit_log (stripe_connect_account_
-    create, stripe_connect_status_sync). Only after that: merge to main
-    / push on Eddy's "go". If the smoke fails, the three routes log
-    with a [stripe-connect/...] prefix and redirect with ?stripe=
-    stripe_error | save_failed | misconfigured — the banner text says
-    which. The Session 55 "ask Eddy what he found in production" loop
-    is still the standing instruction for anything not Stripe.
+    Clean. main == origin/main == feature/sol-pawn-brief, everything in
+    production. The laser link is live end to end (items 461-463): two
+    real orders sit "At the laser" waiting for the operator (Make →
+    Insert → Send → Done); when they move, the ticket panel should
+    flip to Cut / Done by webhook within seconds — if it does not, the
+    laser_orders row's last_sync_error and audit_log (table
+    laser_orders) say why, and the 5-min cron is the fallback.
+    Stripe Connect (S56) is on main but UNVERIFIED against Stripe until
+    Eddy does item 454 steps 2-5; then one "Connect with Stripe" click
+    in TEST mode and check tenant_billing_settings + audit_log
+    (stripe_connect_account_create, stripe_connect_status_sync). If it
+    fails, the three routes log with a [stripe-connect/...] prefix and
+    redirect with ?stripe= stripe_error | save_failed | misconfigured.
+    Next code item if nothing is reported: the production hydration
+    mismatches (OPEN ISSUES) — verify in PRODUCTION, not local smoke.
+    The Session 55 "ask Eddy what he found in production" loop is the
+    standing instruction.
 
     Known loose ends: /audit hydration flake (OPEN ISSUES), Phase 2
     quote form not automation-driven, quotes don't auto-expire by cron.
@@ -1359,7 +1363,30 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      effect from the next deploy. The webhook path has therefore NOT
      yet been exercised against the real orocut.com — the next order
      sent after this deploy will carry callback_url; check its
-     status_history for via "webhook".
+     status_history for via "webhook". → Confirmed, item 463.
+
+ 462. NAMEPLATE ITEM-TYPE CHIP (2026-11-10, commit 6dd07a3, on main +
+     deployed). Walking Eddy through a manual order exposed that the
+     repair intake form had no "Nameplate" item type — the sample
+     script had written item_type='nameplate' straight to the DB.
+     Added to ITEM_TYPES in src/lib/repair/line-items.ts (between
+     Pendant and Chain), to repair.new_.itemTypes in en.ts / es.ts
+     ("Placa de nombre"), and to line-items.test.ts. No migration:
+     repair_ticket_line_items.item_type is free text (validator
+     z.string max 40). The chip's English label is what lands in the
+     stored title ("Nameplate · 14k · 18\"").
+
+ 463. WEBHOOK PATH CONFIRMED AGAINST THE REAL OROCUT.COM (2026-11-10).
+     Eddy created RT-000004 by hand (Nameplate, Custom, "Eddy model
+     np-2") and sent it: text "Eddy", style NP-1, 14K → orocut order
+     79b5d776… at 17:01:13 UTC → "received" at 17:01:24 UTC with
+     status_history via "webhook" (signature verified, applyRemoteStatus
+     ran). That is the first order sent after the APP_URL fix, so it
+     carried callback_url. Both status paths now proven live: webhook
+     (RT-000004) and poll (RT-000003). Both orders left open at the
+     laser PC on purpose. Told Eddy how to add more styles: Settings →
+     Integrations → OroCut → Styles, one name per line (only NP-1 is
+     saved); the cut design itself lives in OroCut on the laser PC.
 
 --- Session 56 (2026-11-04/05) — Stripe Connect per-tenant Express onboarding (branch feature/sol-pawn-brief, dispatched by the Manager session) ---
 
@@ -5669,13 +5696,12 @@ PENDING — NEXT UP
 
   IMMEDIATE (do this first next session):
     Both S56 (Stripe Connect) and S57 (laser orders) are on main and in
-    production (2026-11-09). The first real laser order (RT-000003,
-    item 461) reached the laser PC. Still to confirm: the WEBHOOK path
-    against the real orocut.com — the next order sent after the
-    NEXT_PUBLIC_APP_URL fix deploy carries callback_url; its
-    status_history should show via "webhook". Stripe setup is Eddy's
-    (item 454 steps 2-5). If an order misbehaves, the row's
-    last_sync_error and audit_log (table laser_orders) say why.
+    production (2026-11-09). Laser link PROVEN both ways on 2026-11-10:
+    RT-000003 by poll, RT-000004 by signed webhook (items 461, 463);
+    both wait at the laser PC for the operator. Nameplate chip is in
+    the intake form (item 462). Stripe setup is Eddy's (item 454 steps
+    2-5). If an order misbehaves, the row's last_sync_error and
+    audit_log (table laser_orders) say why.
     Next code item if nothing is reported: the production hydration
     mismatches (OPEN ISSUES) — one tenant-timezone date formatter used
     by spot-prices, the ticket page (Timeline / Timer / Opened) and
