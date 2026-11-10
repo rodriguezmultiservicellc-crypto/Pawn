@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useRef, useState } from 'react'
+import { useActionState, useRef, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import {
   Plus,
@@ -33,6 +33,8 @@ import {
   type CreateRepairTicketState,
 } from './actions'
 import type { ServiceType } from '@/types/database-aliases'
+import type { PickerCustomerResult } from '@/lib/customers/picker-search'
+import { SimpleRepairTicketView } from './simple-view'
 
 export type TechnicianOption = {
   id: string
@@ -40,6 +42,41 @@ export type TechnicianOption = {
 }
 
 const REPAIR_FORM_ID = 'repair-new-form'
+
+// ── View switch (Classic | Simple) ───────────────────────────────────────────
+// Both views edit the SAME state below and submit through the same hidden
+// fields, so the ticket they open is identical. The choice is remembered per
+// browser in localStorage and read through useSyncExternalStore: the server
+// snapshot is always 'classic', the client snapshot is the stored one, and
+// React reconciles the two without a hydration mismatch or a mount effect.
+type IntakeView = 'classic' | 'simple'
+const VIEW_STORAGE_KEY = 'pawn.repair.newView'
+const viewListeners = new Set<() => void>()
+
+function subscribeView(cb: () => void): () => void {
+  viewListeners.add(cb)
+  return () => {
+    viewListeners.delete(cb)
+  }
+}
+function readPersistedView(): IntakeView {
+  try {
+    return localStorage.getItem(VIEW_STORAGE_KEY) === 'simple'
+      ? 'simple'
+      : 'classic'
+  } catch {
+    return 'classic'
+  }
+}
+function serverView(): IntakeView {
+  return 'classic'
+}
+function persistView(next: IntakeView) {
+  try {
+    localStorage.setItem(VIEW_STORAGE_KEY, next)
+  } catch {}
+  viewListeners.forEach((cb) => cb())
+}
 
 const SERVICE_TILES: ReadonlyArray<{
   value: ServiceType
@@ -73,13 +110,17 @@ function fmtMoney(v: number): string {
 
 // ── Line item ────────────────────────────────────────────────────────────────
 
-type LineItem = {
+export type LineItem = {
   uid: string
   item_type: string
   karat: string
   weight_grams: string
   dimension: string
   service_type: ServiceType
+  /** False until the operator picks a service. Classic starts every item at
+   *  'repair' (unchanged); the Simple view shows nothing selected and will
+   *  not open the ticket until a service has been chosen explicitly. */
+  service_touched: boolean
   work_needed: string
 }
 
@@ -92,6 +133,7 @@ function newLineItem(): LineItem {
     weight_grams: '',
     dimension: '',
     service_type: 'repair',
+    service_touched: false,
     work_needed: '',
   }
 }
@@ -157,12 +199,18 @@ export default function NewRepairTicketForm({
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [photoNames, setPhotoNames] = useState<string[]>([])
 
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-    null,
-  )
-  const [customerLabel, setCustomerLabel] = useState<string | null>(null)
+  const [selectedCustomer, setSelectedCustomer] =
+    useState<PickerCustomerResult | null>(null)
   const customerPickerRef = useRef<CustomerPickerHandle>(null)
   const [showCustomerModal, setShowCustomerModal] = useState(false)
+
+  // Ticket-level fields live in state (not in uncontrolled inputs) so they
+  // survive a view switch; both views submit them via the hidden inputs below.
+  const [promisedDate, setPromisedDate] = useState('')
+  const [assignedTo, setAssignedTo] = useState('')
+  const [notesInternal, setNotesInternal] = useState('')
+
+  const view = useSyncExternalStore(subscribeView, readPersistedView, serverView)
 
   // Rail estimate — DISPLAY-ONLY calculator (like the pawn-rail redemption
   // preview). The official quote/deposit are set post-intake via the repair
@@ -180,8 +228,16 @@ export default function NewRepairTicketForm({
   const estTotal = (parseFloat(labor) || 0) + (parseFloat(materials) || 0)
   const estBalance = Math.max(0, estTotal - (parseFloat(deposit) || 0))
 
+  // Same gate in both views (customer + at least one built item). Simple adds
+  // one requirement of its own: every built item needs an explicit service,
+  // since it preselects nothing where Classic preselects Repair.
+  const needsService =
+    view === 'simple' && builtItems.some((it) => !it.service_touched)
   const canOpen =
-    !pending && selectedCustomerId != null && builtItems.length > 0
+    !pending &&
+    selectedCustomer != null &&
+    builtItems.length > 0 &&
+    !needsService
 
   function addItem() {
     setItems((prev) => [...prev, newLineItem()])
@@ -222,11 +278,37 @@ export default function NewRepairTicketForm({
       }}
     >
       {/* Sub bar */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold">{tn.title}</h1>
-        <Link href="/repair" className="text-sm text-muted hover:text-foreground">
-          {t.repair.backToList}
-        </Link>
+        <div className="flex items-center gap-4">
+          <div
+            role="group"
+            aria-label={tn.viewLabel}
+            className="inline-flex rounded-xl border border-border bg-card p-0.5"
+          >
+            {(['classic', 'simple'] as const).map((v) => {
+              const on = view === v
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => persistView(v)}
+                  className={`min-h-9 rounded-[10px] px-3 text-sm font-bold transition-colors ${
+                    on
+                      ? 'bg-navy text-white'
+                      : 'text-muted hover:text-foreground'
+                  }`}
+                >
+                  {v === 'classic' ? tn.viewClassic : tn.viewSimple}
+                </button>
+              )
+            })}
+          </div>
+          <Link href="/repair" className="text-sm text-muted hover:text-foreground">
+            {t.repair.backToList}
+          </Link>
+        </div>
       </div>
 
       {state.error ? (
@@ -265,6 +347,96 @@ export default function NewRepairTicketForm({
         </div>
       ))}
 
+      {/* Ticket-level fields — one source for both views. */}
+      <input type="hidden" name="promised_date" value={promisedDate} />
+      <input type="hidden" name="assigned_to" value={assignedTo} />
+      <input type="hidden" name="notes_internal" value={notesInternal} />
+
+      {/* Stones submit only while a stone-setting / custom item exists —
+          exactly when Classic shows the stones editor (unchanged rule). */}
+      {showStones ? (
+        <>
+          <input type="hidden" name="stone_count" value={stones.length} />
+          {stones.map((s, i) => (
+            <div key={`hidden-stone-${s.uid}`}>
+              <input type="hidden" name={`stone_${i}_type`} value={s.stone_type} />
+              <input type="hidden" name={`stone_${i}_shape`} value={s.shape} />
+              <input type="hidden" name={`stone_${i}_size_mm`} value={s.size_mm} />
+              <input
+                type="hidden"
+                name={`stone_${i}_weight_carats`}
+                value={s.weight_carats}
+              />
+              <input type="hidden" name={`stone_${i}_color`} value={s.color} />
+              <input type="hidden" name={`stone_${i}_clarity`} value={s.clarity} />
+              <input
+                type="hidden"
+                name={`stone_${i}_mounting_type`}
+                value={s.mounting_type}
+              />
+              <input
+                type="hidden"
+                name={`stone_${i}_mounting_position`}
+                value={s.mounting_position}
+              />
+              <input type="hidden" name={`stone_${i}_source`} value={s.source} />
+              <input type="hidden" name={`stone_${i}_notes`} value={s.notes} />
+            </div>
+          ))}
+        </>
+      ) : null}
+
+      {/* Intake photos: the file input stays mounted outside both views so a
+          selection made in Classic survives a switch to Simple and back. */}
+      <input
+        ref={photoInputRef}
+        type="file"
+        name="intake_files"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+        multiple
+        onChange={onPhotoChange}
+        className="sr-only"
+      />
+
+      <QuickCustomerModal
+        open={showCustomerModal}
+        onClose={() => setShowCustomerModal(false)}
+        onCreated={(c) => {
+          customerPickerRef.current?.set(c)
+          setSelectedCustomer(c)
+        }}
+      />
+
+      {view === 'simple' ? (
+        <SimpleRepairTicketView
+          technicians={technicians}
+          items={items}
+          onAddItem={addItem}
+          onPatchItem={patchItem}
+          onRemoveItem={removeItem}
+          customer={selectedCustomer}
+          onCustomerChange={setSelectedCustomer}
+          onNewCustomer={() => setShowCustomerModal(true)}
+          customerPickerRef={customerPickerRef}
+          customerError={state.fieldErrors?.customer_id}
+          itemsError={state.fieldErrors?.line_items}
+          promisedDate={promisedDate}
+          onPromisedDateChange={setPromisedDate}
+          assignedTo={assignedTo}
+          onAssignedToChange={setAssignedTo}
+          labor={labor}
+          onLaborChange={setLabor}
+          materials={materials}
+          onMaterialsChange={setMaterials}
+          deposit={deposit}
+          onDepositChange={setDeposit}
+          estBalance={estBalance}
+          canOpen={canOpen}
+          needsService={needsService}
+          submitLabel={pending ? tn.submitting : tn.submit}
+          fmtMoney={fmtMoney}
+        />
+      ) : (
       <div className="grid grid-cols-1 items-start gap-[18px] lg:grid-cols-[1fr_360px]">
         {/* ── LEFT: work surface ─────────────────────────────────────── */}
         <div className="space-y-4">
@@ -282,11 +454,9 @@ export default function NewRepairTicketForm({
                   ref={customerPickerRef}
                   name="customer_id"
                   required
+                  initialCustomer={selectedCustomer}
                   error={state.fieldErrors?.customer_id}
-                  onChange={(c) => {
-                    setSelectedCustomerId(c?.id ?? null)
-                    setCustomerLabel(c?.label ?? null)
-                  }}
+                  onChange={setSelectedCustomer}
                 />
               </div>
               <button
@@ -298,16 +468,6 @@ export default function NewRepairTicketForm({
               </button>
             </div>
           </fieldset>
-
-          <QuickCustomerModal
-            open={showCustomerModal}
-            onClose={() => setShowCustomerModal(false)}
-            onCreated={(c) => {
-              customerPickerRef.current?.set(c)
-              setSelectedCustomerId(c.id)
-              setCustomerLabel(c.label)
-            }}
-          />
 
           {/* Items */}
           <fieldset className="rounded-xl border border-border bg-card p-4">
@@ -346,7 +506,6 @@ export default function NewRepairTicketForm({
                 <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-gold">
                   {tn.sectionStones}
                 </h3>
-                <input type="hidden" name="stone_count" value={stones.length} />
                 <div className="space-y-3">
                   {stones.map((s, idx) => (
                     <StoneRowEditor
@@ -390,15 +549,6 @@ export default function NewRepairTicketForm({
                   {tn.photoUploadHelp}
                 </span>
               </button>
-              <input
-                ref={photoInputRef}
-                type="file"
-                name="intake_files"
-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-                multiple
-                onChange={onPhotoChange}
-                className="sr-only"
-              />
               {photoNames.length > 0 ? (
                 <ul className="mt-2 space-y-1 text-xs text-muted">
                   {photoNames.map((n, i) => (
@@ -419,8 +569,9 @@ export default function NewRepairTicketForm({
                 {tn.notesInternal}
               </span>
               <textarea
-                name="notes_internal"
                 rows={2}
+                value={notesInternal}
+                onChange={(e) => setNotesInternal(e.target.value)}
                 className={inputCls}
               />
               <span className="text-xs text-muted">{tn.notesInternalHelp}</span>
@@ -440,7 +591,7 @@ export default function NewRepairTicketForm({
               <User size={16} weight="bold" />
             </span>
             <span className="min-w-0 truncate text-[13.5px] font-bold">
-              {customerLabel ?? tn.railNoCustomer}
+              {selectedCustomer?.label ?? tn.railNoCustomer}
             </span>
           </div>
 
@@ -486,8 +637,8 @@ export default function NewRepairTicketForm({
               {tn.assignedTo}
             </span>
             <select
-              name="assigned_to"
-              defaultValue=""
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
               className="h-[42px] w-full rounded-lg border border-white/15 bg-white/[0.07] px-3 text-sm font-bold text-white outline-none focus:border-gold [&>option]:text-navy"
             >
               <option value="">{tn.assignedToNone}</option>
@@ -506,7 +657,8 @@ export default function NewRepairTicketForm({
             </span>
             <input
               type="date"
-              name="promised_date"
+              value={promisedDate}
+              onChange={(e) => setPromisedDate(e.target.value)}
               className="h-[42px] w-full rounded-lg border border-white/15 bg-white/[0.07] px-3 text-sm font-semibold text-white outline-none focus:border-gold"
             />
           </label>
@@ -573,6 +725,7 @@ export default function NewRepairTicketForm({
           ) : null}
         </aside>
       </div>
+      )}
     </form>
   )
 }
@@ -730,7 +883,9 @@ function LineItemEditor({
             <button
               key={value}
               type="button"
-              onClick={() => onChange({ service_type: value })}
+              onClick={() =>
+                onChange({ service_type: value, service_touched: true })
+              }
               className={`${chipBase} ${on ? chipOn : chipOff}`}
             >
               {t.repair.serviceTypes[labelKey]}
@@ -795,9 +950,10 @@ function StoneRowEditor({
           {t.repair.new_.removeStone}
         </button>
       </div>
+      {/* Values submit through the hidden stone_<n>_* inputs in the form
+          root (shared by both views); these controls carry no name. */}
       <div className="grid grid-cols-1 gap-2 md:grid-cols-6">
         <Input
-          name={`stone_${index}_type`}
           label={`${t.repair.new_.stoneType} *`}
           value={row.stone_type}
           onChange={(v) => onChange({ stone_type: v })}
@@ -806,13 +962,11 @@ function StoneRowEditor({
           span={2}
         />
         <Input
-          name={`stone_${index}_shape`}
           label={t.repair.new_.stoneShape}
           value={row.shape}
           onChange={(v) => onChange({ shape: v })}
         />
         <Input
-          name={`stone_${index}_size_mm`}
           label={t.repair.new_.stoneSize}
           value={row.size_mm}
           onChange={(v) => onChange({ size_mm: v })}
@@ -820,7 +974,6 @@ function StoneRowEditor({
           step="0.01"
         />
         <Input
-          name={`stone_${index}_weight_carats`}
           label={t.repair.new_.stoneWeight}
           value={row.weight_carats}
           onChange={(v) => onChange({ weight_carats: v })}
@@ -828,25 +981,21 @@ function StoneRowEditor({
           step="0.001"
         />
         <Input
-          name={`stone_${index}_color`}
           label={t.repair.new_.stoneColor}
           value={row.color}
           onChange={(v) => onChange({ color: v })}
         />
         <Input
-          name={`stone_${index}_clarity`}
           label={t.repair.new_.stoneClarity}
           value={row.clarity}
           onChange={(v) => onChange({ clarity: v })}
         />
         <Input
-          name={`stone_${index}_mounting_type`}
           label={t.repair.new_.mountingType}
           value={row.mounting_type}
           onChange={(v) => onChange({ mounting_type: v })}
         />
         <Input
-          name={`stone_${index}_mounting_position`}
           label={t.repair.new_.mountingPosition}
           value={row.mounting_position}
           onChange={(v) => onChange({ mounting_position: v })}
@@ -856,7 +1005,6 @@ function StoneRowEditor({
             {t.repair.new_.stoneSource}
           </span>
           <select
-            name={`stone_${index}_source`}
             value={row.source}
             onChange={(e) =>
               onChange({
@@ -879,7 +1027,6 @@ function StoneRowEditor({
           </span>
           <input
             type="text"
-            name={`stone_${index}_notes`}
             value={row.notes}
             onChange={(e) => onChange({ notes: e.target.value })}
             className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
@@ -891,7 +1038,6 @@ function StoneRowEditor({
 }
 
 function Input({
-  name,
   label,
   value,
   onChange,
@@ -901,7 +1047,6 @@ function Input({
   required,
   span = 1,
 }: {
-  name: string
   label: string
   value: string
   onChange: (v: string) => void
@@ -919,7 +1064,6 @@ function Input({
       <input
         type={type}
         step={step}
-        name={name}
         value={value}
         required={required}
         placeholder={placeholder}

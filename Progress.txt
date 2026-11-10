@@ -76,7 +76,9 @@ OPERATION IN FLIGHT: none
                   LIVE AND PROVEN (2026-11-10): RT-000003 (poll path)
                   and RT-000004 (webhook path) both reached the laser
                   PC from production; Nameplate chip added to intake
-                  (6dd07a3). Stripe setup (item 454) is still Eddy's.
+                  (6dd07a3). Then the New-ticket "Simple" view (item
+                  464): same state, same hidden fields, identical rows
+                  proved in the browser. Stripe setup (454) still Eddy's.
 
                   PRIOR SESSION (56, 2026-11-04/05) — STRIPE CONNECT
                   PER-TENANT ONBOARDING (items 449-454), dispatched by
@@ -350,6 +352,8 @@ OPERATION IN FLIGHT: none
 
   ACTIVE FILE(S) (all committed):
     Session 57 (feature/sol-pawn-brief == main):
+    - src/app/(staff)/repair/new/{form,simple-view}.tsx — Simple view (464)
+    - src/lib/repair/simple-intake.ts (+ .test) — Simple view helpers
     - src/lib/repair/line-items.ts (+ .test) — Nameplate chip (item 462)
     - patches/0070-laser-orders.sql (APPLIED 2026-11-09)
     - src/lib/orocut/{status,merge,signature,client,sync}.ts
@@ -1387,6 +1391,56 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      laser PC on purpose. Told Eddy how to add more styles: Settings →
      Integrations → OroCut → Styles, one name per line (only NP-1 is
      saved); the cut design itself lives in OroCut on the laser PC.
+
+ 464. NEW REPAIR TICKET — "SIMPLE" VIEW (2026-11-10). Eddy's spec: a
+     second view next to the existing one ("Classic"), both opening the
+     exact same ticket, switch top-right, remembered per browser, no
+     data lost on switch, no new routes / schema.
+     HOW: form.tsx stays the single owner of all state and renders the
+     hidden inputs for BOTH views (li_<n>_*, promised_date, assigned_to,
+     notes_internal, stone_<n>_* when a stone-setting/custom item exists,
+     the intake_files input). Classic's visible promised-date / technician
+     / notes controls became controlled + unnamed; StoneRowEditor inputs
+     lost their names (values flow through the hidden set). The customer
+     is held as the full PickerCustomerResult so whichever picker instance
+     mounts gets initialCustomer. View choice = useSyncExternalStore over
+     localStorage 'pawn.repair.newView' (server snapshot 'classic') — no
+     mount effect, no hydration mismatch (proved at 1366 + 390px).
+     "Nothing preselected" in Simple = LineItem.service_touched flag:
+     Classic still starts at 'repair' as before; Simple shows no service
+     until clicked and will not open the ticket until every built item
+     has one (bottom-bar hint t.repair.new_.simple.pickService). The
+     stored service_type is never blank.
+     NEW: src/app/(staff)/repair/new/simple-view.tsx (3 cards + fixed
+     bottom bar measured against <main> via ResizeObserver so it never
+     covers the sidebar); src/lib/repair/simple-intake.ts (+7 tests:
+     local-date ready-by chips, metal labels, size-field rule, decimal
+     sanitizer, "14k Ring · Sizing" heading); i18n new_.view* +
+     new_.simple.* in en/es.
+     PROVED (scratchpad drive-simple-view.mjs, local): 30/33 checks, the
+     3 "fails" were my regexes vs CSS-uppercased labels; a ticket opened
+     from Simple and one from Classic with the same inputs produced
+     IDENTICAL repair_tickets + repair_ticket_line_items rows (both
+     soft-deleted afterwards: 4fbd8df4…, 0188b25c…; ticket numbers
+     consumed). Watch → no size box; Ring → "Ring size (optional)";
+     balance = estimate − deposit live; Classic ↔ Simple keeps customer,
+     chips, notes, date, labor/deposit; view remembered on reload.
+     SPEC vs CODE (told Eddy): (a) estimate/labor/materials/deposit are
+     DISPLAY-ONLY in Classic (never submitted; the official quote is set
+     post-intake) — Simple mirrors that, so "save estimate as labor" is
+     not stored anywhere; (b) photos are per TICKET (repair_ticket_photos
+     kind 'intake'), not per item — no "Add photo" in the item header,
+     Simple has no photo button at all (Classic's selection survives the
+     switch); (c) the stored line title stays the Classic composer
+     ("Ring · 14k · 3.2g · 7"); Simple's card HEADER shows the spec's
+     "14k Ring · Sizing" as display only; (d) Nameplate chip (item 462)
+     included in Simple's "What is it?" and treated as a Length item;
+     (e) Classic's stones sub-editor has no Simple counterpart — stones
+     entered in Classic survive and submit; (f) PRE-EXISTING: the staff
+     <header> does not wrap at 390px (shell is 732px wide), and the
+     sidebar's phone auto-collapse logs a hydration warning on every
+     page at phone width — both outside this task, Simple itself wraps
+     with zero overflow in a 271px column.
 
 --- Session 56 (2026-11-04/05) — Stripe Connect per-tenant Express onboarding (branch feature/sol-pawn-brief, dispatched by the Manager session) ---
 
@@ -5699,8 +5753,9 @@ PENDING — NEXT UP
     production (2026-11-09). Laser link PROVEN both ways on 2026-11-10:
     RT-000003 by poll, RT-000004 by signed webhook (items 461, 463);
     both wait at the laser PC for the operator. Nameplate chip is in
-    the intake form (item 462). Stripe setup is Eddy's (item 454 steps
-    2-5). If an order misbehaves, the row's last_sync_error and
+    the intake form (item 462); the New-ticket Simple view shipped
+    (item 464) — take Eddy's feedback on it from the counter. Stripe
+    setup is Eddy's (item 454 steps 2-5). If an order misbehaves, the row's last_sync_error and
     audit_log (table laser_orders) say why.
     Next code item if nothing is reported: the production hydration
     mismatches (OPEN ISSUES) — one tenant-timezone date formatter used
