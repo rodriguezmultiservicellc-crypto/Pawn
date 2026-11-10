@@ -526,9 +526,9 @@ OPERATION IN FLIGHT: none
     - STRIPE CONNECT (Session 56) IS UNVERIFIED AGAINST STRIPE. No
       account was created, no Account Link minted, no account.updated
       received — the worker session had no browser login and did not
-      spend Eddy's Stripe key on a live call. 0069 is NOT applied, so
-      /settings/integrations will 500 on the new columns until it is.
-      Express accounts make the PLATFORM (RMS) liable for a connected
+      spend Eddy's Stripe key on a live call. 0069 IS applied (S57,
+      2026-11-09) and the code is in production, inert until Eddy's
+      Stripe setup. Express accounts make the PLATFORM (RMS) liable for a connected
       account's negative balance (refunds/disputes it cannot cover) —
       Eddy should read Stripe's "Express" responsibilities page before
       the first live-mode connect. Item 454 has the exact smoke steps.
@@ -543,6 +543,16 @@ OPERATION IN FLIGHT: none
       loaded in loadTenantRules) on both sides, or render those cells
       client-side after mount. Harmless to data; costs a re-render and a
       console error per page view.
+      ALSO ON /repair/[id] (confirmed in production 2026-11-10 on
+      RT-000003): TimelinePanel line ~88 and TimerPanel lines ~111/160
+      use toLocaleString() per event/log, OverviewPanel's "Opened" uses
+      toLocaleDateString() (the date itself flips after ~7 PM ET), and
+      TimelinePanel's relative() depends on Date.now(). Never seen in
+      the local browser smoke because dev server and browser share a
+      timezone — production-only by construction. LaserOrderPanel
+      already renders its stamps after mount (ClientTime, item 461);
+      the same treatment, or the tenant-timezone formatter, is what
+      the rest of the page needs.
     - /audit HYDRATION FLAKE (pre-existing, surfaced by the Phase 4
       smoke): lib/format/datetime relativeTime() renders "Ns" for rows
       under a minute old, so when the newest audit row is seconds old
@@ -1332,11 +1342,15 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      14k yellow gold, 18in) → SENT → orocut order c748d97b… → 6 s later
      "At the laser" (OroCut machine "Main" pulled it). The order is
      still open there on purpose — Eddy's sample.
-     FOUND: (a) React #418 on the ticket page from the panel's
-     shortDateTime (SSR UTC vs browser local). Fix: ClientTime renders
-     the stamp only after mount (useSyncExternalStore mounted flag) —
-     the right fix for the whole app is still the tenant-timezone
-     formatter in OPEN ISSUES. (b) NEXT_PUBLIC_APP_URL in Vercel
+     FOUND: (a) React #418 on the ticket page. The panel's
+     shortDateTime stamps were one source (SSR UTC vs browser local);
+     fixed with ClientTime (renders only after mount, via a
+     useSyncExternalStore mounted flag). Re-checked after deploy: #418
+     STILL fires — TimelinePanel / TimerPanel / the "Opened" date on
+     the same page have had the identical bug since they were written;
+     it only shows in production because dev and browser share a
+     timezone (see OPEN ISSUES). The whole-app fix is still the
+     tenant-timezone formatter. (b) NEXT_PUBLIC_APP_URL in Vercel
      Production was http://localhost:3060 (tracking links sent to
      customers said localhost; and orocutCallbackUrl() sends no
      callback_url without https, so RT-000003's status came by POLL,
@@ -5662,16 +5676,16 @@ PENDING — NEXT UP
     status_history should show via "webhook". Stripe setup is Eddy's
     (item 454 steps 2-5). If an order misbehaves, the row's
     last_sync_error and audit_log (table laser_orders) say why.
-    Next code item if nothing is reported: the spot-prices hydration
-    mismatch (OPEN ISSUES) — tenant-timezone date formatting.
+    Next code item if nothing is reported: the production hydration
+    mismatches (OPEN ISSUES) — one tenant-timezone date formatter used
+    by spot-prices, the ticket page (Timeline / Timer / Opened) and
+    /audit; verify in PRODUCTION, not the local smoke, since dev and
+    browser share a timezone.
     Standing from Session 55: the brief is done. Two production bugs
     fixed on main (items 447 + 448, both "a 'use server' file exported
     something that is not an async function"). Every Phase 3/4 action
     has now been invoked once in production (item 448). Keep taking
     Eddy's production feedback.
-    Next code item if nothing is reported: the spot-prices hydration
-    mismatch (OPEN ISSUES) — fix shortDateTime/shortDate to use the
-    tenant timezone, which also fixes the /audit flake's cousin.
     Eddy asked (2026-11-04) where the pay / sell percentages live.
     Answered: the "Pay and sell rates" section at the bottom of
     /inventory/spot-prices (per metal + purity; Pay rate feeds Buy
