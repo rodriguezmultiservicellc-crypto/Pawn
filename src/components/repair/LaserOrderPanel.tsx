@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState, useSyncExternalStore, useTransition } from 'react'
 import Link from 'next/link'
 import {
   ArrowsClockwise,
@@ -211,8 +211,8 @@ export function LaserOrderPanel({
                     {o.style ? <span className="text-muted">· {o.style}</span> : null}
                     {o.quantity > 1 ? <span className="font-mono text-muted">×{o.quantity}</span> : null}
                   </span>
-                  <span className="font-mono text-muted" suppressHydrationWarning>
-                    {shortDateTime(o.finished_at ?? o.sent_at)}
+                  <span className="font-mono text-muted">
+                    <ClientTime iso={o.finished_at ?? o.sent_at} />
                     {o.status === 'rejected' && o.reject_reason ? ` — ${o.reject_reason}` : ''}
                   </span>
                 </li>
@@ -304,9 +304,9 @@ function OpenOrder({
             {tl.cancel}
           </button>
         </div>
-        <p className="text-[11px] text-muted" suppressHydrationWarning>
-          {tl.sentLabel} {shortDateTime(order.sent_at)} · {tl.lastChecked}{' '}
-          {order.last_synced_at ? shortDateTime(order.last_synced_at) : tl.never}
+        <p className="text-[11px] text-muted">
+          {tl.sentLabel} <ClientTime iso={order.sent_at} /> · {tl.lastChecked}{' '}
+          {order.last_synced_at ? <ClientTime iso={order.last_synced_at} /> : tl.never}
           {order.last_sync_error ? (
             <span className="ml-1 inline-flex items-center gap-1 text-warning">
               <WarningCircle size={11} weight="bold" />
@@ -326,8 +326,8 @@ function OpenOrder({
                 {h.by && h.via !== 'app' ? <span className="text-muted"> · {h.by}</span> : null}
                 {h.reason ? <span className="text-muted"> — {h.reason}</span> : null}
               </span>
-              <span className="shrink-0 font-mono text-muted" suppressHydrationWarning>
-                {shortDateTime(h.at)}
+              <span className="shrink-0 font-mono text-muted">
+                <ClientTime iso={h.at} />
               </span>
             </li>
           ))}
@@ -335,6 +335,24 @@ function OpenOrder({
       </div>
     </div>
   )
+}
+
+// ── Times ─────────────────────────────────────────────────────────────────
+
+const noopSubscribe = () => () => {}
+
+/**
+ * Local-time stamp rendered only after mount. The server renders in UTC and
+ * the browser in the shop's zone, so formatting during SSR produces a text
+ * mismatch (React #418) on every load; an empty server placeholder does not.
+ */
+function ClientTime({ iso }: { iso: string }) {
+  const mounted = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  )
+  return <>{mounted ? shortDateTime(iso) : '…'}</>
 }
 
 // ── Send form ─────────────────────────────────────────────────────────────

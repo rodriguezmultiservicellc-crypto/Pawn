@@ -1322,6 +1322,31 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      touches settings/integrations/{page,content} that S56 also
      changed — expect a small conflict there).
 
+ 461. FIRST REAL ORDER + TWO PRODUCTION FIXES (2026-11-09/10). Eddy had
+     already saved the orocut.com token + webhook secret + style "NP-1"
+     in production. On "create sample order and send it to the laser
+     printer": created ticket RT-000003 (Nameplate: SAMPLE, customer
+     Rodriguez, Eddy — rows like the quote→ticket conversion writes,
+     scratchpad sample-laser-order-prod.mjs), then drove PRODUCTION:
+     Test token → "accepted the token"; Send to laser (SAMPLE, NP-1,
+     14k yellow gold, 18in) → SENT → orocut order c748d97b… → 6 s later
+     "At the laser" (OroCut machine "Main" pulled it). The order is
+     still open there on purpose — Eddy's sample.
+     FOUND: (a) React #418 on the ticket page from the panel's
+     shortDateTime (SSR UTC vs browser local). Fix: ClientTime renders
+     the stamp only after mount (useSyncExternalStore mounted flag) —
+     the right fix for the whole app is still the tenant-timezone
+     formatter in OPEN ISSUES. (b) NEXT_PUBLIC_APP_URL in Vercel
+     Production was http://localhost:3060 (tracking links sent to
+     customers said localhost; and orocutCallbackUrl() sends no
+     callback_url without https, so RT-000003's status came by POLL,
+     not webhook). Set Production to https://pawn-three.vercel.app via
+     `vercel env add … production --force`; build-time var, so it takes
+     effect from the next deploy. The webhook path has therefore NOT
+     yet been exercised against the real orocut.com — the next order
+     sent after this deploy will carry callback_url; check its
+     status_history for via "webhook".
+
 --- Session 56 (2026-11-04/05) — Stripe Connect per-tenant Express onboarding (branch feature/sol-pawn-brief, dispatched by the Manager session) ---
 
  449. STRIPE CONNECT — WHY AND WHICH ACCOUNT TYPE. Settings → Integrations
@@ -5630,11 +5655,13 @@ PENDING — NEXT UP
 
   IMMEDIATE (do this first next session):
     Both S56 (Stripe Connect) and S57 (laser orders) are on main and in
-    production (e2caeb2, 2026-11-09). Eddy's hands next: orocut.com/
-    account token + webhook secret → Settings → Integrations → OroCut
-    (item 460); Stripe setup (item 454 steps 2-5). Take his feedback
-    from the first real laser order — the row's last_sync_error and
-    audit_log (table laser_orders) say why if something misbehaves.
+    production (2026-11-09). The first real laser order (RT-000003,
+    item 461) reached the laser PC. Still to confirm: the WEBHOOK path
+    against the real orocut.com — the next order sent after the
+    NEXT_PUBLIC_APP_URL fix deploy carries callback_url; its
+    status_history should show via "webhook". Stripe setup is Eddy's
+    (item 454 steps 2-5). If an order misbehaves, the row's
+    last_sync_error and audit_log (table laser_orders) say why.
     Next code item if nothing is reported: the spot-prices hydration
     mismatch (OPEN ISSUES) — tenant-timezone date formatting.
     Standing from Session 55: the brief is done. Two production bugs
