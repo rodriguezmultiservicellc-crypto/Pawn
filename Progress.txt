@@ -1442,6 +1442,30 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      page at phone width — both outside this task, Simple itself wraps
      with zero overflow in a 271px column.
 
+ 465. WHOLE-APP REVIEW, READ-ONLY (2026-11-11) → REVIEW-2026-11-11.md
+     at the repo root (53 findings, each marked Verified / Reported /
+     Unverified, with a suggested order). Eddy asked "go through the
+     code and the ui and give recommendations"; NOTHING WAS FIXED.
+     Four slice reviewers (security+tenancy, money+integrity, UI code,
+     performance+architecture) + the 2026-11-04 smoke screenshots; the
+     lead re-read every "do first" item in the code. Confirmed LIVE:
+     (a) `vercel env ls production` shows NO Stripe variables, so
+     /api/stripe/webhook skips its signature check in production and a
+     forged checkout.session.completed can redeem a loan from metadata;
+     (b) the public anon key reads the published tenant's full row and
+     inventory cost_basis/notes (policies in patches 0026/0027 grant
+     whole rows) — customers, loans, sales, settings return 0 rows.
+     The seven "do first" items: team-invite magic link for existing
+     accounts (account takeover), unsigned Stripe webhook, anon column
+     exposure (RLS — needs Eddy's explicit OK per rule 1), returns on
+     unpaid sales + refunds ignoring discount/tax, live TEST-ONLY
+     card-succeeded action, browser-supplied principal/interest split
+     redeeming with interest forgiven, ID-scan delete with no retention
+     gate. Also worth knowing: the first run of this review died when
+     the machine hit 0.3 GB free RAM (Notion alone held 4 GB) — do not
+     run the dev server + headless Chrome + parallel agents together
+     on this box.
+
 --- Session 56 (2026-11-04/05) — Stripe Connect per-tenant Express onboarding (branch feature/sol-pawn-brief, dispatched by the Manager session) ---
 
  449. STRIPE CONNECT — WHY AND WHICH ACCOUNT TYPE. Settings → Integrations
@@ -5749,6 +5773,11 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
+    READ REVIEW-2026-11-11.md FIRST (item 465). Nothing in it is fixed.
+    Wait for Eddy to pick what to do; the natural start is section 1
+    ("do first", seven items) — the unsigned Stripe webhook is a
+    one-line fail-closed and the team-invite magic link is a small
+    change; the anon RLS column exposure needs his explicit OK.
     Both S56 (Stripe Connect) and S57 (laser orders) are on main and in
     production (2026-11-09). Laser link PROVEN both ways on 2026-11-10:
     RT-000003 by poll, RT-000004 by signed webhook (items 461, 463);
