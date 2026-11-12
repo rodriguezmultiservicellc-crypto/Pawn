@@ -15,6 +15,7 @@ import {
   refundCardPayment,
 } from '@/lib/stripe/terminal'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { settleSaleCardPayment } from '@/lib/pos/card-settle'
 import {
   recordEarnSale,
   maybeCreditReferral,
@@ -114,13 +115,23 @@ export async function addPaymentAction(
   })
   if (payErr) return { error: payErr.message }
 
-  // Roll up paid_total on the parent sale.
-  const newPaid = r4(toMoney(sale.paid_total) + v.amount)
-  await supabase
-    .from('sales')
-    .update({ paid_total: newPaid, updated_by: userId })
-    .eq('id', sale.id)
-    .eq('tenant_id', tenantId)
+  // Roll up paid_total on the parent sale — for money that is actually in
+  // hand. A card tender is only a PaymentIntent at this point: nothing has
+  // been charged. It stays 'pending' and OUT of paid_total until it settles
+  // (Stripe webhook, or a manager confirming the reader approved it — see
+  // lib/pos/card-settle.ts). Counting it here let a sale complete, and the
+  // goods leave, with no money collected.
+  const counted = v.payment_method !== 'card'
+  const newPaid = counted
+    ? r4(toMoney(sale.paid_total) + v.amount)
+    : toMoney(sale.paid_total)
+  if (counted) {
+    await supabase
+      .from('sales')
+      .update({ paid_total: newPaid, updated_by: userId })
+      .eq('id', sale.id)
+      .eq('tenant_id', tenantId)
+  }
 
   await logAudit({
     tenantId,
@@ -149,6 +160,8 @@ export async function completeSaleAction(
   if (!saleId) return { error: 'missing_sale_id' }
   const { sale, supabase, userId, tenantId } = await resolveSaleScope(saleId)
   if (sale.status !== 'open') return { error: 'saleNotOpen' }
+  // paid_total holds settled money only — a pending card tender is not in it
+  // (addPaymentAction), so a sale cannot complete on an uncharged card.
   const balance = computeBalance({ total: sale.total, paid_total: sale.paid_total })
   if (balance > 0.0001) return { error: 'balance_remaining' }
 
@@ -400,11 +413,16 @@ export async function voidSaleAction(
   return { ok: true }
 }
 
-// ── DEBUG: mark a card payment as succeeded (TEST ONLY) ────────────────────
+// ── Manager confirms a card tender was approved ────────────────────────────
 //
-// Replaces the webhook flow until the real Stripe Terminal integration ships.
-// Leaves a yellow audit trail and only changes the row's card_present_status.
-export async function markCardPaymentSucceededAction(
+// The normal path is the Stripe webhook (payment_intent.succeeded) settling
+// the tender on its own. This is the manual path for when the reader shows
+// "approved" but the webhook has not written back: an owner / manager /
+// chain_admin vouches for it. It is what makes the tender count toward
+// paid_total, so it is NOT open to clerks — a clerk could otherwise add a
+// card tender, never present a card, confirm it themselves and complete the
+// sale. Every use is audited with the confirming user.
+export async function confirmCardPaymentAction(
   salePaymentId: string,
 ): Promise<SaleActionResult> {
   if (!salePaymentId) return { error: 'missing_id' }
@@ -420,17 +438,12 @@ export async function markCardPaymentSucceededAction(
   if (!pay) return { error: 'payment_not_found' }
   if (pay.payment_method !== 'card') return { error: 'wrong_method' }
 
-  const { supabase, userId } = await requireRoleInTenant(
-    pay.tenant_id,
-    STAFF_ROLES,
-  )
+  // Guard first, admin client second.
+  const { userId } = await requireRoleInTenant(pay.tenant_id, VOID_ROLES)
 
-  const { error } = await supabase
-    .from('sale_payments')
-    .update({ card_present_status: 'succeeded' })
-    .eq('id', pay.id)
-    .eq('tenant_id', pay.tenant_id)
-  if (error) return { error: error.message }
+  const settled = await settleSaleCardPayment(createAdminClient(), pay.id)
+  if (!settled.ok) return { error: 'generic' }
+  if (settled.tenantId !== pay.tenant_id) return { error: 'generic' }
 
   await logAudit({
     tenantId: pay.tenant_id,
@@ -438,10 +451,19 @@ export async function markCardPaymentSucceededAction(
     action: 'card_present_succeeded',
     tableName: 'sale_payments',
     recordId: pay.id,
-    changes: { sale_id: pay.sale_id, manual_test_shortcut: true },
+    changes: {
+      sale_id: pay.sale_id,
+      via: 'manager_confirmation',
+      applied: settled.applied,
+      reason: settled.reason,
+      amount: settled.amount,
+      paid_total: settled.paidTotal,
+    },
   })
 
   revalidatePath(`/pos/sales/${pay.sale_id}`)
+  revalidatePath('/pos')
+  if (settled.reason === 'sale_not_open') return { error: 'cardSaleNotOpen' }
   return { ok: true }
 }
 

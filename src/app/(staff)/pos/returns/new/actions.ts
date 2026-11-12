@@ -7,6 +7,10 @@ import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { returnCreateSchema } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
 import { r4, toMoney } from '@/lib/pos/cart'
+import {
+  computeReturnRefund,
+  isReturnableSaleStatus,
+} from '@/lib/pos/returns'
 import { refundCardPayment } from '@/lib/stripe/terminal'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recordEarnClawback } from '@/lib/loyalty/events'
@@ -62,19 +66,25 @@ export async function createReturnAction(
   const { data: sale } = await ctx.supabase
     .from('sales')
     .select(
-      'id, tenant_id, status, total, paid_total, returned_total, is_locked, customer_id',
+      'id, tenant_id, status, subtotal, discount_amount, tax_amount, total, paid_total, returned_total, is_locked, customer_id',
     )
     .eq('id', v.sale_id)
     .is('deleted_at', null)
     .maybeSingle()
   if (!sale) return { error: 'sale_not_found' }
-  if (sale.status === 'voided') return { error: 'saleNotOpen' }
 
   const { supabase, userId } = await requireRoleInTenant(
     sale.tenant_id,
     STAFF_ROLES,
   )
   const tenantId = sale.tenant_id
+
+  // Only a sale that was completed — i.e. paid — can be returned against.
+  // An open sale has collected nothing; refunding it would mint cash or
+  // store credit out of thin air.
+  if (!isReturnableSaleStatus(sale.status)) {
+    return { error: 'saleNotReturnable' }
+  }
 
   // Refunding to store credit needs someone to credit, and the module has
   // to be on. Checked BEFORE the return row is written — a return that
@@ -87,37 +97,50 @@ export async function createReturnAction(
     }
   }
 
-  // Pull the live sale_items to verify quantities + read unit prices.
-  const itemIds = v.items.map((i) => i.sale_item_id)
-  const { data: liveItems } = await supabase
+  // Pull EVERY live line of the sale: the refund is a share of the whole
+  // sale (discounts and tax travel with the goods), and we need all lines
+  // to know whether this return takes back the last of it.
+  const { data: liveItems, error: itemsErr } = await supabase
     .from('sale_items')
     .select(
-      'id, sale_id, inventory_item_id, description, quantity, unit_price, returned_qty',
+      'id, sale_id, inventory_item_id, description, quantity, unit_price, line_total, returned_qty',
     )
-    .in('id', itemIds)
+    .eq('sale_id', sale.id)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
+  if (itemsErr) return { error: 'generic' }
   type LiveItem = NonNullable<typeof liveItems>[number]
   const liveById = new Map<string, LiveItem>()
-  for (const r of liveItems ?? []) {
-    if (r.sale_id !== sale.id) {
-      return { error: 'wrong_sale' }
-    }
-    liveById.set(r.id, r)
-  }
+  for (const r of liveItems ?? []) liveById.set(r.id, r)
 
-  // Validate quantities + compute totals.
-  let subtotal = 0
+  // Validate quantities. An id that is not a line of THIS sale is refused.
+  const requested = new Map<string, number>()
   for (const ln of v.items) {
     const live = liveById.get(ln.sale_item_id)
     if (!live) return { error: 'item_not_found' }
+    if (requested.has(ln.sale_item_id)) return { error: 'validation_failed' }
     const remaining = r4(toMoney(live.quantity) - toMoney(live.returned_qty))
     if (ln.quantity > remaining + 0.0001) return { error: 'returnQtyExceeds' }
-    subtotal = r4(subtotal + r4(ln.quantity * toMoney(live.unit_price)))
+    requested.set(ln.sale_item_id, ln.quantity)
   }
-  // For v1 we mirror sale.tax_rate at return time; pulling it from the sale.
-  // Returns row stores tax_amount=0 + total=subtotal so refunds line up.
-  const returnTotal = subtotal
+
+  // What the customer actually paid for these goods — net of line and cart
+  // discounts, plus their tax, capped at what was paid and not yet refunded.
+  // See lib/pos/returns.ts.
+  const orderedItems = liveItems ?? []
+  const refund = computeReturnRefund({
+    sale,
+    lines: orderedItems.map((it) => ({
+      sold_quantity: it.quantity,
+      already_returned: it.returned_qty,
+      line_total: it.line_total,
+      return_quantity: requested.get(it.id) ?? 0,
+    })),
+  })
+  const lineValueById = new Map<string, number>()
+  orderedItems.forEach((it, idx) => lineValueById.set(it.id, refund.lineValues[idx]))
+  const returnTotal = refund.total
+  if (returnTotal <= 0) return { error: 'nothingToRefund' }
 
   // Insert returns row.
   const { data: ret, error: retErr } = await supabase
@@ -127,8 +150,8 @@ export async function createReturnAction(
       sale_id: sale.id,
       status: 'issued',
       reason: v.reason,
-      subtotal,
-      tax_amount: 0,
+      subtotal: refund.subtotal,
+      tax_amount: refund.tax,
       total: returnTotal,
       refunded_total: returnTotal,
       refund_method: v.refund_method as PaymentMethod,
@@ -144,7 +167,8 @@ export async function createReturnAction(
   for (const ln of v.items) {
     const live = liveById.get(ln.sale_item_id)
     if (!live) continue
-    const lineTotal = r4(ln.quantity * toMoney(live.unit_price))
+    // Net value of what came back on this line (discounts applied).
+    const lineTotal = lineValueById.get(ln.sale_item_id) ?? 0
     await supabase.from('return_items').insert({
       return_id: ret.id,
       tenant_id: tenantId,
@@ -173,8 +197,9 @@ export async function createReturnAction(
   // Roll up sale.returned_total + status.
   const newReturned = r4(toMoney(sale.returned_total) + returnTotal)
   let newStatus: SaleStatus = sale.status as SaleStatus
-  if (newReturned >= toMoney(sale.total) - 0.0001) newStatus = 'fully_returned'
-  else if (newReturned > 0) newStatus = 'partial_returned'
+  if (refund.isFinal || newReturned >= toMoney(sale.total) - 0.0001) {
+    newStatus = 'fully_returned'
+  } else if (newReturned > 0) newStatus = 'partial_returned'
   await supabase
     .from('sales')
     .update({ returned_total: newReturned, status: newStatus, updated_by: userId })
@@ -254,8 +279,10 @@ export async function createReturnAction(
       .eq('tenant_id', tenantId)
       .maybeSingle()
     if (settings?.loyalty_enabled) {
+      // Points were earned on the sale's subtotal (before the cart
+      // discount), so the clawback uses the same basis.
       const pointsToClaw = Math.floor(
-        subtotal * Number(settings.loyalty_earn_rate_retail),
+        refund.merchandise * Number(settings.loyalty_earn_rate_retail),
       )
       if (pointsToClaw > 0) {
         await recordEarnClawback({

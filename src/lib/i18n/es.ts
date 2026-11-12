@@ -499,6 +499,10 @@ export const es: Dictionary = {
     },
     deleteBlockedActiveLoans:
       'No se puede eliminar: este cliente tiene registros activos que lo impiden. Resuélvelos primero.',
+    documentDelete: 'Quitar documento',
+    documentDeleteBlockedPrefix:
+      'No se puede quitar la única copia en archivo mientras este cliente tenga',
+    documentDeleteFailed: 'No se pudo quitar el documento. Inténtalo de nuevo.',
     portalInvite: {
       title: 'Acceso al portal del cliente',
       statusActive: 'Portal activo',
@@ -527,6 +531,10 @@ export const es: Dictionary = {
         'NEXT_PUBLIC_APP_URL no está configurado en el servidor. Pídele a un administrador que lo configure.',
       errNotYetClaimed:
         'Este cliente aún no ha activado su portal — envía primero una invitación normal.',
+      errStaffAccount:
+        'Ese correo pertenece a una cuenta de personal, así que no se puede crear un enlace de acceso de cliente para él. Usa otro correo para este cliente.',
+      errEmailOnly:
+        'Ese correo ya tiene una cuenta del portal en otra tienda, así que el enlace solo se puede enviar a ese correo — y el correo no se pudo enviar. Configura el envío de correos o pide al cliente que use la página de acceso del portal.',
       signInUrlLabel: 'URL de inicio de sesión del portal',
       signInUrlHelp:
         'Los clientes visitan esta página para pedir un enlace de acceso de un solo uso por correo. Compártela en una tarjeta o por mensaje.',
@@ -538,6 +546,8 @@ export const es: Dictionary = {
         'Enlace de acceso generado y enviado por correo al cliente.',
       tempSignInDeliveredManualOnly:
         'Enlace de acceso generado. El correo no se envió (Resend no está configurado) — copia el enlace y entrégalo manualmente.',
+      tempSignInEmailedOnly:
+        'Enlace de acceso enviado por correo al cliente. No se muestra aquí porque esta cuenta también tiene acceso al portal en otra tienda.',
       tempSignInExpires: 'Este enlace caduca en 1 hora.',
     },
   },
@@ -1295,13 +1305,21 @@ export const es: Dictionary = {
       principalPaid: 'Principal pagado',
       interestPaid: 'Interés pagado',
       feesPaid: 'Cargos',
+      splitTitle: 'Cómo se aplica este pago',
       splitTooltip:
-        'Por defecto se aplica primero al interés. Modifica para aplicar más / menos al principal.',
-      autoSplit: 'División automática (interés primero)',
-      manualSplit: 'División manual',
-      splitMismatch: 'La suma de las divisiones debe igualar el monto total.',
+        'Primero los cargos, luego el interés adeudado y después el principal. El sistema define la división.',
       submit: 'Registrar pago',
       submitting: 'Registrando…',
+      errors: {
+        exceeds_payoff:
+          'Eso es más que el saldo de liquidación de ${payoff}. Ingresa ese monto o menos.',
+        fees_exceed_amount: 'Los cargos no pueden ser mayores que el monto cobrado.',
+        terminal_status: 'Este empeño ya está cerrado.',
+        payoff_unavailable:
+          'No se pudo leer el saldo del empeño. Recarga la página e inténtalo de nuevo.',
+        validation_failed: 'Revisa el monto e inténtalo de nuevo.',
+        generic: 'No se pudo registrar el pago. Inténtalo de nuevo.',
+      },
     },
     extension: {
       title: 'Extender empeño',
@@ -2070,9 +2088,11 @@ export const es: Dictionary = {
       readerSelect: 'Lector',
       readerNotConnected: 'Sin lector conectado (modo prueba)',
       runCardPresent: 'Cobrar con tarjeta presente',
-      markSucceededTest: 'Marcar como exitoso (PRUEBA)',
-      markSucceededHelp:
-        'Solo PRUEBA: el flujo real espera el webhook de Stripe. Úsalo hasta que se integre el lector.',
+      confirmCardApproved: 'Confirmar tarjeta aprobada',
+      confirmCardHelp:
+        'Solo gerentes. Úsalo cuando el lector muestre que la tarjeta fue aprobada pero este pago siga pendiente. Tu nombre queda registrado.',
+      cardPendingNote:
+        'Aún no cuenta. Un pago con tarjeta cuenta cuando se aprueba.',
       submit: 'Agregar pago',
       submitting: 'Agregando…',
       noteLabel: 'Notas',
@@ -2099,6 +2119,10 @@ export const es: Dictionary = {
       issuedOn: 'Emitida',
       issuedBy: 'Emitida por',
       refundTotal: 'Reembolsado',
+      refundMerchandise: 'Artículos devueltos',
+      refundDiscount: 'Parte del descuento',
+      refundTax: 'Impuesto',
+      refundCapped: 'Limitado a lo pagado que aún no se ha reembolsado.',
     },
     layaway: {
       title: 'Apartados',
@@ -2238,6 +2262,12 @@ export const es: Dictionary = {
       refundExceedsPaid: 'El reembolso no puede exceder el monto pagado.',
       returnQtyExceeds:
         'La cantidad a devolver excede lo devolvible restante.',
+      cardSaleNotOpen:
+        'La tarjeta fue aprobada, pero esta venta ya no está abierta, así que el pago no se agregó. Reembolsa la tarjeta o consulta a un gerente.',
+      saleNotReturnable:
+        'Solo se puede devolver una venta completada y pagada. Si la venta está abierta, anúlala.',
+      nothingToRefund:
+        'No queda nada por reembolsar en esta venta: no se pagó o ya se reembolsó por completo.',
       tenantStripeNotConnected:
         'Stripe no está conectado para esta tienda. Conecta una cuenta de Stripe antes de cobrar con tarjeta.',
       validationFailed: 'Revisa los campos resaltados.',
@@ -4845,6 +4875,13 @@ export const es: Dictionary = {
       save_failed:
         'Stripe respondió pero no se pudo guardar el estado. Inténtalo de nuevo.',
     },
+  },
+  team: {
+    inviteExistingTitle: 'Agregado a esta tienda.',
+    inviteExistingBody:
+      'Ese correo ya tiene una cuenta, así que no se creó un enlace de invitación. La persona inicia sesión como siempre y verá esta tienda en su selector de tiendas.',
+    inviteNewHelp:
+      'La persona abre el enlace, crea su contraseña y llega al panel. El enlace funciona una sola vez.',
   },
   orocut: {
     title: 'Láser OroCut',

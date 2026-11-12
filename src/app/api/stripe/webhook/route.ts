@@ -16,7 +16,13 @@ import {
   syncAccountStatus,
 } from '@/lib/stripe/connect'
 import { deriveConnectStatus } from '@/lib/stripe/connect-status'
+import {
+  authorizeLinkEvent,
+  webhookSecretOrNull,
+} from '@/lib/stripe/webhook-guard'
+import { settleSaleCardPayment } from '@/lib/pos/card-settle'
 import type {
+  StripePaymentLinkRow,
   LoanEventInsert,
   LoanEventRow,
   LoanRow,
@@ -24,15 +30,16 @@ import type {
 
 /**
  * Stripe webhook receiver. Per-tenant Connect events route to this single
- * endpoint; we route by metadata.kind into loan-payoff or layaway-payment
+ * endpoint; we route by OUR stripe_payment_links row (written server-side
+ * when the session was created) into loan-payoff or layaway-payment
  * handlers. Idempotent on stripe_payment_links.stripe_session_id (UNIQUE
  * column) — we look up the row first and bail early if it's already paid.
  *
  * Expected events:
  *   checkout.session.completed   — primary success signal for hosted Checkout.
  *   payment_intent.succeeded     — fallback (some integrations emit this for
- *                                   Checkout sessions; we read metadata to
- *                                   resolve the right kind/source).
+ *                                   Checkout sessions; matched to a link row
+ *                                   by payment_intent id).
  *   account.updated              — Connect onboarding status changed on a
  *                                   tenant's Express account; mirror the
  *                                   charges / payouts / details flags onto
@@ -42,11 +49,17 @@ import type {
  * webhook ("Listen to events on Connected accounts") so events from every
  * tenant's account arrive here with `event.account` set.
  *
- * Signature verification:
- *   Stripe signs the request with the per-endpoint signing secret. Until
- *   the operator provisions per-tenant signing secrets we read from
- *   STRIPE_WEBHOOK_SECRET (platform-level). If unset, we run in "no-verify"
- *   mode for local dev; in production this MUST be set.
+ * Trust model (see lib/stripe/webhook-guard.ts):
+ *   1. Signature. Stripe signs the request with the endpoint's signing
+ *      secret (STRIPE_WEBHOOK_SECRET). With no secret configured the
+ *      endpoint refuses EVERY request (503) — there is no unsigned mode,
+ *      in any environment.
+ *   2. Our link row. A payment is applied only when a stripe_payment_links
+ *      row exists for the session. Event metadata never selects the loan,
+ *      layaway, tenant or amount.
+ *   3. Account. `event.account` must be the connected account that belongs
+ *      to the link's tenant, so one shop's Stripe account can never settle
+ *      another shop's loan.
  *
  * Runtime: server-only Node — Stripe webhook signing relies on Node crypto.
  */
@@ -95,15 +108,24 @@ type AccountLite = {
 export async function POST(request: NextRequest) {
   const raw = await request.text()
   const sig = request.headers.get('stripe-signature') ?? ''
-  const secret = process.env.STRIPE_WEBHOOK_SECRET ?? null
+  const secret = webhookSecretOrNull(process.env)
 
-  // Verify signature when secret is configured. We avoid the Stripe SDK
-  // dependency by re-implementing the v1 scheme inline.
-  if (secret) {
-    const ok = await verifyStripeSignature(raw, sig, secret)
-    if (!ok) {
-      return NextResponse.json({ error: 'invalid_signature' }, { status: 400 })
-    }
+  // Fail closed. An unsigned request can claim anything, and this endpoint
+  // moves money — refuse outright until the signing secret is configured.
+  if (!secret) {
+    console.error(
+      '[stripe-webhook] STRIPE_WEBHOOK_SECRET is not set — refusing request',
+    )
+    return NextResponse.json(
+      { error: 'webhook_not_configured' },
+      { status: 503 },
+    )
+  }
+
+  // We avoid the Stripe SDK dependency by re-implementing the v1 scheme inline.
+  const signatureOk = await verifyStripeSignature(raw, sig, secret)
+  if (!signatureOk) {
+    return NextResponse.json({ error: 'invalid_signature' }, { status: 400 })
   }
 
   let event: StripeEventEnvelope
@@ -116,10 +138,10 @@ export async function POST(request: NextRequest) {
   try {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as CheckoutSessionLite
-      await handleCheckoutSessionCompleted(session)
+      await handleCheckoutSessionCompleted(session, event.account)
     } else if (event.type === 'payment_intent.succeeded') {
       const pi = event.data.object as PaymentIntentLite
-      await handlePaymentIntentSucceeded(pi)
+      await handlePaymentIntentSucceeded(pi, event.account)
     } else if (event.type === 'account.updated') {
       const account = event.data.object as AccountLite
       await handleAccountUpdated(account)
@@ -131,10 +153,50 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * Resolve the link row for an event and decide whether the event may move
+ * money for it. Returns the link when authorized, null (after logging the
+ * reason) when not.
+ */
+async function authorizedLink(args: {
+  link: StripePaymentLinkRow | null
+  eventAccount: string | undefined
+  ref: string
+}): Promise<StripePaymentLinkRow | null> {
+  const billing = args.eventAccount
+    ? await findTenantByStripeAccountId(args.eventAccount)
+    : null
+  const decision = authorizeLinkEvent({
+    link: args.link,
+    eventAccount: args.eventAccount,
+    accountTenantId: billing?.tenant_id ?? null,
+  })
+  if (!decision.ok) {
+    console.warn(
+      `[stripe-webhook] refused ${args.ref}: ${decision.reason}`,
+      { account: args.eventAccount ?? null },
+    )
+    return null
+  }
+  return args.link
+}
+
 async function handleCheckoutSessionCompleted(
   session: CheckoutSessionLite,
+  eventAccount: string | undefined,
 ): Promise<void> {
   if (!session.id) return
+
+  // Our own link row is the ONLY thing that says which loan / layaway a
+  // session pays. No row, or a row that belongs to a different tenant than
+  // the account the event came from → nothing happens.
+  const link = await authorizedLink({
+    link: await findStripeLinkBySessionId(session.id),
+    eventAccount,
+    ref: `session ${session.id}`,
+  })
+  if (!link) return
+
   // Quick filter by payment_status — Stripe also fires this event for
   // unpaid completion (e.g. "save card" flows). We only act on paid.
   if (session.payment_status && session.payment_status !== 'paid') {
@@ -143,33 +205,20 @@ async function handleCheckoutSessionCompleted(
     return
   }
 
-  const link = await findStripeLinkBySessionId(session.id)
-  const meta = session.metadata ?? {}
-  const kind = (link?.source_kind ?? meta.kind) as
-    | 'loan_payoff'
-    | 'layaway_payment'
-    | undefined
-  const sourceId =
-    link?.source_id ?? session.client_reference_id ?? meta.source_id
-  const tenantId = link?.tenant_id ?? meta.tenant_id
-  const customerId = link?.customer_id ?? meta.customer_id
-  const amount = (() => {
-    if (link?.amount != null) return Number(link.amount)
-    if (typeof session.amount_total === 'number') {
-      return r4(session.amount_total / 100)
-    }
-    return 0
-  })()
+  const kind = link.source_kind
+  const sourceId = link.source_id
+  const tenantId = link.tenant_id
+  const amount = link.amount != null ? Number(link.amount) : 0
   const piId =
     typeof session.payment_intent === 'string' ? session.payment_intent : null
 
-  if (!kind || !sourceId || !tenantId || !customerId || amount <= 0) {
-    console.warn('[stripe-webhook] missing fields for session', session.id)
+  if (!sourceId || !tenantId || amount <= 0) {
+    console.warn('[stripe-webhook] incomplete link row for session', session.id)
     return
   }
 
   // Idempotency — already marked paid? Bail.
-  if (link?.status === 'paid') {
+  if (link.status === 'paid') {
     return
   }
 
@@ -197,16 +246,24 @@ async function handleCheckoutSessionCompleted(
 
 async function handlePaymentIntentSucceeded(
   pi: PaymentIntentLite,
+  eventAccount: string | undefined,
 ): Promise<void> {
-  // Some integrations only emit payment_intent.succeeded. We try to find a
-  // matching link row by payment_intent_id; if missing, fall back to
-  // metadata-driven routing.
-  const link = await findStripeLinkByPaymentIntentId(pi.id)
-  if (!link) {
-    // Nothing to do — checkout.session.completed will likely arrive too
-    // and carry the session_id we use to key bookkeeping.
-    return
-  }
+  // A POS card tender (PaymentIntent created by the sale's addPaymentAction)
+  // settles here: this is what makes it count toward the sale's paid_total.
+  if (await settleSaleCardTender(pi, eventAccount)) return
+
+  // Some integrations only emit payment_intent.succeeded. We match a link
+  // row by payment_intent_id; with no row there is nothing to do —
+  // checkout.session.completed will arrive too and carry the session_id we
+  // key bookkeeping on. Metadata is never used for routing.
+  const found = await findStripeLinkByPaymentIntentId(pi.id)
+  if (!found) return
+  const link = await authorizedLink({
+    link: found,
+    eventAccount,
+    ref: `payment_intent ${pi.id}`,
+  })
+  if (!link) return
   if (link.status === 'paid') return
 
   const amount =
@@ -236,6 +293,82 @@ async function handlePaymentIntentSucceeded(
   }
 
   await markLinkPaid(link.stripe_session_id, pi.id)
+}
+
+/**
+ * Settle a POS card tender whose PaymentIntent just succeeded.
+ *
+ * Returns true when the PaymentIntent belongs to a sale_payments row (so the
+ * caller stops — whether it was applied or refused), false when it is not a
+ * POS tender at all.
+ *
+ * Same trust rules as the payment links: the row is OURS (written when the
+ * PaymentIntent was created), the event's account must be the tender's
+ * tenant's account, and the amount must be the amount we asked for.
+ */
+async function settleSaleCardTender(
+  pi: PaymentIntentLite,
+  eventAccount: string | undefined,
+): Promise<boolean> {
+  const admin = createAdminClient()
+  const { data: pay } = await admin
+    .from('sale_payments')
+    .select('id, sale_id, tenant_id, amount, payment_method')
+    .eq('stripe_payment_intent_id', pi.id)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (!pay || pay.payment_method !== 'card') return false
+
+  const billing = eventAccount
+    ? await findTenantByStripeAccountId(eventAccount)
+    : null
+  if (!billing || billing.tenant_id !== pay.tenant_id) {
+    console.warn(
+      `[stripe-webhook] refused card tender ${pay.id}: account does not belong to its tenant`,
+      { account: eventAccount ?? null },
+    )
+    return true
+  }
+
+  const expectedCents = Math.max(1, Math.round(Number(pay.amount) * 100))
+  if (pi.amount !== expectedCents) {
+    console.error(
+      `[stripe-webhook] refused card tender ${pay.id}: amount ${pi.amount} != expected ${expectedCents}`,
+    )
+    return true
+  }
+
+  const settled = await settleSaleCardPayment(admin, pay.id)
+  // Throw → 500 → Stripe retries. The settle is idempotent, so a retry is safe.
+  if (!settled.ok) throw new Error(`card_settle_failed: ${settled.error}`)
+
+  if (settled.reason === 'sale_not_open') {
+    // The card was charged after the sale closed. Money is on the account
+    // with no open sale to attach it to — someone has to refund it.
+    console.error(
+      `[stripe-webhook] card tender ${pay.id} succeeded but sale ${pay.sale_id} is not open — needs a refund`,
+    )
+  }
+
+  if (settled.reason !== 'not_pending') {
+    await logAudit({
+      tenantId: pay.tenant_id,
+      userId: '00000000-0000-0000-0000-000000000000',
+      action: 'card_present_succeeded',
+      tableName: 'sale_payments',
+      recordId: pay.id,
+      changes: {
+        sale_id: pay.sale_id,
+        via: 'stripe_webhook',
+        payment_intent_id: pi.id,
+        applied: settled.applied,
+        reason: settled.reason,
+        amount: settled.amount,
+        paid_total: settled.paidTotal,
+      },
+    })
+  }
+  return true
 }
 
 /**

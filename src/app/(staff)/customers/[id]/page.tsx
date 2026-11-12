@@ -285,6 +285,7 @@ export default async function CustomerDetailPage(props: { params: Params }) {
     <CustomerDetail
       customer={customerNarrowed}
       documents={documents}
+      canDeleteDocuments={canAdjust}
       hasPawn={hasPawn}
       hasRepair={hasRepair}
       hasRetail={hasRetail}

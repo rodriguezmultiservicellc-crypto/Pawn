@@ -214,24 +214,26 @@ export type LoanCreateInput = z.infer<typeof loanCreateSchema>
 
 // ── Payment ─────────────────────────────────────────────────────────────────
 
+// The interest / principal split is NOT an input. The server computes it
+// (interest first — lib/pawn/math.allocateLoanPayment) from the payoff it
+// reads itself; a `principal_paid` / `interest_paid` sent by the browser is
+// dropped here. Letting the client choose the split let a payment retire all
+// principal with interest unpaid, which flipped the loan to redeemed with
+// the interest forgiven. Fees are the only part the clerk enters.
 export const loanPaymentSchema = z
   .object({
     loan_id: z.string().uuid(),
     amount: requiredDecimalPositive,
     payment_method: paymentMethodSchema.default('cash'),
-    principal_paid: requiredDecimalNonNeg.default(0),
-    interest_paid: requiredDecimalNonNeg.default(0),
     fees_paid: requiredDecimalNonNeg.default(0),
     notes: optionalTrimmedString,
   })
   .superRefine((v, ctx) => {
-    // Tolerate floating point: components must sum to amount within $0.0001.
-    const sum = v.principal_paid + v.interest_paid + v.fees_paid
-    if (Math.abs(sum - v.amount) > 0.0001) {
+    if (v.fees_paid > v.amount + 0.0001) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['amount'],
-        message: 'split_mismatch',
+        path: ['fees_paid'],
+        message: 'fees_exceed_amount',
       })
     }
   })

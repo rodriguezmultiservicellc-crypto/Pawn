@@ -24,15 +24,25 @@ import type {
  *      rewrite `acme.pawnshop.com/` → `/s/acme` so the same RSC handles
  *      both URL forms.
  *
- *   2. fetchPublicTenant — async DB fetch via the anon SSR client. RLS
- *      gates this: `tenants_public_landing_select` only exposes the row
- *      when `public_landing_enabled = TRUE AND public_slug IS NOT NULL
- *      AND is_active = TRUE`. So a missing row OR a disabled landing
- *      both return null without leaking that the slug exists.
+ *   2. fetchPublicTenant / fetchPublicCatalog* — async DB reads via the
+ *      anon SSR client, against the PUBLIC VIEWS (patches/0072), never the
+ *      base tables:
  *
- *      Selects ONLY columns safe for unauthenticated rendering. NEVER
- *      `SELECT *` — the row contains agency_store_id, police_report_format,
- *      parent_tenant_id, and other fields that aren't intentionally public.
+ *        public_tenants         published landing pages, public columns
+ *        public_catalog_items   published + available + priced + not hidden
+ *        public_catalog_photos  photos of those items
+ *        public_catalog_stones  stones of those items
+ *
+ *      The view body is the allowlist: it fixes both which rows and which
+ *      columns an unauthenticated caller can see. The base tables have no
+ *      anon policy at all (patches/0073) — before that, the column list
+ *      lived only in this file while PostgREST happily served
+ *      `tenants?select=*` and `inventory_items?select=cost_basis` to anyone
+ *      holding the public anon key. A missing row OR a disabled landing both
+ *      return null without leaking that the slug exists.
+ *
+ *      To make a new column public: add it to the VIEW in a migration.
+ *      Adding it to the select strings below does nothing on its own.
  */
 
 // ── Reserved subdomains ─────────────────────────────────────────────────
@@ -201,9 +211,8 @@ export function isReservedOrInvalidSlug(slug: string): boolean {
 }
 
 /**
- * Public-only column set. Anything not in this list NEVER ships to an
- * unauthenticated browser. RLS is the second line of defense — this
- * SELECT list is the first.
+ * The columns the `public_tenants` view exposes (patches/0072). The view is
+ * what enforces this — the list here just names what we read.
  */
 const PUBLIC_TENANT_COLUMNS =
   'id, name, dba, public_slug, public_about, public_hours, address, city, state, zip, phone, email, logo_url, has_pawn, has_repair, has_retail, public_catalog_enabled'
@@ -211,10 +220,9 @@ const PUBLIC_TENANT_COLUMNS =
 /**
  * Fetch the public tenant by slug, or null if no published landing
  * exists (slug not found OR public_landing_enabled=FALSE OR
- * is_active=FALSE — RLS filters all three identically).
+ * is_active=FALSE — the view filters all three identically).
  *
- * Server-side only. Uses the anon SSR client so the
- * `tenants_public_landing_select` policy gates the read.
+ * Server-side only. Reads the `public_tenants` view.
  */
 export async function fetchPublicTenant(
   slug: string,
@@ -224,32 +232,43 @@ export async function fetchPublicTenant(
   const supabase = await createClient()
 
   const { data, error } = await supabase
-    .from('tenants')
+    .from('public_tenants')
     .select(PUBLIC_TENANT_COLUMNS)
     .eq('public_slug', slug)
     .maybeSingle()
 
   if (error || !data) return null
-  // The RLS policy filters to rows where public_slug IS NOT NULL — but
-  // the column type is still nullable, so narrow it here.
-  if (data.public_slug === null) return null
+  // View columns are typed nullable; the view's WHERE guarantees these.
+  if (!data.id || !data.name || !data.public_slug) return null
 
   return {
-    ...data,
+    id: data.id,
+    name: data.name,
+    dba: data.dba,
     public_slug: data.public_slug,
+    public_about: data.public_about,
     public_hours: normalizePublicHours(data.public_hours),
+    address: data.address,
+    city: data.city,
+    state: data.state,
+    zip: data.zip,
+    phone: data.phone,
+    email: data.email,
+    logo_url: data.logo_url,
+    has_pawn: data.has_pawn === true,
+    has_repair: data.has_repair === true,
+    has_retail: data.has_retail === true,
+    public_catalog_enabled: data.public_catalog_enabled === true,
   }
 }
 
 // ── Public catalog (Phase 10 Path A slice 2) ───────────────────────────
 
 /**
- * Public-safe column allowlist for the catalog reads. NEVER add a column
- * here without confirming it's safe to ship to an unauthenticated browser.
- *
- * Defense-in-depth: even if the RLS policy misbehaves, this SELECT list
- * still narrows the row to the safe shape. The catalog test file
- * regression-locks the forbidden set.
+ * The columns read from the `public_catalog_items` view (patches/0072).
+ * The view is the allowlist — it does not contain cost, notes, source or
+ * consignment columns at all, so they cannot be selected through it. The
+ * catalog test file regression-locks the forbidden set on this string too.
  */
 export const PUBLIC_CATALOG_COLUMNS =
   'id, sku, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, list_price, created_at'
@@ -399,7 +418,7 @@ export async function fetchPublicCatalog(args: {
   // queries because we need the count up front to compute valid page
   // bounds and avoid a "page > totalPages" 416 from postgrest.
   let countQuery = supabase
-    .from('inventory_items')
+    .from('public_catalog_items')
     .select('id', { count: 'exact', head: true })
     .eq('tenant_id', args.tenantId)
   if (args.category) countQuery = countQuery.eq('category', args.category)
@@ -423,7 +442,7 @@ export async function fetchPublicCatalog(args: {
   }
 
   let listQuery = supabase
-    .from('inventory_items')
+    .from('public_catalog_items')
     .select(PUBLIC_CATALOG_COLUMNS)
     .eq('tenant_id', args.tenantId)
     .order('created_at', { ascending: false })
@@ -437,7 +456,10 @@ export async function fetchPublicCatalog(args: {
   }
 
   const { data: rows } = await listQuery
-  const items = rows ?? []
+  const items = (rows ?? []).flatMap((r) => {
+    const row = narrowCatalogRow(r)
+    return row ? [row] : []
+  })
 
   if (items.length === 0) {
     return { items: [], pagination }
@@ -447,16 +469,16 @@ export async function fetchPublicCatalog(args: {
   // position) per item for the list thumbnail. One round-trip via .in().
   const ids = items.map((r) => r.id)
   const { data: photoRows } = await supabase
-    .from('inventory_item_photos')
+    .from('public_catalog_photos')
     .select('id, item_id, storage_path, position, is_primary, caption')
     .in('item_id', ids)
     .order('is_primary', { ascending: false })
     .order('position', { ascending: true })
 
-  type PhotoRow = NonNullable<typeof photoRows>[number]
-  const primaryByItem = new Map<string, PhotoRow>()
-  for (const p of photoRows ?? []) {
-    if (!primaryByItem.has(p.item_id)) primaryByItem.set(p.item_id, p)
+  const primaryByItem = new Map<string, PublicPhotoRow>()
+  for (const raw of photoRows ?? []) {
+    const p = narrowPhotoRow(raw)
+    if (p && !primaryByItem.has(p.item_id)) primaryByItem.set(p.item_id, p)
   }
 
   const signed = await Promise.all(
@@ -495,33 +517,38 @@ export async function fetchPublicCatalogItem(args: {
 }): Promise<PublicCatalogItem | null> {
   const supabase = await createClient()
 
-  const { data: row } = await supabase
-    .from('inventory_items')
+  const { data: rawRow } = await supabase
+    .from('public_catalog_items')
     .select(PUBLIC_CATALOG_COLUMNS)
     .eq('tenant_id', args.tenantId)
     .eq('sku', args.sku)
     .maybeSingle()
 
+  const row = rawRow ? narrowCatalogRow(rawRow) : null
   if (!row) return null
 
   const id = row.id
 
   const [{ data: photoRows }, { data: stoneRows }] = await Promise.all([
     supabase
-      .from('inventory_item_photos')
-      .select('id, storage_path, position, is_primary, caption')
+      .from('public_catalog_photos')
+      .select('id, item_id, storage_path, position, is_primary, caption')
       .eq('item_id', id)
       .order('is_primary', { ascending: false })
       .order('position', { ascending: true }),
     supabase
-      .from('inventory_item_stones')
+      .from('public_catalog_stones')
       .select('count, stone_type, cut, carat, is_total_carat, color, clarity, position')
       .eq('item_id', id)
       .order('position', { ascending: true }),
   ])
 
+  const livePhotos = (photoRows ?? []).flatMap((raw) => {
+    const p = narrowPhotoRow(raw)
+    return p ? [p] : []
+  })
   const photos: PublicCatalogPhoto[] = await Promise.all(
-    (photoRows ?? []).map(async (p) => ({
+    livePhotos.map(async (p) => ({
       id: p.id,
       storage_path: p.storage_path,
       signed_url: await getSignedUrl({
@@ -536,14 +563,14 @@ export async function fetchPublicCatalogItem(args: {
   )
 
   const stones: PublicCatalogStone[] = (stoneRows ?? []).map((s) => ({
-    count: s.count,
+    count: s.count ?? 0,
     stone_type: s.stone_type,
     cut: s.cut,
     carat: numericOrNull(s.carat),
-    is_total_carat: s.is_total_carat,
+    is_total_carat: s.is_total_carat === true,
     color: s.color,
     clarity: s.clarity,
-    position: s.position,
+    position: s.position ?? 0,
   }))
 
   const base = shapeListItem(row, null)
@@ -566,22 +593,94 @@ export async function fetchPublicCatalogItem(args: {
   }
 }
 
+// ── View-row narrowing ─────────────────────────────────────────────────
+//
+// Postgres reports every view column as nullable, so the generated types
+// are `T | null` across the board. The underlying columns are NOT NULL and
+// the view's WHERE keeps only complete rows; these helpers assert that at
+// the boundary and drop anything that somehow is not complete.
+
+type PublicCatalogRow = {
+  id: string
+  sku: string
+  description: string
+  category: string
+  brand: string | null
+  model: string | null
+  serial_number: string | null
+  metal: string | null
+  karat: string | null
+  weight_grams: number | string | null
+  weight_dwt: number | string | null
+  list_price: number | string | null
+  created_at: string
+}
+
+function narrowCatalogRow(r: {
+  id: string | null
+  sku: string | null
+  description: string | null
+  category: string | null
+  brand: string | null
+  model: string | null
+  serial_number: string | null
+  metal: string | null
+  karat: string | null
+  weight_grams: number | string | null
+  weight_dwt: number | string | null
+  list_price: number | string | null
+  created_at: string | null
+}): PublicCatalogRow | null {
+  if (!r.id || !r.sku || r.description == null || !r.category || !r.created_at) {
+    return null
+  }
+  return {
+    id: r.id,
+    sku: r.sku,
+    description: r.description,
+    category: r.category,
+    brand: r.brand,
+    model: r.model,
+    serial_number: r.serial_number,
+    metal: r.metal,
+    karat: r.karat,
+    weight_grams: r.weight_grams,
+    weight_dwt: r.weight_dwt,
+    list_price: r.list_price,
+    created_at: r.created_at,
+  }
+}
+
+type PublicPhotoRow = {
+  id: string
+  item_id: string
+  storage_path: string
+  position: number
+  is_primary: boolean
+  caption: string | null
+}
+
+function narrowPhotoRow(r: {
+  id: string | null
+  item_id: string | null
+  storage_path: string | null
+  position: number | null
+  is_primary: boolean | null
+  caption: string | null
+}): PublicPhotoRow | null {
+  if (!r.id || !r.item_id || !r.storage_path) return null
+  return {
+    id: r.id,
+    item_id: r.item_id,
+    storage_path: r.storage_path,
+    position: r.position ?? 0,
+    is_primary: r.is_primary === true,
+    caption: r.caption,
+  }
+}
+
 function shapeListItem(
-  row: {
-    id: string
-    sku: string
-    description: string
-    category: string
-    brand: string | null
-    model: string | null
-    serial_number: string | null
-    metal: string | null
-    karat: string | null
-    weight_grams: number | string | null
-    weight_dwt: number | string | null
-    list_price: number | string | null
-    created_at: string
-  },
+  row: PublicCatalogRow,
   primary_photo: PublicCatalogPhoto | null,
 ): PublicCatalogListItem {
   // NUMERIC columns can return as string from supabase-js → coerce.

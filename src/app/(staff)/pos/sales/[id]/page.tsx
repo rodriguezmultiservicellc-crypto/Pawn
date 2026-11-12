@@ -254,6 +254,10 @@ export default async function SaleDetailPage(props: { params: Params }) {
       layawayId={layawayId}
       loyalty={loyalty}
       storeCredit={storeCredit}
+      canConfirmCard={
+        !!ctx.tenantRole &&
+        ['owner', 'manager', 'chain_admin'].includes(ctx.tenantRole)
+      }
     />
   )
 }

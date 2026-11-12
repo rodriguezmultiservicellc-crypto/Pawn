@@ -8,6 +8,7 @@ import {
   ReturnPicker,
   type ReturnPickerSaleItem,
 } from '@/components/pos/ReturnPicker'
+import { isReturnableSaleStatus } from '@/lib/pos/returns'
 import { createReturnAction } from './actions'
 import type { SaleStatus } from '@/types/database-aliases'
 
@@ -15,6 +16,9 @@ export type NewReturnSale = {
   id: string
   sale_number: string
   status: SaleStatus
+  subtotal: number
+  discount_amount: number
+  tax_amount: number
   total: number
   paid_total: number
   returned_total: number
@@ -74,13 +78,20 @@ export default function NewReturnForm({
         </div>
       </div>
 
-      <ReturnPicker
-        saleId={sale.id}
-        saleItems={items}
-        onSubmit={onSubmit}
-        storeCreditEnabled={storeCreditEnabled}
-        hasCustomer={hasCustomer}
-      />
+      {isReturnableSaleStatus(sale.status) ? (
+        <ReturnPicker
+          saleId={sale.id}
+          sale={sale}
+          saleItems={items}
+          onSubmit={onSubmit}
+          storeCreditEnabled={storeCreditEnabled}
+          hasCustomer={hasCustomer}
+        />
+      ) : (
+        <div className="rounded-md border border-border bg-background/40 p-6 text-center text-sm text-muted">
+          {t.pos.errors.saleNotReturnable}
+        </div>
+      )}
     </div>
   )
 }

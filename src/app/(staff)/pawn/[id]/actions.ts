@@ -15,6 +15,7 @@ import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { loanForfeitEligibility } from '@/lib/jurisdictions/rules'
 import {
   addDaysIso,
+  allocateLoanPayment,
   payoffFromLoan,
   splitPayment,
   todayDateString,
@@ -73,18 +74,46 @@ export async function recordPaymentAction(
     loan_id: loanIdRaw,
     amount: formData.get('amount'),
     payment_method: formData.get('payment_method') ?? 'cash',
-    principal_paid: formData.get('principal_paid'),
-    interest_paid: formData.get('interest_paid'),
     fees_paid: formData.get('fees_paid'),
     notes: formData.get('notes'),
   })
-  if (!parsed.success) return { error: 'validation_failed' }
+  if (!parsed.success) {
+    const feesIssue = parsed.error.issues.some(
+      (i) => i.message === 'fees_exceed_amount',
+    )
+    return { error: feesIssue ? 'fees_exceed_amount' : 'validation_failed' }
+  }
   const v = parsed.data
 
   const { loan, supabase, userId, tenantId } = await resolveLoanScope(v.loan_id)
   if (isTerminalStatus(loan.status as LoanStatus)) {
     return { error: 'terminal_status' }
   }
+
+  const loanForPayoff = {
+    principal: loan.principal,
+    interest_rate_monthly: loan.interest_rate_monthly,
+    issue_date: loan.issue_date,
+    min_monthly_charge: loan.min_monthly_charge,
+  }
+  const today = todayDateString()
+
+  // What is owed right now, read by the server. The split is decided here
+  // (interest first) and never taken from the browser — see
+  // allocateLoanPayment for why.
+  const { data: priorEvents, error: priorErr } = await supabase
+    .from('loan_events')
+    .select('principal_paid, interest_paid, fees_paid')
+    .eq('loan_id', loan.id)
+  if (priorErr) return { error: 'payoff_unavailable' }
+  const owed = payoffFromLoan(loanForPayoff, priorEvents ?? [], today)
+  const split = allocateLoanPayment({
+    amount: v.amount,
+    fees: v.fees_paid,
+    interestOutstanding: owed.interestOutstanding,
+    principalOutstanding: owed.principalOutstanding,
+  })
+  if (!split.ok) return { error: split.reason }
 
   // Insert event.
   const { data: paymentEvent, error: evErr } = await supabase
@@ -94,9 +123,9 @@ export async function recordPaymentAction(
       tenant_id: tenantId,
       event_type: 'payment',
       amount: v.amount,
-      principal_paid: v.principal_paid,
-      interest_paid: v.interest_paid,
-      fees_paid: v.fees_paid,
+      principal_paid: split.principal_paid,
+      interest_paid: split.interest_paid,
+      fees_paid: split.fees_paid,
       payment_method: v.payment_method,
       notes: v.notes,
       performed_by: userId,
@@ -110,16 +139,7 @@ export async function recordPaymentAction(
     .from('loan_events')
     .select('principal_paid, interest_paid, fees_paid')
     .eq('loan_id', loan.id)
-  const payoff = payoffFromLoan(
-    {
-      principal: loan.principal,
-      interest_rate_monthly: loan.interest_rate_monthly,
-      issue_date: loan.issue_date,
-      min_monthly_charge: loan.min_monthly_charge,
-    },
-    events ?? [],
-    todayDateString(),
-  )
+  const payoff = payoffFromLoan(loanForPayoff, events ?? [], today)
 
   let newStatus: LoanStatus = loan.status as LoanStatus
   if (payoff.payoff <= 0) {
@@ -154,16 +174,16 @@ export async function recordPaymentAction(
     changes: {
       kind: 'payment',
       amount: v.amount,
-      principal_paid: v.principal_paid,
-      interest_paid: v.interest_paid,
-      fees_paid: v.fees_paid,
+      principal_paid: split.principal_paid,
+      interest_paid: split.interest_paid,
+      fees_paid: split.fees_paid,
       payment_method: v.payment_method,
       new_status: newStatus,
     },
   })
 
   // ── Loyalty earn on interest paid (gated) ──────────────────────────────
-  if (loan.customer_id && Number(v.interest_paid) > 0) {
+  if (loan.customer_id && split.interest_paid > 0) {
     const admin = createAdminClient()
     const { data: settings } = await admin
       .from('settings')
@@ -178,7 +198,7 @@ export async function recordPaymentAction(
         tenantId,
         customerId: loan.customer_id,
         loanEventId: paymentEvent.id,
-        interestPaid: Number(v.interest_paid),
+        interestPaid: split.interest_paid,
         rate: Number(settings.loyalty_earn_rate_loan_interest),
       })
       await maybeCreditReferral({

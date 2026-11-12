@@ -3,14 +3,17 @@
 import { useMemo, useState, useTransition } from 'react'
 import { CashRegister, X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { splitPayment, r4 } from '@/lib/pawn/math'
+import { allocateLoanPayment } from '@/lib/pawn/math'
 import type { PaymentMethod } from '@/types/database-aliases'
 
 /**
- * Dialog for recording a payment against a loan. Auto-splits the amount
- * (interest first) by default; "Manual split" override lets the clerk set
- * principal / interest / fees explicitly. The server action re-validates
- * the split totals.
+ * Dialog for recording a payment against a loan.
+ *
+ * The clerk enters the amount collected and, optionally, how much of it is
+ * a fee. How the rest is applied (interest first, then principal) is shown
+ * as a read-only preview — the SERVER decides the real split from the
+ * payoff it reads itself (recordPaymentAction → allocateLoanPayment), so
+ * there is no way to pay principal down while interest is still owed.
  */
 export function RecordPaymentDialog({
   loanId,
@@ -22,7 +25,7 @@ export function RecordPaymentDialog({
   loanId: string
   /** Current full-payoff value for the prefill (cash redemption). */
   payoff: number
-  /** Current accrued-but-unpaid interest, used by auto-split. */
+  /** Current accrued-but-unpaid interest, used by the preview. */
   outstandingInterest: number
   onClose: () => void
   onSubmit: (
@@ -30,32 +33,33 @@ export function RecordPaymentDialog({
   ) => Promise<{ error?: string; ok?: boolean }>
 }) {
   const { t } = useI18n()
+  const tp = t.pawn.payment
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [amountStr, setAmountStr] = useState<string>(payoff.toFixed(2))
   const [method, setMethod] = useState<PaymentMethod>('cash')
-  const [manual, setManual] = useState(false)
-  const [principalStr, setPrincipalStr] = useState<string>('0')
-  const [interestStr, setInterestStr] = useState<string>('0')
-  const [feesStr, setFeesStr] = useState<string>('0')
+  const [feesStr, setFeesStr] = useState<string>('')
   const [notes, setNotes] = useState<string>('')
 
-  const autoSplit = useMemo(() => {
-    const a = parseFloat(amountStr || '0')
-    return splitPayment(isNaN(a) ? 0 : a, outstandingInterest)
-  }, [amountStr, outstandingInterest])
+  const amount = parseFloat(amountStr || '0') || 0
+  const fees = parseFloat(feesStr || '0') || 0
 
-  const interestDisplay = manual ? interestStr : autoSplit.interest_paid.toFixed(2)
-  const principalDisplay = manual ? principalStr : autoSplit.principal_paid.toFixed(2)
-  const feesDisplay = manual ? feesStr : '0'
+  // Preview only — same function the server uses, same inputs the page was
+  // rendered with. The server recomputes against live data on submit.
+  const preview = useMemo(
+    () =>
+      allocateLoanPayment({
+        amount,
+        fees,
+        interestOutstanding: outstandingInterest,
+        principalOutstanding: Math.max(0, payoff - outstandingInterest),
+      }),
+    [amount, fees, outstandingInterest, payoff],
+  )
 
-  function toggleManual() {
-    if (!manual) {
-      setInterestStr(autoSplit.interest_paid.toFixed(2))
-      setPrincipalStr(autoSplit.principal_paid.toFixed(2))
-      setFeesStr('0')
-    }
-    setManual((v) => !v)
+  function translateError(code: string): string {
+    const known = tp.errors as Record<string, string>
+    return (known[code] ?? known.generic).replace('{payoff}', payoff.toFixed(2))
   }
 
   function submit() {
@@ -64,26 +68,20 @@ export function RecordPaymentDialog({
     fd.set('loan_id', loanId)
     fd.set('amount', amountStr)
     fd.set('payment_method', method)
-    fd.set('principal_paid', principalDisplay)
-    fd.set('interest_paid', interestDisplay)
-    fd.set('fees_paid', feesDisplay)
+    fd.set('fees_paid', feesStr || '0')
     if (notes) fd.set('notes', notes)
     startTransition(async () => {
       const res = await onSubmit(fd)
-      if (res.error) setError(res.error)
+      if (res.error) setError(translateError(res.error))
       else onClose()
     })
   }
 
-  const amount = parseFloat(amountStr || '0')
-  const splitSum =
-    parseFloat(principalDisplay || '0') +
-    parseFloat(interestDisplay || '0') +
-    parseFloat(feesDisplay || '0')
-  const splitMismatch = manual && Math.abs(r4(splitSum) - r4(amount)) > 0.0001
+  const previewError =
+    amount > 0 && !preview.ok ? translateError(preview.reason) : null
 
   return (
-    <Modal title={t.pawn.payment.title} onClose={onClose}>
+    <Modal title={tp.title} onClose={onClose}>
       {error ? (
         <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
@@ -94,7 +92,7 @@ export function RecordPaymentDialog({
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
             <span className="text-sm font-medium text-foreground">
-              {t.pawn.payment.amount}
+              {tp.amount}
             </span>
             <input
               type="number"
@@ -107,59 +105,46 @@ export function RecordPaymentDialog({
           </label>
           <label className="block space-y-1">
             <span className="text-sm font-medium text-foreground">
-              {t.pawn.payment.paymentMethod}
+              {tp.paymentMethod}
             </span>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value as PaymentMethod)}
               className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
             >
-              <option value="cash">{t.pawn.payment.methodCash}</option>
-              <option value="card">{t.pawn.payment.methodCard}</option>
-              <option value="check">{t.pawn.payment.methodCheck}</option>
-              <option value="other">{t.pawn.payment.methodOther}</option>
+              <option value="cash">{tp.methodCash}</option>
+              <option value="card">{tp.methodCard}</option>
+              <option value="check">{tp.methodCheck}</option>
+              <option value="other">{tp.methodOther}</option>
             </select>
           </label>
         </div>
 
         <div className="rounded-md border border-border bg-background/40 p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold text-foreground">
-              {manual ? t.pawn.payment.manualSplit : t.pawn.payment.autoSplit}
-            </span>
-            <button
-              type="button"
-              onClick={toggleManual}
-              className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
-            >
-              {manual ? t.pawn.payment.autoSplit : t.pawn.payment.manualSplit}
-            </button>
+          <div className="mb-1 text-xs font-semibold text-foreground">
+            {tp.splitTitle}
           </div>
-          <p className="mb-2 text-xs text-muted">{t.pawn.payment.splitTooltip}</p>
+          <p className="mb-2 text-xs text-muted">{tp.splitTooltip}</p>
           <div className="grid grid-cols-3 gap-2">
             <SplitField
-              label={t.pawn.payment.interestPaid}
-              value={interestDisplay}
-              onChange={setInterestStr}
-              readOnly={!manual}
-            />
-            <SplitField
-              label={t.pawn.payment.principalPaid}
-              value={principalDisplay}
-              onChange={setPrincipalStr}
-              readOnly={!manual}
-            />
-            <SplitField
-              label={t.pawn.payment.feesPaid}
-              value={feesDisplay}
+              label={tp.feesPaid}
+              value={feesStr}
               onChange={setFeesStr}
-              readOnly={!manual}
+              placeholder="0.00"
+            />
+            <SplitField
+              label={tp.interestPaid}
+              value={preview.ok ? preview.interest_paid.toFixed(2) : '—'}
+              readOnly
+            />
+            <SplitField
+              label={tp.principalPaid}
+              value={preview.ok ? preview.principal_paid.toFixed(2) : '—'}
+              readOnly
             />
           </div>
-          {splitMismatch ? (
-            <div className="mt-2 text-xs text-danger">
-              {t.pawn.payment.splitMismatch}
-            </div>
+          {previewError ? (
+            <div className="mt-2 text-xs text-danger">{previewError}</div>
           ) : null}
         </div>
 
@@ -186,12 +171,12 @@ export function RecordPaymentDialog({
         </button>
         <button
           type="button"
-          disabled={pending || splitMismatch || !(amount > 0)}
+          disabled={pending || !preview.ok || !(amount > 0)}
           onClick={submit}
           className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm text-navy font-medium hover:bg-gold-2 disabled:opacity-50"
         >
           <CashRegister size={14} weight="bold" />
-          {pending ? t.pawn.payment.submitting : t.pawn.payment.submit}
+          {pending ? tp.submitting : tp.submit}
         </button>
       </Footer>
     </Modal>
@@ -203,22 +188,25 @@ function SplitField({
   value,
   onChange,
   readOnly,
+  placeholder,
 }: {
   label: string
   value: string
-  onChange: (v: string) => void
+  onChange?: (v: string) => void
   readOnly?: boolean
+  placeholder?: string
 }) {
   return (
     <label className="block space-y-1">
       <span className="text-xs font-medium text-foreground">{label}</span>
       <input
-        type="number"
+        type={readOnly ? 'text' : 'number'}
         step="0.01"
         min={0}
         value={value}
         readOnly={readOnly}
-        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        onChange={(e) => onChange?.(e.target.value)}
         className={`block w-full rounded-md border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
           readOnly
             ? 'border-border bg-background/60 text-muted'

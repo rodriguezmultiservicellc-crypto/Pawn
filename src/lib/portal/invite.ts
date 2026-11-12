@@ -1,6 +1,8 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/send'
+import { loadAccountAccessByEmail } from '@/lib/auth/account-access'
+import { portalLinkHandoff } from '@/lib/auth/account-link-policy'
 import { renderPortalInviteEmail } from './invite-email'
 
 /**
@@ -36,6 +38,12 @@ export type PortalInviteResult =
         | 'already_linked'
         | 'auth_invite_failed'
         | 'invite_insert_failed'
+        /** The email belongs to a staff / operator account — never invited
+         *  as a portal customer, and no link is minted for it. */
+        | 'email_is_staff_account'
+        /** The email already has a portal account at another shop; the
+         *  invite can only be emailed to it, and the email did not go out. */
+        | 'existing_account_email_only'
       error: string | null
     }
 
@@ -74,6 +82,23 @@ export async function createPortalInvite(args: {
 
   const shopName = tenant?.dba || tenant?.name || 'your shop'
 
+  // 0. Who does this email belong to? customers.email is editable by staff,
+  //    and a magic link is a login — so before minting anything we decide
+  //    whether the operator may ever be shown the link
+  //    (lib/auth/account-link-policy.ts):
+  //      refuse     — a staff / operator account. Not a portal customer.
+  //      email_only — a portal account at another shop. Only its own inbox.
+  //      operator   — no account yet, or one whose only access is this shop.
+  const account = await loadAccountAccessByEmail(admin, customer.email)
+  if (!account.ok) {
+    return { ok: false, reason: 'auth_invite_failed', error: account.error }
+  }
+  const handoff = portalLinkHandoff(account.access, args.tenantId)
+  if (handoff === 'refuse') {
+    return { ok: false, reason: 'email_is_staff_account', error: null }
+  }
+  const accountExists = account.access !== null
+
   // 1. Persist the invite token row first (we own the bookkeeping).
   const expires = new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000)
   const { data: inviteRow, error: insErr } = await admin
@@ -101,13 +126,11 @@ export async function createPortalInvite(args: {
     claimPath,
   )}`
 
-  // 2. Ask Supabase Auth to mint a magic link. We try `type: 'invite'`
-  //    first (creates the auth.users row when missing — perfect for
-  //    first-time portal users). If that fails because the user already
-  //    exists in auth.users (e.g. operator is testing with their own
-  //    email, or the customer was previously invited under a different
-  //    customer record), fall back to `type: 'magiclink'` which works
-  //    for existing users.
+  // 2. Ask Supabase Auth to mint the link. `invite` creates the auth.users
+  //    row for a first-time portal user; `magiclink` is for an account that
+  //    already exists (same customer invited before, or a portal customer of
+  //    another shop). Which one applies was decided in step 0 from an exact
+  //    lookup — we no longer try `invite` and fall back blindly.
   type GenerateLinkResp = {
     properties?: { action_link?: string }
     data?: { properties?: { action_link?: string } }
@@ -115,15 +138,6 @@ export async function createPortalInvite(args: {
   type GenerateLinkResult = {
     data: GenerateLinkResp
     error: { message: string; status?: number } | null
-  }
-
-  const isAlreadyRegistered = (msg: string): boolean => {
-    const lower = msg.toLowerCase()
-    return (
-      lower.includes('already') ||
-      lower.includes('registered') ||
-      lower.includes('exists')
-    )
   }
 
   const tryGenerate = async (
@@ -138,15 +152,7 @@ export async function createPortalInvite(args: {
 
   let magicLink: string
   try {
-    let resp = await tryGenerate('invite')
-
-    if (resp.error && isAlreadyRegistered(resp.error.message)) {
-      console.warn(
-        '[portal.invite] invite said user exists, retrying as magiclink',
-        { email: customer.email, originalError: resp.error.message },
-      )
-      resp = await tryGenerate('magiclink')
-    }
+    const resp = await tryGenerate(accountExists ? 'magiclink' : 'invite')
 
     if (resp.error) {
       console.error('[portal.invite] generateLink error', {
@@ -211,10 +217,27 @@ export async function createPortalInvite(args: {
     customerId: customer.id,
   })
 
+  // The email did not go out and this account may only ever be reached by
+  // its own inbox: there is no manual fallback. Retire the invite row so it
+  // does not sit open, and tell the operator why.
+  if (!sendResult.ok && handoff === 'email_only') {
+    await admin
+      .from('customer_portal_invites')
+      .update({ expires_at: new Date().toISOString() })
+      .eq('id', inviteRow.id)
+    return {
+      ok: false,
+      reason: 'existing_account_email_only',
+      error: null,
+    }
+  }
+
   return {
     ok: true,
     inviteId: inviteRow.id,
     token: inviteRow.token,
+    // Only reaches the operator when delivered === 'manual', which can only
+    // happen with handoff === 'operator' (see above).
     magicLink,
     delivered: sendResult.ok ? 'email' : 'manual',
     messageLogId: sendResult.ok

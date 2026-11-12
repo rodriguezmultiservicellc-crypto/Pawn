@@ -22,7 +22,10 @@ import { resolveUploadMime } from '@/lib/uploads/mime'
 import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { canDeleteCustomer } from '@/lib/compliance/retention'
+import {
+  canDeleteCustomer,
+  decideDocumentDelete,
+} from '@/lib/compliance/retention'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { recordManualAdjust, resetReferralCode } from '@/lib/loyalty/events'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
@@ -437,37 +440,85 @@ export async function uploadCustomerPhotoAction(
   return {}
 }
 
+/** Who may take an ID scan or signature out of a customer's file. */
+const DOCUMENT_DELETE_ROLES = ['owner', 'manager', 'chain_admin'] as const
+
+/**
+ * Remove an ID scan / signature from a customer's file.
+ *
+ * CLAUDE.md Rule 13 — these are regulated records:
+ *   - owner / manager / chain_admin only (not every staff role);
+ *   - while a loan is open or a pawn / buy is inside the jurisdiction's
+ *     retention window, the LAST document of its kind stays (a replaced
+ *     scan can still be removed) — decideDocumentDelete;
+ *   - the row is soft-deleted and the stored file is KEPT. Nothing on this
+ *     path destroys the object in the bucket.
+ */
 export async function deleteCustomerDocumentAction(
   formData: FormData,
-): Promise<void> {
+): Promise<{ error?: string }> {
   const documentId = (formData.get('document_id') as string | null)?.trim()
   const customerId = (formData.get('customer_id') as string | null)?.trim()
-  if (!documentId || !customerId) return
+  if (!documentId || !customerId) return { error: 'missing_id' }
 
-  const { tenantId, supabase, userId } = await resolveCustomerTenant(customerId)
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  const { data: customer } = await ctx.supabase
+    .from('customers')
+    .select('tenant_id')
+    .eq('id', customerId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (!customer) redirect('/customers')
+  const tenantId = customer.tenant_id
+  const { supabase, userId } = await requireRoleInTenant(
+    tenantId,
+    DOCUMENT_DELETE_ROLES,
+  )
 
-  // Read the row first so we know which storage path to remove. RLS
-  // already gates this read to the tenant.
+  // RLS already gates this read to the tenant; the customer_id filter makes
+  // sure the document really belongs to the customer the gate is run for.
   const { data: doc } = await supabase
     .from('customer_documents')
-    .select('storage_path, customer_id')
+    .select('id, kind, storage_path')
     .eq('id', documentId)
     .eq('tenant_id', tenantId)
+    .eq('customer_id', customerId)
     .is('deleted_at', null)
     .maybeSingle()
 
-  if (!doc) return
+  if (!doc) return { error: 'document_not_found' }
 
-  await supabase
+  const [gate, others] = await Promise.all([
+    canDeleteCustomer({
+      supabase,
+      customerId,
+      tenantId,
+      rules: await loadTenantRules(supabase, tenantId),
+    }),
+    supabase
+      .from('customer_documents')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('customer_id', customerId)
+      .eq('kind', doc.kind)
+      .is('deleted_at', null)
+      .neq('id', doc.id),
+  ])
+  if (others.error) return { error: 'document_check_failed' }
+
+  const decision = decideDocumentDelete({
+    gate,
+    otherLiveSameKind: others.count ?? 0,
+  })
+  if (!decision.allow) return { error: decision.error }
+
+  const { error: delErr } = await supabase
     .from('customer_documents')
     .update({ deleted_at: new Date().toISOString() })
-    .eq('id', documentId)
+    .eq('id', doc.id)
     .eq('tenant_id', tenantId)
-
-  await deleteFromBucket({
-    bucket: CUSTOMER_DOCUMENTS_BUCKET,
-    path: doc.storage_path,
-  }).catch(() => {})
+  if (delErr) return { error: 'document_delete_failed' }
 
   // Touch the customer's updated_by so the audit trail picks up the change.
   await supabase
@@ -482,10 +533,16 @@ export async function deleteCustomerDocumentAction(
     action: 'doc_delete',
     tableName: 'customer_documents',
     recordId: documentId,
-    changes: { customer_id: customerId },
+    changes: {
+      customer_id: customerId,
+      kind: doc.kind,
+      // The file stays in the bucket; only the row is hidden.
+      storage_object_kept: true,
+    },
   })
 
   revalidatePath(`/customers/${customerId}`)
+  return {}
 }
 
 const ADJUST_ROLES = ['owner', 'chain_admin', 'manager'] as const

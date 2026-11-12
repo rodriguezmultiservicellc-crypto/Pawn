@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { findAccountIdByEmail } from '@/lib/auth/account-access'
 import { logAudit } from '@/lib/audit'
 import type { TenantRole } from '@/types/database-aliases'
 
@@ -46,10 +47,12 @@ export type InviteState = {
   ok?: boolean
   error?: string
   fieldErrors?: Record<string, string>
-  /** Magic link to hand to the invitee when Resend isn't set up yet
-   *  for the platform email channel. */
+  /** Invite link for a BRAND-NEW account, to hand to the invitee. Never set
+   *  when the email already had an account. */
   manualLink?: string | null
-  delivered?: 'email' | 'manual'
+  /** 'existing' = the email already had an account: it was added to this
+   *  shop and no link exists. */
+  delivered?: 'email' | 'manual' | 'existing'
 }
 
 export async function inviteTeamMemberAction(
@@ -83,53 +86,57 @@ export async function inviteTeamMemberAction(
 
   const admin = createAdminClient()
 
-  // Resolve / create the auth user.
-  let userIdNew: string | null = null
-  type GenLinkResp = {
-    data?: { properties?: { action_link?: string }; user?: { id?: string } }
-    error?: { message?: string } | null
+  // Does this email already have an account?
+  //
+  // If it does, we add the membership and STOP — no link is minted. A magic
+  // link is a login: returning one here let the inviter sign in as whoever
+  // owns that email (another shop's owner, the platform operator). The
+  // person already has their own way in; they just gain this shop.
+  //
+  // Only a brand-new account gets an invite link handed to the inviter.
+  const existing = await findAccountIdByEmail(admin, email)
+  if (!existing.ok) {
+    console.error('[team.invite] account lookup failed', existing.error)
+    return { error: 'auth_lookup_failed' }
   }
-  const appUrl = await resolveAppUrl()
-  if (!appUrl) return { error: 'app_url_not_configured' }
-  const redirectTo = `${appUrl}/login?next=/dashboard`
 
+  let userIdNew: string | null = existing.userId
   let actionLink: string | null = null
-  try {
-    const tryGen = async (
-      type: 'invite' | 'magiclink',
-    ): Promise<GenLinkResp> =>
-      (await admin.auth.admin.generateLink({
-        type,
+  const isExistingAccount = existing.userId !== null
+
+  if (!isExistingAccount) {
+    type GenLinkResp = {
+      data?: { properties?: { action_link?: string }; user?: { id?: string } }
+      error?: { message?: string } | null
+    }
+    const appUrl = await resolveAppUrl()
+    if (!appUrl) return { error: 'app_url_not_configured' }
+    const redirectTo = `${appUrl}/login?next=/dashboard`
+
+    try {
+      // 'invite' only. It creates the account; if Supabase says the email is
+      // already registered (a race with another invite), we fail rather than
+      // fall back to a magic link for an account we did not just create.
+      const resp = (await admin.auth.admin.generateLink({
+        type: 'invite',
         email,
         options: { redirectTo },
       })) as unknown as GenLinkResp
-
-    let resp = await tryGen('invite')
-    if (resp.error?.message && /already|exists|registered/i.test(resp.error.message)) {
-      resp = await tryGen('magiclink')
-    }
-    if (resp.error) {
-      console.error('[team.invite] generateLink error', resp.error.message)
+      if (resp.error) {
+        console.error('[team.invite] generateLink error', resp.error.message)
+        return { error: 'auth_invite_failed' }
+      }
+      actionLink = resp.data?.properties?.action_link ?? null
+      userIdNew = resp.data?.user?.id ?? null
+    } catch (err) {
+      console.error('[team.invite] generateLink threw', err)
       return { error: 'auth_invite_failed' }
     }
-    actionLink = resp.data?.properties?.action_link ?? null
-    userIdNew = resp.data?.user?.id ?? null
-  } catch (err) {
-    console.error('[team.invite] generateLink threw', err)
-    return { error: 'auth_invite_failed' }
-  }
 
-  // Fall-back: if generateLink didn't return a user.id (some Supabase
-  // versions don't), look it up by email via admin.auth.admin.listUsers.
-  if (!userIdNew) {
-    try {
-      const list = await admin.auth.admin.listUsers({ page: 1, perPage: 50 })
-      const found = list.data.users.find(
-        (u) => (u.email ?? '').toLowerCase() === email,
-      )
-      userIdNew = found?.id ?? null
-    } catch (err) {
-      console.error('[team.invite] listUsers failed', err)
+    // Some Supabase versions do not echo user.id — look the new account up.
+    if (!userIdNew) {
+      const created = await findAccountIdByEmail(admin, email)
+      userIdNew = created.ok ? created.userId : null
     }
   }
   if (!userIdNew) return { error: 'auth_lookup_failed' }
@@ -167,10 +174,18 @@ export async function inviteTeamMemberAction(
     action: 'create',
     tableName: 'user_tenants',
     recordId: userIdNew,
-    changes: { invited_email: email, role: v.role },
+    changes: {
+      invited_email: email,
+      role: v.role,
+      existing_account: isExistingAccount,
+    },
   })
 
   revalidatePath('/team')
+  if (isExistingAccount) {
+    // Added to the shop; they sign in the way they already do. No link.
+    return { ok: true, delivered: 'existing', manualLink: null }
+  }
   return {
     ok: true,
     delivered: 'manual', // platform-side staff invites email is out of scope for v1

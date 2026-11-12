@@ -136,23 +136,25 @@ export async function createLoanPayoffSession(args: {
   const linkRow = await insertStripeLink(insert)
 
   if (!linkRow) {
-    // Don't fail the payment flow if our bookkeeping insert fails — the
-    // webhook can still fall back to client_reference_id / metadata. Log it.
+    // The webhook applies a payment ONLY when this row exists (it never
+    // trusts session metadata). Without the row the customer would pay and
+    // the loan would not move — so do not hand out the Checkout URL.
     console.error('[portal] stripe_payment_links insert failed for', session.id)
-  } else {
-    await logAudit({
-      tenantId: portal.tenantId,
-      userId: portal.userId,
-      action: 'create',
-      tableName: 'stripe_payment_links',
-      recordId: linkRow.id,
-      changes: {
-        source_kind: 'loan_payoff',
-        source_id: loan.id,
-        amount: payoff.payoff,
-      },
-    })
+    return { ok: false, error: 'stripe_failed' }
   }
+
+  await logAudit({
+    tenantId: portal.tenantId,
+    userId: portal.userId,
+    action: 'create',
+    tableName: 'stripe_payment_links',
+    recordId: linkRow.id,
+    changes: {
+      source_kind: 'loan_payoff',
+      source_id: loan.id,
+      amount: payoff.payoff,
+    },
+  })
 
   return { ok: true, checkoutUrl: session.url }
 }

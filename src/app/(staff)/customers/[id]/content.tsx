@@ -234,9 +234,12 @@ export default function CustomerDetail({
   loyalty,
   storeCredit,
   ofac,
+  canDeleteDocuments,
 }: {
   customer: CustomerRecord
   documents: CustomerDocumentItem[]
+  /** owner / manager / chain_admin may remove an ID scan or signature. */
+  canDeleteDocuments: boolean
   hasPawn?: boolean
   hasRepair?: boolean
   hasRetail?: boolean
@@ -422,6 +425,7 @@ export default function CustomerDetail({
         defaultIdNumber={customer.id_number}
         defaultIdState={customer.id_state}
         defaultIdExpiry={customer.id_expiry}
+        canDelete={canDeleteDocuments}
       />
 
       <LoyaltyPanel
@@ -979,7 +983,11 @@ function DeleteCustomerButton({ customerId }: { customerId: string }) {
 }
 
 /** "delete_blocked:<reason,reason>:<YYYY-MM-DD|>" → translated sentence. */
-function deleteBlockedText(t: ReturnType<typeof useI18n>['t'], raw: string): string {
+function deleteBlockedText(
+  t: ReturnType<typeof useI18n>['t'],
+  raw: string,
+  prefix: string = t.customers.deleteBlocked.prefix,
+): string {
   const m = /^delete_blocked:([^:]*):(.*)$/.exec(raw)
   if (!m) return raw
   const labels = t.customers.deleteBlocked.reasons
@@ -990,7 +998,7 @@ function deleteBlockedText(t: ReturnType<typeof useI18n>['t'], raw: string): str
   const until = m[2]
     ? ` ${t.customers.deleteBlocked.until.replace('{date}', m[2])}`
     : ''
-  return `${t.customers.deleteBlocked.prefix} ${reasons}.${until}`
+  return `${prefix} ${reasons}.${until}`
 }
 
 function DocumentsPanel({
@@ -1000,6 +1008,7 @@ function DocumentsPanel({
   defaultIdNumber,
   defaultIdState,
   defaultIdExpiry,
+  canDelete,
 }: {
   customerId: string
   documents: CustomerDocumentItem[]
@@ -1007,8 +1016,11 @@ function DocumentsPanel({
   defaultIdNumber: string | null
   defaultIdState: string | null
   defaultIdExpiry: string | null
+  /** owner / manager / chain_admin — regulated records (Rule 13). */
+  canDelete: boolean
 }) {
   const { t } = useI18n()
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null)
 
   return (
     <fieldset className="rounded-xl border border-border bg-card p-4">
@@ -1078,15 +1090,23 @@ function DocumentsPanel({
                       {t.customers.viewDocument}
                     </a>
                   ) : null}
-                  <DeleteDocumentButton
-                    documentId={doc.id}
-                    customerId={customerId}
-                  />
+                  {canDelete ? (
+                    <DeleteDocumentButton
+                      documentId={doc.id}
+                      customerId={customerId}
+                      onBlocked={setDeleteMessage}
+                    />
+                  ) : null}
                 </div>
               </li>
             ))}
           </ul>
         )}
+        {deleteMessage ? (
+          <p className="text-xs text-danger" role="alert">
+            {deleteMessage}
+          </p>
+        ) : null}
       </div>
     </fieldset>
   )
@@ -1243,17 +1263,28 @@ function WebcamCaptureForId({
 function DeleteDocumentButton({
   documentId,
   customerId,
+  onBlocked,
 }: {
   documentId: string
   customerId: string
+  /** Receives the translated reason when the server refuses, null on success. */
+  onBlocked: (message: string | null) => void
 }) {
+  const { t } = useI18n()
   const [pending, startTransition] = useTransition()
   function onClick() {
     const fd = new FormData()
     fd.set('document_id', documentId)
     fd.set('customer_id', customerId)
-    startTransition(() => {
-      deleteCustomerDocumentAction(fd)
+    onBlocked(null)
+    startTransition(async () => {
+      const res = await deleteCustomerDocumentAction(fd)
+      if (!res?.error) return
+      onBlocked(
+        res.error.startsWith('delete_blocked:')
+          ? deleteBlockedText(t, res.error, t.customers.documentDeleteBlockedPrefix)
+          : t.customers.documentDeleteFailed,
+      )
     })
   }
   return (
@@ -1262,7 +1293,7 @@ function DeleteDocumentButton({
       onClick={onClick}
       disabled={pending}
       className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-muted hover:text-danger disabled:opacity-50"
-      aria-label="delete"
+      aria-label={t.customers.documentDelete}
     >
       <Trash size={12} weight="bold" />
     </button>

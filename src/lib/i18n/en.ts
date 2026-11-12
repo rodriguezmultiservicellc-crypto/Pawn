@@ -502,6 +502,10 @@ export const en = {
     },
     deleteBlockedActiveLoans:
       'Cannot delete: this customer has active records that block deletion. Resolve them first.',
+    documentDelete: 'Remove document',
+    documentDeleteBlockedPrefix:
+      "Can't remove the only copy on file while this customer has",
+    documentDeleteFailed: 'Could not remove the document. Try again.',
     portalInvite: {
       title: 'Customer portal access',
       statusActive: 'Portal active',
@@ -530,6 +534,10 @@ export const en = {
         'NEXT_PUBLIC_APP_URL is not set on the server. Ask an admin to configure it.',
       errNotYetClaimed:
         'This customer has not activated their portal yet — send a regular invite first.',
+      errStaffAccount:
+        'That email belongs to a staff account, so no customer sign-in link can be created for it. Use a different email for this customer.',
+      errEmailOnly:
+        'That email already has a portal account at another shop, so the link can only be emailed to it — and the email could not be sent. Set up email sending, or ask the customer to use the portal sign-in page.',
       signInUrlLabel: 'Portal sign-in URL',
       signInUrlHelp:
         'Customers visit this page to request a one-time sign-in link by email. Share it on a business card or text.',
@@ -541,6 +549,8 @@ export const en = {
         'Sign-in link generated and emailed to the customer.',
       tempSignInDeliveredManualOnly:
         'Sign-in link generated. Email did not send (Resend not configured) — copy the link below and deliver it manually.',
+      tempSignInEmailedOnly:
+        'Sign-in link emailed to the customer. It is not shown here because this account also has portal access at another shop.',
       tempSignInExpires: 'This link expires in 1 hour.',
     },
   },
@@ -1304,13 +1314,21 @@ export const en = {
       principalPaid: 'Principal paid',
       interestPaid: 'Interest paid',
       feesPaid: 'Fees',
+      splitTitle: 'How this payment is applied',
       splitTooltip:
-        'Split defaults to interest first. Override to apply more / less to principal.',
-      autoSplit: 'Auto-split (interest first)',
-      manualSplit: 'Manual split',
-      splitMismatch: 'Splits must sum to the total amount.',
+        'Fees come off first, then interest owed, then principal. The system sets the split.',
       submit: 'Record payment',
       submitting: 'Recording…',
+      errors: {
+        exceeds_payoff:
+          'That is more than the payoff balance of ${payoff}. Enter the payoff or less.',
+        fees_exceed_amount: 'Fees cannot be more than the amount collected.',
+        terminal_status: 'This loan is already closed.',
+        payoff_unavailable:
+          'Could not read the loan balance. Reload the page and try again.',
+        validation_failed: 'Check the amount and try again.',
+        generic: 'Could not record the payment. Try again.',
+      },
     },
     extension: {
       title: 'Extend loan',
@@ -2073,9 +2091,11 @@ export const en = {
       readerSelect: 'Reader',
       readerNotConnected: 'No reader connected (test mode)',
       runCardPresent: 'Run card present',
-      markSucceededTest: 'Mark as succeeded (TEST)',
-      markSucceededHelp:
-        'TEST-only: real card-present flow waits for the Stripe webhook. Use this until the reader integration ships.',
+      confirmCardApproved: 'Confirm card approved',
+      confirmCardHelp:
+        'Manager only. Use when the reader shows the card was approved but this payment is still pending. Your name is recorded.',
+      cardPendingNote:
+        'Not counted yet. A card payment counts once it is approved.',
       submit: 'Add payment',
       submitting: 'Adding…',
       noteLabel: 'Notes',
@@ -2102,6 +2122,10 @@ export const en = {
       issuedOn: 'Issued',
       issuedBy: 'Issued by',
       refundTotal: 'Refunded',
+      refundMerchandise: 'Items returned',
+      refundDiscount: 'Discount share',
+      refundTax: 'Tax',
+      refundCapped: 'Limited to what was paid and not already refunded.',
     },
     layaway: {
       title: 'Layaways',
@@ -2238,6 +2262,12 @@ export const en = {
       customerRequiredForLayaway: 'Layaway requires a customer.',
       refundExceedsPaid: 'Refund cannot exceed amount paid.',
       returnQtyExceeds: 'Return quantity exceeds what remains returnable.',
+      cardSaleNotOpen:
+        'The card was approved, but this sale is no longer open, so the payment was not added to it. Refund the card or ask a manager.',
+      saleNotReturnable:
+        'Only a completed, paid sale can be returned. Void an open sale instead.',
+      nothingToRefund:
+        'Nothing left to refund on this sale: it was not paid, or it was already refunded in full.',
       tenantStripeNotConnected:
         'Stripe is not connected for this shop. Connect a Stripe account before running card payments.',
       validationFailed: 'Please review the highlighted fields.',
@@ -4842,6 +4872,13 @@ export const en = {
       save_failed:
         'Stripe responded but the status could not be saved. Try again.',
     },
+  },
+  team: {
+    inviteExistingTitle: 'Added to this shop.',
+    inviteExistingBody:
+      'That email already has an account, so no invite link was created. They sign in the way they already do and will see this shop in their shop switcher.',
+    inviteNewHelp:
+      'They click the link, set a password, and land on the dashboard. The link works once.',
   },
   orocut: {
     title: 'OroCut laser',

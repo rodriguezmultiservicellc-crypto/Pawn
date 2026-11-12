@@ -108,21 +108,24 @@ export async function createLayawayPaymentSession(args: {
   const linkRow = await insertStripeLink(insert)
 
   if (!linkRow) {
+    // Same rule as the loan payoff: the webhook only applies a payment that
+    // has a link row. No row → no Checkout URL.
     console.error('[portal] stripe_payment_links insert failed for', session.id)
-  } else {
-    await logAudit({
-      tenantId: portal.tenantId,
-      userId: portal.userId,
-      action: 'create',
-      tableName: 'stripe_payment_links',
-      recordId: linkRow.id,
-      changes: {
-        source_kind: 'layaway_payment',
-        source_id: layaway.id,
-        amount: capped,
-      },
-    })
+    return { ok: false, error: 'stripe_failed' }
   }
+
+  await logAudit({
+    tenantId: portal.tenantId,
+    userId: portal.userId,
+    action: 'create',
+    tableName: 'stripe_payment_links',
+    recordId: linkRow.id,
+    changes: {
+      source_kind: 'layaway_payment',
+      source_id: layaway.id,
+      amount: capped,
+    },
+  })
 
   return { ok: true, checkoutUrl: session.url }
 }

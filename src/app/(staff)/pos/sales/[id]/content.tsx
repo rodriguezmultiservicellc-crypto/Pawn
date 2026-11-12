@@ -29,7 +29,7 @@ import PosStoreCreditBlock, {
 import {
   addPaymentAction,
   completeSaleAction,
-  markCardPaymentSucceededAction,
+  confirmCardPaymentAction,
   voidSaleAction,
 } from './actions'
 import type {
@@ -130,6 +130,7 @@ export default function SaleDetailContent({
   layawayId,
   loyalty,
   storeCredit,
+  canConfirmCard,
 }: {
   sale: SaleDetailView
   items: SaleDetailItem[]
@@ -137,6 +138,8 @@ export default function SaleDetailContent({
   layawayId: string | null
   loyalty: SaleDetailLoyalty
   storeCredit: SaleDetailStoreCredit
+  /** owner / manager / chain_admin — may vouch that a card was approved. */
+  canConfirmCard: boolean
 }) {
   const { t } = useI18n()
   const [showPay, setShowPay] = useState(false)
@@ -160,7 +163,7 @@ export default function SaleDetailContent({
   function markCard(salePaymentId: string) {
     setError(null)
     startTransition(async () => {
-      const res = await markCardPaymentSucceededAction(salePaymentId)
+      const res = await confirmCardPaymentAction(salePaymentId)
       if (res.error) setError(translateError(res.error, t))
     })
   }
@@ -364,7 +367,11 @@ export default function SaleDetailContent({
       <ItemsPanel items={items} />
 
       {/* Payments */}
-      <PaymentsPanel payments={payments} onMarkSucceeded={markCard} />
+      <PaymentsPanel
+        payments={payments}
+        onConfirmCard={markCard}
+        canConfirmCard={canConfirmCard}
+      />
 
       {showPay ? (
         <AddPaymentDialog
@@ -449,10 +456,12 @@ function ItemsPanel({ items }: { items: SaleDetailItem[] }) {
 
 function PaymentsPanel({
   payments,
-  onMarkSucceeded,
+  onConfirmCard,
+  canConfirmCard,
 }: {
   payments: SaleDetailPayment[]
-  onMarkSucceeded: (id: string) => void
+  onConfirmCard: (id: string) => void
+  canConfirmCard: boolean
 }) {
   const { t } = useI18n()
   return (
@@ -487,15 +496,22 @@ function PaymentsPanel({
               ) : null}
               {p.payment_method === 'card' &&
               p.card_present_status === 'pending' ? (
-                <button
-                  type="button"
-                  onClick={() => onMarkSucceeded(p.id)}
-                  className="inline-flex items-center gap-1 rounded-md border border-warning/30 bg-warning/5 px-2 py-1 text-xs font-medium text-warning hover:bg-warning/10"
-                  title={t.pos.payment.markSucceededHelp}
-                >
-                  <CreditCard size={12} weight="bold" />
-                  {t.pos.payment.markSucceededTest}
-                </button>
+                <>
+                  {canConfirmCard ? (
+                    <button
+                      type="button"
+                      onClick={() => onConfirmCard(p.id)}
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:bg-background"
+                      title={t.pos.payment.confirmCardHelp}
+                    >
+                      <CreditCard size={12} weight="bold" />
+                      {t.pos.payment.confirmCardApproved}
+                    </button>
+                  ) : null}
+                  <span className="basis-full text-xs text-warning">
+                    {t.pos.payment.cardPendingNote}
+                  </span>
+                </>
               ) : null}
             </li>
           ))}

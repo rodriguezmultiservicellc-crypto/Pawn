@@ -13,13 +13,16 @@
  * DEFERRED (next agent, when hardware is available):
  *   - Browser-side reader pairing via `@stripe/terminal-js` (createTerminal,
  *     discoverReaders, connectReader, collectPaymentMethod, processPayment).
- *   - Webhook plumbing for `payment_intent.succeeded` / `.payment_failed`
- *     to write back card_present_status on the sale_payments row.
+ *   - `payment_intent.payment_failed` → card_present_status 'failed'.
  *   - Real BBPOS WisePOS E / S700 firmware testing.
  *
- * Until that lands, the POS UI ships a TEST-only "Mark as succeeded" shortcut
- * (see /pos/sales/[id]/actions.ts: markCardPaymentSucceededAction). This
- * lets us smoke-test the surrounding code paths without real hardware.
+ * HOW A CARD TENDER COUNTS (patches/0071, lib/pos/card-settle.ts):
+ *   Creating the PaymentIntent adds a 'pending' sale_payments row and does
+ *   NOT touch sales.paid_total. The tender counts when it settles — the
+ *   Stripe webhook on `payment_intent.succeeded`, or an owner / manager /
+ *   chain_admin confirming the reader approved it
+ *   (/pos/sales/[id]/actions.ts: confirmCardPaymentAction). A sale cannot
+ *   complete on a pending card.
  *
  * ENV VARS REQUIRED:
  *   STRIPE_SECRET_KEY — platform-level (used to act on behalf of the

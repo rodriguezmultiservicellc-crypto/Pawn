@@ -257,7 +257,7 @@ describe('loanCreateSchema', () => {
   })
 })
 
-// ── loanPaymentSchema (split sum guard) ────────────────────────────────
+// ── loanPaymentSchema (the split is server-computed, not an input) ─────
 
 describe('loanPaymentSchema', () => {
   function payment(over: Record<string, unknown> = {}) {
@@ -265,57 +265,45 @@ describe('loanPaymentSchema', () => {
       loan_id: VALID_UUID,
       amount: 100,
       payment_method: 'cash',
-      principal_paid: 50,
-      interest_paid: 50,
       fees_paid: 0,
       ...over,
     }
   }
 
-  it('accepts a valid payment with matching split', () => {
-    expect(loanPaymentSchema.safeParse(payment()).success).toBe(true)
-  })
-
-  it('rejects a payment whose split does not sum to amount', () => {
-    const r = loanPaymentSchema.safeParse(
-      payment({ principal_paid: 50, interest_paid: 30, fees_paid: 0 }),
-    )
-    expect(r.success).toBe(false)
-    if (!r.success) {
-      const msg = r.error.issues.find((i) => i.path.join('.') === 'amount')
-      expect(msg?.message).toBe('split_mismatch')
+  it('accepts amount + method with no split', () => {
+    const r = loanPaymentSchema.safeParse({ loan_id: VALID_UUID, amount: 100 })
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.fees_paid).toBe(0)
+      expect(r.data.payment_method).toBe('cash')
     }
   })
 
-  it('tolerates floating-point drift up to $0.0001', () => {
-    // 33.33 + 33.33 + 33.34 = 100.00 exactly
-    expect(
-      loanPaymentSchema.safeParse(
-        payment({
-          amount: 100,
-          principal_paid: 33.33,
-          interest_paid: 33.33,
-          fees_paid: 33.34,
-        }),
-      ).success,
-    ).toBe(true)
+  it('drops a principal / interest split sent by the browser', () => {
+    // The hole this closes: amount 1000, principal 1000, interest 0 used to
+    // be stored as sent and redeem the loan with interest forgiven.
+    const r = loanPaymentSchema.safeParse(
+      payment({ amount: 1000, principal_paid: 1000, interest_paid: 0 }),
+    )
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect('principal_paid' in r.data).toBe(false)
+      expect('interest_paid' in r.data).toBe(false)
+    }
+  })
+
+  it('accepts fees up to the amount, rejects fees above it', () => {
+    expect(loanPaymentSchema.safeParse(payment({ fees_paid: 100 })).success).toBe(true)
+    const r = loanPaymentSchema.safeParse(payment({ fees_paid: 100.01 }))
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      const msg = r.error.issues.find((i) => i.path.join('.') === 'fees_paid')
+      expect(msg?.message).toBe('fees_exceed_amount')
+    }
   })
 
   it('rejects a payment of 0 (must be positive)', () => {
-    const r = loanPaymentSchema.safeParse(
-      payment({ amount: 0, principal_paid: 0, interest_paid: 0 }),
-    )
-    expect(r.success).toBe(false)
-  })
-
-  it('defaults split fields to 0 when blank', () => {
-    // amount 100, no splits provided — defaults zero-fill the splits,
-    // which then fails the sum guard with a useful error.
-    const r = loanPaymentSchema.safeParse({
-      loan_id: VALID_UUID,
-      amount: 100,
-    })
-    expect(r.success).toBe(false)
+    expect(loanPaymentSchema.safeParse(payment({ amount: 0 })).success).toBe(false)
   })
 })
 

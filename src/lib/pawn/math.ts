@@ -273,6 +273,54 @@ export function splitPayment(
   }
 }
 
+// ── Payment allocation (server-authoritative) ──────────────────────────────
+
+export type PaymentAllocation =
+  | {
+      ok: true
+      interest_paid: number
+      principal_paid: number
+      fees_paid: number
+    }
+  | { ok: false; reason: 'fees_exceed_amount' | 'exceeds_payoff' }
+
+/**
+ * Decide how a loan payment is booked. This is the ONLY place the
+ * interest / principal split is determined — the server action calls it
+ * with the payoff it just computed and ignores any split the browser sent.
+ *
+ *   amount = fees + interest + principal
+ *
+ * Fees (lost-ticket fee, etc.) come off the top as entered. The rest goes to
+ * OUTSTANDING INTEREST FIRST, then principal. Principal can never be paid
+ * down while interest is still owed, so a loan cannot reach "principal
+ * fully paid" (and flip to redeemed) with interest forgiven. A payment
+ * larger than what is owed is refused rather than silently absorbed.
+ */
+export function allocateLoanPayment(args: {
+  amount: number
+  fees?: number | null
+  interestOutstanding: number
+  principalOutstanding: number
+}): PaymentAllocation {
+  const amount = r4(args.amount)
+  const fees = r4(Math.max(0, toMoney(args.fees ?? 0)))
+  if (fees > amount + 0.0001) return { ok: false, reason: 'fees_exceed_amount' }
+
+  const toLoan = r4(Math.max(0, amount - fees))
+  const split = splitPayment(toLoan, args.interestOutstanding)
+  const principalOwed = r4(Math.max(0, args.principalOutstanding))
+  if (split.principal_paid > principalOwed + 0.0001) {
+    return { ok: false, reason: 'exceeds_payoff' }
+  }
+  return {
+    ok: true,
+    interest_paid: split.interest_paid,
+    principal_paid: Math.min(split.principal_paid, principalOwed),
+    fees_paid: fees,
+  }
+}
+
 // ── Convenience: derive payoff from a LoanRow + events ─────────────────────
 
 /**

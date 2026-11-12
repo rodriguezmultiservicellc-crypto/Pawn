@@ -28,7 +28,7 @@ export default async function NewReturnPage(props: {
   const { data: sale } = await ctx.supabase
     .from('sales')
     .select(
-      'id, tenant_id, sale_number, status, total, paid_total, returned_total, customer_id',
+      'id, tenant_id, sale_number, status, subtotal, discount_amount, tax_amount, total, paid_total, returned_total, customer_id',
     )
     .eq('id', saleId)
     .is('deleted_at', null)
@@ -38,7 +38,7 @@ export default async function NewReturnPage(props: {
   const { data: itemsRows } = await ctx.supabase
     .from('sale_items')
     .select(
-      'id, inventory_item_id, description, quantity, unit_price, returned_qty',
+      'id, inventory_item_id, description, quantity, unit_price, line_total, returned_qty',
     )
     .eq('sale_id', sale.id)
     .is('deleted_at', null)
@@ -49,6 +49,7 @@ export default async function NewReturnPage(props: {
     description: it.description,
     quantity: Number(it.quantity),
     unit_price: Number(it.unit_price),
+    line_total: Number(it.line_total),
     returned_qty: Number(it.returned_qty ?? 0),
     has_inventory: !!it.inventory_item_id,
   }))
@@ -65,6 +66,9 @@ export default async function NewReturnPage(props: {
     id: sale.id,
     sale_number: sale.sale_number ?? '',
     status: sale.status as NewReturnSale['status'],
+    subtotal: toMoney(sale.subtotal),
+    discount_amount: toMoney(sale.discount_amount),
+    tax_amount: toMoney(sale.tax_amount),
     total: toMoney(sale.total),
     paid_total: toMoney(sale.paid_total),
     returned_total: toMoney(sale.returned_total ?? 0),

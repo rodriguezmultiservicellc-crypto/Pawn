@@ -16,6 +16,7 @@ import {
   type ChangeRoleState,
   type StaffRole,
 } from './actions'
+import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole } from '@/types/database-aliases'
 
 export type TeamMemberRow = {
@@ -115,6 +116,7 @@ export default function TeamContent({
 }
 
 function InvitePanel() {
+  const { t } = useI18n()
   const [state, formAction, pending] = useActionState<InviteState, FormData>(
     inviteTeamMemberAction,
     {},
@@ -232,10 +234,21 @@ function InvitePanel() {
               {copied ? 'Copied!' : 'Copy link'}
             </button>
           </div>
-          <p className="mt-2 text-[11px] text-muted">
-            They&apos;ll click the link, sign in, and land on the dashboard.
-            If they already had an account on another tenant, this just
-            adds them to this tenant.
+          <p className="mt-2 text-[11px] text-muted">{t.team.inviteNewHelp}</p>
+        </div>
+      ) : null}
+
+      {state.ok && state.delivered === 'existing' ? (
+        <div
+          className="mt-3 rounded-md border border-success/30 bg-success/5 p-3"
+          role="status"
+        >
+          <div className="flex items-start gap-2 text-sm font-medium text-success">
+            <CheckCircle size={14} weight="bold" />
+            <span>{t.team.inviteExistingTitle}</span>
+          </div>
+          <p className="mt-1 text-xs text-foreground">
+            {t.team.inviteExistingBody}
           </p>
         </div>
       ) : null}

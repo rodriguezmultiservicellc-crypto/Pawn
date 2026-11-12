@@ -4,6 +4,10 @@ import { useMemo, useState, useTransition } from 'react'
 import { ArrowsClockwise } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { r4 } from '@/lib/pos/cart'
+import {
+  computeReturnRefund,
+  type ReturnSaleTotals,
+} from '@/lib/pos/returns'
 import type { PaymentMethod } from '@/types/database-aliases'
 
 export type ReturnPickerSaleItem = {
@@ -11,6 +15,8 @@ export type ReturnPickerSaleItem = {
   description: string
   quantity: number
   unit_price: number
+  /** sale_items.line_total — net of the line discount. */
+  line_total: number
   returned_qty: number
   has_inventory: boolean
 }
@@ -23,12 +29,15 @@ export type ReturnLineState = {
 
 export function ReturnPicker({
   saleId,
+  sale,
   saleItems,
   onSubmit,
   storeCreditEnabled = false,
   hasCustomer = false,
 }: {
   saleId: string
+  /** The sale's stored totals — the refund is a share of these. */
+  sale: ReturnSaleTotals
   saleItems: ReturnPickerSaleItem[]
   onSubmit: (
     formData: FormData,
@@ -55,18 +64,25 @@ export function ReturnPicker({
     return init
   })
 
-  const totals = useMemo(() => {
-    let subtotal = 0
-    for (const it of saleItems) {
-      const ln = lines[it.id]
-      const q = parseFloat(ln?.quantity || '0')
-      if (!isFinite(q) || q <= 0) continue
-      const remaining = r4(it.quantity - it.returned_qty)
-      const eff = Math.min(q, remaining)
-      subtotal = r4(subtotal + r4(eff * it.unit_price))
-    }
-    return { subtotal, total: subtotal }
-  }, [saleItems, lines])
+  // Same function the server action uses, so the number shown here is the
+  // number that gets refunded: discounts and tax travel with the goods, and
+  // it can never exceed what was paid.
+  const totals = useMemo(
+    () =>
+      computeReturnRefund({
+        sale,
+        lines: saleItems.map((it) => {
+          const q = parseFloat(lines[it.id]?.quantity || '0')
+          return {
+            sold_quantity: it.quantity,
+            already_returned: it.returned_qty,
+            line_total: it.line_total,
+            return_quantity: isFinite(q) && q > 0 ? q : 0,
+          }
+        }),
+      }),
+    [sale, saleItems, lines],
+  )
 
   const remainingAny = saleItems.some(
     (it) => r4(it.quantity - it.returned_qty) > 0,
@@ -156,12 +172,11 @@ export function ReturnPicker({
               </tr>
             </thead>
             <tbody>
-              {saleItems.map((it) => {
+              {saleItems.map((it, idx) => {
                 const remaining = r4(it.quantity - it.returned_qty)
                 const ln = lines[it.id]
-                const q = parseFloat(ln?.quantity || '0') || 0
-                const eff = Math.min(q, remaining)
-                const lineTotal = r4(eff * it.unit_price)
+                // Net value coming back on this line (line discount applied).
+                const lineTotal = totals.lineValues[idx] ?? 0
                 return (
                   <tr key={it.id} className="border-b border-border/60">
                     <td className="px-2 py-2">
@@ -249,12 +264,37 @@ export function ReturnPicker({
             ) : null}
           </label>
           <div className="rounded-md border border-border bg-background/40 p-3 text-sm">
-            <div className="text-xs text-muted">
-              {t.pos.return.refundTotal}
+            <dl className="space-y-0.5 text-xs text-muted">
+              <div className="flex justify-between gap-3">
+                <dt>{t.pos.return.refundMerchandise}</dt>
+                <dd className="font-mono">{fmtMoney(totals.merchandise)}</dd>
+              </div>
+              {totals.discount > 0 ? (
+                <div className="flex justify-between gap-3">
+                  <dt>{t.pos.return.refundDiscount}</dt>
+                  <dd className="font-mono">−{fmtMoney(totals.discount)}</dd>
+                </div>
+              ) : null}
+              {totals.tax > 0 ? (
+                <div className="flex justify-between gap-3">
+                  <dt>{t.pos.return.refundTax}</dt>
+                  <dd className="font-mono">{fmtMoney(totals.tax)}</dd>
+                </div>
+              ) : null}
+            </dl>
+            <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
+              <span className="text-xs font-semibold text-foreground">
+                {t.pos.return.refundTotal}
+              </span>
+              <span className="font-mono text-base font-semibold text-foreground">
+                {fmtMoney(totals.total)}
+              </span>
             </div>
-            <div className="font-mono text-base font-semibold text-foreground">
-              {fmtMoney(totals.total)}
-            </div>
+            {totals.capped ? (
+              <p className="mt-1 text-xs text-warning">
+                {t.pos.return.refundCapped}
+              </p>
+            ) : null}
           </div>
         </div>
         <label className="mt-3 block space-y-1">

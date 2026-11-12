@@ -9,6 +9,8 @@ import { createPortalInvite } from '@/lib/portal/invite'
 import { renderPortalInviteEmail } from '@/lib/portal/invite-email'
 import { sendEmail } from '@/lib/email/send'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadAccountAccess } from '@/lib/auth/account-access'
+import { portalLinkHandoff } from '@/lib/auth/account-link-policy'
 import { logAudit } from '@/lib/audit'
 
 /**
@@ -209,6 +211,29 @@ export async function generatePortalSignInLinkAction(
     return { error: 'not_yet_claimed' }
   }
 
+  // The link logs into the account this customer CLAIMED (auth_user_id) —
+  // never into "whoever owns customers.email", which staff can edit. And
+  // whether the operator may be shown it depends on what that account can
+  // reach (lib/auth/account-link-policy.ts): a staff / operator account is
+  // refused outright; a portal account with access at another shop is
+  // emailed only.
+  const account = await loadAccountAccess(admin, customer.auth_user_id)
+  if (!account.ok) {
+    return { error: 'auth_link_failed', details: account.error }
+  }
+  const handoff = portalLinkHandoff(account.access, ctx.tenantId)
+  if (handoff === 'refuse') return { error: 'staff_account' }
+
+  const { data: authUser, error: authUserErr } =
+    await admin.auth.admin.getUserById(customer.auth_user_id)
+  const accountEmail = authUser?.user?.email ?? null
+  if (authUserErr || !accountEmail) {
+    return {
+      error: 'auth_link_failed',
+      details: authUserErr?.message ?? 'linked account has no email',
+    }
+  }
+
   const appUrl = await resolveAppUrl()
   if (!appUrl) return { error: 'app_url_not_configured' }
   const next = '/api/portal/sign-in-bridge'
@@ -222,7 +247,7 @@ export async function generatePortalSignInLinkAction(
   try {
     const resp = (await admin.auth.admin.generateLink({
       type: 'magiclink',
-      email: customer.email,
+      email: accountEmail,
       options: { redirectTo },
     })) as unknown as GenLinkResp
     if (resp.error) {
@@ -277,7 +302,8 @@ export async function generatePortalSignInLinkAction(
 
   const emailRes = await sendEmail({
     tenantId: customer.tenant_id,
-    to: customer.email,
+    // The account's own address — the only inbox this link belongs in.
+    to: accountEmail,
     subject: rendered.subject,
     html: rendered.html,
     text: rendered.text,
@@ -294,11 +320,19 @@ export async function generatePortalSignInLinkAction(
     changes: {
       kind: 'sign_in_link',
       emailed: emailRes.ok,
+      shown_to_operator: handoff === 'operator',
       message_log_id: emailRes.ok ? emailRes.messageLogId : null,
     },
   })
 
   revalidatePath(`/customers/${customerId}`)
+
+  if (handoff === 'email_only') {
+    // This account also has portal access at another shop. The link goes to
+    // its own inbox or nowhere — it is never shown at the counter.
+    if (!emailRes.ok) return { error: 'email_only_failed' }
+    return { ok: true, magicLink: null, emailed: true }
+  }
 
   return {
     ok: true,

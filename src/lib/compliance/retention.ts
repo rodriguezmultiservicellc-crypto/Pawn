@@ -42,6 +42,52 @@ export type CanDeleteCustomerResult =
       blockedUntil: string | null
     }
 
+// ── Customer documents (ID scans, signatures) ───────────────────────────────
+
+/**
+ * The delete-block reasons that put a hold on a customer's ID scan and
+ * signature: an open loan, or a pawn / buy still inside the jurisdiction's
+ * record-retention window. (Repairs, layaways, store credit and consignment
+ * block deleting the CUSTOMER but have no ID-retention requirement.)
+ */
+const DOCUMENT_HOLD_REASONS: ReadonlyArray<DeleteBlockReason> = [
+  'active_loan',
+  'pawn_retention_window',
+  'buy_retention_window',
+]
+
+export type DocumentDeleteDecision =
+  | { allow: true }
+  | { allow: false; error: string }
+
+/**
+ * May one customer document (ID scan / signature) be removed from view?
+ *
+ * Rule 13: the shop must keep ID on file while a loan is active and through
+ * the retention period after it. So while a hold is running, the LAST live
+ * document of a kind cannot be deleted — but a replaced one can (upload the
+ * better scan, then remove the blurry one). The stored file itself is never
+ * destroyed by this path; the caller only soft-deletes the row.
+ *
+ * Pure: takes the customer-level gate result so it can be unit-tested.
+ * The error string has the same shape deleteCustomerAction returns
+ * ("delete_blocked:<reasons>:<until>") so the UI translates both the same way.
+ */
+export function decideDocumentDelete(args: {
+  gate: CanDeleteCustomerResult
+  /** Live (not soft-deleted) documents of the same kind, EXCLUDING this one. */
+  otherLiveSameKind: number
+}): DocumentDeleteDecision {
+  if (args.gate.canDelete) return { allow: true }
+  const held = args.gate.reasons.filter((r) => DOCUMENT_HOLD_REASONS.includes(r))
+  if (held.length === 0) return { allow: true }
+  if (args.otherLiveSameKind > 0) return { allow: true }
+  return {
+    allow: false,
+    error: `delete_blocked:${held.join(',')}:${args.gate.blockedUntil ?? ''}`,
+  }
+}
+
 function addYearsIso(ts: string, years: number): string {
   const d = new Date(ts)
   d.setUTCFullYear(d.getUTCFullYear() + years)

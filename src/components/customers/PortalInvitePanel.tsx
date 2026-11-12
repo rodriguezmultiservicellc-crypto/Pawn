@@ -262,6 +262,14 @@ export function PortalInvitePanel(props: PortalInvitePanelProps) {
               ) : null}
             </div>
           ) : null}
+          {signInState.ok && !signInState.magicLink && signInState.emailed ? (
+            <div
+              className="mt-2 rounded-md border border-success/30 bg-success/5 p-3 text-xs font-medium text-success"
+              role="status"
+            >
+              {t.customers.portalInvite.tempSignInEmailedOnly}
+            </div>
+          ) : null}
           {signInState.ok && signInState.magicLink ? (
             <div className="mt-2 rounded-md border border-success/30 bg-success/5 p-3">
               <div className="text-xs font-medium text-success">
@@ -386,6 +394,10 @@ function translateError(
     app_url_not_configured: t.customers.portalInvite.errAppUrlMissing,
     not_yet_claimed: t.customers.portalInvite.errNotYetClaimed,
     customer_not_found: t.common.error,
+    email_is_staff_account: t.customers.portalInvite.errStaffAccount,
+    staff_account: t.customers.portalInvite.errStaffAccount,
+    existing_account_email_only: t.customers.portalInvite.errEmailOnly,
+    email_only_failed: t.customers.portalInvite.errEmailOnly,
   }
   return map[reason] ?? reason
 }
