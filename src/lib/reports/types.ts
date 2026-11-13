@@ -11,10 +11,12 @@
  */
 
 export type ReportRange = {
-  /** Inclusive ISO date 'YYYY-MM-DD'. Treated as UTC midnight. */
+  /** Inclusive calendar date 'YYYY-MM-DD' in the shop's timezone. */
   from: string
-  /** Inclusive ISO date 'YYYY-MM-DD'. Treated as UTC midnight EOD when comparing timestamps (we compare against (to + 1 day) exclusive at query time). */
+  /** Inclusive calendar date 'YYYY-MM-DD' in the shop's timezone. */
   to: string
+  /** IANA zone the dates are in. Turn into timestamps with reportBounds() (range.ts). */
+  timezone: string
 }
 
 export type ReportTotals = Record<string, number>

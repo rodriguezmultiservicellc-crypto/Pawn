@@ -9,7 +9,8 @@ import {
   saleVoidSchema,
 } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
-import { computeBalance, r4, toMoney } from '@/lib/pos/cart'
+import { computeBalance, r2, toMoney } from '@/lib/pos/cart'
+import { afterSaleCompleted, posErrorKey, saleAddPayment, saleComplete } from '@/lib/pos/money'
 import {
   createCardPresentPaymentIntent,
   refundCardPayment,
@@ -17,8 +18,6 @@ import {
 import { createAdminClient } from '@/lib/supabase/admin'
 import { settleSaleCardPayment } from '@/lib/pos/card-settle'
 import {
-  recordEarnSale,
-  maybeCreditReferral,
   recordEarnClawback,
   recordRedeemUndo,
   recordRedemption,
@@ -72,13 +71,16 @@ export async function addPaymentAction(
   if (!parsed.success) return { error: 'validation_failed' }
   const v = parsed.data
 
-  const { sale, supabase, userId, tenantId } = await resolveSaleScope(
-    v.sale_id,
-  )
+  const { sale, userId, tenantId } = await resolveSaleScope(v.sale_id)
   if (sale.status !== 'open') return { error: 'saleNotOpen' }
+  // Cheap early refusal before a PaymentIntent is created; the database
+  // re-checks under a row lock (pending card tenders included).
+  if (r2(v.amount) > computeBalance({ total: sale.total, paid_total: sale.paid_total })) {
+    return { error: 'paymentExceedsBalance' }
+  }
 
   // Card path: create the PaymentIntent first; failure short-circuits the
-  // sale_payments insert. Cash/check just write directly.
+  // payment row. Cash/check go straight to the database function.
   let paymentIntentId: string | null = null
   let cardStatus: 'pending' | 'not_used' = 'not_used'
   if (v.payment_method === 'card') {
@@ -102,36 +104,28 @@ export async function addPaymentAction(
     }
   }
 
-  const { error: payErr } = await supabase.from('sale_payments').insert({
-    sale_id: sale.id,
-    tenant_id: tenantId,
+  // One database function writes the tender and moves paid_total in place
+  // under a row lock (patches/0076). A card tender is only a PaymentIntent
+  // at this point: it is stored 'pending' and stays OUT of paid_total until
+  // it settles (Stripe webhook, or a manager confirming — card-settle.ts).
+  const paid = await saleAddPayment({
+    tenantId,
+    userId,
+    saleId: sale.id,
     amount: v.amount,
-    payment_method: v.payment_method as PaymentMethod,
-    card_present_status: cardStatus,
-    stripe_payment_intent_id: paymentIntentId,
-    reader_id: v.reader_id,
-    notes: v.notes,
-    performed_by: userId,
+    method: v.payment_method as PaymentMethod,
+    paymentIntentId,
+    readerId: v.reader_id ?? null,
+    notes: v.notes ?? null,
   })
-  if (payErr) return { error: payErr.message }
-
-  // Roll up paid_total on the parent sale — for money that is actually in
-  // hand. A card tender is only a PaymentIntent at this point: nothing has
-  // been charged. It stays 'pending' and OUT of paid_total until it settles
-  // (Stripe webhook, or a manager confirming the reader approved it — see
-  // lib/pos/card-settle.ts). Counting it here let a sale complete, and the
-  // goods leave, with no money collected.
-  const counted = v.payment_method !== 'card'
-  const newPaid = counted
-    ? r4(toMoney(sale.paid_total) + v.amount)
-    : toMoney(sale.paid_total)
-  if (counted) {
-    await supabase
-      .from('sales')
-      .update({ paid_total: newPaid, updated_by: userId })
-      .eq('id', sale.id)
-      .eq('tenant_id', tenantId)
+  if (!paid.ok) {
+    if (paymentIntentId) {
+      // The reader never saw this intent; leave a trace for reconciliation.
+      console.error('[pos.addPayment] refused after PaymentIntent created', paymentIntentId, paid.error)
+    }
+    return { error: posErrorKey(paid.error) }
   }
+  const newPaid = paid.data.paidTotal
 
   await logAudit({
     tenantId,
@@ -158,24 +152,14 @@ export async function completeSaleAction(
   saleId: string,
 ): Promise<SaleActionResult> {
   if (!saleId) return { error: 'missing_sale_id' }
-  const { sale, supabase, userId, tenantId } = await resolveSaleScope(saleId)
+  const { sale, userId, tenantId } = await resolveSaleScope(saleId)
   if (sale.status !== 'open') return { error: 'saleNotOpen' }
-  // paid_total holds settled money only — a pending card tender is not in it
-  // (addPaymentAction), so a sale cannot complete on an uncharged card.
-  const balance = computeBalance({ total: sale.total, paid_total: sale.paid_total })
-  if (balance > 0.0001) return { error: 'balance_remaining' }
 
-  const { error } = await supabase
-    .from('sales')
-    .update({
-      status: 'completed' as SaleStatus,
-      is_locked: true,
-      completed_at: new Date().toISOString(),
-      updated_by: userId,
-    })
-    .eq('id', sale.id)
-    .eq('tenant_id', tenantId)
-  if (error) return { error: error.message }
+  // The database re-reads the sale under a row lock: open, and settled money
+  // (paid_total; a pending card is not in it) covers the total in cents.
+  const done = await saleComplete({ tenantId, userId, saleId: sale.id })
+  if (!done.ok) return { error: posErrorKey(done.error) }
+  if (!done.data.completed) return { error: 'saleAlreadyCompleted' }
 
   await logAudit({
     tenantId,
@@ -186,33 +170,8 @@ export async function completeSaleAction(
     changes: { total: sale.total },
   })
 
-  // ── Loyalty earn + referral (gated on per-tenant settings.loyalty_enabled) ─
-  if (sale.customer_id) {
-    const admin = createAdminClient()
-    const { data: settings } = await admin
-      .from('settings')
-      .select(
-        'loyalty_enabled, loyalty_earn_rate_retail, loyalty_referral_bonus',
-      )
-      .eq('tenant_id', tenantId)
-      .maybeSingle()
-    if (settings?.loyalty_enabled) {
-      await recordEarnSale({
-        admin,
-        tenantId,
-        customerId: sale.customer_id,
-        saleId: sale.id,
-        subtotal: Number(sale.subtotal),
-        rate: Number(settings.loyalty_earn_rate_retail),
-      })
-      await maybeCreditReferral({
-        admin,
-        tenantId,
-        customerId: sale.customer_id,
-        bonusPoints: settings.loyalty_referral_bonus,
-      })
-    }
-  }
+  // Loyalty earn + referral (gated on settings.loyalty_enabled; idempotent).
+  await afterSaleCompleted({ tenantId, saleId: sale.id })
 
   revalidatePath(`/pos/sales/${sale.id}`)
   revalidatePath('/pos')
@@ -527,12 +486,9 @@ export async function redeemPointsOnSaleAction(
   })
   if (pointsConsumed <= 0) return { error: 'no_balance' }
 
-  const newDiscount =
-    Math.round((Number(sale.discount_amount) + discount) * 10000) / 10000
-  const newTotal =
-    Math.round(
-      (Number(sale.subtotal) - newDiscount + Number(sale.tax_amount)) * 10000,
-    ) / 10000
+  // Cents, like every other sale total (patches/0076).
+  const newDiscount = r2(Number(sale.discount_amount) + discount)
+  const newTotal = r2(Number(sale.subtotal) - newDiscount + Number(sale.tax_amount))
 
   const { error: upErr } = await supabase
     .from('sales')
@@ -610,16 +566,10 @@ export async function undoRedemptionAction(
     : 100
 
   const pointsToRestore = Math.abs(ev.points_delta)
-  const discountToRemove = Math.round((pointsToRestore / rate) * 10000) / 10000
+  const discountToRemove = r2(pointsToRestore / rate)
 
-  const newDiscount = Math.max(
-    0,
-    Math.round((Number(sale.discount_amount) - discountToRemove) * 10000) / 10000,
-  )
-  const newTotal =
-    Math.round(
-      (Number(sale.subtotal) - newDiscount + Number(sale.tax_amount)) * 10000,
-    ) / 10000
+  const newDiscount = Math.max(0, r2(Number(sale.discount_amount) - discountToRemove))
+  const newTotal = r2(Number(sale.subtotal) - newDiscount + Number(sale.tax_amount))
 
   const { error: upErr } = await supabase
     .from('sales')

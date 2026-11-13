@@ -1,8 +1,8 @@
 /**
  * HTTP helpers shared by the report API routes.
  *
- * - parseRange(searchParams) — extract { from, to } from ?from=&to=, falling
- *   back to a sensible default range (today / today).
+ * - parseRange(searchParams, timezone) — { from, to, timezone } from
+ *   ?from=&to=, defaulting to the shop's today.
  * - csvResponse(filename, rows, columns) — stream a CSV response with
  *   RFC-4180 quoting + Content-Disposition: attachment.
  * - pdfResponse(filename, buffer) — stream a PDF response inline.
@@ -15,21 +15,14 @@
  */
 
 import type { ReportRange } from './types'
-import { todayDateString } from '@/lib/pawn/math'
+import { buildRange } from './range'
 
-export function parseRange(searchParams: URLSearchParams): ReportRange {
-  const today = todayDateString()
-  const fromRaw = searchParams.get('from') ?? ''
-  const toRaw = searchParams.get('to') ?? ''
-  const from = isValidDate(fromRaw) ? fromRaw : today
-  const to = isValidDate(toRaw) ? toRaw : today
-  // If user swapped them, swap back rather than producing zero rows.
-  if (from > to) return { from: to, to: from }
-  return { from, to }
-}
-
-function isValidDate(s: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(s)
+/**
+ * ?from=&to= in the shop's day; missing dates default to the shop's today.
+ * `timezone` comes from the tenant (loadTenantRules) — never UTC.
+ */
+export function parseRange(searchParams: URLSearchParams, timezone: string): ReportRange {
+  return buildRange({ from: searchParams.get('from'), to: searchParams.get('to'), timezone })
 }
 
 export type CsvColumn<Row> = {

@@ -8,9 +8,9 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { reportBounds } from './range'
 import type { Database } from '@/types/database'
 import type { ReportRange, ReportResult } from './types'
-import { addDaysIso } from '@/lib/pawn/math'
 
 export type DailyRegisterRow = {
   session_id: string
@@ -38,8 +38,8 @@ export async function getDailyRegister(args: {
   const { supabase, tenantIds, range } = args
 
   // Compare against opened_at >= from and opened_at < (to+1).
-  const fromIso = `${range.from}T00:00:00.000Z`
-  const toExclusiveIso = `${addDaysIso(range.to, 1)}T00:00:00.000Z`
+  // The shop's day, not UTC's (REVIEW-2026-11-11 finding 10).
+  const { fromIso, toExclusiveIso } = reportBounds(range)
 
   const { data: sessions, error } = await supabase
     .from('register_sessions')

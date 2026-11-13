@@ -888,6 +888,7 @@ export const en = {
       count_close: 'Closed count',
       count_cancel: 'Cancelled count',
       count_exception_resolve: 'Resolved count exception',
+      stripe_payment_needs_refund: 'Online payment needs a refund',
       // POS-specific
       sale_create: 'Created sale',
       sale_complete: 'Completed sale',
@@ -2287,6 +2288,10 @@ export const en = {
       paymentMethodMissing: 'Pick a payment method.',
       cartEmpty: 'Add at least one item to the cart.',
       noEligibleItems: 'No items remaining to return on this sale.',
+      paymentExceedsBalance: 'That is more than is still owed. Enter the balance or less (a pending card counts toward it).',
+      balanceRemaining: 'There is still a balance to pay before the sale can be completed.',
+      layawayNotActive: 'This layaway is no longer active.',
+      consignmentBelowFloor: 'A consigned item is priced below the consignor’s minimum.',
     },
     success: {
       registerOpened: 'Register opened.',

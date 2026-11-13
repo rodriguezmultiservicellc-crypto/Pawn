@@ -10,10 +10,10 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { reportBounds } from './range'
 import type { Database } from '@/types/database'
 import type { ComplianceLogRow } from '@/types/database-aliases'
 import type { ReportRange, ReportResult } from './types'
-import { addDaysIso } from '@/lib/pawn/math'
 
 export const POLICE_REPORT_DEFAULT_EVENT_TYPES = [
   'pawn_intake',
@@ -27,8 +27,8 @@ export async function getPoliceReportRows(args: {
   eventTypes?: ReadonlyArray<string>
 }): Promise<ReportResult<ComplianceLogRow>> {
   const { supabase, tenantIds, range } = args
-  const fromIso = `${range.from}T00:00:00.000Z`
-  const toExclusiveIso = `${addDaysIso(range.to, 1)}T00:00:00.000Z`
+  // The shop's day, not UTC's (REVIEW-2026-11-11 finding 10).
+  const { fromIso, toExclusiveIso } = reportBounds(range)
   const eventTypes = args.eventTypes ?? POLICE_REPORT_DEFAULT_EVENT_TYPES
 
   const { data, error } = await supabase

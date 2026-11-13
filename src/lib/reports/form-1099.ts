@@ -30,6 +30,8 @@
 
 import type { ComplianceLogRow } from '@/types/database-aliases'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { dayStartInTimezone } from '@/lib/jurisdictions/rules'
 
 export const FORM_1099_DEFAULT_THRESHOLD = 600
 
@@ -173,10 +175,13 @@ export async function buildForm1099Report(args: {
     throw new Error(`form_1099_invalid_tax_year:${taxYear}`)
   }
 
-  const fromIso = `${taxYear}-01-01T00:00:00.000Z`
-  const toExclusiveIso = `${taxYear + 1}-01-01T00:00:00.000Z`
-
   const admin = createAdminClient()
+
+  // The tax year runs midnight-to-midnight in the shop's timezone: a
+  // payment at 9 PM on Dec 31 in Florida belongs to that year.
+  const { timezone } = await loadTenantRules(admin, tenantId)
+  const fromIso = dayStartInTimezone(`${taxYear}-01-01`, timezone)
+  const toExclusiveIso = dayStartInTimezone(`${taxYear + 1}-01-01`, timezone)
 
   const { data: rows, error } = await admin
     .from('compliance_log')

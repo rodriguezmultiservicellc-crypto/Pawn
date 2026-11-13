@@ -9,9 +9,8 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import { addDaysIso } from '@/lib/pawn/math'
-import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { dayStartInTimezone } from '@/lib/jurisdictions/rules'
+import { reportBounds } from '@/lib/reports/range'
+import type { ReportRange } from '@/lib/reports/types'
 import { listCountSessions, type CountSession } from './server'
 
 type Db = SupabaseClient<Database>
@@ -32,20 +31,14 @@ export type CountsReport = {
   sessions: Array<CountSession & { shopName: string }>
 }
 
-/**
- * @param tenantId the active tenant (a shop, or the chain HQ); its timezone
- *   decides where each day of the range starts.
- */
+/** Range dates are in the shop's timezone (shopReportRange / parseRange). */
 export async function loadCountsReport(args: {
   supabase: Db
-  tenantId: string
   tenantIds: string[]
-  range: { from: string; to: string }
+  range: ReportRange
 }): Promise<CountsReport> {
   const { supabase, tenantIds, range } = args
-  const { timezone } = await loadTenantRules(supabase, args.tenantId)
-  const fromIso = dayStartInTimezone(range.from, timezone)
-  const toExclusiveIso = dayStartInTimezone(addDaysIso(range.to, 1), timezone)
+  const { fromIso, toExclusiveIso } = reportBounds(range)
   const empty = { counts: 0, missingItems: 0, missingValue: 0, writtenOffValue: 0, openPledges: 0 }
   if (tenantIds.length === 0) return { rows: [], totals: empty, sessions: [] }
 

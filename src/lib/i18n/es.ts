@@ -891,6 +891,7 @@ export const es: Dictionary = {
       count_close: 'Cerró conteo',
       count_cancel: 'Canceló conteo',
       count_exception_resolve: 'Resolvió excepción de conteo',
+      stripe_payment_needs_refund: 'Pago en línea requiere reembolso',
       // POS-specific
       sale_create: 'Venta creada',
       sale_complete: 'Venta completada',
@@ -2287,6 +2288,10 @@ export const es: Dictionary = {
       paymentMethodMissing: 'Selecciona un método de pago.',
       cartEmpty: 'Agrega al menos un artículo al carrito.',
       noEligibleItems: 'No quedan artículos por devolver en esta venta.',
+      paymentExceedsBalance: 'Es más de lo que se debe. Ingrese el saldo o menos (un pago con tarjeta pendiente cuenta).',
+      balanceRemaining: 'Todavía hay saldo por pagar antes de completar la venta.',
+      layawayNotActive: 'Este apartado ya no está activo.',
+      consignmentBelowFloor: 'Un artículo en consignación tiene un precio menor al mínimo del consignador.',
     },
     success: {
       registerOpened: 'Caja abierta.',

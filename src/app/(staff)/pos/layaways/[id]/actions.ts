@@ -9,7 +9,8 @@ import {
   layawayCancelSchema,
 } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
-import { r4, toMoney } from '@/lib/pos/cart'
+import { r2, toMoney } from '@/lib/pos/cart'
+import { afterSaleCompleted, layawayAddPayment, posErrorKey } from '@/lib/pos/money'
 import type {
   LayawayStatus,
   PaymentMethod,
@@ -59,87 +60,26 @@ export async function addLayawayPaymentAction(
   const { lay } = await resolveLayawayScope(v.layaway_id)
   if (lay.status !== 'active') return { error: 'wrong_status' }
 
-  const { supabase, userId } = await requireRoleInTenant(
-    lay.tenant_id,
-    STAFF_ROLES,
-  )
+  const { userId } = await requireRoleInTenant(lay.tenant_id, STAFF_ROLES)
 
-  // Insert layaway_payment.
-  const { error: payErr } = await supabase.from('layaway_payments').insert({
-    layaway_id: lay.id,
-    tenant_id: lay.tenant_id,
+  // One database transaction (patches/0076): the layaway payment, its
+  // mirror on the sale, both paid totals — and, when this clears the
+  // balance, sale completion (stock to sold, consignor accrual). A card at
+  // the layaway counter is run on the shop's own terminal: there is no
+  // PaymentIntent to settle later, so it is recorded as money in hand.
+  const paid = await layawayAddPayment({
+    tenantId: lay.tenant_id,
+    userId,
+    layawayId: lay.id,
     amount: v.amount,
-    payment_method: v.payment_method as PaymentMethod,
-    card_present_status: v.payment_method === 'card' ? 'pending' : 'not_used',
-    notes: v.notes,
-    performed_by: userId,
+    method: v.payment_method as PaymentMethod,
+    cardStatus: 'not_used',
+    notes: v.notes ?? null,
   })
-  if (payErr) return { error: payErr.message }
-
-  // Mirror against the parent sale_payments so the sale's paid_total stays
-  // in sync (the layaway IS a sale; payments contribute to both).
-  await supabase.from('sale_payments').insert({
-    sale_id: lay.sale_id,
-    tenant_id: lay.tenant_id,
-    amount: v.amount,
-    payment_method: v.payment_method as PaymentMethod,
-    card_present_status: v.payment_method === 'card' ? 'pending' : 'not_used',
-    notes: v.notes ?? 'layaway_payment',
-    performed_by: userId,
-  })
-
-  // Roll forward totals.
-  const newPaid = r4(toMoney(lay.paid_total) + v.amount)
-  const newBalance = r4(Math.max(0, toMoney(lay.total_due) - newPaid))
-  const completed = newBalance <= 0.0001
-
-  await supabase
-    .from('layaways')
-    .update({
-      paid_total: newPaid,
-      balance_remaining: newBalance,
-      status: completed ? ('completed' as LayawayStatus) : lay.status,
-      completed_at: completed ? new Date().toISOString() : null,
-      updated_by: userId,
-    })
-    .eq('id', lay.id)
-    .eq('tenant_id', lay.tenant_id)
-
-  // Update sale.paid_total too.
-  await supabase
-    .from('sales')
-    .update({ paid_total: newPaid, updated_by: userId })
-    .eq('id', lay.sale_id)
-    .eq('tenant_id', lay.tenant_id)
+  if (!paid.ok) return { error: posErrorKey(paid.error) }
+  const { paidTotal: newPaid, balance: newBalance, completed } = paid.data
 
   if (completed) {
-    // Flip sale -> completed + locked, and inventory items 'held' -> 'sold'.
-    await supabase
-      .from('sales')
-      .update({
-        status: 'completed' as SaleStatus,
-        is_locked: true,
-        completed_at: new Date().toISOString(),
-        updated_by: userId,
-      })
-      .eq('id', lay.sale_id)
-      .eq('tenant_id', lay.tenant_id)
-
-    const { data: items } = await supabase
-      .from('sale_items')
-      .select('inventory_item_id')
-      .eq('sale_id', lay.sale_id)
-      .is('deleted_at', null)
-    for (const it of items ?? []) {
-      if (!it.inventory_item_id) continue
-      await supabase
-        .from('inventory_items')
-        .update({ status: 'sold', updated_by: userId })
-        .eq('id', it.inventory_item_id)
-        .eq('tenant_id', lay.tenant_id)
-        .eq('status', 'held')
-    }
-
     await logAudit({
       tenantId: lay.tenant_id,
       userId,
@@ -148,6 +88,7 @@ export async function addLayawayPaymentAction(
       recordId: lay.id,
       changes: { total_due: lay.total_due, paid_total: newPaid },
     })
+    await afterSaleCompleted({ tenantId: lay.tenant_id, saleId: lay.sale_id })
   }
 
   await logAudit({
@@ -223,8 +164,8 @@ export async function cancelLayawayAction(
 
   // Compute refund: paid_total × (1 − cancellation_fee_pct), floored at 0.
   const paid = toMoney(lay.paid_total)
-  const fee = r4(paid * toMoney(lay.cancellation_fee_pct))
-  const refund = r4(Math.max(0, paid - fee))
+  const fee = r2(paid * toMoney(lay.cancellation_fee_pct))
+  const refund = r2(Math.max(0, paid - fee))
 
   if (refund > 0) {
     // Log a NEGATIVE-amount layaway_payment as the refund reversing entry.

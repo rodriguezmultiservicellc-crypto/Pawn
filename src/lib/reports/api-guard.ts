@@ -10,6 +10,7 @@
 import { getCtx } from '@/lib/supabase/ctx'
 import { resolveReportScope, type ReportTenantScope } from './tenant-scope'
 import { parseRange } from './http'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import type { ReportRange } from './types'
 
 const STAFF_ROLES = new Set([
@@ -44,7 +45,8 @@ export async function guardReportRequest(
   }
 
   const url = new URL(req.url)
-  const range = parseRange(url.searchParams)
+  const { timezone } = await loadTenantRules(ctx.supabase, ctx.tenantId)
+  const range = parseRange(url.searchParams, timezone)
   const scope = await resolveReportScope({
     supabase: ctx.supabase,
     tenantId: ctx.tenantId,

@@ -10,9 +10,9 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { reportBounds } from './range'
 import type { Database } from '@/types/database'
 import type { ReportRange, ReportResult } from './types'
-import { addDaysIso } from '@/lib/pawn/math'
 
 export type CrossShopRow = {
   tenant_id: string
@@ -35,8 +35,8 @@ export async function getCrossShopRollup(args: {
   range: ReportRange
 }): Promise<ReportResult<CrossShopRow>> {
   const { supabase, hqTenantId, range } = args
-  const fromIso = `${range.from}T00:00:00.000Z`
-  const toExclusiveIso = `${addDaysIso(range.to, 1)}T00:00:00.000Z`
+  // The shop's day, not UTC's (REVIEW-2026-11-11 finding 10).
+  const { fromIso, toExclusiveIso } = reportBounds(range)
 
   // 1. Resolve children of this HQ.
   const { data: children, error: childErr } = await supabase

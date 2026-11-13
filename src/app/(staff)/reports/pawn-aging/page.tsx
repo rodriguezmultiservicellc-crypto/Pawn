@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
+import { shopReportRange } from '@/lib/reports/shop-range'
 import { resolveReportScope } from '@/lib/reports/tenant-scope'
 import { getPawnAging } from '@/lib/reports/pawn-aging'
-import { todayDateString, addDaysIso } from '@/lib/pawn/math'
 import PawnAgingContent from './content'
 
 export const dynamic = 'force-dynamic'
@@ -15,17 +15,22 @@ export default async function PawnAgingPage(props: { searchParams: SearchParams 
   if (!ctx.tenantId) redirect('/no-tenant')
 
   const params = await props.searchParams
-  const today = todayDateString()
-  // Pawn aging defaults to today..today+30 if no params.
-  const defaultTo = addDaysIso(today, 30)
-  const from = params.from && /^\d{4}-\d{2}-\d{2}$/.test(params.from) ? params.from : today
-  const to = params.to && /^\d{4}-\d{2}-\d{2}$/.test(params.to) ? params.to : defaultTo
+  // Dates in the shop's timezone (REVIEW-2026-11-11 finding 10).
+  const range = await shopReportRange({
+    supabase: ctx.supabase,
+    tenantId: ctx.tenantId,
+    from: params.from,
+    to: params.to,
+    defaultFromDays: 0,
+    defaultToDays: 30,
+  })
+  const { from, to } = range
 
   const scope = await resolveReportScope({ supabase: ctx.supabase, tenantId: ctx.tenantId })
   const result = await getPawnAging({
     supabase: ctx.supabase,
     tenantIds: scope.tenantIds,
-    range: { from, to },
+    range,
   })
 
   return (

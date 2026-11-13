@@ -12,7 +12,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import type { LoanStatus } from '@/types/database-aliases'
 import type { ReportRange, ReportResult } from './types'
-import { todayDateString } from '@/lib/pawn/math'
+import { reportToday } from './range'
 
 const NON_TERMINAL: ReadonlyArray<LoanStatus> = [
   'active',
@@ -78,7 +78,8 @@ export async function getPawnAging(args: {
 
   if (error) throw new Error(`pawn_aging_query_failed: ${error.message}`)
 
-  const today = todayDateString()
+  // Days-to-due count from the shop's today, not UTC's.
+  const today = reportToday(range)
   const todayMs = Date.UTC(
     Number(today.slice(0, 4)),
     Number(today.slice(5, 7)) - 1,

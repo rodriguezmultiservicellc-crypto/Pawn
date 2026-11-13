@@ -10,8 +10,8 @@ import {
   type SaleItemInput,
 } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
-import { computeLineTotal, computeSubtotal, computeTotal, r4, toMoney } from '@/lib/pos/cart'
-import type { LayawayScheduleKind, PaymentMethod } from '@/types/database-aliases'
+import { afterSaleCompleted, layawayCreate, posErrorKey, saleCreate, type SaleLineInput } from '@/lib/pos/money'
+import type { PaymentMethod } from '@/types/database-aliases'
 
 /**
  * Create-sale + create-layaway actions.
@@ -67,9 +67,6 @@ function readItems(fd: FormData): IncomingItem[] {
   return out
 }
 
-// Type alias for the user-scoped Supabase client returned by getCtx().
-type SupabaseClient = NonNullable<Awaited<ReturnType<typeof getCtx>>>['supabase']
-
 // ── Create sale (retail OR layaway) ────────────────────────────────────────
 
 export async function createSaleAction(
@@ -111,7 +108,6 @@ export async function createSaleAction(
     return createLayawayInternal({
       formData,
       items,
-      supabase,
       userId,
       tenantId,
       registerSessionId: openSession.id,
@@ -132,10 +128,8 @@ export async function createSaleAction(
   const v = parsed.data
 
   return persistSale({
-    supabase,
     userId,
     tenantId,
-    saleKind: 'retail',
     registerSessionId: openSession.id,
     customerId: v.customer_id,
     items: v.items,
@@ -150,7 +144,6 @@ export async function createSaleAction(
 async function createLayawayInternal(args: {
   formData: FormData
   items: IncomingItem[]
-  supabase: SupabaseClient
   userId: string
   tenantId: string
   registerSessionId: string
@@ -173,235 +166,107 @@ async function createLayawayInternal(args: {
     return { error: 'customerRequiredForLayaway' }
   }
   const v = parsed.data
+  if (v.items.length === 0) return { error: 'cartEmpty' }
 
-  const persisted = await persistSale({
-    supabase: args.supabase,
-    userId: args.userId,
+  // Sale, lines, stock hold, layaway row and down payment in one database
+  // transaction (patches/0076). A down payment at the layaway counter is
+  // money in hand — a card here is run on the shop's own terminal, so it
+  // counts now; there is no PaymentIntent waiting to settle.
+  const r = await layawayCreate({
     tenantId: args.tenantId,
-    saleKind: 'layaway',
+    userId: args.userId,
     registerSessionId: args.registerSessionId,
     customerId: v.customer_id,
-    items: v.items,
     taxRate: v.tax_rate,
-    discountAmount: v.discount_amount,
+    discount: v.discount_amount,
     notes: v.notes,
+    items: toLines(v.items),
+    scheduleKind: v.schedule_kind,
+    downPayment: v.down_payment,
+    downMethod: v.down_payment_method as PaymentMethod,
+    firstPaymentDue: v.first_payment_due,
+    finalDueDate: v.final_due_date,
+    cancellationFeePct: v.cancellation_fee_pct,
   })
-  if (persisted.error || !persisted.saleId) return persisted
-
-  // Insert layaway row.
-  const { data: lay, error: layErr } = await args.supabase
-    .from('layaways')
-    .insert({
-      tenant_id: args.tenantId,
-      sale_id: persisted.saleId,
-      customer_id: v.customer_id,
-      status: 'active',
-      total_due: persisted.total ?? 0,
-      paid_total: 0,
-      balance_remaining: persisted.total ?? 0,
-      schedule_kind: v.schedule_kind as LayawayScheduleKind,
-      down_payment: v.down_payment,
-      first_payment_due: v.first_payment_due,
-      final_due_date: v.final_due_date,
-      cancellation_fee_pct: v.cancellation_fee_pct,
-      notes: v.notes,
-      created_by: args.userId,
-      updated_by: args.userId,
-    })
-    .select('id, layaway_number')
-    .single()
-  if (layErr || !lay) return { error: layErr?.message ?? 'layaway_insert_failed' }
-
-  // If a down payment was collected, write a sale_payment AND a layaway_payment.
-  if (v.down_payment > 0) {
-    await args.supabase.from('sale_payments').insert({
-      sale_id: persisted.saleId,
-      tenant_id: args.tenantId,
-      amount: v.down_payment,
-      payment_method: v.down_payment_method as PaymentMethod,
-      card_present_status:
-        v.down_payment_method === 'card' ? 'pending' : 'not_used',
-      performed_by: args.userId,
-    })
-    await args.supabase.from('layaway_payments').insert({
-      layaway_id: lay.id,
-      tenant_id: args.tenantId,
-      amount: v.down_payment,
-      payment_method: v.down_payment_method as PaymentMethod,
-      card_present_status:
-        v.down_payment_method === 'card' ? 'pending' : 'not_used',
-      performed_by: args.userId,
-      notes: 'down_payment',
-    })
-    // Roll forward the parent sale + layaway totals.
-    const newPaid = r4(toMoney(v.down_payment))
-    await args.supabase
-      .from('sales')
-      .update({
-        paid_total: newPaid,
-        updated_by: args.userId,
-      })
-      .eq('id', persisted.saleId)
-      .eq('tenant_id', args.tenantId)
-    await args.supabase
-      .from('layaways')
-      .update({
-        paid_total: newPaid,
-        balance_remaining: r4(Math.max(0, (persisted.total ?? 0) - newPaid)),
-        updated_by: args.userId,
-      })
-      .eq('id', lay.id)
-      .eq('tenant_id', args.tenantId)
-  }
+  if (!r.ok) return { error: posErrorKey(r.error) }
 
   await logAudit({
     tenantId: args.tenantId,
     userId: args.userId,
     action: 'layaway_create',
     tableName: 'layaways',
-    recordId: lay.id,
+    recordId: r.data.layawayId,
     changes: {
-      layaway_number: lay.layaway_number,
-      sale_id: persisted.saleId,
-      total_due: persisted.total,
+      layaway_number: r.data.layawayNumber,
+      sale_id: r.data.saleId,
+      total_due: r.data.total,
       down_payment: v.down_payment,
       schedule_kind: v.schedule_kind,
+      completed: r.data.completed,
     },
   })
+  if (r.data.completed) await afterSaleCompleted({ tenantId: args.tenantId, saleId: r.data.saleId })
 
   revalidatePath('/pos')
   revalidatePath('/pos/layaways')
-  return { redirectTo: `/pos/layaways/${lay.id}` }
+  return { redirectTo: `/pos/layaways/${r.data.layawayId}` }
 }
 
-// ── Shared persistence path for retail OR layaway sales. ───────────────────
+function toLines(items: SaleItemInput[]): SaleLineInput[] {
+  return items.map((it) => ({
+    inventory_item_id: it.inventory_item_id,
+    description: it.description,
+    quantity: it.quantity,
+    unit_price: it.unit_price,
+    line_discount: it.line_discount,
+  }))
+}
+
+// ── Retail sale: one database transaction (patches/0076 sale_create) ───────
+// Totals are computed in cents by the database; every linked piece is
+// row-locked and must still be available, so two registers cannot sell the
+// same item (REVIEW-2026-11-11 finding 13).
 
 async function persistSale(args: {
-  supabase: SupabaseClient
   userId: string
   tenantId: string
-  saleKind: 'retail' | 'layaway'
   registerSessionId: string
   customerId: string | null
   items: SaleItemInput[]
   taxRate: number
   discountAmount: number
   notes: string | null
-}): Promise<CreateSaleResult & { saleId?: string; total?: number }> {
+}): Promise<CreateSaleResult> {
   if (args.items.length === 0) return { error: 'cartEmpty' }
 
-  // Compute totals from validated items.
-  const subtotal = computeSubtotal(
-    args.items.map((it) => ({
-      quantity: it.quantity,
-      unit_price: it.unit_price,
-      line_discount: it.line_discount,
-    })),
-  )
-  const totals = computeTotal({
-    subtotal,
+  const r = await saleCreate({
+    tenantId: args.tenantId,
+    userId: args.userId,
+    registerSessionId: args.registerSessionId,
+    customerId: args.customerId,
+    taxRate: args.taxRate,
     discount: args.discountAmount,
-    tax_rate: args.taxRate,
+    notes: args.notes,
+    items: toLines(args.items),
   })
-
-  // Pre-flight: every linked inventory item must currently be 'available'.
-  const linkedIds = args.items
-    .map((it) => it.inventory_item_id)
-    .filter((x): x is string => !!x)
-  if (linkedIds.length > 0) {
-    const { data: invRows } = await args.supabase
-      .from('inventory_items')
-      .select('id, status')
-      .eq('tenant_id', args.tenantId)
-      .in('id', linkedIds)
-    const lookup = new Map<string, string>()
-    for (const r of invRows ?? []) lookup.set(r.id, r.status)
-    for (const id of linkedIds) {
-      const st = lookup.get(id)
-      if (st !== 'available') return { error: 'inventoryOutOfStock' }
-    }
-  }
-
-  // Insert sale.
-  const { data: sale, error: saleErr } = await args.supabase
-    .from('sales')
-    .insert({
-      tenant_id: args.tenantId,
-      register_session_id: args.registerSessionId,
-      sale_kind: args.saleKind,
-      status: 'open',
-      customer_id: args.customerId,
-      subtotal: totals.subtotal,
-      tax_amount: totals.tax,
-      tax_rate: args.taxRate,
-      discount_amount: totals.discount,
-      total: totals.total,
-      paid_total: 0,
-      returned_total: 0,
-      notes: args.notes,
-      is_locked: false,
-      created_by: args.userId,
-      updated_by: args.userId,
-    })
-    .select('id, sale_number')
-    .single()
-  if (saleErr || !sale) return { error: saleErr?.message ?? 'sale_insert_failed' }
-
-  // Insert sale_items.
-  const itemsPayload = args.items.map((it, i) => ({
-    sale_id: sale.id,
-    tenant_id: args.tenantId,
-    inventory_item_id: it.inventory_item_id,
-    description: it.description,
-    quantity: it.quantity,
-    unit_price: it.unit_price,
-    line_discount: it.line_discount,
-    line_total: computeLineTotal({
-      quantity: it.quantity,
-      unit_price: it.unit_price,
-      line_discount: it.line_discount,
-    }),
-    position: i,
-    returned_qty: 0,
-  }))
-  const { error: itErr } = await args.supabase
-    .from('sale_items')
-    .insert(itemsPayload)
-  if (itErr) return { error: itErr.message }
-
-  // Flip inventory status: layaway -> 'held'; retail -> 'sold'.
-  const newStatus = args.saleKind === 'layaway' ? 'held' : 'sold'
-  for (const id of linkedIds) {
-    await args.supabase
-      .from('inventory_items')
-      .update({ status: newStatus, updated_by: args.userId })
-      .eq('id', id)
-      .eq('tenant_id', args.tenantId)
-      .eq('status', 'available')
-  }
+  if (!r.ok) return { error: posErrorKey(r.error) }
 
   await logAudit({
     tenantId: args.tenantId,
     userId: args.userId,
     action: 'sale_create',
     tableName: 'sales',
-    recordId: sale.id,
+    recordId: r.data.saleId,
     changes: {
-      sale_number: sale.sale_number,
-      sale_kind: args.saleKind,
+      sale_number: r.data.saleNumber,
+      sale_kind: 'retail',
       customer_id: args.customerId,
-      total: totals.total,
+      total: r.data.total,
       item_count: args.items.length,
     },
   })
 
   revalidatePath('/pos')
   revalidatePath('/pos/sales')
-
-  return {
-    saleId: sale.id,
-    total: totals.total,
-    redirectTo:
-      args.saleKind === 'retail' ? `/pos/sales/${sale.id}` : undefined,
-  }
+  return { redirectTo: `/pos/sales/${r.data.saleId}` }
 }

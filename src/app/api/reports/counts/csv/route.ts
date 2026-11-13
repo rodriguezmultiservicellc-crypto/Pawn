@@ -21,7 +21,6 @@ export async function GET(req: Request) {
   if (guarded instanceof Response) return guarded
   const result = await loadCountsReport({
     supabase: guarded.supabase,
-    tenantId: guarded.tenantId,
     tenantIds: guarded.scope.tenantIds,
     range: guarded.range,
   })

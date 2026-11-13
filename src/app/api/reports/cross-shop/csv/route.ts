@@ -7,6 +7,7 @@ import {
   rowsToCsv,
   type CsvColumn,
 } from '@/lib/reports/http'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { logAudit } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
   if (!scope.isChainHq) return new Response('forbidden', { status: 403 })
 
   const url = new URL(req.url)
-  const range = parseRange(url.searchParams)
+  const range = parseRange(url.searchParams, (await loadTenantRules(ctx.supabase, ctx.tenantId)).timezone)
 
   const result = await getCrossShopRollup({
     supabase: ctx.supabase,

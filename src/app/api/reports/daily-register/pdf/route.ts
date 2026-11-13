@@ -1,10 +1,10 @@
 import { guardReportRequest } from '@/lib/reports/api-guard'
+import { reportToday } from '@/lib/reports/range'
 import { getDailyRegister, type DailyRegisterRow } from '@/lib/reports/daily-register'
 import { pdfResponse } from '@/lib/reports/http'
 import { renderReportPdf } from '@/lib/pdf/reports/render-report'
 import type { ReportPdfColumn } from '@/lib/pdf/reports/ReportPDF'
 import { logAudit } from '@/lib/audit'
-import { todayDateString } from '@/lib/pawn/math'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     title: 'Daily Register',
     tenantLabel: guarded.scope.tenantName,
     range: guarded.range,
-    printedOn: todayDateString(),
+    printedOn: reportToday(guarded.range),
     totals: [
       { label: 'OPENING CASH', value: money(result.totals?.opening_cash ?? 0) },
       { label: 'CASH SALES', value: money(result.totals?.cash_sales ?? 0) },

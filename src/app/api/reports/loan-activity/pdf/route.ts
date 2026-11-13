@@ -1,10 +1,10 @@
 import { guardReportRequest } from '@/lib/reports/api-guard'
+import { reportToday } from '@/lib/reports/range'
 import { getLoanActivity, type LoanActivityRow } from '@/lib/reports/loan-activity'
 import { pdfResponse } from '@/lib/reports/http'
 import { renderReportPdf } from '@/lib/pdf/reports/render-report'
 import type { ReportPdfColumn } from '@/lib/pdf/reports/ReportPDF'
 import { logAudit } from '@/lib/audit'
-import { todayDateString } from '@/lib/pawn/math'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
     subtitle: 'Redemptions, forfeitures, and interest income.',
     tenantLabel: guarded.scope.tenantName,
     range: guarded.range,
-    printedOn: todayDateString(),
+    printedOn: reportToday(guarded.range),
     totals: [
       { label: 'REDEMPTIONS', value: String(result.totals?.redemptions ?? 0) },
       { label: 'FORFEITURES', value: String(result.totals?.forfeitures ?? 0) },

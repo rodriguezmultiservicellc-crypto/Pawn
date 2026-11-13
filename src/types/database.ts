@@ -3163,6 +3163,7 @@ export type Database = {
           performed_by: string | null
           reader_id: string | null
           stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -3179,6 +3180,7 @@ export type Database = {
           performed_by?: string | null
           reader_id?: string | null
           stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -3195,6 +3197,7 @@ export type Database = {
           performed_by?: string | null
           reader_id?: string | null
           stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -3534,6 +3537,7 @@ export type Database = {
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           performed_by: string | null
           principal_paid: number
+          stripe_session_id: string | null
           tenant_id: string
         }
         Insert: {
@@ -3549,6 +3553,7 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           performed_by?: string | null
           principal_paid?: number
+          stripe_session_id?: string | null
           tenant_id: string
         }
         Update: {
@@ -3564,6 +3569,7 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           performed_by?: string | null
           principal_paid?: number
+          stripe_session_id?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -6901,6 +6907,52 @@ export type Database = {
         Args: { p_code: string; p_principal: number }
         Returns: number
       }
+      layaway_add_payment: {
+        Args: {
+          p_amount: number
+          p_card_status?: Database["public"]["Enums"]["card_present_status"]
+          p_layaway_id: string
+          p_method: Database["public"]["Enums"]["payment_method"]
+          p_notes?: string
+          p_stripe_pi?: string
+          p_stripe_session?: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: {
+          o_balance: number
+          o_completed: boolean
+          o_excess: number
+          o_paid_total: number
+          o_payment_id: string
+          o_reason: string
+        }[]
+      }
+      layaway_create: {
+        Args: {
+          p_cancellation_fee: number
+          p_customer_id: string
+          p_discount: number
+          p_down_method: Database["public"]["Enums"]["payment_method"]
+          p_down_payment: number
+          p_final_due_date: string
+          p_first_payment_due: string
+          p_items: Json
+          p_notes: string
+          p_register_session_id: string
+          p_schedule_kind: string
+          p_tax_rate: number
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: {
+          o_completed: boolean
+          o_layaway_id: string
+          o_layaway_number: string
+          o_sale_id: string
+          o_total: number
+        }[]
+      }
       lifecycle_birthday_customers: {
         Args: { p_on: string; p_tenant_id: string }
         Returns: {
@@ -6912,6 +6964,24 @@ export type Database = {
         Returns: {
           customer_id: string
           last_activity: string
+        }[]
+      }
+      loan_apply_online_payment: {
+        Args: {
+          p_amount: number
+          p_interest: number
+          p_loan_id: string
+          p_principal: number
+          p_principal_paid_before: number
+          p_stripe_pi: string
+          p_stripe_session: string
+          p_tenant_id: string
+        }
+        Returns: {
+          o_event_id: string
+          o_excess: number
+          o_reason: string
+          o_redeemed: boolean
         }[]
       }
       loan_forfeit_eligible_date: {
@@ -6948,6 +7018,24 @@ export type Database = {
       }
       repair_public_ticket: { Args: { p_token: string }; Returns: Json }
       repair_public_token: { Args: never; Returns: string }
+      sale_add_payment: {
+        Args: {
+          p_amount: number
+          p_method: Database["public"]["Enums"]["payment_method"]
+          p_notes?: string
+          p_reader_id?: string
+          p_sale_id: string
+          p_stripe_pi?: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: {
+          o_balance: number
+          o_counted: boolean
+          o_paid_total: number
+          o_payment_id: string
+        }[]
+      }
       sale_card_payment_succeeded: {
         Args: { p_payment_id: string }
         Returns: {
@@ -6957,6 +7045,31 @@ export type Database = {
           reason: string
           sale_id: string
           tenant_id: string
+        }[]
+      }
+      sale_complete: {
+        Args: { p_sale_id: string; p_tenant_id: string; p_user_id: string }
+        Returns: {
+          o_completed: boolean
+          o_reason: string
+        }[]
+      }
+      sale_create: {
+        Args: {
+          p_customer_id: string
+          p_discount: number
+          p_items: Json
+          p_notes: string
+          p_register_session_id: string
+          p_sale_kind: Database["public"]["Enums"]["sale_kind"]
+          p_tax_rate: number
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: {
+          o_sale_id: string
+          o_sale_number: string
+          o_total: number
         }[]
       }
       seed_custom_quote_templates: {

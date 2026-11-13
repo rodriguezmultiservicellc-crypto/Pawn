@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import {
-  payoffFromLoan,
-  r4,
-  todayDateString,
-} from '@/lib/pawn/math'
+import { payoffFromLoan } from '@/lib/pawn/math'
+import { r2 } from '@/lib/pos/cart'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
+import { afterSaleCompleted, layawayAddPayment } from '@/lib/pos/money'
+import type { Database } from '@/types/database'
 import { logAudit } from '@/lib/audit'
 import {
   findStripeLinkBySessionId,
@@ -23,7 +24,6 @@ import {
 import { settleSaleCardPayment } from '@/lib/pos/card-settle'
 import type {
   StripePaymentLinkRow,
-  LoanEventInsert,
   LoanEventRow,
   LoanRow,
 } from '@/types/database-aliases'
@@ -270,7 +270,7 @@ async function handlePaymentIntentSucceeded(
     link.amount != null
       ? Number(link.amount)
       : pi.amount != null
-      ? r4(pi.amount / 100)
+      ? r2(pi.amount / 100)
       : 0
   if (amount <= 0) return
 
@@ -432,6 +432,20 @@ async function handleAccountUpdated(account: AccountLite): Promise<void> {
   })
 }
 
+/**
+ * Post an online loan payment (REVIEW-2026-11-11 finding 11).
+ *
+ * The interest/principal split is computed here from the loan's events and
+ * the SHOP's today (not UTC). loan_apply_online_payment() then posts it under
+ * a row lock, only if the loan is still open and its principal has not moved
+ * since this split was computed. If it moved (a counter payment landed in
+ * between), the function raises 'loan_changed' and we recompute — up to
+ * three times, then throw so Stripe retries the event later.
+ *
+ * Money that could not be applied — the loan was already closed, or the
+ * charge was more than the payoff — is never booked as fees: it is logged
+ * as stripe_payment_needs_refund for staff to refund.
+ */
 async function applyLoanPayment(args: {
   tenantId: string
   loanId: string
@@ -440,124 +454,108 @@ async function applyLoanPayment(args: {
   stripePaymentIntentId: string | null
 }): Promise<void> {
   const admin = createAdminClient()
+  const { timezone } = await loadTenantRules(admin, args.tenantId)
+  const today = todayInTimezone(timezone)
 
-  // Re-load loan + events so we can compute the split + redemption flip.
-  const { data: loanData, error: loanErr } = await admin
-    .from('loans')
-    .select(
-      `id, tenant_id, principal, interest_rate_monthly, min_monthly_charge,
-       issue_date, status,
-       events:loan_events(principal_paid, interest_paid, fees_paid)`,
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const { data: loanData, error: loanErr } = await admin
+      .from('loans')
+      .select(
+        `id, tenant_id, principal, interest_rate_monthly, min_monthly_charge,
+         issue_date, status,
+         events:loan_events(principal_paid, interest_paid, fees_paid)`,
+      )
+      .eq('id', args.loanId)
+      .eq('tenant_id', args.tenantId)
+      .maybeSingle()
+    if (loanErr || !loanData) {
+      console.error('[stripe-webhook] loan not found', args.loanId, loanErr)
+      return
+    }
+
+    type LoanWithEvents = LoanRow & {
+      events?: Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>[] | null
+    }
+    const loan = loanData as unknown as LoanWithEvents
+    const events = loan.events ?? []
+    const payoff = payoffFromLoan(
+      {
+        principal: loan.principal,
+        interest_rate_monthly: loan.interest_rate_monthly,
+        issue_date: loan.issue_date,
+        min_monthly_charge: loan.min_monthly_charge,
+      },
+      events,
+      today,
     )
-    .eq('id', args.loanId)
-    .maybeSingle()
+    const principalPaidBefore = r2(events.reduce((acc, e) => acc + Number(e.principal_paid ?? 0), 0))
 
-  if (loanErr || !loanData) {
-    console.error('[stripe-webhook] loan not found', args.loanId, loanErr)
+    // Interest first, then principal, in cents. Anything over the payoff is
+    // NOT applied — it comes back as excess to refund.
+    const amount = r2(args.amount)
+    const interestPaid = r2(Math.min(amount, payoff.interestOutstanding))
+    const principalPaid = r2(Math.min(r2(amount - interestPaid), payoff.principalOutstanding))
+
+    const params = {
+      p_tenant_id: args.tenantId,
+      p_loan_id: args.loanId,
+      p_amount: amount,
+      p_interest: interestPaid,
+      p_principal: principalPaid,
+      p_principal_paid_before: principalPaidBefore,
+      p_stripe_session: args.stripeSessionId,
+      p_stripe_pi: args.stripePaymentIntentId,
+    } as unknown as Database['public']['Functions']['loan_apply_online_payment']['Args']
+    const { data, error } = await admin.rpc('loan_apply_online_payment', params)
+
+    if (error?.message?.includes('loan_changed') && attempt < 3) continue
+    // Throw → 500 → Stripe retries; the post is idempotent on the session.
+    if (error) throw new Error(`loan_payment_failed: ${error.message}`)
+    const row = data?.[0]
+    if (!row) throw new Error('loan_payment_failed: no_result')
+    if (row.o_reason === 'duplicate') return
+
+    const excess = Number(row.o_excess ?? 0)
+    if (row.o_reason === 'applied') {
+      await logAudit({
+        tenantId: args.tenantId,
+        userId: SYSTEM_USER,
+        action: row.o_redeemed ? 'update' : 'create',
+        tableName: 'loan_events',
+        recordId: row.o_event_id,
+        changes: {
+          via: 'stripe_webhook',
+          session_id: args.stripeSessionId,
+          payment_intent_id: args.stripePaymentIntentId,
+          principal_paid: principalPaid,
+          interest_paid: interestPaid,
+          redeemed: row.o_redeemed,
+        },
+      })
+    }
+    if (excess > 0) {
+      await flagRefund({
+        tenantId: args.tenantId,
+        tableName: 'loans',
+        recordId: args.loanId,
+        reason: row.o_reason === 'loan_closed' ? 'loan_closed' : 'overpaid',
+        amount: excess,
+        stripeSessionId: args.stripeSessionId,
+        stripePaymentIntentId: args.stripePaymentIntentId,
+      })
+    }
     return
   }
-
-  type LoanWithEvents = LoanRow & {
-    events?: Pick<
-      LoanEventRow,
-      'principal_paid' | 'interest_paid' | 'fees_paid'
-    >[] | null
-  }
-  const loan = loanData as unknown as LoanWithEvents
-  if (loan.tenant_id !== args.tenantId) {
-    console.warn('[stripe-webhook] tenant mismatch for loan', args.loanId)
-    return
-  }
-
-  const events = loan.events ?? []
-  const today = todayDateString()
-  const payoff = payoffFromLoan(
-    {
-      principal: loan.principal,
-      interest_rate_monthly: loan.interest_rate_monthly,
-      issue_date: loan.issue_date,
-      min_monthly_charge: loan.min_monthly_charge,
-    },
-    events,
-    today,
-  )
-
-  // Apply interest first, remainder to principal. If amount exceeds payoff,
-  // any extra is recorded as fees so we don't break the redemption math.
-  const interestPaid = Math.min(args.amount, payoff.interestOutstanding)
-  const remainingAfterInterest = r4(args.amount - interestPaid)
-  const principalPaid = Math.min(
-    remainingAfterInterest,
-    payoff.principalOutstanding,
-  )
-  const feesPaid = r4(remainingAfterInterest - principalPaid)
-  const totalApplied = r4(interestPaid + principalPaid + feesPaid)
-
-  // Determine if this clears the loan.
-  const newPrincipalApplied = r4(payoff.principalApplied + principalPaid)
-  const principalRemaining = r4(
-    payoff.principal - newPrincipalApplied,
-  )
-  const willRedeem = principalRemaining <= 0
-
-  const eventInsert: LoanEventInsert = {
-    loan_id: loan.id,
-    tenant_id: args.tenantId,
-    event_type: willRedeem ? 'redemption' : 'payment',
-    amount: totalApplied,
-    principal_paid: principalPaid,
-    interest_paid: interestPaid,
-    fees_paid: feesPaid,
-    payment_method: 'card',
-    notes: `Online payment via Stripe (session ${args.stripeSessionId})`,
-  }
-
-  const { data: insertedEvent, error: evErr } = await admin
-    .from('loan_events')
-    .insert(eventInsert)
-    .select('id')
-    .single()
-
-  if (evErr) {
-    console.error('[stripe-webhook] loan_event insert failed', evErr)
-    return
-  }
-
-  if (willRedeem && loan.status !== 'redeemed') {
-    await admin
-      .from('loans')
-      .update({ status: 'redeemed' })
-      .eq('id', loan.id)
-  } else if (
-    !willRedeem &&
-    loan.status === 'active'
-  ) {
-    await admin
-      .from('loans')
-      .update({ status: 'partial_paid' })
-      .eq('id', loan.id)
-  }
-
-  await logAudit({
-    tenantId: args.tenantId,
-    // System-actor; webhook events have no auth user. We pass a zero UUID
-    // shape via empty string; logAudit accepts any string.
-    userId: '00000000-0000-0000-0000-000000000000',
-    action: willRedeem ? 'update' : 'create',
-    tableName: 'loan_events',
-    recordId: (insertedEvent as { id: string }).id,
-    changes: {
-      via: 'stripe_webhook',
-      session_id: args.stripeSessionId,
-      payment_intent_id: args.stripePaymentIntentId,
-      principal_paid: principalPaid,
-      interest_paid: interestPaid,
-      fees_paid: feesPaid,
-      redeemed: willRedeem,
-    },
-  })
 }
 
+/**
+ * Post an online layaway payment (REVIEW-2026-11-11 finding 12).
+ *
+ * layaway_add_payment() writes the layaway payment, its mirror on the sale
+ * and both paid totals; when the balance reaches zero it completes the sale
+ * (stock to sold, consignor accrued) exactly as the counter does. Idempotent
+ * on the Checkout session. Money it could not apply is flagged for refund.
+ */
 async function applyLayawayPayment(args: {
   tenantId: string
   layawayId: string
@@ -565,88 +563,94 @@ async function applyLayawayPayment(args: {
   stripeSessionId: string
   stripePaymentIntentId: string | null
 }): Promise<void> {
-  const admin = createAdminClient()
+  const r = await layawayAddPayment({
+    tenantId: args.tenantId,
+    userId: null,
+    layawayId: args.layawayId,
+    amount: args.amount,
+    method: 'card',
+    cardStatus: 'succeeded',
+    paymentIntentId: args.stripePaymentIntentId,
+    stripeSessionId: args.stripeSessionId,
+    notes: `Online payment via Stripe (session ${args.stripeSessionId})`,
+  })
+  // Throw → 500 → Stripe retries; the post is idempotent on the session.
+  if (!r.ok) throw new Error(`layaway_payment_failed: ${r.message}`)
+  const out = r.data
+  if (out.reason === 'duplicate') return
 
-  const { data: layawayData } = await admin
-    .from('layaways')
-    .select('id, tenant_id, status, total_due, paid_total, balance_remaining')
-    .eq('id', args.layawayId)
-    .maybeSingle()
-
-  if (!layawayData) {
-    console.error('[stripe-webhook] layaway not found', args.layawayId)
-    return
-  }
-
-  type LayawayLite = {
-    id: string
-    tenant_id: string
-    status: string
-    total_due: number | string | null
-    paid_total: number | string | null
-    balance_remaining: number | string | null
-  }
-  const lay = layawayData as unknown as LayawayLite
-
-  if (lay.tenant_id !== args.tenantId) {
-    console.warn('[stripe-webhook] tenant mismatch for layaway', args.layawayId)
-    return
-  }
-
-  const totalDue = Number(lay.total_due ?? 0)
-  const paidTotal = Number(lay.paid_total ?? 0)
-  const newPaidTotal = r4(paidTotal + args.amount)
-  const newBalance = r4(Math.max(0, totalDue - newPaidTotal))
-  const willComplete = newBalance <= 0
-
-  // Insert layaway_payments row.
-  const { data: paymentRow, error: payErr } = await admin
-    .from('layaway_payments')
-    .insert({
-      layaway_id: lay.id,
-      tenant_id: args.tenantId,
-      amount: args.amount,
-      payment_method: 'card',
-      card_present_status: 'succeeded',
-      stripe_payment_intent_id: args.stripePaymentIntentId,
-      notes: `Online payment via Stripe (session ${args.stripeSessionId})`,
+  if (out.paymentId) {
+    await logAudit({
+      tenantId: args.tenantId,
+      userId: SYSTEM_USER,
+      action: 'layaway_payment_add',
+      tableName: 'layaway_payments',
+      recordId: out.paymentId,
+      changes: {
+        via: 'stripe_webhook',
+        session_id: args.stripeSessionId,
+        payment_intent_id: args.stripePaymentIntentId,
+        amount: r2(args.amount - out.excess),
+        completed: out.completed,
+      },
     })
-    .select('id')
-    .single()
-
-  if (payErr) {
-    console.error('[stripe-webhook] layaway_payment insert failed', payErr)
-    return
   }
-
-  const validStatus = (
-    ['active', 'completed', 'cancelled', 'defaulted'] as const
-  ).includes(lay.status as 'active' | 'completed' | 'cancelled' | 'defaulted')
-    ? (lay.status as 'active' | 'completed' | 'cancelled' | 'defaulted')
-    : 'active'
-
-  await admin
-    .from('layaways')
-    .update({
-      paid_total: newPaidTotal,
-      balance_remaining: newBalance,
-      status: willComplete ? 'completed' : validStatus,
-      ...(willComplete ? { completed_at: new Date().toISOString() } : {}),
+  if (out.completed) {
+    const { data: lay } = await createAdminClient()
+      .from('layaways')
+      .select('sale_id')
+      .eq('id', args.layawayId)
+      .eq('tenant_id', args.tenantId)
+      .maybeSingle()
+    await logAudit({
+      tenantId: args.tenantId,
+      userId: SYSTEM_USER,
+      action: 'layaway_complete',
+      tableName: 'layaways',
+      recordId: args.layawayId,
+      changes: { via: 'stripe_webhook', paid_total: out.paidTotal },
     })
-    .eq('id', lay.id)
+    if (lay?.sale_id) await afterSaleCompleted({ tenantId: args.tenantId, saleId: lay.sale_id })
+  }
+  if (out.excess > 0) {
+    await flagRefund({
+      tenantId: args.tenantId,
+      tableName: 'layaways',
+      recordId: args.layawayId,
+      reason: out.reason === 'layaway_not_active' ? 'layaway_not_active' : 'overpaid',
+      amount: out.excess,
+      stripeSessionId: args.stripeSessionId,
+      stripePaymentIntentId: args.stripePaymentIntentId,
+    })
+  }
+}
 
+const SYSTEM_USER = '00000000-0000-0000-0000-000000000000'
+
+/** A customer was charged for something we could not apply. Staff refund it. */
+async function flagRefund(args: {
+  tenantId: string
+  tableName: 'loans' | 'layaways'
+  recordId: string
+  reason: string
+  amount: number
+  stripeSessionId: string
+  stripePaymentIntentId: string | null
+}): Promise<void> {
+  console.error(
+    `[stripe-webhook] ${args.tableName} ${args.recordId}: $${args.amount} charged but not applied (${args.reason}) — needs a refund`,
+  )
   await logAudit({
     tenantId: args.tenantId,
-    userId: '00000000-0000-0000-0000-000000000000',
-    action: 'layaway_payment_add',
-    tableName: 'layaway_payments',
-    recordId: (paymentRow as { id: string }).id,
+    userId: SYSTEM_USER,
+    action: 'stripe_payment_needs_refund',
+    tableName: args.tableName,
+    recordId: args.recordId,
     changes: {
-      via: 'stripe_webhook',
+      reason: args.reason,
+      amount: args.amount,
       session_id: args.stripeSessionId,
       payment_intent_id: args.stripePaymentIntentId,
-      amount: args.amount,
-      completed: willComplete,
     },
   })
 }

@@ -1,10 +1,10 @@
 import { guardReportRequest } from '@/lib/reports/api-guard'
+import { reportToday } from '@/lib/reports/range'
 import { getInventoryTurn, type InventoryTurnRow } from '@/lib/reports/inventory-turn'
 import { pdfResponse } from '@/lib/reports/http'
 import { renderReportPdf } from '@/lib/pdf/reports/render-report'
 import type { ReportPdfColumn } from '@/lib/pdf/reports/ReportPDF'
 import { logAudit } from '@/lib/audit'
-import { todayDateString } from '@/lib/pawn/math'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -51,7 +51,7 @@ export async function GET(req: Request) {
     title: 'Inventory Turn',
     tenantLabel: guarded.scope.tenantName,
     range: guarded.range,
-    printedOn: todayDateString(),
+    printedOn: reportToday(guarded.range),
     totals: [
       { label: 'UNITS', value: String(result.totals?.units ?? 0) },
       { label: 'REVENUE', value: money(result.totals?.gross_revenue ?? 0) },

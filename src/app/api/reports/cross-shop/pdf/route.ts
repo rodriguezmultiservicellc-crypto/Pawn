@@ -1,11 +1,12 @@
 import { getCtx } from '@/lib/supabase/ctx'
+import { reportToday } from '@/lib/reports/range'
 import { resolveReportScope } from '@/lib/reports/tenant-scope'
 import { getCrossShopRollup, type CrossShopRow } from '@/lib/reports/cross-shop'
 import { pdfResponse, parseRange } from '@/lib/reports/http'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { renderReportPdf } from '@/lib/pdf/reports/render-report'
 import type { ReportPdfColumn } from '@/lib/pdf/reports/ReportPDF'
 import { logAudit } from '@/lib/audit'
-import { todayDateString } from '@/lib/pawn/math'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -38,7 +39,7 @@ export async function GET(req: Request) {
   if (!scope.isChainHq) return new Response('forbidden', { status: 403 })
 
   const url = new URL(req.url)
-  const range = parseRange(url.searchParams)
+  const range = parseRange(url.searchParams, (await loadTenantRules(ctx.supabase, ctx.tenantId)).timezone)
 
   const result = await getCrossShopRollup({
     supabase: ctx.supabase,
@@ -65,7 +66,7 @@ export async function GET(req: Request) {
     title: 'Cross-Shop Rollup',
     tenantLabel: scope.tenantName,
     range,
-    printedOn: todayDateString(),
+    printedOn: reportToday(range),
     totals: [
       { label: 'ACTIVE LOANS', value: String(result.totals?.active_loans ?? 0) },
       { label: 'PRINCIPAL OUT', value: money(result.totals?.loans_principal_outstanding ?? 0) },

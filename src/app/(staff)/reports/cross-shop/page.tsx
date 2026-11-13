@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
+import { shopReportRange } from '@/lib/reports/shop-range'
 import { resolveReportScope } from '@/lib/reports/tenant-scope'
 import { getCrossShopRollup } from '@/lib/reports/cross-shop'
-import { todayDateString, addDaysIso } from '@/lib/pawn/math'
 import CrossShopContent from './content'
 
 export const dynamic = 'force-dynamic'
@@ -21,16 +21,21 @@ export default async function CrossShopPage(props: {
   if (!scope.isChainHq) redirect('/reports')
 
   const params = await props.searchParams
-  const today = todayDateString()
-  const defaultFrom = addDaysIso(today, -30)
-  const from =
-    params.from && /^\d{4}-\d{2}-\d{2}$/.test(params.from) ? params.from : defaultFrom
-  const to = params.to && /^\d{4}-\d{2}-\d{2}$/.test(params.to) ? params.to : today
+  // Dates in the shop's timezone (REVIEW-2026-11-11 finding 10).
+  const range = await shopReportRange({
+    supabase: ctx.supabase,
+    tenantId: ctx.tenantId,
+    from: params.from,
+    to: params.to,
+    defaultFromDays: -30,
+    defaultToDays: 0,
+  })
+  const { from, to } = range
 
   const result = await getCrossShopRollup({
     supabase: ctx.supabase,
     hqTenantId: ctx.tenantId,
-    range: { from, to },
+    range,
   })
 
   return (

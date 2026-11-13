@@ -3,7 +3,8 @@
 Date: 2026-11-13. Status: approved by Eddy 2026-11-13 (all four open
 decisions accepted as recommended). Phase 1 built (874e6fe, awaiting a real
 printer/scanner test). Phase 2a built (patches/0075); live count not yet run.
-Next: Phase 0.
+Phase 0 built (patches/0076): review findings 11, 12, 13 (sales), 16 and the
+report half of 10 closed. Next: Phase 3, after Eddy's Stripe setup (item 454).
 
 This plan covers items 1, 2, 3, 4, 5 and 7 from the 2026-11-13 feature
 discussion. Item 6 (gift cards) is left out on purpose. The item numbers are

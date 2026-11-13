@@ -1,10 +1,10 @@
 import { guardReportRequest } from '@/lib/reports/api-guard'
+import { reportToday } from '@/lib/reports/range'
 import { getSalesSummary, type SalesSummaryRow } from '@/lib/reports/sales-summary'
 import { pdfResponse } from '@/lib/reports/http'
 import { renderReportPdf } from '@/lib/pdf/reports/render-report'
 import type { ReportPdfColumn } from '@/lib/pdf/reports/ReportPDF'
 import { logAudit } from '@/lib/audit'
-import { todayDateString } from '@/lib/pawn/math'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
     title: 'Sales Summary',
     tenantLabel: guarded.scope.tenantName,
     range: guarded.range,
-    printedOn: todayDateString(),
+    printedOn: reportToday(guarded.range),
     totals: [
       { label: 'SALES', value: String(result.totals?.units ?? 0) },
       { label: 'GROSS', value: money(result.totals?.total ?? 0) },

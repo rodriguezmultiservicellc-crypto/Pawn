@@ -26,6 +26,7 @@ import { getPoliceReportRows } from '@/lib/reports/police-report'
 import { buildNcicBySlug } from '@/lib/compliance/ncic'
 import { dispatch } from '@/lib/compliance/police-report'
 import { csvResponse, parseRange } from '@/lib/reports/http'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { logAudit } from '@/lib/audit'
 import type { PoliceReportFormat } from '@/types/database-aliases'
 
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
   if (!ctx.tenantId) return new Response('no_tenant', { status: 403 })
 
   const url = new URL(req.url)
-  const range = parseRange(url.searchParams)
+  const range = parseRange(url.searchParams, (await loadTenantRules(ctx.supabase, ctx.tenantId)).timezone)
 
   // Format selection: explicit query param > tenant default.
   const queryFormat = url.searchParams.get('format')

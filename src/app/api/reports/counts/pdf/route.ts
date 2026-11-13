@@ -1,10 +1,10 @@
 import { guardReportRequest } from '@/lib/reports/api-guard'
+import { reportToday } from '@/lib/reports/range'
 import { loadCountsReport, type ShrinkageRow } from '@/lib/counts/report'
 import { pdfResponse } from '@/lib/reports/http'
 import { renderReportPdf } from '@/lib/pdf/reports/render-report'
 import type { ReportPdfColumn } from '@/lib/pdf/reports/ReportPDF'
 import { logAudit } from '@/lib/audit'
-import { todayDateString } from '@/lib/pawn/math'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -26,7 +26,6 @@ export async function GET(req: Request) {
   if (guarded instanceof Response) return guarded
   const result = await loadCountsReport({
     supabase: guarded.supabase,
-    tenantId: guarded.tenantId,
     tenantIds: guarded.scope.tenantIds,
     range: guarded.range,
   })
@@ -48,7 +47,7 @@ export async function GET(req: Request) {
     title: 'Counts and Shrinkage',
     tenantLabel: guarded.scope.tenantName,
     range: guarded.range,
-    printedOn: todayDateString(),
+    printedOn: reportToday(guarded.range),
     totals: [
       { label: 'COUNTS', value: String(result.totals.counts) },
       { label: 'MISSING', value: String(result.totals.missingItems) },

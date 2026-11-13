@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
+import { shopReportRange } from '@/lib/reports/shop-range'
 import { resolveReportScope } from '@/lib/reports/tenant-scope'
 import { getDailyRegister } from '@/lib/reports/daily-register'
-import { todayDateString } from '@/lib/pawn/math'
 import DailyRegisterContent from './content'
 
 export const dynamic = 'force-dynamic'
@@ -17,9 +17,16 @@ export default async function DailyRegisterPage(props: {
   if (!ctx.tenantId) redirect('/no-tenant')
 
   const params = await props.searchParams
-  const today = todayDateString()
-  const from = params.from && /^\d{4}-\d{2}-\d{2}$/.test(params.from) ? params.from : today
-  const to = params.to && /^\d{4}-\d{2}-\d{2}$/.test(params.to) ? params.to : today
+  // Dates in the shop's timezone (REVIEW-2026-11-11 finding 10).
+  const range = await shopReportRange({
+    supabase: ctx.supabase,
+    tenantId: ctx.tenantId,
+    from: params.from,
+    to: params.to,
+    defaultFromDays: 0,
+    defaultToDays: 0,
+  })
+  const { from, to } = range
 
   const scope = await resolveReportScope({
     supabase: ctx.supabase,
@@ -29,7 +36,7 @@ export default async function DailyRegisterPage(props: {
   const result = await getDailyRegister({
     supabase: ctx.supabase,
     tenantIds: scope.tenantIds,
-    range: { from, to },
+    range,
   })
 
   return (
