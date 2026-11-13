@@ -531,6 +531,12 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
+    - STRIPE_WEBHOOK_SECRET IS NOT SET IN VERCEL PRODUCTION (checked
+      2026-11-11: no Stripe variable at all). Since item 466 the
+      webhook answers 503 to everything without it — correct, but it
+      means no online loan / layaway payment and no card settlement can
+      post until Eddy sets it (with STRIPE_SECRET_KEY and the publishable
+      key) as part of item 454.
     - STRIPE CONNECT (Session 56) IS UNVERIFIED AGAINST STRIPE. No
       account was created, no Account Link minted, no account.updated
       received — the worker session had no browser login and did not
@@ -1465,6 +1471,88 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      the machine hit 0.3 GB free RAM (Notion alone held 4 GB) — do not
      run the dev server + headless Chrome + parallel agents together
      on this box.
+
+ 466. THE SEVEN "DO FIRST" FIXES (2026-11-12, commit 8d8c1dd, on main +
+     deployed; migrations 0071, 0072, 0073 ALL APPLIED). Eddy: "all 7".
+     (1) INVITE TAKEOVER. A magic link is a login. Team invite now looks
+         the email up exactly (auth_user_id_by_email, 0071): an existing
+         account is added to the shop and NO link is minted (delivered:
+         'existing'); only a brand-new account gets an invite link. The
+         'invite → fall back to magiclink' pattern is gone from team AND
+         lib/portal/invite.ts. Portal "generate sign-in link" mints for
+         the CLAIMED account (auth_user_id → getUserById email), never
+         for the editable customers.email. Policy in one pure function,
+         lib/auth/account-link-policy.ts portalLinkHandoff(): staff or
+         superadmin → refuse; portal client of another shop → email
+         only, never shown at the counter; otherwise operator may hold
+         it. New error codes email_is_staff_account / staff_account /
+         existing_account_email_only / email_only_failed (translated).
+     (2) STRIPE WEBHOOK. webhookSecretOrNull() → no secret = 503
+         'webhook_not_configured' in every environment (no dev
+         no-verify mode). authorizeLinkEvent(): our stripe_payment_links
+         row must exist AND event.account must be the link tenant's
+         connected account; metadata never routes money. Portal loan /
+         layaway actions return stripe_failed instead of a Checkout URL
+         when the link insert fails. >>> STRIPE_WEBHOOK_SECRET MUST BE
+         SET IN VERCEL or the webhook answers 503 to Stripe — add to
+         item 454's setup steps. <<<
+     (3) ANON COLUMN EXPOSURE (RLS, approved). 0072: views
+         public_tenants / public_catalog_items / _photos / _stones
+         (security definer semantics on purpose, SELECT-only grants).
+         tenant-resolver.ts reads the views (narrowCatalogRow /
+         narrowPhotoRow because view columns type as nullable). 0073
+         dropped tenants_public_landing_select and the three
+         *_public_catalog_select policies. Done in two steps around the
+         deploy — no downtime; the drop was rehearsed in a rolled-back
+         transaction first. To make a column public now: add it to the
+         VIEW in a migration.
+     (4) RETURNS. isReturnableSaleStatus (completed | partial_returned
+         only). computeReturnRefund (lib/pos/returns.ts, 13 tests):
+         line_total share − cart-discount share + tax share, capped at
+         min(total, paid) − returned; a return that takes everything
+         left refunds exactly the remainder; returns.tax_amount is now
+         real. ReturnPicker previews with the same function. New codes
+         saleNotReturnable / nothingToRefund.
+     (5) CARD TENDERS. addPaymentAction no longer adds a card tender to
+         paid_total. sale_card_payment_succeeded() (0071; FOR UPDATE,
+         idempotent, leaves paid_total alone if the sale is no longer
+         open) via lib/pos/card-settle.ts — called by the webhook on
+         payment_intent.succeeded (account + amount checked) and by
+         confirmCardPaymentAction (owner/manager/chain_admin; replaces
+         the TEST-ONLY markCardPaymentSucceededAction). Clerks see
+         "Not counted yet"; managers see "Confirm card approved".
+     (6) LOAN PAYMENT SPLIT. allocateLoanPayment (math.ts): fees off the
+         top, then interest, then principal; overpayment refused.
+         loanPaymentSchema dropped principal_paid / interest_paid.
+         RecordPaymentDialog: no manual split, fees is the only extra
+         input, errors translated (pawn.payment.errors.*).
+     (7) ID SCANS. deleteCustomerDocumentAction: owner/manager/
+         chain_admin, decideDocumentDelete (last document of its kind
+         is held while a loan is open or a pawn/buy is in the retention
+         window; a replaced scan can go), soft-delete only — the file
+         in the bucket is never removed. Button hidden for other roles.
+     VERIFIED: tsc + eslint clean, 715 tests (was 557+; new: returns
+     13, webhook-guard 8, account-link-policy 6, retention 6,
+     allocateLoanPayment 7, loan schema). 0071 functions exercised in a
+     rolled-back transaction (settle once / repeat ignored / closed
+     sale / cash refused / lookup exact). LIVE: anon probe → base
+     tables 0 rows, views public columns only, writes refused; public
+     pages /s/eddys(+catalog,+item) identical before and after;
+     unsigned + bad-signature webhook → 503 (was 200); nine touched
+     staff pages render in production (headless Chrome).
+     NOT VERIFIED: no click-through of the changed FLOWS (submit a
+     return, record a payment, delete a document, invite, confirm a
+     card). They write real records in the live tenant and this box
+     had 0.5 GB free — no local server. First real use of each is the
+     end-to-end test; audit_log shows return_create / doc_delete /
+     card_present_succeeded / user_tenants create with
+     existing_account.
+     LEFT ALONE, same neighbourhood (review items still open): layaway
+     card payments and card down payments still count as paid when
+     recorded (no PaymentIntent on that path); the webhook still
+     applies a payment to a loan that was closed in the meantime
+     (#11); unchecked child inserts in the return action (#14);
+     payment_intent.payment_failed is not handled.
 
 --- Session 56 (2026-11-04/05) — Stripe Connect per-tenant Express onboarding (branch feature/sol-pawn-brief, dispatched by the Manager session) ---
 
@@ -5773,11 +5861,14 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    READ REVIEW-2026-11-11.md FIRST (item 465). Nothing in it is fixed.
-    Wait for Eddy to pick what to do; the natural start is section 1
-    ("do first", seven items) — the unsigned Stripe webhook is a
-    one-line fail-closed and the team-invite magic link is a small
-    change; the anon RLS column exposure needs his explicit OK.
+    REVIEW-2026-11-11.md section 1 (seven items) is FIXED and live —
+    item 466. Sections 2-6 are open; wait for Eddy to pick. The
+    suggested next block is section 2 (atomic money movements) or the
+    shop-timezone date helper. Before any online payment can work,
+    STRIPE_WEBHOOK_SECRET must be set in Vercel (the webhook now
+    refuses everything without it) — it belongs with item 454's Stripe
+    setup. Ask Eddy how the changed flows behaved at the counter:
+    returns, loan payments, removing an ID scan, team invite.
     Both S56 (Stripe Connect) and S57 (laser orders) are on main and in
     production (2026-11-09). Laser link PROVEN both ways on 2026-11-10:
     RT-000003 by poll, RT-000004 by signed webhook (items 461, 463);
