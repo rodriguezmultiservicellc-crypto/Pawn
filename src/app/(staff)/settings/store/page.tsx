@@ -26,7 +26,7 @@ export default async function StoreSettingsPage() {
       .maybeSingle(),
     ctx.supabase
       .from('tenants')
-      .select('public_landing_enabled, public_catalog_enabled, public_slug, has_retail')
+      .select('public_landing_enabled, public_catalog_enabled, public_slug, has_retail, custom_domain, custom_domain_token, custom_domain_verified_at')
       .eq('id', ctx.tenantId)
       .maybeSingle(),
     isTenantStripeConnected(ctx.tenantId),
@@ -58,6 +58,12 @@ export default async function StoreSettingsPage() {
       catalogLive={!!(t?.public_landing_enabled && t.public_catalog_enabled && t.public_slug && t.has_retail)}
       stripeConnected={stripe}
       storeUrl={t?.public_slug ? `/s/${t.public_slug}/catalog` : null}
+      domain={{
+        domain: t?.custom_domain ?? null,
+        // The token is only for the owner to paste into DNS.
+        token: EDIT.has(ctx.tenantRole) ? (t?.custom_domain_token ?? null) : null,
+        verified: !!t?.custom_domain_verified_at,
+      }}
     />
   )
 }

@@ -750,3 +750,20 @@ export async function fetchPublicStore(tenantId: string): Promise<PublicStore | 
     accentColor: data.store_accent_color,
   }
 }
+
+/**
+ * Public base URL of a shop's site: its verified custom domain when it has
+ * one (patches/0079), otherwise the app URL + /s/<slug>. Used for canonical
+ * links, the sitemap and structured data.
+ */
+export async function storeBaseUrl(slug: string): Promise<string> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('public_custom_domains')
+    .select('host')
+    .eq('slug', slug)
+    .maybeSingle()
+  if (data?.host) return `https://${data.host}`
+  const app = (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3060').replace(/\/+$/, '')
+  return `${app}/s/${slug}`
+}

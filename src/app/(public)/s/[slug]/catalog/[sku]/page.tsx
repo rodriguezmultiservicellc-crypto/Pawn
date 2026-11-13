@@ -4,6 +4,7 @@ import {
   fetchPublicCatalogItem,
   fetchPublicStore,
   fetchPublicTenant,
+  storeBaseUrl,
 } from '@/lib/tenant-resolver'
 import CatalogItemContent from './content'
 
@@ -29,8 +30,41 @@ export default async function PublicCatalogItemPage({
   })
   if (!item) notFound()
 
-  const store = await fetchPublicStore(tenant.id)
-  return <CatalogItemContent tenant={tenant} item={item} store={store} />
+  const [store, base] = await Promise.all([fetchPublicStore(tenant.id), storeBaseUrl(slug)])
+  const url = `${base}/catalog/${encodeURIComponent(item.sku)}`
+
+  // Product structured data for search engines. The image is the stable
+  // /image route, not a signed URL that expires before a crawler comes back.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: item.description,
+    sku: item.sku,
+    url,
+    ...(item.photos?.length ? { image: [`${url}/image`] } : {}),
+    ...(item.brand ? { brand: { '@type': 'Brand', name: item.brand } } : {}),
+    ...(item.model ? { model: item.model } : {}),
+    itemCondition: 'https://schema.org/UsedCondition',
+    offers: {
+      '@type': 'Offer',
+      price: item.list_price.toFixed(2),
+      priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+      url,
+      seller: { '@type': 'Organization', name: tenant.dba ?? tenant.name },
+    },
+  }
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        // JSON.stringify output with '<' escaped cannot close the script tag.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
+      <CatalogItemContent tenant={tenant} item={item} store={store} />
+    </>
+  )
 }
 
 export async function generateMetadata({
@@ -61,19 +95,23 @@ export async function generateMetadata({
       : item.metal && item.karat && item.weight_grams != null
       ? `${item.karat} ${item.metal} · ${item.weight_grams}g · ${priceStr}`
       : `${item.description} · ${priceStr}`
-  const primary = item.photos?.find((p) => p.is_primary) ?? item.photos?.[0]
+  const base = await storeBaseUrl(slug)
+  const url = `${base}/catalog/${encodeURIComponent(item.sku)}`
+  const image = item.photos?.length ? `${url}/image` : null
 
   return {
     title,
     description,
+    alternates: { canonical: url },
     openGraph: {
       title,
       description,
       type: 'website',
-      images: primary?.signed_url ? [{ url: primary.signed_url }] : undefined,
+      url,
+      images: image ? [{ url: image }] : undefined,
     },
     twitter: {
-      card: primary?.signed_url ? 'summary_large_image' : 'summary',
+      card: image ? 'summary_large_image' : 'summary',
       title,
       description,
     },

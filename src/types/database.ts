@@ -6662,6 +6662,9 @@ export type Database = {
           agency_store_id: string | null
           city: string | null
           created_at: string
+          custom_domain: string | null
+          custom_domain_token: string | null
+          custom_domain_verified_at: string | null
           dba: string | null
           default_currency: string
           email: string | null
@@ -6695,6 +6698,9 @@ export type Database = {
           agency_store_id?: string | null
           city?: string | null
           created_at?: string
+          custom_domain?: string | null
+          custom_domain_token?: string | null
+          custom_domain_verified_at?: string | null
           dba?: string | null
           default_currency?: string
           email?: string | null
@@ -6728,6 +6734,9 @@ export type Database = {
           agency_store_id?: string | null
           city?: string | null
           created_at?: string
+          custom_domain?: string | null
+          custom_domain_token?: string | null
+          custom_domain_verified_at?: string | null
           dba?: string | null
           default_currency?: string
           email?: string | null
@@ -7005,6 +7014,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_custom_domains: {
+        Row: {
+          host: string | null
+          slug: string | null
+        }
+        Insert: {
+          host?: string | null
+          slug?: string | null
+        }
+        Update: {
+          host?: string | null
+          slug?: string | null
+        }
+        Relationships: []
       }
       public_store_settings: {
         Row: {

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { extractTenantSubdomain } from '@/lib/tenant-resolver'
+import { isAppHost, normalizeHost, slugForCustomDomain } from '@/lib/store/custom-domain'
 
 /**
  * Next 16 renamed `middleware.ts` → `proxy.ts` and the export name from
@@ -100,6 +101,22 @@ export async function proxy(request: NextRequest) {
   // short-circuits and the path form `/s/<slug>` is the only working
   // URL — that's intentional.
   const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN
+
+  // A shop's own verified domain (patches/0079): everything on it is that
+  // shop's public site — `/` → `/s/<slug>`, `/catalog` → `/s/<slug>/catalog`.
+  // Staff and portal pages are never served on a shop's domain.
+  if (!pathname.startsWith('/s/') && !pathname.startsWith('/_next')) {
+    const host = normalizeHost(request.headers.get('host'))
+    if (!isAppHost(host, { appUrl: process.env.NEXT_PUBLIC_APP_URL, baseDomain })) {
+      const slug = await slugForCustomDomain(host)
+      if (slug) {
+        const url = request.nextUrl.clone()
+        url.pathname = `/s/${slug}${pathname === '/' ? '' : pathname}`
+        return NextResponse.rewrite(url)
+      }
+    }
+  }
+
   if (baseDomain && !pathname.startsWith('/s/') && !pathname.startsWith('/_next')) {
     const host = request.headers.get('host')
     const tenantSub = extractTenantSubdomain(host, baseDomain)

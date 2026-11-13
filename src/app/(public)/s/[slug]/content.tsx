@@ -27,11 +27,14 @@ import { CartLink } from '@/components/store/CartButtons'
 export default function LandingPageContent({
   tenant,
   reviews,
+  branding,
 }: {
   tenant: PublicTenant
   reviews: RenderableReviews | null
+  branding?: { accentColor: string | null; tagline: { en: string | null; es: string | null } } | null
 }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const tagline = (lang === 'es' ? branding?.tagline.es || branding?.tagline.en : branding?.tagline.en || branding?.tagline.es) || null
   const dict = t.landing
   const display = tenant.dba ?? tenant.name
   const addressLine = formatAddress(tenant)
@@ -65,9 +68,14 @@ export default function LandingPageContent({
               {display}
             </span>
           </div>
-          {tenant.public_slug ? <CartLink slug={tenant.public_slug} /> : null}
-          <LanguageToggle />
+          <div className="flex items-center gap-3">
+            {tenant.public_slug ? <CartLink slug={tenant.public_slug} /> : null}
+            <LanguageToggle />
+          </div>
         </div>
+        {/* The shop's own accent (Settings → Online store): a thin band only,
+            so the shared design system stays intact. */}
+        {branding?.accentColor ? <div className="h-1" style={{ backgroundColor: branding.accentColor }} /> : null}
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:py-14">
@@ -76,6 +84,7 @@ export default function LandingPageContent({
           <h1 className="font-display text-3xl font-bold text-foreground sm:text-5xl">
             {display}
           </h1>
+          {tagline ? <p className="mx-auto mt-2 max-w-2xl text-lg font-semibold text-foreground">{tagline}</p> : null}
           <p className="mx-auto mt-3 max-w-2xl text-base text-muted sm:text-lg">
             {tenant.city && tenant.state
               ? dict.heroWithCity
