@@ -60,8 +60,21 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 57 (2026-11-09/10) — LASER NAMEPLATE ORDERS
-                  (items 455-463): "Send to laser" on a repair ticket →
+  Last session:   Session 57 (2026-11-09 → 11-13), saved 2026-11-13.
+                  Three blocks of work, all on main and in production:
+                  (A) LASER NAMEPLATE ORDERS, items 455-463;
+                  (B) NEW-TICKET "SIMPLE" VIEW, item 464;
+                  (C) WHOLE-APP REVIEW (item 465, REVIEW-2026-11-11.md,
+                      53 findings) and THE SEVEN "DO FIRST" FIXES (item
+                      466, commit 8d8c1dd, migrations 0071-0073 applied):
+                      invite account-takeover, unsigned Stripe webhook,
+                      anon column exposure (RLS), returns on unpaid
+                      sales, card tenders counted before charge, loan
+                      interest forgiven by a browser-sent split, ID-scan
+                      deletion. Review sections 2-6 are still open.
+                  Context budget at save: ~12%.
+
+                  (A) in detail — "Send to laser" on a repair ticket →
                   orocut.com order API → OroCut on the laser PC; status
                   back by signed webhook + polling. From the OroCut
                   session's handoff (spec 2026-11-09-nameplate-orders-
@@ -351,7 +364,29 @@ OPERATION IN FLIGHT: none
                   fast-forwarded.
 
   ACTIVE FILE(S) (all committed):
-    Session 57 (feature/sol-pawn-brief == main):
+    Session 57, block C — the seven fixes (item 466):
+    - REVIEW-2026-11-11.md (the review; section 1 marked fixed)
+    - patches/0071-auth-lookup-and-card-settle.sql (APPLIED)
+    - patches/0072-public-views.sql (APPLIED)
+    - patches/0073-drop-public-table-policies.sql (APPLIED — RLS)
+    - src/lib/auth/{account-link-policy,account-access}.ts (+ test)
+    - src/lib/stripe/webhook-guard.ts (+ test)
+    - src/lib/pos/{returns,card-settle}.ts (+ returns.test)
+    - src/lib/compliance/retention.ts decideDocumentDelete (+ test)
+    - src/lib/pawn/math.ts allocateLoanPayment; validations/loan.ts
+    - src/lib/tenant-resolver.ts (reads the public_* views)
+    - src/lib/portal/invite.ts
+    - src/app/api/stripe/webhook/route.ts
+    - src/app/(staff)/team/{actions,content}.ts(x)
+    - src/app/(staff)/customers/[id]/{actions,portal-actions,content,page}
+    - src/app/(staff)/pawn/[id]/actions.ts; components/pawn/
+      RecordPaymentDialog.tsx
+    - src/app/(staff)/pos/returns/new/{actions,form,page};
+      components/pos/ReturnPicker.tsx
+    - src/app/(staff)/pos/sales/[id]/{actions,content,page}
+    - src/app/(portal)/portal/{loans,layaways}/[id]/actions.ts
+    - src/components/customers/PortalInvitePanel.tsx
+    Session 57, blocks A + B (feature/sol-pawn-brief == main):
     - src/app/(staff)/repair/new/{form,simple-view}.tsx — Simple view (464)
     - src/lib/repair/simple-intake.ts (+ .test) — Simple view helpers
     - src/lib/repair/line-items.ts (+ .test) — Nameplate chip (item 462)
@@ -481,7 +516,23 @@ OPERATION IN FLIGHT: none
 
   RESUME POINT:
     Clean. main == origin/main == feature/sol-pawn-brief, everything in
-    production. The laser link is live end to end (items 461-463): two
+    production, no operation in flight. START BY READING
+    REVIEW-2026-11-11.md: section 1 (seven items) is fixed and live
+    (item 466); sections 2-6 are open and Eddy has not picked the next
+    block. The natural next ones are section 2 (make each money
+    movement one database function shared by the staff action and the
+    webhook — it also closes the two things left alone next to the
+    fixes: layaway card tenders still count as paid when recorded, and
+    the webhook still applies a payment to a loan closed in the
+    meantime) or the single shop-timezone date helper. NOTHING in item
+    466 was clicked through end to end — ask Eddy how returns, loan
+    payments, removing an ID scan and the team invite behaved at the
+    counter, and read audit_log (return_create, doc_delete,
+    card_present_succeeded, user_tenants create with
+    existing_account) if anything looks off. STRIPE_WEBHOOK_SECRET is
+    not set in Vercel: the webhook answers 503 until it is (OPEN
+    ISSUES).
+    The laser link is live end to end (items 461-463): two
     real orders sit "At the laser" waiting for the operator (Make →
     Insert → Send → Done); when they move, the ticket panel should
     flip to Cut / Done by webhook within seconds — if it does not, the
@@ -649,6 +700,29 @@ OPERATION IN FLIGHT: none
       the one implementation for new code; folding those three into it
       is a repo-wide money refactor on three shipped surfaces and needs
       an explicit go-ahead.
+
+  KEY DECISIONS MADE (Session 57, the seven fixes — item 466):
+    - A sign-in link is a login. Staff are never shown one for an
+      account that already existed; the rule lives in ONE pure function
+      (portalLinkHandoff). Reuse it for any new flow that mints a link.
+    - The Stripe webhook has no unsigned mode in any environment, and
+      event metadata never chooses what gets paid — only our own
+      stripe_payment_links row plus a matching connected account.
+    - Public reads go through VIEWS, not anon policies on base tables.
+      RLS picks rows, not columns; a view fixes both. To publish a new
+      column, add it to the view in a migration.
+    - Money that is not in hand is not in paid_total. A card tender
+      counts when it settles, inside the database (row lock), from
+      either the webhook or a manager's confirmation.
+    - The server decides how a loan payment splits. The browser sends
+      an amount and a fee, nothing else.
+    - A refund is a share of what was paid (discounts and tax travel
+      with the goods), capped at paid-and-not-refunded.
+    - Regulated files are never destroyed by app code: soft-delete the
+      row, keep the object.
+    - RLS-touching work is done in two migrations around the deploy
+      (add the new path → ship code → drop the old path), and the drop
+      is rehearsed in a rolled-back transaction first.
 
   KEY DECISIONS LOCKED (Session 51):
     - A TENDER THAT MOVES SOMEONE'S BALANCE IS ONE TRANSACTION OR IT IS
@@ -1547,6 +1621,9 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      end-to-end test; audit_log shows return_create / doc_delete /
      card_present_succeeded / user_tenants create with
      existing_account.
+     CHECKPOINT GATE (2026-11-13): resolveCustomerTenant() takes an
+     optional role list, so the document delete reuses it instead of a
+     second copy of the customer lookup. No behaviour change.
      LEFT ALONE, same neighbourhood (review items still open): layaway
      card payments and card down payments still count as paid when
      recorded (no PaymentIntent on that path); the webhook still

@@ -29,6 +29,7 @@ import {
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { recordManualAdjust, resetReferralCode } from '@/lib/loyalty/events'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
+import type { TenantRole } from '@/types/database-aliases'
 
 export type UpdateCustomerState = {
   error?: string
@@ -47,7 +48,11 @@ export type UpdateCustomerState = {
  * read), then verify staff role at that tenant. Returns the resolved
  * tenantId or redirects.
  */
-async function resolveCustomerTenant(customerId: string) {
+async function resolveCustomerTenant(
+  customerId: string,
+  /** Narrow the gate to these roles. Omit for any staff role. */
+  roles?: ReadonlyArray<TenantRole>,
+) {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
 
@@ -60,8 +65,10 @@ async function resolveCustomerTenant(customerId: string) {
 
   if (!customer) redirect('/customers')
 
-  // requireStaff checks direct membership + chain-admin parent.
-  const { supabase, userId } = await requireStaff(customer.tenant_id)
+  // Both check direct membership + chain-admin parent.
+  const { supabase, userId } = roles
+    ? await requireRoleInTenant(customer.tenant_id, roles)
+    : await requireStaff(customer.tenant_id)
   return { tenantId: customer.tenant_id, supabase, userId }
 }
 
@@ -461,18 +468,8 @@ export async function deleteCustomerDocumentAction(
   const customerId = (formData.get('customer_id') as string | null)?.trim()
   if (!documentId || !customerId) return { error: 'missing_id' }
 
-  const ctx = await getCtx()
-  if (!ctx) redirect('/login')
-  const { data: customer } = await ctx.supabase
-    .from('customers')
-    .select('tenant_id')
-    .eq('id', customerId)
-    .is('deleted_at', null)
-    .maybeSingle()
-  if (!customer) redirect('/customers')
-  const tenantId = customer.tenant_id
-  const { supabase, userId } = await requireRoleInTenant(
-    tenantId,
+  const { tenantId, supabase, userId } = await resolveCustomerTenant(
+    customerId,
     DOCUMENT_DELETE_ROLES,
   )
 
