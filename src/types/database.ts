@@ -2095,6 +2095,7 @@ export type Database = {
           source_vendor: string | null
           staff_memo: string | null
           status: Database["public"]["Enums"]["inventory_status"]
+          tag_printed_at: string | null
           tags: string[] | null
           tenant_id: string
           updated_at: string
@@ -2143,6 +2144,7 @@ export type Database = {
           source_vendor?: string | null
           staff_memo?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
+          tag_printed_at?: string | null
           tags?: string[] | null
           tenant_id: string
           updated_at?: string
@@ -2191,6 +2193,7 @@ export type Database = {
           source_vendor?: string | null
           staff_memo?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
+          tag_printed_at?: string | null
           tags?: string[] | null
           tenant_id?: string
           updated_at?: string
@@ -2531,6 +2534,78 @@ export type Database = {
           verified_source?: string | null
         }
         Relationships: []
+      }
+      label_templates: {
+        Row: {
+          barcode_payload: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          dpi: number
+          fields: Json
+          gap_in: number
+          height_in: number
+          id: string
+          is_default: boolean
+          kind: string
+          layout: string
+          name: string
+          tenant_id: string
+          updated_at: string
+          width_in: number
+        }
+        Insert: {
+          barcode_payload?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          dpi?: number
+          fields?: Json
+          gap_in?: number
+          height_in: number
+          id?: string
+          is_default?: boolean
+          kind: string
+          layout?: string
+          name: string
+          tenant_id: string
+          updated_at?: string
+          width_in: number
+        }
+        Update: {
+          barcode_payload?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          dpi?: number
+          fields?: Json
+          gap_in?: number
+          height_in?: number
+          id?: string
+          is_default?: boolean
+          kind?: string
+          layout?: string
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          width_in?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "label_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       laser_orders: {
         Row: {
@@ -4975,6 +5050,7 @@ export type Database = {
           resend_from_name: string | null
           store_credit_enabled: boolean
           store_credit_expiry_days: number | null
+          tag_cost_code: string | null
           tenant_id: string
           twilio_account_sid: string | null
           twilio_messaging_service_sid: string | null
@@ -5022,6 +5098,7 @@ export type Database = {
           resend_from_name?: string | null
           store_credit_enabled?: boolean
           store_credit_expiry_days?: number | null
+          tag_cost_code?: string | null
           tenant_id: string
           twilio_account_sid?: string | null
           twilio_messaging_service_sid?: string | null
@@ -5069,6 +5146,7 @@ export type Database = {
           resend_from_name?: string | null
           store_credit_enabled?: boolean
           store_credit_expiry_days?: number | null
+          tag_cost_code?: string | null
           tenant_id?: string
           twilio_account_sid?: string | null
           twilio_messaging_service_sid?: string | null

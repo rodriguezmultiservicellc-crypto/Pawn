@@ -172,6 +172,11 @@ export type AuditAction =
   | 'laser_order_cancel'
   | 'laser_order_status'
   | 'orocut_settings'
+  // Item tags (patches/0074)
+  | 'tag_print'
+  | 'tag_template_save'
+  | 'tag_template_delete'
+  | 'tag_cost_code_set'
 
 export async function logAudit(args: {
   tenantId: string

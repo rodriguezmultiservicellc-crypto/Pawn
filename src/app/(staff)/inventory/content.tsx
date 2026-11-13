@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MagnifyingGlass, Plus, Image as ImageIcon, Warning } from '@phosphor-icons/react'
+import { MagnifyingGlass, Plus, Image as ImageIcon, Tag, Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
 import {
@@ -16,6 +16,12 @@ import type {
   InventorySource,
   InventoryStatus,
 } from '@/types/database-aliases'
+import PrintTagsMenu from '@/components/labels/PrintTagsMenu'
+import type { TemplateChoice } from '@/lib/labels/templates'
+import { resolveScanAction } from '../scan-actions'
+
+/** Same cap as the print route (lib/labels/load MAX_TAGS_PER_PRINT). */
+const MAX_TAG_SELECTION = 200
 
 export type InventoryConditionFilter = InventoryCondition | ''
 /** 'coated' = any coating other than 'none'. */
@@ -40,6 +46,7 @@ export type InventoryListRow = {
   condition: InventoryCondition | null
   legacy_code: string | null
   shelf_location: string | null
+  tag_printed_at: string | null
 }
 
 const STATUS_BADGE: Record<InventoryStatus, { bg: string; text: string }> = {
@@ -62,6 +69,8 @@ export default function InventoryContent({
   categoryFilter,
   conditionFilter,
   coatingFilter,
+  needsTag,
+  tagChoices,
 }: {
   items: InventoryListRow[]
   query: string
@@ -70,12 +79,32 @@ export default function InventoryContent({
   categoryFilter: InventoryCategory | ''
   conditionFilter: InventoryConditionFilter
   coatingFilter: InventoryCoatingFilter
+  needsTag: boolean
+  tagChoices: TemplateChoice[]
 }) {
   const { t } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [searchInput, setSearchInput] = useState(query)
   const [pending, startTransition] = useTransition()
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [lookingUp, setLookingUp] = useState(false)
+
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else if (next.size < MAX_TAG_SELECTION) next.add(id)
+      return next
+    })
+  }
+  const pageIds = items.map((i) => i.id).slice(0, MAX_TAG_SELECTION)
+  const allSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id))
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(pageIds))
+  }
+  // Selected ids in list order, so tags print in the order shown.
+  const selectedIds = items.filter((i) => selected.has(i.id)).map((i) => i.id)
 
   function pushParams(next: Record<string, string | null>) {
     const sp = new URLSearchParams(searchParams.toString())
@@ -88,9 +117,24 @@ export default function InventoryContent({
     })
   }
 
-  function onSearchSubmit(e: React.FormEvent<HTMLFormElement>) {
+  // A scanner types the tag's code and presses Enter: an exact code opens
+  // the record (item, pawn ticket, repair ticket); anything else searches.
+  async function onSearchSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    pushParams({ q: searchInput.trim() })
+    const q = searchInput.trim()
+    if (q) {
+      setLookingUp(true)
+      try {
+        const hit = await resolveScanAction(q)
+        if (hit.kind !== 'none') {
+          router.push(hit.href)
+          return
+        }
+      } finally {
+        setLookingUp(false)
+      }
+    }
+    pushParams({ q })
   }
 
   const hasFilter =
@@ -99,7 +143,8 @@ export default function InventoryContent({
     !!sourceFilter ||
     !!categoryFilter ||
     !!conditionFilter ||
-    !!coatingFilter
+    !!coatingFilter ||
+    needsTag
 
   return (
     <div className="space-y-6">
@@ -134,7 +179,7 @@ export default function InventoryContent({
           </div>
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || lookingUp}
             className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {t.common.search}
@@ -226,6 +271,20 @@ export default function InventoryContent({
           ))}
         </select>
 
+        <button
+          type="button"
+          aria-pressed={needsTag}
+          onClick={() => pushParams({ tag: needsTag ? null : 'needed' })}
+          className={`sm:col-span-2 inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm ${
+            needsTag
+              ? 'border-gold bg-gold/10 font-semibold text-foreground'
+              : 'border-border bg-card text-foreground hover:bg-background'
+          }`}
+        >
+          <Tag size={14} weight={needsTag ? 'fill' : 'regular'} />
+          {t.tags.needsTag}
+        </button>
+
         {hasFilter ? (
           <button
             type="button"
@@ -238,6 +297,7 @@ export default function InventoryContent({
                 category: null,
                 condition: null,
                 coating: null,
+                tag: null,
               })
             }}
             className="sm:col-span-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background hover:text-foreground"
@@ -246,6 +306,37 @@ export default function InventoryContent({
           </button>
         ) : null}
       </div>
+
+      {selectedIds.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gold/40 bg-gold/5 px-4 py-2">
+          <span className="text-sm font-semibold text-foreground">
+            {t.tags.selectedCount.replace('{count}', String(selectedIds.length))}
+          </span>
+          <PrintTagsMenu
+            kind="inventory"
+            target={{ ids: selectedIds.join(',') }}
+            choices={tagChoices}
+            label={t.tags.printSelected.replace('{count}', String(selectedIds.length))}
+            onPrinted={() => {
+              setSelected(new Set())
+              // The print stamps tag_printed_at; refresh once it has run.
+              setTimeout(() => router.refresh(), 2500)
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="text-sm text-muted hover:text-foreground"
+          >
+            {t.tags.clearSelection}
+          </button>
+          {items.length > MAX_TAG_SELECTION ? (
+            <span className="text-xs text-muted">
+              {t.tags.maxSelected.replace('{max}', String(MAX_TAG_SELECTION))}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       {items.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
@@ -258,6 +349,15 @@ export default function InventoryContent({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-muted">
               <tr>
+                <th className="w-10 pl-4 pr-1 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                    aria-label={t.tags.selectAll}
+                    className="h-4 w-4 accent-gold"
+                  />
+                </th>
                 <th className="w-16 px-3 py-3" aria-label="thumbnail" />
                 <th className="px-4 py-3 font-medium">
                   {t.inventory.skuColumn}
@@ -289,6 +389,15 @@ export default function InventoryContent({
                     className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-background"
                     onClick={() => router.push(`/inventory/${it.id}`)}
                   >
+                    <td className="pl-4 pr-1 py-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(it.id)}
+                        onChange={() => toggleRow(it.id)}
+                        aria-label={t.tags.selectRow.replace('{sku}', it.sku)}
+                        className="h-4 w-4 accent-gold"
+                      />
+                    </td>
                     <td className="px-3 py-2">
                       <div className="relative h-10 w-10 overflow-hidden rounded-md border border-border bg-background">
                         {it.thumb_url ? (
@@ -309,6 +418,12 @@ export default function InventoryContent({
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-foreground">
                       {it.sku}
+                      {!it.tag_printed_at && (it.status === 'available' || it.status === 'held') ? (
+                        <span className="mt-1 flex w-fit items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 font-sans text-[10px] font-semibold text-warning">
+                          <Tag size={10} weight="bold" />
+                          {t.tags.needsTag}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2 font-medium text-foreground">

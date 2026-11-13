@@ -39,6 +39,8 @@ import { CollectDepositDialog } from '@/components/repair/CollectDepositDialog'
 import { RecordPickupDialog } from '@/components/repair/RecordPickupDialog'
 import { MarkAbandonedDialog } from '@/components/repair/MarkAbandonedDialog'
 import { VoidDialog } from '@/components/repair/VoidDialog'
+import PrintTagsMenu from '@/components/labels/PrintTagsMenu'
+import type { TemplateChoice } from '@/lib/labels/templates'
 import type { InventoryPartOption } from '@/components/repair/AddPartDialog'
 import {
   addNoteAction,
@@ -208,6 +210,7 @@ export default function RepairTicketDetail({
   trackingLink,
   stages,
   laser,
+  tagChoices,
 }: {
   ticket: RepairTicketView
   lineItems: RepairLineItemView[]
@@ -225,6 +228,7 @@ export default function RepairTicketDetail({
   stages: RepairStageLite[]
   /** Laser nameplate orders for this ticket (patches/0070). */
   laser: LaserPanelData
+  tagChoices: TemplateChoice[]
 }) {
   const { t } = useI18n()
   const [dialog, setDialog] = useState<DialogKind>(null)
@@ -339,6 +343,15 @@ export default function RepairTicketDetail({
             <Printer size={12} weight="bold" />
             {t.repair.print.button}
           </a>
+          {ticket.ticket_number ? (
+            <PrintTagsMenu
+              kind="repair"
+              target={{ ticket: ticket.id }}
+              choices={tagChoices}
+              label={t.tags.printRepair}
+              compact
+            />
+          ) : null}
           <button
             type="button"
             onClick={() => setShowReminder(true)}

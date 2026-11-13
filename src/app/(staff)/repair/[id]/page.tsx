@@ -9,6 +9,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isSecretConfigured } from '@/lib/secrets/vault'
 import { parseCutDetails, parseHistory } from '@/lib/orocut/merge'
 import type { LaserOrderView, LaserPanelData } from '@/components/repair/LaserOrderPanel'
+import { loadTagTemplates } from '@/lib/labels/load'
+import { templateChoices } from '@/lib/labels/templates'
 import RepairTicketDetail, {
   type InventoryPartChoice,
   type RepairLineItemView,
@@ -375,6 +377,10 @@ export default async function RepairTicketDetailPage(props: {
       trackingLink={trackingUrl(ticket.public_token)}
       stages={(stageRows ?? []) as RepairStageLite[]}
       laser={laser}
+      tagChoices={templateChoices(
+        await loadTagTemplates(ctx.supabase, ctx.tenantId),
+        'repair',
+      )}
     />
   )
 }

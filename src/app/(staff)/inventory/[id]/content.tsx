@@ -41,6 +41,8 @@ import {
   syncEbayListingAction,
   updateEbayDraftAction,
 } from './ebay-actions'
+import PrintTagsMenu from '@/components/labels/PrintTagsMenu'
+import type { TemplateChoice } from '@/lib/labels/templates'
 import InventoryEbayPanel, {
   type EbayPanelListing,
 } from '@/components/ebay/InventoryEbayPanel'
@@ -225,6 +227,8 @@ export default function InventoryDetail({
   consignors = [],
   defaultCommissionPct = 0.2,
   targetMarginPct = 0.5,
+  tagChoices,
+  justSaved = false,
 }: {
   item: ItemRecord
   photos: InventoryPhotoItem[]
@@ -236,8 +240,11 @@ export default function InventoryDetail({
   consignors?: ConsignorOption[]
   defaultCommissionPct?: number
   targetMarginPct?: number
+  tagChoices: TemplateChoice[]
+  justSaved?: boolean
 }) {
   const { t } = useI18n()
+  const [showSavedPrompt, setShowSavedPrompt] = useState(justSaved)
 
   const [state, formAction, pending] = useActionState<
     UpdateInventoryItemState,
@@ -308,8 +315,39 @@ export default function InventoryDetail({
           <ArrowLeft size={14} weight="bold" />
           {t.inventory.backToList}
         </Link>
-        <span className="font-mono text-xs text-muted">{item.sku}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-muted">{item.sku}</span>
+          <PrintTagsMenu
+            kind="inventory"
+            target={{ ids: item.id }}
+            choices={tagChoices}
+            label={t.tags.print}
+            compact
+          />
+        </div>
       </div>
+
+      {showSavedPrompt ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-success/30 bg-success/5 px-4 py-3">
+          <span className="text-sm text-foreground">{t.tags.savedPrompt}</span>
+          <div className="flex items-center gap-2">
+            <PrintTagsMenu
+              kind="inventory"
+              target={{ ids: item.id }}
+              choices={tagChoices}
+              label={t.tags.print}
+              onPrinted={() => setShowSavedPrompt(false)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowSavedPrompt(false)}
+              className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
+            >
+              {t.tags.notNow}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-bold">{item.description}</h1>

@@ -24,12 +24,19 @@ import InventoryDetail, {
   type InventoryStoneItem,
 } from './content'
 import type { EbayListingRow } from '@/types/database-aliases'
+import { loadTagTemplates } from '@/lib/labels/load'
+import { templateChoices } from '@/lib/labels/templates'
 import type { EbayPanelListing } from '@/components/ebay/InventoryEbayPanel'
 
 type Params = Promise<{ id: string }>
+type SearchParams = Promise<{ saved?: string }>
 
-export default async function InventoryItemPage(props: { params: Params }) {
+export default async function InventoryItemPage(props: {
+  params: Params
+  searchParams: SearchParams
+}) {
   const { id } = await props.params
+  const { saved } = await props.searchParams
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
@@ -186,6 +193,11 @@ export default async function InventoryItemPage(props: { params: Params }) {
       consignors={consignors}
       defaultCommissionPct={commissionPct}
       targetMarginPct={targetMarginPct}
+      tagChoices={templateChoices(
+        await loadTagTemplates(ctx.supabase, ctx.tenantId),
+        'inventory',
+      )}
+      justSaved={saved === '1'}
     />
   )
 }

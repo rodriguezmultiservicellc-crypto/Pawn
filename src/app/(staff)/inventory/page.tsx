@@ -14,6 +14,8 @@ import type {
   InventorySource,
   InventoryStatus,
 } from '@/types/database-aliases'
+import { loadTagTemplates } from '@/lib/labels/load'
+import { templateChoices } from '@/lib/labels/templates'
 
 type SearchParams = Promise<{
   q?: string
@@ -22,6 +24,7 @@ type SearchParams = Promise<{
   category?: string
   condition?: string
   coating?: string
+  tag?: string
 }>
 
 export default async function InventoryPage(props: {
@@ -38,11 +41,13 @@ export default async function InventoryPage(props: {
   const categoryFilter = (params.category ?? '') as InventoryCategory | ''
   const conditionFilter = (params.condition ?? '') as InventoryConditionFilter
   const coatingFilter = (params.coating ?? '') as InventoryCoatingFilter
+  // 'needed' = sellable stock that has never had a tag printed (patches/0074).
+  const needsTag = params.tag === 'needed'
 
   let query = ctx.supabase
     .from('inventory_items')
     .select(
-      'id, sku, sku_number, description, category, brand, model, serial_number, source, status, list_price, sale_price, created_at, coating, condition, legacy_code, shelf_location',
+      'id, sku, sku_number, description, category, brand, model, serial_number, source, status, list_price, sale_price, created_at, coating, condition, legacy_code, shelf_location, tag_printed_at',
     )
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
@@ -56,6 +61,10 @@ export default async function InventoryPage(props: {
   // 'coated' = anything that is not solid metal (patches/0067).
   if (coatingFilter === 'coated') query = query.neq('coating', 'none')
   else if (coatingFilter) query = query.eq('coating', coatingFilter)
+
+  if (needsTag) {
+    query = query.is('tag_printed_at', null).in('status', ['available', 'held'])
+  }
 
   if (q) {
     const escaped = q.replace(/[%_]/g, (m) => '\\' + m)
@@ -118,6 +127,7 @@ export default async function InventoryPage(props: {
     condition: r.condition,
     legacy_code: r.legacy_code,
     shelf_location: r.shelf_location,
+    tag_printed_at: r.tag_printed_at,
   }))
 
   return (
@@ -129,6 +139,11 @@ export default async function InventoryPage(props: {
       categoryFilter={categoryFilter}
       conditionFilter={conditionFilter}
       coatingFilter={coatingFilter}
+      needsTag={needsTag}
+      tagChoices={templateChoices(
+        await loadTagTemplates(ctx.supabase, ctx.tenantId),
+        'inventory',
+      )}
     />
   )
 }

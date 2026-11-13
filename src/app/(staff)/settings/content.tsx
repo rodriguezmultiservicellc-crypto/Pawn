@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import {
+  Barcode,
   ChatCircleText,
   CreditCard,
   Percent,
@@ -202,6 +203,15 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             statusDetail={t.settingsCustomQuotes.hubDetail}
           />
         ) : null}
+
+        <Card
+          href="/settings/tags"
+          icon={<Barcode size={20} weight="regular" />}
+          title={t.tags.settings.hubTitle}
+          description={t.tags.settings.hubDescription}
+          status="configured"
+          statusDetail={t.tags.settings.hubDetail}
+        />
 
         {isOwner ? (
           <Card

@@ -23,6 +23,8 @@ import { ForfeitConfirmDialog } from '@/components/pawn/ForfeitConfirmDialog'
 import { VoidLoanDialog } from '@/components/pawn/VoidLoanDialog'
 import { RedeemConfirmDialog } from '@/components/pawn/RedeemConfirmDialog'
 import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
+import PrintTagsMenu from '@/components/labels/PrintTagsMenu'
+import type { TemplateChoice } from '@/lib/labels/templates'
 import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
 import {
   extendLoanAction,
@@ -128,6 +130,7 @@ export default function PawnLoanDetail({
   payoff,
   today,
   forfeit,
+  tagChoices,
 }: {
   loan: LoanView
   collateral: LoanCollateralView[]
@@ -135,6 +138,7 @@ export default function PawnLoanDetail({
   payoff: PayoffResult
   today: string
   forfeit: { eligible: boolean; eligibleOn: string; lastRedemptionDate: string }
+  tagChoices: TemplateChoice[]
 }) {
   const { t } = useI18n()
   const [dialog, setDialog] = useState<DialogKind>(null)
@@ -319,7 +323,20 @@ export default function PawnLoanDetail({
         </div>
 
         <div className="lg:col-span-2">
-          <CollateralPanel collateral={collateral} />
+          <CollateralPanel
+            collateral={collateral}
+            printLabels={
+              collateral.length > 0 && loan.ticket_number ? (
+                <PrintTagsMenu
+                  kind="collateral"
+                  target={{ loan: loan.id }}
+                  choices={tagChoices}
+                  label={t.tags.printCollateral}
+                  compact
+                />
+              ) : null
+            }
+          />
         </div>
       </div>
 
@@ -480,7 +497,13 @@ function ActionButton({
   )
 }
 
-function CollateralPanel({ collateral }: { collateral: LoanCollateralView[] }) {
+function CollateralPanel({
+  collateral,
+  printLabels,
+}: {
+  collateral: LoanCollateralView[]
+  printLabels: React.ReactNode
+}) {
   const { t } = useI18n()
   const tn = t.pawn.new_
   const firearmTypeLabel = (v: string | null): string | null => {
@@ -527,9 +550,12 @@ function CollateralPanel({ collateral }: { collateral: LoanCollateralView[] }) {
   }
   return (
     <section className="rounded-xl border border-border bg-card p-4">
-      <h2 className="mb-3 text-sm font-semibold text-foreground">
-        {t.pawn.detail.collateralPanelTitle}
-      </h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-foreground">
+          {t.pawn.detail.collateralPanelTitle}
+        </h2>
+        {printLabels}
+      </div>
       {collateral.length === 0 ? (
         <p className="text-sm text-muted">—</p>
       ) : (

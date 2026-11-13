@@ -20,6 +20,8 @@ import {
   AddInventoryItemDialog,
   type InventoryPickRow,
 } from './AddInventoryItemDialog'
+import { parseScan } from '@/lib/labels/scan'
+import { resolveScanAction } from '@/app/(staff)/scan-actions'
 
 export type CartLineState = {
   inventory_item_id: string | null
@@ -193,17 +195,48 @@ export function Cart({
   }
 
   // ── Scan resolve ──────────────────────────────────────────────────────
-  function resolveScan() {
+  async function resolveScan() {
     const q = scanQ.trim()
     if (!q) return
     const ql = q.toLowerCase()
 
-    // 1. Exact SKU match.
-    const exact = inventory.find((i) => i.sku.toLowerCase() === ql)
+    // 1. Exact SKU match — the typed text, or what a tag's barcode means
+    //    (a small tag carries only the number: 000123 → INV-000123).
+    const parsed = parseScan(q)
+    const parsedSku = parsed.kind === 'inventory' ? parsed.sku.toLowerCase() : null
+    const exact = inventory.find((i) => {
+      const s = i.sku.toLowerCase()
+      return s === ql || s === parsedSku
+    })
     if (exact) {
       addInventoryLine(exact)
       setScanQ('')
       return
+    }
+
+    // 1b. Not in the loaded list (older stock, or not sellable): ask the
+    //     server for the exact code before falling back to text search.
+    if (parsed.kind === 'inventory') {
+      const hit = await resolveScanAction(q)
+      if (hit.kind === 'inventory') {
+        if (hit.status === 'available') {
+          addInventoryLine({
+            id: hit.id,
+            sku: hit.sku,
+            description: hit.description,
+            list_price: hit.list_price,
+            category: hit.category,
+          })
+          setScanQ('')
+        } else {
+          setScanMsg(
+            t.tags.scan.notSellable
+              .replace('{code}', hit.sku)
+              .replace('{status}', statusLabel(hit.status)),
+          )
+        }
+        return
+      }
     }
     // 2. Partial name/SKU match.
     const hits = inventory.filter(
@@ -225,6 +258,17 @@ export function Cart({
     }
     // 3. No hit — inline message, cart unchanged.
     setScanMsg(ts.noItemFound.replace('{q}', q))
+  }
+
+  function statusLabel(s: string): string {
+    switch (s) {
+      case 'held': return t.inventory.statusHeld
+      case 'sold': return t.inventory.statusSold
+      case 'scrapped': return t.inventory.statusScrapped
+      case 'transferred': return t.inventory.transferringBadge
+      case 'returned': return t.inventory.statusReturned
+      default: return t.inventory.statusAvailable
+    }
   }
 
   const canSubmit = !busy && lines.length > 0
@@ -260,7 +304,7 @@ export function Cart({
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
-                resolveScan()
+                void resolveScan()
               }
             }}
             placeholder={ts.scanPlaceholder}

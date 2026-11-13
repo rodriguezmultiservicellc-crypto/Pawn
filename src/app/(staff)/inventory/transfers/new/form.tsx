@@ -5,11 +5,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowsLeftRight,
+  Barcode,
   Image as ImageIcon,
   Info,
   Package,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { parseScan } from '@/lib/labels/scan'
 import {
   createTransferAction,
   type CreateTransferState,
@@ -51,6 +53,28 @@ export default function NewTransferForm({
   const [destination, setDestination] = useState<string>('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [notes, setNotes] = useState<string>('')
+  const [scanQ, setScanQ] = useState('')
+  const [scanMsg, setScanMsg] = useState<string | null>(null)
+
+  // Scanning a tag ticks its item. Only items listed here can move, so
+  // the lookup is local; anything else is reported, never added.
+  function onScan() {
+    const q = scanQ.trim()
+    if (!q) return
+    const parsed = parseScan(q)
+    const want = parsed.kind === 'inventory' ? parsed.sku.toLowerCase() : null
+    const hit = availableItems.find((i) => {
+      const s = i.sku.toLowerCase()
+      return s === q.toLowerCase() || s === want
+    })
+    if (!hit) {
+      setScanMsg(t.tags.scan.notFound.replace('{code}', q))
+      return
+    }
+    setSelected((prev) => new Set(prev).add(hit.id))
+    setScanMsg(null)
+    setScanQ('')
+  }
 
   const selectedTotal = useMemo(() => {
     let sum = 0
@@ -215,6 +239,34 @@ export default function NewTransferForm({
                 </span>
               ) : null}
             </div>
+          </div>
+
+          <div className="border-b border-border px-5 py-3">
+            <div className="relative">
+              <Barcode
+                size={18}
+                weight="bold"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gold"
+              />
+              <input
+                type="text"
+                value={scanQ}
+                onChange={(e) => {
+                  setScanQ(e.target.value)
+                  if (scanMsg) setScanMsg(null)
+                }}
+                onKeyDown={(e) => {
+                  // Enter must not submit the transfer form.
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    onScan()
+                  }
+                }}
+                placeholder={t.tags.scan.placeholder}
+                className="block w-full rounded-xl border border-border bg-card py-2 pl-10 pr-3 text-sm text-foreground focus:border-gold focus:outline-none"
+              />
+            </div>
+            {scanMsg ? <p className="mt-1 text-xs text-danger">{scanMsg}</p> : null}
           </div>
 
           <div className="overflow-x-auto">

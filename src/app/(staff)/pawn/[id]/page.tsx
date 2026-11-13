@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
+import { loadTagTemplates } from '@/lib/labels/load'
+import { templateChoices } from '@/lib/labels/templates'
 import {
   CUSTOMER_DOCUMENTS_BUCKET,
   INVENTORY_PHOTOS_BUCKET,
@@ -189,6 +191,10 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
       payoff={payoff}
       today={today}
       forfeit={forfeit}
+      tagChoices={templateChoices(
+        await loadTagTemplates(ctx.supabase, ctx.tenantId),
+        'collateral',
+      )}
     />
   )
 }

@@ -190,6 +190,13 @@ const ROUTES = [
   // PDF routes: Chrome's viewer renders them; the harness only sees status + console.
   ['print repair ticket PDF', ids.repair && `/api/print/repair/${ids.repair}`],
   ['print quote PDF', ids.quote && `/api/print/quote/${ids.quote}`],
+  // PLAN-2026-11-13 Phase 1 — item tags (test=1: never stamps tag_printed_at).
+  ['T1 tags settings', '/settings/tags'],
+  ['T1 needs-tag filter', '/inventory?tag=needed'],
+  ['T1 item saved prompt', ids.item && `/inventory/${ids.item}?saved=1`],
+  ['T1 item tag PDF', ids.item && `/api/print/tags?kind=inventory&test=1&ids=${ids.item}`],
+  ['T1 collateral labels PDF', ids.loan && `/api/print/tags?kind=collateral&loan=${ids.loan}`],
+  ['T1 repair label PDF', ids.repair && `/api/print/tags?kind=repair&ticket=${ids.repair}`],
   ['pos', '/pos'],
   ['settings hub', '/settings'],
   ['team', '/team'],
@@ -260,7 +267,9 @@ try {
     try {
       const res = await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 45000 })
       status = res?.status() ?? '?'
-      landed = new URL(page.url()).pathname
+      // Path + query: routes with a query string must not read as redirects.
+      const u = new URL(page.url())
+      landed = u.pathname + u.search
       // Give hydration a beat to throw if it is going to.
       await page.waitForTimeout(400)
     } catch (e) {

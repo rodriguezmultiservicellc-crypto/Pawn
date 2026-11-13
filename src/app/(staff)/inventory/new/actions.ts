@@ -163,5 +163,5 @@ export async function createInventoryItemAction(
     revalidatePath(`/s/${tenantRow.public_slug}/catalog`)
   }
 
-  redirect(`/inventory/${data.id}`)
+  redirect(`/inventory/${data.id}?saved=1`)
 }
