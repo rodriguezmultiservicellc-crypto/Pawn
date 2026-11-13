@@ -2501,6 +2501,7 @@ export type Database = {
           model: string | null
           notes: string | null
           released_from_hold_at: string | null
+          reserved_order_id: string | null
           sale_price: number | null
           serial_number: string | null
           shelf_location: string | null
@@ -2550,6 +2551,7 @@ export type Database = {
           model?: string | null
           notes?: string | null
           released_from_hold_at?: string | null
+          reserved_order_id?: string | null
           sale_price?: number | null
           serial_number?: string | null
           shelf_location?: string | null
@@ -2599,6 +2601,7 @@ export type Database = {
           model?: string | null
           notes?: string | null
           released_from_hold_at?: string | null
+          reserved_order_id?: string | null
           sale_price?: number | null
           serial_number?: string | null
           shelf_location?: string | null
@@ -2626,6 +2629,13 @@ export type Database = {
             columns: ["consignor_id"]
             isOneToOne: false
             referencedRelation: "consignors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_reserved_order_id_fkey"
+            columns: ["reserved_order_id"]
+            isOneToOne: false
+            referencedRelation: "online_orders"
             referencedColumns: ["id"]
           },
           {
@@ -4166,6 +4176,239 @@ export type Database = {
           },
         ]
       }
+      online_order_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          inventory_item_id: string
+          order_id: string
+          position: number
+          sku: string
+          tenant_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          inventory_item_id: string
+          order_id: string
+          position?: number
+          sku: string
+          tenant_id: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          inventory_item_id?: string
+          order_id?: string
+          position?: number
+          sku?: string
+          tenant_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "online_order_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_order_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "public_catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "online_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_order_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_order_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      online_orders: {
+        Row: {
+          carrier: string | null
+          completed_at: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          customer_id: string | null
+          expires_at: string
+          fulfillment: string
+          id: string
+          language: string
+          order_number: string
+          paid_at: string | null
+          picked_up_by_name: string | null
+          pickup_id_check: string | null
+          pickup_signature_path: string | null
+          public_token: string
+          ready_at: string | null
+          refund_reason: string | null
+          released_at: string | null
+          sale_id: string | null
+          ship_city: string | null
+          ship_line1: string | null
+          ship_line2: string | null
+          ship_postal: string | null
+          ship_state: string | null
+          shipped_at: string | null
+          shipping_amount: number
+          signature_required: boolean
+          staff_notes: string | null
+          status: string
+          stripe_account_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          subtotal: number
+          tax_amount: number
+          tax_rate: number
+          tenant_id: string
+          total: number
+          tracking_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          carrier?: string | null
+          completed_at?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          customer_id?: string | null
+          expires_at: string
+          fulfillment: string
+          id?: string
+          language?: string
+          order_number: string
+          paid_at?: string | null
+          picked_up_by_name?: string | null
+          pickup_id_check?: string | null
+          pickup_signature_path?: string | null
+          public_token: string
+          ready_at?: string | null
+          refund_reason?: string | null
+          released_at?: string | null
+          sale_id?: string | null
+          ship_city?: string | null
+          ship_line1?: string | null
+          ship_line2?: string | null
+          ship_postal?: string | null
+          ship_state?: string | null
+          shipped_at?: string | null
+          shipping_amount?: number
+          signature_required?: boolean
+          staff_notes?: string | null
+          status?: string
+          stripe_account_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal: number
+          tax_amount?: number
+          tax_rate?: number
+          tenant_id: string
+          total: number
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          carrier?: string | null
+          completed_at?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          customer_id?: string | null
+          expires_at?: string
+          fulfillment?: string
+          id?: string
+          language?: string
+          order_number?: string
+          paid_at?: string | null
+          picked_up_by_name?: string | null
+          pickup_id_check?: string | null
+          pickup_signature_path?: string | null
+          public_token?: string
+          ready_at?: string | null
+          refund_reason?: string | null
+          released_at?: string | null
+          sale_id?: string | null
+          ship_city?: string | null
+          ship_line1?: string | null
+          ship_line2?: string | null
+          ship_postal?: string | null
+          ship_state?: string | null
+          shipped_at?: string | null
+          shipping_amount?: number
+          signature_required?: boolean
+          staff_notes?: string | null
+          status?: string
+          stripe_account_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          tenant_id?: string
+          total?: number
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "online_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_orders_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pawn_intake_categories: {
         Row: {
           created_at: string
@@ -5330,6 +5573,7 @@ export type Database = {
       }
       sales: {
         Row: {
+          channel: string
           completed_at: string | null
           counterparty_name: string | null
           created_at: string
@@ -5355,6 +5599,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          channel?: string
           completed_at?: string | null
           counterparty_name?: string | null
           created_at?: string
@@ -5380,6 +5625,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          channel?: string
           completed_at?: string | null
           counterparty_name?: string | null
           created_at?: string
@@ -5453,6 +5699,7 @@ export type Database = {
           default_currency: string
           default_loan_interest_rate: number
           default_loan_term_days: number
+          default_tax_rate: number
           email_from: string | null
           google_place_id: string | null
           google_reviews_daily_quota: number | null
@@ -5467,13 +5714,28 @@ export type Database = {
           loyalty_referral_bonus: number
           min_loan_amount: number | null
           ofac_screening_enabled: boolean
+          online_checkout_enabled: boolean
+          online_order_max: number
+          online_pickup_enabled: boolean
+          online_reservation_minutes: number
+          online_ship_enabled: boolean
           orocut_style_names: string[]
           pawn_ticket_backpage: string | null
           repair_ready_auto_notify: boolean
           resend_from_email: string | null
           resend_from_name: string | null
+          ship_flat_rate: number
+          ship_free_over: number | null
+          ship_signature_over: number | null
+          store_accent_color: string | null
           store_credit_enabled: boolean
           store_credit_expiry_days: number | null
+          store_return_policy_en: string | null
+          store_return_policy_es: string | null
+          store_shipping_policy_en: string | null
+          store_shipping_policy_es: string | null
+          store_tagline_en: string | null
+          store_tagline_es: string | null
           tag_cost_code: string | null
           tenant_id: string
           twilio_account_sid: string | null
@@ -5501,6 +5763,7 @@ export type Database = {
           default_currency?: string
           default_loan_interest_rate?: number
           default_loan_term_days?: number
+          default_tax_rate?: number
           email_from?: string | null
           google_place_id?: string | null
           google_reviews_daily_quota?: number | null
@@ -5515,13 +5778,28 @@ export type Database = {
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
           ofac_screening_enabled?: boolean
+          online_checkout_enabled?: boolean
+          online_order_max?: number
+          online_pickup_enabled?: boolean
+          online_reservation_minutes?: number
+          online_ship_enabled?: boolean
           orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null
+          ship_flat_rate?: number
+          ship_free_over?: number | null
+          ship_signature_over?: number | null
+          store_accent_color?: string | null
           store_credit_enabled?: boolean
           store_credit_expiry_days?: number | null
+          store_return_policy_en?: string | null
+          store_return_policy_es?: string | null
+          store_shipping_policy_en?: string | null
+          store_shipping_policy_es?: string | null
+          store_tagline_en?: string | null
+          store_tagline_es?: string | null
           tag_cost_code?: string | null
           tenant_id: string
           twilio_account_sid?: string | null
@@ -5549,6 +5827,7 @@ export type Database = {
           default_currency?: string
           default_loan_interest_rate?: number
           default_loan_term_days?: number
+          default_tax_rate?: number
           email_from?: string | null
           google_place_id?: string | null
           google_reviews_daily_quota?: number | null
@@ -5563,13 +5842,28 @@ export type Database = {
           loyalty_referral_bonus?: number
           min_loan_amount?: number | null
           ofac_screening_enabled?: boolean
+          online_checkout_enabled?: boolean
+          online_order_max?: number
+          online_pickup_enabled?: boolean
+          online_reservation_minutes?: number
+          online_ship_enabled?: boolean
           orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null
+          ship_flat_rate?: number
+          ship_free_over?: number | null
+          ship_signature_over?: number | null
+          store_accent_color?: string | null
           store_credit_enabled?: boolean
           store_credit_expiry_days?: number | null
+          store_return_policy_en?: string | null
+          store_return_policy_es?: string | null
+          store_shipping_policy_en?: string | null
+          store_shipping_policy_es?: string | null
+          store_tagline_en?: string | null
+          store_tagline_es?: string | null
           tag_cost_code?: string | null
           tenant_id?: string
           twilio_account_sid?: string | null
@@ -6712,6 +7006,40 @@ export type Database = {
           },
         ]
       }
+      public_store_settings: {
+        Row: {
+          checkout_enabled: boolean | null
+          order_max: number | null
+          pickup_enabled: boolean | null
+          ship_enabled: boolean | null
+          ship_flat_rate: number | null
+          ship_free_over: number | null
+          store_accent_color: string | null
+          store_return_policy_en: string | null
+          store_return_policy_es: string | null
+          store_shipping_policy_en: string | null
+          store_shipping_policy_es: string | null
+          store_tagline_en: string | null
+          store_tagline_es: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_tenants: {
         Row: {
           address: string | null
@@ -7016,6 +7344,71 @@ export type Database = {
           version_id: string
         }[]
       }
+      online_order_advance: {
+        Args: {
+          p_carrier?: string
+          p_order_id: string
+          p_pickup_id?: string
+          p_pickup_name?: string
+          p_signature_path?: string
+          p_tenant_id: string
+          p_to: string
+          p_tracking?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      online_order_attach_session: {
+        Args: {
+          p_account_id: string
+          p_order_id: string
+          p_session_id: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      online_order_paid: {
+        Args: {
+          p_amount_cents: number
+          p_order_id: string
+          p_pi: string
+          p_session_id: string
+          p_tenant_id: string
+        }
+        Returns: {
+          o_customer_id: string
+          o_reason: string
+          o_sale_id: string
+        }[]
+      }
+      online_order_release: {
+        Args: { p_order_id: string; p_reason?: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      online_order_reserve: {
+        Args: {
+          p_email: string
+          p_fulfillment: string
+          p_item_ids: string[]
+          p_language: string
+          p_name: string
+          p_phone: string
+          p_ship_city?: string
+          p_ship_line1?: string
+          p_ship_line2?: string
+          p_ship_postal?: string
+          p_ship_state?: string
+          p_tenant_id: string
+          p_token: string
+        }
+        Returns: {
+          o_expires_at: string
+          o_order_id: string
+          o_order_number: string
+          o_total: number
+        }[]
+      }
+      online_order_sweep: { Args: never; Returns: number }
       repair_public_ticket: { Args: { p_token: string }; Returns: Json }
       repair_public_token: { Args: never; Returns: string }
       sale_add_payment: {
@@ -7086,6 +7479,10 @@ export type Database = {
           p_service_type?: Database["public"]["Enums"]["service_type"]
           p_tenant_id: string
         }
+        Returns: undefined
+      }
+      seed_online_order_templates: {
+        Args: { p_tenant_id: string }
         Returns: undefined
       }
       seed_pawn_intake_categories: {
@@ -7321,6 +7718,9 @@ export type Database = {
         | "redemption_thankyou"
         | "repair_tracking_link"
         | "custom_quote_link"
+        | "online_order_confirmed"
+        | "online_order_ready"
+        | "online_order_shipped"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
       metal_purity:
         | "pure_24k"
@@ -7750,6 +8150,9 @@ export const Constants = {
         "redemption_thankyou",
         "repair_tracking_link",
         "custom_quote_link",
+        "online_order_confirmed",
+        "online_order_ready",
+        "online_order_shipped",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
       metal_purity: [

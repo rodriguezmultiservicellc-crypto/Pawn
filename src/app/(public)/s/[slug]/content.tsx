@@ -16,6 +16,7 @@ import type { PublicTenant, PublicHoursDay } from '@/lib/tenant-resolver'
 import type { RenderableReviews } from '@/lib/google-reviews/types'
 import GoogleReviewsWidget from '@/components/public/GoogleReviewsWidget'
 import LanguageToggle from './LanguageToggle'
+import { CartLink } from '@/components/store/CartButtons'
 
 /**
  * Public landing content. Client component because the language toggle
@@ -64,6 +65,7 @@ export default function LandingPageContent({
               {display}
             </span>
           </div>
+          {tenant.public_slug ? <CartLink slug={tenant.public_slug} /> : null}
           <LanguageToggle />
         </div>
       </header>

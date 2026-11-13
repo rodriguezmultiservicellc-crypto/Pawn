@@ -5,6 +5,7 @@ import { r2 } from '@/lib/pos/cart'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import { afterSaleCompleted, layawayAddPayment } from '@/lib/pos/money'
+import { releaseOrder, sendOrderMessage } from '@/lib/store/orders'
 import type { Database } from '@/types/database'
 import { logAudit } from '@/lib/audit'
 import {
@@ -138,7 +139,13 @@ export async function POST(request: NextRequest) {
   try {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as CheckoutSessionLite
-      await handleCheckoutSessionCompleted(session, event.account)
+      // Online store orders are matched by their own row, not a link row.
+      if (!(await handleOnlineOrderSession(session, event.account, 'completed'))) {
+        await handleCheckoutSessionCompleted(session, event.account)
+      }
+    } else if (event.type === 'checkout.session.expired') {
+      const session = event.data.object as CheckoutSessionLite
+      await handleOnlineOrderSession(session, event.account, 'expired')
     } else if (event.type === 'payment_intent.succeeded') {
       const pi = event.data.object as PaymentIntentLite
       await handlePaymentIntentSucceeded(pi, event.account)
@@ -179,6 +186,93 @@ async function authorizedLink(args: {
     return null
   }
   return args.link
+}
+
+/**
+ * An online store order's Checkout session completed or expired.
+ *
+ * Returns true when the session belongs to an online order (so the caller
+ * stops), false when it is not one. Same trust rules as the link rows: the
+ * order row is ours (session id written when we created it), the event's
+ * account must be the shop's connected account, and online_order_paid()
+ * refuses any amount other than the order total in cents.
+ */
+async function handleOnlineOrderSession(
+  session: CheckoutSessionLite,
+  eventAccount: string | undefined,
+  kind: 'completed' | 'expired',
+): Promise<boolean> {
+  if (!session.id) return false
+  const admin = createAdminClient()
+  const { data: order } = await admin
+    .from('online_orders')
+    .select('id, tenant_id, stripe_account_id, status')
+    .eq('stripe_session_id', session.id)
+    .maybeSingle()
+  if (!order) return false
+
+  const billing = eventAccount ? await findTenantByStripeAccountId(eventAccount) : null
+  if (!billing || billing.tenant_id !== order.tenant_id ||
+      (order.stripe_account_id && order.stripe_account_id !== eventAccount)) {
+    console.warn(`[stripe-webhook] refused online order session ${session.id}: account mismatch`, {
+      account: eventAccount ?? null,
+    })
+    return true
+  }
+
+  if (kind === 'expired') {
+    if (await releaseOrder(order.tenant_id, order.id, 'expired')) {
+      await logAudit({
+        tenantId: order.tenant_id,
+        userId: SYSTEM_USER,
+        action: 'online_order_release',
+        tableName: 'online_orders',
+        recordId: order.id,
+        changes: { via: 'stripe_webhook', reason: 'session_expired' },
+      })
+    }
+    return true
+  }
+
+  if (session.payment_status && session.payment_status !== 'paid') return true
+  const pi = typeof session.payment_intent === 'string' ? session.payment_intent : null
+  const paidArgs = {
+    p_tenant_id: order.tenant_id,
+    p_order_id: order.id,
+    p_session_id: session.id,
+    p_pi: pi,
+    p_amount_cents: session.amount_total ?? -1,
+  } as unknown as Database['public']['Functions']['online_order_paid']['Args']
+  const { data, error } = await admin.rpc('online_order_paid', paidArgs)
+  // Throw → 500 → Stripe retries; the post is idempotent on the order row.
+  if (error) throw new Error(`online_order_paid_failed: ${error.message}`)
+  const row = data?.[0]
+  if (!row || row.o_reason === 'duplicate') return true
+
+  if (row.o_reason === 'applied' && row.o_sale_id) {
+    await logAudit({
+      tenantId: order.tenant_id,
+      userId: SYSTEM_USER,
+      action: 'online_order_paid',
+      tableName: 'online_orders',
+      recordId: order.id,
+      changes: { via: 'stripe_webhook', session_id: session.id, payment_intent_id: pi, sale_id: row.o_sale_id },
+    })
+    await afterSaleCompleted({ tenantId: order.tenant_id, saleId: row.o_sale_id })
+    await sendOrderMessage({ tenantId: order.tenant_id, orderId: order.id, kind: 'online_order_confirmed' })
+  } else {
+    // Charged, but the pieces were gone or the amount was wrong.
+    console.error(`[stripe-webhook] online order ${order.id}: ${row.o_reason} — needs a refund`)
+    await logAudit({
+      tenantId: order.tenant_id,
+      userId: SYSTEM_USER,
+      action: 'stripe_payment_needs_refund',
+      tableName: 'online_orders',
+      recordId: order.id,
+      changes: { reason: row.o_reason, amount_cents: session.amount_total ?? null, session_id: session.id, payment_intent_id: pi },
+    })
+  }
+  return true
 }
 
 async function handleCheckoutSessionCompleted(

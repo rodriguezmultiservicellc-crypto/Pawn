@@ -184,6 +184,10 @@ export type AuditAction =
   | 'count_exception_resolve'
   // Stripe charge that could not be applied (closed loan, overpayment)
   | 'stripe_payment_needs_refund'
+  // Online orders (patches/0078)
+  | 'online_order_paid'
+  | 'online_order_release'
+  | 'online_order_advance'
 
 export async function logAudit(args: {
   tenantId: string

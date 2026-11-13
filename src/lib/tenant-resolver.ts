@@ -712,3 +712,41 @@ function numericOrNull(v: unknown): number | null {
   }
   return null
 }
+
+// ── Online store settings (patches/0078 public_store_settings view) ───────
+
+export type PublicStore = {
+  checkoutEnabled: boolean
+  pickupEnabled: boolean
+  shipEnabled: boolean
+  shipFlatRate: number
+  shipFreeOver: number | null
+  orderMax: number
+  returnPolicy: { en: string | null; es: string | null }
+  shippingPolicy: { en: string | null; es: string | null }
+  tagline: { en: string | null; es: string | null }
+  accentColor: string | null
+}
+
+/** What the storefront may show about checkout. Anon read through the view. */
+export async function fetchPublicStore(tenantId: string): Promise<PublicStore | null> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('public_store_settings')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  if (!data) return null
+  return {
+    checkoutEnabled: data.checkout_enabled === true,
+    pickupEnabled: data.pickup_enabled === true,
+    shipEnabled: data.ship_enabled === true,
+    shipFlatRate: Number(data.ship_flat_rate ?? 0),
+    shipFreeOver: data.ship_free_over == null ? null : Number(data.ship_free_over),
+    orderMax: Number(data.order_max ?? 0),
+    returnPolicy: { en: data.store_return_policy_en, es: data.store_return_policy_es },
+    shippingPolicy: { en: data.store_shipping_policy_en, es: data.store_shipping_policy_es },
+    tagline: { en: data.store_tagline_en, es: data.store_tagline_es },
+    accentColor: data.store_accent_color,
+  }
+}

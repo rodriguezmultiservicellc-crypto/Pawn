@@ -13,16 +13,20 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import type {
   PublicCatalogItem,
+  PublicStore,
   PublicTenant,
 } from '@/lib/tenant-resolver'
+import { AddToCartButton, CartLink } from '@/components/store/CartButtons'
 import LanguageToggle from '../../LanguageToggle'
 
 export default function CatalogItemContent({
   tenant,
   item,
+  store,
 }: {
   tenant: PublicTenant
   item: PublicCatalogItem
+  store: PublicStore | null
 }) {
   const { t } = useI18n()
   const dict = t.catalog
@@ -65,6 +69,7 @@ export default function CatalogItemContent({
               <ArrowLeft size={12} weight="bold" />
               {dict.backToAll}
             </Link>
+            {tenant.public_slug ? <CartLink slug={tenant.public_slug} /> : null}
             <LanguageToggle />
           </div>
         </div>
@@ -173,6 +178,19 @@ export default function CatalogItemContent({
 
             {/* CTAs */}
             <div className="space-y-2 pt-2">
+              {store?.checkoutEnabled && tenant.public_slug ? (
+                <AddToCartButton
+                  slug={tenant.public_slug}
+                  overLimit={item.list_price > store.orderMax}
+                  line={{
+                    id: item.id,
+                    sku: item.sku,
+                    description: item.description,
+                    price: item.list_price,
+                    photoUrl: photos[0]?.signed_url ?? null,
+                  }}
+                />
+              ) : null}
               {tenant.phone ? (
                 <a
                   href={`tel:${tenant.phone.replace(/\s/g, '')}`}

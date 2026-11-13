@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import {
   fetchPublicCatalogItem,
+  fetchPublicStore,
   fetchPublicTenant,
 } from '@/lib/tenant-resolver'
 import CatalogItemContent from './content'
@@ -28,7 +29,8 @@ export default async function PublicCatalogItemPage({
   })
   if (!item) notFound()
 
-  return <CatalogItemContent tenant={tenant} item={item} />
+  const store = await fetchPublicStore(tenant.id)
+  return <CatalogItemContent tenant={tenant} item={item} store={store} />
 }
 
 export async function generateMetadata({

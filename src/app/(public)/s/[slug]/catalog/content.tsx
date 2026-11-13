@@ -18,6 +18,7 @@ import type {
 } from '@/lib/tenant-resolver'
 import type { InventoryCategory } from '@/types/database-aliases'
 import LanguageToggle from '../LanguageToggle'
+import { CartLink } from '@/components/store/CartButtons'
 
 export default function CatalogListContent({
   tenant,
@@ -96,6 +97,7 @@ export default function CatalogListContent({
               <ArrowLeft size={12} weight="bold" />
               {dict.backToHome}
             </Link>
+            {tenant.public_slug ? <CartLink slug={tenant.public_slug} /> : null}
             <LanguageToggle />
           </div>
         </div>

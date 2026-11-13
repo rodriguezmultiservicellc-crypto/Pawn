@@ -13,6 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recordEarnSale, maybeCreditReferral } from '@/lib/loyalty/events'
+import { endListing } from '@/lib/ebay/listings'
 import type { PaymentMethod } from '@/types/database-aliases'
 
 type Fns = Database['public']['Functions']
@@ -271,13 +272,15 @@ export async function layawayAddPayment(args: {
 }
 
 /**
- * What follows a completed sale outside the database: loyalty points and a
- * referral bonus (both idempotent — loyalty_events_idempotency). Called by
- * every path that can complete a sale: the counter, a layaway paid off at
- * the counter, and a layaway paid off online.
+ * What follows a completed sale outside the database: ending any live eBay
+ * listing for a piece that just sold, loyalty points and a referral bonus
+ * (both idempotent — loyalty_events_idempotency). Called by every path that
+ * can complete a sale: the counter, a layaway paid off at the counter or
+ * online, and an online store order.
  */
 export async function afterSaleCompleted(args: { admin?: Admin; tenantId: string; saleId: string }): Promise<void> {
   const admin = args.admin ?? createAdminClient()
+  await endEbayListingsForSale(admin, args.tenantId, args.saleId)
   const { data: sale } = await admin
     .from('sales')
     .select('customer_id, subtotal, status')
@@ -307,4 +310,33 @@ export async function afterSaleCompleted(args: { admin?: Admin; tenantId: string
     customerId: sale.customer_id,
     bonusPoints: settings.loyalty_referral_bonus,
   })
+}
+
+/**
+ * A piece sold here must stop selling on eBay (PLAN Phase 3, must-not-break).
+ * Best effort: an eBay failure never undoes a sale; it is logged and the
+ * listing stays visible to staff as still active.
+ */
+async function endEbayListingsForSale(admin: Admin, tenantId: string, saleId: string): Promise<void> {
+  const { data: lines } = await admin
+    .from('sale_items')
+    .select('inventory_item_id')
+    .eq('sale_id', saleId)
+    .eq('tenant_id', tenantId)
+    .not('inventory_item_id', 'is', null)
+  const itemIds = (lines ?? []).map((l) => l.inventory_item_id as string)
+  if (itemIds.length === 0) return
+  const { data: listings } = await admin
+    .from('ebay_listings')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .in('inventory_item_id', itemIds)
+    .in('status', ['active', 'submitting'])
+  for (const l of listings ?? []) {
+    try {
+      await endListing({ tenantId, listingId: l.id, reason: 'NOT_AVAILABLE' })
+    } catch (err) {
+      console.error('[pos.afterSale] eBay listing not ended', l.id, err)
+    }
+  }
 }
