@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import {
   Barcode,
+  ShoppingBag,
   ChatCircleText,
   CreditCard,
   Percent,
@@ -201,6 +202,17 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             description={t.settingsCustomQuotes.hubDescription}
             status="configured"
             statusDetail={t.settingsCustomQuotes.hubDetail}
+          />
+        ) : null}
+
+        {view.modules.retail ? (
+          <Card
+            href="/settings/store"
+            icon={<ShoppingBag size={20} weight="regular" />}
+            title={t.storeSettings.title}
+            description={t.storeSettings.hubDescription}
+            status="configured"
+            statusDetail={t.storeSettings.checkout}
           />
         ) : null}
 

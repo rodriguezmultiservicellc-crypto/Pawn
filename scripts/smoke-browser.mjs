@@ -201,6 +201,11 @@ const ROUTES = [
   ['T2 counts', '/inventory/counts'],
   ['T2 counts report', '/reports/counts'],
   ['T2 counts report PDF', '/api/reports/counts/pdf'],
+  // PLAN-2026-11-13 Phase 3 — online store (staff side; read-only).
+  ['T3 online orders', '/pos/online-orders'],
+  ['T3 online orders all', '/pos/online-orders?tab=all'],
+  ['T3 store settings', '/settings/store'],
+  ['T3 daily register', '/reports/daily-register'],
   ['pos', '/pos'],
   ['settings hub', '/settings'],
   ['team', '/team'],

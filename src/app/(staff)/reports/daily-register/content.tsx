@@ -96,6 +96,10 @@ export default function DailyRegisterContent({
     { label: tt.openingCash, value: formatMoney(totals.opening_cash ?? 0) },
     { label: tt.cashSales, value: formatMoney(totals.cash_sales ?? 0) },
     { label: tt.cardSales, value: formatMoney(totals.card_sales ?? 0) },
+    {
+      label: tt.onlineSales,
+      value: `${formatMoney(totals.online_sales ?? 0)} · ${totals.online_count ?? 0}`,
+    },
   ]
 
   return (

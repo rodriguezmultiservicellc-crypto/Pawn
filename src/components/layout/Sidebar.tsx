@@ -31,6 +31,7 @@ import {
   Trophy,
   Wallet,
   ListChecks,
+  Globe,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -213,6 +214,15 @@ export function Sidebar({
       label: t.nav.pos,
       icon: <CashRegister size={18} weight="regular" />,
       visible: modules.has_retail,
+    },
+    // Orders paid on the shop's website (patches/0078). A more specific
+    // root than /pos, so it — not POS — lights up on its own pages.
+    {
+      kind: 'item',
+      href: '/pos/online-orders',
+      label: t.nav.onlineOrders,
+      icon: <Globe size={18} weight="regular" />,
+      visible: modules.has_retail && canSeeCounts,
     },
     {
       kind: 'item',

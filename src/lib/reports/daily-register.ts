@@ -151,5 +151,22 @@ export async function getDailyRegister(args: {
     },
   )
 
-  return { rows, totals, tenantIds: [...tenantIds] }
+  // Online store sales (patches/0078): paid by card on the website, never
+  // in a drawer, so they sit on their own line beside the session rows.
+  const { data: online, error: onlineErr } = await supabase
+    .from('sales')
+    .select('total')
+    .in('tenant_id', tenantIds as string[])
+    .eq('channel', 'online')
+    .is('deleted_at', null)
+    .neq('status', 'voided')
+    .gte('completed_at', fromIso)
+    .lt('completed_at', toExclusiveIso)
+  if (onlineErr) throw new Error(`daily_register_online_failed: ${onlineErr.message}`)
+  const onlineTotals = {
+    online_sales: (online ?? []).reduce((acc, s) => acc + Number(s.total), 0),
+    online_count: (online ?? []).length,
+  }
+
+  return { rows, totals: { ...totals, ...onlineTotals }, tenantIds: [...tenantIds] }
 }

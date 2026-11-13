@@ -101,6 +101,7 @@ export default function DashboardContent({
   metalsUpdatedAt,
   todayCard,
   pledgeAlert,
+  onlineOrdersWaiting,
 }: {
   hasPawn: boolean
   hasRepair: boolean
@@ -117,6 +118,7 @@ export default function DashboardContent({
   metalsUpdatedAt: string | null
   todayCard: TodayCard
   pledgeAlert: PledgeAlert | null
+  onlineOrdersWaiting: number
 }) {
   const { t } = useI18n()
   const d = t.dashboard
@@ -134,6 +136,15 @@ export default function DashboardContent({
       </div>
 
       {pledgeAlert ? <PledgeAlertBanner alert={pledgeAlert} /> : null}
+      {onlineOrdersWaiting > 0 ? (
+        <Link
+          href="/pos/online-orders"
+          className="flex items-center gap-3 rounded-xl border border-info/30 bg-info/5 px-4 py-3 text-sm text-info hover:bg-info/10"
+        >
+          <span className="flex-1">{t.onlineOrders.alert.replace('{n}', String(onlineOrdersWaiting))}</span>
+          <span className="font-semibold">{t.onlineOrders.open} →</span>
+        </Link>
+      ) : null}
 
       {/* Live metals strip (brief Phase 4.4) */}
       <MetalsStrip metals={metals} stale={metalsStale} updatedAt={metalsUpdatedAt} />

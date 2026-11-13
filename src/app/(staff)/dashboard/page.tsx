@@ -113,6 +113,15 @@ export default async function DashboardPage() {
       ? await loadPledgeAlert(ctx.supabase, [ctx.tenantId])
       : null
 
+  // New paid online orders and charged-but-unfilled ones (patches/0078).
+  const { count: onlineOrdersWaiting } = hasRetail
+    ? await ctx.supabase
+        .from('online_orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', ctx.tenantId)
+        .in('status', ['paid', 'needs_refund'])
+    : { count: 0 }
+
   // Metals strip (brief Phase 4.4) — platform-wide feed, no tenant data.
   const strip = await loadMetalsStrip()
 
@@ -407,6 +416,7 @@ export default async function DashboardPage() {
       }}
       activeLoanCount={activeLoanCount}
       pledgeAlert={pledgeAlert}
+      onlineOrdersWaiting={onlineOrdersWaiting ?? 0}
     />
   )
 }
