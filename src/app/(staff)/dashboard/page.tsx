@@ -12,6 +12,8 @@ import {
   getSpotPriceHistory,
 } from '@/lib/spot-prices/lookup'
 import { spotKey } from '@/lib/spot-prices/purity'
+import { COUNT_RESOLVE_ROLES } from '@/lib/counts/types'
+import { loadPledgeAlert } from '@/lib/counts/server'
 import type { MetalPurity, MetalType } from '@/types/database-aliases'
 
 /** The four headline feeds on the dashboard strip (brief Phase 4.4). */
@@ -102,6 +104,14 @@ export default async function DashboardPage() {
       .is('deleted_at', null)
       .eq('status', 'held'),
   ])
+
+  // Vault-audit alert (patches/0075): managers see unresolved missing
+  // pledged items until someone resolves them. Not gated on has_pawn —
+  // turning the module off never hides an existing obligation.
+  const pledgeAlert =
+    ctx.tenantRole && COUNT_RESOLVE_ROLES.includes(ctx.tenantRole)
+      ? await loadPledgeAlert(ctx.supabase, [ctx.tenantId])
+      : null
 
   // Metals strip (brief Phase 4.4) — platform-wide feed, no tenant data.
   const strip = await loadMetalsStrip()
@@ -396,6 +406,7 @@ export default async function DashboardPage() {
         bannedCount: bannedCount ?? 0,
       }}
       activeLoanCount={activeLoanCount}
+      pledgeAlert={pledgeAlert}
     />
   )
 }

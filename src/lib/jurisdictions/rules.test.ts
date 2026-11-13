@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  dayStartInTimezone,
   effectiveRules,
   exceedsCap,
   forfeitEligibleDate,
@@ -145,6 +146,21 @@ describe('todayInTimezone', () => {
     const now = new Date(Date.UTC(2026, 8, 19, 1, 30))
     expect(todayInTimezone('America/New_York', now)).toBe('2026-09-18')
     expect(todayInTimezone('UTC', now)).toBe('2026-09-19')
+  })
+})
+
+describe('dayStartInTimezone', () => {
+  it('returns the UTC instant of local midnight', () => {
+    expect(dayStartInTimezone('2026-09-18', 'America/New_York')).toBe('2026-09-18T04:00:00.000Z')
+    expect(dayStartInTimezone('2026-01-15', 'America/New_York')).toBe('2026-01-15T05:00:00.000Z')
+    expect(dayStartInTimezone('2026-01-15', 'UTC')).toBe('2026-01-15T00:00:00.000Z')
+  })
+  it('handles the DST change days', () => {
+    expect(dayStartInTimezone('2026-03-08', 'America/New_York')).toBe('2026-03-08T05:00:00.000Z')
+    expect(dayStartInTimezone('2026-11-01', 'America/New_York')).toBe('2026-11-01T04:00:00.000Z')
+  })
+  it('falls back to UTC for an unknown zone', () => {
+    expect(dayStartInTimezone('2026-01-15', 'Not/AZone')).toBe('2026-01-15T00:00:00.000Z')
   })
 })
 

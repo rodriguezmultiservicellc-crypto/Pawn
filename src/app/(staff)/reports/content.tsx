@@ -11,6 +11,7 @@ import {
   Shield,
   Buildings,
   ChartBar,
+  ListChecks,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { Dictionary } from '@/lib/i18n/en'
@@ -79,6 +80,12 @@ export default function ReportsLanding({
       icon: <Shield size={20} weight="regular" />,
       title: 'policeReport',
       visible: modules.has_pawn || modules.has_retail,
+    },
+    {
+      href: '/reports/counts',
+      icon: <ListChecks size={20} weight="regular" />,
+      title: 'counts',
+      visible: true,
     },
     {
       href: '/reports/cross-shop',

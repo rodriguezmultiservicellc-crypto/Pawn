@@ -9,9 +9,11 @@ import {
   Clock,
   Image as ImageIcon,
   Prohibit,
+  Barcode,
   X,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { startCountAction } from '../../counts/actions'
 import {
   acceptTransferAction,
   cancelTransferAction,
@@ -49,6 +51,8 @@ export type TransferDetailData = {
   cancelled_by_label: string | null
   items: TransferDetailItem[]
   viewerSide: 'from' | 'to'
+  /** Latest scan check of this transfer by the viewing shop (patches/0075). */
+  scanCheck: { id: string; count_number: string; status: 'open' | 'closed'; missing: number; unexpected: number } | null
 }
 
 const STATUS_BADGE: Record<
@@ -115,6 +119,17 @@ export default function TransferDetail({
         setShowRejectDialog(false)
         setRejectReason('')
       }
+    })
+  }
+
+  // Scan the box against the transfer list (count session, patches/0075).
+  const canScanCheck = data.status !== 'cancelled' && data.status !== 'rejected'
+  function onScanCheck() {
+    setError(null)
+    startTransition(async () => {
+      const res = await startCountAction({ kind: 'transfer', transferId: data.id })
+      // Success navigates to the scan screen; only failures return.
+      if (res && !res.ok) setError(t.counts.errors[res.error])
     })
   }
 
@@ -215,6 +230,56 @@ export default function TransferDetail({
           </div>
         </div>
       </div>
+
+      {canScanCheck ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-5 py-4">
+          <Barcode size={20} className="text-muted" />
+          <div className="min-w-0 flex-1">
+            {data.scanCheck ? (
+              <>
+                <p className="text-sm font-semibold text-foreground">
+                  {t.counts.transfer.last.replace('{number}', data.scanCheck.count_number)}{' '}
+                  <span className="font-normal text-muted">· {t.counts.statuses[data.scanCheck.status]}</span>
+                </p>
+                {data.scanCheck.status === 'closed' ? (
+                  <p className={`text-xs ${data.scanCheck.missing + data.scanCheck.unexpected > 0 ? 'text-danger' : 'text-success'}`}>
+                    {t.counts.transfer.result
+                      .replace('{missing}', String(data.scanCheck.missing))
+                      .replace('{unexpected}', String(data.scanCheck.unexpected))}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-sm text-muted">{t.counts.transfer.checkHelp}</p>
+            )}
+          </div>
+          {data.scanCheck?.status === 'open' ? (
+            <Link
+              href={`/inventory/counts/${data.scanCheck.id}`}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-blue hover:text-blue"
+            >
+              {t.counts.transfer.continue}
+            </Link>
+          ) : (
+            <>
+              {data.scanCheck ? (
+                <Link href={`/inventory/counts/${data.scanCheck.id}`} className="text-sm text-blue hover:text-blue-2">
+                  {t.counts.list.view}
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={onScanCheck}
+                disabled={pending}
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:border-blue hover:text-blue disabled:opacity-50"
+              >
+                <Barcode size={14} weight="bold" />
+                {t.counts.transfer.check}
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
 
       <div className="rounded-xl border border-border bg-card">
         <div className="border-b border-border px-5 py-3">

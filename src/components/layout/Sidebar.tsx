@@ -30,6 +30,7 @@ import {
   Receipt,
   Trophy,
   Wallet,
+  ListChecks,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -61,6 +62,8 @@ type Tenant = {
 const AUDIT_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
 // Collections (brief Phase 4.3): whoever can take a payment can see who owes.
 const COLLECTIONS_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin', 'pawn_clerk'])
+// Stock counts and vault audits (patches/0075).
+const COUNT_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin', 'pawn_clerk'])
 const SETTINGS_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
 const BILLING_ROLES = new Set<TenantRole>(['owner', 'chain_admin'])
 const LOYALTY_ROLES = new Set<TenantRole>(['owner', 'chain_admin'])
@@ -132,6 +135,7 @@ export function Sidebar({
   const canSeeSettings = !!tenantRole && SETTINGS_ROLES.has(tenantRole)
   const canSeeBilling = !!tenantRole && BILLING_ROLES.has(tenantRole)
   const canSeeLoyalty = !!tenantRole && LOYALTY_ROLES.has(tenantRole)
+  const canSeeCounts = !!tenantRole && COUNT_ROLES.has(tenantRole)
   const canSeeTransfers =
     tenant?.tenant_type === 'shop' && !!tenant.parent_tenant_id
 
@@ -162,6 +166,13 @@ export function Sidebar({
       label: t.nav.transfers,
       icon: <ArrowsLeftRight size={18} weight="regular" />,
       visible: canSeeTransfers,
+    },
+    {
+      kind: 'item',
+      href: '/inventory/counts',
+      label: t.nav.counts,
+      icon: <ListChecks size={18} weight="regular" />,
+      visible: canSeeCounts,
     },
     // eBay listings — under Inventory because the listings ARE inventory
     // items being published. Settings/integrations entry is owner-only and
@@ -341,6 +352,14 @@ export function Sidebar({
     },
   ]
 
+  // The longest visible root that contains the current path.
+  const bestActiveRoot = items.reduce<string | null>((best, it) => {
+    if (it.kind !== 'item' || it.visible === false) return best
+    const root = it.activePrefix ?? it.href
+    const hit = pathname === root || pathname.startsWith(root + '/')
+    return hit && (!best || root.length > best.length) ? root : best
+  }, null)
+
   const widthClass = collapsed ? 'w-16' : 'w-52'
   const itemPadX = collapsed ? 'px-0 justify-center' : 'px-3'
 
@@ -393,8 +412,9 @@ export function Sidebar({
             )
           }
           const activeRoot = it.activePrefix ?? it.href
-          const isActive =
-            pathname === activeRoot || pathname.startsWith(activeRoot + '/')
+          // Only the most specific match lights up: /inventory/counts is
+          // Counts, not Inventory as well.
+          const isActive = activeRoot === bestActiveRoot
           if (it.disabled) {
             return (
               <span

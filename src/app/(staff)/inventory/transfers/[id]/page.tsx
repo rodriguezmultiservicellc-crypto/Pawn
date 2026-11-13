@@ -173,11 +173,22 @@ export default async function TransferDetailPage(props: { params: Params }) {
     ),
   )
 
-  const [tenantsRes, profilesRes] = await Promise.all([
+  const [tenantsRes, profilesRes, scanRes] = await Promise.all([
     admin.from('tenants').select('id, name, dba').in('id', tenantIds),
     userIds.length
       ? admin.from('profiles').select('id, full_name, email').in('id', userIds)
       : Promise.resolve({ data: [] }),
+    // Latest scan check of this transfer run by the viewing shop (RLS client).
+    ctx.supabase
+      .from('count_sessions')
+      .select('id, count_number, status, missing_count, unexpected_count')
+      .eq('tenant_id', ctx.tenantId)
+      .eq('transfer_id', id)
+      .neq('status', 'cancelled')
+      .is('deleted_at', null)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const tenantsById = new Map<string, { name: string; dba: string | null }>()
@@ -231,6 +242,15 @@ export default async function TransferDetailPage(props: { params: Params }) {
     cancelled_by_label: userLabel(transfer.cancelled_by),
     items,
     viewerSide: isFrom ? 'from' : 'to',
+    scanCheck: scanRes.data
+      ? {
+          id: scanRes.data.id,
+          count_number: scanRes.data.count_number,
+          status: scanRes.data.status as 'open' | 'closed',
+          missing: scanRes.data.missing_count ?? 0,
+          unexpected: scanRes.data.unexpected_count ?? 0,
+        }
+      : null,
   }
 
   return <TransferDetail data={data} activeTenantId={ctx.tenantId} />

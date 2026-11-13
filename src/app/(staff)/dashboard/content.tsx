@@ -21,6 +21,8 @@ import {
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { shortDateTime } from '@/lib/format/money'
+import type { PledgeAlert } from '@/lib/counts/server'
+import { PledgeAlertBanner } from '@/components/counts/PledgeAlertBanner'
 import type { MetalPurity, MetalType } from '@/types/database-aliases'
 
 /** One tile on the live metals strip (brief Phase 4.4). */
@@ -98,6 +100,7 @@ export default function DashboardContent({
   metalsStale,
   metalsUpdatedAt,
   todayCard,
+  pledgeAlert,
 }: {
   hasPawn: boolean
   hasRepair: boolean
@@ -113,6 +116,7 @@ export default function DashboardContent({
   metalsStale: boolean
   metalsUpdatedAt: string | null
   todayCard: TodayCard
+  pledgeAlert: PledgeAlert | null
 }) {
   const { t } = useI18n()
   const d = t.dashboard
@@ -128,6 +132,8 @@ export default function DashboardContent({
           {formatDateLong(today)}
         </span>
       </div>
+
+      {pledgeAlert ? <PledgeAlertBanner alert={pledgeAlert} /> : null}
 
       {/* Live metals strip (brief Phase 4.4) */}
       <MetalsStrip metals={metals} stale={metalsStale} updatedAt={metalsUpdatedAt} />

@@ -967,6 +967,424 @@ export type Database = {
           },
         ]
       }
+      count_exceptions: {
+        Row: {
+          close_note: string | null
+          code: string | null
+          collateral_item_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          inventory_item_id: string | null
+          kind: string
+          loan_id: string | null
+          reason: string | null
+          resolution: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          session_id: string
+          tenant_id: string
+          value: number
+        }
+        Insert: {
+          close_note?: string | null
+          code?: string | null
+          collateral_item_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          kind: string
+          loan_id?: string | null
+          reason?: string | null
+          resolution?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_id: string
+          tenant_id: string
+          value?: number
+        }
+        Update: {
+          close_note?: string | null
+          code?: string | null
+          collateral_item_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          kind?: string
+          loan_id?: string | null
+          reason?: string | null
+          resolution?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_id?: string
+          tenant_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "count_exceptions_collateral_item_id_fkey"
+            columns: ["collateral_item_id"]
+            isOneToOne: false
+            referencedRelation: "loan_collateral_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_exceptions_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_exceptions_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "public_catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_exceptions_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_exceptions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "count_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_exceptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_exceptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      count_expected: {
+        Row: {
+          code: string
+          collateral_item_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          inventory_item_id: string | null
+          loan_id: string | null
+          session_id: string
+          sku_number: number | null
+          state_at_start: string | null
+          tenant_id: string
+          value: number
+        }
+        Insert: {
+          code: string
+          collateral_item_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          loan_id?: string | null
+          session_id: string
+          sku_number?: number | null
+          state_at_start?: string | null
+          tenant_id: string
+          value?: number
+        }
+        Update: {
+          code?: string
+          collateral_item_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          loan_id?: string | null
+          session_id?: string
+          sku_number?: number | null
+          state_at_start?: string | null
+          tenant_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "count_expected_collateral_item_id_fkey"
+            columns: ["collateral_item_id"]
+            isOneToOne: false
+            referencedRelation: "loan_collateral_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_expected_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_expected_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "public_catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_expected_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_expected_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "count_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_expected_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_expected_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      count_reads: {
+        Row: {
+          code: string
+          collateral_item_id: string | null
+          expected_id: string | null
+          first_read_by: string | null
+          first_seen_at: string
+          id: string
+          inventory_item_id: string | null
+          last_seen_at: string
+          read_count: number
+          session_id: string
+          source: string
+          tenant_id: string
+        }
+        Insert: {
+          code: string
+          collateral_item_id?: string | null
+          expected_id?: string | null
+          first_read_by?: string | null
+          first_seen_at?: string
+          id?: string
+          inventory_item_id?: string | null
+          last_seen_at?: string
+          read_count?: number
+          session_id: string
+          source?: string
+          tenant_id: string
+        }
+        Update: {
+          code?: string
+          collateral_item_id?: string | null
+          expected_id?: string | null
+          first_read_by?: string | null
+          first_seen_at?: string
+          id?: string
+          inventory_item_id?: string | null
+          last_seen_at?: string
+          read_count?: number
+          session_id?: string
+          source?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "count_reads_collateral_item_id_fkey"
+            columns: ["collateral_item_id"]
+            isOneToOne: false
+            referencedRelation: "loan_collateral_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_reads_expected_id_fkey"
+            columns: ["expected_id"]
+            isOneToOne: false
+            referencedRelation: "count_expected"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_reads_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_reads_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "public_catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_reads_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "count_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_reads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_reads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      count_sessions: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          count_number: string
+          created_at: string
+          deleted_at: string | null
+          expected_count: number | null
+          id: string
+          kind: string
+          left_count: number | null
+          missing_count: number | null
+          missing_value: number | null
+          note: string | null
+          scope_category:
+            | Database["public"]["Enums"]["inventory_category"]
+            | null
+          scope_location:
+            | Database["public"]["Enums"]["inventory_location"]
+            | null
+          scope_shelf: string | null
+          seen_count: number | null
+          started_at: string
+          started_by: string | null
+          status: string
+          tenant_id: string
+          transfer_id: string | null
+          unexpected_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          count_number: string
+          created_at?: string
+          deleted_at?: string | null
+          expected_count?: number | null
+          id?: string
+          kind: string
+          left_count?: number | null
+          missing_count?: number | null
+          missing_value?: number | null
+          note?: string | null
+          scope_category?:
+            | Database["public"]["Enums"]["inventory_category"]
+            | null
+          scope_location?:
+            | Database["public"]["Enums"]["inventory_location"]
+            | null
+          scope_shelf?: string | null
+          seen_count?: number | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          tenant_id: string
+          transfer_id?: string | null
+          unexpected_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          count_number?: string
+          created_at?: string
+          deleted_at?: string | null
+          expected_count?: number | null
+          id?: string
+          kind?: string
+          left_count?: number | null
+          missing_count?: number | null
+          missing_value?: number | null
+          note?: string | null
+          scope_category?:
+            | Database["public"]["Enums"]["inventory_category"]
+            | null
+          scope_location?:
+            | Database["public"]["Enums"]["inventory_location"]
+            | null
+          scope_shelf?: string | null
+          seen_count?: number | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          tenant_id?: string
+          transfer_id?: string | null
+          unexpected_count?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "count_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_sessions_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_quote_lines: {
         Row: {
           cost_total: number
@@ -6377,6 +6795,73 @@ export type Database = {
       consume_google_reviews_quota: {
         Args: { p_cap: number; p_place_id: string; p_tenant_id: string }
         Returns: boolean
+      }
+      count_add_reads: {
+        Args: {
+          p_codes: string[]
+          p_session_id: string
+          p_source?: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: {
+          o_code: string
+          o_description: string
+          o_outcome: string
+        }[]
+      }
+      count_cancel: {
+        Args: { p_session_id: string; p_tenant_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      count_close: {
+        Args: {
+          p_notes?: Json
+          p_session_id: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: {
+          o_left: number
+          o_missing: number
+          o_unexpected: number
+        }[]
+      }
+      count_findings: {
+        Args: { p_session_id: string }
+        Returns: {
+          o_code: string
+          o_collateral_item_id: string
+          o_description: string
+          o_inventory_item_id: string
+          o_kind: string
+          o_loan_id: string
+          o_reason: string
+          o_value: number
+        }[]
+      }
+      count_resolve_exception: {
+        Args: {
+          p_exception_id: string
+          p_note?: string
+          p_resolution: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      count_start: {
+        Args: {
+          p_category?: Database["public"]["Enums"]["inventory_category"]
+          p_kind: string
+          p_location?: Database["public"]["Enums"]["inventory_location"]
+          p_note?: string
+          p_shelf?: string
+          p_tenant_id: string
+          p_transfer_id?: string
+          p_user_id: string
+        }
+        Returns: string
       }
       create_tenant_with_owner: {
         Args: {

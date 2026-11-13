@@ -197,6 +197,10 @@ const ROUTES = [
   ['T1 item tag PDF', ids.item && `/api/print/tags?kind=inventory&test=1&ids=${ids.item}`],
   ['T1 collateral labels PDF', ids.loan && `/api/print/tags?kind=collateral&loan=${ids.loan}`],
   ['T1 repair label PDF', ids.repair && `/api/print/tags?kind=repair&ticket=${ids.repair}`],
+  // PLAN-2026-11-13 Phase 2a — count sessions (read-only pages; no count is started).
+  ['T2 counts', '/inventory/counts'],
+  ['T2 counts report', '/reports/counts'],
+  ['T2 counts report PDF', '/api/reports/counts/pdf'],
   ['pos', '/pos'],
   ['settings hub', '/settings'],
   ['team', '/team'],

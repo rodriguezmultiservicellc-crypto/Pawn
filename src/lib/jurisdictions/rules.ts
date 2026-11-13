@@ -216,6 +216,41 @@ export function todayInTimezone(timezone: string, now: Date = new Date()): strin
   }
 }
 
+/** Offset of an IANA zone from UTC at an instant, in ms (local - UTC). */
+function zoneOffsetMs(utcMs: number, timezone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(new Date(utcMs))
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0)
+  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
+  return asUtc - utcMs
+}
+
+/**
+ * The UTC instant (ISO) at which a calendar day (YYYY-MM-DD) starts in an
+ * IANA timezone. Use it to turn a report's date range into timestamp
+ * bounds in the shop's day, not UTC's.
+ */
+export function dayStartInTimezone(date: string, timezone: string): string {
+  const [y, m, d] = date.split('-').map(Number)
+  const midnightUtc = Date.UTC(y, m - 1, d)
+  try {
+    // Two passes settle the offset across a DST change.
+    let instant = midnightUtc - zoneOffsetMs(midnightUtc, timezone)
+    instant = midnightUtc - zoneOffsetMs(instant, timezone)
+    return new Date(instant).toISOString()
+  } catch {
+    return new Date(midnightUtc).toISOString()
+  }
+}
+
 export function effectiveRules(args: {
   jurisdiction: Jurisdiction | null
   timezone: string | null

@@ -177,6 +177,11 @@ export type AuditAction =
   | 'tag_template_save'
   | 'tag_template_delete'
   | 'tag_cost_code_set'
+  // Count sessions (patches/0075)
+  | 'count_start'
+  | 'count_close'
+  | 'count_cancel'
+  | 'count_exception_resolve'
 
 export async function logAudit(args: {
   tenantId: string

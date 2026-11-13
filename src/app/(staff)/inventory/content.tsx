@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MagnifyingGlass, Plus, Image as ImageIcon, Tag, Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { categoryLabel } from '@/lib/inventory/labels'
 import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
 import {
   INVENTORY_CONDITIONS,
@@ -453,7 +454,7 @@ export default function InventoryContent({
                       ) : null}
                     </td>
                     <td className="px-4 py-3 text-foreground">
-                      {labelForCategory(it.category, t)}
+                      {categoryLabel(it.category, t)}
                     </td>
                     <td className="px-4 py-3 text-foreground">
                       {labelForSource(it.source, t)}
@@ -487,28 +488,6 @@ function formatMoney(v: number | string): string {
     currency: 'USD',
     minimumFractionDigits: 2,
   })
-}
-
-function labelForCategory(
-  c: InventoryCategory,
-  t: ReturnType<typeof useI18n>['t'],
-): string {
-  switch (c) {
-    case 'ring': return t.inventory.catRing
-    case 'necklace': return t.inventory.catNecklace
-    case 'bracelet': return t.inventory.catBracelet
-    case 'earrings': return t.inventory.catEarrings
-    case 'pendant': return t.inventory.catPendant
-    case 'chain': return t.inventory.catChain
-    case 'watch': return t.inventory.catWatch
-    case 'coin': return t.inventory.catCoin
-    case 'bullion': return t.inventory.catBullion
-    case 'loose_stone': return t.inventory.catLooseStone
-    case 'electronics': return t.inventory.catElectronics
-    case 'tool': return t.inventory.catTool
-    case 'instrument': return t.inventory.catInstrument
-    case 'other': return t.inventory.catOther
-  }
 }
 
 function labelForSource(
