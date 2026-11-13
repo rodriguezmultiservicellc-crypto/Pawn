@@ -142,6 +142,8 @@ export function Sidebar({
     icon: React.ReactNode
     disabled?: boolean
     visible?: boolean
+    /** Highlight for every path under this prefix, when href is a deep link. */
+    activePrefix?: string
   }
   type NavSection = {
     /** Visual divider between groups. Renders as a hairline (collapsed)
@@ -190,6 +192,17 @@ export function Sidebar({
 
     // Modules — gated per tenant.has_pawn / has_repair / has_retail.
     { kind: 'section' },
+    // POS first, straight into a new sale — the most-used counter action.
+    // The new-sale page links back to the /pos hub (layaways, returns,
+    // register), and the item stays highlighted anywhere under /pos.
+    {
+      kind: 'item',
+      href: '/pos/sales/new',
+      activePrefix: '/pos',
+      label: t.nav.pos,
+      icon: <CashRegister size={18} weight="regular" />,
+      visible: modules.has_retail,
+    },
     {
       kind: 'item',
       href: '/pawn',
@@ -233,13 +246,6 @@ export function Sidebar({
       label: t.nav.quotes,
       icon: <Sparkle size={18} weight="regular" />,
       visible: modules.has_repair,
-    },
-    {
-      kind: 'item',
-      href: '/pos',
-      label: t.nav.pos,
-      icon: <CashRegister size={18} weight="regular" />,
-      visible: modules.has_retail,
     },
 
     // Reporting + records.
@@ -386,8 +392,9 @@ export function Sidebar({
               />
             )
           }
+          const activeRoot = it.activePrefix ?? it.href
           const isActive =
-            pathname === it.href || pathname.startsWith(it.href + '/')
+            pathname === activeRoot || pathname.startsWith(activeRoot + '/')
           if (it.disabled) {
             return (
               <span
