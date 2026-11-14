@@ -5001,7 +5001,6 @@ export const es: Dictionary = {
       title: 'Etiquetas',
       subtitle: 'Imprima etiquetas de precio, de prendas empeñadas y de sobres de reparación con un código de barras que el escáner lee.',
       ownerOnly: 'Solo los dueños pueden cambiar las plantillas. Usted puede imprimir con ellas.',
-      templatesTitle: 'Plantillas',
       builtinNote: 'Las plantillas incluidas se usan hasta que guarde las suyas. Sus medidas son un punto de partida: mida sus etiquetas y guarde una copia.',
       kindInventory: 'Etiquetas de precio',
       kindCollateral: 'Prendas empeñadas',

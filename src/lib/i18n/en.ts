@@ -4998,7 +4998,6 @@ export const en = {
       title: 'Tags & labels',
       subtitle: 'Print price tags, pawn collateral labels and repair envelope labels with a barcode the scanner reads.',
       ownerOnly: 'Only owners can change tag templates. You can still print with them.',
-      templatesTitle: 'Templates',
       builtinNote: 'Built-in templates print until you save your own. Their sizes are starting points — measure your tag stock and save a copy.',
       kindInventory: 'Price tags',
       kindCollateral: 'Pawn collateral',

@@ -60,504 +60,86 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 57 (2026-11-09 → 11-13), saved 2026-11-13.
-                  Three blocks of work, all on main and in production:
-                  (A) LASER NAMEPLATE ORDERS, items 455-463;
-                  (B) NEW-TICKET "SIMPLE" VIEW, item 464;
-                  (C) WHOLE-APP REVIEW (item 465, REVIEW-2026-11-11.md,
-                      53 findings) and THE SEVEN "DO FIRST" FIXES (item
-                      466, commit 8d8c1dd, migrations 0071-0073 applied):
-                      invite account-takeover, unsigned Stripe webhook,
-                      anon column exposure (RLS), returns on unpaid
-                      sales, card tenders counted before charge, loan
-                      interest forgiven by a browser-sent split, ID-scan
-                      deletion. Review sections 2-6 are still open.
-                  Context budget at save: ~12%.
+  Last session:   Session 58 (2026-11-13), saved 2026-11-13.
+                  Context budget at save: ~55%.
+                  Competitor research, then PLAN-2026-11-13-tags-rfid-
+                  storefront.md (approved with the four recommended
+                  decisions: in-state tax only, per-shop online card
+                  limit, commission on sale total, layaway commission on
+                  completion). Build order 1, 2a, 0, 3, 4, 2b, 5, 7.
+                  FOUR PLAN PHASES BUILT this session, all on main and in
+                  production (main == feature/sol-pawn-brief):
+                  - Phase 1  ITEM TAGS WITH BARCODE (874e6fe, 0074) — 469
+                  - Phase 2a COUNT SESSIONS (63e4b5a, 0075) — 470
+                  - Phase 0  SALE MONEY IN THE DATABASE + REVIEW items
+                             10/11/12/13/16 (b2aac9e, 0076) — 471
+                  - Phase 3  ONLINE STORE, three commits (633375d,
+                             bf00aae, b4be295; 0077-0079) — 472-474
+                  Plus the POS sidebar button (bc2c312) — 468.
+                  Migrations 0074-0079 ALL APPLIED; the three with RLS
+                  (0074, 0075, 0078) were shown to Eddy and approved
+                  first. Every money/record function was dry-run against
+                  the live DB in a rolled-back transaction before apply.
+                  Verified at the end: 775 tests, tsc, lint, production
+                  build green; browser smoke 57/59 (only the two known
+                  failures, /consignors/new redirect + /audit hydration).
 
-                  (A) in detail — "Send to laser" on a repair ticket →
-                  orocut.com order API → OroCut on the laser PC; status
-                  back by signed webhook + polling. From the OroCut
-                  session's handoff (spec 2026-11-09-nameplate-orders-
-                  design.md) and checked against the LIVE API code in
-                  Para Cuba Solutions (read-only). patches/0070 APPLIED,
-                  0069 APPLIED (additive; needed so database.ts could be
-                  regenerated instead of hand-edited). Everything green
-                  + driven headless against a local orocut mock. Eddy
-                  said "merge it to main" (2026-11-09): main fast-
-                  forwarded to e2caeb2 and pushed — Stripe Connect (S56)
-                  and the laser orders (S57) are BOTH in production now.
-                  LIVE AND PROVEN (2026-11-10): RT-000003 (poll path)
-                  and RT-000004 (webhook path) both reached the laser
-                  PC from production; Nameplate chip added to intake
-                  (6dd07a3). Then the New-ticket "Simple" view (item
-                  464): same state, same hidden fields, identical rows
-                  proved in the browser. Stripe setup (454) still Eddy's.
+                  NOT RUN END TO END: anything that needs Stripe. Online
+                  checkout, the checkout.session.* webhook paths, online
+                  loan/layaway payments — all blocked on item 454 +
+                  STRIPE_WEBHOOK_SECRET. Every shop's online checkout is
+                  OFF by default, so production shoppers see no change.
 
-                  PRIOR SESSION (56, 2026-11-04/05) — STRIPE CONNECT
-                  PER-TENANT ONBOARDING (items 449-454), dispatched by
-                  the Manager session onto branch feature/sol-pawn-brief
-                  (NOT on main, NOT pushed). The one not-started piece every
-                  Stripe surface depended on: terminal.ts and
-                  payment-link.ts both require
-                  tenant_billing_settings.stripe_account_id and nothing
-                  ever wrote it.
-                  - Express account per tenant (platform key +
-                    Stripe-Account header, so Terminal + Checkout keep
-                    working unchanged) created idempotently at
-                    GET /api/stripe/connect/start, then an Account Link
-                    into Stripe-hosted onboarding; return_url =
-                    /api/stripe/connect/callback re-reads the Account
-                    and stores charges / payouts / details flags
-                    (0069); refresh_url = /start again. Owner-tier only.
-                  - /api/stripe/connect/dashboard mints an Express login
-                    link ("Open Stripe dashboard").
-                  - /api/stripe/webhook now handles account.updated
-                    (routes by stripe_account_id). The endpoint must be
-                    registered in Stripe as a CONNECT webhook.
-                  - Settings → Integrations: status pill (not connected /
-                    onboarding incomplete / connected), account last-4,
-                    charges + payouts, one action per state, ?stripe=
-                    result banner. EN + ES.
-                  - patches/0069 written, NOT APPLIED in S56; database.ts
-                    hand-edited to match (item 245 precedent). S57 applied
-                    0069 and regenerated database.ts (no hand edits left).
-                  - Gate fix: ONE Stripe REST transport
-                    (lib/stripe/http.ts) replaces four private copies.
-                  - NOT smoke-tested against Stripe at all (no login, no
-                    live call). See item 454 for exactly what Eddy does.
-
-                  PRIOR SESSION (55): ALL FIVE PHASES (0-4) of
-                  sol-pawn-brief-for-armando.md (the "Sol Pawn" fixes +
-                  features brief; Eddy confirmed it is for THIS session
-                  and cleared production). All on main. THE BRIEF IS
-                  COMPLETE.
-
-                  PHASE 4 — SMALLER ITEMS (items 441-446):
-                  - 4.1 /tools bench calculators (ring size, weight
-                    units, alloy down, raise karat, mix lots, melt/payout)
-                    — pure, formulas shown, 16 tests, per-user recent
-                    list (0066). Item 441.
-                  - 4.2 inventory fields (0067): condition, COATING,
-                    finish, shelf, legacy code, wholesale price; coating
-                    ≠ none is excluded from EVERY melt (detail, buy,
-                    pawn intake, suggested loan) and warned on both
-                    intakes; auto SKU = CAT-METAL-seq; "Suggest price"
-                    = cost ÷ (1 − target margin from Settings). 442-444.
-                  - 4.3 /collections: loans + layaways + repair balances
-                    in configurable aging buckets (0068), KPIs, call /
-                    text / record-payment per row. Item 445.
-                  - 4.4 dashboard: live metals strip (red when stale) +
-                    "Today" card; low-stock skipped (no quantity field).
-                    Item 446.
-                  - PROD BUG FIX: /tools "Keep this" 500 — CALCULATORS
-                    const moved out of the 'use server' file into
-                    lib/bench/calculators.ts. Item 447.
-                  - PROD BUG FIX: Buy outright submit 500 — a type
-                    re-export at the end of buy/new/actions.ts. Item 448.
-
-                  PHASE 3 — TWO-WAY METAL COUNTER (items 432-440):
-                  - Buy Outright: every item has "Enter by: Weight |
-                    Amount" — grams → payout at the pay rate, or dollars
-                    → grams ("they want $300 for this 14K"). Totals by
-                    metal & karat. Payout: cash / transfer / MIXED (cash +
-                    transfer to the cent) / check / card / other / store
-                    credit. Item 435.
-                  - NEW /buy/sell: scrap or bullion out the door at the
-                    SELL rate (spot_price_overrides.sell_multiplier, set
-                    per metal × purity on Spot prices beside the pay
-                    rate). Persisted as a real `sales` row
-                    (sale_kind='metal', completed + locked, lines carry
-                    metal/purity/grams/spot/rate, one sale_payments row
-                    per tender) → register close + sales summary + audit
-                    log. NEVER a compliance_log row. Items 432, 436-437.
-                  - Migrations 0064 (enums: payment_method 'transfer',
-                    sale_kind 'metal') + 0065 (sell_multiplier, metal
-                    columns on sale_items, sales.counterparty_name).
-                    APPLIED. Item 433.
-                  - Verified: tsc/lint/612 tests/build green; browser
-                    smoke 40/41 cold (known consignment gate); DB smoke
-                    of a metal sale rolled back clean. The sell form
-                    submission itself is NOT automation-driven — Eddy
-                    should ring up one real scrap sale. Item 440.
-
-                  PHASE 2 — CUSTOM-PIECE QUOTER (items 421-430):
-                  - /repair/quotes: The piece → The price → The payment
-                    with the sticky "Total — you keep — margin" footer
-                    live. Every price block is a LINE with cost + price;
-                    margin is on price; target margin fills unlocked
-                    lines; a hand-typed price locks. Saving re-prices on
-                    the server and FREEZES metal at today's spot
-                    ("Priced at $X/g on <date>"). Min margin from Settings
-                    is enforced server-side. Items 421-425.
-                  - Accepted quote → custom repair ticket in one tap, born
-                    at awaiting_approval with quote set + approved so the
-                    Phase 1 stage reads "Design approved"; cost lines →
-                    parts (COGS), stones → ticket stones, photo carries
-                    over; the DEPOSIT is collected through the ticket's
-                    existing Collect-deposit flow, not written by the
-                    quote. Item 424.
-                  - Public /q/<token> page + customer PDF (price lines
-                    only when Settings → Custom quotes enables the
-                    breakdown; costs/margin never). Items 426-427.
-                  - Eddy reported "no print ticket button" on a repair
-                    ticket mid-phase: there was NO repair ticket PDF
-                    anywhere in the app. Built RepairTicketPDF + route +
-                    button (item 427). GOTCHA: JetBrains Mono ligatures
-                    ("//") crash fontkit on WOFF — URLs never go in the
-                    mono face (item 428).
-                  - Weight-from-laser-app hook: interface + TODO only
-                    (lib/custom-quotes/weight-source.ts). Item 423.
-                  - [CRITICAL, found by Eddy's first real print] EVERY
-                    PDF route 500'd in PRODUCTION: the @fontsource woff
-                    files are read with fs at runtime and were never
-                    traced into the Vercel bundle. Fixed with
-                    outputFileTracingIncludes in next.config.ts. Item 431.
-
-                  PHASE 1 — CUSTOMER TRACKING LINK (items 411-420):
-                  - Every repair ticket has an unguessable public_token;
-                    /t/<token> is a no-login, read-only page with store
-                    branding, progress bar of named STAGES, promised
-                    date, quoted/paid/balance, store phone. Verified on
-                    the built app: 200 for a real token with zero
-                    customer data in the HTML, 404 (custom, bilingual)
-                    for unknown / malformed tokens.
-                  - The ONLY input is the token: SECURITY DEFINER RPC
-                    repair_public_ticket() resolves tenant+ticket and
-                    returns a customer-safe jsonb; lib/repair/public-
-                    ticket.ts re-applies the allowlist and a test locks
-                    the forbidden keys. Item 412.
-                  - repair_stages per tenant × service_type (0061), seeded
-                    with the brief's defaults; a DB TRIGGER keeps the
-                    ticket's stage coherent with every status change made
-                    anywhere; hand-advanced sub-stages ("Casting") move by
-                    one tap on the board or the ticket. Item 413.
-                  - Send by SMS = new message_kind repair_tracking_link
-                    (0060) through the normal dispatcher; repair_ready /
-                    pickup_reminder texts now carry {{tracking_link}}.
-                    Optional immediate "text when ready" switch. 415-417.
-                  - /settings/repair-stages editor (EN/ES names, %, auto-
-                    advance statuses, reorder, reset to defaults). 418.
-                  - GOTCHA: a 'use client' not-found.tsx under a dynamic
-                    segment rendered Next's DEFAULT 404 in production (no
-                    error logged); the server-component version works.
-                    Item 420.
-
-                  PHASE 0 — SPOT PRICES (items 402-410): un-frozen after
-                  SIX MONTHS. Two independent causes: Stooq's CSV
-                  endpoint 404s for every symbol since ~May; AND the cron
-                  never ran once (CRON_SECRET unset → 401 before any
-                  logging). Provider chain gold-api.com → Yahoo futures →
-                  Stooq; every attempt lands in spot_price_fetches (0058);
-                  24h stale-price guard with manager confirm; the ×0.6000
-                  on 18K is Eddy's own PAY-RATE override (now shown as
-                  "You pay $X/g" + "Spot $Y/g", item 407); "24.96% — 111"
-                  rate used by ONE redeemed loan — NOT touched (item 408).
-                  CRON_SECRET finally set in Vercel Production.
-
-                  PRIOR SESSION (54): ID scan tile in the customer header
-                  (item 393); HEIC uploads fixed end to end — browser-
-                  declared mime was '' on Windows (394-395), then
-                  transcoded to JPEG at upload (396-398). Item 400: a
-                  mid-session npm install desyncs Turbopack and 500s
-                  every route on a font module — looks like broken code,
-                  is not.
-
-                  PRIOR SESSION (53): sex / hair / eyes / race became
-                  dropdowns on all three customer surfaces and race was
-                  wired end to end; option values reproduce the
-                  vocabulary already in the data (item 389) and off-list
-                  legacy values are preserved (item 390).
-
-                  - The scaffold privesc hole was CONFIRMED LIVE
-                    VULNERABLE here, not theoretical: anon AND
-                    authenticated held UPDATE on every profiles column
-                    including role + tenant_id, while the UPDATE policy
-                    pinned row ownership only. Closed at the GRANT layer
-                    (the real column-authz control) and backed by a
-                    guard trigger so a future re-GRANT cannot silently
-                    reopen it. No RLS policy touched. Items 380-383.
-                  - scripts/smoke-browser.mjs drives 30 staff routes in
-                    real Chrome as a genuinely authenticated superadmin/
-                    owner session. Item 384 for what it checks, and the
-                    RESUME POINT below for how to run it.
-                  - VersionFooter computed a Date.now()-derived relative
-                    time during render, throwing a hydration error on
-                    EVERY page (root layout). Item 385.
-                  - METHODOLOGY: a warm dev server HIDES hydration bugs.
-                    The first smoke said 30/30 clean and was a false
-                    negative. Item 386 — read it before trusting a
-                    green smoke.
-
-                  PRIOR SESSION (51): PawnSmarts-parity feature 4 —
-                  store credit (0052-0053) + consignment (0054-0055);
-                  all four parity features shipped, every DB rule
-                  verified against the live database in a transaction
-                  that rolled back.
-
-                  - STORE CREDIT. payment_method gained 'store_credit'
-                    in its own patch (0052) because Postgres refuses to
-                    use a new enum value in the transaction that adds
-                    it — same split as 0049/0050. 0053 adds
-                    customers.store_credit_balance (materialized by a
-                    trigger, CHECK >= 0), the append-only
-                    store_credit_events ledger with a sign CHECK per
-                    kind, and THREE RPCs. Spending credit goes through
-                    store_credit_redeem_on_sale(), which writes the
-                    ledger debit + the sale_payments row + the
-                    sales.paid_total bump in ONE transaction, under a
-                    row lock on the customer. 'store_credit' is
-                    deliberately kept OUT of paymentMethodSchema so the
-                    generic add-payment dialog can never record a tender
-                    nobody was charged for. Surfaces: a POS tender block
-                    on the sale detail, a balance + ledger panel on the
-                    customer (owner/manager can adjust, reason
-                    mandatory), store credit as a RETURN refund method
-                    and as a BUY-OUTRIGHT payout method, and
-                    /settings/store-credit.
-                  - CONSIGNMENT. 0054 adds consignors (always backed by
-                    a customers row), four consignment columns on
-                    inventory_items, consignment_payouts, and the
-                    consignment_payables SIGNED ledger. All accounting
-                    is TRIGGER-owned: accrue on sale completion (retail
-                    AND layaway payoff, both flip the sale to
-                    'completed'), reverse on void, reverse pro-rata on
-                    return. A floor-price trigger refuses any sale line
-                    whose EFFECTIVE unit price (after the line discount)
-                    falls below what was agreed with the consignor.
-                    consignment_pay_out() settles the whole open balance
-                    in one transaction. Staff RLS on payables/payouts is
-                    SELECT-only — nothing hand-edits the book.
-                  - BUG FOUND AND FIXED IN THE SMOKE TEST (0055). The
-                    0054 reversal triggers reversed the FULL accrual
-                    without looking at reversals already written, so a
-                    fully-returned line that was then voided clawed back
-                    160 twice on a 160 accrual — and voidSaleAction IS
-                    reachable on a 'fully_returned' sale. Both triggers
-                    now clamp to the unreversed remainder. Verified:
-                    three 1-unit returns against a 2-unit line, then a
-                    void, leave the line at exactly 0.
-                  - Rule 13 delete gate now also blocks on unspent store
-                    credit and on open consignment (goods on the floor
-                    or an unsettled balance) — both are money the shop
-                    owes a person whose record would otherwise vanish.
-                  - CLAUDE.md rule 19 records both conventions.
-
-  Context budget: ~55% at save time (2026-11-09). Session 57 = e2caeb2
-                  (laser orders); main == feature/sol-pawn-brief ==
-                  origin/main at e2caeb2 after Eddy's "merge it to main".
-                  Session 56 = be86068 (Connect routes + UI + 0069) +
-                  48deb05 + checkpoint c518613. Session 55: Phase 0 =
-                  b3603ce, Phase 1 = bba152a, Phase 2 = 3d200cb, PDF
-                  font-trace fix = 0a36edf, Phase 3 = a771ee1, Phase 4.1 =
-                  baf814a, 4.2 = 111004c, 4.3 = eb0afee, 4.4 = a9479ce,
-                  prod fixes 3ba0aa1 + 0ce71b7; all fast-forwarded into
-                  main.
-  Last worked on: Laser nameplate orders (items 455-460) — complete,
-                  green (tsc, eslint, 669 tests, next build) and driven
-                  headless against a local orocut.com mock (send, signed
-                  webhook, bad signature → 401, poll with cut details,
-                  cancel, timeline notes, audit). Never touched the real
-                  orocut.com: Eddy creates the order token + webhook
-                  secret at orocut.com/account first (item 460). Stripe
-                  Connect (S56) still waits on Eddy's Stripe setup +
-                  "go" (item 454); both ship together when main is
-                  fast-forwarded.
-
-  ACTIVE FILE(S) (all committed):
-    Session 57, block C — the seven fixes (item 466):
-    - REVIEW-2026-11-11.md (the review; section 1 marked fixed)
-    - patches/0071-auth-lookup-and-card-settle.sql (APPLIED)
-    - patches/0072-public-views.sql (APPLIED)
-    - patches/0073-drop-public-table-policies.sql (APPLIED — RLS)
-    - src/lib/auth/{account-link-policy,account-access}.ts (+ test)
-    - src/lib/stripe/webhook-guard.ts (+ test)
-    - src/lib/pos/{returns,card-settle}.ts (+ returns.test)
-    - src/lib/compliance/retention.ts decideDocumentDelete (+ test)
-    - src/lib/pawn/math.ts allocateLoanPayment; validations/loan.ts
-    - src/lib/tenant-resolver.ts (reads the public_* views)
-    - src/lib/portal/invite.ts
-    - src/app/api/stripe/webhook/route.ts
-    - src/app/(staff)/team/{actions,content}.ts(x)
-    - src/app/(staff)/customers/[id]/{actions,portal-actions,content,page}
-    - src/app/(staff)/pawn/[id]/actions.ts; components/pawn/
-      RecordPaymentDialog.tsx
-    - src/app/(staff)/pos/returns/new/{actions,form,page};
-      components/pos/ReturnPicker.tsx
-    - src/app/(staff)/pos/sales/[id]/{actions,content,page}
-    - src/app/(portal)/portal/{loans,layaways}/[id]/actions.ts
-    - src/components/customers/PortalInvitePanel.tsx
-    Session 57, blocks A + B (feature/sol-pawn-brief == main):
-    - src/app/(staff)/repair/new/{form,simple-view}.tsx — Simple view (464)
-    - src/lib/repair/simple-intake.ts (+ .test) — Simple view helpers
-    - src/lib/repair/line-items.ts (+ .test) — Nameplate chip (item 462)
-    - patches/0070-laser-orders.sql (APPLIED 2026-11-09)
-    - src/lib/orocut/{status,merge,signature,client,sync}.ts
-      (+ merge.test, signature.test — 14 tests)
-    - src/lib/validations/laser-order.ts
-    - src/app/(staff)/repair/laser-actions.ts (send / cancel / refresh)
-    - src/components/repair/LaserOrderPanel.tsx
-    - src/app/(staff)/repair/[id]/{page,content}.tsx (panel wired)
-    - src/app/(staff)/settings/integrations/orocut/{page,content,actions}
-    - src/app/(staff)/settings/integrations/{page,content}.tsx (card)
-    - src/app/api/webhooks/orocut/route.ts
-    - src/app/api/cron/sync-laser-orders/route.ts + vercel.json (*/5)
-    - src/lib/secrets/vault.ts (2 kinds), src/lib/audit.ts (4 actions),
-      src/lib/i18n/{en,es}.ts (repair.laser.*, orocut.*)
-    - src/types/database.ts (REGENERATED — 0069 + 0070 columns)
-    Session 56 (feature/sol-pawn-brief):
-    - patches/0069-stripe-connect-status.sql (APPLIED 2026-11-09 by S57)
-    - src/lib/stripe/connect-status.ts (+ .test.ts, pure, 17 tests)
-    - src/lib/stripe/connect.ts (Stripe + DB, server-only)
-    - src/lib/stripe/connect-guard.ts (owner-tier guard for the routes)
-    - src/lib/stripe/http.ts (shared stripeFetch; terminal / payment-link
-      / saas / connect all import it now)
-    - src/app/api/stripe/connect/{start,callback,dashboard}/route.ts
-    - src/app/api/stripe/webhook/route.ts (account.updated)
-    - src/app/(staff)/settings/integrations/{page,content}.tsx
-    - src/app/(staff)/settings/page.tsx (hub "connected" = derived status)
-    - src/lib/audit.ts (2 actions), src/lib/i18n/{en,es}.ts
-      (stripeConnect.*)
-    Session 55:
-    - sol-pawn-brief-for-armando.md (THE SPEC — Phases 0-4, ALL DONE)
-    Phase 4:
-    - patches/0066-bench-calculations.sql, 0067-inventory-fields.sql,
-      0068-collections-buckets.sql (ALL APPLIED)
-    - src/lib/bench/{ring-size,weight,alloy,combos,calculators}.ts (+ bench.test)
-    - src/app/(staff)/tools/{page,content,actions}
-    - src/lib/spot-prices/purity.ts (COATINGS, isSolidMetal)
-    - src/lib/inventory/pricing.ts; src/lib/validations/{inventory,loan,
-      buy-outright}.ts; src/lib/pawn/{intake-form,suggested-loan}.ts
-    - src/components/inventory/InventoryFormFields.tsx (new fields,
-      Suggest price); inventory/{page,content}, new/*, [id]/*
-    - src/components/pawn/CollateralItemsList.tsx; pawn/new/actions.ts
-    - src/app/(staff)/buy/new/{form,actions} (coating)
-    - src/app/(staff)/settings/general/{page,content,actions} (target
-      margin + collections buckets)
-    - src/lib/collections/{aging,load}.ts (+ aging.test);
-      src/app/(staff)/collections/{page,content}.tsx
-    - src/app/(staff)/dashboard/{page,content}.tsx
-    - Sidebar (Bench tools, Collections); i18n tools.*, collections.*,
-      inventory.* (0067 keys), pawn.new_.itemCoating*, dashboard.metals*/
-      today*; smoke routes P4
-    Phase 3:
-    - patches/0064-metal-counter-enums.sql, 0065-metal-counter.sql (APPLIED)
-    - src/lib/spot-prices/purity.ts (pure; melt.ts re-exports)
-    - src/lib/metal-counter/{math,rates}.ts (+ math.test)
-    - src/lib/validations/metal-sale.ts; buy-outright.ts (transfer/mixed)
-    - src/app/(staff)/buy/new/{form,page,actions} (two-way, i18n, mixed)
-    - src/app/(staff)/buy/sell/{page,form,actions,persist}.ts(x),
-      [id]/{page,content}.tsx (receipt)
-    - src/app/(staff)/buy/[id]/content.tsx (i18n'd buy receipt)
-    - src/components/buy/{MetalCounterTabs,MetalTotalsTable,
-      MixedTenderFields,EntryModeToggle}.tsx
-    - src/app/(staff)/inventory/spot-prices/{page,content,actions} (sell rate)
-    - src/types/database-aliases.ts, src/lib/audit.ts, Sidebar,
-      pos/{page,content}.tsx, pos/sales/[id]/content.tsx, SaleReceiptPDF
-    - src/lib/i18n/{en,es}.ts (buy.counter/errors/form/sell/receipt/
-      buyReceipt, nav.sellMetal, pos.payment.methodTransfer,
-      pos.print.payment.transfer, spotPrices sell-rate keys)
-    - scripts/smoke-browser.mjs (+ P3 routes, ids.metalSale)
-    Phase 2:
-    - patches/0062-custom-quote-link-kind.sql (APPLIED — enum value)
-    - patches/0063-custom-quotes.sql (APPLIED — enums, settings columns,
-      custom_quotes + custom_quote_lines, number/token trigger, freeze
-      triggers, RPC custom_quote_public, templates)
-    - src/lib/custom-quotes/{math,metals,links,weight-source,
-      public-quote}.ts (+ math.test, public-quote.test) — pure
-    - src/lib/custom-quotes/{settings,spot,load}.ts — server-only
-    - src/lib/validations/custom-quote.ts
-    - src/app/(staff)/repair/quotes/{page,content,actions}.ts(x),
-      new/page.tsx, [id]/{page,content}.tsx, [id]/edit/page.tsx
-    - src/components/custom-quotes/{QuoteForm,QuoteStatusBadge}.tsx
-    - src/app/(public)/q/[token]/{page,content,not-found}.tsx
-    - src/lib/pdf/{shared.ts,CustomQuotePDF,render-custom-quote,
-      RepairTicketPDF,render-repair-ticket}.tsx
-    - src/app/api/print/{quote,repair}/[id]/route.ts
-    - src/app/(staff)/repair/[id]/content.tsx (Print ticket button)
-    - src/app/(staff)/settings/custom-quotes/{page,content,actions}.ts(x)
-      + hub card; Sidebar "Custom quotes"; proxy '/q'
-    - src/lib/format/date.ts (formatCalendarDate — shared by /t and /q)
-    - src/lib/i18n/{en,es}.ts (quotes.*, quotePublic.*,
-      settingsCustomQuotes.*, repair.print.*, nav.quotes, comms kind)
-    - scripts/smoke-browser.mjs (+9 routes: P0/P1/P2 pages, board, PDFs)
-    Phase 1:
-    - patches/0060-repair-tracking-link-kind.sql (APPLIED — enum value)
-    - patches/0061-repair-tracking.sql (APPLIED — repair_stages, ticket
-      public_token / public_stage_id, sync trigger, RPC
-      repair_public_ticket, templates, backfill)
-    - src/lib/repair/stages.ts (+ test) — pure stage/token helpers,
-      SERVICE_TYPES, MAPPABLE_STATUSES
-    - src/lib/repair/public-ticket.ts (+ test) — public allowlist shaper
-    - src/lib/repair/notify.ts — notifyRepairReadyIfEnabled
-    - src/lib/i18n/server.ts — detectLanguageFromHeaders (moved out of
-      the (public) layout so not-found pages can use it)
-    - src/app/(public)/t/[token]/{page,content,not-found}.tsx
-    - src/app/(staff)/repair/stage-actions.ts (shared: set stage, send
-      SMS, regenerate, revoke)
-    - src/components/repair/TrackingPanel.tsx (+ StageQuickRow for board)
-    - src/components/repair/ServiceTypeBadge.tsx (serviceTypeLabel export)
-    - src/app/(staff)/repair/[id]/{page,content,actions}.ts(x)
-    - src/app/(staff)/repair/board/{page,content,actions}.ts(x)
-    - src/app/(staff)/settings/repair-stages/{page,content,actions}.ts(x)
-    - src/app/(staff)/settings/content.tsx (hub card)
-    - src/app/api/cron/repair-ready-reminders/route.ts (tracking_link var)
-    - src/proxy.ts ('/t' public), src/lib/audit.ts (7 actions),
-      src/lib/validations/communications.ts, settings/communications
-      KIND_ORDER, SendReminderDialog ALL_KINDS
-    - src/lib/i18n/{en,es}.ts (repair.tracking.*, tracking.*,
-      settingsRepairStages.*, comms kind label/description)
-    Phase 0: src/lib/spot-prices/** (sources chain, refresh, staleness,
-      stale-gate, lookup), StalePriceBanner, spot-prices / buy / pawn /
-      calculator pages, cron refresh-spot-prices, patches/0058-0059,
-      scripts/refresh-spot-prices.ts
-    - patches/0057-normalize-customer-description-values.sql
-      (written, NOT APPLIED — see item 392)
+  ACTIVE FILE(S):
+    - PLAN-2026-11-13-tags-rfid-storefront.md (status line says Phase 3
+      built; next is Phase 4)
+    - patches/0074-item-tags.sql … patches/0079-custom-domains.sql
+    - src/lib/labels/** (tags), src/app/api/print/tags/route.ts,
+      src/app/(staff)/settings/tags/**
+    - src/lib/counts/{types,server,report}.ts,
+      src/app/(staff)/inventory/counts/**, src/app/api/counts/[id]/reads,
+      src/app/(staff)/reports/counts/**
+    - src/lib/pos/{money,cart}.ts, src/app/(staff)/pos/sales/**,
+      src/app/(staff)/pos/layaways/[id]/actions.ts
+    - src/app/api/stripe/webhook/route.ts (applyLoanPayment,
+      applyLayawayPayment, handleOnlineOrderSession)
+    - src/lib/reports/{range,shop-range}.ts (+ every report lib/page)
+    - src/lib/store/{orders,orders-errors,validation,settings,
+      custom-domain}.ts, src/components/store/**,
+      src/app/(public)/s/[slug]/{cart,order,policies,sitemap.xml,
+      catalog/[sku]/image}, src/app/api/store/[slug]/{cart,checkout},
+      src/app/api/cron/release-online-orders, vercel.json
+    - src/app/(staff)/pos/online-orders/**,
+      src/app/(staff)/settings/store/** (DomainCard.tsx)
+    - src/proxy.ts (verified custom domain → /s/<slug>)
+    - src/lib/i18n/{en,es}.ts
     - Progress.txt (this file)
 
   RESUME POINT:
-    Clean. main == origin/main == feature/sol-pawn-brief, everything in
-    production, no operation in flight. START BY READING
-    REVIEW-2026-11-11.md: section 1 (seven items) is fixed and live
-    (item 466); sections 2-6 are open and Eddy has not picked the next
-    block. The natural next ones are section 2 (make each money
-    movement one database function shared by the staff action and the
-    webhook — it also closes the two things left alone next to the
-    fixes: layaway card tenders still count as paid when recorded, and
-    the webhook still applies a payment to a loan closed in the
-    meantime) or the single shop-timezone date helper. NOTHING in item
-    466 was clicked through end to end — ask Eddy how returns, loan
-    payments, removing an ID scan and the team invite behaved at the
-    counter, and read audit_log (return_create, doc_delete,
-    card_present_succeeded, user_tenants create with
-    existing_account) if anything looks off. STRIPE_WEBHOOK_SECRET is
-    not set in Vercel: the webhook answers 503 until it is (OPEN
-    ISSUES).
-    The laser link is live end to end (items 461-463): two
-    real orders sit "At the laser" waiting for the operator (Make →
-    Insert → Send → Done); when they move, the ticket panel should
-    flip to Cut / Done by webhook within seconds — if it does not, the
-    laser_orders row's last_sync_error and audit_log (table
-    laser_orders) say why, and the 5-min cron is the fallback.
-    Stripe Connect (S56) is on main but UNVERIFIED against Stripe until
-    Eddy does item 454 steps 2-5; then one "Connect with Stripe" click
-    in TEST mode and check tenant_billing_settings + audit_log
-    (stripe_connect_account_create, stripe_connect_status_sync). If it
-    fails, the three routes log with a [stripe-connect/...] prefix and
-    redirect with ?stripe= stripe_error | save_failed | misconfigured.
-    Next code item if nothing is reported: the production hydration
-    mismatches (OPEN ISSUES) — verify in PRODUCTION, not local smoke.
-    The Session 55 "ask Eddy what he found in production" loop is the
-    standing instruction.
-
-    Known loose ends: /audit hydration flake (OPEN ISSUES), Phase 2
-    quote form not automation-driven, quotes don't auto-expire by cron.
-
-    Open questions for Eddy from Phase 0 (item 408 rate "111"; the 60%
-    18K pay rate) still unanswered — neither blocks Phase 3.
-
-    If the next session touches uploads, read item 400 FIRST — a
-    mid-session npm install desyncs Turbopack and makes every route 500
-    on a font module, which looks exactly like broken code.
+    Clean. main == origin/main == feature/sol-pawn-brief, no operation
+    in flight, dev server stopped. Plan phases 1, 2a, 0 and 3 are built
+    and live. NEXT IN THE PLAN IS PHASE 4 — PRODUCT FEEDS (Google
+    Merchant + Meta catalog from public_catalog_items; the stable image
+    route /s/<slug>/catalog/<sku>/image and storeBaseUrl() already exist
+    for exactly this). Do not start it without Eddy's go — he has been
+    saying "do phase N" one phase at a time. After 4: 2b (RFID — needs
+    the hardware spike first), 5, 7.
+    Before that, ask Eddy for counter feedback on what shipped today:
+    printing a tag (PDF + Zebra), running one case count, and a POS sale
+    + layaway payment (the sale path now runs through sale_create /
+    sale_add_payment / sale_complete — a refusal shows a translated
+    error; audit_log says which function refused).
+    To prove the online store: Eddy does item 454 (connect Stripe, set
+    STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET in Vercel, subscribe the
+    Connect webhook to checkout.session.completed AND
+    checkout.session.expired), turns on Settings → Online store, and
+    buys one piece in TEST mode. Then check: online_orders row paid, a
+    sales row with channel='online' completed, the confirmation message
+    in message_log, the piece gone from the catalog, audit_log
+    online_order_paid. An abandoned checkout must come back within the
+    hold time (cron release-online-orders every 10 min, 5-min grace).
+    Custom domain: after the TXT record verifies, RMS still has to add
+    the domain to the Vercel project — the app cannot.
 
   HOW TO RUN THE BROWSER SMOKE (new this session):
     npm run dev                       # server must be up on :3060
@@ -582,12 +164,35 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
-    - STRIPE_WEBHOOK_SECRET IS NOT SET IN VERCEL PRODUCTION (checked
-      2026-11-11: no Stripe variable at all). Since item 466 the
-      webhook answers 503 to everything without it — correct, but it
-      means no online loan / layaway payment and no card settlement can
-      post until Eddy sets it (with STRIPE_SECRET_KEY and the publishable
-      key) as part of item 454.
+    - STRIPE IS STILL NOT SET UP (item 454). No Stripe variable in
+      Vercel Production (checked 2026-11-11); without
+      STRIPE_WEBHOOK_SECRET the webhook answers 503 to everything. That
+      now blocks FOUR things: online loan payments, layaway payments,
+      card settlement and the WHOLE ONLINE STORE (S58). The Connect
+      webhook must also be subscribed to checkout.session.expired.
+    - ONLINE STORE (S58) NOT RUN END TO END. Verified instead: every
+      SQL function in a rolled-back transaction on live data (tax,
+      shipping, card limit, the second shopper refused, payment →
+      completed online sale, a repeated event ignored, handover refused
+      without ID + signature), the public pages with checkout off,
+      checkout answering stripe_not_connected without writing anything.
+    - ONLINE STORE GAPS, by design for now:
+      - No refund UI. A needs_refund order or an overpaid online loan
+        payment (audit stripe_payment_needs_refund) is refunded by hand
+        in the Stripe dashboard.
+      - No "cancel a paid order" button in the queue. Voiding the sale
+        may refund the card — that path is NOT checked for online
+        payments.
+      - An orphan PaymentIntent is possible if sale_add_payment refuses
+        after the PI was created; it is logged, not reversed.
+      - Abuse limits are caps only (10 pieces, 2 open checkouts per
+        email); no per-IP rate limit on /api/store/<slug>/checkout.
+      - On a custom domain, root /sitemap.xml is not routed (the proxy
+        matcher excludes it); /s/<slug>/sitemap.xml works.
+      - Hero image not built.
+    - COUNTS (S58): the scan page was driven in the browser smoke for
+      render only; no real case count has been run at the counter.
+      RFID (Phase 2b) is not started — it needs the hardware spike.
     - STRIPE CONNECT (Session 56) IS UNVERIFIED AGAINST STRIPE. No
       account was created, no Account Link minted, no account.updated
       received — the worker session had no browser login and did not
@@ -700,6 +305,27 @@ OPERATION IN FLIGHT: none
       the one implementation for new code; folding those three into it
       is a repo-wide money refactor on three shipped surfaces and needs
       an explicit go-ahead.
+
+  KEY DECISIONS MADE (Session 58):
+    - Every sale, layaway and online-order money movement is a
+      SECURITY DEFINER function with row locks (service_role only,
+      called after the app guard). App code never writes paid_total or
+      a sale's status directly any more.
+    - Charged amounts are cents. numeric(18,4) stays the column type;
+      the functions ROUND(x,2) and the cart uses r2().
+    - A report day is the shop's day (tenants.timezone), never UTC.
+      New report code goes through reportBounds / shopReportRange.
+    - The online_orders row, not stripe_payment_links, is the trusted
+      record for a guest order. The Stripe amount must equal the order
+      total in cents or the order goes to needs_refund.
+    - A reserved piece leaves the public catalog (the view filters
+      reserved_order_id). Abandoned checkouts return by cron sweep.
+    - Online tax applies to pickup and in-state shipping only (Eddy,
+      2026-11-13). Per-shop online card limit, default $2,500.
+    - Per-shop branding stops at a thin accent band — the locked design
+      system is not per-tenant.
+    - A missing PLEDGE in a count needs a written note to close: it is
+      the customer's property, not shrink.
 
   KEY DECISIONS MADE (Session 57, the seven fixes — item 466):
     - A sign-in link is a login. Staff are never shown one for an
@@ -823,485 +449,133 @@ PHASE OVERVIEW
           (0052-0055). Offline-first mode and
           firearms/ATF deliberately skipped —
           see OUT OF SCOPE.)
+  13      PLAN-2026-11-13 (tags, counts, store)      IN PROGRESS  —
+          (Session 58: Phase 1 tags (0074), 2a
+          counts (0075), 0 sale money in the DB
+          (0076), 3 online store (0077-0079) — all
+          built and live. Next: 4 product feeds,
+          then 2b RFID (hardware), 5, 7.)
 
 ================================================================================
 SESSION HISTORY LOG
 ================================================================================
 
-(Sessions 1-11 archived 2026-04-30 and sessions 12-21 archived
-2026-09-19 to Progress_archive.txt — early-build history through
-Phase 10 Path A slice 3. Items 1-~230 covered there.)
+(Sessions 1-11 archived 2026-04-30, sessions 12-21 archived
+2026-09-19, and sessions 22, 23, 24, 25, 26, 27, 29, 30, 31, 32 archived 2026-11-13
+to Progress_archive.txt — the items from those sessions are there.)
 
---- Session 22 (2026-05-05, end-of-session) — Phase 10 Path A slice 3/N: loyalty + referrals SHIPPED ---
+--- Session 58 (2026-11-13) — PLAN-2026-11-13: item tags, count sessions, sale money in the DB, online store (branch feature/sol-pawn-brief == main) ---
 
- 206. SPEC §9 AMENDMENTS LOCKED + WRITING-PLANS
-     GENERATED. Before touching code, locked five
-     design amendments inline in the spec at
-     docs/superpowers/specs/2026-05-04-loyalty-
-     referrals-design.md §9.1-§9.13: (1) append-only
-     DB enforcement on loyalty_events via BEFORE
-     UPDATE OR DELETE trigger; (2) same-tenant
-     referral guard via BEFORE INSERT OR UPDATE OF
-     referred_by_customer_id trigger on customers;
-     (3) CHECK constraints on all four rate columns
-     (>=0 on earn rates and bonus, >0 on
-     redemption_rate to prevent divide-by-zero); (4)
-     earn-clawback on void (full) and partial return
-     (proportional); (5) redeem_undo and
-     earn_clawback as their own enum kinds rather
-     than magic-string adjust_manual reasons.
-     Generated 16-task bite-sized plan via writing-
-     plans skill at docs/superpowers/plans/2026-05-04-
-     loyalty-referrals.md, mirroring Session 20's
-     plan shape with single-PR / single-end-of-session
-     commit override.
+ 467. COMPETITOR RESEARCH + PLAN (06407c3). Wrote
+     PLAN-2026-11-13-tags-rfid-storefront.md for items 1-7 except 6:
+     barcode tags, counts + RFID, online store, product feeds, wish
+     list, PIN + commissions. Eddy approved the four recommendations:
+     tax only in-state, per-shop online card limit (default $2,500),
+     commission on the sale total, layaway commission on completion.
+     Build order 1, 2a, 0, 3, 4, 2b (when hardware arrives), 5, 7.
 
- 207. PATCH 0028 LANDED (296 lines). Operator applied
-     patches/0028-loyalty-referrals.sql against the
-     Supabase project then ran `npm run db:types`.
-     Migration adds: 4 customer cols
-     (loyalty_points_balance INT NOT NULL DEFAULT 0
-     CHECK >= 0, referral_code TEXT, referred_by_
-     customer_id UUID FK, referral_credited BOOLEAN);
-     5 settings cols (loyalty_enabled flag + 4 rate
-     cols with CHECK constraints); loyalty_events
-     table with 7-kind CHECK enum (earn_sale,
-     earn_loan_interest, earn_referral_bonus,
-     redeem_pos, redeem_undo, earn_clawback,
-     adjust_manual); 2 ordinary indexes
-     (idx_loyalty_events_customer_created (customer_id,
-     created_at DESC) + idx_loyalty_events_tenant); 1
-     UNIQUE PARTIAL idempotency index on
-     (customer_id, source_kind, source_id, kind)
-     WHERE kind IN auto-credit-set (4 kinds:
-     earn_sale, earn_loan_interest,
-     earn_referral_bonus, earn_clawback); 1 UNIQUE
-     PARTIAL referral_code index per-tenant; 3
-     trigger functions (apply-balance with SECURITY
-     DEFINER + locked search_path; block-mutation
-     without SECURITY DEFINER; same-tenant-referral
-     with SECURITY DEFINER + locked search_path); 3
-     RLS policies on loyalty_events (staff SELECT,
-     staff INSERT with defense-in-depth performed_by
-     self-check, portal SELECT via auth.uid() =
-     customers.auth_user_id). NOTIFY pgrst at end.
-     Full reverse-order rollback documented.
+ 468. SIDEBAR — POS OPENS A NEW SALE (bc2c312). POS links straight to
+     /pos/sales/new, sits first in the modules group and stays
+     highlighted anywhere under /pos (new optional activePrefix on nav
+     items).
 
- 208. PURE-LOGIC + TDD: lib/loyalty/math.ts. Wrote
-     test file FIRST (red), then implementation
-     (green). 7 exports: computeRetailEarn,
-     computeLoanInterestEarn,
-     computeRedemptionDiscount with cap-then-shrink-
-     pointsConsumed semantics, generateReferralCode
-     (32-char alphabet ABCDEFGHJKLMNPQRSTUVWXYZ23456789
-     no I/O/0/1, 6 chars), canApplyAdjustment,
-     isValidReferralCode, clampClawback. 31 vitest
-     tests across 7 describe blocks. Code-review
-     surfaced two real correctness gaps:
-     computeRedemptionDiscount missed Number.isFinite
-     guards (NaN slipped past <= 0 check, could
-     silently corrupt balance) and pointsConsumed in
-     un-capped branch wasn't floored (could violate
-     INTEGER column with stale fractional input).
-     Both fixed with TDD red-then-green discipline.
-     Test count climbed 342 → 373.
+ 469. PHASE 1 — ITEM TAGS WITH BARCODE (874e6fe, patches/0074 APPLIED,
+     two RLS policies approved: staff read, owner write on
+     label_templates). Price tags, pawn collateral labels and repair
+     envelope labels as PDF (any printer) or ZPL (Zebra) from ONE
+     layout. lib/labels: Code 128 B/C encoder checked against
+     JsBarcode's table, bars snapped to whole printer dots, scan parser,
+     cost code. GET /api/print/tags (ids / loan / ticket, pdf|zpl,
+     test=1 skips the tag_printed_at stamp; audited tag_print). Print
+     buttons on item, pawn ticket, repair ticket; inventory list row
+     selection + bulk print + "Needs tag" filter; scan-to-open in the
+     search box; POS scan bar reads number-only tags and asks the server
+     for items outside the 500 loaded. Settings → Tags & labels.
 
- 209. SINGLE-WRITER lib/loyalty/events.ts (10 helpers,
-     1 internal insertEvent). EVERY loyalty_events
-     INSERT in the codebase routes through this
-     module per spec §9.8. Internal insertEvent
-     returns discriminated InsertResult
-     {ok:true,id} | {ok:'collision'} | {ok:false,error}
-     so callers distinguish success from idempotency
-     collision (23505 unique-violation) from real
-     error. Code-review-driven fix:
-     maybeCreditReferral flips referral_credited
-     ONLY on success or collision (NOT on real
-     failure — preserves retry path; pre-fix would
-     silently corrupt referral state on transient
-     DB errors). ensureReferralCode loop tightened
-     to distinguish UNIQUE collision (continue),
-     0-rows-affected (re-read for concurrent set),
-     non-collision error (throw with real message).
-     applyReferredByCode UPDATE gated with
-     `.is('referred_by_customer_id', null)` for
-     idempotency under races. recordEarnClawback
-     internally clamps via clampClawback against
-     current balance — actions never pre-clamp, so
-     void/return cannot fail on insufficient points.
+ 470. PHASE 2a — COUNT SESSIONS (63e4b5a, patches/0075 APPLIED, four
+     staff-read RLS policies approved). Case count, vault audit and
+     transfer scan check share one engine: count_start / count_add_reads
+     (outcomes expected / repeat / unexpected / unknown) /
+     count_findings / count_close / count_cancel /
+     count_resolve_exception — all SECURITY DEFINER, service_role only.
+     Exceptions: missing, missing_pledge (needs a note to close — a
+     pledge is not the shop's property), unexpected, held_in_sales,
+     left_during_count. Scan page queues reads and retries offline,
+     beeps per outcome. Reports → Counts (CSV + PDF). Dashboard pledge
+     alert. Shared categoryLabel / locationLabel in
+     lib/inventory/labels.ts. dayStartInTimezone() in
+     lib/jurisdictions/rules.ts.
+     FIX while building: count_close first used a temp table — rewritten
+     to total from the inserted exceptions.
 
- 210. EARN/REFERRAL/CLAWBACK HOOKS across 5 server
-     actions, all routing through helpers (no inline
-     INSERT INTO loyalty_events anywhere outside
-     events.ts):
-     - completeSaleAction (pos/sales/[id]):
-       recordEarnSale on sale.subtotal (NOT total —
-       no points on tax) + maybeCreditReferral
-     - recordPaymentAction (pawn/[id]): captures
-       loan_event id, recordEarnLoanInterest keyed
-       on loan_event.id when interest_paid > 0,
-       maybeCreditReferral
-     - redeemLoanAction (pawn/[id]): same pattern
-       for the payoff loan_event, gated on
-       split.interest_paid > 0
-     - voidSaleAction (pos/sales/[id]): SUMs
-       earn_sale rows for the sale → single
-       recordEarnClawback (sourceKind='sale',
-       reason='sale_voided'); iterates redeem_pos
-       rows → recordRedeemUndo for each (positive
-       delta = abs(original points_delta))
-     - createReturnAction (pos/returns/new):
-       recordEarnClawback proportional to returned
-       subtotal (sourceKind='return',
-       sourceId=ret.id, reason='sale_returned')
+ 471. PHASE 0 — SALE MONEY IN THE DATABASE (b2aac9e, patches/0076
+     APPLIED, no RLS change). Closes REVIEW-2026-11-11 items 10, 11, 12,
+     13, 16.
+     - 13 [BUG]: sale_create / sale_add_payment / sale_complete /
+       layaway_create / layaway_add_payment row-lock the pieces and the
+       sale, so two clerks cannot sell one piece and a payment cannot
+       exceed the balance (payment_exceeds_balance). A pending card
+       still reserves its amount. sale_complete is idempotent.
+     - 12 [BUG]: an online layaway payoff now completes its sale (items
+       sold, layaway completed) instead of leaving it open.
+     - 11 [BUG]: loan_apply_online_payment refuses a closed loan
+       (loan_closed) and a loan that changed under it (loan_changed;
+       the webhook retries 3x). Excess is logged as
+       stripe_payment_needs_refund — there is no refund UI.
+     - 16: every charged amount is cents (ROUND(x,2) in SQL, r2() in
+       lib/pos/cart.ts, half away from zero).
+     - 10: report days are the SHOP's day. lib/reports/range.ts (pure:
+       buildRange, reportBounds, reportToday) + shop-range.ts; all nine
+       report pages, form-1099 and the PDF "printed on" use the shop's
+       timezone.
+     - stripe_session_id on loan_events + layaway_payments with unique
+       partial indexes = webhook idempotency.
+     - lib/pos/money.ts: RPC wrappers, posErrorKey → t.pos.errors, and
+       afterSaleCompleted (ends eBay listings, loyalty earn, referral) —
+       every counter sale now ends the eBay listing too.
 
- 211. /settings/loyalty page+content+actions (owner +
-     chain_admin only). Master enable + 4 numeric
-     rate inputs (earn_rate_retail, earn_rate_loan_
-     interest, redemption_rate, referral_bonus).
-     Zod schema mirrors DB CHECKs: gt(0) on
-     redemption_rate, int().min(0) on referral_bonus,
-     min(0).max(1000) on earn rates. Action calls
-     requireRoleInTenant BEFORE createAdminClient
-     per Rule 10. Audit logs before/after diff.
-     Revalidates 4 paths on save:
-     /settings, /settings/loyalty, /customers,
-     /portal/loyalty. Hardcoded English labels per
-     Session 19/20 staff-form pattern.
+ 472. PHASE 3 PART 1 — ONLINE ORDERS (633375d, patches/0077 + 0078
+     APPLIED; 0078's two staff-read policies approved). sales.channel
+     (counter/online), inventory_items.reserved_order_id, store settings
+     columns, online_orders (WO-######, public_token) +
+     online_order_items. public_catalog_items now hides reserved pieces;
+     new view public_store_settings. Functions: online_order_reserve
+     (checkout on, ≤10 items, banned contact, ≤2 pending per email, row
+     locks, consignment floor, tax on pickup / in-state ship only, free-
+     ship threshold, total ≤ online_order_max), attach_session, release,
+     sweep (5-min grace), online_order_paid (amount check, re-checks
+     pieces, matches or creates the customer, sale with no register +
+     shipping line, sale_complete → applied / duplicate /
+     amount_mismatch / needs_refund), online_order_advance. Stripe
+     Checkout with expires_at ≥ 30 min; webhook handleOnlineOrderSession
+     for completed + expired; cron release-online-orders */10. Public
+     cart (localStorage, max 10), checkout, order status page, policies
+     page. Bilingual confirmation / ready / shipped templates.
+     DESIGN: stripe_payment_links can't hold a guest (customer_id NOT
+     NULL), so the online_orders row is the trusted record.
 
- 212. CUSTOMER-DETAIL LOYALTY PANEL +
-     ADJUSTPOINTSMODAL (manager+ adjust). LoyaltyPanel
-     component rendered inside /customers/[id]
-     content; shows balance + ≈ store credit
-     subtitle + referral code with Copy + last 5
-     events (KIND_LABEL hardcoded English for all 7
-     kinds) + Adjust button gated on
-     canAdjust && !is_banned. AdjustPointsModal
-     uses useActionState with discriminated error
-     rendering (would_go_negative / reason_too_short
-     / generic). adjustLoyaltyPointsAction in
-     customers/[id]/actions.ts requires manager+ via
-     requireRoleInTenant, validates delta non-zero
-     and reason ≥3 chars BEFORE calling
-     recordManualAdjust; CHECK constraint is the
-     safety net but app-layer pre-check gives a
-     useful error code. resetReferralCodeAction
-     server-side ready for future UI wiring.
-     /customers/[id]/page.tsx lazy-generates
-     referral_code via ensureReferralCode when
-     loyalty enabled AND code is null.
+ 473. PHASE 3 PART 2 — STAFF QUEUE + SETTINGS (bf00aae). POS → Online
+     orders queue and detail: picking → ready (customer notified) →
+     handover (name + ID checked + signature photo to
+     customer-documents/<tenant>/online-orders/<order>/) or ship
+     (carrier + tracking, customer notified) → completed. Settings →
+     Online store (owner edits, manager views). Dashboard banner for
+     paid + needs_refund. Daily register tile "Online store (not in
+     drawer)".
 
- 213. POSREDEMPTIONBLOCK + redeemPointsOnSaleAction
-     + undoRedemptionAction. Block rendered below
-     totals on /pos/sales/[id], gated on
-     loyalty.enabled && sale.customer_id; returns
-     null when not applicable (sale not open AND
-     no balance + no prior redemptions on this
-     sale). "Redeem points" form with live preview;
-     existing redemptions render with Undo. Action
-     uses real sales.discount_amount + tax_amount
-     + total columns (NOT sale.discount which
-     doesn't exist). Multi-redemption per sale is
-     supported because redeem_pos kind is
-     intentionally OUTSIDE the idempotency partial-
-     unique index. UNDO writes a redeem_undo
-     compensating event (positive delta) — never
-     deletes; matches the project's append-only
-     posture.
+ 474. PHASE 3 PART 3 — CUSTOM DOMAINS, SEO, BRANDING (b4be295,
+     patches/0079 APPLIED, no policy change). tenants.custom_domain +
+     token + verified_at, view public_custom_domains. TXT record
+     _solpawn.<domain>; proxy.ts rewrites a verified domain to
+     /s/<slug>. Per-shop sitemap, JSON-LD Product + canonical on item
+     pages, stable OG image route (302 to a fresh signed URL). Tagline +
+     accent band on the landing page — the accent is ONLY a thin band so
+     the locked design system holds. Hero image NOT built.
+     FIX: JSON-LD '<' escape had come out as a literal '<'.
 
- 214. CUSTOMERS/NEW REFERRED-BY-CODE optional field.
-     customerCreateSchema gains case-insensitive
-     6-char A-Z+2-9 regex with empty-string→null
-     preprocess. Action wires to applyReferredByCode
-     helper after the new customer's INSERT
-     succeeds. Form input uppercase auto-style with
-     uppercase pattern. defaultValue echoes from
-     state.values for round-trip on validation
-     errors per Session 8 form-reset workaround.
-     applyReferredByCode is silent on bad codes
-     (validation, no-match, self-referral all
-     return without throwing) — typos never block
-     customer creation.
-
- 215. /portal/loyalty CUSTOMER SURFACE (full bilingual).
-     Page (RSC) calls notFound() on missing ctx /
-     tenant / loyalty disabled / customer-not-
-     found. Lazy-generates referral_code if missing.
-     Reads tenant for share text + last 20 events
-     for activity log + count of referrals issued.
-     Builds share URL via NEW
-     buildPublicLandingUrl helper at
-     src/lib/loyalty/url.ts: subdomain form when
-     NEXT_PUBLIC_BASE_DOMAIN set, path-form
-     fallback otherwise, returns null when
-     public_slug is null. Content (use client) uses
-     useI18n from @/lib/i18n/context (corrected
-     from plan's use-lang path during
-     implementation — matches sibling portal pages'
-     pattern). Hero + earn rules + refer-a-friend
-     with three pre-filled share buttons (SMS via
-     sms:?body=, WhatsApp via wa.me/?text=,
-     Email via mailto with subject) + activity log.
-
- 216. i18n LOYALTY BLOCK at EN+ES PARITY (~27 keys).
-     Inserted after the catalog block in en.ts and
-     es.ts, including 7 kinds.* sub-keys matching
-     the DB enum (earn_sale "Retail purchase" /
-     "Compra", earn_loan_interest "Loan interest" /
-     "Interés de préstamo", earn_referral_bonus
-     "Referral bonus" / "Bono por referencia",
-     redeem_pos "Redeemed at checkout" / "Canje en
-     caja", redeem_undo "Reverted redemption" /
-     "Canje revertido", earn_clawback "Sale
-     reversed" / "Venta revertida", adjust_manual
-     "Adjustment" / "Ajuste"). Visual-diff
-     parity-check confirmed — no pre-push i18n
-     drift hook configured for Pawn (per Session 21
-     decision to decline hook setup).
-
- 217. SIDEBAR NAV ENTRY (Trophy icon). Added Loyalty
-     entry under Settings group between
-     Communications and Billing. Imports Trophy
-     from @phosphor-icons/react. Uses t.nav.loyalty
-     i18n key (NOT hardcoded — matches pattern of
-     every other settings nav entry); en.ts + es.ts
-     gain "Loyalty" / "Lealtad". visible:
-     canSeeSettings (manager-inclusive); the
-     /settings/loyalty page server-gate enforces
-     actual owner/chain_admin role so
-     manager-clicking-link redirects cleanly. Worth
-     tightening the sidebar predicate next time
-     Sidebar.tsx is touched (cosmetic — flagged as
-     small follow-up).
-
---- Session 23 (2026-05-05, end-of-session) — Phase 10 Path A slice 4/N: Google Reviews SHIPPED ---
-
- 218. EDGE-CACHE REVALIDATE=60 ON PUBLIC + PORTAL/LOYALTY
-     ROUTES. Single-line `export const revalidate = 60`
-     added to /s/[slug] + /s/[slug]/catalog +
-     /s/[slug]/catalog/[sku] + /portal/loyalty. Closes
-     the stale-404-on-flag-flip path documented in
-     Session 20. Routes remain ƒ Dynamic (Supabase
-     cookies / headers() / searchParams in scope) but
-     `revalidate` scopes Vercel's data cache for fetch
-     responses to a 60s window. Already pushed at
-     1d2e428. Build green (59/59 static pages).
-
- 219. GOOGLE REVIEWS SPEC LOCKED VIA BRAINSTORMING. 8
-     decisions captured in docs/superpowers/specs/
-     2026-05-05-google-reviews-design.md: (1) hybrid
-     API key (platform env default + per-tenant
-     override); (2) min-star floor with default 4
-     (filter at render time over cached payload);
-     (3) DB cache table tenant_google_reviews with
-     on-demand fill, 24h TTL, no cron dependency;
-     (4) silent fail-soft visibility — widget hides
-     when anything in the chain fails; (5) settings
-     UI at /settings/integrations/google-reviews;
-     (6) widget placement between About and CTAs;
-     (7) widget shape with up-to-3 review cards
-     3-col desktop / 1-col mobile; (8) Ink/Hairline
-     star color (NOT Warning Amber semantic
-     violation). Pushed at 710936f.
-
- 220. 13-TASK PLAN GENERATED VIA WRITING-PLANS skill
-     at docs/superpowers/plans/2026-05-05-google-
-     reviews.md. Mirrors Session 22 plan shape with
-     once-per-session commit override. 12 tasks +
-     Task 13 final verification. Spec self-review
-     fixed one inline rough spot in §2.5 before
-     commit. Pushed at f4ff316.
-
- 221. PATCH 0029 LANDED (110 lines). Operator applied
-     patches/0029-google-reviews.sql against the
-     Supabase project then ran `npm run db:types`.
-     Migration adds: 3 settings cols
-     (google_place_id TEXT, google_places_api_key
-     TEXT, google_reviews_min_star_floor SMALLINT
-     NOT NULL DEFAULT 4 CHECK BETWEEN 1 AND 5);
-     tenant_google_reviews cache table with
-     tenant_id PK + FK ON DELETE CASCADE +
-     place_id + payload JSONB + rating NUMERIC(3,2)
-     + total_review_count INTEGER + fetched_at
-     TIMESTAMPTZ NOT NULL + last_error TEXT +
-     last_error_at TIMESTAMPTZ; partial index on
-     fetched_at WHERE last_error IS NULL (for the
-     future cron warmer's "find stale" query); RLS
-     staff-SELECT-only via my_tenant_ids() (no
-     INSERT/UPDATE/DELETE policies — writes go
-     through admin client only). NOTIFY pgrst at
-     end. Code-review caught missing NOTIFY +
-     missing END marker; both added inline before
-     commit.
-
- 222. PURE-LOGIC + TDD: lib/google-reviews/{types,
-     filter,format}.ts with tests. types.ts exports
-     4 shapes (GoogleReview / PlaceDetails /
-     TenantReviewRow / RenderableReviews); no logic.
-     filter.ts: applyMinStarFloor with
-     Number.isFinite guard on rating + sort time
-     DESC + cap at 3 (MAX_VISIBLE constant);
-     isWidgetRenderable encodes Decision 4 silent-
-     fail-soft (returns true iff fetchedAt set AND
-     filteredReviews.length >= 1). format.ts:
-     formatRelativeTime via Intl.RelativeTimeFormat
-     with locale-aware en/es and < 60s short-circuit
-     to 'just now' / 'ahora mismo'; truncateExcerpt
-     word-boundary cut + trailing-punct strip;
-     starArray clamp [0,5] with Math.round. 31
-     vitest tests across two suites. Implementer
-     self-review caught one real bug in plan code:
-     test assertion `not.toMatch(/\w$/)` was
-     logically inverted — clean word-boundary cut
-     produces text ending in word character, so
-     assertion can never pass for correct
-     implementation. Fixed inline to
-     `.toBe('one two three four')`. Plan also
-     updated. Two minor coverage additions made
-     post-review: null input to applyMinStarFloor
-     and future-timestamp clock-skew documentation
-     for formatRelativeTime.
-
- 223. PLACES API CLIENT + CACHE LAYER
-     (lib/google-reviews/{client,cache}.ts). client.ts
-     ('server-only') wraps Google Places Details API
-     with one exported function fetchPlaceDetails;
-     never throws — returns either PlaceDetails or
-     {error:string}; cache: 'no-store' (DB cache is
-     the cache layer); language='en' for cache
-     stability. cache.ts is the most subtle file
-     in the slice — three exports + two internals:
-     getCachedReviews (4-branch logic per spec
-     §2.2: !placeId, fresh hit, stale SWR via
-     after(), no-row-or-mismatch awaits refresh);
-     refreshReviews (resolves API key per-tenant-
-     first then env fallback, calls
-     fetchPlaceDetails, UPSERTs success row OR
-     calls writeError preserving previous good
-     payload); loadPublicReviews (refactored to
-     single-arg tenantId — reads
-     settings.google_reviews_min_star_floor itself
-     in parallel with getCachedReviews via
-     Promise.all); loadCachedRow + writeError
-     placeholder-row pattern. Subagent code-quality
-     review caught two real Important issues:
-     (a) writeError INSERT branch silently swallowed
-         non-PK errors — fixed to capture insertErr
-         and console.error non-23505 codes
-         (PK collision is documented-benign);
-     (b) `void refreshReviews(...)` would not
-         complete in serverless — replaced with
-         `after(() => refreshReviews(...))` from
-         'next/server' which registers with the
-         runtime's waitUntil. Both fixed inline
-         + plan + Progress.txt updated to reflect.
-
- 224. ZOD SCHEMA + STAFF SETTINGS PAGE.
-     lib/validations/google-reviews.ts:
-     googleReviewsSettingsSchema with empty-string→
-     null preprocess on place_id + api_key,
-     coerce.number().int().min(1).max(5) on
-     min_star_floor; no place_id format regex —
-     the Test-connection button is the actual
-     validator. /settings/integrations/google-
-     reviews/{page,content,actions}.tsx: page is
-     RSC owner/chain_admin gate with parallel
-     reads of settings + cache row; content is
-     'use client' useActionState form with
-     status chip [Connected / Pending / Not
-     configured / Last sync failed], collapsible
-     Advanced section for per-tenant API key,
-     Test-connection button beside Save —
-     HARDCODED ENGLISH per project pattern
-     (corrected mid-execution from plan's i18n
-     scaffolding when /settings/loyalty +
-     /settings/integrations precedent showed
-     staff settings UI doesn't use i18n);
-     actions has updateGoogleReviewsSettingsAction
-     [Zod parse → admin update → cache-row delete
-     when place_id cleared with prior set →
-     audit log → revalidate two paths] and
-     testGoogleReviewsConnectionAction [calls
-     refreshReviews to honor single-writer rule];
-     both gate via requireRoleInTenant BEFORE
-     admin client per Rule 10.
-
- 225. INTEGRATIONS HUB STATUS CARD. Modified
-     /settings/integrations/{page,content}.tsx to
-     thread Google Reviews state alongside Stripe
-     Connect / Twilio / Resend / eBay. page.tsx
-     adds 5th query to Promise.all for
-     tenant_google_reviews + google_place_id to
-     existing settings SELECT. content.tsx adds
-     Star icon import, googleReviews property to
-     IntegrationsView, and a new <Card> mirrored
-     from eBay pattern with KvList showing
-     "Rating" + "Reviews" when connected, error
-     message when configured-but-failed, "Not
-     connected" otherwise. Card status union does
-     NOT have 'attention' — fell back to
-     'disconnected' with red error text in body.
-
- 226. PUBLIC GOOGLE-REVIEWS WIDGET.
-     src/components/public/GoogleReviewsWidget.tsx
-     ('use client'): aggregate header with star
-     row + rating to one decimal + review count
-     + plural label + "See all on Google" deep
-     link; up-to-3 review cards in 3-col-desktop
-     / 1-col-mobile grid each with star row +
-     truncated reviewer name + relative time +
-     140-char text excerpt + "Read on Google"
-     deep link; uses landing.reviews.* i18n
-     (Anonymous fallback when reviewer name
-     missing); Phosphor Star weight=fill in
-     text-ink filled / text-hairline empty per
-     Decision 8. Render-rule tests skipped —
-     @testing-library/react not installed,
-     project's vitest setup is pure-logic only.
-     Manual smoke at Task 13 covers render rules.
-
- 227. LANDING PAGE INTEGRATION + i18n. /s/[slug]/
-     page.tsx awaits loadPublicReviews(tenant.id)
-     after fetchPublicTenant + threads `reviews`
-     prop into LandingPageContent. /s/[slug]/
-     content.tsx imports RenderableReviews +
-     GoogleReviewsWidget; renders
-     `{reviews ? <GoogleReviewsWidget data={reviews} /> : null}`
-     between About section and CTAs grid (Decision
-     6 placement). lib/i18n/en.ts + es.ts gain
-     `landing.reviews.*` block at EN+ES parity:
-     title, count.one/other, seeAll, readFull,
-     anonymous (7 keys per locale). Settings UI
-     does NOT use i18n per project pattern fix
-     locked mid-execution; only customer-facing
-     widget uses i18n.
-
- 228. TASK 9 (PublicTenant additions) DEFERRED.
-     Plan tried to thread google_place_id +
-     google_reviews_min_star_floor through
-     PublicTenant via tenants SELECT, but those
-     columns are on `settings`, not `tenants`. tsc
-     correctly rejected the column additions
-     ('column does not exist on tenants'). Resolution:
-     loadPublicReviews refactored to single-arg
-     tenantId — reads
-     settings.google_reviews_min_star_floor itself
-     via admin client in parallel with the cache
-     row read. Admin-client read is safe at this
-     call site because the tenantId is already
-     validated as a published tenant by
-     fetchPublicTenant upstream of any
-     loadPublicReviews call. Plan Task 9 updated
-     inline to document the deferral.
-
- 229. FINAL VERIFICATION — Lint clean. tsc clean.
-     404 vitest tests pass (was 373 → +31 google-
-     reviews pure-logic). Production build green:
-     compiled 6.8s, TypeScript 22.2s, 60/60 static
-     pages generated. New route present:
-     `ƒ /settings/integrations/google-reviews`.
-     Slice ready for operator smoke against
-     production after this commit lands.
+ 475. CHECKPOINT GATE. Lint clean on every file changed this session;
+     no new hardcoded strings; one orphan i18n key removed
+     (templatesTitle, tags settings page, EN + ES); tsc clean.
 
 --- Session 57 (2026-11-09) — Laser nameplate orders: Sol Pawn → orocut.com → OroCut (branch feature/sol-pawn-brief) ---
 
@@ -4734,1246 +4008,23 @@ Phase 10 Path A slice 3. Items 1-~230 covered there.)
      confirmation of which environment to fix.
      Not a code bug — env-not-loaded.
 
---- Session 32 (2026-05-06, ~17:00) — Design migration closed out ---
-
- 278. STALE-TOKEN AUDIT — ZERO HITS. Ran a 30-
-     pattern grep across src/ for every Airbnb-
-     era token + every retired stylistic
-     artifact: rausch, cloud-*, hairline (border/
-     divide/bg/text/ring), ink (text/bg), canvas
-     (text/bg), charcoal, ash, mute (the
-     standalone `text-mute`, not `text-muted`),
-     stone, rounded-pill, shadow-elevation,
-     shadow-pressed-icon, info-link,
-     plus-magenta, luxe-purple, error (text/bg/
-     border/ring — not danger-renamed), mutedd
-     artifact from the Session 29 regex overlap,
-     hover:border-foreground (old hover pattern),
-     linear-gradient ff385c (the Rausch sweep),
-     rgba(0, 0, 0, 0.02) 0 0 0 1px (the 3-layer
-     signature shadow), bg-clip-text. All zero
-     occurrences. Migration is verifiably
-     complete at the className + inline-style
-     level.
-
- 279. PRODUCTION BUILD GREEN. `npx next build`
-     compiled successfully in 6.3s, generated
-     60/60 static pages with 15 workers in
-     426ms, registered all 80+ dynamic routes
-     including the design-touched
-     auth/portal/admin/staff route groups and
-     the public landing /s/<slug> + catalog
-     surfaces. tsc --noEmit also exit 0. The
-     Luna Azul system is runtime-validated, not
-     just type-checked.
-
- 280. PHASE OVERVIEW UPDATED. Added phase 11
-     "Design migration: Airbnb → Luna Azul" with
-     status COMPLETE / 2026-05-06. The Luna Azul
-     restyle is now an officially-closed phase,
-     not an ongoing initiative — future visual
-     finds against the production app will be
-     handled as small surgical follow-ups in
-     existing phases (typically Phase 8 polish).
-
- 281. MIGRATION ARC SUMMARY (Sessions 29-32):
-     - Session 29 (commit 1d57110): tokens.ts
-       + globals.css + app/layout.tsx fonts +
-       DESIGN-lunaazul.md + CLAUDE.md lock
-       section + 4-pass mechanical sweep across
-       src/ (5300+ className renames in 154
-       files) + manual composition restyle for
-       (staff)/layout.tsx + Sidebar.tsx +
-       dashboard/content.tsx + (auth)/layout.tsx.
-     - Session 30 (commit 8b13560): layout
-       shell fix — sidebar moved to be the first
-       child of the staff shell so it hugs the
-       full left edge top-to-bottom; topbar now
-       only spans the right portion. One-file
-       composition fix.
-     - Session 31 (six commits): form inputs
-       (929d072), card radius + hover (e301f67),
-       link color + status badges + emphasis
-       (1ae17cc), 4 stale Rausch gradients in
-       inline style props (e49574d), tab active
-       states + dashboard icon chips (05b92f0),
-       TenantSwitcher + portal/claim chrome
-       (5036698). Closed out with checkpoint
-       commit c0fe364.
-     - This session adds two more visual upgrades
-       (commits 6b684ec dashboard module-card
-       identity tints, d2f18b6 sidebar section
-       grouping with hairline separators) plus
-       this closing commit.
-     Total: 14 design commits, ~250+ files
-     touched, zero logic changes, zero stale
-     tokens or retired patterns remaining,
-     production build green.
-
- 282. WHAT'S OUT OF SCOPE FOR THIS PHASE.
-     Operator browser walkthrough still
-     pending — that's the ship-as-you-go
-     follow-up surface, not a migration item.
-     Phase 8 mobile audit is its own pre-
-     existing backlog item (Session 24)
-     unrelated to this migration. Per-page
-     composition tuning ("move this thing
-     here, that thing there") is also future
-     surgical work. The migration AS A PLAN
-     is closed.
-
---- Session 31 (2026-05-06, ~16:00) — Luna Azul design pass: 6-commit polish + gold-misuse purge ---
-
- 272. FORM INPUTS + AUTH/PORTAL FORMS + PAGE
-     TITLES (commit 929d072). Three-pronged
-     mechanical sweep:
-     - 30 files: input pattern bumped from
-       `rounded-md border border-border bg-card
-       px-3 py-2 ... focus:ring-2
-       focus:ring-blue/10` to Luna Azul
-       `rounded-xl border-2 border-border
-       bg-background px-4 py-3 text-sm ...
-       focus:border-blue` (no ring, border
-       color shift on focus). Compact px-2 py-1
-       variant scaled down accordingly to
-       rounded-lg / px-3 py-2.
-     - 5 auth/portal form files (login, magic-
-       link, forgot-password, set-password,
-       portal/login): labels font-medium
-       foreground → font-semibold text-text-
-       secondary; primary buttons gained
-       hover:-translate-y-0.5 hover:shadow-lg
-       lift per the design's primary-button
-       spec.
-     - 59 files / 64 page-title h1s: added
-       font-display (Playfair). Stripped
-       tracking-tight + tracking-[-0.01em]
-       compensation that was left over from
-       the Inter-mimicking-Cereal era of the
-       Airbnb system. Playfair self-tunes
-       display proportions.
-
- 273. CARD RADIUS + SECONDARY BUTTON HOVER
-     (commit e301f67):
-     - 79 files: `rounded-lg border border-
-       border bg-card` → `rounded-xl border
-       border-border bg-card`. Per the design,
-       the workhorse card radius is 12px
-       (rounded-xl); 8px (rounded-lg) is
-       reserved for buttons and dropdown rows.
-       Side effect: Admin Console pill in
-       (staff)/layout.tsx bumped to 12px since
-       it shared the className substring;
-       flagged to operator, kept as-is.
-     - 70 files / 119 hits: hover:border-
-       foreground → hover:bg-background
-       hover:text-foreground. Luna Azul reads
-       secondary-button hover as a bg+text
-       shift, not a border darken. Single
-       biggest interaction-feel change after
-       the migration.
-
- 274. STATUS-COLOR DISCIPLINE + LINK CLEANUP
-     (commit 1ae17cc). Gold is action only,
-     never status / decoration. Purged in:
-     - 5 files: text-foreground underline-
-       offset-2 hover:underline → text-blue
-       transition-colors hover:text-blue-2
-       (Luna Azul link spec).
-     - StatusBadge.tsx: `assigned` +
-       `in_progress` repair states gold-tinted
-       → info-blue.
-     - ServiceTypeBadge.tsx: rewrite. Was
-       using gold (action) and success/warning
-       (status) for category labels — neither
-       correct per design. Now uniform neutral
-       surface (bg-background border-border
-       text-foreground) with a colored DOT
-       (navy / blue / muted) to distinguish
-       category. bg-ash dot was a stale
-       Airbnb-era token.
-     - TimelinePanel.tsx: started / resumed /
-       assigned_to_tech / claimed_by_tech all
-       gold-tinted → info-blue.
-     - PayoffCalculator + RedeemConfirmDialog
-       "Total Due" / "Payoff Now" emphasis
-       pills: gold-tinted → navy-tinted (display
-       values, not interactive — can't use the
-       action color).
-     - audit/content.tsx: hero
-       ClockCounterClockwise icon text-gold →
-       text-muted; record-id link text-gold
-       hover:underline → text-blue
-       transition-colors hover:text-blue-2.
-
- 275. STALE RAUSCH GRADIENTS NUKED (commit
-     e49574d). The Session 29 className-only
-     mechanical sweep couldn't see the Rausch
-     coral → magenta gradient because four
-     chrome surfaces had it buried in inline
-     style={{ backgroundImage: ... }} props.
-     Caught via grep for hex literals
-     (#ff385c). All four restyled:
-     - portal/login/page.tsx — full restyle to
-       navy bg + white card (matches
-       (auth)/layout.tsx).
-     - onboard/layout.tsx — same auth-card
-       treatment.
-     - PortalChrome.tsx — tenant name on portal
-       topbar, gradient → solid Playfair navy.
-     - (admin)/layout.tsx — admin chrome
-       wordmark; nav links also bumped from
-       text-foreground hover:text-gold →
-       text-text-secondary hover:text-blue
-       (gold not allowed for navigation hover);
-       Staff → button promoted to Luna Azul
-       secondary shape.
-     Confirmed via grep: no more
-     linear-gradient #ff385c references and
-     no bg-clip-text usages anywhere in src/.
-
- 276. TAB ACTIVE STATES + DASHBOARD ICON CHIPS
-     (commit 05b92f0):
-     - eBay listings tab buttons + portal nav
-       top + portal nav bottom: border-gold +
-       text-gold active state →
-       border-blue / text-blue (font-semibold,
-       transition-colors). Per the design, gold
-       is action only; light-surface navigation
-       underlines use Blue. Dark-sidebar
-       gold-on-active stays — that's the
-       documented exception in
-       DESIGN-lunaazul.md §6.
-     - StatCard + RevenueCard icon chip: bare
-       icon in the corner → w-9 h-9 rounded-lg
-       colored chip. Tone-driven: navy/5 +
-       navy text for neutral, danger/10 +
-       danger for error, warning/10 +
-       warning for warning. RevenueCard uses
-       success/10 + success since revenue is a
-       "good-standing money-in" signal. Matches
-       Luna Azul module-card icon-box pattern
-       from the audit.
-
- 277. TENANTSWITCHER + PORTAL/CLAIM CHROME
-     (commit 5036698):
-     - TenantSwitcher trigger button +
-       single-tenant chip: rounded-md text-sm
-       font-medium → rounded-lg text-xs
-       font-semibold (Luna Azul secondary-
-       button shape). Active-tenant checkmark
-       text-gold → text-blue. Dropdown panel:
-       dropped the inline 3-layer "signature
-       elevation" shadow (retired with the
-       Airbnb system) for shadow-lg.
-     - portal/claim/[token]/content.tsx: full
-       restyle to navy bg + white centered card
-       max-w-md rounded-2xl p-10 shadow-lg
-       (matches the auth-card pattern).
-     Confirmed via grep: no more
-     `rgba(0, 0, 0, 0.02) 0 0 0 1px` references
-     in src/. The Airbnb signature shadow is
-     fully retired.
-
---- Session 30 (2026-05-06, ~14:30) — Layout shell follow-up: sidebar full-height ---
-
- 271. SIDEBAR FULL-HEIGHT LAYOUT FIX. Operator
-     reported after Session 29's commit landed:
-     "the menu doesn't go all the way to the top,
-     the header is in the way." Root cause:
-     src/app/(staff)/layout.tsx wrapped the
-     entire shell in `<div className="flex
-     min-h-screen flex-col">` — header was the
-     FIRST child (full width across the top),
-     sidebar/main row was the SECOND child.
-     That stacked the navy sidebar UNDER a
-     full-width white header, leaving a 64px
-     white strip above the navy column. The
-     Luna Azul reference puts the sidebar
-     adjacent to the topbar, not below it.
-     Fix: removed `flex-col` from the outer
-     wrapper, moved Sidebar to be the first
-     child, wrapped the header + main in a
-     new `<div className="flex flex-1 flex-col">`
-     right column. Net structure now:
-     `<flex min-h-screen> [Sidebar] [flex-col
-     {header h-16, main}]`. Result: navy column
-     runs y=0 → bottom-of-viewport; topbar
-     only spans the right portion (next to the
-     sidebar, not above it). No content / styling
-     /component changes — pure parent-element
-     restructure. tsc --noEmit exit 0. Single-
-     file diff (src/app/(staff)/layout.tsx).
-
---- Session 29 (2026-05-06, ~14:00) — Design system replaced: Airbnb → Luna Azul ---
-
- 266. DESIGN SYSTEM SOURCE OF TRUTH SWAPPED.
-     Operator's call: "Airbnb is not what I want,
-     it doesn't flow." Audited the LunaAzul Web
-     SaaS at c:\Users\rodri\OneDrive\Documents\
-     LunaAzul Web Sass\ — navy chrome (#0d1b2a)
-     + light canvas (#f7f9fc) + gold action
-     (#e8a020) + blue link (#1d6fa4) + DM Sans
-     body / Playfair Display titles + JetBrains
-     Mono mono-numerals. Reads as a professional
-     ops console (financial / agency dashboard),
-     not a marketplace. Decided to port the
-     posture wholesale into Pawn since the
-     pawn-shop daily reality (loans, register,
-     compliance) maps better to "ops console"
-     than to "Airbnb listing site." Wrote
-     DESIGN-lunaazul.md (12 sections — palette,
-     typography, layout, components, motion,
-     photography, print, Tailwind token map,
-     migration find/replace map, deviations).
-     Deleted DESIGN-airbnb.md. Updated CLAUDE.md
-     "DESIGN SYSTEM — LOCKED" section to point
-     at the new doc.
-
- 267. TOKENS / GLOBALS / FONTS REWRITTEN.
-     - src/lib/tokens.ts — full rewrite. New
-       `colors` (navy/navy2/navy3, gold/gold2,
-       blue/blue2, background/card/border,
-       foreground/textSecondary/muted,
-       sidebarText/HoverBg/ActiveBg, success/
-       warning/danger/info). New `radius` scale
-       6/8/8/12/16/9999 (one workhorse: rounded-
-       xl = 12px). New `shadows`: none/sm/lg/
-       modal — collapsed the previous three-
-       layer "signature elevation" into a single
-       Tailwind shadow-lg. Breakpoints reset to
-       Tailwind defaults (640/768/1024/1280/
-       1536) from the previous custom 550/800/
-       1128/1440/1760. `reportColors` for PDFs
-       intentionally PRESERVED unchanged —
-       paper printing keeps its charcoal/muted/
-       divider/ink palette since 600dpi paper
-       reads better with charcoal than navy.
-     - src/app/globals.css — rewritten @theme
-       block exposes the new palette + radius
-       + shadow + breakpoints as Tailwind
-       tokens. font-size: 17px on <html> (was
-       implicit 16). body weight is 400 (DM
-       Sans default, was Inter 500). h1/h2/h3
-       -0.01em tracking compensation removed
-       (Playfair handles its own display
-       proportions, no Inter/Cereal mimicry
-       needed).
-     - src/app/layout.tsx — fonts swapped.
-       next/font/google now loads DM_Sans
-       (400/500/600/700) + Playfair_Display
-       (700/900) + JetBrains_Mono (kept). CSS
-       vars: --font-dm-sans, --font-playfair,
-       --font-jetbrains-mono. Body className
-       moved from `bg-canvas text-ink` to
-       `bg-background text-foreground`.
-
- 268. MASS TOKEN-RENAME SWEEP — 154 FILES.
-     Scope was too large to hand-edit (2744 hits
-     / 143 files in the initial grep). Wrote a
-     one-shot Node migration script
-     (scripts/migrate-tokens-to-lunaazul.mjs,
-     since deleted) that walked src/ and rewrote
-     every Tailwind className referencing the
-     old token names. Ran four passes:
-     - Pass 1 (5092 replacements / 148 files):
-       rausch → gold, rausch-deep → gold-2,
-       plus-magenta → gold-2, luxe-purple →
-       navy-2, bg-cloud → bg-background,
-       border-hairline → border-border,
-       bg-canvas → bg-card, text-ink → text-
-       foreground, text-charcoal → text-text-
-       secondary, text-ash/text-mute/text-stone
-       → text-muted, text-error/bg-error →
-       text-danger/bg-danger, text-info-link →
-       text-blue, rounded-pill → rounded-xl,
-       shadow-elevation → shadow-lg, shadow-
-       pressed-icon → shadow-sm, focus:ring-ink
-       /focus:border-ink → focus:ring-blue/
-       focus:border-blue.
-     - Pass 2 (26 files): caught divide-hairline
-       / bg-hairline / text-hairline / ring-
-       hairline prefixes that pass 1's word-
-       boundary missed, mapped to *-border.
-     - Pass 3 (94 files): bg-ink → bg-navy,
-       border-ink → border-navy, text-canvas →
-       text-white, plus literal-string fixups
-       to flip gold-button text from text-white
-       to text-navy in the most common
-       combinations.
-     - Pass 3.5 / cleanup (132 files / 811
-       occurrences): caught a regex-overlap bug
-       where `text-mute` (replaced earlier) was
-       a substring of `text-muted` (the
-       replacement for text-ash), producing
-       `text-mutedd` artifacts. Cleaned up with
-       a targeted .split('mutedd').join('muted')
-       pass.
-     - Pass 4 (56 files / 63 lines): per-line
-       sweep — any line containing both `bg-gold`
-       (full token, not bg-gold-2 or bg-gold/...)
-       AND `text-white` had its text-white
-       flipped to text-navy. Luna Azul reads
-       gold buttons with navy text, never white.
-     Total ~5300 className changes touched 154
-     files. Zero logic edits — every change was
-     a className rename.
-
- 269. LAYOUT SHELL RESTYLED (composition).
-     - src/app/(staff)/layout.tsx — header
-       went from py-3 (~48px) to h-16 (64px).
-       Killed the bg-clip-text gradient
-       wordmark (linear-gradient(90deg, #ff385c
-       0%, #e00b41 50%, #92174d 100%)), replaced
-       with a solid font-display text-xl font-
-       bold text-navy Link. Tenant-switcher
-       separator color shifted from text-ash to
-       text-muted. Admin Console pill restyled
-       to the secondary-button shape (rounded-
-       lg, text-xs, font-semibold, text-muted,
-       hover:bg-background hover:text-
-       foreground). Staff name moved from
-       text-ash to text-text-secondary.
-     - src/components/layout/Sidebar.tsx — full
-       dark-surface restyle. nav className
-       went from `border-r border-border bg-card`
-       → `bg-navy` (no right border). Width
-       reduced from w-56/w-14 → w-52/w-16 (Luna
-       Azul's collapsed width is 64px not 56px).
-       Toggle button text color: text-muted →
-       text-white/65, hover:bg-background hover:
-       text-foreground → hover:bg-white/5
-       hover:text-white. Each nav row: text-
-       ink/80 → text-white/65 idle, hover:
-       bg-cloud → hover:bg-white/5 hover:text-
-       white. Active state: bg-cloud font-medium
-       text-ink → bg-white/10 text-gold + gold
-       icon. Disabled rows: text-ash/60 →
-       text-white/40. Row radius bumped from
-       rounded-md → rounded-lg per the design's
-       dark-surface scale.
-     - src/app/(staff)/dashboard/content.tsx —
-       Page title h1: text-2xl font-bold →
-       font-display text-3xl font-bold text-
-       navy (Playfair). StatCard: rounded-lg
-       p-4 transition-colors hover:border-
-       foreground → rounded-xl p-5 transition-
-       all hover:-translate-y-1 hover:shadow-lg
-       (the Luna Azul signature card-lift). Label
-       gained font-semibold. RevenueCard same
-       treatment. Panel: header padding p-2 →
-       p-3, title text-sm → text-base font-
-       semibold, seeAll hover color text-
-       foreground → text-blue, outer container
-       gained hover:shadow-lg. Card structure
-       unchanged from the Session 28 revert (4
-       stat cards + module-gated row + Recent
-       Customers / Recent Inventory two-column
-       block) — what changed is the visual
-       skin, not the layout.
-     - src/app/(auth)/layout.tsx — full restyle.
-       Page bg: light bg-background → bg-navy
-       full-bleed. Removed the bg-clip-text
-       gradient "Pawn" inside the card; replaced
-       with a white font-display text-3xl font-
-       bold above the card. Card promoted from
-       rounded-xl border + bg-card p-8 →
-       rounded-2xl bg-card p-10 shadow-lg
-       max-w-md. Matches DESIGN-lunaazul.md §6
-       "Auth Card" spec.
-
- 270. TYPECHECK + CLEANUP. `npx tsc --noEmit`
-     exit 0. Migration script
-     (scripts/migrate-tokens-to-lunaazul.mjs)
-     deleted — single-use tool, not part of
-     the long-term tooling. Git status: 154
-     files modified + 1 deletion (DESIGN-
-     airbnb.md) + 1 addition (DESIGN-
-     lunaazul.md) + 1 modification (CLAUDE.md).
-     NOT COMMITTED — operator browser-
-     verification gate before Vercel rebuild.
-
-
-
- 264. DASHBOARD REVERTED TO COMMIT 4f5b13a (PRE-
-     DARK-VARIANT). Operator pushback: "I don't
-     like the dashboard now." Investigated git
-     history — three candidate "originals":
-     09db205 (Phase 0 skeleton, placeholder
-     only), 4f5b13a (Phase 4, last commit BEFORE
-     c0dcca4 introduced the dark variant), and
-     c0dcca4 itself (dark variant on demoBars
-     PRNG, before Session 13's data wire-up).
-     Picked 4f5b13a — module-gated stat cards
-     already shipped, light Airbnb-token theme,
-     ~600 LOC, used as a navigation surface in
-     daily ops.
-     Method: `git checkout 4f5b13a -- src/app/
-     (staff)/dashboard/page.tsx src/app/(staff)/
-     dashboard/content.tsx`. Then `rm src/app/
-     (staff)/dashboard/dashboard.css` (dark
-     scoped tokens, no longer referenced) and
-     `rm src/app/(staff)/dashboard/actions.ts`
-     (orphaned — searchAcrossModule was only
-     used by the dark dashboard's search bar;
-     verified via grep across src/ before
-     deletion). The Session 13–27 work
-     (charts/kanban/activity feed/receipt PDFs/
-     loyalty/Google Reviews/email campaigns/
-     vault/backpage) all stays — that work
-     didn't depend on the dashboard's structure
-     beyond the data plumbing inside the
-     dashboard/page.tsx aggregations, which got
-     replaced wholesale. No commit yet — the
-     operator needs to load /dashboard in a
-     browser before Vercel ships it.
-
- 265. DASHBOARD i18n KEYS RESTORED. The Session 13
-     redesign stripped en.ts + es.ts dashboard:
-     blocks down to `none` only (with a comment
-     "Most legacy keys removed after Phase 8
-     dashboard wire-up"). Reverted content.tsx
-     references title / welcome / placeholder /
-     customersCard / customersCardSub /
-     inventoryCard / inventoryCardSub /
-     bannedCard / heldCard / recentCustomers /
-     recentInventory / seeAll / none — partial
-     restore would tsc-fail at the page boundary.
-     Pulled the full dashboard: block from
-     4f5b13a's en.ts + es.ts and dropped it back
-     in place of the `none`-only stub. Type-check
-     passes (`npx tsc --noEmit` exit 0).
-
---- Session 27 (2026-05-06, ~11:00) — Pawn ticket backpage policy text (per-tenant override + FL Ch. 539 default) ---
-
- 256. PATCHES/0035-PAWN-TICKET-BACKPAGE.SQL —
-     SINGLE-COLUMN ADDITIVE MIGRATION. ALTER
-     TABLE public.settings ADD COLUMN IF NOT
-     EXISTS pawn_ticket_backpage TEXT NULL with
-     a COMMENT documenting the default-fallback
-     contract ("NULL = use the FL Ch. 539
-     default shipped with the renderer; English
-     only — the ticket is a legal document").
-     Idempotent — IF NOT EXISTS makes re-run
-     safe. Ends with NOTIFY pgrst, 'reload
-     schema' so PostgREST can see the new
-     column without a Supabase API restart.
-     Operator applied; db:types regen post-
-     0035 picked up the new column on Row +
-     Insert + Update of the settings table.
-
- 257. PAWN-TICKET-BACKPAGE-DEFAULT.TS — FL CH.
-     539 STANDARD TEXT AS A TS CONSTANT. New
-     src/lib/pdf/pawn-ticket-backpage-default.ts
-     exports PAWN_TICKET_BACKPAGE_DEFAULT
-     containing the operator-pasted FL Ch. 539
-     standard pawn ticket reverse text:
-     pledged-goods deposit clause, anti-stolen-
-     goods warranty, 30-day automatic-
-     forfeiture rule, 25%-per-30-days service
-     charge breakdown (with 2% interest /
-     remainder = storage and service fees
-     allocation), redemption-within-first-30
-     vs 31-60-day rate rules, extension daily-
-     rate computation (1/30 of original),
-     redemption-ID requirements (firearms-
-     only-by-original-pledgor, attorney-in-
-     fact + authorized-representative rules
-     with notarized authorization for the
-     latter), false-ID felony language with
-     specific F.S. cites (s.775.082/083/084),
-     lost-ticket procedure (certified mail /
-     in-person), shop liability cap on
-     lost/damaged goods (replacement-with-
-     like-kind defense), attorney's-fee shift
-     to losing party, mail-redemption terms,
-     no-oral-modification clause, the asterisk
-     bullet list of "PROPER ID REQUIRED" /
-     "FIREARMS ONLY BY ORIGINAL PLEDGOR" / etc.,
-     a separator, the LOST PAWN TICKET
-     STATEMENT form ($2.00 fee + date +
-     lost/destroyed/stolen circle + Pledgor +
-     Pledgor's I.D. + Employee/PS), another
-     separator, and the I HEREBY ACKNOWLEDGE
-     RECEIPT block with redeemer signature line +
-     "REDEEMER'S IDENTIFICATION IF OTHER THAN
-     ORIGINAL PLEDGOR" sub-form (Name / Address
-     / ID Number and Type) + thumbprint label.
-     Sections separated by `--` lines, paragraphs
-     by blank lines, form-field lines use long
-     underscore runs (5+ underscores). The
-     constant ships in code so improvements to
-     the default reach every uncustomized
-     tenant on next print without a backfill
-     migration.
-
- 258. PAWNTICKETPDF.TSX — SECOND <Page> FOR
-     REVERSE-SIDE LEGAL BLOCK. Added
-     backpage_text: string field to PawnTicketData;
-     new backpage style block (smaller font 7.5pt,
-     tighter line-height 1.35, mono variant for
-     form-field lines, marginVertical=6 for the
-     `--` rules); new parseBackpageBlocks(text)
-     helper at module scope that:
-       1. Normalizes \r\n → \n
-       2. Splits on /\n{2,}/ for paragraph
-          boundaries
-       3. Tags `^--+$` paragraphs as `kind:
-          'rule'` (renders as a horizontal rule)
-       4. Tags paragraphs containing any line
-          matching /_{3,}/ as `mono: true`
-          (renders in JetBrains Mono so 5+
-          underscores form continuous handwriting
-          rules — Inter would render gappy due
-          to kerning)
-       5. Returns a typed BackpageBlock[]
-     New <Page size="LETTER"> after the front
-     page renders the parsed blocks: header
-     "Terms and Conditions — Reverse Side"
-     (uppercase tracking, ink color), then for
-     each block either a divider <View> with
-     borderBottom or a paragraph <View> wrapping
-     each line as its own <Text> (preserves
-     line breaks within paragraphs without
-     react-pdf collapsing them). Reuses the
-     existing footer template (page n of total
-     bilingual) inside the backpage Page so
-     pagination spans both pages naturally.
-
- 259. RENDER-LOAN-TICKET.TSX — FETCH BACKPAGE
-     OVERRIDE + FALLBACK. Imported
-     PAWN_TICKET_BACKPAGE_DEFAULT. Replaced the
-     single tenant query with a Promise.all of
-     two .maybeSingle() calls (tenants +
-     settings.pawn_ticket_backpage). Falls back
-     to PAWN_TICKET_BACKPAGE_DEFAULT when the
-     settings row is missing OR
-     pawn_ticket_backpage is NULL OR
-     whitespace-only. Threads backpage_text into
-     the assembled PawnTicketData. settings row
-     missing for fresh tenants is OK — the
-     fallback applies.
-
- 260. /SETTINGS/LOAN-RATES — BACKPAGE TEXTAREA
-     SECTION. page.tsx adds pawn_ticket_backpage
-     to the settings .select() and threads it
-     as ticketBackpage prop. content.tsx adds a
-     new BackpageCard section between the
-     existing PolicyCard (min loan amount) and
-     the rate tables: 16-row monospace textarea
-     with the FL default rendered as the
-     placeholder (so operators see what the
-     default looks like before deciding whether
-     to override), a status line showing
-     either "Using the Florida Ch. 539 default
-     text" (when blank) or "Using your custom
-     text" (when populated), a "Reset to
-     default" button that clears the textarea
-     state (so submitting saves null and the
-     renderer falls back), and a Save button
-     with pending/ok/error indicator chips.
-     PAWN_TICKET_BACKPAGE_DEFAULT imported as
-     placeholder text — single source of truth.
-
- 261. SAVETICKETBACKPAGEACTION + ZOD SCHEMA.
-     New saveTicketBackpageAction in /settings/
-     loan-rates/actions.ts. backpageSchema =
-     z.object({ pawn_ticket_backpage: preprocess
-     (whitespace → null) → z.string().min(1).
-     max(20000).nullable().optional() →
-     transform(v => v ?? null) }). 20 000-char
-     cap is enough for FL default (~5.5 KB) +
-     concatenated multi-state disclosures (~15
-     KB) with headroom. requireRoleInTenant
-     guard for owner/chain_admin/manager (same
-     audience as the rate-menu and policy
-     editors). Audit-logged with kind=
-     'pawn_ticket_backpage' + length. Revalidates
-     /settings/loan-rates after save.
-
- 262. I18N (EN+ES) — BACKPAGE LABELS. en.ts
-     adds pawn.print.backpage.header ("Terms
-     and Conditions — Reverse Side") +
-     settingsLoanRates.{backpageTitle,
-     backpageSubtitle, backpageUsingDefault,
-     backpageUsingCustom, backpageReset}. es.ts
-     mirrors the same keys for type-shape parity
-     (Dictionary = typeof en, so es.ts must
-     match the structural shape). The PDF only
-     reads from the EN side at render time per
-     operator policy — the ES strings exist for
-     type symmetry but never reach the printed
-     ticket.
-
- 263. SESSION 27 VERIFICATION. tsc clean,
-     eslint clean, 409 tests still passing
-     (no new tests this session — the parser
-     helper is small + deterministic enough to
-     defer until a regression motivates a unit
-     test). db:types regen post-0035 matches
-     the codebase exactly: Row + Insert +
-     Update all carry pawn_ticket_backpage:
-     string | null with the right
-     required/optional discipline. Ready for
-     commit + push.
-
---- Session 26 (2026-05-06, 08:40) — 0034 vault-cutover-resync recovery migration + codebase cutover to vault-only ---
-
- 247. PROD HALF-APPLIED STATE DISCOVERED. Started
-     session by running `npm run db:types` per
-     Session 25's RESUME instruction ("next regen
-     should match my hand edits"). Got 290-line
-     drift instead. Investigation via service-role
-     probe of tenant_secrets / email_campaigns /
-     8 plaintext columns confirmed: migrations
-     0030/0031/0032/0033 had NOT actually applied
-     to project kjyaxfwlggxiqijiiuna despite
-     Session 25's note saying so. AND the pre-
-     existing plaintext secret columns (settings.
-     {resend_api_key, twilio_auth_token, google_
-     places_api_key}; tenant_billing_settings.
-     {stripe_access_token, stripe_refresh_token,
-     stripe_webhook_secret}; tenant_ebay_
-     credentials.{access_token, refresh_token})
-     were dropped — equivalent to the pending 0034
-     plaintext-drop. The new tables (email_
-     campaigns, email_campaign_recipients,
-     tenant_secrets) initially showed as present
-     via PostgREST head:true count, but a real
-     SELECT returned PGRST205 — they didn't
-     actually exist. The transactional 0030-0033
-     migrations would not partial-apply on their
-     own; most plausible explanation is the
-     operator ran an ad-hoc SQL run that did
-     SOME of 0033 + the plaintext drop but skipped
-     0030/0031 + 0032's column.
-
- 248. PATCHES/0034-VAULT-CUTOVER-RESYNC.SQL — full
-     idempotent superset of 0030+0031+0032+0033
-     plus the originally-pending plaintext-column
-     drop. Every statement is IF NOT EXISTS /
-     CREATE OR REPLACE / DROP-then-CREATE. Creates
-     email_campaigns + email_campaign_recipients +
-     tenant_secrets tables (incl. all indexes +
-     RLS policies + triggers); adds the 5 column
-     additions; CREATE OR REPLACE for the 3 RPCs
-     (consume_google_reviews_quota,
-     get_tenant_secret, set_tenant_secret); DROP
-     COLUMN IF EXISTS for the 8 plaintext secret
-     columns; ends with NOTIFY pgrst, 'reload
-     schema'.
-     First version assumed the new tables already
-     existed (only added missing columns + indexes
-     + policies + RPCs). Operator hit "relation
-     email_campaigns does not exist" at the CREATE
-     INDEX line. Rewrote as the full superset
-     including CREATE TABLE statements. Operator
-     applied; succeeded. db:types regen post-0034
-     matches the codebase exactly (only
-     alphabetical reorder vs hand edits).
-
- 249. SRC/LIB/SECRETS/VAULT.TS — REWRITTEN.
-     resolveSecret(tenantId, kind, plaintextFallback)
-     removed entirely. Added isSecretConfigured
-     (single-kind boolean check via count(*) on
-     tenant_secrets, no decryption) and
-     loadConfiguredSecretKinds (bulk Set<SecretKind>
-     for pages rendering multiple "Connected"
-     badges in one query). Existing
-     getTenantSecret() and setTenantSecret() kept.
-
- 250. READ-PATH VAULT-ONLY CUTOVER (4 lib modules):
-     - src/lib/email/send.ts — resolveResendCreds()
-       reads apiKey via getTenantSecret('resend_api_
-       key'); plaintext column dropped from
-       settings .select() list.
-     - src/lib/twilio/sms.ts — resolveTwilioCreds()
-       reads authToken via getTenantSecret('twilio_
-       auth_token'); same column drop.
-     - src/lib/google-reviews/cache.ts —
-       refreshReviews() reads tenant override via
-       getTenantSecret('google_places_api_key');
-       column dropped from both .select() lists in
-       getCachedReviews and refreshReviews.
-     - src/lib/ebay/auth.ts — resolveCredentials()
-       reads both ebay_access_token and
-       ebay_refresh_token via getTenantSecret() in
-       parallel with the metadata row read.
-       loadCredentialsRow() now returns derived
-       refresh_token_configured: boolean (combined
-       with isSecretConfigured). New
-       isEbayConnected(tenantId) helper for cheap
-       "is connected?" gate.
-
- 251. WRITE-PATH VAULT-ONLY CUTOVER (2 server
-     actions):
-     - src/app/(staff)/settings/communications/
-       actions.ts — updateCommsSettingsAction
-       writes secrets via setTenantSecret() only;
-       the settings UPDATE no longer carries
-       twilio_auth_token / resend_api_key. Audit
-       log fields renamed to match.
-     - src/app/(staff)/settings/integrations/
-       google-reviews/actions.ts — google_places_
-       api_key writes to vault only via
-       setTenantSecret(); settings UPDATE no
-       longer carries the column.
-
- 252. SETTINGS UI VAULT-DRIVEN BADGES (5 pages +
-     1 component):
-     - src/app/(staff)/settings/page.tsx —
-       loadConfiguredSecretKinds() drives Twilio /
-       Resend / eBay "Connected" flags.
-     - src/app/(staff)/settings/integrations/
-       page.tsx — same pattern for the integrations
-       index cards.
-     - src/app/(staff)/settings/communications/
-       page.tsx — same. CredsForm component
-       didn't change (it already accepted *_set
-       booleans); only the page-side derivation.
-     - src/app/(staff)/settings/integrations/
-       google-reviews/page.tsx — derives
-       apiKeyConfigured via isSecretConfigured.
-     - src/app/(staff)/settings/integrations/
-       google-reviews/content.tsx — replaced the
-       plaintext Field with a new ApiKeySecretField
-       sub-component. Mirrors CredsForm.SecretField
-       — "Configured" badge, "Update" button to
-       reveal a password input, "Clear stored key"
-       button under the input, supports __CLEAR__
-       semantics.
-     - src/app/(staff)/settings/integrations/
-       ebay/page.tsx — connected flag from new
-       refresh_token_configured.
-
- 253. EBAY SYNC CRON + INVENTORY DETAIL —
-     TENANT DISCOVERY VIA TENANT_SECRETS:
-     - src/app/api/cron/ebay-sync/route.ts —
-       tenant discovery via two parallel reads
-       (tenant_secrets where kind=ebay_refresh_
-       token, and tenant_ebay_credentials.
-       disconnected_at). Intersects to get the
-       connected tenant_ids.
-     - src/app/(staff)/inventory/[id]/page.tsx —
-       eBay panel gate uses isEbayConnected()
-       instead of reading the dropped
-       refresh_token column.
-
- 254. TYPES + VALIDATION SCHEMAS:
-     - src/types/database-aliases.ts — dropped
-       twilio_auth_token + resend_api_key from
-       SettingsCommsColumns Pick. Updated
-       TenantEbayCredentialsRow hand-written
-       shape to remove access_token + refresh_token.
-     - src/types/database.ts — REGEN post-0034.
-       Matches prod exactly.
-     - src/lib/validations/communications.ts —
-       commsSettingsSchema dropped twilio_auth_
-       token + resend_api_key keys. Action handler
-       reads those from formData directly.
-     - src/lib/validations/google-reviews.ts —
-       added secretField zod helper with
-       blank='no change' / '__CLEAR__'=clear /
-       value=update semantics. google_places_api_
-       key uses it.
-
- 255. SESSION 26 VERIFICATION + COMMIT. tsc clean,
-     eslint clean, 12/12 test files / 409/409 tests
-     passing both before and after the cutover.
-     Throwaway scripts/inspect-cols.mjs (used for
-     prod state diagnosis) deleted. Committed
-     cad2b23 with all 18 src changes + the 0034
-     migration + the database-aliases edit + the
-     post-regen database.ts. Pushed to main —
-     Vercel deploying.
-
-(Session 26 lands items 247-255, 9 items total)
-
---- Session 25 (2026-05-05, end-of-session) — Phase 10 Path A defense-in-depth + email-campaign engine + Supabase Vault encryption-at-rest ---
-
- 232. CRON WARMER FOR GOOGLE REVIEWS. Public-path
-     after() refresh covers tenants with traffic;
-     this cron covers no-traffic tenants whose 24h
-     TTL otherwise expires before the next visitor.
-     New: src/app/api/cron/refresh-google-reviews/
-     route.ts. Schedule '0 */6 * * *'. Threshold
-     18h (75% of TTL) — refreshes anything older
-     than that. Sequential dispatch to avoid
-     Places API bursts. Audit-logs one row per
-     tenant with action='google_reviews_refresh'.
-     Gated on CRON_SECRET like the other 6 cron
-     routes (x-vercel-cron is NOT a security
-     check). Cost-bounded: each tenant gets at
-     most 1 Places API call per ~18-24h.
-
- 233. PER-TENANT GOOGLE PLACES API QUOTA
-     GUARDRAILS. Concrete risk: if a tenant's API
-     key is bad or place_id stale, every public
-     visitor triggers a Places API call (because
-     row stays stale-with-error). Cap protects
-     platform free tier and detects misconfigured
-     cache loops. Patch 0030 adds tenant_google_
-     reviews.quota_window_start + quota_calls_used,
-     settings.google_reviews_daily_quota
-     (per-tenant override; NULL = platform default
-     50). Atomic SECURITY DEFINER RPC consume_
-     google_reviews_quota with FOR UPDATE row lock,
-     rolling 24h window reset. lib/google-reviews/
-     cache.ts:refreshReviews charges quota before
-     fetchPlaceDetails; degrades open if RPC errors
-     (so a quota service hiccup doesn't break
-     widget for everyone).
-
- 234. PER-REVIEW HIDE LIST. Patch 0031 adds
-     settings.google_reviews_hidden_review_times
-     BIGINT[] keyed on Google review.time (Unix
-     seconds — closest thing to stable ID).
-     applyHiddenFilter in lib/google-reviews/
-     filter.ts (5 new tests, 17/17 passing).
-     loadPublicReviews chains hidden filter
-     before min-star floor. UI: settings page
-     loads payload + hidden list, content.tsx
-     renders "Cached reviews" section with
-     EyeSlash/Eye buttons per review; toggle-
-     HideReviewAction validates time + action,
-     audits the change with before/after,
-     revalidates /settings/integrations/google-
-     reviews + /s/[slug] page tree.
-
- 235. EMAIL CAMPAIGNS — SCHEMA (patch 0032).
-     email_campaigns (name, subject, body_html,
-     body_text, segment_language, segment_tags
-     TEXT[], segment_marketing_opt_in_only,
-     status enum, scheduled_at, sent_at,
-     recipient_count, delivered_count, bounced_
-     count, complained_count, failed_count) and
-     email_campaign_recipients (campaign_id +
-     customer_id UNIQUE, email + language
-     snapshot, status enum, message_log_id +
-     resend_message_id linkage, outcome
-     timestamps). New email_campaign_status
-     and email_campaign_recipient_status enums.
-     'email_campaign' added to message_kind
-     enum. customers.email_unsubscribe_token
-     UUID UNIQUE. Indexes: tenant+status+
-     scheduled_at; partial-index on status=
-     scheduled for the cron pickup query;
-     resend_message_id for webhook lookups.
-     RLS staff-read-only on both tables;
-     writes admin-only.
-
- 236. EMAIL CAMPAIGNS — DISPATCH LIB. New
-     src/lib/email/campaigns.ts: resolveSegment
-     (filter customers by language/tags/
-     marketing_opt_in/non-empty email; batch-
-     paginated to clear the 1000-row default),
-     snapshotRecipients (lazy-generates
-     email_unsubscribe_token UUID for any
-     recipient missing one; UPSERT with ON
-     CONFLICT dedupe), dispatchCampaign (drains
-     queued recipients in batches of 25; re-
-     checks customer.marketing_opt_in at send
-     time = compliance; renders with
-     {{customer_first_name}} + {{unsubscribe_
-     url}} merge fields via existing render-
-     EmailTemplate; calls existing sendEmail()
-     with kind='email_campaign'),
-     recomputeAggregates, pickNextCampaign
-     (resume sending first, else earliest
-     scheduled), buildUnsubscribeUrl.
-
- 237. EMAIL CAMPAIGNS — CRON ROUTE. New
-     src/app/api/cron/send-email-campaigns/
-     route.ts. Schedule '*/2 * * * *'. One
-     campaign per tick — picks pickNext-
-     Campaign(), snapshots if 'scheduled',
-     dispatches, flips to 'sent' when queue
-     drains, recomputes aggregates. If timeout
-     mid-flight, next tick resumes from
-     'sending' state. Audit-logs every run with
-     action='email_campaign_dispatch' + the
-     phase (sent / sent_empty / dispatch_
-     partial). Audit-action union extended
-     with email_campaign_create/update/
-     schedule/cancel/dispatch/unsubscribe/
-     bounce/complaint.
-
- 238. PUBLIC UNSUBSCRIBE PAGE. New src/app/
-     (public)/unsubscribe/{page,content,actions}.
-     tsx. proxy.ts PUBLIC_PATHS extended with
-     /unsubscribe. Token UUID validated via
-     regex; bad/expired token resolves to
-     identical "invalid" view (no info
-     disclosure). Confirm form posts via
-     unsubscribeAction → flips marketing_opt_in
-     to false → redirects to /unsubscribe?ok=1
-     so success state survives refresh and the
-     token doesn't leak in browser history.
-     Bilingual EN+ES copy inline in content.tsx
-     with useI18n().lang lookup (one-off public
-     surface — not worth a full i18n catalog
-     section). Audit-logs with action=
-     'email_campaign_unsubscribe',
-     via='public_unsubscribe_link'.
-
- 239. RESEND BOUNCE/COMPLAINT WEBHOOK. New
-     src/app/api/webhooks/resend/route.ts.
-     Svix signature verification inline (no
-     svix dependency — Node crypto + timing-
-     safe compare; ~30 LOC). Strips whsec_
-     prefix and base64-decodes the secret;
-     loops over space-separated v1,<sig>
-     entries in the svix-signature header
-     (Svix rotates so multiple may be active).
-     Handles email.delivered (mirror to
-     message_log delivered_at + recipient row);
-     email.bounced (sets bounced_at +
-     bounce_reason; if not soft_bounce/
-     transient, flips marketing_opt_in to
-     false on customer + audits); email.
-     complained (always flips marketing_opt_
-     in; complainants tank platform sender
-     rep). Recomputes campaign aggregates
-     after each event. Acknowledges unknown
-     event types so Resend doesn't retry.
-     Falls back to message_log update for
-     transactional emails not tied to a
-     campaign recipient row.
-
- 240. SUPABASE VAULT — MIGRATION 0033. Patch
-     0033 creates public.tenant_secrets (id,
-     tenant_id FK tenants, kind TEXT, vault_
-     secret_id UUID, created_at, updated_at,
-     UNIQUE(tenant_id, kind)). RLS enabled
-     with NO POLICIES — only service_role can
-     touch the table (bypasses RLS). RPCs
-     set_tenant_secret(tenant_id, kind, value)
-     and get_tenant_secret(tenant_id, kind),
-     both SECURITY DEFINER + REVOKE FROM
-     PUBLIC + GRANT EXECUTE TO service_role.
-     set_tenant_secret rotates in place via
-     vault.update_secret when a row exists;
-     creates fresh via vault.create_secret
-     otherwise; treats empty value as clear
-     (DELETE both vault.secrets row and
-     registry entry). get_tenant_secret looks
-     up vault_secret_id then SELECTs from
-     vault.decrypted_secrets. Backfill DO
-     block iterates 8 secret kinds across
-     settings + tenant_billing_settings +
-     tenant_ebay_credentials, copying any
-     existing plaintext into vault — idem-
-     potent (re-running is a no-op). Plain-
-     text columns intentionally NOT dropped
-     in this migration; deferred to migration
-     0034 once read+write paths cut over.
-
- 241. VAULT TS HELPER. New src/lib/secrets/
-     vault.ts: typed SecretKind union (8
-     kinds), getTenantSecret, setTenantSecret,
-     resolveSecret (vault-first / plaintext-
-     fallback during dual-state). All call
-     the new RPCs via .rpc() through the admin
-     client.
-
- 242. VAULT CUTOVER — COMMS (resend_api_key +
-     twilio_auth_token). lib/email/send.ts
-     resolveResendCreds wraps the API key
-     read in resolveSecret('resend_api_key',
-     plaintext-fallback). lib/twilio/sms.ts
-     resolveTwilioCreds same pattern for
-     auth_token. settings/communications/
-     actions.ts dual-writes both tokens to
-     vault after the plaintext settings.update
-     — keeps pre-migration read paths working
-     while vault becomes the source of truth.
-
- 243. VAULT CUTOVER — GOOGLE_PLACES_API_KEY.
-     lib/google-reviews/cache.ts:refreshReviews
-     resolves the per-tenant override via
-     vault first, falls back to plaintext
-     column, falls back to GOOGLE_PLACES_API_
-     KEY env var (platform default). settings/
-     integrations/google-reviews/actions.ts
-     dual-writes the key to vault on save.
-
- 244. VAULT CUTOVER — EBAY_ACCESS_TOKEN +
-     EBAY_REFRESH_TOKEN. lib/ebay/auth.ts:
-     persistTokens dual-writes both tokens
-     to vault after the plaintext insert/
-     update. markDisconnected clears both
-     vault entries (setTenantSecret with null
-     deletes both vault.secrets row and
-     registry entry). resolveCredentials
-     reads both tokens via vault-first /
-     plaintext-fallback before doing the
-     access-token-expiry check; uses the
-     resolved refresh_token in the refresh-
-     access-token call. loadCredentialsRow
-     left alone — the settings UI uses it
-     only to check non-null for "connected"
-     status, not the actual values; once 0034
-     drops plaintext columns, switch this to
-     read tenant_secrets existence instead.
-     Stripe vault cutover is a no-op today —
-     stripe_*_token columns exist on tenant_
-     billing_settings but no read or write
-     paths use them yet (Connect onboarding
-     not built; current Stripe wiring is
-     platform-level env vars). Migration 0033
-     backfills any data already there for
-     free; helper is ready when Connect lands.
-
- 245. types/database.ts hand-edited additions:
-     tenant_secrets table; email_campaigns +
-     email_campaign_recipients tables;
-     tenant_google_reviews quota_calls_used +
-     quota_window_start cols; settings.google_
-     reviews_daily_quota + google_reviews_
-     hidden_review_times cols; customers.
-     email_unsubscribe_token; email_campaign_
-     status + email_campaign_recipient_status
-     enums; 'email_campaign' added to
-     message_kind enum; consume_google_reviews_
-     quota + get_tenant_secret + set_tenant_
-     secret RPCs. Next db:types regen should
-     match.
-
- 246. i18n EN+ES additions: 'email_campaign'
-     in comms.kindLabels + comms.kindDescriptions
-     (also in the top-level kindLabels block
-     for the SaaS-billing surface).
-
-(items renumbered: this session lands 232-246, 15 items total)
-
---- Session 24 (2026-05-05, end-of-session) — Two no-input follow-ups: sidebar predicate + LoyaltyPanel reset-code UI ---
-
- 230. SIDEBAR /SETTINGS/LOYALTY PREDICATE TIGHTENED
-     [BUG]. Manager role saw the /settings/loyalty
-     link in the sidebar but the server gate blocked
-     them with `Forbidden`. Cosmetic dead-link bug
-     noted in Session 22. Audited every settings
-     server gate first to know the right scope:
-     /settings hub allows owner/manager/chain_admin
-     (page.tsx:6); /settings/communications also
-     manager (page.tsx:20-22); but /settings/loyalty
-     gates owner+chain_admin only (page.tsx:6 +
-     actions.ts:11). So this is loyalty-specific —
-     other canSeeSettings-gated entries are
-     legitimately reachable by manager.
-     Fix in src/components/layout/Sidebar.tsx:
-       - Added `LOYALTY_ROLES = new Set<TenantRole>
-         (['owner', 'chain_admin'])` constant after
-         BILLING_ROLES (kept distinct rather than
-         aliasing — see Decisions block).
-       - Added `canSeeLoyalty = !!tenantRole &&
-         LOYALTY_ROLES.has(tenantRole)` derived
-         predicate after canSeeBilling.
-       - Loyalty link `visible: canSeeSettings`
-         flipped to `visible: canSeeLoyalty`.
-     Verified: tsc clean, eslint clean, 404 tests
-     still passing.
-
- 231. LOYALTYPANEL RESET-CODE UI (Session 22
-     follow-up closed). Server action
-     resetReferralCodeAction at customers/[id]/
-     actions.ts:510-536 has shipped since Session
-     22 with nothing in the UI calling it. Fix
-     plan: add a small icon button next to the
-     existing Copy button on the referral-code row,
-     gated on canAdjust && !is_banned (matches the
-     action's ADJUST_ROLES = owner/chain_admin/
-     manager); on click swap to inline confirm
-     form (Cancel + Reset code) instead of
-     window.confirm or modal — already-existing
-     `referralCode` re-renders on success because
-     the server action revalidatePath()s the
-     customer page.
-     Implementation:
-       - src/components/loyalty/LoyaltyPanel.tsx —
-         imported ArrowClockwise from
-         @phosphor-icons/react; added confirmReset
-         useState; rendered an icon button when
-         canAdjust && !is_banned && !confirmReset;
-         when confirmReset is true, renders
-         <ResetReferralCodeForm /> in a
-         border-hairline + bg-cloud sub-row.
-       - src/components/loyalty/ResetReferralCodeForm.tsx
-         (NEW — 38 lines). 'use client'. Wraps
-         resetReferralCodeAction with
-         useActionState; on state.ok flip, calls
-         onSuccess() (closes the confirm form in
-         the parent). Renders the Cancel + Reset
-         code buttons + pending state ("Resetting…")
-         + error message via role="alert".
-     Bug avoided in implementation: first attempt
-     inlined the useEffect close-on-success in
-     LoyaltyPanel itself, which tripped the
-     react-hooks/set-state-in-effect lint rule
-     (set-state-in-effect:67:24). Extracted the
-     form into its own component so the parent
-     passes onSuccess as an opaque callback prop
-     — same pattern AdjustPointsModal already
-     uses (calls onClose() in useEffect; lint
-     can't trace through the prop call).
-     Verified: tsc clean, eslint clean on both
-     files, all 404 tests still passing.
-
- 232. SESSION 24 SCOPE BOUND. Brief reconnaissance
-     for Phase 8 mobile audit — opened the
-     dashboard (1404 lines) + the 8 portal page
-     files. Concluded a real mobile audit needs
-     visual verification of every surface in
-     phone-width viewport, which is outside this
-     session's reliable verification range.
-     Offered the operator a static-only audit
-     option (grep for known mobile-hostile
-     patterns); operator chose to defer. Mobile
-     audit remains in the backlog for a session
-     where operator can eyeball the screens
-     alongside the code changes.
 
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    REVIEW-2026-11-11.md section 1 (seven items) is FIXED and live —
-    item 466. Sections 2-6 are open; wait for Eddy to pick. The
-    suggested next block is section 2 (atomic money movements) or the
-    shop-timezone date helper. Before any online payment can work,
-    STRIPE_WEBHOOK_SECRET must be set in Vercel (the webhook now
-    refuses everything without it) — it belongs with item 454's Stripe
-    setup. Ask Eddy how the changed flows behaved at the counter:
-    returns, loan payments, removing an ID scan, team invite.
-    Both S56 (Stripe Connect) and S57 (laser orders) are on main and in
-    production (2026-11-09). Laser link PROVEN both ways on 2026-11-10:
-    RT-000003 by poll, RT-000004 by signed webhook (items 461, 463);
-    both wait at the laser PC for the operator. Nameplate chip is in
-    the intake form (item 462); the New-ticket Simple view shipped
-    (item 464) — take Eddy's feedback on it from the counter. Stripe
-    setup is Eddy's (item 454 steps 2-5). If an order misbehaves, the row's last_sync_error and
-    audit_log (table laser_orders) say why.
-    Next code item if nothing is reported: the production hydration
-    mismatches (OPEN ISSUES) — one tenant-timezone date formatter used
-    by spot-prices, the ticket page (Timeline / Timer / Opened) and
-    /audit; verify in PRODUCTION, not the local smoke, since dev and
-    browser share a timezone.
-    Standing from Session 55: the brief is done. Two production bugs
-    fixed on main (items 447 + 448, both "a 'use server' file exported
-    something that is not an async function"). Every Phase 3/4 action
-    has now been invoked once in production (item 448). Keep taking
-    Eddy's production feedback.
-    Eddy asked (2026-11-04) where the pay / sell percentages live.
-    Answered: the "Pay and sell rates" section at the bottom of
-    /inventory/spot-prices (per metal + purity; Pay rate feeds Buy
-    outright + pawn melt, Sell rate feeds Sell metal). Only gold 18k has
-    a pay rate (60%); every sell rate is unset, so the counters price at
-    100% and warn until he fills them in. Offered a per-deal percent
-    override on the counters if he wants one (today you negotiate by
-    editing the line price / payout) — build it only if he asks.
-    Also still worth a glance: spot_price_fetches should have
-    trigger='cron' rows by now.
+    PLAN-2026-11-13 Phase 4 (product feeds: Google Merchant + Meta
+    catalog) — but only on Eddy's "do phase 4". First ask for counter
+    feedback on today's work (tag print PDF + Zebra, one case count, a
+    POS sale + layaway payment through the new DB functions) and remind
+    him that item 454 (Stripe + STRIPE_WEBHOOK_SECRET +
+    checkout.session.expired) is what unlocks the online store test.
+    Still open from REVIEW-2026-11-11 (not in this session's phases):
+    pawn redeem / return double-submit, accrual dates in UTC outside the
+    reports, metal-counter consignment (finding 15), /audit hydration,
+    and the production hydration mismatches (spot-prices, repair ticket
+    Timeline / Timer / Opened) — verify those in PRODUCTION.
 
   AWAITING A DECISION FROM EDDY (not blocking anything):
     - Phase 0 / item 408: deactivate the "24.96% — 111" loan rate
@@ -6067,7 +4118,8 @@ PENDING — NEXT UP
     - POS tender selector is UI-only (payment finalized on the sale
       detail page). Store credit follows the same shape — it is applied
       on the sale detail, not in the cart.
-    - No tenant default tax rate column (POS tax defaults 0).
+    - settings.default_tax_rate exists now (0078) but only the online
+      store reads it; the POS cart still defaults tax to 0.
     - Register close double-counts layaway cash (see backlog 4).
     - Git Bash can wedge (cygheap fork failure). Close stray node
       processes or use PowerShell; do not debug the code.
