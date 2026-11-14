@@ -4530,6 +4530,63 @@ export type Database = {
           },
         ]
       }
+      quick_sale_buttons: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          is_active: boolean
+          name: string
+          position: number
+          price: number
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          position?: number
+          price: number
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: number
+          price?: number
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_sale_buttons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_sale_buttons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       register_sessions: {
         Row: {
           card_batch_total: number | null

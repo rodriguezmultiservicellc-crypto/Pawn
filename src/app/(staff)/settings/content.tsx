@@ -23,8 +23,10 @@ import {
   HandCoins,
   ListChecks,
   Sparkle,
+  Lightning,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
 
 export type SettingsHubView = {
   tenantId: string
@@ -75,6 +77,8 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
   ].filter(Boolean) as string[]
 
   const isOwner = !!view.role && OWNER_ROLES.has(view.role)
+  const canEditQuickSale =
+    !!view.role && (QUICK_SALE_EDIT_ROLES as readonly string[]).includes(view.role)
   const canImport =
     !!view.role && ['owner', 'manager', 'chain_admin'].includes(view.role)
 
@@ -213,6 +217,17 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             description={t.storeSettings.hubDescription}
             status="configured"
             statusDetail={t.storeSettings.checkout}
+          />
+        ) : null}
+
+        {view.modules.retail && canEditQuickSale ? (
+          <Card
+            href="/settings/quick-sale"
+            icon={<Lightning size={20} weight="regular" />}
+            title={t.quickSale.title}
+            description={t.quickSale.hubDescription}
+            status="configured"
+            statusDetail={t.quickSale.label}
           />
         ) : null}
 

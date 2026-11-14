@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import {
   Cart,
@@ -14,15 +13,20 @@ import {
   type LayawayScheduleSubmit,
 } from '@/components/pos/LayawayScheduleDialog'
 import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
+import type { QuickSaleButton } from '@/lib/pos/quick-sale'
 import { computeSubtotal, computeTotal } from '@/lib/pos/cart'
 import { createSaleAction } from './actions'
 
 export default function NewSaleForm({
   inventory,
   initialCustomerId,
+  quickSales,
+  canEditQuickSales,
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId: string | null
+  quickSales: QuickSaleButton[]
+  canEditQuickSales: boolean
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -176,19 +180,17 @@ export default function NewSaleForm({
     : 0
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto w-full max-w-[1440px] space-y-4">
+      <nav aria-label={t.pos.sale.breadcrumb} className="flex items-center gap-2 text-sm">
         <Link
           href="/pos"
-          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+          className="inline-flex h-11 items-center font-semibold text-blue hover:text-blue-2 hover:underline focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue"
         >
-          <ArrowLeft size={14} weight="bold" />
-          {t.pos.backToList}
+          {t.pos.sale.breadcrumbPos}
         </Link>
-        <h1 className="text-lg font-semibold text-foreground">
-          {t.pos.sale.new}
-        </h1>
-      </div>
+        <span className="text-muted">/</span>
+        <h1 className="font-semibold text-foreground">{t.pos.sale.new}</h1>
+      </nav>
 
       {!error && fieldErrors && Object.keys(fieldErrors).length > 0 ? (
         <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -203,6 +205,8 @@ export default function NewSaleForm({
         onSaveAsLayaway={onSaveAsLayaway}
         busy={pending}
         error={error}
+        quickSales={quickSales}
+        canEditQuickSales={canEditQuickSales}
       />
 
       {layawayDraft ? (
