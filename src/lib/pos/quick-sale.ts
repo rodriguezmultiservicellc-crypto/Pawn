@@ -1,7 +1,14 @@
 /**
- * Quick sale buttons (patches/0081). Pure: the edit-form schema and the
- * cart rule for a tap. A button becomes an ordinary custom line (no
- * inventory item), so saving the sale is unchanged.
+ * Quick sale buttons (patches/0081-0082). Pure: the edit-form schema and the
+ * cart rules for a tap.
+ *
+ * Two kinds of button:
+ *   plain    name + price → an ordinary custom line; another tap raises its
+ *            quantity.
+ *   product  linked to inventory (0082). Every inventory row is one physical
+ *            unit, so the product is "available units with this description
+ *            and category". A tap adds the oldest unit not already in the cart
+ *            as a normal inventory line, so the sale marks it sold like a scan.
  */
 
 import { z } from 'zod'
@@ -9,7 +16,18 @@ import { z } from 'zod'
 export const QUICK_SALE_EDIT_ROLES = ['owner', 'chain_admin', 'manager'] as const
 export const QUICK_SALE_MAX = 24
 
-export type QuickSaleButton = { id: string; name: string; price: number }
+/** One sellable inventory unit (same shape as the POS inventory picker row). */
+export type QuickUnit = {
+  id: string
+  sku: string
+  description: string
+  list_price: number | null
+  category: string
+}
+
+export type QuickSaleButton =
+  | { kind: 'plain'; id: string; name: string; price: number }
+  | { kind: 'product'; id: string; name: string; units: QuickUnit[] }
 
 export const quickSaleInputSchema = z.object({
   name: z.string().trim().min(1).max(60),
@@ -19,6 +37,24 @@ export const quickSaleInputSchema = z.object({
 
 export type QuickSaleInput = z.input<typeof quickSaleInputSchema>
 
+/** Editing a button: a product button's price comes from its units, so price is optional. */
+export const quickSaleUpdateSchema = quickSaleInputSchema.extend({
+  price: quickSaleInputSchema.shape.price.optional(),
+})
+
+export type QuickSaleUpdate = z.input<typeof quickSaleUpdateSchema>
+
+/** A product button is created from one inventory unit; its name defaults to that unit's description. */
+export const quickSaleProductInputSchema = z.object({
+  inventory_item_id: z.string().uuid(),
+  name: z.string().trim().max(60).optional(),
+})
+
+/** The stock key a product button matches on — the same rule as the 0082 CHECK. */
+export function matchKey(description: string): string {
+  return description.trim().toLowerCase()
+}
+
 /** The cart line fields a tap touches. */
 export type QuickLine = {
   inventory_item_id: string | null
@@ -27,15 +63,15 @@ export type QuickLine = {
   unit_price: string
   line_discount: string
   sku: string | null
-  /** Which button made this line (UI only; never sent to the server). */
+  /** Which plain button made this line (UI only; never sent to the server). */
   quick_sale_id?: string | null
 }
 
 /**
- * First tap adds a custom line with the button's name and price; another tap
- * on the same button raises that line's quantity by one.
+ * Plain button: first tap adds a custom line with the button's name and
+ * price; another tap on the same button raises that line's quantity by one.
  */
-export function addQuickSale(lines: QuickLine[], b: QuickSaleButton): QuickLine[] {
+export function addQuickSale(lines: QuickLine[], b: { id: string; name: string; price: number }): QuickLine[] {
   const idx = lines.findIndex((l) => l.quick_sale_id === b.id)
   if (idx >= 0) {
     return lines.map((l, i) =>
@@ -54,4 +90,15 @@ export function addQuickSale(lines: QuickLine[], b: QuickSaleButton): QuickLine[
       quick_sale_id: b.id,
     },
   ]
+}
+
+/** Product button: the oldest unit not already in the cart, or null when none is left. */
+export function nextUnit<U extends { id: string }>(units: U[], lines: Pick<QuickLine, 'inventory_item_id'>[]): U | null {
+  const inCart = new Set(lines.map((l) => l.inventory_item_id).filter(Boolean))
+  return units.find((u) => !inCart.has(u.id)) ?? null
+}
+
+export function unitsLeft(units: { id: string }[], lines: Pick<QuickLine, 'inventory_item_id'>[]): number {
+  const inCart = new Set(lines.map((l) => l.inventory_item_id).filter(Boolean))
+  return units.filter((u) => !inCart.has(u.id)).length
 }

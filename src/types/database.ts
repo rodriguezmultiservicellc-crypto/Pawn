@@ -4536,7 +4536,12 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           id: string
+          inventory_item_id: string | null
           is_active: boolean
+          match_category:
+            | Database["public"]["Enums"]["inventory_category"]
+            | null
+          match_description: string | null
           name: string
           position: number
           price: number
@@ -4549,7 +4554,12 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           id?: string
+          inventory_item_id?: string | null
           is_active?: boolean
+          match_category?:
+            | Database["public"]["Enums"]["inventory_category"]
+            | null
+          match_description?: string | null
           name: string
           position?: number
           price: number
@@ -4562,7 +4572,12 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           id?: string
+          inventory_item_id?: string | null
           is_active?: boolean
+          match_category?:
+            | Database["public"]["Enums"]["inventory_category"]
+            | null
+          match_description?: string | null
           name?: string
           position?: number
           price?: number
@@ -4571,6 +4586,20 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quick_sale_buttons_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_sale_buttons_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "public_catalog_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quick_sale_buttons_tenant_id_fkey"
             columns: ["tenant_id"]

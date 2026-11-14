@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { MagnifyingGlass, Minus, Plus, Trash } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { computeLineTotal, computeSubtotal, computeTotal, r4 } from '@/lib/pos/cart'
-import { addQuickSale, type QuickSaleButton } from '@/lib/pos/quick-sale'
+import { addQuickSale, matchKey, nextUnit, unitsLeft, type QuickSaleButton, type QuickUnit } from '@/lib/pos/quick-sale'
+import { Footer, Modal } from './Modal'
 import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
   AddInventoryItemDialog,
@@ -88,13 +89,19 @@ export function Cart({
   const [scanMsg, setScanMsg] = useState<string | null>(null)
   const [showPicker, setShowPicker] = useState(false)
   const [pickerSeed, setPickerSeed] = useState<string>('')
+  // "Already in the cart — add another one?" popup. onYes null = nothing
+  // more to add (a unique piece with no other unit in stock): OK only.
+  const [dupAsk, setDupAsk] = useState<{ name: string; onYes: (() => void) | null } | null>(null)
 
   const scanRef = useRef<HTMLInputElement>(null)
 
   // Refocus the scan input after every successful add (barcode-gun throughput).
   const focusScan = () => {
     // rAF so the DOM has settled after the state update re-render.
-    requestAnimationFrame(() => scanRef.current?.focus())
+    // Never pull focus out of an open dialog (the "add another?" popup).
+    requestAnimationFrame(() => {
+      if (!document.querySelector('[role=dialog]')) scanRef.current?.focus()
+    })
   }
 
   const subtotal = useMemo(
@@ -131,12 +138,25 @@ export function Cart({
 
   // ── Cart mutations ────────────────────────────────────────────────────
   function addInventoryLine(item: InventoryPickRow) {
-    let added = false
+    // Inventory rows are unique units (pawn forfeits / buys): the same unit
+    // can never be qty 2. Ask instead, and offer the next unit of the same
+    // product (same description + category) when one is in stock.
+    if (lines.some((l) => l.inventory_item_id === item.id)) {
+      const other = nextUnit(
+        inventory.filter(
+          (i) => i.category === item.category && matchKey(i.description) === matchKey(item.description),
+        ),
+        lines,
+      )
+      setDupAsk({ name: item.description, onYes: other ? () => appendUnit(other) : null })
+      return
+    }
+    appendUnit(item)
+  }
+
+  function appendUnit(item: InventoryPickRow | QuickUnit) {
     setLines((cur) => {
-      // Inventory items are unique units (pawn forfeits / buys): a second add
-      // of the same unit is a no-op, never qty 2.
       if (cur.some((l) => l.inventory_item_id === item.id)) return cur
-      added = true
       return [
         ...cur,
         {
@@ -149,7 +169,7 @@ export function Cart({
         },
       ]
     })
-    setScanMsg(added ? null : ts.alreadyInCart)
+    setScanMsg(null)
     focusScan()
   }
 
@@ -168,9 +188,21 @@ export function Cart({
   }
 
   function addQuickSaleLine(b: QuickSaleButton) {
-    setLines((cur) => addQuickSale(cur, b))
     setScanMsg(null)
-    focusScan()
+    if (b.kind === 'plain') {
+      const add = () => {
+        setLines((cur) => addQuickSale(cur, b))
+        focusScan()
+      }
+      if (lines.some((l) => l.quick_sale_id === b.id)) setDupAsk({ name: b.name, onYes: add })
+      else add()
+      return
+    }
+    // Product button: the oldest unit not in the cart yet.
+    const unit = nextUnit(b.units, lines)
+    const already = b.units.some((u) => lines.some((l) => l.inventory_item_id === u.id))
+    if (already) setDupAsk({ name: b.name, onYes: unit ? () => appendUnit(unit) : null })
+    else if (unit) appendUnit(unit)
   }
 
   function updateLine(idx: number, patch: Partial<CartLineState>) {
@@ -351,16 +383,35 @@ export function Cart({
       {showQuickRow ? (
         <div className="flex flex-wrap items-center gap-2">
           <span className={`${LABEL} mr-1`}>{t.quickSale.label}</span>
-          {quickSales.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => addQuickSaleLine(b)}
-              className={`h-11 rounded-full border border-border bg-background px-4 text-sm font-semibold text-foreground transition-colors hover:border-blue ${FOCUS}`}
-            >
-              {b.name} · <span className="font-mono">{fmtMoney(b.price)}</span>
-            </button>
-          ))}
+          {quickSales.map((b) => {
+            // Product buttons show the next unit's price and what is left;
+            // with nothing left (in stock or outside the cart) they grey out.
+            const left = b.kind === 'product' ? unitsLeft(b.units, lines) : null
+            const price = b.kind === 'plain' ? b.price : nextUnit(b.units, lines)?.list_price ?? null
+            const empty = b.kind === 'product' && b.units.length === 0
+            return (
+              <button
+                key={b.id}
+                type="button"
+                disabled={empty}
+                onClick={() => addQuickSaleLine(b)}
+                className={`h-11 rounded-full border border-border bg-background px-4 text-sm font-semibold text-foreground transition-colors hover:border-blue disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-border ${FOCUS}`}
+              >
+                {b.name}
+                {price != null ? (
+                  <>
+                    {' · '}
+                    <span className="font-mono">{fmtMoney(price)}</span>
+                  </>
+                ) : null}
+                {left != null ? (
+                  <span className="ml-1.5 text-xs font-medium text-muted">
+                    {left > 0 ? t.quickSale.unitsLeft.replace('{count}', String(left)) : t.quickSale.noneLeft}
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
           {canEditQuickSales ? (
             <Link
               href="/settings/quick-sale"
@@ -616,6 +667,61 @@ export function Cart({
           </button>
         </div>
       </div>
+
+      {dupAsk ? (
+        <Modal
+          title={ts.alreadyInCart}
+          onClose={() => {
+            setDupAsk(null)
+            focusScan()
+          }}
+        >
+          <p className="text-sm text-foreground">
+            {(dupAsk.onYes ? ts.dupAddAnother : ts.dupNoneLeft).replace('{name}', dupAsk.name)}
+          </p>
+          <Footer>
+            {dupAsk.onYes ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDupAsk(null)
+                    focusScan()
+                  }}
+                  className={`${OUTLINE_BTN} text-foreground`}
+                >
+                  {ts.dupNo}
+                </button>
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={() => {
+                    const yes = dupAsk.onYes
+                    setDupAsk(null)
+                    yes?.()
+                    focusScan()
+                  }}
+                  className={`h-11 rounded-md bg-gold px-5 text-sm font-bold text-navy transition-colors hover:bg-gold-2 ${FOCUS}`}
+                >
+                  {ts.dupYes}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                autoFocus
+                onClick={() => {
+                  setDupAsk(null)
+                  focusScan()
+                }}
+                className={`h-11 rounded-md bg-gold px-5 text-sm font-bold text-navy transition-colors hover:bg-gold-2 ${FOCUS}`}
+              >
+                {ts.dupOk}
+              </button>
+            )}
+          </Footer>
+        </Modal>
+      ) : null}
 
       {showPicker ? (
         <AddInventoryItemDialog

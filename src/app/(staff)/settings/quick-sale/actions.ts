@@ -11,9 +11,18 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { logAudit } from '@/lib/audit'
-import { QUICK_SALE_EDIT_ROLES, QUICK_SALE_MAX, quickSaleInputSchema, type QuickSaleInput } from '@/lib/pos/quick-sale'
+import {
+  QUICK_SALE_EDIT_ROLES,
+  QUICK_SALE_MAX,
+  matchKey,
+  quickSaleInputSchema,
+  quickSaleProductInputSchema,
+  quickSaleUpdateSchema,
+  type QuickSaleInput,
+  type QuickSaleUpdate,
+} from '@/lib/pos/quick-sale'
 
-type Result = { ok: true } | { ok: false; error: 'invalid' | 'limit' | 'generic' }
+type Result = { ok: true } | { ok: false; error: 'invalid' | 'limit' | 'not_found' | 'generic' }
 
 async function editor() {
   const ctx = await getCtx()
@@ -29,11 +38,17 @@ function done(): Result {
   return { ok: true }
 }
 
-export async function createQuickSaleAction(input: QuickSaleInput): Promise<Result> {
-  const { supabase, userId, tenantId } = await editor()
-  const parsed = quickSaleInputSchema.safeParse(input)
-  if (!parsed.success) return { ok: false, error: 'invalid' }
+type Insert = {
+  name: string
+  price: number
+  is_active: boolean
+  inventory_item_id?: string
+  match_description?: string
+  match_category?: string
+}
 
+async function insertButton(c: Awaited<ReturnType<typeof editor>>, row: Insert): Promise<Result> {
+  const { supabase, userId, tenantId } = c
   const { data: existing } = await supabase
     .from('quick_sale_buttons')
     .select('position')
@@ -46,7 +61,8 @@ export async function createQuickSaleAction(input: QuickSaleInput): Promise<Resu
     .from('quick_sale_buttons')
     .insert({
       tenant_id: tenantId,
-      ...parsed.data,
+      ...row,
+      match_category: row.match_category as never,
       position: (existing?.[0]?.position ?? -1) + 1,
       created_by: userId,
       updated_by: userId,
@@ -57,17 +73,55 @@ export async function createQuickSaleAction(input: QuickSaleInput): Promise<Resu
     console.error('[quick-sale] create failed', error?.message)
     return { ok: false, error: 'generic' }
   }
-  await logAudit({ tenantId, userId, action: 'create', tableName: 'quick_sale_buttons', recordId: data.id, changes: parsed.data })
+  await logAudit({ tenantId, userId, action: 'create', tableName: 'quick_sale_buttons', recordId: data.id, changes: row })
   return done()
 }
 
-export async function updateQuickSaleAction(id: string, input: QuickSaleInput): Promise<Result> {
-  const { supabase, userId, tenantId } = await editor()
+/** A plain button: name + price → a custom line. */
+export async function createQuickSaleAction(input: QuickSaleInput): Promise<Result> {
+  const c = await editor()
   const parsed = quickSaleInputSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: 'invalid' }
+  return insertButton(c, parsed.data)
+}
+
+/**
+ * A product button (0082) from one inventory unit: it sells the available
+ * units with that unit's description and category, oldest first.
+ */
+export async function createQuickSaleProductAction(input: { inventory_item_id: string; name?: string }): Promise<Result> {
+  const c = await editor()
+  const parsed = quickSaleProductInputSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: 'invalid' }
+  const { data: item } = await c.supabase
+    .from('inventory_items')
+    .select('id, description, category, list_price')
+    .eq('id', parsed.data.inventory_item_id)
+    .eq('tenant_id', c.tenantId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (!item) return { ok: false, error: 'not_found' }
+  const key = matchKey(item.description)
+  if (!key) return { ok: false, error: 'invalid' }
+  return insertButton(c, {
+    name: (parsed.data.name || item.description.trim()).slice(0, 60),
+    // Reference only: a tap charges each unit's own list price.
+    price: Number(item.list_price ?? 0),
+    is_active: true,
+    inventory_item_id: item.id,
+    match_description: key,
+    match_category: item.category,
+  })
+}
+
+export async function updateQuickSaleAction(id: string, input: QuickSaleUpdate): Promise<Result> {
+  const { supabase, userId, tenantId } = await editor()
+  const parsed = quickSaleUpdateSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: 'invalid' }
+  const { price, ...rest } = parsed.data
   const { data, error } = await supabase
     .from('quick_sale_buttons')
-    .update({ ...parsed.data, updated_by: userId })
+    .update({ ...rest, ...(price == null ? {} : { price }), updated_by: userId })
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)

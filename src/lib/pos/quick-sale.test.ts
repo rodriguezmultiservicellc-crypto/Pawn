@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addQuickSale, quickSaleInputSchema, type QuickLine } from './quick-sale'
+import { addQuickSale, matchKey, nextUnit, quickSaleInputSchema, unitsLeft, type QuickLine } from './quick-sale'
 
 const battery = { id: 'b1', name: 'Battery swap', price: 15 }
 const clean = { id: 'b2', name: 'Cleaning', price: 7.5 }
@@ -28,5 +28,26 @@ describe('quickSaleInputSchema', () => {
     expect(quickSaleInputSchema.parse({ name: '  Sizing ', price: '20', is_active: true })).toEqual({ name: 'Sizing', price: 20, is_active: true })
     expect(quickSaleInputSchema.safeParse({ name: '  ', price: 1, is_active: true }).success).toBe(false)
     expect(quickSaleInputSchema.safeParse({ name: 'x', price: -1, is_active: true }).success).toBe(false)
+  })
+})
+
+describe('product buttons (inventory-linked)', () => {
+  const units = [
+    { id: 'u1', sku: 'INV-000010', description: 'Watch battery 377', list_price: 15, category: 'other' },
+    { id: 'u2', sku: 'INV-000011', description: 'Watch battery 377', list_price: 15, category: 'other' },
+  ]
+  const line = (id: string) => ({ inventory_item_id: id })
+
+  it('matches on trimmed, lowercased description', () => {
+    expect(matchKey('  Watch Battery 377 ')).toBe('watch battery 377')
+  })
+  it('takes the oldest unit not already in the cart', () => {
+    expect(nextUnit(units, [])?.id).toBe('u1')
+    expect(nextUnit(units, [line('u1')])?.id).toBe('u2')
+    expect(nextUnit(units, [line('u1'), line('u2')])).toBeNull()
+  })
+  it('counts what is left outside the cart', () => {
+    expect(unitsLeft(units, [])).toBe(2)
+    expect(unitsLeft(units, [line('u2'), { inventory_item_id: null }])).toBe(1)
   })
 })

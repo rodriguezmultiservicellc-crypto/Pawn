@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
+import { loadQuickSaleButtons } from '@/lib/pos/quick-sale-server'
+import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
 import QuickSaleSettingsContent, { type QuickSaleRow } from './content'
 
 export const dynamic = 'force-dynamic'
@@ -12,20 +14,32 @@ export default async function QuickSaleSettingsPage() {
   if (!ctx.tenantId) redirect('/no-tenant')
   if (!ctx.tenantRole || !(QUICK_SALE_EDIT_ROLES as readonly string[]).includes(ctx.tenantRole)) redirect('/settings')
 
-  const { data } = await ctx.supabase
-    .from('quick_sale_buttons')
-    .select('id, name, price, is_active')
-    .eq('tenant_id', ctx.tenantId)
-    .is('deleted_at', null)
-    .order('position', { ascending: true })
-    .order('created_at', { ascending: true })
+  const [buttons, { data: items }] = await Promise.all([
+    loadQuickSaleButtons(ctx.supabase, ctx.tenantId, { activeOnly: false }),
+    // The same list the POS picker shows: sellable units, newest first.
+    ctx.supabase
+      .from('inventory_items')
+      .select('id, sku, description, list_price, category')
+      .eq('tenant_id', ctx.tenantId)
+      .is('deleted_at', null)
+      .eq('status', 'available')
+      .order('created_at', { ascending: false })
+      .limit(500),
+  ])
 
-  const rows: QuickSaleRow[] = (data ?? []).map((r) => ({
-    id: r.id,
-    name: r.name,
-    price: Number(r.price),
-    is_active: r.is_active,
+  const rows: QuickSaleRow[] = buttons.map((b) =>
+    b.kind === 'plain'
+      ? { id: b.id, name: b.name, is_active: b.is_active, kind: 'plain', price: b.price }
+      : { id: b.id, name: b.name, is_active: b.is_active, kind: 'product', inStock: b.units.length },
+  )
+
+  const inventory: InventoryPickRow[] = (items ?? []).map((i) => ({
+    id: i.id,
+    sku: i.sku,
+    description: i.description,
+    list_price: i.list_price == null ? null : Number(i.list_price),
+    category: i.category,
   }))
 
-  return <QuickSaleSettingsContent rows={rows} />
+  return <QuickSaleSettingsContent rows={rows} inventory={inventory} />
 }

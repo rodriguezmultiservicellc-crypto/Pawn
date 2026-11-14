@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import NewSaleForm from './form'
 import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
-import { QUICK_SALE_EDIT_ROLES, type QuickSaleButton } from '@/lib/pos/quick-sale'
+import { QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
+import { loadQuickSaleButtons } from '@/lib/pos/quick-sale-server'
 
 type SearchParams = Promise<{ customer?: string }>
 
@@ -33,7 +34,7 @@ export default async function NewSalePage(props: {
   const params = await props.searchParams
   const initialCustomerId = params.customer ?? null
 
-  const [{ data: items }, { data: quick }] = await Promise.all([
+  const [{ data: items }, quickSales] = await Promise.all([
     ctx.supabase
       .from('inventory_items')
       .select('id, sku, description, list_price, category')
@@ -42,21 +43,8 @@ export default async function NewSalePage(props: {
       .eq('status', 'available')
       .order('created_at', { ascending: false })
       .limit(500),
-    ctx.supabase
-      .from('quick_sale_buttons')
-      .select('id, name, price')
-      .eq('tenant_id', ctx.tenantId)
-      .eq('is_active', true)
-      .is('deleted_at', null)
-      .order('position', { ascending: true })
-      .order('created_at', { ascending: true }),
+    loadQuickSaleButtons(ctx.supabase, ctx.tenantId, { activeOnly: true }),
   ])
-
-  const quickSales: QuickSaleButton[] = (quick ?? []).map((b) => ({
-    id: b.id,
-    name: b.name,
-    price: Number(b.price),
-  }))
 
   const inventoryOpts: InventoryPickRow[] = (items ?? []).map((i) => ({
     id: i.id,
