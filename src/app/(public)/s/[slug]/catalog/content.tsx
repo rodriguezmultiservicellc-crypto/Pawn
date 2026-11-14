@@ -19,6 +19,7 @@ import type {
 import type { InventoryCategory } from '@/types/database-aliases'
 import LanguageToggle from '../LanguageToggle'
 import { CartLink } from '@/components/store/CartButtons'
+import { CatalogItemCard } from '@/components/store/CatalogItemCard'
 
 export default function CatalogListContent({
   tenant,
@@ -170,36 +171,7 @@ export default function CatalogListContent({
           <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {items.map((item) => (
               <li key={item.id}>
-                <Link
-                  href={`/s/${tenant.public_slug}/catalog/${item.sku}`}
-                  className="block overflow-hidden rounded-xl border border-border bg-card transition hover:bg-background hover:text-foreground/40"
-                >
-                  <div className="aspect-square w-full overflow-hidden bg-background">
-                    {item.primary_photo?.signed_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.primary_photo.signed_url}
-                        alt={item.description}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-muted">
-                        <Storefront size={28} weight="bold" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-1 p-3">
-                    <p className="line-clamp-2 text-sm font-medium text-foreground">
-                      {item.description}
-                    </p>
-                    <p className="font-mono text-base font-semibold text-foreground">
-                      {formatPrice(item.list_price)}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {dict.categories[item.category] ?? item.category}
-                    </p>
-                  </div>
-                </Link>
+                <CatalogItemCard slug={tenant.public_slug} item={item} />
               </li>
             ))}
           </ul>
@@ -321,13 +293,4 @@ function PageLink({
       {right ? icon : null}
     </Link>
   )
-}
-
-function formatPrice(n: number): string {
-  return n.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })
 }

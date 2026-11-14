@@ -46,6 +46,7 @@ describe('storeSettingsSchema', () => {
     store_tagline_en: ' Fine jewelry ',
     store_tagline_es: '',
     store_accent_color: '',
+    product_feed_enabled: false,
   }
   it('converts the percent to a fraction and blanks to null', () => {
     const patch = toSettingsPatch(storeSettingsSchema.parse(base))

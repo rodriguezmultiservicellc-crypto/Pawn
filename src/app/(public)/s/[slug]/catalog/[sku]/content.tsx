@@ -17,6 +17,7 @@ import type {
   PublicTenant,
 } from '@/lib/tenant-resolver'
 import { AddToCartButton, CartLink } from '@/components/store/CartButtons'
+import { formatCatalogPrice } from '@/components/store/CatalogItemCard'
 import LanguageToggle from '../../LanguageToggle'
 
 export default function CatalogItemContent({
@@ -162,7 +163,7 @@ export default function CatalogItemContent({
               </p>
             ) : null}
             <p className="font-mono text-3xl font-semibold text-foreground">
-              {formatPrice(item.list_price)}
+              {formatCatalogPrice(item.list_price)}
             </p>
             <p className="font-mono text-xs text-muted">
               {dict.specs.sku}: {item.sku}
@@ -326,13 +327,4 @@ function StonesTable({
       </div>
     </div>
   )
-}
-
-function formatPrice(n: number): string {
-  return n.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })
 }

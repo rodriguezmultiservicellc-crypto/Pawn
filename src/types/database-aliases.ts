@@ -53,6 +53,8 @@ export type CustomerDocKind = 'id_scan' | 'signature'
 
 export type CommPreference = 'email' | 'sms' | 'whatsapp' | 'none'
 
+export type InventoryCondition = 'new' | 'used' | 'restored' | 'vintage' | 'antique'
+
 export type InventoryCategory =
   | 'ring'
   | 'necklace'

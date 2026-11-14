@@ -6,12 +6,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { fetchPublicTenant, storeBaseUrl } from '@/lib/tenant-resolver'
+import { xmlEscape as xml } from '@/lib/store/feed'
 
 export const revalidate = 3600
-
-function xml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
 
 export async function GET(_req: Request, props: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await props.params

@@ -29,6 +29,7 @@ export const storeSettingsSchema = z.object({
   store_shipping_policy_es: text(5000),
   store_tagline_en: text(140),
   store_tagline_es: text(140),
+  product_feed_enabled: z.boolean(),
   store_accent_color: z
     .string()
     .trim()

@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n/context'
 import type { StoreSettingsInput } from '@/lib/store/settings'
 import { saveStoreSettingsAction } from './actions'
 import { DomainCard, type DomainState } from './DomainCard'
+import { FeedCard, type FeedState } from './FeedCard'
 
 const inputCls =
   'w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none disabled:opacity-60'
@@ -18,6 +19,7 @@ export default function StoreSettingsContent({
   stripeConnected,
   storeUrl,
   domain,
+  feed,
 }: {
   initial: StoreSettingsInput
   canEdit: boolean
@@ -25,6 +27,7 @@ export default function StoreSettingsContent({
   stripeConnected: boolean
   storeUrl: string | null
   domain: DomainState
+  feed: FeedState
 }) {
   const { t } = useI18n()
   const s = t.storeSettings
@@ -158,6 +161,8 @@ export default function StoreSettingsContent({
           </label>
         </div>
       </section>
+
+      <FeedCard state={feed} enabled={!!v.product_feed_enabled} canEdit={canEdit} onToggle={(on) => set('product_feed_enabled', on)} />
 
       <DomainCard state={domain} canEdit={canEdit} />
 

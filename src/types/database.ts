@@ -5721,6 +5721,7 @@ export type Database = {
           online_ship_enabled: boolean
           orocut_style_names: string[]
           pawn_ticket_backpage: string | null
+          product_feed_enabled: boolean
           repair_ready_auto_notify: boolean
           resend_from_email: string | null
           resend_from_name: string | null
@@ -5785,6 +5786,7 @@ export type Database = {
           online_ship_enabled?: boolean
           orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
+          product_feed_enabled?: boolean
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null
@@ -5849,6 +5851,7 @@ export type Database = {
           online_ship_enabled?: boolean
           orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
+          product_feed_enabled?: boolean
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null
@@ -6930,6 +6933,7 @@ export type Database = {
         Row: {
           brand: string | null
           category: Database["public"]["Enums"]["inventory_category"] | null
+          condition: Database["public"]["Enums"]["inventory_condition"] | null
           created_at: string | null
           description: string | null
           id: string | null
@@ -6940,6 +6944,7 @@ export type Database = {
           serial_number: string | null
           sku: string | null
           tenant_id: string | null
+          updated_at: string | null
           weight_dwt: number | null
           weight_grams: number | null
         }
@@ -7030,9 +7035,37 @@ export type Database = {
         }
         Relationships: []
       }
+      public_sold_items: {
+        Row: {
+          category: Database["public"]["Enums"]["inventory_category"] | null
+          description: string | null
+          karat: string | null
+          metal: Database["public"]["Enums"]["metal_type"] | null
+          sku: string | null
+          sold: boolean | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_store_settings: {
         Row: {
           checkout_enabled: boolean | null
+          feed_enabled: boolean | null
           order_max: number | null
           pickup_enabled: boolean | null
           ship_enabled: boolean | null

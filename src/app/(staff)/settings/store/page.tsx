@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { isTenantStripeConnected } from '@/lib/stripe/payment-link'
+import { storeBaseUrl } from '@/lib/tenant-resolver'
+import { feedEligible } from '@/lib/store/feed'
+import { loadFeedItems } from '@/lib/store/feed-data'
 import StoreSettingsContent from './content'
 import type { StoreSettingsInput } from '@/lib/store/settings'
 
@@ -20,7 +23,7 @@ export default async function StoreSettingsPage() {
     ctx.supabase
       .from('settings')
       .select(
-        'online_checkout_enabled, default_tax_rate, online_pickup_enabled, online_ship_enabled, ship_flat_rate, ship_free_over, ship_signature_over, online_order_max, online_reservation_minutes, store_return_policy_en, store_return_policy_es, store_shipping_policy_en, store_shipping_policy_es, store_tagline_en, store_tagline_es, store_accent_color',
+        'online_checkout_enabled, default_tax_rate, online_pickup_enabled, online_ship_enabled, ship_flat_rate, ship_free_over, ship_signature_over, online_order_max, online_reservation_minutes, store_return_policy_en, store_return_policy_es, store_shipping_policy_en, store_shipping_policy_es, store_tagline_en, store_tagline_es, store_accent_color, product_feed_enabled',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -49,13 +52,20 @@ export default async function StoreSettingsPage() {
     store_tagline_en: s?.store_tagline_en ?? '',
     store_tagline_es: s?.store_tagline_es ?? '',
     store_accent_color: s?.store_accent_color ?? '',
+    product_feed_enabled: s?.product_feed_enabled ?? false,
   }
+
+  const catalogLive = !!(t?.public_landing_enabled && t.public_catalog_enabled && t.public_slug && t.has_retail)
+  // Counts come from the same public views the feed reads.
+  const [feedBase, feedItems] = catalogLive && t?.public_slug
+    ? await Promise.all([storeBaseUrl(t.public_slug), loadFeedItems(ctx.tenantId)])
+    : [null, []]
 
   return (
     <StoreSettingsContent
       initial={initial}
       canEdit={EDIT.has(ctx.tenantRole)}
-      catalogLive={!!(t?.public_landing_enabled && t.public_catalog_enabled && t.public_slug && t.has_retail)}
+      catalogLive={catalogLive}
       stripeConnected={stripe}
       storeUrl={t?.public_slug ? `/s/${t.public_slug}/catalog` : null}
       domain={{
@@ -63,6 +73,12 @@ export default async function StoreSettingsPage() {
         // The token is only for the owner to paste into DNS.
         token: EDIT.has(ctx.tenantRole) ? (t?.custom_domain_token ?? null) : null,
         verified: !!t?.custom_domain_verified_at,
+      }}
+      feed={{
+        url: feedBase ? `${feedBase}/feeds/products.xml` : null,
+        published: initial.product_feed_enabled === true,
+        total: feedItems.length,
+        inFeed: feedItems.filter(feedEligible).length,
       }}
     />
   )

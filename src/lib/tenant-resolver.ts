@@ -5,6 +5,7 @@ import {
 } from '@/lib/supabase/storage'
 import type {
   InventoryCategory,
+  InventoryCondition,
   MetalType,
 } from '@/types/database-aliases'
 
@@ -271,7 +272,7 @@ export async function fetchPublicTenant(
  * catalog test file regression-locks the forbidden set on this string too.
  */
 export const PUBLIC_CATALOG_COLUMNS =
-  'id, sku, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, list_price, created_at'
+  'id, sku, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, list_price, created_at, condition'
 
 /**
  * Escape `%`, `_`, and `\` for use in a Postgres ILIKE pattern. The
@@ -384,6 +385,7 @@ export type PublicCatalogItem = {
   weight_dwt: number | null
   list_price: number
   created_at: string
+  condition: InventoryCondition | null
   // Detail variant only.
   photos?: PublicCatalogPhoto[]
   stones?: PublicCatalogStone[]
@@ -588,6 +590,7 @@ export async function fetchPublicCatalogItem(args: {
     weight_dwt: base.weight_dwt,
     list_price: base.list_price,
     created_at: base.created_at,
+    condition: base.condition,
     photos,
     stones,
   }
@@ -614,6 +617,7 @@ type PublicCatalogRow = {
   weight_dwt: number | string | null
   list_price: number | string | null
   created_at: string
+  condition: string | null
 }
 
 function narrowCatalogRow(r: {
@@ -630,6 +634,7 @@ function narrowCatalogRow(r: {
   weight_dwt: number | string | null
   list_price: number | string | null
   created_at: string | null
+  condition: string | null
 }): PublicCatalogRow | null {
   if (!r.id || !r.sku || r.description == null || !r.category || !r.created_at) {
     return null
@@ -648,6 +653,7 @@ function narrowCatalogRow(r: {
     weight_dwt: r.weight_dwt,
     list_price: r.list_price,
     created_at: r.created_at,
+    condition: r.condition,
   }
 }
 
@@ -699,6 +705,7 @@ function shapeListItem(
     weight_dwt: numericOrNull(row.weight_dwt),
     list_price,
     created_at: row.created_at,
+    condition: (row.condition as InventoryCondition | null) ?? null,
     primary_photo,
   }
 }
@@ -726,6 +733,31 @@ export type PublicStore = {
   shippingPolicy: { en: string | null; es: string | null }
   tagline: { en: string | null; es: string | null }
   accentColor: string | null
+  /** Product feed published (patches/0080). */
+  feedEnabled: boolean
+}
+
+// ── Sold / reserved pieces (patches/0080 public_sold_items view) ─────────
+
+export type PublicSoldItem = {
+  sku: string
+  description: string
+  category: InventoryCategory
+  /** true = sold; false = in a shopper's checkout right now. */
+  sold: boolean
+}
+
+/** A piece that was for sale online and no longer is, so its old link can say so. */
+export async function fetchPublicSoldItem(args: { tenantId: string; sku: string }): Promise<PublicSoldItem | null> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('public_sold_items')
+    .select('sku, description, category, sold')
+    .eq('tenant_id', args.tenantId)
+    .eq('sku', args.sku)
+    .maybeSingle()
+  if (!data?.sku || !data.category) return null
+  return { sku: data.sku, description: data.description ?? '', category: data.category, sold: data.sold === true }
 }
 
 /** What the storefront may show about checkout. Anon read through the view. */
@@ -748,6 +780,7 @@ export async function fetchPublicStore(tenantId: string): Promise<PublicStore | 
     shippingPolicy: { en: data.store_shipping_policy_en, es: data.store_shipping_policy_es },
     tagline: { en: data.store_tagline_en, es: data.store_tagline_es },
     accentColor: data.store_accent_color,
+    feedEnabled: data.feed_enabled === true,
   }
 }
 

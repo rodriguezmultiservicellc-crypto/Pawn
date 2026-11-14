@@ -8,7 +8,10 @@ report half of 10 closed.
 Phase 3 built (patches/0077-0079): online checkout, staff queue, store
 settings, custom domains, sitemap + product data. Not run end to end: needs
 Stripe connected + STRIPE_WEBHOOK_SECRET (item 454). Hero image not built.
-Next: Phase 4 (product feeds).
+Phase 4 built (patches/0080): feed at /s/<slug>/feeds/products.xml, stable
+image route /s/<slug>/img/<photo>, sold page for old links, Settings card.
+Not yet submitted to Google Merchant Center (needs a public domain + a shop
+with real pieces). Next: Phase 2b (RFID, after the hardware spike), then 5.
 
 This plan covers items 1, 2, 3, 4, 5 and 7 from the 2026-11-13 feature
 discussion. Item 6 (gift cards) is left out on purpose. The item numbers are
