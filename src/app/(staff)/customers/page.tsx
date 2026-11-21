@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
+import { customerSearchFilters } from '@/lib/customers/search'
 import CustomersContent, { type CustomerListRow } from './content'
 
 type SearchParams = Promise<{ q?: string; banned?: string }>
@@ -34,10 +35,10 @@ export default async function CustomersPage(props: {
     // to a tsvector / pg_trgm index when it matters.
     // Also match id_number (driver's license / state ID) so staff can look a
     // customer up by scanning or typing their ID.
-    const escaped = q.replace(/[%_]/g, (m) => '\\' + m)
-    query = query.or(
-      `first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,phone.ilike.%${escaped}%,email.ilike.%${escaped}%,id_number.ilike.%${escaped}%`,
-    )
+    // Every word must match one column — "freddy rodriguez" works.
+    for (const f of customerSearchFilters(q, ['first_name', 'last_name', 'phone', 'email', 'id_number'])) {
+      query = query.or(f)
+    }
   }
 
   const { data: customers } = await query

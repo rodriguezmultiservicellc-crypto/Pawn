@@ -1,6 +1,7 @@
 'use server'
 
 import { getCtx } from '@/lib/supabase/ctx'
+import { customerSearchFilters } from '@/lib/customers/search'
 
 export type PickerCustomerResult = {
   id: string
@@ -32,20 +33,19 @@ export async function searchCustomersForPicker(
   // any substring. PostgreSQL's GIN trigram indexes would be nice for
   // 10k+ row tenants, but for the typical pawn shop (<3k customers)
   // a plain index scan + ilike is fine.
-  const escaped = q.replace(/[%_]/g, (c) => `\\${c}`)
-  const wildcard = `%${escaped}%`
+  // Every word must match one column, so "freddy rodriguez" and
+  // "Rodriguez, Freddy" both find him (lib/customers/search).
+  const filters = customerSearchFilters(q, ['last_name', 'first_name', 'phone', 'id_number'])
+  if (filters.length === 0) return []
 
-  const { data } = await ctx.supabase
+  let sel = ctx.supabase
     .from('customers')
     .select('id, first_name, last_name, phone')
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .eq('is_banned', false)
-    .or(
-      `last_name.ilike.${wildcard},first_name.ilike.${wildcard},phone.ilike.${wildcard},id_number.ilike.${wildcard}`,
-    )
-    .order('last_name', { ascending: true })
-    .limit(20)
+  for (const f of filters) sel = sel.or(f)
+  const { data } = await sel.order('last_name', { ascending: true }).limit(20)
 
   return (data ?? []).map((c) => ({
     id: c.id,

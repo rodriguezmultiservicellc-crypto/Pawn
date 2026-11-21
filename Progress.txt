@@ -63,7 +63,7 @@ OPERATION IN FLIGHT: none
   Last session:   Session 61 (2026-11-21), saved 2026-11-21 ~17:30 ET.
                   Context budget at save: ~45%.
                   Built and live (main == feature/sol-pawn-brief), items
-                  495-504:
+                  495-505:
                   - PC froze at 15:06 (out of RAM on the 12 GB box, dwm
                     OOM) — NOT a code crash. Watchdog heap now 2048 MB.
                   - Lightspeed X-Series inventory import (0089) finished,
@@ -597,6 +597,21 @@ Progress_archive.txt — the items from those sessions are there.)
       idempotency holds in production. (Card "Products with stock"
       shows 0 on a re-run because it counts products with NEW pieces;
       label could say "Products to add" — cosmetic, not changed.)
+
+ 505. [BUG] CUSTOMER SEARCH FAILED ON FULL NAMES. "eddy rodriguez" on
+      /customers returned nothing. ROOT CAUSE: the whole phrase was
+      ilike'd against EACH column on its own (first_name ~ '%eddy
+      rodriguez%' OR last_name ~ …), so a first + last name never
+      matched. Same bug in the customer picker (lib/customers/
+      picker-search.ts, used by pawn / POS / buy). FIX: new pure
+      lib/customers/search.ts customerSearchFilters() → one .or() per
+      word, chained (PostgREST ANDs them); commas / parens dropped,
+      %/_ escaped, max 6 words; both call sites use it. 4 tests. Live
+      check: "freddy rodriguez" → 1, "eddy rodriguez" → 3.
+      NOTE: Eddy has TWO customer rows "Rodriguez, Eddy" with the same
+      ID ending 2130 (one from the 2026-07-28 xPawn import, one created
+      2026-04-28 with the RMS email) — a duplicate. Not merged; asked
+      Eddy (merging touches loans / ID scans / compliance rows).
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
