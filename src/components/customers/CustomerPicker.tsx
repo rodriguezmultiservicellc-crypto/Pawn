@@ -64,6 +64,12 @@ const CustomerPicker = forwardRef<
      *  Use on intake flows where physical IDs are required (pawn /
      *  buy-outright per FL Ch. 539). */
     enableDlScan?: boolean
+    /** 'lg' = the Ledger intake style (52px search, 2px blue border, 44px
+     *  buttons). Default 'md' is the look every other page uses. */
+    size?: 'md' | 'lg'
+    /** Extra controls rendered at the end of the search row (and beside
+     *  the selected customer), e.g. "+ New customer". */
+    trailing?: React.ReactNode
   }
 >(function CustomerPicker(
   {
@@ -75,9 +81,14 @@ const CustomerPicker = forwardRef<
     autoFocus = false,
     onChange,
     enableDlScan = false,
+    size = 'md',
+    trailing = null,
   },
   ref,
 ) {
+  const lg = size === 'lg'
+  const focusRing =
+    'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue'
   const { t } = useI18n()
   const cp = t.common.customerPicker
   const [selected, setSelected] = useState<PickerCustomerResult | null>(
@@ -233,19 +244,41 @@ const CustomerPicker = forwardRef<
     return (
       <div className="flex flex-col gap-1" ref={containerRef}>
         <input type="hidden" name={name} value={selected.id} />
-        <div className="flex items-center gap-2 rounded-xl border-2 border-blue/40 bg-blue/5 px-4 py-3">
-          <div className="min-w-0 flex-1 text-sm font-medium text-foreground">
-            {selected.label}
+        {lg ? (
+          <div className="flex flex-wrap items-stretch gap-2">
+            <div className="flex min-h-[52px] min-w-[240px] flex-1 items-center gap-2 rounded-md border-2 border-blue bg-background px-4">
+              <div className="min-w-0 flex-1 text-sm font-semibold text-foreground">
+                {selected.label}
+              </div>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className={`grid h-11 w-11 place-items-center rounded-md text-muted transition-colors hover:bg-background hover:text-danger ${focusRing}`}
+                aria-label={cp.clear}
+              >
+                <X size={16} weight="bold" />
+              </button>
+            </div>
+            {trailing}
           </div>
-          <button
-            type="button"
-            onClick={clearSelection}
-            className="rounded-md p-1 text-muted transition-colors hover:bg-background hover:text-danger"
-            aria-label={cp.clear}
-          >
-            <X size={16} weight="bold" />
-          </button>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 rounded-xl border-2 border-blue/40 bg-blue/5 px-4 py-3">
+              <div className="min-w-0 flex-1 text-sm font-medium text-foreground">
+                {selected.label}
+              </div>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="rounded-md p-1 text-muted transition-colors hover:bg-background hover:text-danger"
+                aria-label={cp.clear}
+              >
+                <X size={16} weight="bold" />
+              </button>
+            </div>
+            {trailing}
+          </>
+        )}
         {error ? <p className="text-xs text-danger">{error}</p> : null}
       </div>
     )
@@ -257,11 +290,11 @@ const CustomerPicker = forwardRef<
       {/* Empty hidden input so the form submits an empty value if not
           picked — server-side validation surfaces the "required" error. */}
       {required ? <input type="hidden" name={name} value="" /> : null}
-      <div className="flex items-stretch gap-2">
-        <div className="relative flex-1">
+      <div className={lg ? 'flex flex-wrap items-stretch gap-2' : 'flex items-stretch gap-2'}>
+        <div className={lg ? 'relative min-w-[240px] flex-1' : 'relative flex-1'}>
           <MagnifyingGlass
-            size={16}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+            size={lg ? 20 : 16}
+            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted ${lg ? 'left-4' : 'left-3'}`}
           />
           <input
             ref={inputRef}
@@ -273,7 +306,11 @@ const CustomerPicker = forwardRef<
             autoFocus={autoFocus}
             autoComplete="off"
             placeholder={enableDlScan ? cp.placeholderWithDl : cp.placeholder}
-            className="w-full rounded-xl border-2 border-border bg-background py-3 pl-9 pr-9 text-sm text-foreground outline-none transition-colors focus:border-blue"
+            className={
+              lg
+                ? `h-[52px] w-full rounded-md border-2 border-blue bg-background pl-11 pr-9 text-base text-foreground outline-none ${focusRing}`
+                : 'w-full rounded-xl border-2 border-border bg-background py-3 pl-9 pr-9 text-sm text-foreground outline-none transition-colors focus:border-blue'
+            }
           />
           <CaretDown
             size={14}
@@ -284,9 +321,14 @@ const CustomerPicker = forwardRef<
           <DlScanner
             onResult={onDlScan}
             label={cp.scanButton}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-blue/40 hover:bg-blue/5 hover:text-blue"
+            className={
+              lg
+                ? `inline-flex h-[52px] shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-background ${focusRing}`
+                : 'inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-blue/40 hover:bg-blue/5 hover:text-blue'
+            }
           />
         ) : null}
+        {trailing}
       </div>
 
       {scanNotice ? (

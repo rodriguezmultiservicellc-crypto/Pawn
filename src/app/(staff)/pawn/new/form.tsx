@@ -9,7 +9,7 @@ import {
   useTransition,
 } from 'react'
 import Link from 'next/link'
-import { CheckCircle, Upload, User, FloppyDisk } from '@phosphor-icons/react'
+import { CheckCircle, FloppyDisk, Plus, Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import StalePriceBanner, {
   StaleSpotConfirm,
@@ -39,6 +39,14 @@ import CustomerPicker, {
 } from '@/components/customers/CustomerPicker'
 import QuickCustomerModal from '@/components/customers/QuickCustomerModal'
 import type { PawnIntakeCategory } from '@/components/pawn/CategoryPicker'
+import {
+  FOCUS,
+  INPUT,
+  INPUT_READONLY,
+  LABEL,
+  OUTLINE_BTN,
+  PRIMARY_BTN,
+} from '@/lib/ui/ledger'
 import { createLoanAction, type CreateLoanState } from './actions'
 
 const PAWN_NEW_FORM_ID = 'pawn-new-form'
@@ -78,6 +86,12 @@ function fmtMoney(v: number): string {
   })
 }
 
+/**
+ * New pawn ticket — "Ledger" layout (same locked tokens as POS New sale):
+ * customer row, category pills + collateral table, signature beside notes,
+ * then one full-width loan summary bar (terms · summary · total + actions).
+ * Layout only: every field name, calculation and gate is unchanged.
+ */
 export default function NewPawnLoanForm({
   rates,
   minLoanAmount,
@@ -125,15 +139,14 @@ export default function NewPawnLoanForm({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
     initialDraft?.customerId ?? null,
   )
-  const [customerLabel, setCustomerLabel] = useState<string | null>(null)
   const customerPickerRef = useRef<CustomerPickerHandle>(null)
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [principal, setPrincipal] = useState<string>(
     initialDraft?.payload.principal ?? '',
   )
 
-  // Live collateral totals reported up from the editor → drives the rail's
-  // collateral-value box + LTV state.
+  // Live collateral totals reported up from the editor → drives the
+  // summary bar's collateral value + LTV state.
   const [collateralCount, setCollateralCount] = useState(0)
   const [collateralValue, setCollateralValue] = useState(0)
 
@@ -239,6 +252,9 @@ export default function NewPawnLoanForm({
     collateralCount > 0 &&
     !overCap
 
+  const itemsText = `${collateralCount} ${collateralCount === 1 ? tn.itemOne : tn.itemMany}`
+  const HINT = 'text-[13px] text-muted'
+
   return (
     <form
       id={PAWN_NEW_FORM_ID}
@@ -246,175 +262,159 @@ export default function NewPawnLoanForm({
       onSubmit={(e) => {
         if (!canIssue) e.preventDefault()
       }}
+      className="mx-auto w-full max-w-[1440px] space-y-6"
     >
-      {/* Sub bar */}
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold">{tn.title}</h1>
-        <Link href="/pawn" className="text-sm text-muted hover:text-foreground">
-          {t.pawn.backToList}
+      {/* Breadcrumb — replaces the old "Back to pawn loans" link. */}
+      <nav aria-label={tn.breadcrumb} className="flex items-center gap-2 text-sm">
+        <Link
+          href="/pawn"
+          className={`inline-flex h-11 items-center font-semibold text-blue hover:text-blue-2 hover:underline ${FOCUS}`}
+        >
+          {t.pawn.title}
         </Link>
+        <span className="text-muted">/</span>
+        <h1 className="font-semibold text-foreground">{tn.title}</h1>
+      </nav>
+
+      {/* Top row: Pawn loan / Buy outright · Hold to talk */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div
+          role="group"
+          aria-label={tn.financingLabel}
+          className="inline-flex overflow-hidden rounded-md border border-foreground"
+        >
+          <span
+            aria-current="page"
+            className="inline-flex h-11 items-center bg-foreground px-5 text-sm font-semibold text-white"
+          >
+            {tn.financingPawn}
+          </span>
+          <Link
+            href="/buy/new"
+            className={`inline-flex h-11 items-center bg-card px-5 text-sm font-semibold text-foreground hover:bg-background ${FOCUS}`}
+          >
+            {tn.financingBuy}
+          </Link>
+        </div>
+        <VoicePawnButton onDataExtracted={handleVoiceData} />
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-[18px] lg:grid-cols-[1fr_360px]">
-        {/* ── LEFT: work surface ─────────────────────────────────────── */}
-        <div className="space-y-4">
-          <VoicePawnButton onDataExtracted={handleVoiceData} />
+      <StalePriceBanner freshness={spotFreshness} />
 
-          <StalePriceBanner freshness={spotFreshness} />
-
-          {state.error ? (
-            <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-              {ruleErrorText(t, state.error)}
-            </div>
-          ) : state.fieldErrors &&
-            Object.keys(state.fieldErrors).length > 0 ? (
-            <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-              {t.common.fixErrorsBelow}
-            </div>
-          ) : null}
-
-          {/* Customer */}
-          <fieldset className="rounded-xl border border-border bg-card p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">
-              {tn.sectionCustomer}
-            </legend>
-            <p className="mt-1 text-xs font-medium text-warning">
-              {tn.pickCustomerHelp}
-            </p>
-            <div className="mt-2 flex items-start gap-2">
-              <div className="flex-1">
-                <CustomerPicker
-                  ref={customerPickerRef}
-                  name="customer_id"
-                  required
-                  enableDlScan
-                  initialCustomerId={initialDraft?.customerId ?? null}
-                  error={state.fieldErrors?.customer_id}
-                  onChange={(c) => {
-                    setSelectedCustomerId(c?.id ?? null)
-                    setCustomerLabel(c?.label ?? null)
-                  }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCustomerModal(true)}
-                className="shrink-0 rounded-md border border-border bg-card px-3 py-3 text-sm text-foreground hover:bg-background hover:text-foreground"
-              >
-                {tn.newCustomer}
-              </button>
-            </div>
-          </fieldset>
-
-          <QuickCustomerModal
-            open={showCustomerModal}
-            onClose={() => setShowCustomerModal(false)}
-            onCreated={(c) => {
-              customerPickerRef.current?.set(c)
-              setSelectedCustomerId(c.id)
-              setCustomerLabel(c.label)
-            }}
-          />
-
-          {/* Collateral */}
-          <fieldset className="rounded-xl border border-border bg-card p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">
-              {tn.sectionCollateral}
-            </legend>
-            <p className="mt-1 text-xs text-muted">{tn.itemMinOne}</p>
-            <div className="mt-2">
-              <CollateralItemsList
-                ref={collateralRef}
-                categories={categories}
-                onTotalsChange={(count, total) => {
-                  setCollateralCount(count)
-                  setCollateralValue(total)
-                }}
-              />
-            </div>
-          </fieldset>
-
-          {/* Signature & notes */}
-          <fieldset className="rounded-xl border border-border bg-card p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">
-              {tn.sectionSignature}
-            </legend>
-            <div className="mt-2 space-y-3">
-              <div>
-                <span className="block text-sm font-medium text-foreground">
-                  {tn.signature}
-                </span>
-                <p className="mb-1 text-xs text-muted">{tn.signatureHelp}</p>
-                <button
-                  type="button"
-                  onClick={() => sigInputRef.current?.click()}
-                  className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
-                >
-                  <Upload size={14} weight="bold" />
-                  {sigPreview ?? t.common.upload}
-                </button>
-                <input
-                  ref={sigInputRef}
-                  type="file"
-                  name="signature_file"
-                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
-                  onChange={onSigChange}
-                  className="sr-only"
-                />
-              </div>
-
-              <label className="block space-y-1">
-                <span className="text-sm font-medium text-foreground">
-                  {tn.notes}
-                </span>
-                <textarea
-                  name="notes"
-                  rows={2}
-                  defaultValue={initialDraft?.payload.notes ?? ''}
-                  className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-                />
-              </label>
-            </div>
-          </fieldset>
+      {state.error ? (
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+          {ruleErrorText(t, state.error)}
         </div>
+      ) : state.fieldErrors &&
+        Object.keys(state.fieldErrors).length > 0 ? (
+        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+          {t.common.fixErrorsBelow}
+        </div>
+      ) : null}
 
-        {/* ── RIGHT: loan summary rail ──────────────────────────────── */}
-        <aside className="rounded-2xl bg-navy p-[18px] text-white shadow-lg lg:sticky lg:top-4">
-          {/* Financing type */}
-          <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-xl bg-white/[0.06] p-1">
-            <span className="rounded-lg bg-gold px-3 py-2.5 text-center text-[13px] font-bold text-navy">
-              {tn.financingPawn}
-            </span>
-            <Link
-              href="/buy/new"
-              className="rounded-lg px-3 py-2.5 text-center text-[13px] font-bold text-white/60 hover:text-white"
+      {/* 1 · Customer */}
+      <section className="space-y-2">
+        <h2 className={LABEL}>1 · {tn.sectionCustomer}</h2>
+        <CustomerPicker
+          ref={customerPickerRef}
+          name="customer_id"
+          required
+          enableDlScan
+          size="lg"
+          initialCustomerId={initialDraft?.customerId ?? null}
+          error={state.fieldErrors?.customer_id}
+          onChange={(c) => setSelectedCustomerId(c?.id ?? null)}
+          trailing={
+            <button
+              type="button"
+              onClick={() => setShowCustomerModal(true)}
+              className={`${OUTLINE_BTN} h-[52px]`}
             >
-              {tn.financingBuy}
-            </Link>
-          </div>
+              <Plus size={14} weight="bold" />
+              {tn.newCustomerShort}
+            </button>
+          }
+        />
+        <p className={HINT}>{tn.pickCustomerHelp}</p>
+      </section>
 
-          <h2 className="mb-3.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white/50">
-            {tn.railSummaryTitle}
-          </h2>
+      <QuickCustomerModal
+        open={showCustomerModal}
+        onClose={() => setShowCustomerModal(false)}
+        onCreated={(c) => {
+          customerPickerRef.current?.set(c)
+          setSelectedCustomerId(c.id)
+        }}
+      />
 
-          {/* Customer chip */}
-          <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gold/15 text-gold">
-              <User size={16} weight="bold" />
-            </span>
-            <span className="min-w-0 truncate text-[13.5px] font-bold">
-              {customerLabel ?? tn.railNoCustomer}
-            </span>
-          </div>
+      {/* 2 · Add collateral — pills + collateral table */}
+      <section>
+        <CollateralItemsList
+          ref={collateralRef}
+          categories={categories}
+          title={`2 · ${tn.sectionAddCollateral}`}
+          onTotalsChange={(count, total) => {
+            setCollateralCount(count)
+            setCollateralValue(total)
+          }}
+        />
+      </section>
 
-          {/* Principal + collateral value */}
-          <div className="mb-3.5 grid grid-cols-[1.1fr_0.9fr] items-end gap-2.5">
-            <label className="block">
-              <span className="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-white/55">
-                {tn.principal}
-              </span>
+      {/* 3 · Customer signature · Notes */}
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="space-y-2">
+          <h2 className={LABEL}>3 · {tn.signature}</h2>
+          <button
+            type="button"
+            onClick={() => sigInputRef.current?.click()}
+            className={OUTLINE_BTN}
+          >
+            <Upload size={16} weight="bold" />
+            {sigPreview ?? tn.signatureUpload}
+          </button>
+          <p className={HINT}>{tn.signatureHelp}</p>
+          <input
+            ref={sigInputRef}
+            type="file"
+            name="signature_file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
+            onChange={onSigChange}
+            className="sr-only"
+          />
+        </div>
+        <label className="block space-y-2">
+          <span className={`block ${LABEL}`}>{tn.notes}</span>
+          <textarea
+            name="notes"
+            rows={3}
+            defaultValue={initialDraft?.payload.notes ?? ''}
+            className={`block w-full rounded-md border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-blue ${FOCUS}`}
+          />
+        </label>
+      </section>
+
+      {/* Hidden fields submitted to the server */}
+      <input type="hidden" name="interest_rate_monthly" value={submittedRate} />
+      <input type="hidden" name="min_monthly_charge" value={submittedMinCharge} />
+      {/* rate_id is staged in drafts so the rate select can be restored. */}
+      <input type="hidden" name="rate_id" value={rateChoice} />
+      {initialDraft ? (
+        <input type="hidden" name="draft_id" value={initialDraft.id} />
+      ) : null}
+      <input type="hidden" name="due_date" value={computedDueDate} />
+
+      {/* Loan summary bar: terms · summary · total + actions */}
+      <section
+        aria-label={tn.railSummaryTitle}
+        className="grid grid-cols-1 divide-y divide-border rounded-lg border border-foreground bg-card lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] lg:divide-x lg:divide-y-0"
+      >
+        {/* a. Terms */}
+        <div className="space-y-3 p-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block space-y-1.5">
+              <span className={`block ${LABEL}`}>{tn.principal}</span>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-bold text-white/50">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-lg font-semibold text-muted">
                   $
                 </span>
                 <input
@@ -426,95 +426,34 @@ export default function NewPawnLoanForm({
                   placeholder="0.00"
                   value={principal}
                   onChange={(e) => setPrincipal(e.target.value)}
-                  className="h-14 w-full rounded-lg border border-white/15 bg-white/[0.07] pl-7 pr-3 text-[23px] font-extrabold tabular-nums text-white outline-none focus:border-gold"
+                  className={`block h-11 w-full rounded-md border-2 border-blue bg-card pl-7 pr-3 font-mono text-lg font-semibold tabular-nums text-foreground outline-none ${FOCUS}`}
                 />
               </div>
             </label>
-            <div
-              className={`rounded-lg border-[1.5px] px-3 py-2.5 ${
-                ltvState === 'ok'
-                  ? 'border-success/55 bg-success/10'
-                  : ltvState === 'over'
-                  ? 'border-gold/60 bg-gold/15'
-                  : 'border-white/15 bg-white/[0.06]'
-              }`}
-            >
-              <div className="text-[9.5px] font-bold uppercase tracking-[0.05em] text-white/55">
-                {tn.collateralValue}
-              </div>
-              <div className="mt-0.5 text-[21px] font-extrabold tabular-nums">
-                {fmtMoney(collateralValue)}
-              </div>
-              <div
-                className={`mt-0.5 text-[10.5px] font-bold ${
-                  ltvState === 'ok'
-                    ? 'text-success'
-                    : ltvState === 'over'
-                    ? 'text-gold-2'
-                    : 'text-white/50'
-                }`}
-              >
-                {ltvState === 'ok'
-                  ? `✓ ${tn.ltvCovered.replace('{pct}', String(ltvPct))}`
-                  : ltvState === 'over'
-                  ? `⚠ ${tn.ltvOver}`
-                  : `${collateralCount} ${
-                      collateralCount === 1 ? tn.itemOne : tn.itemMany
-                    }`}
-              </div>
-            </div>
-          </div>
 
-          {/* Hidden rate fields submitted to the server */}
-          <input type="hidden" name="interest_rate_monthly" value={submittedRate} />
-          <input type="hidden" name="min_monthly_charge" value={submittedMinCharge} />
-          {/* rate_id is staged in drafts so the rate select can be restored. */}
-          <input type="hidden" name="rate_id" value={rateChoice} />
-          {initialDraft ? (
-            <input type="hidden" name="draft_id" value={initialDraft.id} />
-          ) : null}
+            <label className="block space-y-1.5">
+              <span className={`block ${LABEL}`}>{tn.interestRate}</span>
+              {rates.length > 0 ? (
+                <select
+                  value={rateChoice}
+                  onChange={(e) => setRateChoice(e.target.value)}
+                  required
+                  className={INPUT}
+                >
+                  {rates.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {(r.rateMonthly * 100).toFixed(2)}% — {r.label}
+                      {r.isDefault ? ` (${tn.rateDefaultBadge})` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className={HINT}>{tn.rateNoneConfigured}</p>
+              )}
+            </label>
 
-          {/* Rate */}
-          <label className="mb-3 block">
-            <span className="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-white/55">
-              {tn.interestRate}
-            </span>
-            {rates.length > 0 ? (
-              <select
-                value={rateChoice}
-                onChange={(e) => setRateChoice(e.target.value)}
-                required
-                className="h-[42px] w-full rounded-lg border border-white/15 bg-white/[0.07] px-3 text-sm font-bold text-white outline-none focus:border-gold [&>option]:text-navy"
-              >
-                {rates.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {(r.rateMonthly * 100).toFixed(2)}% — {r.label}
-                    {r.isDefault ? ` (${tn.rateDefaultBadge})` : ''}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <p className="text-xs text-white/55">{tn.rateNoneConfigured}</p>
-            )}
-            <span className="mt-1 block text-[11px] text-white/45">
-              {selectedRateDescription ?? tn.manageRatesHint}
-            </span>
-            {overCap && rateCap != null ? (
-              <span className="mt-1 block text-[11.5px] font-semibold text-gold-2">
-                {t.jurisdiction.errors.jurisdiction_rate_cap.replace(
-                  '{value}',
-                  `${(rateCap * 100).toFixed(2)}%`,
-                )}
-              </span>
-            ) : null}
-          </label>
-
-          {/* Term + issue date */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <label className="block">
-              <span className="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-white/55">
-                {tn.termDays}
-              </span>
+            <label className="block space-y-1.5">
+              <span className={`block ${LABEL}`}>{tn.termDays}</span>
               <input
                 type="number"
                 min={loanRules.minTermDays ?? 1}
@@ -524,83 +463,108 @@ export default function NewPawnLoanForm({
                 readOnly={termFixed}
                 value={termDays}
                 onChange={(e) => setTermDays(e.target.value)}
-                className={`h-[42px] w-full rounded-lg border border-white/15 px-3 text-sm font-bold tabular-nums outline-none focus:border-gold ${
-                  termFixed ? 'bg-white/[0.04] text-white/70' : 'bg-white/[0.07] text-white'
-                }`}
+                className={`${termFixed ? INPUT_READONLY : INPUT} font-mono tabular-nums`}
               />
             </label>
-            <label className="block">
-              <span className="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-white/55">
-                {tn.issueDate}
-              </span>
+
+            <label className="block space-y-1.5">
+              <span className={`block ${LABEL}`}>{tn.issueDate}</span>
               <input
                 type="date"
                 name="issue_date"
                 value={issueDate}
                 readOnly
-                className="h-[42px] w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-sm font-semibold text-white/70 outline-none"
+                className={`${INPUT_READONLY} font-mono`}
               />
             </label>
           </div>
-          <input type="hidden" name="due_date" value={computedDueDate} />
-          {termFixed && loanRules.jurisdictionName ? (
-            <p className="mt-1 text-[11px] text-white/45">
-              {t.jurisdiction.termFixed
-                .replace('{days}', defaultTerm)
-                .replace('{name}', loanRules.jurisdictionName)}
-            </p>
-          ) : null}
 
-          <div className="mt-2 flex items-center justify-between px-0.5 py-2 text-[13px]">
-            <span className="font-semibold text-white/60">
-              {tn.dueDate} <span className="text-white/40">{tn.dueDateAuto}</span>
-            </span>
-            <span className="font-bold tabular-nums">{computedDueDate || '—'}</span>
+          <div className="space-y-1">
+            {termFixed && loanRules.jurisdictionName ? (
+              <p className={HINT}>
+                {t.jurisdiction.termFixed
+                  .replace('{days}', defaultTerm)
+                  .replace('{name}', loanRules.jurisdictionName)}
+              </p>
+            ) : null}
+            <p className={HINT}>{selectedRateDescription ?? tn.manageRatesHint}</p>
+            {overCap && rateCap != null ? (
+              <p className="text-[13px] font-semibold text-danger">
+                {t.jurisdiction.errors.jurisdiction_rate_cap.replace(
+                  '{value}',
+                  `${(rateCap * 100).toFixed(2)}%`,
+                )}
+              </p>
+            ) : null}
+            {state.fieldErrors?.principal ? (
+              <p className="text-[13px] font-semibold text-danger">
+                {tn.principalMinHint.replace(
+                  '{amount}',
+                  minLoanAmount != null ? `$${minLoanAmount.toFixed(2)}` : '',
+                )}
+              </p>
+            ) : null}
           </div>
-          <div className="flex items-center justify-between px-0.5 pb-1 text-[13px]">
-            <span className="font-semibold text-white/60">
-              {tn.collateralItemsLabel}
-            </span>
-            <span className="font-bold tabular-nums">{collateralCount}</span>
-          </div>
+        </div>
 
-          {/* Redemption */}
-          <div className="my-2.5 rounded-xl border border-gold/25 bg-gold/10 p-3.5">
-            <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-white/60">
-              {tn.redemptionLabel}
-            </div>
-            <div className="mt-1 text-[30px] font-extrabold tabular-nums">
+        {/* b. Summary */}
+        <dl className="space-y-4 p-5 text-sm">
+          <div>
+            <dt className={LABEL}>{tn.collateralValue}</dt>
+            <dd className="mt-1 flex flex-wrap items-baseline gap-x-2">
+              <span className="font-mono text-lg font-semibold tabular-nums text-foreground">
+                {fmtMoney(collateralValue)}
+              </span>
+              <span className="text-muted">{itemsText}</span>
+            </dd>
+            {ltvState !== 'neutral' ? (
+              <dd
+                className={`mt-0.5 text-[13px] font-semibold ${
+                  ltvState === 'ok' ? 'text-success' : 'text-warning'
+                }`}
+              >
+                {ltvState === 'ok'
+                  ? `✓ ${tn.ltvCovered.replace('{pct}', String(ltvPct))}`
+                  : `⚠ ${tn.ltvOver}`}
+              </dd>
+            ) : null}
+          </div>
+          <div>
+            <dt className={LABEL}>{tn.interest}</dt>
+            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">
+              {fmtMoney(interest)}
+            </dd>
+          </div>
+          <div>
+            <dt className={LABEL}>
+              {tn.dueDate} <span className="normal-case tracking-normal">{tn.dueDateAuto}</span>
+            </dt>
+            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">
+              {computedDueDate || '—'}
+            </dd>
+          </div>
+        </dl>
+
+        {/* c. Total + actions */}
+        <div className="space-y-3 p-5">
+          <div>
+            <div className={LABEL}>{tn.redemptionLabel}</div>
+            <div className="mt-1 font-mono text-[40px] font-bold leading-tight tabular-nums text-foreground">
               {fmtMoney(redemption)}
             </div>
-            <div className="mt-1 text-[11.5px] font-semibold text-gold-2">
-              {tn.redemptionIncludes.replace('{amount}', fmtMoney(interest))}
-            </div>
           </div>
 
-          {state.fieldErrors?.principal ? (
-            <p className="mb-1 text-[11.5px] font-semibold text-gold-2">
-              {tn.principalMinHint.replace(
-                '{amount}',
-                minLoanAmount != null ? `$${minLoanAmount.toFixed(2)}` : '',
-              )}
-            </p>
-          ) : null}
+          <StaleSpotConfirm
+            freshness={spotFreshness}
+            canConfirm={canConfirmStale}
+            checked={staleAck}
+            onChange={setStaleAck}
+          />
 
-          <div className="mb-2.5">
-            <StaleSpotConfirm
-              freshness={spotFreshness}
-              canConfirm={canConfirmStale}
-              checked={staleAck}
-              onChange={setStaleAck}
-              onDark
-            />
-          </div>
-
-          {/* Issue */}
           <button
             type="submit"
             disabled={!canIssue}
-            className="mt-1 flex h-14 w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-b from-gold-2 to-gold text-base font-extrabold text-[#3a2600] shadow-lg transition-all hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:hover:translate-y-0"
+            className={`${PRIMARY_BTN} h-14 w-full text-base`}
           >
             <CheckCircle size={18} weight="bold" />
             {pending ? tn.submitting : tn.submit}
@@ -611,19 +575,17 @@ export default function NewPawnLoanForm({
             type="button"
             onClick={onSaveDraft}
             disabled={savingDraft || selectedCustomerId == null}
-            className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] text-[13px] font-bold text-white/85 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            className={`${OUTLINE_BTN} w-full`}
           >
             <FloppyDisk size={16} weight="bold" />
             {savingDraft ? tn.draftSaving : tn.saveDraft}
           </button>
 
           {!canIssue && !pending ? (
-            <p className="mt-2.5 text-center text-[11.5px] font-semibold text-white/50">
-              {tn.railMissingHint}
-            </p>
+            <p className={`${HINT} text-center`}>{tn.railMissingHint}</p>
           ) : null}
-        </aside>
-      </div>
+        </div>
+      </section>
     </form>
   )
 }

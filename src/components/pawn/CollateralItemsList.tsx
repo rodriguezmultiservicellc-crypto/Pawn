@@ -9,8 +9,9 @@ import {
   useState,
 } from 'react'
 import Image from 'next/image'
-import { Plus, Trash, Camera, Warning } from '@phosphor-icons/react'
+import { Plus, Camera, Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { FOCUS, INPUT, LABEL } from '@/lib/ui/ledger'
 import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
 import type { WatchModelMatch } from './InlinePawnCalculator'
 import type {
@@ -153,6 +154,9 @@ type Row = {
   /** pawn_intake_categories.slug — sub. NULL when the picked top has
    *  no subs OR no top picked yet. */
   pawn_subcategory_slug: string | null
+  /** UI only, never submitted: the top-level category a pill chose while
+   *  the clerk still has to pick its sub-category. */
+  pending_top_slug: string | null
   description: string
   category: InventoryCategory
   // Jewelry attributes (existing, only shown for 'jewelry' top).
@@ -204,6 +208,7 @@ function newRow(): Row {
     uid: typeof crypto !== 'undefined' ? crypto.randomUUID() : `r${Math.random()}`,
     pawn_category_slug: null,
     pawn_subcategory_slug: null,
+    pending_top_slug: null,
     description: '',
     category: 'other',
     metal_type: '',
@@ -242,10 +247,27 @@ export const CollateralItemsList = forwardRef<
     /** Reports running { item count, summed est_value } up to the parent
      *  so the loan-summary rail can show collateral value + LTV live. */
     onTotalsChange?: (count: number, totalValue: number) => void
+    /** Section label shown before the category pills. */
+    title: string
   }
->(function CollateralItemsList({ categories, onTotalsChange }, ref) {
+>(function CollateralItemsList({ categories, onTotalsChange, title }, ref) {
   const { t } = useI18n()
-  const [rows, setRows] = useState<Row[]>([newRow()])
+  // Starts empty: the table shows "Pick a category above…" until a pill,
+  // voice intake or a resumed draft adds the first row.
+  const [rows, setRows] = useState<Row[]>([])
+  // Rows whose detail panel the clerk opened with Edit. A row that still
+  // lacks a required field stays open regardless (see isRowComplete).
+  const [openUids, setOpenUids] = useState<ReadonlySet<string>>(new Set())
+
+  function setOpen(uid: string, open: boolean) {
+    setOpenUids((prev) => {
+      if (prev.has(uid) === open) return prev
+      const next = new Set(prev)
+      if (open) next.add(uid)
+      else next.delete(uid)
+      return next
+    })
+  }
 
   // Report collateral count + total est_value up to the rail whenever rows
   // change. Counts only rows the operator has actually started (a picked
@@ -282,16 +304,25 @@ export const CollateralItemsList = forwardRef<
       .find((c) => c.slug === 'jewelry')
       ?.subcategories.find((s) => s.slug === 'watch')?.slug ?? null
 
-  function addRow() {
-    setRows((prev) => [...prev, newRow()])
+  // A category pill: a category with no sub-categories is picked outright;
+  // one with subs opens the new row on its sub-category step.
+  function addFromCategory(c: PawnIntakeCategory) {
+    const base = newRow()
+    const row: Row =
+      c.subcategories.length === 0
+        ? {
+            ...base,
+            pawn_category_slug: c.slug,
+            category: inventoryCategoryFromSlug(c.slug, null),
+          }
+        : { ...base, pending_top_slug: c.slug }
+    setRows((prev) => [...prev, row])
+    setOpen(row.uid, true)
   }
 
   function removeRow(uid: string) {
-    setRows((prev) => {
-      const next = prev.filter((r) => r.uid !== uid)
-      // Always keep at least one row.
-      return next.length === 0 ? [newRow()] : next
-    })
+    setRows((prev) => prev.filter((r) => r.uid !== uid))
+    setOpen(uid, false)
   }
 
   function patchRow(uid: string, patch: Partial<Row>) {
@@ -333,6 +364,7 @@ export const CollateralItemsList = forwardRef<
   function isPristineRow(r: Row): boolean {
     return (
       r.pawn_category_slug == null &&
+      r.pending_top_slug == null &&
       r.description.trim() === '' &&
       r.category === 'other' &&
       r.metal_type === '' &&
@@ -405,58 +437,128 @@ export const CollateralItemsList = forwardRef<
     [],
   )
 
-  return (
-    <div className="space-y-3">
-      <input type="hidden" name="collateral_count" value={rows.length} />
-      {rows.map((row, idx) => (
-        <CollateralRow
-          key={row.uid}
-          index={idx}
-          row={row}
-          categories={categories}
-          onChange={(patch) => patchRow(row.uid, patch)}
-          onRemove={() => removeRow(row.uid)}
-          canRemove={rows.length > 1}
-          tMetal={(m) =>
-            (t.inventory as unknown as Record<string, string>)[
-              METAL_OPTIONS.find((o) => o.value === m)?.key ?? 'metalOther'
-            ] ?? m
-          }
-        />
-      ))}
+  const tn = t.pawn.new_
+  const TH = 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-muted'
 
-      <div>
-        <button
-          type="button"
-          onClick={addRow}
-          className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
-        >
-          <Plus size={14} weight="bold" />
-          {t.pawn.new_.addItem}
-        </button>
+  return (
+    <div className="space-y-4">
+      <input type="hidden" name="collateral_count" value={rows.length} />
+
+      {/* "2 · Add collateral" + one pill per top-level category. A pill
+          starts the same category → sub-category → item workflow the big
+          tiles used to start. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className={`mr-2 ${LABEL}`}>{title}</h2>
+        {categories.length === 0 ? (
+          <p className="text-sm text-warning">{tn.categoryNoneConfigured}</p>
+        ) : (
+          categories.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => addFromCategory(c)}
+              className={`inline-flex h-11 items-center gap-1 rounded-full border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:border-blue hover:bg-background ${FOCUS}`}
+            >
+              <Plus size={14} weight="bold" />
+              {c.label}
+            </button>
+          ))
+        )}
+      </div>
+
+      <div
+        className="min-h-[240px] overflow-x-auto rounded-lg border border-border [contain:inline-size]"
+        // A required field in a closed row would block Issue with no
+        // visible message — open that row so the browser can point at it.
+        onInvalidCapture={(e) => {
+          const uid = (e.target as HTMLElement)
+            .closest('[data-row-uid]')
+            ?.getAttribute('data-row-uid')
+          if (uid) setOpen(uid, true)
+        }}
+      >
+        <table className="w-full min-w-[760px] border-collapse text-sm">
+          <thead className="bg-background">
+            <tr className="border-b border-border">
+              <th className={`${TH} w-12`}>{tn.colNo}</th>
+              <th className={TH}>{tn.colCategory}</th>
+              <th className={TH}>{tn.colDescription}</th>
+              <th className={TH}>{tn.colWeightSerial}</th>
+              <th className={`${TH} text-right`}>{tn.colValue}</th>
+              <th className={`${TH} text-right`}>{tn.colActions}</th>
+            </tr>
+          </thead>
+          {rows.length === 0 ? (
+            <tbody>
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-muted">
+                  {tn.collateralEmpty}
+                </td>
+              </tr>
+            </tbody>
+          ) : (
+            rows.map((row, idx) => (
+              <CollateralRow
+                key={row.uid}
+                index={idx}
+                row={row}
+                categories={categories}
+                open={openUids.has(row.uid)}
+                onToggle={(v) => setOpen(row.uid, v)}
+                onChange={(patch) => patchRow(row.uid, patch)}
+                onRemove={() => removeRow(row.uid)}
+                tMetal={(m) =>
+                  (t.inventory as unknown as Record<string, string>)[
+                    METAL_OPTIONS.find((o) => o.value === m)?.key ?? 'metalOther'
+                  ] ?? m
+                }
+              />
+            ))
+          )}
+        </table>
       </div>
     </div>
   )
 })
 
+/** Required fields filled in → the row may fold down to its summary line. */
+function isRowComplete(row: Row, categoryStepDone: boolean): boolean {
+  if (!categoryStepDone) return false
+  if (row.description.trim() === '') return false
+  if (row.pawn_category_slug === 'firearms' && row.firearm_serial_number.trim() === '') {
+    return false
+  }
+  return true
+}
+
+function fmtValue(v: string): string {
+  const n = parseFloat(v)
+  if (!isFinite(n)) return '—'
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
+}
+
 function CollateralRow({
   index,
   row,
   categories,
+  open,
+  onToggle,
   onChange,
   onRemove,
-  canRemove,
   tMetal,
 }: {
   index: number
   row: Row
   categories: PawnIntakeCategory[]
+  /** The clerk opened this row with Edit. */
+  open: boolean
+  onToggle: (open: boolean) => void
   onChange: (patch: Partial<Row>) => void
   onRemove: () => void
-  canRemove: boolean
   tMetal: (m: MetalType) => string
 }) {
   const { t } = useI18n()
+  const tn = t.pawn.new_
   const photoInputRef = useRef<HTMLInputElement>(null)
   const fieldId = useId()
 
@@ -490,8 +592,70 @@ function CollateralRow({
     onChange({ photo: file, photoPreview: preview })
   }
 
+  // Panel is shown while the clerk is editing OR while a required field is
+  // still empty — a folded row never hides something Issue would refuse.
+  const complete = isRowComplete(row, categoryStepDone)
+  const panelOpen = open || !complete
+
+  const pendingTop = row.pending_top_slug
+    ? categories.find((c) => c.slug === row.pending_top_slug) ?? null
+    : null
+  const categoryText = selectedCategory
+    ? selectedSubcategory
+      ? `${selectedCategory.label} → ${selectedSubcategory.label}`
+      : selectedCategory.label
+    : pendingTop
+      ? pendingTop.label
+      : '—'
+  const weightSerial =
+    selectedCategory?.slug === 'jewelry'
+      ? row.weight_grams.trim()
+        ? `${row.weight_grams.trim()} g`
+        : '—'
+      : selectedCategory?.slug === 'firearms'
+        ? row.firearm_serial_number.trim() || '—'
+        : selectedCategory?.slug === 'electronics'
+          ? row.electronic_serial.trim() || '—'
+          : '—'
+  const TD = 'px-4 py-4 align-top'
+
   return (
-    <div className="rounded-xl border border-border bg-card p-3">
+    <tbody data-row-uid={row.uid} className="border-b border-border last:border-b-0">
+      <tr>
+        <td className={`${TD} font-mono text-muted`}>{index + 1}</td>
+        <td className={`${TD} text-foreground`}>{categoryText}</td>
+        <td className={`${TD} text-foreground`}>
+          {row.description.trim() || <span className="text-muted">—</span>}
+        </td>
+        <td className={`${TD} font-mono text-foreground`}>{weightSerial}</td>
+        <td className={`${TD} text-right font-mono font-semibold text-foreground`}>
+          {fmtValue(row.est_value)}
+        </td>
+        <td className="px-4 py-2 text-right align-top">
+          <div className="inline-flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onToggle(!panelOpen)}
+              disabled={panelOpen && !complete}
+              aria-expanded={panelOpen}
+              className={`inline-flex h-11 items-center rounded-md px-3 text-sm font-semibold text-blue hover:text-blue-2 hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline ${FOCUS}`}
+            >
+              {panelOpen ? tn.itemDone : tn.itemEdit}
+            </button>
+            <button
+              type="button"
+              onClick={onRemove}
+              className={`inline-flex h-11 items-center rounded-md px-3 text-sm font-semibold text-danger hover:underline ${FOCUS}`}
+              aria-label={`${tn.removeItem} ${index + 1}`}
+              data-row-id={fieldId}
+            >
+              {tn.removeItem}
+            </button>
+          </div>
+        </td>
+      </tr>
+      <tr hidden={!panelOpen}>
+        <td colSpan={6} className="bg-background/60 px-4 pb-4 pt-3">
       {/* Hidden inputs always present so the form action sees the
           slug pair on submit. Empty strings serialize fine — the
           server-side schema treats empty as null. */}
@@ -515,10 +679,12 @@ function CollateralRow({
         <div className="mb-3">
           <CategoryPicker
             categories={categories}
+            initialTopSlug={row.pending_top_slug}
             onPick={(topSlug, subSlug) =>
               onChange({
                 pawn_category_slug: topSlug,
                 pawn_subcategory_slug: subSlug,
+                pending_top_slug: null,
                 // Derive the inventory_category enum value from the
                 // pawn slugs so the legacy column stays populated
                 // without asking the operator twice.
@@ -536,6 +702,7 @@ function CollateralRow({
               onChange({
                 pawn_category_slug: null,
                 pawn_subcategory_slug: null,
+                pending_top_slug: null,
                 category: 'other',
               })
             }
@@ -547,7 +714,7 @@ function CollateralRow({
       <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
         {/* Photo */}
         <div className="md:col-span-2">
-          <span className="mb-1 block text-xs font-medium text-foreground">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-muted">
             {t.pawn.new_.itemPhoto}
           </span>
           <button
@@ -586,7 +753,7 @@ function CollateralRow({
         <div className="md:col-span-10 grid grid-cols-1 gap-3 md:grid-cols-6">
           {/* Common: description + est_value, always shown */}
           <label className="md:col-span-4 block space-y-1">
-            <span className="text-xs font-medium text-foreground">
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
               {t.pawn.new_.itemDescription} *
             </span>
             <input
@@ -596,12 +763,12 @@ function CollateralRow({
               value={row.description}
               onChange={(e) => onChange({ description: e.target.value })}
               placeholder="14k gold rope chain, 22 inches"
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className={INPUT}
             />
           </label>
 
           <label className="md:col-span-2 block space-y-1">
-            <span className="text-xs font-medium text-foreground">
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
               {t.pawn.new_.itemEstValue}
             </span>
             <input
@@ -611,7 +778,7 @@ function CollateralRow({
               name={`collateral_${index}_est_value`}
               value={row.est_value}
               onChange={(e) => onChange({ est_value: e.target.value })}
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className={INPUT}
             />
           </label>
 
@@ -630,7 +797,7 @@ function CollateralRow({
           {/* Common FS 539.001(8)(b)(2) fields — visible regardless of
               picked category. Color (e) + unique marks (i). */}
           <label className="md:col-span-2 block space-y-1">
-            <span className="text-xs font-medium text-foreground">
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
               {t.pawn.new_.itemColor}
             </span>
             <input
@@ -639,12 +806,12 @@ function CollateralRow({
               value={row.color}
               onChange={(e) => onChange({ color: e.target.value })}
               placeholder="Yellow / Black / Two-tone"
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className={INPUT}
             />
           </label>
 
           <label className="md:col-span-4 block space-y-1">
-            <span className="text-xs font-medium text-foreground">
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
               {t.pawn.new_.itemUniqueMarks}
             </span>
             <input
@@ -653,7 +820,7 @@ function CollateralRow({
               value={row.unique_marks}
               onChange={(e) => onChange({ unique_marks: e.target.value })}
               placeholder="Engraving, hallmark, scratch pattern"
-              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+              className={INPUT}
             />
           </label>
 
@@ -661,7 +828,7 @@ function CollateralRow({
           {selectedCategory?.slug === 'jewelry' ? (
             <>
               <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemMetalType}
                 </span>
                 <select
@@ -670,7 +837,7 @@ function CollateralRow({
                   onChange={(e) =>
                     onChange({ metal_type: e.target.value as MetalType | '' })
                   }
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 >
                   <option value="">—</option>
                   {METAL_OPTIONS.map((opt) => (
@@ -682,7 +849,7 @@ function CollateralRow({
               </label>
 
               <label className="md:col-span-1 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemKarat}
                 </span>
                 <input
@@ -693,12 +860,12 @@ function CollateralRow({
                   name={`collateral_${index}_karat`}
                   value={row.karat}
                   onChange={(e) => onChange({ karat: e.target.value })}
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-1 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemWeightGrams}
                 </span>
                 <input
@@ -708,19 +875,19 @@ function CollateralRow({
                   name={`collateral_${index}_weight_grams`}
                   value={row.weight_grams}
                   onChange={(e) => onChange({ weight_grams: e.target.value })}
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemCoating}
                 </span>
                 <select
                   name={`collateral_${index}_coating`}
                   value={row.coating}
                   onChange={(e) => onChange({ coating: e.target.value as Coating })}
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 >
                   {COATINGS.map((c) => (
                     <option key={c} value={c}>
@@ -740,7 +907,7 @@ function CollateralRow({
               ) : null}
 
               <label className="md:col-span-1 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemJewelrySize}
                 </span>
                 <input
@@ -751,12 +918,12 @@ function CollateralRow({
                     onChange({ jewelry_size: e.target.value })
                   }
                   placeholder="7  /  22 in"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-6 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemGemstones}
                 </span>
                 <input
@@ -767,7 +934,7 @@ function CollateralRow({
                     onChange({ gemstone_description: e.target.value })
                   }
                   placeholder="3 round diamonds ~0.25ct each, prong-set"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
             </>
@@ -777,7 +944,7 @@ function CollateralRow({
           {selectedCategory?.slug === 'firearms' ? (
             <>
               <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmMake}
                 </span>
                 <input
@@ -786,12 +953,12 @@ function CollateralRow({
                   value={row.firearm_make}
                   onChange={(e) => onChange({ firearm_make: e.target.value })}
                   placeholder="Glock"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmModel}
                 </span>
                 <input
@@ -800,12 +967,12 @@ function CollateralRow({
                   value={row.firearm_model}
                   onChange={(e) => onChange({ firearm_model: e.target.value })}
                   placeholder="19 Gen 5"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmCaliber}
                 </span>
                 <input
@@ -816,12 +983,12 @@ function CollateralRow({
                     onChange({ firearm_caliber: e.target.value })
                   }
                   placeholder="9mm"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-3 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmSerialNumber} *
                 </span>
                 <input
@@ -832,12 +999,12 @@ function CollateralRow({
                   onChange={(e) =>
                     onChange({ firearm_serial_number: e.target.value })
                   }
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmType}
                 </span>
                 <select
@@ -846,7 +1013,7 @@ function CollateralRow({
                   onChange={(e) =>
                     onChange({ firearm_type: e.target.value as FirearmType })
                   }
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 >
                   <option value="">—</option>
                   <option value="handgun">{t.pawn.new_.itemFirearmTypeHandgun}</option>
@@ -857,7 +1024,7 @@ function CollateralRow({
               </label>
 
               <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmActionType}
                 </span>
                 <input
@@ -868,12 +1035,12 @@ function CollateralRow({
                     onChange({ firearm_action_type: e.target.value })
                   }
                   placeholder="Semi-auto"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmBarrelLength}
                 </span>
                 <input
@@ -887,12 +1054,12 @@ function CollateralRow({
                       firearm_barrel_length_inches: e.target.value,
                     })
                   }
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmCapacity}
                 </span>
                 <input
@@ -905,12 +1072,12 @@ function CollateralRow({
                   onChange={(e) =>
                     onChange({ firearm_capacity: e.target.value })
                   }
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-3 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmFinish}
                 </span>
                 <input
@@ -921,12 +1088,12 @@ function CollateralRow({
                     onChange({ firearm_finish: e.target.value })
                   }
                   placeholder="Blued / Stainless / Cerakote"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-1 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemFirearmBarrels}
                 </span>
                 <input
@@ -939,7 +1106,7 @@ function CollateralRow({
                   onChange={(e) =>
                     onChange({ firearm_number_of_barrels: e.target.value })
                   }
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
             </>
@@ -949,7 +1116,7 @@ function CollateralRow({
           {selectedCategory?.slug === 'electronics' ? (
             <>
               <label className="md:col-span-3 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemElectronicBrand}
                 </span>
                 <input
@@ -960,12 +1127,12 @@ function CollateralRow({
                     onChange({ electronic_brand: e.target.value })
                   }
                   placeholder="Apple"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-3 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemElectronicModel}
                 </span>
                 <input
@@ -976,12 +1143,12 @@ function CollateralRow({
                     onChange({ electronic_model: e.target.value })
                   }
                   placeholder="iPhone 13 Pro"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-6 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemElectronicSerial}
                 </span>
                 <input
@@ -991,7 +1158,7 @@ function CollateralRow({
                   onChange={(e) =>
                     onChange({ electronic_serial: e.target.value })
                   }
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
             </>
@@ -1001,7 +1168,7 @@ function CollateralRow({
           {selectedCategory?.slug === 'tools' ? (
             <>
               <label className="md:col-span-3 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemToolBrand}
                 </span>
                 <input
@@ -1010,12 +1177,12 @@ function CollateralRow({
                   value={row.tool_brand}
                   onChange={(e) => onChange({ tool_brand: e.target.value })}
                   placeholder="DeWalt"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
 
               <label className="md:col-span-3 block space-y-1">
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemToolModel}
                 </span>
                 <input
@@ -1024,7 +1191,7 @@ function CollateralRow({
                   value={row.tool_model}
                   onChange={(e) => onChange({ tool_model: e.target.value })}
                   placeholder="DCD777"
-                  className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+                  className={INPUT}
                 />
               </label>
             </>
@@ -1032,21 +1199,8 @@ function CollateralRow({
         </div>
       </div>
       ) : null}
-
-      {canRemove ? (
-        <div className="mt-2 flex justify-end">
-          <button
-            type="button"
-            onClick={onRemove}
-            className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10"
-            aria-label={`${t.pawn.new_.removeItem} ${index + 1}`}
-            data-row-id={fieldId}
-          >
-            <Trash size={12} weight="bold" />
-            {t.pawn.new_.removeItem}
-          </button>
-        </div>
-      ) : null}
-    </div>
+        </td>
+      </tr>
+    </tbody>
   )
 }

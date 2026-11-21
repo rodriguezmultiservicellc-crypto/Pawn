@@ -1143,12 +1143,9 @@ export const en = {
         'No pawn categories are configured. Owner — set them up at /settings/pawn-categories.',
       sectionCustomer: 'Customer',
       sectionTerms: 'Loan terms',
-      sectionCollateral: 'Collateral',
-      sectionSignature: 'Signature & notes',
       pickCustomer: 'Pick a customer',
       pickCustomerHelp:
         'Customer must be on file with valid ID before issuing a pawn loan.',
-      newCustomer: 'Create new customer',
       quickCustomerTitle: 'New customer',
       quickCustomerHelp: 'Create a customer without leaving this ticket.',
       quickCustomerIdSection: 'Identification',
@@ -1160,17 +1157,30 @@ export const en = {
       financingPawn: 'Pawn loan',
       financingBuy: 'Buy outright',
       railSummaryTitle: 'Loan summary',
-      railNoCustomer: 'No customer selected',
       collateralValue: 'Collateral value',
       ltvCovered: '{pct}% of value',
       ltvOver: 'Over value',
       itemOne: 'item',
       itemMany: 'items',
-      collateralItemsLabel: 'Collateral items',
       redemptionLabel: 'Redemption at due date',
-      redemptionIncludes: 'includes {amount} interest',
       manageRatesHint: 'Manage rates in Settings → Loan rates.',
       railMissingHint: 'Add a customer, principal, and at least one item',
+      // ── "Ledger" layout ──
+      breadcrumb: 'Breadcrumb',
+      financingLabel: 'Pawn loan or buy outright',
+      newCustomerShort: 'New customer',
+      sectionAddCollateral: 'Add collateral',
+      colNo: '#',
+      colCategory: 'Category',
+      colDescription: 'Description',
+      colWeightSerial: 'Weight / serial',
+      colValue: 'Value',
+      colActions: 'Actions',
+      collateralEmpty: 'Pick a category above to add the first item.',
+      itemEdit: 'Edit',
+      itemDone: 'Done',
+      signatureUpload: 'Upload signed ticket',
+      interest: 'Interest',
       principal: 'Principal',
       interestRate: 'Interest rate (monthly)',
       interestRateHelp: 'Decimal fraction (e.g. 0.10 = 10%/month).',
@@ -1187,7 +1197,6 @@ export const en = {
       signature: 'Customer signature',
       signatureHelp: 'Upload a scan or photo of the signed ticket.',
       notes: 'Notes',
-      addItem: 'Add item',
       removeItem: 'Remove',
       itemDescription: 'Description',
       itemCategory: 'Category',
@@ -1205,7 +1214,6 @@ export const en = {
       itemUniqueMarks: 'Unique marks',
       itemPhoto: 'Photo',
       itemPhotoHelp: 'Optional photo of this collateral item.',
-      itemMinOne: 'Add at least one collateral item.',
       // Firearm fields (patches/0041) — show only on rows where the
       // operator picks the 'firearms' top-level pawn intake category.
       itemFirearmMake: 'Make',
@@ -1253,6 +1261,8 @@ export const en = {
         // Hint sentence printed next to the button explaining what to say.
         hint:
           "Press and hold, say the customer's name, the loan amount, and the item, then release — e.g. “Maria Fernandez, two hundred dollars for a fourteen karat wedding ring weighing 2.3 grams”.",
+        // One-line version shown beside the button (full hint = tooltip).
+        hintShort: 'Hold, say the name, amount and item, then release.',
         // Inline echo of the transcript after parse.
         heard: 'Heard',
         // Errors surfaced inline.

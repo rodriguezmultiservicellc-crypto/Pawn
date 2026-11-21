@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Microphone, CircleNotch } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { FOCUS } from '@/lib/ui/ledger'
 import { mediaErrorMessage } from '@/lib/media/errors'
 import type {
   InventoryCategory,
@@ -278,15 +279,19 @@ export default function VoicePawnButton({ onDataExtracted }: Props) {
       ? t.pawn.new_.voice.listening
       : t.pawn.new_.voice.start
 
+  // Outlined Ledger button; turns solid red only while it is recording.
+  const base = `inline-flex h-11 items-center gap-2 rounded-md px-4 text-sm font-semibold select-none touch-none ${FOCUS}`
   const buttonClass = isProcessing
-    ? 'inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-muted opacity-70'
+    ? `${base} border border-border bg-card text-muted opacity-70`
     : isHeld
-      ? 'inline-flex items-center gap-2 rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white transition-colors select-none touch-none motion-safe:animate-pulse'
-      : 'inline-flex items-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-navy transition-all select-none touch-none hover:-translate-y-0.5 hover:bg-gold-2 hover:shadow-lg'
+      ? `${base} border border-danger bg-danger text-white motion-safe:animate-pulse`
+      : `${base} border border-border bg-card text-foreground transition-colors hover:bg-background`
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {/* One line here; the full example sentence is the button's tooltip. */}
+        <span className="text-sm text-muted">{t.pawn.new_.voice.hintShort}</span>
         <button
           type="button"
           disabled={isProcessing}
@@ -299,6 +304,7 @@ export default function VoicePawnButton({ onDataExtracted }: Props) {
           // Prevent the default press-hold behaviors (text selection,
           // context menu, drag image) so the gesture stays clean.
           onContextMenu={(e) => e.preventDefault()}
+          title={t.pawn.new_.voice.hint}
           className={buttonClass}
         >
           {isProcessing ? (
@@ -308,11 +314,10 @@ export default function VoicePawnButton({ onDataExtracted }: Props) {
           )}
           {label}
         </button>
-        <span className="text-xs text-muted">{t.pawn.new_.voice.hint}</span>
       </div>
 
       {transcript ? (
-        <p className="text-xs text-muted">
+        <p className="text-right text-xs text-muted">
           <span className="font-semibold text-foreground">
             {t.pawn.new_.voice.heard}:
           </span>{' '}

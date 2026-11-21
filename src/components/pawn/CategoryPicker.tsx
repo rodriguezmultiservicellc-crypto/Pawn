@@ -93,12 +93,21 @@ function CategoryIcon({
 export default function CategoryPicker({
   categories,
   onPick,
+  initialTopSlug = null,
 }: {
   categories: PawnIntakeCategory[]
   onPick: (topSlug: string, subSlug: string | null) => void
+  /** Open straight on this top-level category's sub-categories (the
+   *  "+ Jewelry" pill on /pawn/new already chose the top). */
+  initialTopSlug?: string | null
 }) {
   const { t } = useI18n()
-  const [drilledTop, setDrilledTop] = useState<PawnIntakeCategory | null>(null)
+  const [drilledTop, setDrilledTop] = useState<PawnIntakeCategory | null>(
+    () =>
+      categories.find(
+        (c) => c.slug === initialTopSlug && c.subcategories.length > 0,
+      ) ?? null,
+  )
 
   if (categories.length === 0) {
     return (
@@ -120,15 +129,15 @@ export default function CategoryPicker({
   // Drilled-in view — show the picked top's sub-tiles.
   if (drilledTop) {
     return (
-      <fieldset className="rounded-xl border border-border bg-card p-5">
+      <fieldset className="rounded-lg border border-border bg-card p-4">
         <div className="flex items-center justify-between gap-3">
-          <legend className="px-1 font-display text-base font-semibold text-foreground">
+          <legend className="px-1 text-sm font-semibold text-foreground">
             {drilledTop.label} → {t.pawn.new_.categorySubStepTitle}
           </legend>
           <button
             type="button"
             onClick={() => setDrilledTop(null)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-muted transition-colors hover:text-blue"
+            className="inline-flex h-11 items-center gap-1 rounded-md px-2 text-sm font-semibold text-blue hover:text-blue-2 hover:underline focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue"
           >
             <ArrowLeft size={12} weight="bold" />
             {t.pawn.new_.categoryBackToTop}
@@ -143,12 +152,12 @@ export default function CategoryPicker({
               key={sub.id}
               type="button"
               onClick={() => onPick(drilledTop.slug, sub.slug)}
-              className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-background p-3 text-center transition-all hover:-translate-y-1 hover:border-gold/60 hover:bg-gold/5 hover:shadow-lg"
+              className="group flex min-h-11 flex-col items-center gap-2 rounded-lg border border-border bg-card p-3 text-center transition-colors hover:border-blue hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10 text-gold transition-colors group-hover:bg-gold/20">
+              <span className="flex h-10 w-10 items-center justify-center rounded-md bg-background text-foreground">
                 <CategoryIcon name={sub.icon} size={22} weight="duotone" />
               </span>
-              <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
+              <span className="text-sm font-semibold text-foreground">
                 {sub.label}
               </span>
             </button>
@@ -160,8 +169,8 @@ export default function CategoryPicker({
 
   // Top-level view.
   return (
-    <fieldset className="rounded-xl border border-border bg-card p-5">
-      <legend className="px-1 font-display text-base font-semibold text-foreground">
+    <fieldset className="rounded-lg border border-border bg-card p-4">
+      <legend className="px-1 text-sm font-semibold text-foreground">
         {t.pawn.new_.categoryStepTitle}
       </legend>
       <p className="mt-1 text-xs text-muted">{t.pawn.new_.categoryStepHelp}</p>
@@ -171,12 +180,12 @@ export default function CategoryPicker({
             key={c.id}
             type="button"
             onClick={() => onTopClick(c)}
-            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-gold/60 hover:bg-gold/5 hover:shadow-lg"
+            className="group flex min-h-11 flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 text-center transition-colors hover:border-blue hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue"
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-gold/10 text-gold transition-colors group-hover:bg-gold/20">
+            <span className="flex h-12 w-12 items-center justify-center rounded-md bg-background text-foreground">
               <CategoryIcon name={c.icon} size={32} weight="duotone" />
             </span>
-            <span className="font-display text-base font-bold uppercase tracking-wide text-foreground">
+            <span className="text-sm font-semibold text-foreground">
               {c.label}
             </span>
             {c.subcategories.length > 0 ? (
@@ -208,8 +217,8 @@ export function CategoryBanner({
 }) {
   const { t } = useI18n()
   return (
-    <div className="flex items-center gap-3 rounded-xl border-2 border-gold/40 bg-gold/5 px-4 py-3">
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold/10 text-gold">
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-2">
+      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-card text-foreground">
         <CategoryIcon
           name={subcategory?.icon ?? category.icon}
           size={20}
@@ -217,10 +226,10 @@ export function CategoryBanner({
         />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
           {t.pawn.new_.categoryStepTitle}
         </div>
-        <div className="font-display text-base font-bold text-foreground">
+        <div className="text-sm font-semibold text-foreground">
           {category.label}
           {subcategory ? (
             <>
@@ -233,7 +242,7 @@ export function CategoryBanner({
       <button
         type="button"
         onClick={onChange}
-        className="shrink-0 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-blue/40 hover:bg-blue/5 hover:text-blue"
+        className="inline-flex h-11 shrink-0 items-center rounded-md border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue"
       >
         {t.pawn.new_.categoryChange}
       </button>
