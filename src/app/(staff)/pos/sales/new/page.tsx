@@ -4,6 +4,8 @@ import NewSaleForm from './form'
 import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
 import { OUT_OF_STOCK_ADD_ROLES, QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
 import { loadQuickSaleButtons } from '@/lib/pos/quick-sale-server'
+import { loadShopReader } from '@/lib/pos/reader-server'
+import { stripeTestMode } from '@/lib/stripe/terminal'
 
 type SearchParams = Promise<{ customer?: string }>
 
@@ -34,6 +36,10 @@ export default async function NewSalePage(props: {
   const params = await props.searchParams
   const initialCustomerId = params.customer ?? null
 
+  // The card reader is offered only when Stripe is set up on the platform
+  // and the shop paired one (patches/0086); otherwise Card = card machine.
+  const reader = process.env.STRIPE_SECRET_KEY ? await loadShopReader(ctx.tenantId) : null
+
   const [{ data: items }, quickSales] = await Promise.all([
     ctx.supabase
       .from('inventory_items')
@@ -61,6 +67,8 @@ export default async function NewSalePage(props: {
       quickSales={quickSales}
       canEditQuickSales={!!ctx.tenantRole && (QUICK_SALE_EDIT_ROLES as readonly string[]).includes(ctx.tenantRole)}
       canAddOutOfStock={!!ctx.tenantRole && (OUT_OF_STOCK_ADD_ROLES as readonly string[]).includes(ctx.tenantRole)}
+      reader={reader ? { label: reader.label } : null}
+      stripeTestMode={stripeTestMode()}
     />
   )
 }

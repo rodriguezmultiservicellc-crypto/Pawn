@@ -206,6 +206,7 @@ const ROUTES = [
   ['T3 online orders all', '/pos/online-orders?tab=all'],
   ['T3 store settings', '/settings/store'],
   ['Quick sale buttons', '/settings/quick-sale'],
+  ['Card reader', '/settings/card-reader'],
   ['T3 daily register', '/reports/daily-register'],
   ['pos', '/pos'],
   ['settings hub', '/settings'],

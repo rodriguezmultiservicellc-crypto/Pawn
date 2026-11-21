@@ -7,7 +7,8 @@ import { useI18n } from '@/lib/i18n/context'
 import { computeLineTotal, computeSubtotal, computeTotal, r4 } from '@/lib/pos/cart'
 import { addQuickSale, matchKey, nextUnit, unitsLeft, unlinkedLine, type QuickSaleButton, type QuickUnit } from '@/lib/pos/quick-sale'
 import { Footer, Modal } from './Modal'
-import { CardChargeDialog } from './CardChargeDialog'
+import { CardChargeDialog, type ReaderApproved } from './CardChargeDialog'
+import type { StartReaderResult } from '@/app/(staff)/pos/sales/new/reader-actions'
 import type { CardSlip } from './CardSlipFields'
 import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
@@ -50,6 +51,11 @@ export function Cart({
   quickSales = [],
   canEditQuickSales = false,
   canAddOutOfStock = false,
+  reader = null,
+  stripeTestMode = false,
+  onStartReaderCharge,
+  onReaderApproved,
+  onOpenSale,
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId?: string | null
@@ -77,6 +83,18 @@ export function Cart({
   canEditQuickSales?: boolean
   /** OUT_OF_STOCK_ADD_ROLES: may add an item with nothing left in stock. */
   canAddOutOfStock?: boolean
+  /** The shop's paired Stripe reader (patches/0086), or null. */
+  reader?: { label: string | null } | null
+  stripeTestMode?: boolean
+  onStartReaderCharge?: (
+    customerId: string | null,
+    lines: CartLineState[],
+    taxRate: string,
+    discount: string,
+    notes: string,
+  ) => Promise<StartReaderResult>
+  onReaderApproved?: (r: ReaderApproved) => void
+  onOpenSale?: (saleId: string) => void
 }) {
   const { t } = useI18n()
   const ts = t.pos.sale
@@ -719,10 +737,25 @@ export function Cart({
         <CardChargeDialog
           total={totals.total}
           busy={busy}
+          reader={onStartReaderCharge ? reader : null}
+          testMode={stripeTestMode}
           onCancel={() => setCardAsk(false)}
           onRecord={(slip) => {
             setCardAsk(false)
             onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes, 'card', slip)
+          }}
+          onStartReader={() =>
+            onStartReaderCharge
+              ? onStartReaderCharge(customerId, lines, taxRateForSubmit, discountForSubmit, notes)
+              : Promise.resolve({ ok: false, error: 'readerNotPaired' } as const)
+          }
+          onReaderApproved={(r) => {
+            setCardAsk(false)
+            onReaderApproved?.(r)
+          }}
+          onOpenSale={(saleId) => {
+            setCardAsk(false)
+            onOpenSale?.(saleId)
           }}
         />
       ) : null}

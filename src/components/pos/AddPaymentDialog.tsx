@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CashRegister, CreditCard, Flask } from '@phosphor-icons/react'
+import { CashRegister, CreditCard } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { Modal, Footer } from './Modal'
 import { CardSlipFields, EMPTY_SLIP, slipComplete, type CardSlip } from './CardSlipFields'
@@ -28,7 +28,6 @@ export function AddPaymentDialog({
   const [amount, setAmount] = useState<string>(defaultAmount.toFixed(2))
   const [method, setMethod] = useState<Choice>('cash')
   const [slip, setSlip] = useState<CardSlip>(EMPTY_SLIP)
-  const [readerId, setReaderId] = useState<string>('')
   const [notes, setNotes] = useState<string>('')
 
   function submit() {
@@ -44,7 +43,6 @@ export function AddPaymentDialog({
       if (slip.auth_code) fd.set('card_auth_code', slip.auth_code)
     } else {
       fd.set('payment_method', method)
-      if (readerId) fd.set('reader_id', readerId)
     }
     if (notes) fd.set('notes', notes)
     startTransition(async () => {
@@ -103,25 +101,9 @@ export function AddPaymentDialog({
         {isMachine ? <CardSlipFields value={slip} onChange={setSlip} /> : null}
 
         {isCard ? (
-          <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-foreground">
-            <div className="mb-1 flex items-center gap-1 font-semibold text-warning">
-              <Flask size={12} weight="bold" />
-              {t.pos.terminal.stubBannerTitle}
-            </div>
-            <p className="text-muted">{t.pos.terminal.stubBannerBody}</p>
-            <label className="mt-3 block space-y-1">
-              <span className="text-xs font-medium text-foreground">
-                {t.pos.terminal.readerLabel}
-              </span>
-              <input
-                type="text"
-                placeholder={t.pos.payment.readerNotConnected}
-                value={readerId}
-                onChange={(e) => setReaderId(e.target.value)}
-                className="block w-full rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground focus:border-blue focus:outline-none"
-              />
-            </label>
-          </div>
+          <p className="rounded-md border border-info/30 bg-info/5 p-3 text-sm text-foreground">
+            {t.pos.card.readerSalePageHelp}
+          </p>
         ) : null}
 
         <label className="block space-y-1">

@@ -1,14 +1,7 @@
 'use server'
 
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { getCtx } from '@/lib/supabase/ctx'
-import { requireRoleInTenant } from '@/lib/supabase/guards'
-import {
-  layawayCreateSchema,
-  saleCreateSchema,
-  type SaleItemInput,
-} from '@/lib/validations/pos'
+import { layawayCreateSchema } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
 import { externalCardSchema, type ExternalCard } from '@/lib/pos/card'
 import {
@@ -18,65 +11,35 @@ import {
   saleAddExternalCard,
   saleAddPayment,
   saleComplete,
-  saleCreate,
-  type SaleLineInput,
 } from '@/lib/pos/money'
 import type { PaymentMethod } from '@/types/database-aliases'
+import {
+  counterContext,
+  createRetailSale,
+  parseRetail,
+  readItems,
+  toLines,
+  type IncomingItem,
+} from './sale-core'
 
 /**
- * Create-sale + create-layaway actions.
+ * Create-sale + create-layaway actions (Charge with cash or a card machine
+ * slip). Charge on the card reader lives in reader-actions.ts; both share
+ * sale-core.ts.
  *
- * Flow:
- *   - retail   : insert sale (status='open'), insert sale_items, flip
- *                inventory_items.status='sold' for items linked to inventory.
- *                Redirect to /pos/sales/[id] for the cashier to add payment.
- *   - layaway  : insert sale (sale_kind='layaway'), insert sale_items, flip
- *                inventory_items.status='held' (NOT 'sold'). Insert layaway
- *                row with scheduling. If down_payment > 0 also insert a
- *                sale_payment + a layaway_payment for the down payment.
- *                Redirect to /pos/layaways/[id].
+ *   - retail  : sale_create (0076) → the tender → sale_complete, all in this
+ *               request; the clerk stays on New sale. A refused step leaves
+ *               the sale open and the clerk lands on its page.
+ *   - layaway : sale + stock hold + layaway + down payment in one database
+ *               transaction (layaway_create); redirect to /pos/layaways/[id].
  */
-
-const STAFF_ROLES = [
-  'owner',
-  'manager',
-  'pawn_clerk',
-  'chain_admin',
-] as const
 
 export type CreateSaleResult = {
   error?: string
   fieldErrors?: Record<string, string>
   redirectTo?: string
-  /** Cash sale paid and completed: stay on New sale with an empty cart. */
+  /** Paid and completed at the counter: stay on New sale with an empty cart. */
   completed?: { saleId: string; saleNumber: string | null; total: number; tender: 'cash' | 'card' }
-}
-
-type IncomingItem = {
-  inventory_item_id: string | null
-  description: string
-  quantity: string
-  unit_price: string
-  line_discount: string
-  position: string
-}
-
-function readItems(fd: FormData): IncomingItem[] {
-  const countRaw = fd.get('items_count')
-  const count = Math.max(0, Math.min(200, parseInt(String(countRaw ?? '0'), 10) || 0))
-  const out: IncomingItem[] = []
-  for (let i = 0; i < count; i++) {
-    out.push({
-      inventory_item_id:
-        (fd.get(`item_${i}_inventory_item_id`) as string | null) || null,
-      description: String(fd.get(`item_${i}_description`) ?? ''),
-      quantity: String(fd.get(`item_${i}_quantity`) ?? '1'),
-      unit_price: String(fd.get(`item_${i}_unit_price`) ?? '0'),
-      line_discount: String(fd.get(`item_${i}_line_discount`) ?? '0'),
-      position: String(i),
-    })
-  }
-  return out
 }
 
 // ── Create sale (retail OR layaway) ────────────────────────────────────────
@@ -84,60 +47,23 @@ function readItems(fd: FormData): IncomingItem[] {
 export async function createSaleAction(
   formData: FormData,
 ): Promise<CreateSaleResult> {
-  const ctx = await getCtx()
-  if (!ctx) redirect('/login')
-  if (!ctx.tenantId) redirect('/no-tenant')
+  const cc = await counterContext()
+  if (!cc.ok) return { error: cc.error }
+  const c = cc.c
 
-  const { data: tenant } = await ctx.supabase
-    .from('tenants')
-    .select('has_retail')
-    .eq('id', ctx.tenantId)
-    .maybeSingle()
-  if (!tenant?.has_retail) return { error: 'notAuthorized' }
-
-  const { supabase, userId } = await requireRoleInTenant(
-    ctx.tenantId,
-    STAFF_ROLES,
-  )
-
-  const tenantId = ctx.tenantId
-
-  // Verify open register session — sales must be tied to one.
-  const { data: openSession } = await supabase
-    .from('register_sessions')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('status', 'open')
-    .is('deleted_at', null)
-    .maybeSingle()
-  if (!openSession) return { error: 'noOpenSession' }
-
-  const kind = String(formData.get('sale_kind') ?? 'retail')
-  const isLayaway = kind === 'layaway'
-  const items = readItems(formData)
-
-  if (isLayaway) {
+  if (String(formData.get('sale_kind') ?? 'retail') === 'layaway') {
     return createLayawayInternal({
       formData,
-      items,
-      userId,
-      tenantId,
-      registerSessionId: openSession.id,
+      items: readItems(formData),
+      userId: c.userId,
+      tenantId: c.tenantId,
+      registerSessionId: c.registerSessionId,
     })
   }
 
   // ── Retail sale ──
-  const parsed = saleCreateSchema.safeParse({
-    customer_id: formData.get('customer_id'),
-    tax_rate: formData.get('tax_rate'),
-    discount_amount: formData.get('discount_amount'),
-    notes: formData.get('notes'),
-    items,
-  })
-  if (!parsed.success) {
-    return { error: 'validationFailed' }
-  }
-  const v = parsed.data
+  const parsed = parseRetail(formData)
+  if (!parsed.ok) return { error: parsed.error }
 
   // Card = a card machine slip (patches/0085). Checked BEFORE the sale is
   // written, so a typo never leaves an unpaid sale behind.
@@ -152,18 +78,24 @@ export async function createSaleAction(
     tender = { kind: 'card', card: card.data }
   }
 
-  return persistSale({
-    userId,
-    tenantId,
-    registerSessionId: openSession.id,
-    customerId: v.customer_id,
-    items: v.items,
-    taxRate: v.tax_rate,
-    discountAmount: v.discount_amount,
-    notes: v.notes,
-    tender,
-  })
+  // One database transaction (0076 sale_create): totals in cents, every
+  // linked piece row-locked and still available — two registers cannot sell
+  // the same item (REVIEW-2026-11-11 finding 13).
+  const created = await createRetailSale(c, parsed.v)
+  if (!created.ok) return { error: created.error }
+  const sale = created.sale
+
+  const settled = await settleAtCounter(c, sale.saleId, sale.total, tender)
+
+  revalidatePath('/pos')
+  revalidatePath('/pos/sales')
+  // Done at the counter → ready for the next customer. A step that refused
+  // leaves the sale open; the clerk finishes it on the sale page.
+  if (settled) return { completed: { ...sale, tender: tender.kind } }
+  return { redirectTo: `/pos/sales/${sale.saleId}` }
 }
+
+type CounterTender = { kind: 'cash' } | { kind: 'card'; card: ExternalCard }
 
 // ── Create layaway (called via createSaleAction with sale_kind='layaway') ──
 
@@ -237,74 +169,6 @@ async function createLayawayInternal(args: {
   revalidatePath('/pos/layaways')
   return { redirectTo: `/pos/layaways/${r.data.layawayId}` }
 }
-
-function toLines(items: SaleItemInput[]): SaleLineInput[] {
-  return items.map((it) => ({
-    inventory_item_id: it.inventory_item_id,
-    description: it.description,
-    quantity: it.quantity,
-    unit_price: it.unit_price,
-    line_discount: it.line_discount,
-  }))
-}
-
-// ── Retail sale: one database transaction (patches/0076 sale_create) ───────
-// Totals are computed in cents by the database; every linked piece is
-// row-locked and must still be available, so two registers cannot sell the
-// same item (REVIEW-2026-11-11 finding 13).
-
-async function persistSale(args: {
-  userId: string
-  tenantId: string
-  registerSessionId: string
-  customerId: string | null
-  items: SaleItemInput[]
-  taxRate: number
-  discountAmount: number
-  notes: string | null
-  /** Taken at the counter: cash, or a card run on the shop's card machine. */
-  tender: CounterTender
-}): Promise<CreateSaleResult> {
-  if (args.items.length === 0) return { error: 'cartEmpty' }
-
-  const r = await saleCreate({
-    tenantId: args.tenantId,
-    userId: args.userId,
-    registerSessionId: args.registerSessionId,
-    customerId: args.customerId,
-    taxRate: args.taxRate,
-    discount: args.discountAmount,
-    notes: args.notes,
-    items: toLines(args.items),
-  })
-  if (!r.ok) return { error: posErrorKey(r.error) }
-
-  await logAudit({
-    tenantId: args.tenantId,
-    userId: args.userId,
-    action: 'sale_create',
-    tableName: 'sales',
-    recordId: r.data.saleId,
-    changes: {
-      sale_number: r.data.saleNumber,
-      sale_kind: 'retail',
-      customer_id: args.customerId,
-      total: r.data.total,
-      item_count: args.items.length,
-    },
-  })
-
-  const settled = await settleAtCounter(args, r.data.saleId, r.data.total, args.tender)
-
-  revalidatePath('/pos')
-  revalidatePath('/pos/sales')
-  // Done at the counter → ready for the next customer. A step that refused
-  // leaves the sale open; the clerk finishes it on the sale page.
-  if (settled) return { completed: { ...r.data, tender: args.tender.kind } }
-  return { redirectTo: `/pos/sales/${r.data.saleId}` }
-}
-
-type CounterTender = { kind: 'cash' } | { kind: 'card'; card: ExternalCard }
 
 /**
  * Charge: record the tender for the full total and complete the sale,

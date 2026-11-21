@@ -17,6 +17,7 @@ import type { QuickSaleButton } from '@/lib/pos/quick-sale'
 import type { CardSlip } from '@/components/pos/CardSlipFields'
 import { computeSubtotal, computeTotal } from '@/lib/pos/cart'
 import { createSaleAction } from './actions'
+import { startReaderChargeAction } from './reader-actions'
 import { formatMoney } from '@/lib/format/money'
 
 export default function NewSaleForm({
@@ -25,12 +26,16 @@ export default function NewSaleForm({
   quickSales,
   canEditQuickSales,
   canAddOutOfStock,
+  reader,
+  stripeTestMode,
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId: string | null
   quickSales: QuickSaleButton[]
   canEditQuickSales: boolean
   canAddOutOfStock: boolean
+  reader: { label: string | null } | null
+  stripeTestMode: boolean
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -265,6 +270,20 @@ export default function NewSaleForm({
         quickSales={quickSales}
         canEditQuickSales={canEditQuickSales}
         canAddOutOfStock={canAddOutOfStock}
+        reader={reader}
+        stripeTestMode={stripeTestMode}
+        onStartReaderCharge={async (customerId, lines, taxRate, discount, notes) => {
+          setError(null)
+          setLastSale(null)
+          const fd = buildFormData('retail', customerId, lines, taxRate, discount, notes)
+          return startReaderChargeAction(fd)
+        }}
+        onReaderApproved={(r) => {
+          setLastSale({ ...r, tender: 'card' })
+          setCartKey((k) => k + 1)
+          router.refresh()
+        }}
+        onOpenSale={(saleId) => router.push(`/pos/sales/${saleId}`)}
       />
 
       {layawayDraft ? (

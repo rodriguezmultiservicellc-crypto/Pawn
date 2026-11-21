@@ -81,6 +81,10 @@ export type AuditAction =
   | 'register_close'
   | 'register_reconcile'
   | 'card_present_succeeded'
+  // Stripe Terminal reader at the counter (patches/0086)
+  | 'card_present_failed'
+  | 'terminal_reader_pair'
+  | 'terminal_reader_remove'
   // Reports / compliance
   | 'export'
   // Buy-outright (gold-buying / wholesale buy-side)

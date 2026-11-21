@@ -37,6 +37,7 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { stripeFetch } from './http'
+import { isStripeTestKey } from '@/lib/pos/reader'
 
 /**
  * Look up the connected account ID for a tenant. Throws
@@ -152,5 +153,163 @@ export async function refundCardPayment(args: {
       body,
       accountId,
     },
+  )
+}
+
+// ── Server-driven reader (patches/0086) ─────────────────────────────────────
+//
+// One paired reader per shop (Pawn runs one open register per shop). The
+// app pushes each PaymentIntent to the reader and polls the intent — no
+// browser SDK, no reader discovery in the browser. Every call acts on the
+// shop's connected account.
+
+/** True when the platform key is a Stripe TEST key (simulated readers allowed). */
+export function stripeTestMode(): boolean {
+  return isStripeTestKey(process.env.STRIPE_SECRET_KEY)
+}
+
+/** The shop has completed Stripe Connect onboarding (an account id exists). */
+export async function tenantHasStripeAccount(tenantId: string): Promise<boolean> {
+  try {
+    await getStripeAccountId(tenantId)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export type StripeReader = {
+  id: string
+  label: string | null
+  device_type: string | null
+  status: 'online' | 'offline' | null
+  serial_number: string | null
+  action: {
+    type?: string | null
+    status?: string | null
+    failure_message?: string | null
+    process_payment_intent?: { payment_intent?: string | { id: string } | null } | null
+  } | null
+}
+
+/** Create the shop's Terminal Location (Stripe requires one per reader). */
+export async function createTerminalLocation(args: {
+  tenantId: string
+  displayName: string
+  address: { line1: string; city: string; state: string; postal_code: string }
+}): Promise<{ id: string }> {
+  const accountId = await getStripeAccountId(args.tenantId)
+  return stripeFetch<{ id: string }>('/terminal/locations', {
+    method: 'POST',
+    accountId,
+    body: {
+      display_name: args.displayName.slice(0, 100),
+      'address[line1]': args.address.line1,
+      'address[city]': args.address.city,
+      'address[state]': args.address.state,
+      'address[postal_code]': args.address.postal_code,
+      'address[country]': 'US',
+      'metadata[tenant_id]': args.tenantId,
+    },
+  })
+}
+
+/** Pair a reader with the code it shows on screen (test mode: 'simulated-wpe'). */
+export async function registerTerminalReader(args: {
+  tenantId: string
+  registrationCode: string
+  label: string
+  locationId: string
+}): Promise<StripeReader> {
+  const accountId = await getStripeAccountId(args.tenantId)
+  return stripeFetch<StripeReader>('/terminal/readers', {
+    method: 'POST',
+    accountId,
+    body: {
+      registration_code: args.registrationCode,
+      label: args.label.slice(0, 60),
+      location: args.locationId,
+      'metadata[tenant_id]': args.tenantId,
+    },
+  })
+}
+
+export async function getTerminalReader(args: { tenantId: string; readerId: string }): Promise<StripeReader> {
+  const accountId = await getStripeAccountId(args.tenantId)
+  return stripeFetch<StripeReader>(`/terminal/readers/${encodeURIComponent(args.readerId)}`, {
+    method: 'GET',
+    accountId,
+  })
+}
+
+export async function deleteTerminalReader(args: { tenantId: string; readerId: string }): Promise<void> {
+  const accountId = await getStripeAccountId(args.tenantId)
+  await stripeFetch<{ id: string; deleted?: boolean }>(`/terminal/readers/${encodeURIComponent(args.readerId)}`, {
+    method: 'DELETE',
+    accountId,
+  })
+}
+
+/** Hand a PaymentIntent to the reader; it starts asking for the card. */
+export async function processPaymentIntentOnReader(args: {
+  tenantId: string
+  readerId: string
+  paymentIntentId: string
+}): Promise<StripeReader> {
+  const accountId = await getStripeAccountId(args.tenantId)
+  return stripeFetch<StripeReader>(
+    `/terminal/readers/${encodeURIComponent(args.readerId)}/process_payment_intent`,
+    {
+      method: 'POST',
+      accountId,
+      body: {
+        payment_intent: args.paymentIntentId,
+        // No tip screen at a pawn counter.
+        'process_config[skip_tipping]': true,
+      },
+    },
+  )
+}
+
+/** Stop whatever the reader is doing (clerk cancelled at the counter). */
+export async function cancelReaderAction(args: { tenantId: string; readerId: string }): Promise<StripeReader> {
+  const accountId = await getStripeAccountId(args.tenantId)
+  return stripeFetch<StripeReader>(`/terminal/readers/${encodeURIComponent(args.readerId)}/cancel_action`, {
+    method: 'POST',
+    accountId,
+  })
+}
+
+export type CardPresentIntentStatus = {
+  id: string
+  status: string
+  last_payment_error?: { message?: string | null; code?: string | null; decline_code?: string | null } | null
+  latest_charge?: {
+    id: string
+    payment_method_details?: {
+      card_present?: { brand?: string | null; last4?: string | null } | null
+    } | null
+  } | string | null
+}
+
+/** The intent with its latest charge expanded (brand + last 4 after approval). */
+export async function retrievePaymentIntent(args: {
+  tenantId: string
+  paymentIntentId: string
+}): Promise<CardPresentIntentStatus> {
+  const accountId = await getStripeAccountId(args.tenantId)
+  return stripeFetch<CardPresentIntentStatus>(
+    `/payment_intents/${encodeURIComponent(args.paymentIntentId)}?expand[]=latest_charge`,
+    { method: 'GET', accountId },
+  )
+}
+
+/** TEST MODE ONLY: make a simulated reader "tap" a test card. */
+export async function simulateReaderTap(args: { tenantId: string; readerId: string }): Promise<StripeReader> {
+  if (!stripeTestMode()) throw new Error('stripe_not_test_mode')
+  const accountId = await getStripeAccountId(args.tenantId)
+  return stripeFetch<StripeReader>(
+    `/test_helpers/terminal/readers/${encodeURIComponent(args.readerId)}/present_payment_method`,
+    { method: 'POST', accountId },
   )
 }

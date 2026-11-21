@@ -57,6 +57,8 @@ export type SettingsHubView = {
   }
   storeCredit: { enabled: boolean }
   consignment: { enabled: boolean; defaultCommissionPct: number }
+  /** Paired Stripe Terminal reader (patches/0086), or null. */
+  cardReader: { label: string | null } | null
 }
 
 const OWNER_ROLES = new Set(['owner', 'chain_admin'])
@@ -228,6 +230,21 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             description={t.quickSale.hubDescription}
             status="configured"
             statusDetail={t.quickSale.label}
+          />
+        ) : null}
+
+        {view.modules.retail && canEditQuickSale ? (
+          <Card
+            href="/settings/card-reader"
+            icon={<CreditCard size={20} weight="regular" />}
+            title={t.cardReader.title}
+            description={t.cardReader.hubDescription}
+            status={view.cardReader ? 'configured' : 'needs_setup'}
+            statusDetail={
+              view.cardReader
+                ? t.cardReader.hubPaired.replace('{label}', view.cardReader.label ?? '')
+                : t.cardReader.hubNotPaired
+            }
           />
         ) : null}
 

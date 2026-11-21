@@ -39,7 +39,7 @@ export default async function SettingsPage() {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid, store_credit_enabled, consignment_enabled, consignment_default_commission_pct',
+        'twilio_account_sid, store_credit_enabled, consignment_enabled, consignment_default_commission_pct, stripe_terminal_reader_label, stripe_terminal_reader_id',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -136,6 +136,9 @@ export default async function SettingsPage() {
         settings?.consignment_default_commission_pct ?? 0.2,
       ),
     },
+    cardReader: settings?.stripe_terminal_reader_id
+      ? { label: settings.stripe_terminal_reader_label }
+      : null,
   }
 
   return <SettingsContent view={view} />

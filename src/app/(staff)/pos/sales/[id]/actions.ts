@@ -14,8 +14,10 @@ import { afterSaleCompleted, posErrorKey, saleAddExternalCard, saleAddPayment, s
 import { externalCardSchema } from '@/lib/pos/card'
 import {
   createCardPresentPaymentIntent,
+  processPaymentIntentOnReader,
   refundCardPayment,
 } from '@/lib/stripe/terminal'
+import { loadShopReader } from '@/lib/pos/reader-server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { settleSaleCardPayment } from '@/lib/pos/card-settle'
 import {
@@ -87,6 +89,10 @@ export async function addPaymentAction(
   // payment row. Cash/check go straight to the database function.
   let paymentIntentId: string | null = null
   let cardStatus: 'pending' | 'not_used' = 'not_used'
+  // A reader card goes to the shop's paired reader (patches/0086) — never to
+  // a reader id typed in the browser.
+  const shopReader = v.payment_method === 'card' ? await loadShopReader(tenantId) : null
+  if (v.payment_method === 'card' && !shopReader) return { error: 'readerNotPaired' }
   if (v.payment_method === 'card') {
     try {
       const pi = await createCardPresentPaymentIntent({
@@ -119,7 +125,7 @@ export async function addPaymentAction(
     amount: v.amount,
     method: v.payment_method as PaymentMethod,
     paymentIntentId,
-    readerId: v.reader_id ?? null,
+    readerId: shopReader?.readerId ?? null,
     notes: v.notes ?? null,
   })
   if (!paid.ok) {
@@ -144,6 +150,15 @@ export async function addPaymentAction(
       paid_total: newPaid,
     },
   })
+
+  // Hand the intent to the reader. If the reader is offline the tender stays
+  // pending; "Check reader" / "Cancel card charge" on the payment row (or the
+  // webhook, or a manager's confirmation) finish it.
+  if (shopReader && paymentIntentId) {
+    await processPaymentIntentOnReader({ tenantId, readerId: shopReader.readerId, paymentIntentId }).catch((e) =>
+      console.error('[pos.addPayment] process_payment_intent failed', e instanceof Error ? e.message : e),
+    )
+  }
 
   revalidatePath(`/pos/sales/${sale.id}`)
   revalidatePath('/pos')

@@ -20,6 +20,7 @@ import {
 } from '@/components/pos/Badges'
 import { AddPaymentDialog } from '@/components/pos/AddPaymentDialog'
 import { cardSummary, type CardBrand } from '@/lib/pos/card'
+import { cancelReaderChargeAction, readerChargeStatusAction } from '../new/reader-actions'
 import { VoidSaleDialog } from '@/components/pos/VoidSaleDialog'
 import PosRedemptionBlock, {
   type RedemptionEventView,
@@ -152,6 +153,7 @@ export default function SaleDetailContent({
   const [showVoid, setShowVoid] = useState(false)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
 
   const isOpen = sale.status === 'open'
   const isCompleted = sale.status === 'completed'
@@ -163,6 +165,32 @@ export default function SaleDetailContent({
     startTransition(async () => {
       const res = await completeSaleAction(sale.id)
       if (res.error) setError(translateError(res.error, t))
+    })
+  }
+
+  // A pending reader charge (patches/0086): read it from Stripe now — an
+  // approval settles it and completes the sale — or cancel it.
+  function checkReader(salePaymentId: string) {
+    setError(null)
+    setNote(null)
+    startTransition(async () => {
+      const r = await readerChargeStatusAction(salePaymentId)
+      if (r.state === 'declined') {
+        setError(r.message ? t.pos.card.readerDeclined.replace('{message}', r.message) : t.pos.card.readerDeclinedGeneric)
+      } else if (r.state === 'waiting') {
+        setNote(t.pos.card.readerStillWaiting)
+      } else if (r.state === 'error') {
+        setError(translateError(r.error, t))
+      }
+    })
+  }
+
+  function cancelReader(salePaymentId: string) {
+    setError(null)
+    setNote(null)
+    startTransition(async () => {
+      const r = await cancelReaderChargeAction(salePaymentId)
+      if (!r.ok) setError(translateError(r.error ?? 'generic', t))
     })
   }
 
@@ -377,6 +405,10 @@ export default function SaleDetailContent({
         payments={payments}
         onConfirmCard={markCard}
         canConfirmCard={canConfirmCard}
+        onCheckReader={checkReader}
+        onCancelReader={cancelReader}
+        busy={pending}
+        note={note}
       />
 
       {showPay ? (
@@ -464,10 +496,18 @@ function PaymentsPanel({
   payments,
   onConfirmCard,
   canConfirmCard,
+  onCheckReader,
+  onCancelReader,
+  busy,
+  note,
 }: {
   payments: SaleDetailPayment[]
   onConfirmCard: (id: string) => void
   canConfirmCard: boolean
+  onCheckReader: (id: string) => void
+  onCancelReader: (id: string) => void
+  busy: boolean
+  note: string | null
 }) {
   const { t } = useI18n()
   return (
@@ -477,6 +517,11 @@ function PaymentsPanel({
           {t.pos.sale.paymentsTitle}
         </h2>
       </header>
+      {note ? (
+        <p role="status" className="border-b border-border bg-info/5 px-3 py-2 text-sm text-foreground">
+          {note}
+        </p>
+      ) : null}
       {payments.length === 0 ? (
         <div className="px-3 py-6 text-center text-sm text-muted">
           {t.pos.sale.noPayments}
@@ -513,6 +558,27 @@ function PaymentsPanel({
               {p.payment_method === 'card' &&
               p.card_present_status === 'pending' ? (
                 <>
+                  {p.card_entry === 'reader' ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => onCheckReader(p.id)}
+                        className="inline-flex h-9 items-center gap-1 rounded-md bg-gold px-3 text-xs font-bold text-navy hover:bg-gold-2 disabled:opacity-45"
+                      >
+                        <CreditCard size={12} weight="bold" />
+                        {t.pos.card.checkReader}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => onCancelReader(p.id)}
+                        className="inline-flex h-9 items-center rounded-md border border-border bg-card px-3 text-xs font-semibold text-danger hover:bg-background disabled:opacity-45"
+                      >
+                        {t.pos.card.cancelCharge}
+                      </button>
+                    </>
+                  ) : null}
                   {canConfirmCard ? (
                     <button
                       type="button"

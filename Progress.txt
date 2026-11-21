@@ -591,6 +591,46 @@ Progress_archive.txt — the items from those sessions are there.)
      WITHOUT submitting (no live payment written). A real external-card
      sale has NOT been run.
 
+ 487. STRIPE TERMINAL READER AT THE COUNTER (server-driven, Luna Azul
+     pattern on Pawn's Connect account) — patches/0086 APPLIED, no policy
+     change. settings + stripe_terminal_location_id / _reader_id /
+     _reader_label (one reader per shop — Pawn runs one open register per
+     shop; settings RLS owner-write unchanged). sale_add_payment: only
+     change, card rows get card_entry='reader'. New service_role functions
+     sale_card_payment_failed (pending → failed, frees the balance) and
+     sale_card_payment_set_details (brand + last4 from Stripe). Dry run:
+     fail once/again, freed balance re-used, settle, details normalized,
+     bad reader id refused; anon refused through the API.
+     Code: lib/stripe/terminal.ts + location/register/get/delete reader,
+     process_payment_intent, cancel_action, retrieve PI (expand
+     latest_charge), simulate tap (test key only). lib/pos/reader.ts (pure:
+     readerChargeState, mapStripeBrand, pairReaderSchema; 11 tests).
+     lib/pos/reader-server.ts pollReaderCharge (approved → the SAME
+     idempotent settle the webhook uses → details → sale_complete →
+     afterSaleCompleted). New sale: sale-core.ts (shared counter context +
+     cart parse + sale_create — actions.ts refactored onto it);
+     reader-actions.ts start / status / retry / cancel / simulate. Start
+     checks reader + Connect account BEFORE writing a sale. Cancel leaves
+     the sale OPEN (void keeps its own role gate). CardChargeDialog: Card
+     reader | Card machine; polls every 1.5 s, 120 s timeout → Keep waiting
+     / Cancel; closing after the charge started CANCELS it; approved →
+     empty cart + banner. Sale page: "Card (Stripe reader)" now goes to the
+     paired reader (no typed reader id; old stub banner + its strings
+     removed); pending reader rows get Check reader / Cancel card charge.
+     /settings/card-reader (owner/chain_admin pair/replace/remove; manager
+     views; live online/offline) + Settings hub card + smoke route.
+     Audit actions card_present_failed, terminal_reader_pair/_remove.
+     VERIFIED without Stripe: settings page + hub + New sale + sale page
+     smoke clean; no-Stripe notice + pairing disabled; Card = machine only;
+     sale-page reader option → "No card reader is paired", 0 rows written;
+     production build green; 816 tests.
+     NOT VERIFIED — needs Stripe (item 454): pairing, a reader charge,
+     decline, cancel, simulate tap. TEST PLAN once STRIPE_SECRET_KEY is a
+     sk_test_ key and the shop is connected: Settings → Card reader → code
+     simulated-wpe → New sale → Card → Card reader → Send → "Simulate card
+     tap" → expect completed sale, payment 'reader' succeeded with brand +
+     last4. Also try Cancel mid-charge (sale stays open, row failed).
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

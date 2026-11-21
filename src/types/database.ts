@@ -5836,6 +5836,9 @@ export type Database = {
           store_shipping_policy_es: string | null
           store_tagline_en: string | null
           store_tagline_es: string | null
+          stripe_terminal_location_id: string | null
+          stripe_terminal_reader_id: string | null
+          stripe_terminal_reader_label: string | null
           tag_cost_code: string | null
           tenant_id: string
           twilio_account_sid: string | null
@@ -5902,6 +5905,9 @@ export type Database = {
           store_shipping_policy_es?: string | null
           store_tagline_en?: string | null
           store_tagline_es?: string | null
+          stripe_terminal_location_id?: string | null
+          stripe_terminal_reader_id?: string | null
+          stripe_terminal_reader_label?: string | null
           tag_cost_code?: string | null
           tenant_id: string
           twilio_account_sid?: string | null
@@ -5968,6 +5974,9 @@ export type Database = {
           store_shipping_policy_es?: string | null
           store_tagline_en?: string | null
           store_tagline_es?: string | null
+          stripe_terminal_location_id?: string | null
+          stripe_terminal_reader_id?: string | null
+          stripe_terminal_reader_label?: string | null
           tag_cost_code?: string | null
           tenant_id?: string
           twilio_account_sid?: string | null
@@ -7603,6 +7612,18 @@ export type Database = {
           o_paid_total: number
           o_payment_id: string
         }[]
+      }
+      sale_card_payment_failed: {
+        Args: { p_payment_id: string; p_reason?: string }
+        Returns: {
+          o_failed: boolean
+          o_sale_id: string
+          o_tenant_id: string
+        }[]
+      }
+      sale_card_payment_set_details: {
+        Args: { p_brand: string; p_last4: string; p_payment_id: string }
+        Returns: boolean
       }
       sale_card_payment_succeeded: {
         Args: { p_payment_id: string }
