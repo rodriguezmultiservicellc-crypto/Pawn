@@ -5587,6 +5587,10 @@ export type Database = {
       sale_payments: {
         Row: {
           amount: number
+          card_auth_code: string | null
+          card_brand: string | null
+          card_entry: string | null
+          card_last4: string | null
           card_present_status: Database["public"]["Enums"]["card_present_status"]
           created_at: string
           deleted_at: string | null
@@ -5603,6 +5607,10 @@ export type Database = {
         }
         Insert: {
           amount: number
+          card_auth_code?: string | null
+          card_brand?: string | null
+          card_entry?: string | null
+          card_last4?: string | null
           card_present_status?: Database["public"]["Enums"]["card_present_status"]
           created_at?: string
           deleted_at?: string | null
@@ -5619,6 +5627,10 @@ export type Database = {
         }
         Update: {
           amount?: number
+          card_auth_code?: string | null
+          card_brand?: string | null
+          card_entry?: string | null
+          card_last4?: string | null
           card_present_status?: Database["public"]["Enums"]["card_present_status"]
           created_at?: string
           deleted_at?: string | null
@@ -7557,6 +7569,23 @@ export type Database = {
       online_order_sweep: { Args: never; Returns: number }
       repair_public_ticket: { Args: { p_token: string }; Returns: Json }
       repair_public_token: { Args: never; Returns: string }
+      sale_add_external_card_payment: {
+        Args: {
+          p_amount: number
+          p_auth_code?: string
+          p_brand: string
+          p_last4: string
+          p_notes?: string
+          p_sale_id: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: {
+          o_balance: number
+          o_paid_total: number
+          o_payment_id: string
+        }[]
+      }
       sale_add_payment: {
         Args: {
           p_amount: number

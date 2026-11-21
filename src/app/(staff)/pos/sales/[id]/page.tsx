@@ -59,7 +59,7 @@ export default async function SaleDetailPage(props: { params: Params }) {
     ctx.supabase
       .from('sale_payments')
       .select(
-        'id, amount, payment_method, card_present_status, stripe_payment_intent_id, reader_id, notes, occurred_at',
+        'id, amount, payment_method, card_present_status, stripe_payment_intent_id, reader_id, notes, occurred_at, card_entry, card_last4, card_brand, card_auth_code',
       )
       .eq('sale_id', id)
       .is('deleted_at', null)
@@ -88,6 +88,10 @@ export default async function SaleDetailPage(props: { params: Params }) {
     reader_id: p.reader_id,
     notes: p.notes,
     occurred_at: p.occurred_at,
+    card_entry: p.card_entry,
+    card_last4: p.card_last4,
+    card_brand: p.card_brand,
+    card_auth_code: p.card_auth_code,
   }))
 
   const c = (sale as unknown as {

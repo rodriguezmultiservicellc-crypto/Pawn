@@ -14,6 +14,7 @@ import {
 } from '@/components/pos/LayawayScheduleDialog'
 import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
 import type { QuickSaleButton } from '@/lib/pos/quick-sale'
+import type { CardSlip } from '@/components/pos/CardSlipFields'
 import { computeSubtotal, computeTotal } from '@/lib/pos/cart'
 import { createSaleAction } from './actions'
 import { formatMoney } from '@/lib/format/money'
@@ -37,7 +38,12 @@ export default function NewSaleForm({
   const [error, setError] = useState<string | null>(null)
   // Last cash sale finished at the counter, and a key that remounts the cart
   // empty for the next customer.
-  const [lastSale, setLastSale] = useState<{ saleId: string; saleNumber: string | null; total: number } | null>(null)
+  const [lastSale, setLastSale] = useState<{
+    saleId: string
+    saleNumber: string | null
+    total: number
+    tender: 'cash' | 'card'
+  } | null>(null)
   const [cartKey, setCartKey] = useState(0)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string> | null>(
     null,
@@ -93,6 +99,7 @@ export default function NewSaleForm({
     discount: string,
     notes: string,
     tender: 'cash' | 'card',
+    card?: CardSlip,
   ) {
     setError(null)
     setFieldErrors(null)
@@ -110,6 +117,11 @@ export default function NewSaleForm({
       notes,
     )
     fd.set('tender', tender)
+    if (tender === 'card' && card) {
+      fd.set('card_last4', card.last4)
+      fd.set('card_brand', card.brand)
+      if (card.auth_code) fd.set('card_auth_code', card.auth_code)
+    }
     startTransition(async () => {
       const res = await createSaleAction(fd)
       if (res.error) {
@@ -215,7 +227,7 @@ export default function NewSaleForm({
           className="flex flex-wrap items-center gap-3 rounded-xl border border-success/40 bg-success/5 px-4 py-3 text-sm text-foreground"
         >
           <span className="flex-1">
-            {t.pos.sale.completedBanner
+            {(lastSale.tender === 'card' ? t.pos.sale.completedBannerCard : t.pos.sale.completedBannerCash)
               .replace('{number}', lastSale.saleNumber ?? '')
               .replace('{total}', formatMoney(lastSale.total))}
           </span>

@@ -19,6 +19,7 @@ import {
   SaleStatusBadge,
 } from '@/components/pos/Badges'
 import { AddPaymentDialog } from '@/components/pos/AddPaymentDialog'
+import { cardSummary, type CardBrand } from '@/lib/pos/card'
 import { VoidSaleDialog } from '@/components/pos/VoidSaleDialog'
 import PosRedemptionBlock, {
   type RedemptionEventView,
@@ -84,6 +85,11 @@ export type SaleDetailPayment = {
   reader_id: string | null
   notes: string | null
   occurred_at: string
+  /** 'reader' | 'external' | null (patches/0085). */
+  card_entry: string | null
+  card_last4: string | null
+  card_brand: string | null
+  card_auth_code: string | null
 }
 
 export type SaleDetailLoyalty = {
@@ -493,6 +499,16 @@ function PaymentsPanel({
               </span>
               {p.payment_method === 'card' ? (
                 <CardPresentBadge status={p.card_present_status} />
+              ) : null}
+              {p.card_entry === 'external' ? (
+                <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-muted">
+                  {t.pos.card.machineChip}
+                </span>
+              ) : null}
+              {cardSummary(p, (b) => t.pos.card.brands[b as CardBrand] ?? b, t.pos.card.authShort) ? (
+                <span className="basis-full font-mono text-xs text-muted">
+                  {cardSummary(p, (b) => t.pos.card.brands[b as CardBrand] ?? b, t.pos.card.authShort)}
+                </span>
               ) : null}
               {p.payment_method === 'card' &&
               p.card_present_status === 'pending' ? (

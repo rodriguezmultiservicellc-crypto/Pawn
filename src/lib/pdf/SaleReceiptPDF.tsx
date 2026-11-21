@@ -11,6 +11,7 @@
  * Spills naturally if the cart is unusually large.
  */
 
+import { cardSummary } from '@/lib/pos/card'
 import {
   Document,
   Page,
@@ -36,6 +37,10 @@ export type SaleReceiptPayment = {
   amount: number
   method: 'cash' | 'card' | 'check' | 'other' | 'store_credit' | string
   occurred_at: string
+  /** Card slip details (patches/0085) — never the full number. */
+  card_last4?: string | null
+  card_brand?: string | null
+  card_auth_code?: string | null
 }
 
 export type SaleReceiptCustomer = {
@@ -593,6 +598,7 @@ export default function SaleReceiptPDF({ data }: { data: SaleReceiptData }) {
                   {p.occurred_at
                     ? ` · ${p.occurred_at.slice(0, 10)}`
                     : ''}
+                  {cardLine(p, en, es) ? ` · ${cardLine(p, en, es)}` : ''}
                 </Text>
                 <Text style={styles.paymentAmount}>
                   {formatMoney(p.amount)}
@@ -660,6 +666,15 @@ export default function SaleReceiptPDF({ data }: { data: SaleReceiptData }) {
       </Page>
     </Document>
   )
+}
+
+/** "VISA •••• 4242 · Auth / Aut. AB12" — brand codes print uppercased (same in EN and ES). */
+function cardLine(
+  p: SaleReceiptPayment,
+  en: Dictionary['pos']['print'],
+  es: Dictionary['pos']['print'],
+): string | null {
+  return cardSummary(p, (b) => b.toUpperCase(), `${en.payment.authShort} / ${es.payment.authShort}`)
 }
 
 function paymentMethodLabel(

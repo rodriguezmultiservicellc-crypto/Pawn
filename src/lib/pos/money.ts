@@ -42,6 +42,7 @@ export const SALE_MONEY_ERRORS = [
   'layaway_not_found',
   'layaway_not_active',
   'consignment_below_floor_price',
+  'bad_card_details',
 ] as const
 export type SaleMoneyError = (typeof SALE_MONEY_ERRORS)[number] | 'generic'
 
@@ -72,6 +73,8 @@ export function posErrorKey(err: SaleMoneyError): string {
       return 'layawayNotActive'
     case 'consignment_below_floor_price':
       return 'consignmentBelowFloor'
+    case 'bad_card_details':
+      return 'cardDetailsInvalid'
     case 'bad_line':
     case 'bad_tax_rate':
     case 'bad_amount':
@@ -201,6 +204,39 @@ export async function saleAddPayment(args: {
       paidTotal: Number(row.o_paid_total),
       balance: Number(row.o_balance),
     },
+  }
+}
+
+/**
+ * A card the shop ran on its own machine (patches/0085): recorded as settled
+ * at once — counted in paid_total — with the slip's last 4, brand and
+ * approval code. Same lock + balance rule as saleAddPayment.
+ */
+export async function saleAddExternalCard(args: {
+  tenantId: string
+  userId: string
+  saleId: string
+  amount: number
+  last4: string
+  brand: string
+  authCode: string | null
+  notes: string | null
+}): Promise<Result<{ paymentId: string; paidTotal: number; balance: number }>> {
+  const { data, error } = await createAdminClient().rpc('sale_add_external_card_payment', {
+    p_tenant_id: args.tenantId,
+    p_sale_id: args.saleId,
+    p_user_id: args.userId,
+    p_amount: args.amount,
+    p_last4: args.last4,
+    p_brand: args.brand,
+    p_auth_code: args.authCode ?? undefined,
+    p_notes: args.notes ?? undefined,
+  })
+  const row = data?.[0]
+  if (error || !row) return fail('sale_add_external_card_payment', error?.message)
+  return {
+    ok: true,
+    data: { paymentId: row.o_payment_id, paidTotal: Number(row.o_paid_total), balance: Number(row.o_balance) },
   }
 }
 

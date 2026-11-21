@@ -10,10 +10,12 @@ import {
   type SaleItemInput,
 } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
+import { externalCardSchema, type ExternalCard } from '@/lib/pos/card'
 import {
   afterSaleCompleted,
   layawayCreate,
   posErrorKey,
+  saleAddExternalCard,
   saleAddPayment,
   saleComplete,
   saleCreate,
@@ -47,7 +49,7 @@ export type CreateSaleResult = {
   fieldErrors?: Record<string, string>
   redirectTo?: string
   /** Cash sale paid and completed: stay on New sale with an empty cart. */
-  completed?: { saleId: string; saleNumber: string | null; total: number }
+  completed?: { saleId: string; saleNumber: string | null; total: number; tender: 'cash' | 'card' }
 }
 
 type IncomingItem = {
@@ -137,6 +139,19 @@ export async function createSaleAction(
   }
   const v = parsed.data
 
+  // Card = a card machine slip (patches/0085). Checked BEFORE the sale is
+  // written, so a typo never leaves an unpaid sale behind.
+  let tender: CounterTender = { kind: 'cash' }
+  if (formData.get('tender') === 'card') {
+    const card = externalCardSchema.safeParse({
+      last4: formData.get('card_last4') ?? '',
+      brand: formData.get('card_brand') ?? '',
+      auth_code: formData.get('card_auth_code'),
+    })
+    if (!card.success) return { error: 'cardDetailsInvalid' }
+    tender = { kind: 'card', card: card.data }
+  }
+
   return persistSale({
     userId,
     tenantId,
@@ -146,7 +161,7 @@ export async function createSaleAction(
     taxRate: v.tax_rate,
     discountAmount: v.discount_amount,
     notes: v.notes,
-    tender: formData.get('tender') === 'card' ? 'card' : 'cash',
+    tender,
   })
 }
 
@@ -247,8 +262,8 @@ async function persistSale(args: {
   taxRate: number
   discountAmount: number
   notes: string | null
-  /** Cash is taken at the counter now; card goes to the sale page (reader). */
-  tender: 'cash' | 'card'
+  /** Taken at the counter: cash, or a card run on the shop's card machine. */
+  tender: CounterTender
 }): Promise<CreateSaleResult> {
   if (args.items.length === 0) return { error: 'cartEmpty' }
 
@@ -279,41 +294,59 @@ async function persistSale(args: {
     },
   })
 
-  const settled = args.tender === 'cash' && (await settleCash(args, r.data.saleId, r.data.total))
+  const settled = await settleAtCounter(args, r.data.saleId, r.data.total, args.tender)
 
   revalidatePath('/pos')
   revalidatePath('/pos/sales')
-  // Done at the counter → ready for the next customer. Anything still open
-  // (card, or a cash step that refused) goes to the sale page to finish.
-  if (settled) return { completed: r.data }
+  // Done at the counter → ready for the next customer. A step that refused
+  // leaves the sale open; the clerk finishes it on the sale page.
+  if (settled) return { completed: { ...r.data, tender: args.tender.kind } }
   return { redirectTo: `/pos/sales/${r.data.saleId}` }
 }
 
+type CounterTender = { kind: 'cash' } | { kind: 'card'; card: ExternalCard }
+
 /**
- * Charge with Cash: record the cash tender for the full total and complete
- * the sale, through the same 0076 functions the sale page uses (row locks,
- * cents, idempotent complete). If either step refuses, the sale stays OPEN
- * and the clerk lands on its page, where payment can be taken by hand — the
- * sale itself is already saved, so nothing is lost. Card is not settled
- * here: a card tender needs the reader / PaymentIntent on the sale page.
+ * Charge: record the tender for the full total and complete the sale,
+ * through the same database functions the sale page uses (row locks, cents,
+ * idempotent complete).
+ *   cash  sale_add_payment
+ *   card  sale_add_external_card_payment (0085) — the shop's card machine
+ *         already approved it, so it counts at once.
+ * If a step refuses, the sale stays OPEN and the clerk lands on its page,
+ * where payment can be taken by hand — the sale itself is already saved, so
+ * nothing is lost.
  */
-async function settleCash(
+async function settleAtCounter(
   args: { userId: string; tenantId: string },
   saleId: string,
   total: number,
+  tender: CounterTender,
 ): Promise<boolean> {
   const { userId, tenantId } = args
   if (total > 0) {
-    const paid = await saleAddPayment({
-      tenantId,
-      userId,
-      saleId,
-      amount: total,
-      method: 'cash',
-      paymentIntentId: null,
-      readerId: null,
-      notes: null,
-    })
+    const paid =
+      tender.kind === 'cash'
+        ? await saleAddPayment({
+            tenantId,
+            userId,
+            saleId,
+            amount: total,
+            method: 'cash',
+            paymentIntentId: null,
+            readerId: null,
+            notes: null,
+          })
+        : await saleAddExternalCard({
+            tenantId,
+            userId,
+            saleId,
+            amount: total,
+            last4: tender.card.last4,
+            brand: tender.card.brand,
+            authCode: tender.card.auth_code,
+            notes: null,
+          })
     if (!paid.ok) return false
     await logAudit({
       tenantId,
@@ -321,7 +354,18 @@ async function settleCash(
       action: 'sale_payment_add',
       tableName: 'sale_payments',
       recordId: saleId,
-      changes: { amount: total, payment_method: 'cash', paid_total: paid.data.paidTotal, at: 'charge' },
+      changes:
+        tender.kind === 'cash'
+          ? { amount: total, payment_method: 'cash', paid_total: paid.data.paidTotal, at: 'charge' }
+          : {
+              amount: total,
+              payment_method: 'card',
+              card_entry: 'external',
+              card_brand: tender.card.brand,
+              card_last4: tender.card.last4,
+              paid_total: paid.data.paidTotal,
+              at: 'charge',
+            },
     })
   }
   const done = await saleComplete({ tenantId, userId, saleId })

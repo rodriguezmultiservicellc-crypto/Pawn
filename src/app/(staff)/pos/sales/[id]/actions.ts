@@ -10,7 +10,8 @@ import {
 } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
 import { computeBalance, r2, toMoney } from '@/lib/pos/cart'
-import { afterSaleCompleted, posErrorKey, saleAddPayment, saleComplete } from '@/lib/pos/money'
+import { afterSaleCompleted, posErrorKey, saleAddExternalCard, saleAddPayment, saleComplete } from '@/lib/pos/money'
+import { externalCardSchema } from '@/lib/pos/card'
 import {
   createCardPresentPaymentIntent,
   refundCardPayment,
@@ -61,6 +62,9 @@ async function resolveSaleScope(saleId: string) {
 export async function addPaymentAction(
   formData: FormData,
 ): Promise<SaleActionResult> {
+  // A card run on the shop's own card machine (patches/0085) — settled at
+  // once, no PaymentIntent. Everything else falls through to the path below.
+  if (formData.get('card_entry') === 'external') return addExternalCardPayment(formData)
   const parsed = saleAddPaymentSchema.safeParse({
     sale_id: formData.get('sale_id'),
     amount: formData.get('amount'),
@@ -68,7 +72,7 @@ export async function addPaymentAction(
     reader_id: formData.get('reader_id'),
     notes: formData.get('notes'),
   })
-  if (!parsed.success) return { error: 'validation_failed' }
+  if (!parsed.success) return { error: 'validationFailed' }
   const v = parsed.data
 
   const { sale, userId, tenantId } = await resolveSaleScope(v.sale_id)
@@ -146,6 +150,57 @@ export async function addPaymentAction(
   return { ok: true }
 }
 
+async function addExternalCardPayment(formData: FormData): Promise<SaleActionResult> {
+  const amount = saleAddPaymentSchema.pick({ sale_id: true, amount: true, notes: true }).safeParse({
+    sale_id: formData.get('sale_id'),
+    amount: formData.get('amount'),
+    notes: formData.get('notes'),
+  })
+  if (!amount.success) return { error: 'validationFailed' }
+  const card = externalCardSchema.safeParse({
+    last4: formData.get('card_last4') ?? '',
+    brand: formData.get('card_brand') ?? '',
+    auth_code: formData.get('card_auth_code'),
+  })
+  if (!card.success) return { error: 'cardDetailsInvalid' }
+
+  const { sale, userId, tenantId } = await resolveSaleScope(amount.data.sale_id)
+  if (sale.status !== 'open') return { error: 'saleNotOpen' }
+
+  // The database re-checks the balance under a row lock (pending cards included).
+  const paid = await saleAddExternalCard({
+    tenantId,
+    userId,
+    saleId: sale.id,
+    amount: amount.data.amount,
+    last4: card.data.last4,
+    brand: card.data.brand,
+    authCode: card.data.auth_code,
+    notes: amount.data.notes ?? null,
+  })
+  if (!paid.ok) return { error: posErrorKey(paid.error) }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'sale_payment_add',
+    tableName: 'sale_payments',
+    recordId: sale.id,
+    changes: {
+      amount: amount.data.amount,
+      payment_method: 'card',
+      card_entry: 'external',
+      card_brand: card.data.brand,
+      card_last4: card.data.last4,
+      paid_total: paid.data.paidTotal,
+    },
+  })
+
+  revalidatePath(`/pos/sales/${sale.id}`)
+  revalidatePath('/pos')
+  return { ok: true }
+}
+
 // ── Complete sale ──────────────────────────────────────────────────────────
 
 export async function completeSaleAction(
@@ -187,7 +242,7 @@ export async function voidSaleAction(
     sale_id: formData.get('sale_id'),
     reason: formData.get('reason'),
   })
-  if (!parsed.success) return { error: 'validation_failed' }
+  if (!parsed.success) return { error: 'validationFailed' }
   const v = parsed.data
 
   const ctx = await getCtx()
@@ -538,7 +593,7 @@ export async function undoRedemptionAction(
 ): Promise<UndoRedemptionState> {
   const saleId = String(formData.get('sale_id') ?? '')
   const eventId = String(formData.get('event_id') ?? '')
-  if (!saleId || !eventId) return { error: 'validation_failed' }
+  if (!saleId || !eventId) return { error: 'validationFailed' }
 
   const { sale, supabase, userId, tenantId } = await resolveSaleScope(saleId)
   if (sale.status !== 'open') return { error: 'sale_not_open' }

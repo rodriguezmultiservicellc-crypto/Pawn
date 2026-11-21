@@ -91,7 +91,7 @@ export async function renderSaleReceiptPdf(args: {
   // ── 4. Payments
   const { data: paymentRows } = await supabase
     .from('sale_payments')
-    .select('amount, payment_method, occurred_at')
+    .select('amount, payment_method, occurred_at, card_last4, card_brand, card_auth_code')
     .eq('sale_id', saleId)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
@@ -101,6 +101,9 @@ export async function renderSaleReceiptPdf(args: {
     amount: Number(p.amount ?? 0),
     method: p.payment_method ?? 'other',
     occurred_at: p.occurred_at,
+    card_last4: p.card_last4,
+    card_brand: p.card_brand,
+    card_auth_code: p.card_auth_code,
   }))
 
   // ── 5. Build customer view

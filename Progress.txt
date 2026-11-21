@@ -559,6 +559,38 @@ Progress_archive.txt — the items from those sessions are there.)
      Verified in the browser as owner: double scan → Add anyway → 2 lines,
      $400 total; zero-stock button enabled and asks; no console errors.
 
+ 485. CHARGE WITH CASH COMPLETES THE SALE; STAY ON NEW SALE. The Cash/Card
+     choice used to be UI-only (Charge made an open sale and redirected).
+     createSaleAction now takes the tender: cash → sale_add_payment +
+     sale_complete + afterSaleCompleted in the same request, then the form
+     remounts an empty cart (key) with a "Sale S-… completed" banner +
+     View sale / receipt link and router.refresh() (sold units leave the
+     picker). A refused step leaves the sale OPEN and redirects to its page.
+     Proven in production: S-000003 $10 completed with a $10 cash payment.
+
+ 486. EXTERNAL CARD (card run on the shop's own machine) — patches/0085
+     APPLIED, no policy change. sale_payments + card_entry
+     ('reader'|'external'), card_last4, card_brand, card_auth_code, with
+     CHECKs (4 digits; visa/mastercard/amex/discover/other; code A-Z0-9 ≤12;
+     details only on card rows; external needs last4). New
+     sale_add_external_card_payment() — same row lock / cents / balance rule
+     (pending cards included) as sale_add_payment, records the tender as
+     SETTLED (succeeded, counted). service_role only (anon → permission
+     denied, checked through the API). sale_add_payment unchanged.
+     App: lib/pos/card.ts (schema, cleaners — last-4 keeps the LAST four so
+     a pasted masked number works — cardSummary; 6 tests);
+     components/pos/CardSlipFields + CardChargeDialog. Charge with Card now
+     asks for the slip, then saves + pays + completes and stays on New sale
+     (slip checked BEFORE the sale is written). Sale page Add payment gains
+     "Card (card machine)"; the reader option is labelled "Card (Stripe
+     reader)". Payment rows show brand •••• last4 · Auth; receipt prints it
+     bilingual. Also fixed: AddPaymentDialog showed raw error codes; three
+     'validation_failed' codes on the sale page → validationFailed.
+     Verified: 0085 dry run (bad last4 refused, $200 paid, sale completes,
+     brand/auth normalized, rolled back); both dialogs driven in the browser
+     WITHOUT submitting (no live payment written). A real external-card
+     sale has NOT been run.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

@@ -7,6 +7,8 @@ import { useI18n } from '@/lib/i18n/context'
 import { computeLineTotal, computeSubtotal, computeTotal, r4 } from '@/lib/pos/cart'
 import { addQuickSale, matchKey, nextUnit, unitsLeft, unlinkedLine, type QuickSaleButton, type QuickUnit } from '@/lib/pos/quick-sale'
 import { Footer, Modal } from './Modal'
+import { CardChargeDialog } from './CardChargeDialog'
+import type { CardSlip } from './CardSlipFields'
 import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
   AddInventoryItemDialog,
@@ -58,6 +60,8 @@ export function Cart({
     discount: string,
     notes: string,
     tender: 'cash' | 'card',
+    /** Card machine slip — required when tender is 'card' (patches/0085). */
+    card?: CardSlip,
   ) => void
   onSaveAsLayaway: (
     customerId: string | null,
@@ -89,6 +93,8 @@ export function Cart({
   const [notes, setNotes] = useState<string>('')
   const [showNote, setShowNote] = useState(false)
   const [tender, setTender] = useState<Tender>('cash')
+  // Charge → Card: ask for the card machine slip before saving the sale.
+  const [cardAsk, setCardAsk] = useState(false)
   const [scanQ, setScanQ] = useState<string>('')
   const [scanMsg, setScanMsg] = useState<string | null>(null)
   const [showPicker, setShowPicker] = useState(false)
@@ -688,9 +694,10 @@ export function Cart({
           <button
             type="button"
             disabled={!canSubmit}
-            onClick={() =>
-              onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes, tender === 'card' ? 'card' : 'cash')
-            }
+            onClick={() => {
+              if (tender === 'card') setCardAsk(true)
+              else onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes, 'cash')
+            }}
             className={`flex h-14 w-full items-center justify-center rounded-md bg-gold text-[17px] font-bold text-navy transition-colors hover:bg-gold-2 disabled:cursor-not-allowed disabled:opacity-45 ${FOCUS}`}
           >
             {ts.charge.replace('{amount}', fmtMoney(totals.total))}
@@ -707,6 +714,18 @@ export function Cart({
           </button>
         </div>
       </div>
+
+      {cardAsk ? (
+        <CardChargeDialog
+          total={totals.total}
+          busy={busy}
+          onCancel={() => setCardAsk(false)}
+          onRecord={(slip) => {
+            setCardAsk(false)
+            onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes, 'card', slip)
+          }}
+        />
+      ) : null}
 
       {dupAsk ? (
         <Modal
