@@ -16,6 +16,7 @@ import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
 import type { QuickSaleButton } from '@/lib/pos/quick-sale'
 import { computeSubtotal, computeTotal } from '@/lib/pos/cart'
 import { createSaleAction } from './actions'
+import { formatMoney } from '@/lib/format/money'
 
 export default function NewSaleForm({
   inventory,
@@ -34,6 +35,10 @@ export default function NewSaleForm({
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  // Last cash sale finished at the counter, and a key that remounts the cart
+  // empty for the next customer.
+  const [lastSale, setLastSale] = useState<{ saleId: string; saleNumber: string | null; total: number } | null>(null)
+  const [cartKey, setCartKey] = useState(0)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string> | null>(
     null,
   )
@@ -91,6 +96,7 @@ export default function NewSaleForm({
   ) {
     setError(null)
     setFieldErrors(null)
+    setLastSale(null)
     if (lines.length === 0) {
       setError(t.pos.errors.cartEmpty)
       return
@@ -115,6 +121,13 @@ export default function NewSaleForm({
       }
       if (res.fieldErrors && Object.keys(res.fieldErrors).length > 0) {
         setFieldErrors(res.fieldErrors)
+        return
+      }
+      if (res.completed) {
+        setLastSale(res.completed)
+        setCartKey((k) => k + 1)
+        // Sold pieces drop out of the picker and quick sale stock counts.
+        router.refresh()
         return
       }
       if (res.redirectTo) router.push(res.redirectTo)
@@ -196,6 +209,33 @@ export default function NewSaleForm({
         <h1 className="font-semibold text-foreground">{t.pos.sale.new}</h1>
       </nav>
 
+      {lastSale ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-3 rounded-xl border border-success/40 bg-success/5 px-4 py-3 text-sm text-foreground"
+        >
+          <span className="flex-1">
+            {t.pos.sale.completedBanner
+              .replace('{number}', lastSale.saleNumber ?? '')
+              .replace('{total}', formatMoney(lastSale.total))}
+          </span>
+          <Link
+            href={`/pos/sales/${lastSale.saleId}`}
+            className="inline-flex h-11 items-center font-semibold text-blue hover:text-blue-2 hover:underline"
+          >
+            {t.pos.sale.viewSale}
+          </Link>
+          <button
+            type="button"
+            onClick={() => setLastSale(null)}
+            className="inline-flex h-11 items-center px-2 text-muted hover:text-foreground"
+            aria-label={t.pos.sale.dismiss}
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
+
       {!error && fieldErrors && Object.keys(fieldErrors).length > 0 ? (
         <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
@@ -203,6 +243,7 @@ export default function NewSaleForm({
       ) : null}
 
       <Cart
+        key={cartKey}
         inventory={inventory}
         initialCustomerId={initialCustomerId}
         onSubmitSale={onSubmitSale}

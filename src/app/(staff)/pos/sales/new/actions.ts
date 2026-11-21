@@ -46,6 +46,8 @@ export type CreateSaleResult = {
   error?: string
   fieldErrors?: Record<string, string>
   redirectTo?: string
+  /** Cash sale paid and completed: stay on New sale with an empty cart. */
+  completed?: { saleId: string; saleNumber: string | null; total: number }
 }
 
 type IncomingItem = {
@@ -277,10 +279,13 @@ async function persistSale(args: {
     },
   })
 
-  if (args.tender === 'cash') await settleCash(args, r.data.saleId, r.data.total)
+  const settled = args.tender === 'cash' && (await settleCash(args, r.data.saleId, r.data.total))
 
   revalidatePath('/pos')
   revalidatePath('/pos/sales')
+  // Done at the counter → ready for the next customer. Anything still open
+  // (card, or a cash step that refused) goes to the sale page to finish.
+  if (settled) return { completed: r.data }
   return { redirectTo: `/pos/sales/${r.data.saleId}` }
 }
 
@@ -296,7 +301,7 @@ async function settleCash(
   args: { userId: string; tenantId: string },
   saleId: string,
   total: number,
-): Promise<void> {
+): Promise<boolean> {
   const { userId, tenantId } = args
   if (total > 0) {
     const paid = await saleAddPayment({
@@ -309,7 +314,7 @@ async function settleCash(
       readerId: null,
       notes: null,
     })
-    if (!paid.ok) return
+    if (!paid.ok) return false
     await logAudit({
       tenantId,
       userId,
@@ -320,7 +325,7 @@ async function settleCash(
     })
   }
   const done = await saleComplete({ tenantId, userId, saleId })
-  if (!done.ok || !done.data.completed) return
+  if (!done.ok || !done.data.completed) return false
   await logAudit({
     tenantId,
     userId,
@@ -331,4 +336,5 @@ async function settleCash(
   })
   // Loyalty earn, referral, eBay end — same as completing on the sale page.
   await afterSaleCompleted({ tenantId, saleId })
+  return true
 }
