@@ -703,6 +703,15 @@ Progress_archive.txt — the items from those sessions are there.)
      reader → Send, tap his own card. The reader is SHARED with Luna Azul:
      one charge at a time.
 
+ 491. FIRST REAL READER CHARGE — WORKS END TO END (2026-11-21 17:17).
+     S-000007 $5.00 completed: sale_payments card/reader/succeeded, Visa
+     0379, pi_3UeHupHwkn4Ub4Te19gbnd0A succeeded + captured on
+     acct_1Q0xJ9Hwkn4Ub4Te (Main Terminal). Audit: sale_create →
+     sale_payment_add → card_present_succeeded → sale_complete (27 s).
+     Also live: S-000006 $5 external card (Visa 8898) completed. NOT
+     refunded (Eddy's own card). Leftover: S-000005 $10 OPEN, no payment
+     (16:32) — Eddy to void or finish.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/
