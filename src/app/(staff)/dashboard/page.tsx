@@ -60,7 +60,12 @@ async function loadMetalsStrip(displayPct: number): Promise<{ metals: MetalStrip
       perGram != null && base != null && base > 0 && Number.isFinite(base)
         ? Math.round(((perGram - base) / base) * 1000) / 10
         : null
-    return { metal: metalType, purity, perOz, changePct, fetchedAt: row?.fetched_at ?? null }
+    return {
+      metal: metalType,
+      purity,
+      perOz,
+      spotOz: spotOz == null ? null : Math.round(spotOz * 100) / 100,
+      changePct, fetchedAt: row?.fetched_at ?? null }
   })
   return { metals, stale: freshness.stale, newestFetchedAt: freshness.newestFetchedAt }
 }

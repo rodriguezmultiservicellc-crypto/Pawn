@@ -211,6 +211,7 @@ export const es: Dictionary = {
     metalsNoData: 'Aún no hay precios spot cargados.',
     metalsPerOz: '/oz troy',
     metalsAtPct: '@ {pct}% del spot',
+    metalsSpotLine: 'Spot 100% {price}',
     todayTitle: 'Hoy',
     todayRepairsPromised: 'Reparaciones prometidas hoy',
     todayPickupsReady: 'Listas para recoger',

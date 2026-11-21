@@ -29,7 +29,10 @@ import type { MetalPurity, MetalType } from '@/types/database-aliases'
 export type MetalStripItem = {
   metal: MetalType
   purity: MetalPurity
+  /** Shown price: spot per troy oz × the shop's display percent. */
   perOz: number | null
+  /** Spot per troy oz at 100%. */
+  spotOz: number | null
   /** % vs the oldest point in the last 24h; null without two points. */
   changePct: number | null
   fetchedAt: string | null
@@ -443,6 +446,11 @@ function MetalsStrip({
                 </span>
               ) : null}
             </div>
+            {displayPct !== 1 && m.spotOz != null ? (
+              <div className="font-mono text-[11px] tabular-nums text-muted">
+                {d.metalsSpotLine.replace('{price}', fmtMoney(m.spotOz))}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>

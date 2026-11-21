@@ -215,6 +215,7 @@ export const en = {
     metalsNoData: 'No spot prices loaded yet.',
     metalsPerOz: '/oz t',
     metalsAtPct: '@ {pct}% of spot',
+    metalsSpotLine: '100% spot {price}',
     todayTitle: 'Today',
     todayRepairsPromised: 'Repairs promised today',
     todayPickupsReady: 'Pickups ready',
