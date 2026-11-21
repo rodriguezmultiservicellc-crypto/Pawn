@@ -26,6 +26,8 @@ import InventoryDetail, {
 import type { EbayListingRow } from '@/types/database-aliases'
 import { loadTagTemplates } from '@/lib/labels/load'
 import { templateChoices } from '@/lib/labels/templates'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import type { EbayPanelListing } from '@/components/ebay/InventoryEbayPanel'
 
 type Params = Promise<{ id: string }>
@@ -44,7 +46,7 @@ export default async function InventoryItemPage(props: {
   const { data: item } = await ctx.supabase
     .from('inventory_items')
     .select(
-      'id, tenant_id, sku, sku_number, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, condition, coating, finish, jewelry_size, shelf_location, legacy_code, wholesale_price, cost_basis, list_price, sale_price, sold_at, source, source_vendor, acquired_at, acquired_cost, hold_until, location, status, notes, staff_memo, tags, is_hidden_from_catalog, consignor_id, consignment_commission_pct, consignment_min_price, consignment_expires_on, created_at, updated_at',
+      'id, tenant_id, sku, sku_number, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, condition, coating, finish, jewelry_size, shelf_location, legacy_code, wholesale_price, cost_basis, list_price, sale_price, sold_at, source, source_vendor, acquired_at, acquired_cost, hold_until, location, status, notes, staff_memo, tags, is_hidden_from_catalog, consignor_id, consignment_commission_pct, consignment_min_price, consignment_expires_on, import_source, created_at, updated_at',
     )
     .eq('id', id)
     .eq('tenant_id', ctx.tenantId)
@@ -181,6 +183,19 @@ export default async function InventoryItemPage(props: {
     : [[], 0.2]
   const targetMarginPct = await loadInventoryTargetMargin(consignAdmin, item.tenant_id)
 
+  // Imported pieces show where they came from and the day they landed —
+  // the shop's day (tenants.timezone), computed here so server and browser
+  // render the same string.
+  const imported = item.import_source
+    ? {
+        source: item.import_source,
+        date: todayInTimezone(
+          (await loadTenantRules(ctx.supabase, item.tenant_id)).timezone,
+          new Date(item.created_at),
+        ),
+      }
+    : null
+
   return (
     <InventoryDetail
       item={item}
@@ -193,6 +208,7 @@ export default async function InventoryItemPage(props: {
       consignors={consignors}
       defaultCommissionPct={commissionPct}
       targetMarginPct={targetMarginPct}
+      imported={imported}
       tagChoices={templateChoices(
         await loadTagTemplates(ctx.supabase, ctx.tenantId),
         'inventory',

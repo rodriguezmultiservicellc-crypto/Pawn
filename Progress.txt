@@ -63,7 +63,7 @@ OPERATION IN FLIGHT: none
   Last session:   Session 61 (2026-11-21), saved 2026-11-21 ~16:30 ET.
                   Context budget at save: ~35%.
                   Built and live (main == feature/sol-pawn-brief), items
-                  495-499:
+                  495-501:
                   - PC froze at 15:06 (out of RAM on the 12 GB box, dwm
                     OOM) — NOT a code crash. Watchdog heap now 2048 MB.
                   - Lightspeed X-Series inventory import (0089) finished,
@@ -71,7 +71,9 @@ OPERATION IN FLIGHT: none
                   - Inventory Size / Length field (0090) + forfeit carry
                     + Lightspeed variant fill; item form numbers min=0.
                   - Imported items' notes start with an import stamp
-                    (source, outlet, file, date).
+                    (source, outlet, file, date); the 3,263 already
+                    imported were backfilled; detail page shows an
+                    "Imported from … on …" badge.
                   Migrations 0089-0090 ALL APPLIED.
 
   Session 60 (2026-11-21 ~13:00), items 480-494:
@@ -529,6 +531,27 @@ Progress_archive.txt — the items from those sessions are there.)
       clipped to 500. notes is staff-only (excluded from
       public_catalog_items, 0072). English, same as the forfeit stamp —
       it is record text, not UI. 11 import tests pass.
+
+ 500. BACKFILL: IMPORT STAMP ON THE 3,263 ALREADY-IMPORTED ITEMS (live
+      data op, Eddy: "update the current items imported"). The only
+      import so far: tenant 1abc8070…, 2026-11-21 21:12 UTC, outlet
+      Eddys_Jewelers_Corp, file product-export.csv, 3,263 units (from
+      its audit_log row). One UPDATE in one transaction (via
+      scripts/apply-migration.mjs, SQL kept in the session scratchpad,
+      not a patch — tenant-specific data): notes = stamp + '\n' +
+      existing notes, left(…, 500); date = created_at in
+      tenants.timezone; skipped rows already starting 'Imported from'.
+      Audit row kind='import_stamp_backfill', updated=3263, user = the
+      importer. VERIFIED: 3,263 stamped, 0 double-stamped, 0 non-
+      imported rows touched; no inventory_items trigger fires on notes.
+
+ 501. ITEM DETAIL — "IMPORTED FROM … ON …" BADGE. /inventory/[id] shows
+      an info badge next to the title when import_source is set:
+      EN "Imported from Lightspeed on 2026-11-21", ES "Importado de
+      Lightspeed el 2026-11-21". Date = created_at in the shop timezone
+      computed SERVER-side (todayInTimezone + loadTenantRules) and passed
+      as a string, so no SSR/browser timezone hydration mismatch.
+      Source names map in IMPORT_SOURCE_NAMES (brand, not translated).
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 

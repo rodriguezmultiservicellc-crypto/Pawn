@@ -723,6 +723,7 @@ export const en = {
     finish: 'Finish',
     finishPlaceholder: 'polished, matte, brushed, hammered…',
     jewelrySize: 'Size / Length',
+    importedBadge: 'Imported from {source} on {date}',
     jewelrySizePlaceholder: 'Ring 7, 8.5 · Chain 22 in, 55 cm',
     shelfLocation: 'Shelf / tray',
     shelfLocationPlaceholder: 'e.g. Case 3, tray B',

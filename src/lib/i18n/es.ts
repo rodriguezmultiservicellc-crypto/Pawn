@@ -720,6 +720,7 @@ export const es: Dictionary = {
     finish: 'Acabado',
     finishPlaceholder: 'pulido, mate, cepillado, martillado…',
     jewelrySize: 'Talla / Largo',
+    importedBadge: 'Importado de {source} el {date}',
     jewelrySizePlaceholder: 'Anillo 7, 8.5 · Cadena 22 in, 55 cm',
     shelfLocation: 'Estante / bandeja',
     shelfLocationPlaceholder: 'p. ej. Vitrina 3, bandeja B',

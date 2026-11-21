@@ -12,6 +12,7 @@ import {
   StarFour,
   Trash,
   Upload,
+  UploadSimple,
   Warning,
   X,
 } from '@phosphor-icons/react'
@@ -136,9 +137,13 @@ type ItemRecord = {
   consignment_commission_pct: number | string | null
   consignment_min_price: number | string | null
   consignment_expires_on: string | null
+  import_source: string | null
   created_at: string
   updated_at: string
 }
+
+/** Display names for inventory_items.import_source (brand names, not translated). */
+const IMPORT_SOURCE_NAMES: Record<string, string> = { lightspeed: 'Lightspeed' }
 
 function asFieldStr(v: number | string | null | undefined): string | null {
   if (v == null) return null
@@ -229,9 +234,12 @@ export default function InventoryDetail({
   consignors = [],
   defaultCommissionPct = 0.2,
   targetMarginPct = 0.5,
+  imported = null,
   tagChoices,
   justSaved = false,
 }: {
+  /** Set when the piece came from an import (source + shop-day date). */
+  imported?: { source: string; date: string } | null
   item: ItemRecord
   photos: InventoryPhotoItem[]
   stones: InventoryStoneItem[]
@@ -369,6 +377,14 @@ export default function InventoryDetail({
                 )}
               </span>
             ) : null}
+          </span>
+        ) : null}
+        {imported ? (
+          <span className="inline-flex items-center gap-2 rounded-full border border-info/30 bg-info/5 px-3 py-1 text-xs text-foreground">
+            <UploadSimple size={14} weight="bold" className="text-info" />
+            {t.inventory.importedBadge
+              .replace('{source}', IMPORT_SOURCE_NAMES[imported.source] ?? imported.source)
+              .replace('{date}', imported.date)}
           </span>
         ) : null}
       </div>
