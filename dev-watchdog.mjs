@@ -14,7 +14,9 @@
 //     loop after a proactive cycle
 //
 // Tunables via env:
-//   DEV_HEAP_MB=4096        — max heap per dev process
+//   DEV_HEAP_MB=2048        — max heap per dev process (was 4096; the 12 GB
+//                             dev box ran out of RAM 2026-11-21 — the 25-min
+//                             cycle keeps the leak under 2 GB)
 //   DEV_CYCLE_MINUTES=25    — proactive restart interval (must beat the leak)
 //   DEV_RESPAWN_DELAY_MS=2000
 //   DEV_PORT=3060           — override the dev port
@@ -24,7 +26,7 @@
 import { spawn, spawnSync } from 'node:child_process'
 import net from 'node:net'
 
-const HEAP_MB = Number(process.env.DEV_HEAP_MB || 4096)
+const HEAP_MB = Number(process.env.DEV_HEAP_MB || 2048)
 const CYCLE_MS = Number(process.env.DEV_CYCLE_MINUTES || 25) * 60 * 1000
 const RESPAWN_DELAY_MS = Number(process.env.DEV_RESPAWN_DELAY_MS || 2000)
 const DEV_PORT = String(process.env.DEV_PORT || 3060)

@@ -49,6 +49,7 @@ function echoToFieldValues(
     condition: (s('condition') as InventoryFieldValues['condition']) ?? null,
     coating: (s('coating') as InventoryFieldValues['coating']) ?? 'none',
     finish: s('finish'),
+    jewelry_size: s('jewelry_size'),
     shelf_location: s('shelf_location'),
     legacy_code: s('legacy_code'),
     wholesale_price: s('wholesale_price'),

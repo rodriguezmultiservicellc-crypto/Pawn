@@ -53,6 +53,8 @@ export type InventoryFieldValues = {
   condition: InventoryCondition | null
   coating: Coating
   finish: string | null
+  /** patches/0090 */
+  jewelry_size: string | null
   shelf_location: string | null
   legacy_code: string | null
   wholesale_price: string | null
@@ -91,6 +93,7 @@ export function emptyInventoryItem(): InventoryFieldValues {
     condition: null,
     coating: 'none',
     finish: null,
+    jewelry_size: null,
     shelf_location: null,
     legacy_code: null,
     wholesale_price: null,
@@ -243,6 +246,13 @@ export function InventoryFormFields({
                 label: t.inventory.conditions[c],
               })),
             ]}
+          />
+          <Field
+            label={t.inventory.jewelrySize}
+            name="jewelry_size"
+            defaultValue={v.jewelry_size ?? ''}
+            placeholder={t.inventory.jewelrySizePlaceholder}
+            error={fieldError?.('jewelry_size')}
           />
         </div>
       </Section>
@@ -671,6 +681,9 @@ function Field({
           : { defaultValue })}
         placeholder={placeholder}
         step={step}
+        // Every number on this form is a price or a weight — never negative
+        // (Zod + DB CHECKs reject it; this stops the wheel/arrow from going there).
+        min={type === 'number' ? '0' : undefined}
         readOnly={readOnly}
         list={list}
         className={`block w-full rounded-md border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${

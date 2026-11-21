@@ -44,7 +44,7 @@ export default async function InventoryItemPage(props: {
   const { data: item } = await ctx.supabase
     .from('inventory_items')
     .select(
-      'id, tenant_id, sku, sku_number, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, condition, coating, finish, shelf_location, legacy_code, wholesale_price, cost_basis, list_price, sale_price, sold_at, source, source_vendor, acquired_at, acquired_cost, hold_until, location, status, notes, staff_memo, tags, is_hidden_from_catalog, consignor_id, consignment_commission_pct, consignment_min_price, consignment_expires_on, created_at, updated_at',
+      'id, tenant_id, sku, sku_number, description, category, brand, model, serial_number, metal, karat, weight_grams, weight_dwt, condition, coating, finish, jewelry_size, shelf_location, legacy_code, wholesale_price, cost_basis, list_price, sale_price, sold_at, source, source_vendor, acquired_at, acquired_cost, hold_until, location, status, notes, staff_memo, tags, is_hidden_from_catalog, consignor_id, consignment_commission_pct, consignment_min_price, consignment_expires_on, created_at, updated_at',
     )
     .eq('id', id)
     .eq('tenant_id', ctx.tenantId)

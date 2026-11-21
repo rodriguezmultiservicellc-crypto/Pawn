@@ -719,6 +719,8 @@ export const es: Dictionary = {
       'No es oro sólido — enchapado, gold filled, vermeil o PVD sobre metal base. Se excluye de todo valor de fundición.',
     finish: 'Acabado',
     finishPlaceholder: 'pulido, mate, cepillado, martillado…',
+    jewelrySize: 'Talla / Largo',
+    jewelrySizePlaceholder: 'Anillo 7, 8.5 · Cadena 22 in, 55 cm',
     shelfLocation: 'Estante / bandeja',
     shelfLocationPlaceholder: 'p. ej. Vitrina 3, bandeja B',
     legacyCode: 'Código anterior',

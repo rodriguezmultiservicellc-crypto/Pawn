@@ -113,6 +113,7 @@ type ItemRecord = {
   condition: InventoryFieldValues['condition']
   coating: InventoryFieldValues['coating'] | null
   finish: string | null
+  jewelry_size: string | null
   shelf_location: string | null
   legacy_code: string | null
   wholesale_price: number | string | null
@@ -186,6 +187,7 @@ function echoToInventoryFieldValues(
     condition: (s('condition') as InventoryFieldValues['condition']) ?? null,
     coating: (s('coating') as InventoryFieldValues['coating']) ?? 'none',
     finish: s('finish'),
+    jewelry_size: s('jewelry_size'),
     shelf_location: s('shelf_location'),
     legacy_code: s('legacy_code'),
     wholesale_price: s('wholesale_price'),
@@ -267,6 +269,7 @@ export default function InventoryDetail({
     condition: item.condition ?? null,
     coating: item.coating ?? 'none',
     finish: item.finish,
+    jewelry_size: item.jewelry_size,
     shelf_location: item.shelf_location,
     legacy_code: item.legacy_code,
     wholesale_price: asFieldStr(item.wholesale_price),

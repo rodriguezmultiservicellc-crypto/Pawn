@@ -3,6 +3,7 @@ import { parseCsv } from './csv'
 import {
   checkLightspeedHeaders,
   findGrams,
+  findSize,
   guessMetal,
   htmlToText,
   mapCategory,
@@ -147,5 +148,17 @@ describe('field readers', () => {
     expect(mapCategory(null, 'Men Chronograph', 'Invicta')).toBe('watch')
     expect(mapCategory(null, '10k Flat Gucci', null)).toBe('chain')
     expect(mapCategory(null, 'Febreze', null)).toBe('other')
+  })
+})
+
+describe('findSize', () => {
+  it('takes the value of an option named size or length (EN/ES)', () => {
+    expect(findSize({ variant_option_one_name: 'Color', variant_option_one_value: 'Yellow', variant_option_two_name: 'Ring Size', variant_option_two_value: '7.5' })).toBe('7.5')
+    expect(findSize({ variant_option_one_name: 'Length', variant_option_one_value: '20"' })).toBe('20"')
+    expect(findSize({ variant_option_one_name: 'Largo', variant_option_one_value: '55 cm' })).toBe('55 cm')
+  })
+  it('returns null when no option is a size', () => {
+    expect(findSize({ variant_option_one_name: 'Grams', variant_option_one_value: '2.4' })).toBeNull()
+    expect(findSize({})).toBeNull()
   })
 })

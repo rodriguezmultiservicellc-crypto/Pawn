@@ -472,7 +472,7 @@ export async function forfeitLoanAction(
   const { data: collateral } = await supabase
     .from('loan_collateral_items')
     .select(
-      'id, description, category, metal_type, karat, weight_grams, est_value, photo_path, position',
+      'id, description, category, metal_type, karat, weight_grams, jewelry_size, est_value, photo_path, position',
     )
     .eq('loan_id', loan.id)
     .is('deleted_at', null)
@@ -491,6 +491,7 @@ export async function forfeitLoanAction(
         metal: item.metal_type ?? null,
         karat: item.karat == null ? null : String(item.karat),
         weight_grams: item.weight_grams,
+        jewelry_size: item.jewelry_size,
         cost_basis: item.est_value ?? 0,
         list_price: null,
         source: 'pawn_forfeit',

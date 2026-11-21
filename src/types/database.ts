@@ -2495,6 +2495,7 @@ export type Database = {
           import_ref: string | null
           import_source: string | null
           is_hidden_from_catalog: boolean
+          jewelry_size: string | null
           karat: string | null
           legacy_code: string | null
           list_price: number | null
@@ -2547,6 +2548,7 @@ export type Database = {
           import_ref?: string | null
           import_source?: string | null
           is_hidden_from_catalog?: boolean
+          jewelry_size?: string | null
           karat?: string | null
           legacy_code?: string | null
           list_price?: number | null
@@ -2599,6 +2601,7 @@ export type Database = {
           import_ref?: string | null
           import_source?: string | null
           is_hidden_from_catalog?: boolean
+          jewelry_size?: string | null
           karat?: string | null
           legacy_code?: string | null
           list_price?: number | null

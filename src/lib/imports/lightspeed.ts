@@ -273,6 +273,24 @@ export function findGrams(row: Record<string, string>): number | null {
   return null
 }
 
+// ── size / length ────────────────────────────────────────────────────────
+
+const SIZE_LABEL = /\b(size|length|talla|largo|tama[ñn]o|medida)\b/i
+
+/**
+ * Ring size or chain length, from the first variant option whose NAME says
+ * size / length (EN or ES). The value is kept as written ("7", "20\"",
+ * "55 cm") — inventory_items.jewelry_size is free text (patches/0090).
+ */
+export function findSize(row: Record<string, string>): string | null {
+  for (const k of ['one', 'two', 'three'] as const) {
+    if (!SIZE_LABEL.test(row[`variant_option_${k}_name`] ?? '')) continue
+    const v = str(row[`variant_option_${k}_value`])
+    if (v && v.length <= 40) return v
+  }
+  return null
+}
+
 // ── description / tags ───────────────────────────────────────────────────
 
 function variantSummary(row: Record<string, string>): string | null {
@@ -380,6 +398,7 @@ export function mapLightspeedRows(opts: LightspeedMapOptions): {
       condition: 'new',
       coating,
       finish: '',
+      jewelry_size: findSize(row) ?? '',
       shelf_location: '',
       legacy_code: str(row.sku) ?? '',
       wholesale_price: '',
@@ -417,6 +436,7 @@ export function mapLightspeedRows(opts: LightspeedMapOptions): {
         weight_dwt: v.weight_dwt,
         condition: v.condition,
         coating: v.coating,
+        jewelry_size: v.jewelry_size,
         legacy_code: v.legacy_code,
         cost_basis: v.cost_basis,
         list_price: v.list_price,

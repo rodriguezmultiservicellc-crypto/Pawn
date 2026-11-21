@@ -177,6 +177,8 @@ const inventoryItemBaseSchema = z.object({
     )
     .default('none'),
   finish: optionalTrimmedString,
+  /** patches/0090 — ring size or chain/bracelet length, free text. */
+  jewelry_size: optionalTrimmedString,
   shelf_location: optionalTrimmedString,
   legacy_code: optionalTrimmedString,
   wholesale_price: optionalDecimal,
