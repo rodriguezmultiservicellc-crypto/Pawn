@@ -523,6 +523,42 @@ Progress_archive.txt — the items from those sessions are there.)
      dashboard tab updated 90% → 80% ($3,185.10 → $2,831.20) without a
      reload; signed-out request → 401; percent restored to 90.
 
+ 483. [CRITICAL] EVERY COUNTER SALE AND LAYAWAY FAILED SINCE 0076
+     (2026-11-13) — FIXED (patches/0084 APPLIED, no policy change).
+     Eddy: Charge (cash and card) → "Something went wrong. Please retry."
+     Production log: "[pos.money] sale_create DELETE requires a WHERE
+     clause". ROOT CAUSE: Supabase loads pg_safeupdate for API
+     (PostgREST) requests; it refuses DELETE / UPDATE with no WHERE even
+     on a temp table. sale_create cleared AND priced its temp line table
+     that way (two statements). The 0076 dry run passed because the
+     Management API SQL session (scripts/apply-migration.mjs) does NOT
+     load safeupdate — a dry run there cannot catch this class of bug.
+     0084 = the live function body with those two statements given
+     WHERE true, nothing else. Proven through the API (service-role rpc,
+     same piece twice): before → "DELETE requires a WHERE clause", after
+     → duplicate_item (the intended refusal, rolled back, no sale).
+     Scanned all 119 live public functions: no other UPDATE/DELETE
+     without WHERE. A full Charge was NOT run (it would write a real
+     sale) — Eddy retries at the counter.
+     ALSO: createSaleAction returned 'validation_failed' / 'not_authorized'
+     but the keys are validationFailed / notAuthorized, so those showed the
+     generic message too. Renamed.
+     LESSON: test any new SQL function through supabase-js .rpc(), not
+     only through apply-migration.mjs.
+
+ 484. OUT OF STOCK — "ADD ANYWAY" FOR OWNER / CHAIN ADMIN / MANAGER
+     (OUT_OF_STOCK_ADD_ROLES in lib/pos/quick-sale.ts). In the "already in
+     cart, none in stock" popup, and on a product quick sale button with
+     zero stock (now tappable for those roles, asks first: "Out of
+     stock"), "Add anyway" adds unlinkedLine(): a custom line with the
+     item's name and price, NOT linked to inventory (each inventory row is
+     one piece; sale_create refuses a piece twice). Price: the scanned
+     item's list price, or the button's last unit / saved reference price
+     (product buttons now carry price). Clerks see the old OK-only popup.
+     No server change: any clerk can already type a custom line.
+     Verified in the browser as owner: double scan → Add anyway → 2 lines,
+     $400 total; zero-stock button enabled and asks; no console errors.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

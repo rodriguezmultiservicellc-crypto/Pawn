@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import NewSaleForm from './form'
 import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
-import { QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
+import { OUT_OF_STOCK_ADD_ROLES, QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
 import { loadQuickSaleButtons } from '@/lib/pos/quick-sale-server'
 
 type SearchParams = Promise<{ customer?: string }>
@@ -60,6 +60,7 @@ export default async function NewSalePage(props: {
       initialCustomerId={initialCustomerId}
       quickSales={quickSales}
       canEditQuickSales={!!ctx.tenantRole && (QUICK_SALE_EDIT_ROLES as readonly string[]).includes(ctx.tenantRole)}
+      canAddOutOfStock={!!ctx.tenantRole && (OUT_OF_STOCK_ADD_ROLES as readonly string[]).includes(ctx.tenantRole)}
     />
   )
 }

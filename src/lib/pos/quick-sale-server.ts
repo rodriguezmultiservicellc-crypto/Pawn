@@ -58,7 +58,7 @@ export async function loadQuickSaleButtons(
           list_price: i.list_price == null ? null : Number(i.list_price),
           category: i.category,
         }))
-      return { kind: 'product', id: r.id, name: r.name, units, is_active: r.is_active }
+      return { kind: 'product', id: r.id, name: r.name, units, price: Number(r.price), is_active: r.is_active }
     }),
   )
 }

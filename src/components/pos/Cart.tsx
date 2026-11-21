@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { MagnifyingGlass, Minus, Plus, Trash } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { computeLineTotal, computeSubtotal, computeTotal, r4 } from '@/lib/pos/cart'
-import { addQuickSale, matchKey, nextUnit, unitsLeft, type QuickSaleButton, type QuickUnit } from '@/lib/pos/quick-sale'
+import { addQuickSale, matchKey, nextUnit, unitsLeft, unlinkedLine, type QuickSaleButton, type QuickUnit } from '@/lib/pos/quick-sale'
 import { Footer, Modal } from './Modal'
 import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
@@ -47,6 +47,7 @@ export function Cart({
   layawayDisabled,
   quickSales = [],
   canEditQuickSales = false,
+  canAddOutOfStock = false,
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId?: string | null
@@ -69,6 +70,8 @@ export function Cart({
   layawayDisabled?: boolean
   quickSales?: QuickSaleButton[]
   canEditQuickSales?: boolean
+  /** OUT_OF_STOCK_ADD_ROLES: may add an item with nothing left in stock. */
+  canAddOutOfStock?: boolean
 }) {
   const { t } = useI18n()
   const ts = t.pos.sale
@@ -89,9 +92,18 @@ export function Cart({
   const [scanMsg, setScanMsg] = useState<string | null>(null)
   const [showPicker, setShowPicker] = useState(false)
   const [pickerSeed, setPickerSeed] = useState<string>('')
-  // "Already in the cart — add another one?" popup. onYes null = nothing
-  // more to add (a unique piece with no other unit in stock): OK only.
-  const [dupAsk, setDupAsk] = useState<{ name: string; onYes: (() => void) | null } | null>(null)
+  // "Already in the cart — add another one?" popup.
+  //   onYes       another unit of the same product is in stock
+  //   onOverride  nothing left in stock, but this user may add it anyway
+  //               (a line not linked to inventory — OUT_OF_STOCK_ADD_ROLES)
+  //   neither     nothing to add: OK only
+  // inCart false = a product button tapped with zero stock (not a duplicate).
+  const [dupAsk, setDupAsk] = useState<{
+    name: string
+    inCart: boolean
+    onYes: (() => void) | null
+    onOverride: (() => void) | null
+  } | null>(null)
 
   const scanRef = useRef<HTMLInputElement>(null)
 
@@ -148,10 +160,22 @@ export function Cart({
         ),
         lines,
       )
-      setDupAsk({ name: item.description, onYes: other ? () => appendUnit(other) : null })
+      setDupAsk({
+        name: item.description,
+        inCart: true,
+        onYes: other ? () => appendUnit(other) : null,
+        onOverride: !other && canAddOutOfStock ? () => appendUnlinked(item.description, item.list_price) : null,
+      })
       return
     }
     appendUnit(item)
+  }
+
+  /** Out of stock, added anyway: a custom line, never linked to a unit. */
+  function appendUnlinked(name: string, price: number | null) {
+    setLines((cur) => [...cur, unlinkedLine(name, price)])
+    setScanMsg(null)
+    focusScan()
   }
 
   function appendUnit(item: InventoryPickRow | QuickUnit) {
@@ -194,15 +218,29 @@ export function Cart({
         setLines((cur) => addQuickSale(cur, b))
         focusScan()
       }
-      if (lines.some((l) => l.quick_sale_id === b.id)) setDupAsk({ name: b.name, onYes: add })
+      if (lines.some((l) => l.quick_sale_id === b.id))
+        setDupAsk({ name: b.name, inCart: true, onYes: add, onOverride: null })
       else add()
       return
     }
     // Product button: the oldest unit not in the cart yet.
     const unit = nextUnit(b.units, lines)
-    const already = b.units.some((u) => lines.some((l) => l.inventory_item_id === u.id))
-    if (already) setDupAsk({ name: b.name, onYes: unit ? () => appendUnit(unit) : null })
-    else if (unit) appendUnit(unit)
+    const already =
+      b.units.some((u) => lines.some((l) => l.inventory_item_id === u.id)) ||
+      lines.some((l) => l.inventory_item_id == null && l.description === b.name)
+    if (unit && !already) {
+      appendUnit(unit)
+      return
+    }
+    // Price for an added-anyway line: the last unit's own price, else the
+    // reference price saved with the button.
+    const refPrice = b.units.at(-1)?.list_price ?? b.price
+    setDupAsk({
+      name: b.name,
+      inCart: already,
+      onYes: unit ? () => appendUnit(unit) : null,
+      onOverride: !unit && canAddOutOfStock ? () => appendUnlinked(b.name, refPrice) : null,
+    })
   }
 
   function updateLine(idx: number, patch: Partial<CartLineState>) {
@@ -388,7 +426,8 @@ export function Cart({
             // with nothing left (in stock or outside the cart) they grey out.
             const left = b.kind === 'product' ? unitsLeft(b.units, lines) : null
             const price = b.kind === 'plain' ? b.price : nextUnit(b.units, lines)?.list_price ?? null
-            const empty = b.kind === 'product' && b.units.length === 0
+            // Managers and up can still tap it (they get the "add anyway" popup).
+            const empty = b.kind === 'product' && b.units.length === 0 && !canAddOutOfStock
             return (
               <button
                 key={b.id}
@@ -670,17 +709,48 @@ export function Cart({
 
       {dupAsk ? (
         <Modal
-          title={ts.alreadyInCart}
+          title={dupAsk.inCart ? ts.alreadyInCart : ts.outOfStock}
           onClose={() => {
             setDupAsk(null)
             focusScan()
           }}
         >
           <p className="text-sm text-foreground">
-            {(dupAsk.onYes ? ts.dupAddAnother : ts.dupNoneLeft).replace('{name}', dupAsk.name)}
+            {(dupAsk.onYes
+              ? ts.dupAddAnother
+              : dupAsk.inCart
+                ? ts.dupNoneLeft
+                : ts.outOfStockMsg
+            ).replace('{name}', dupAsk.name)}
           </p>
+          {dupAsk.onOverride ? <p className="mt-2 text-sm text-muted">{ts.addAnywayHelp}</p> : null}
           <Footer>
-            {dupAsk.onYes ? (
+            {dupAsk.onOverride ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDupAsk(null)
+                    focusScan()
+                  }}
+                  className={`${OUTLINE_BTN} text-foreground`}
+                >
+                  {ts.dupNo}
+                </button>
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={() => {
+                    const add = dupAsk.onOverride
+                    setDupAsk(null)
+                    add?.()
+                  }}
+                  className={`h-11 rounded-md bg-gold px-5 text-sm font-bold text-navy transition-colors hover:bg-gold-2 ${FOCUS}`}
+                >
+                  {ts.addAnyway}
+                </button>
+              </>
+            ) : dupAsk.onYes ? (
               <>
                 <button
                   type="button"

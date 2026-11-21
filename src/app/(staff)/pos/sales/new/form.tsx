@@ -22,11 +22,13 @@ export default function NewSaleForm({
   initialCustomerId,
   quickSales,
   canEditQuickSales,
+  canAddOutOfStock,
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId: string | null
   quickSales: QuickSaleButton[]
   canEditQuickSales: boolean
+  canAddOutOfStock: boolean
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -207,6 +209,7 @@ export default function NewSaleForm({
         error={error}
         quickSales={quickSales}
         canEditQuickSales={canEditQuickSales}
+        canAddOutOfStock={canAddOutOfStock}
       />
 
       {layawayDraft ? (

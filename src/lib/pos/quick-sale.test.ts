@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { addQuickSale, matchKey, nextUnit, quickSaleInputSchema, unitsLeft, type QuickLine } from './quick-sale'
+import {
+  addQuickSale,
+  matchKey,
+  nextUnit,
+  quickSaleInputSchema,
+  unitsLeft,
+  unlinkedLine,
+  type QuickLine,
+} from './quick-sale'
 
 const battery = { id: 'b1', name: 'Battery swap', price: 15 }
 const clean = { id: 'b2', name: 'Cleaning', price: 7.5 }
@@ -28,6 +36,22 @@ describe('quickSaleInputSchema', () => {
     expect(quickSaleInputSchema.parse({ name: '  Sizing ', price: '20', is_active: true })).toEqual({ name: 'Sizing', price: 20, is_active: true })
     expect(quickSaleInputSchema.safeParse({ name: '  ', price: 1, is_active: true }).success).toBe(false)
     expect(quickSaleInputSchema.safeParse({ name: 'x', price: -1, is_active: true }).success).toBe(false)
+  })
+})
+
+describe('unlinkedLine (out of stock, added anyway)', () => {
+  it('is a custom line with the item name and price, never linked to a unit', () => {
+    expect(unlinkedLine('test ring', 200)).toEqual({
+      inventory_item_id: null,
+      description: 'test ring',
+      quantity: '1',
+      unit_price: '200.00',
+      line_discount: '0',
+      sku: null,
+    })
+  })
+  it('defaults a missing price to 0 so staff type it in', () => {
+    expect(unlinkedLine('x', null).unit_price).toBe('0.00')
   })
 })
 

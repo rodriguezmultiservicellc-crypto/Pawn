@@ -81,7 +81,7 @@ export async function createSaleAction(
     .select('has_retail')
     .eq('id', ctx.tenantId)
     .maybeSingle()
-  if (!tenant?.has_retail) return { error: 'not_authorized' }
+  if (!tenant?.has_retail) return { error: 'notAuthorized' }
 
   const { supabase, userId } = await requireRoleInTenant(
     ctx.tenantId,
@@ -123,7 +123,7 @@ export async function createSaleAction(
     items,
   })
   if (!parsed.success) {
-    return { error: 'validation_failed' }
+    return { error: 'validationFailed' }
   }
   const v = parsed.data
 

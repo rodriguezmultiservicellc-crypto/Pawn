@@ -16,6 +16,15 @@ import { z } from 'zod'
 export const QUICK_SALE_EDIT_ROLES = ['owner', 'chain_admin', 'manager'] as const
 export const QUICK_SALE_MAX = 24
 
+/**
+ * Roles that may add an item with nothing left in stock. The line goes in
+ * as a custom line (not linked to an inventory unit) — every inventory row
+ * is one physical piece and the database refuses to sell one twice. Any
+ * clerk can already type a custom line; this only puts it one tap away for
+ * the people who decide to sell past stock.
+ */
+export const OUT_OF_STOCK_ADD_ROLES = ['owner', 'chain_admin', 'manager'] as const
+
 /** One sellable inventory unit (same shape as the POS inventory picker row). */
 export type QuickUnit = {
   id: string
@@ -27,7 +36,14 @@ export type QuickUnit = {
 
 export type QuickSaleButton =
   | { kind: 'plain'; id: string; name: string; price: number }
-  | { kind: 'product'; id: string; name: string; units: QuickUnit[] }
+  | {
+      kind: 'product'
+      id: string
+      name: string
+      units: QuickUnit[]
+      /** Reference price saved with the button (the picked unit's list price). */
+      price: number
+    }
 
 export const quickSaleInputSchema = z.object({
   name: z.string().trim().min(1).max(60),
@@ -90,6 +106,22 @@ export function addQuickSale(lines: QuickLine[], b: { id: string; name: string; 
       quick_sale_id: b.id,
     },
   ]
+}
+
+/**
+ * Out of stock, added anyway (OUT_OF_STOCK_ADD_ROLES): a custom line with the
+ * item's name and price, not linked to any inventory unit, so it never marks
+ * a piece sold. Always a new line — it never merges into another.
+ */
+export function unlinkedLine(name: string, price: number | null): QuickLine {
+  return {
+    inventory_item_id: null,
+    description: name,
+    quantity: '1',
+    unit_price: (price ?? 0).toFixed(2),
+    line_discount: '0',
+    sku: null,
+  }
 }
 
 /** Product button: the oldest unit not already in the cart, or null when none is left. */
