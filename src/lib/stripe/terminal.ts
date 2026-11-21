@@ -162,6 +162,8 @@ export async function refundCardPayment(args: {
   amount: number
   reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer'
   metadata?: Record<string, string>
+  /** Same key → Stripe returns the first refund instead of making a second. */
+  idempotencyKey?: string
 }): Promise<{ id: string; status: string; amount: number }> {
   const { accountId, apiKey } = await stripeTarget(args.tenantId)
   const cents = Math.max(1, Math.round(args.amount * 100))
@@ -182,6 +184,7 @@ export async function refundCardPayment(args: {
       body,
       accountId,
       apiKey,
+      idempotencyKey: args.idempotencyKey,
     },
   )
 }
@@ -369,6 +372,9 @@ export type CardPresentIntentStatus = {
   last_payment_error?: { message?: string | null; code?: string | null; decline_code?: string | null } | null
   latest_charge?: {
     id: string
+    /** Cents charged / already refunded on this charge. */
+    amount?: number
+    amount_refunded?: number
     payment_method_details?: {
       card_present?: { brand?: string | null; last4?: string | null } | null
     } | null

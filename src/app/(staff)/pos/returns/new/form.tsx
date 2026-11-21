@@ -46,8 +46,10 @@ export default function NewReturnForm({
       const errors = t.pos.errors as Record<string, string>
       const storeCreditErrors = t.storeCredit.errors as Record<string, string>
       return {
-        error:
-          errors[res.error] ?? storeCreditErrors[res.error] ?? errors.generic,
+        error: (errors[res.error] ?? storeCreditErrors[res.error] ?? errors.generic).replace(
+          '{detail}',
+          res.detail ?? '',
+        ),
       }
     }
     if (res.redirectTo) router.push(res.redirectTo)

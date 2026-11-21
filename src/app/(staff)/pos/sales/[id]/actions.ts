@@ -9,15 +9,16 @@ import {
   saleVoidSchema,
 } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
-import { computeBalance, r2, toMoney } from '@/lib/pos/cart'
+import { computeBalance, r2 } from '@/lib/pos/cart'
 import { afterSaleCompleted, posErrorKey, saleAddExternalCard, saleAddPayment, saleComplete } from '@/lib/pos/money'
 import { externalCardSchema } from '@/lib/pos/card'
 import {
   createCardPresentPaymentIntent,
   processPaymentIntentOnReader,
-  refundCardPayment,
 } from '@/lib/stripe/terminal'
 import { loadShopReader } from '@/lib/pos/reader-server'
+import { planCardRefund, totalRefundable } from '@/lib/pos/card-refund'
+import { loadRefundableCharges, runCardRefunds } from '@/lib/pos/card-refund-server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { settleSaleCardPayment } from '@/lib/pos/card-settle'
 import {
@@ -29,7 +30,7 @@ import { computeRedemptionDiscount } from '@/lib/loyalty/math'
 import { restoreForSale as restoreStoreCreditForSale } from '@/lib/store-credit/events'
 import type { PaymentMethod, SaleStatus } from '@/types/database-aliases'
 
-export type SaleActionResult = { error?: string; ok?: boolean }
+export type SaleActionResult = { error?: string; ok?: boolean; /** Extra text for the error (e.g. Stripe's refund message). */ detail?: string }
 
 const STAFF_ROLES = [
   'owner',
@@ -278,37 +279,42 @@ export async function voidSaleAction(
     VOID_ROLES,
   )
 
-  // For each card payment, attempt a refund best-effort.
-  const { data: payments } = await supabase
-    .from('sale_payments')
-    .select(
-      'id, amount, payment_method, card_present_status, stripe_payment_intent_id',
-    )
-    .eq('sale_id', sale.id)
-    .is('deleted_at', null)
-
-  for (const p of payments ?? []) {
-    if (
-      p.payment_method === 'card' &&
-      p.card_present_status === 'succeeded' &&
-      p.stripe_payment_intent_id
-    ) {
-      try {
-        await refundCardPayment({
-          tenantId: sale.tenant_id,
-          paymentIntentId: p.stripe_payment_intent_id,
-          amount: toMoney(p.amount),
-        })
-        await supabase
-          .from('sale_payments')
-          .update({ card_present_status: 'refunded' })
-          .eq('id', p.id)
-          .eq('tenant_id', sale.tenant_id)
-      } catch (e) {
-        // Record the failure but do not block the void.
-        console.error('[pos.voidSale] refund failed', e)
-      }
+  // Card refunds FIRST (reader / Stripe charges only — a card-machine
+  // payment is refunded on the machine). If Stripe refuses any refund the
+  // sale is NOT voided: the clerk sees why, and pressing Void again retries
+  // only what is still unrefunded — the idempotency key means Stripe never
+  // refunds the same charge twice.
+  const loaded = await loadRefundableCharges(supabase, sale.tenant_id, sale.id)
+  if (!loaded.ok) return { error: 'cardRefundFailed', detail: loaded.error }
+  // A charge a return already refunded in full has nothing left: mark it.
+  for (const c of loaded.charges) {
+    if (c.remaining <= 0) {
+      await supabase
+        .from('sale_payments')
+        .update({ card_present_status: 'refunded' })
+        .eq('id', c.paymentId)
+        .eq('tenant_id', sale.tenant_id)
     }
+  }
+  const plan = planCardRefund(loaded.charges, totalRefundable(loaded.charges))
+  const run = await runCardRefunds({
+    supabase,
+    tenantId: sale.tenant_id,
+    allocations: plan.allocations,
+    charges: loaded.charges,
+    keyPrefix: `void:${sale.id}`,
+  })
+  if (run.failed) {
+    console.error('[pos.voidSale] card refund failed — sale NOT voided', run.failed)
+    await logAudit({
+      tenantId: sale.tenant_id,
+      userId,
+      action: 'card_refund_failed',
+      tableName: 'sale_payments',
+      recordId: run.failed.paymentId,
+      changes: { sale_id: sale.id, at: 'void', message: run.failed.message, refunded_before_failure: run.refunded },
+    })
+    return { error: 'cardRefundFailed', detail: run.failed.message }
   }
 
   // Update sale -> voided + locked.
@@ -318,6 +324,9 @@ export async function voidSaleAction(
       status: 'voided' as SaleStatus,
       is_locked: true,
       updated_by: userId,
+      void_reason: v.reason,
+      voided_at: new Date().toISOString(),
+      voided_by: userId,
     })
     .eq('id', sale.id)
     .eq('tenant_id', sale.tenant_id)
@@ -347,7 +356,7 @@ export async function voidSaleAction(
     action: 'sale_void',
     tableName: 'sales',
     recordId: sale.id,
-    changes: { reason: v.reason, total: sale.total },
+    changes: { reason: v.reason, total: sale.total, card_refunded: run.refunded, refund_ids: run.refundIds },
   })
 
   // ── Store credit: put every redemption on this sale back ───────────────

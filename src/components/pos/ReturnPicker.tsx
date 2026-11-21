@@ -262,6 +262,9 @@ export function ReturnPicker({
                 {t.storeCredit.refundMethodHelp}
               </span>
             ) : null}
+            {refundMethod === 'card' ? (
+              <span className="block text-xs text-muted">{t.pos.return.cardRefundHelp}</span>
+            ) : null}
           </label>
           <div className="rounded-md border border-border bg-background/40 p-3 text-sm">
             <dl className="space-y-0.5 text-xs text-muted">

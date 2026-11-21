@@ -30,6 +30,7 @@ export default async function SaleDetailPage(props: { params: Params }) {
       `id, tenant_id, sale_number, sale_kind, status, customer_id,
        subtotal, tax_amount, tax_rate, discount_amount, total, paid_total,
        returned_total, notes, is_locked, completed_at, created_at, updated_at,
+       void_reason, voided_at, voided_by,
        customer:customers(id, first_name, last_name, phone, email)`,
     )
     .eq('id', id)
@@ -129,6 +130,13 @@ export default async function SaleDetailPage(props: { params: Params }) {
     is_locked: sale.is_locked,
     completed_at: sale.completed_at,
     created_at: sale.created_at,
+    void_reason: sale.void_reason,
+    voided_at: sale.voided_at,
+    voided_by_name: sale.voided_by
+      ? ((
+          await createAdminClient().from('profiles').select('full_name').eq('id', sale.voided_by).maybeSingle()
+        ).data?.full_name ?? null)
+      : null,
   }
 
   // Pull the linked layaway, if any.

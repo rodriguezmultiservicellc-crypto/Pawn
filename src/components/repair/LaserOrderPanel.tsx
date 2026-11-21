@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useSyncExternalStore, useTransition } from 'react'
+import { ClientTime } from '@/components/ClientTime'
+import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import {
   ArrowsClockwise,
@@ -10,7 +11,6 @@ import {
   WarningCircle,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { shortDateTime } from '@/lib/format/money'
 import { isOpenLaserStatus, type LaserOrderStatus } from '@/lib/orocut/status'
 import type { CutDetails, HistoryEntry } from '@/lib/orocut/merge'
 import {
@@ -338,22 +338,6 @@ function OpenOrder({
 }
 
 // ── Times ─────────────────────────────────────────────────────────────────
-
-const noopSubscribe = () => () => {}
-
-/**
- * Local-time stamp rendered only after mount. The server renders in UTC and
- * the browser in the shop's zone, so formatting during SSR produces a text
- * mismatch (React #418) on every load; an empty server placeholder does not.
- */
-function ClientTime({ iso }: { iso: string }) {
-  const mounted = useSyncExternalStore(
-    noopSubscribe,
-    () => true,
-    () => false,
-  )
-  return <>{mounted ? shortDateTime(iso) : '…'}</>
-}
 
 // ── Send form ─────────────────────────────────────────────────────────────
 

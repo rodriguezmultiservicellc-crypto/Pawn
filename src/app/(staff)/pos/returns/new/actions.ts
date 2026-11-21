@@ -11,7 +11,9 @@ import {
   computeReturnRefund,
   isReturnableSaleStatus,
 } from '@/lib/pos/returns'
-import { refundCardPayment } from '@/lib/stripe/terminal'
+import { randomUUID } from 'node:crypto'
+import { planCardRefund, totalRefundable } from '@/lib/pos/card-refund'
+import { loadRefundableCharges, runCardRefunds, type RefundRun } from '@/lib/pos/card-refund-server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recordEarnClawback } from '@/lib/loyalty/events'
 import {
@@ -20,7 +22,7 @@ import {
 } from '@/lib/store-credit/events'
 import type { PaymentMethod, SaleStatus } from '@/types/database-aliases'
 
-export type ReturnActionResult = { error?: string; ok?: boolean; redirectTo?: string }
+export type ReturnActionResult = { error?: string; ok?: boolean; redirectTo?: string; detail?: string }
 
 const STAFF_ROLES = [
   'owner',
@@ -142,10 +144,53 @@ export async function createReturnAction(
   const returnTotal = refund.total
   if (returnTotal <= 0) return { error: 'nothingToRefund' }
 
+  // ── Card refund FIRST, before anything is written ──────────────────────
+  // Only reader (Stripe) charges are refunded by Pawn; what is left on each
+  // is what Stripe says. If Stripe refuses, nothing is recorded and the
+  // clerk sees why. A sale paid on the card machine (0085) has nothing for
+  // Stripe to refund: that refund is done on the machine.
+  const returnId = randomUUID()
+  let cardRun: RefundRun | null = null
+  let cardManual = false
+  if (v.refund_method === 'card') {
+    const loaded = await loadRefundableCharges(supabase, tenantId, sale.id)
+    if (!loaded.ok) return { error: 'cardRefundFailed', detail: loaded.error }
+    const available = totalRefundable(loaded.charges)
+    if (available <= 0) {
+      cardManual = true
+    } else {
+      const plan = planCardRefund(loaded.charges, returnTotal)
+      if (plan.short > 0) return { error: 'cardRefundShort', detail: available.toFixed(2) }
+      cardRun = await runCardRefunds({
+        supabase,
+        tenantId,
+        allocations: plan.allocations,
+        charges: loaded.charges,
+        keyPrefix: `return:${returnId}`,
+      })
+      if (cardRun.failed) {
+        await logAudit({
+          tenantId,
+          userId,
+          action: 'card_refund_failed',
+          tableName: 'sale_payments',
+          recordId: cardRun.failed.paymentId,
+          changes: { sale_id: sale.id, at: 'return', message: cardRun.failed.message, refunded_before_failure: cardRun.refunded },
+        })
+        // Nothing went back yet → record nothing.
+        if (cardRun.refunded === 0) return { error: 'cardRefundFailed', detail: cardRun.failed.message }
+      }
+    }
+  }
+  // What actually went back to the customer (a card run that failed part
+  // way records only what Stripe refunded).
+  const refundedTotal = cardRun?.failed ? cardRun.refunded : returnTotal
+
   // Insert returns row.
   const { data: ret, error: retErr } = await supabase
     .from('returns')
     .insert({
+      id: returnId,
       tenant_id: tenantId,
       sale_id: sale.id,
       status: 'issued',
@@ -153,7 +198,7 @@ export async function createReturnAction(
       subtotal: refund.subtotal,
       tax_amount: refund.tax,
       total: returnTotal,
-      refunded_total: returnTotal,
+      refunded_total: refundedTotal,
       refund_method: v.refund_method as PaymentMethod,
       refunded_at: new Date().toISOString(),
       performed_by: userId,
@@ -206,31 +251,6 @@ export async function createReturnAction(
     .eq('id', sale.id)
     .eq('tenant_id', tenantId)
 
-  // If refund_method is 'card', try a refund against the most recent
-  // succeeded card payment. Best-effort.
-  if (v.refund_method === 'card') {
-    const { data: cardPayments } = await supabase
-      .from('sale_payments')
-      .select('id, amount, payment_method, card_present_status, stripe_payment_intent_id')
-      .eq('sale_id', sale.id)
-      .eq('payment_method', 'card')
-      .eq('card_present_status', 'succeeded')
-      .order('occurred_at', { ascending: false })
-      .limit(1)
-    const target = cardPayments?.[0]
-    if (target?.stripe_payment_intent_id) {
-      try {
-        await refundCardPayment({
-          tenantId,
-          paymentIntentId: target.stripe_payment_intent_id,
-          amount: returnTotal,
-        })
-      } catch (e) {
-        console.error('[pos.return] card refund failed', e)
-      }
-    }
-  }
-
   // Refund issued as store credit: write the ledger row. Idempotent per
   // return id, so a double-submitted form cannot credit twice.
   if (v.refund_method === 'store_credit' && sale.customer_id) {
@@ -267,6 +287,9 @@ export async function createReturnAction(
       total: returnTotal,
       refund_method: v.refund_method,
       item_count: v.items.length,
+      card_refunded: cardRun?.refunded ?? null,
+      card_refund_ids: cardRun?.refundIds ?? null,
+      card_refund_manual: cardManual || null,
     },
   })
 
@@ -300,5 +323,14 @@ export async function createReturnAction(
 
   revalidatePath(`/pos/sales/${sale.id}`)
   revalidatePath('/pos')
+  // Recorded, but Stripe refunded only part of it: say so plainly — the
+  // rest must go back another way.
+  if (cardRun?.failed) {
+    return {
+      error: 'cardRefundPartial',
+      detail: `${cardRun.refunded.toFixed(2)} / ${returnTotal.toFixed(2)}`,
+      redirectTo: `/pos/sales/${sale.id}`,
+    }
+  }
   return { ok: true, redirectTo: `/pos/sales/${sale.id}` }
 }

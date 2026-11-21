@@ -712,6 +712,34 @@ Progress_archive.txt — the items from those sessions are there.)
      refunded (Eddy's own card). Leftover: S-000005 $10 OPEN, no payment
      (16:32) — Eddy to void or finish.
 
+ 492. CARD REFUNDS NEVER FAIL SILENTLY + VOID REASON ON THE SALE.
+     Before: void and return refunded Stripe best effort — a refused refund
+     was only console.error'd and the sale still showed voided / returned.
+     Now (lib/pos/card-refund.ts pure planner + 5 tests;
+     card-refund-server.ts loadRefundableCharges + runCardRefunds):
+     - remaining per charge = Stripe amount - amount_refunded (partial
+       returns count); newest charge first; idempotency key per
+       void/return + payment + cents, so a retry never double-refunds.
+     - VOID refunds FIRST; any failure: sale NOT voided, error
+       cardRefundFailed with Stripe's message, audit card_refund_failed;
+       pressing Void again retries only what is left. Charges already at
+       zero are marked refunded.
+     - RETURN with method card refunds BEFORE writing the return (id made
+       up front = idempotency key). Fails: nothing recorded. Stripe covers
+       less than the return: cardRefundShort (says how much it can).
+       Card-machine-only sale: recorded as a manual refund
+       (card_refund_manual in audit). Fails part-way: return recorded with
+       refunded_total = what Stripe refunded + cardRefundPartial warning.
+     - Void popup + return form say card-machine payments are refunded on
+       the machine. Void popup now TRANSLATES errors (showed raw codes).
+     patches/0088 APPLIED (no policy change): sales.void_reason /
+     voided_at / voided_by, write-once trigger, backfilled from audit_log
+     (S-000007). Sale page red banner: Voided by WHO, time, reason.
+     ClientTime moved to components/ClientTime.tsx (shared with the laser
+     panel) so the stamp never causes a hydration mismatch.
+     Eddy voided S-000007 on the OLD code: Stripe refund succeeded (row
+     shows Refunded). The new refund paths are NOT yet exercised live.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

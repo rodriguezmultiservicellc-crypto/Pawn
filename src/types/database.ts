@@ -5695,6 +5695,9 @@ export type Database = {
           total: number
           updated_at: string
           updated_by: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           channel?: string
@@ -5721,6 +5724,9 @@ export type Database = {
           total?: number
           updated_at?: string
           updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           channel?: string
@@ -5747,6 +5753,9 @@ export type Database = {
           total?: number
           updated_at?: string
           updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {

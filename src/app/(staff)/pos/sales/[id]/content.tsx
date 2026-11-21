@@ -20,6 +20,7 @@ import {
 } from '@/components/pos/Badges'
 import { AddPaymentDialog } from '@/components/pos/AddPaymentDialog'
 import { cardSummary, type CardBrand } from '@/lib/pos/card'
+import { ClientTime } from '@/components/ClientTime'
 import { cancelReaderChargeAction, readerChargeStatusAction } from '../new/reader-actions'
 import { VoidSaleDialog } from '@/components/pos/VoidSaleDialog'
 import PosRedemptionBlock, {
@@ -63,6 +64,10 @@ export type SaleDetailView = {
   is_locked: boolean
   completed_at: string | null
   created_at: string
+  /** Why / when / who voided (patches/0088). */
+  void_reason: string | null
+  voided_at: string | null
+  voided_by_name: string | null
 }
 
 export type SaleDetailItem = {
@@ -235,6 +240,24 @@ export default function SaleDetailContent({
           <SaleStatusBadge status={sale.status} />
         </div>
       </div>
+
+      {isVoided ? (
+        <div role="note" className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-foreground">
+          <div className="font-semibold text-danger">
+            {t.pos.sale.voidedBanner.replace('{who}', sale.voided_by_name ?? '—')}
+            {sale.voided_at ? (
+              <span className="font-normal text-muted">
+                {' · '}
+                <ClientTime iso={sale.voided_at} />
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-1">
+            <span className="text-muted">{t.pos.sale.voidReasonLabel}:</span>{' '}
+            {sale.void_reason ?? t.pos.sale.voidReasonMissing}
+          </div>
+        </div>
+      ) : null}
 
       {/* Header */}
       <div className="rounded-xl border border-border bg-card p-4">

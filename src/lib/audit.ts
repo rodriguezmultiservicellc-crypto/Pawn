@@ -86,6 +86,8 @@ export type AuditAction =
   | 'terminal_reader_pair'
   | 'terminal_reader_remove'
   | 'stripe_charge_mode_change'
+  // A Stripe card refund that failed on void / return — nothing was voided
+  | 'card_refund_failed'
   // Reports / compliance
   | 'export'
   // Buy-outright (gold-buying / wholesale buy-side)

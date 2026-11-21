@@ -14,7 +14,7 @@ export function VoidSaleDialog({
   onClose: () => void
   onSubmit: (
     formData: FormData,
-  ) => Promise<{ error?: string; ok?: boolean }>
+  ) => Promise<{ error?: string; ok?: boolean; detail?: string }>
 }) {
   const { t } = useI18n()
   const [pending, startTransition] = useTransition()
@@ -28,8 +28,10 @@ export function VoidSaleDialog({
     fd.set('reason', reason)
     startTransition(async () => {
       const res = await onSubmit(fd)
-      if (res.error) setError(res.error)
-      else onClose()
+      if (res.error) {
+        const errors = t.pos.errors as Record<string, string>
+        setError((errors[res.error] ?? errors.generic).replace('{detail}', res.detail ?? ''))
+      } else onClose()
     })
   }
 
@@ -55,6 +57,9 @@ export function VoidSaleDialog({
             {t.pos.return.reasonHelp}
           </span>
         </label>
+        <p className="rounded-md border border-info/30 bg-info/5 px-3 py-2 text-xs text-foreground">
+          {t.pos.sale.voidRefundNote}
+        </p>
       </div>
       <Footer>
         <button
