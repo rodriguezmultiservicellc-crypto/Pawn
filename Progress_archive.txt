@@ -2655,3 +2655,1219 @@ human reference only.
      here, that thing there") is also future
      surgical work. The migration AS A PLAN
      is closed.
+
+--- Archived 2026-11-21 ---
+
+--- Session 42 (2026-06-30) — FS 539.001 collateral attrs on /pawn/[id] detail + ticket print (#4); react-hooks purity fix (#5) ---
+
+ 338. FS 539.001 + PER-CATEGORY COLLATERAL ATTRS
+     SURFACED ON DETAIL PAGE + TICKET PRINT (#4,
+     commit 7c510f1). The attributes captured at
+     intake since S39 (color, gemstone_description,
+     unique_marks, jewelry_size, firearm_make/_model/
+     _caliber/_serial_number/_type/_barrel_length_
+     inches/_action_type/_capacity/_finish/_number_of_
+     barrels, electronic_brand/_model/_serial, tool_
+     brand/_model) were never displayed. Now shown:
+     - src/app/(staff)/pawn/[id]/page.tsx: collateral
+       .select() expanded to all attr columns;
+       LoanCollateralView mapping carries them
+       (numeric coercion on barrel_length / capacity /
+       #barrels).
+     - src/app/(staff)/pawn/[id]/content.tsx:
+       LoanCollateralView type extended; CollateralPanel
+       gains detailsFor(c) + a firearmTypeLabel() enum
+       mapper; renders populated attrs as a labeled
+       <dl> detail list under each card. Labels reuse
+       t.pawn.new_.item* (no new i18n keys). metal/
+       karat/weight stay in the existing meta line.
+     - src/lib/pdf/render-loan-ticket.tsx: collateral
+       .select() + PawnTicketCollateral mapping
+       expanded to all attrs.
+     - src/lib/pdf/PawnTicketPDF.tsx: PawnTicketCollateral
+       type extended; new collateralDetailLine() closure
+       (over data.i18n.en/es.pawn.new_) builds a
+       bilingual "EN/ES: value" string (collapsed when
+       EN==ES, firearm_type enum localized); row map
+       restructured so each item is an outer wrap=false
+       View containing the table row + an optional
+       full-width detailRow sub-line (new detailRow /
+       detailText styles, fontSize 7, muted). Satisfies
+       FL §539.001(8)(b)(2) printed-description mandate.
+
+ 339. [BUG] REACT-HOOKS/PURITY ERRORS FIXED (#5,
+     commit 7c510f1). src/app/(staff)/customers/
+     dashboard/[id]/page.tsx threw 2 eslint
+     react-hooks/purity errors: "Cannot call impure
+     function during render" on inline Date.now() at
+     :279 (daysSinceLastSale) and :392 (sixtyDaysAgo).
+     ROOT CAUSE: the rule bans Date.now() in render;
+     new Date() (no-arg) is NOT flagged. FIX: hoisted
+     one "const now = new Date()" + "const nowMs =
+     now.getTime()" to the top of the derived-metrics
+     section; replaced both Date.now() with nowMs;
+     removed the duplicate "const now = new Date()"
+     that previously sat at the 12-month-trends block.
+     eslint 0, tsc 0 on the file after.
+
+--- Session 41 (2026-06-29, second pass) — NCIC code per category + daily LeadsOnline export job + all staff pages full-width ---
+
+ 335. NCIC CODE PER CATEGORY SETTINGS UI (#2, commit
+     b12b8bc). /settings/pawn-categories gains an
+     operator-editable NCIC TYP code per category
+     (column ncic_code already existed from 0043).
+     - page.tsx selects ncic_code + maps it onto
+       CategoryRow.
+     - content.tsx: blue "NCIC: <code>" badge in the
+       category-row display; new modal Field with an
+       uppercase font-mono input (maxLength 10) +
+       helper text + fieldError slot.
+     - actions.ts: categorySchema gains ncic_code via
+       preprocess (trim -> uppercase -> '' = null) +
+       regex /^[A-Z0-9]{1,10}$/; persisted on both
+       insert + update; included in the audit changes.
+     Pre-existing (admin.from as any) cast on the
+     pawn_intake_categories builder left as-is.
+
+ 336. DAILY LEADSONLINE EXPORT JOB + MIGRATION 0044
+     (#5, commit b12b8bc). End-to-end automated police-
+     report export, building on the existing exporter
+     lib + the on-demand /api/reports/police-report/csv
+     route + compliance_log.exported_* columns.
+     - patches/0044-compliance-export-batches.sql
+       (APPLIED via Mgmt API): new table id / tenant_id
+       / format / range_start / range_end /
+       transaction_count / row_count / filename /
+       csv_body / generated_by / created_at. RLS:
+       single SELECT-only policy
+       compliance_export_batches_staff_read =
+       tenant_id IN my_accessible_tenant_ids() AND
+       my_is_staff(tenant_id). No write policy ->
+       service-role (cron) only, mirroring
+       compliance_log. db:types regen'd ->
+       149/150k -> 152288 bytes; two as-any boundary
+       casts dropped after.
+     - NCIC ENRICHMENT: fl-leadsonline.ts gains an
+       item_ncic_code CSV column resolved per item from
+       pawn_subcategory_slug (fallback pawn_category_
+       slug) via an ncicBySlug map; flattenLeadsOnline
+       + leadsOnlineRowsToCsv split out so the
+       dispatcher reports both transactionCount and
+       flattened rowCount. index.ts dispatch() takes
+       ncicBySlug. The on-demand csv route + the
+       /reports/police-report page preview now pass it
+       too (lib/compliance/ncic.ts buildNcicBySlug()
+       shared across all three).
+     - lib/reports/police-report.ts:
+       getUnexportedPoliceReportRows(tenantId) selects
+       exported_at IS NULL reportable rows ascending.
+     - src/app/api/cron/leadsonline-export/route.ts
+       (NEW): CRON_SECRET-gated; per active has_pawn
+       tenant with a police_report_format -> build CSV
+       from unexported rows -> INSERT frozen batch ->
+       UPDATE compliance_log SET exported_at/format/
+       batch_id (idempotency) -> audit. Batch-insert-
+       first so a stamp failure re-exports (visible
+       duplicate) rather than under-reporting.
+     - src/app/api/compliance/export/[id]/route.ts
+       (NEW): authenticated batch download; RLS scopes
+       the read to the caller's tenant; audited.
+     - vercel.json: cron entry 30 14 * * *.
+
+ 337. ALL STAFF PAGES MADE FULL-WIDTH (#UI, commit
+     05be4c3). Operator: /settings (+ subpages) and
+     detail/form pages were centered at a fixed max
+     width while list pages (/customers) ran full-
+     width. ROOT CAUSE: the (staff) layout <main> is
+     already full-width (px-6 gutter); individual pages
+     self-capped with mx-auto max-w-*. Removed that cap
+     from all 29 staff page wrappers via a scripted
+     regex (mx-auto max-w-<token> -> ''), keeping
+     space-y-*/px/py. Modals keep their own max-w
+     (still centered). tsc clean; pure className change.
+     Operators on ultrawide monitors may find single-
+     column forms stretched — cap individually if so.
+
+--- Session 40 (2026-06-29) — Applied collateral migrations 0042/0043 + Twilio shared-core refactor (match LunaAzul) + TCPA SMS footer ---
+
+ 333. MIGRATIONS 0042 + 0043 APPLIED VIA MGMT API +
+     db:types REGEN + BOUNDARY CAST DROPPED (commit
+     59609c0, part 1). S39 left patches/0042
+     (jewelry_size) + 0043 (FL 539.001 fields: color,
+     gemstone_description, firearm_finish, firearm_
+     number_of_barrels, unique_marks + pawn_intake_
+     categories.ncic_code) PENDING in Supabase. No
+     psql installed and DATABASE_URL is empty in
+     .env.local, so applied both through the Supabase
+     Management API SQL endpoint (POST api.supabase.com
+     /v1/projects/kjyaxfwlggxiqijiiuna/database/query,
+     Bearer SUPABASE_ACCESS_TOKEN). ROOT CAUSE of the
+     first 401: the S39 access token was stale/revoked
+     — confirmed it 401'd on a plain GET /v1/projects
+     too, so it would also have broken db:types.
+     Operator minted a fresh sbp_ PAT into .env.local;
+     re-ran apply -> both 201, verified all 6
+     loan_collateral_items columns + ncic_code present.
+     Ran npm run db:types (database.ts 149956 ->
+     150807 bytes) and removed the `as never` cast +
+     its comment block on the loan_collateral_items
+     .insert array in src/app/(staff)/pawn/new/
+     actions.ts. tsc --noEmit exits 0. (MIME-check
+     `as never` casts on lines 374/404 are unrelated,
+     left intact.)
+
+ 334. TWILIO SHARED-CORE REFACTOR — MATCH LUNAAZUL
+     (commit 59609c0, part 2). Operator asked to update
+     Pawn's Twilio to "sort of match" LunaAzul's. Read
+     LunaAzul's lib/messaging/core.ts + lib/sms/send.ts.
+     Compared: LunaAzul factors the Twilio POST + log
+     writes into one runTwilioSend; Pawn duplicated that
+     ~80 lines across sms.ts + whatsapp.ts. Operator
+     chose scope "Core + TCPA footer" (not the platform-
+     fallback/messaging_mode, which needs a migration).
+     - NEW src/lib/twilio/core.ts: runTwilioSend({
+       channel, log, prepare }) — inserts the queued
+       message_log row, NODE_ENV=test short-circuit,
+       resolves the prepare() callback (creds + form or
+       a pre-send failure), POSTs to Twilio, handles 429
+       + non-ok + parse, then markSent/markFailed. One
+       copy of the logic both rails share.
+     - NEW src/lib/twilio/compliance.ts: pure
+       withComplianceFooter() — appends the TCPA opt-out
+       footer to SMS bodies, idempotent (skips if body
+       already matches /reply\s+stop/i), empty-body
+       passthrough. Pure (no server-only import) so it
+       unit-tests under vitest.
+     - NEW src/lib/twilio/core.test.ts: 4 vitest cases
+       locking the footer (appends, idempotent, skips
+       existing STOP any-case, empty untouched).
+     - src/lib/twilio/sms.ts: reduced to a creds
+       resolver + form builder; APPLIES the TCPA footer
+       before send AND before logging so body_rendered
+       matches what was sent. resolveTwilioCreds() stays
+       exported here (whatsapp.ts imports it).
+     - src/lib/twilio/whatsapp.ts: reduced to a creds
+       resolver + form builder through runTwilioSend; no
+       footer (WhatsApp templates carry their own Meta
+       opt-out; freeform fallback is in-session).
+     KEPT (deliberately NOT regressed to match LunaAzul):
+     Vault auth token (getTenantSecret) over LunaAzul's
+     plaintext twilio_auth_token column; Pawn's single
+     rich message_log (FK relations + typed reason codes)
+     over LunaAzul's sms_log+sms_messages split;
+     MessagingServiceSid support; dispatch.ts email
+     routing. templates.ts unchanged. eslint + tsc clean;
+     full suite 413 tests pass (was 409 + 4 new).
+     FLAGGED to operator (not done): TCPA footer is
+     English-only like LunaAzul — bilingual would need
+     customer.language threaded into sendSms().
+
+--- Session 39 (2026-05-09, fifth pass) — Per-category attribute columns + FL §539.001 field gaps + wizard polish on /pawn/new ---
+
+ 323. DB:TYPES REGEN POST-0040 + S37-ERA BOUNDARY-
+     CAST CLEANUP (commit 4e9e7ea). After operator
+     applied 0040, regenerated src/types/database.ts
+     against the new loan_collateral_items columns
+     (148024 bytes). Dropped the `as never` cast
+     in src/app/(staff)/pawn/new/actions.ts on the
+     loan_collateral_items.insert. Same pass also
+     cleaned two stale S37-era casts that targeted
+     0037 columns (pawn_intake_categories table +
+     tenants.has_firearms): src/app/(staff)/
+     settings/pawn-categories/page.tsx and
+     src/app/(staff)/pawn/new/page.tsx switched to
+     typed query builders, dropped the `as any` /
+     `as` shims and the now-redundant local row
+     types.
+
+ 324. PER-CATEGORY ATTRIBUTE COLUMNS — 13 NEW
+     COLUMNS ON loan_collateral_items (commit
+     93cd9bd). patches/0041-collateral-category-
+     attributes.sql adds firearm_make / _model /
+     _caliber / _serial_number / _type /
+     _barrel_length_inches / _action_type /
+     _capacity (8 firearm) + electronic_brand /
+     _model / _serial (3 electronic) + tool_brand
+     / _model (2 tool). CHECK constraint on
+     firearm_type ('handgun'/'rifle'/'shotgun'/
+     'other'). Partial indexes idx_loan_collateral_
+     items_firearm_serial + idx_loan_collateral_
+     items_electronic_serial for police-report
+     lookups + dup-detection.
+     - collateralItemSchema gains the 13 fields
+       (firearm_type uses z.enum so invalid
+       values bounce at the boundary; numeric
+       coercion on barrel_length + capacity).
+     - Server action reads collateral_<n>_<field>
+       per row, persists with `as never` boundary
+       cast, snapshots into compliance_log.items_
+       snapshot for FL Ch. 539 export.
+     - CollateralRow renders fields conditionally
+       on selectedCategory.slug — jewelry shows
+       metal/karat/weight (existing), firearms
+       shows the 8 new fields, electronics shows
+       brand/model/serial, tools shows brand/
+       model, general shows nothing extra.
+     - en/es i18n labels for all 13 + the
+       firearm_type enum options.
+
+ 325. DB:TYPES REGEN POST-0041 + DROP 0041
+     BOUNDARY CAST (commit a830dd5). Operator
+     applied 0041; regenerated db.ts (149956
+     bytes). Removed the `as never` cast on
+     loan_collateral_items.insert. tsc + lint
+     stayed clean.
+
+ 326. INVENTORY_CATEGORY DROPDOWN REMOVED +
+     INLINE CALCULATOR REMOVED (commit 29ceb97).
+     Two cleanups in one commit:
+     - src/components/pawn/CollateralItemsList.
+       tsx: legacy inventory_category <select>
+       dropdown removed from each row. Value now
+       auto-derives from pawn_subcategory_slug
+       via new inventoryCategoryFromSlug()
+       helper (jewelry/rings → 'ring',
+       electronics/* → 'electronics', tools/*
+       → 'tool', firearms/* → 'other', general
+       → 'other'). Hidden input still submits
+       the value so the server-side schema
+       validates. CATEGORY_OPTIONS const +
+       tCategory translator dropped as dead
+       code. PROBLEM IT FIXES: operator was
+       being asked to classify the item TWICE
+       — once via the pawn_intake_categories
+       picker, once via this enum dropdown.
+       Pawn picker is the source of truth.
+     - src/app/(staff)/pawn/new/form.tsx:
+       <InlinePawnCalculator /> import + JSX
+       removed. Operator types principal
+       directly. Watch typeahead lived inside
+       the calculator and went with it;
+       collateralRef.current?.addWatchRow(...)
+       handle still defined but uncalled (kept
+       for future callers).
+
+ 327. JEWELRY SIZE/LENGTH FIELD ADDED (commit
+     b1b305f). patches/0042-collateral-jewelry-
+     size.sql: jewelry_size TEXT NULL on
+     loan_collateral_items. Free-text catch-all
+     for ring sizes ('7', '8.5'), chain/bracelet
+     lengths ('22 in', '55 cm'), or whatever
+     the operator's gauge reports. Renders after
+     weight in the jewelry block of CollateralRow.
+     Width md:col-span-2 initially.
+
+ 328. WEIGHT + SIZE COLUMN WIDTHS HALVED (commit
+     307e914). md:col-span-2 → md:col-span-1 on
+     both fields. Operator request — both fields
+     are short numeric/short-string so half-
+     width is the right rhythm.
+
+ 329. FL §539.001(8)(b)(2) FIELD GAPS + NCIC TYP
+     CODE COLUMN (commit 20ba180). Cross-checked
+     the FL Pawnbroking Act item description
+     requirements against what we collect today
+     and added the missing fields. patches/0043-
+     fl-539-fields-plus-ncic.sql adds:
+     - loan_collateral_items.color (apparent
+       color)
+     - loan_collateral_items.gemstone_
+       description (jewelry-only at UI; column
+       allows non-jewelry NULL)
+     - loan_collateral_items.firearm_finish
+       (FL §539.001(8)(b)(2)(h))
+     - loan_collateral_items.firearm_number_of_
+       barrels (1 / 2 for double-barrel
+       shotguns)
+     - loan_collateral_items.unique_marks (FL
+       §539.001(8)(b)(2)(i) — engravings,
+       hallmarks, custom inscriptions)
+     - pawn_intake_categories.ncic_code (TEXT
+       NULL, operator-editable per-tenant for
+       LeadsOnline / RAPID daily exports;
+       Article File codes JEWL/WTCH/TOOL/CMPT
+       or Gun File codes HA/RE/RI/SH/CO).
+     Form: color + unique_marks visible across
+     all categories (statute calls these out
+     as universal); gemstone_description in
+     jewelry block (after size); firearm_finish
+     + #_barrels in firearms block (after
+     capacity). Server action reads + persists
+     all five new fields and snapshots them
+     onto compliance_log.items_snapshot.
+     Boundary cast `as never` reinstated on
+     items insert until next db:types regen.
+     en/es i18n: itemColor, itemUniqueMarks,
+     itemGemstones, itemFirearmFinish,
+     itemFirearmBarrels.
+     SETTINGS UI for ncic_code DEFERRED —
+     column exists, operator can SET via SQL
+     until then.
+     ALSO: NOT inserted the parallel
+     pawn_transactions / pawn_items / pawn_
+     holds / pawn_extensions / pawn_redemptions
+     schema another Claude session generated
+     (7 files, 1384 lines, Drizzle ORM,
+     `USING (true)` RLS placeholders). Reasons
+     in commit message + RESUME's KEY
+     DECISIONS.
+
+ 330. WIZARD REVEAL REORDERED — CUSTOMER →
+     TERMS → COLLATERAL → SIGNATURE (commit
+     609f559). Operator request: "after we get
+     the customer before the items lets put the
+     loan terms." Terms fieldset moved above
+     collateral so principal/rate/term are
+     pinned before itemizing. Submit button
+     follows signature, unchanged.
+
+ 331. CUSTOM-RATE OPTION REMOVED FROM INTEREST
+     RATE DROPDOWN (commit 9585a2b). The
+     "Custom" option + the manual-entry
+     <input type="number"> for typing arbitrary
+     rates removed. Operator can only pick from
+     rates configured at /settings/loan-rates.
+     CUSTOM_RATE_VALUE sentinel + customRate
+     state + setCustomRate setter + isCustomRate
+     boolean + initialCustomRate fallback to
+     0.10 all deleted as dead code.
+     defaultRateId falls through to '' when no
+     rates exist (form blocks submit;
+     rateNoneConfigured message already
+     handled it).
+
+ 332. ISSUE DATE LOCKED TO TODAY (commit
+     48489ad). issue_date <input> on /pawn/new
+     marked readOnly with the same muted
+     styling as the auto-computed due_date.
+     useState replaced with `const issueDate
+     = today` so setIssueDate is gone (was
+     dead code). Server action still defaults
+     to today when missing — defense in depth.
+     PROBLEM IT FIXES: operator was able to
+     back-date a ticket from the intake form.
+     If back-dating is ever needed (correction
+     flow), it lives in a separate UI;
+     intake stays clean.
+
+--- Session 38 (2026-05-09, fourth pass) — Pawn intake category moved to per-collateral-item (not per-loan); /pawn/new wizard = customer step then per-row category step inside each collateral row ---
+
+ 312. MIGRATIONS 0036/0037/0038 APPLIED + db:types
+     REGEN. Operator confirmed at session start that
+     the three pending S37 migrations were applied
+     in Supabase. Ran `npm run db:types` —
+     src/types/database.ts regenerated to 148024
+     bytes; pawn_intake_categories + parent_id self-
+     FK + market_data_points all surface in generated
+     types.
+
+ 313. [REVERSED LATER IN SESSION] PATCHES/0039-LOANS-
+     PAWN-CATEGORY.SQL — initially added
+     pawn_category_slug + pawn_subcategory_slug to
+     public.loans on the assumption that the wizard
+     captured ONE category per ticket. Idempotent
+     migration with SLUG-SNAPSHOT + NO-FK design +
+     partial index. Applied by operator. ROLLED BACK
+     by item 318 (patches/0040) once operator
+     clarified scope. File kept in tree as historical.
+
+ 314. [REVERSED LATER IN SESSION] SERVER ACTION
+     INITIALLY PERSISTED CATEGORY ON LOANS. First
+     pass added pawn_category_slug + pawn_subcategory_
+     slug to loanCreateSchema, read the form's hidden
+     inputs into FormData parse, persisted on loans.
+     insert (with `as never` boundary cast), and
+     emitted on audit-log changes. ALL OF THIS WAS
+     UNDONE in items 319-320 once the per-item
+     interpretation landed.
+
+ 315. [SUPERSEDED LATER IN SESSION] FORM.TSX TODO
+     COMMENT replaced with the (then-incorrect)
+     "Persisted on loans.pawn_category_slug" note.
+     Replaced again in item 321 with the per-item
+     truth.
+
+ 316. [SUPERSEDED LATER IN SESSION] /PAWN/NEW WIZARD
+     INITIALLY RESHAPED INTO TWO-STEP GATED FLOW —
+     Customer step 1 → Category step 2 (loan-level)
+     → Reveal (Collateral first, then Terms,
+     Signature, Submit). Form-level onSubmit guard
+     added to block browser implicit-submit on the
+     single-input customer-search step. Step 2
+     (loan-level CategoryPicker) was DELETED in
+     item 322 once the per-item model landed —
+     Customer step + onSubmit guard + reveal block
+     ordering all KEPT.
+
+ 317. PRE-EXISTING LINT REGRESSION FLAGGED. 2
+     react-hooks/purity errors in src/app/(staff)/
+     customers/dashboard/[id]/page.tsx:279 + :392.
+     Both call Date.now() in the server-component
+     render body. From S37 commit c6531a7 (behavior
+     tabs split). One-line fix per call site —
+     hoist to a top-of-function const — but out of
+     scope for this thread. Documented in OPEN
+     ISSUES so a future session can clean up.
+
+ 318. OPERATOR CORRECTION: PAWN CATEGORY IS PER-
+     COLLATERAL-ITEM, NOT PER-LOAN. Mid-save
+     redirect from operator: "the categories is for
+     when you are adding collateral for the
+     collateral item. not for the pawn ticket."
+     Architecture pivot — a single ticket can carry
+     items from different top-level categories
+     (Jewelry → Ring + Electronics → Phone), so the
+     category belongs on loan_collateral_items, not
+     on loans. Save halted; rest of session reverted
+     items 313-316 and rebuilt at the per-item level.
+
+ 319. PATCHES/0040-COLLATERAL-PAWN-CATEGORY.SQL
+     (NEW). DROP the loans columns + idx_loans_pawn_
+     category index added by 0039. ADD
+     pawn_category_slug + pawn_subcategory_slug to
+     loan_collateral_items. New analytics index
+     idx_loan_collateral_items_pawn_category on
+     (tenant_id, pawn_category_slug, created_at DESC)
+     WHERE slug IS NOT NULL AND deleted_at IS NULL.
+     Same SLUG-SNAPSHOT + NO-FK reasoning as 0039
+     applied at the item level. Idempotent — uses
+     DROP COLUMN IF EXISTS / ADD COLUMN IF NOT
+     EXISTS. Operator must apply.
+
+ 320. SERVER ACTION RE-WIRED PER-ROW. Three
+     coordinated changes in
+     src/app/(staff)/pawn/new/actions.ts and the
+     validation schema:
+     - src/lib/validations/loan.ts:
+       pawn_category_slug + pawn_subcategory_slug
+       MOVED from loanCreateSchema (where 314 put
+       them) to collateralItemSchema. Each field
+       uses an empty-string-to-null preprocessor
+       matching the existing optionalTrimmedString.
+     - actions.ts readCollateralRows() now also
+       reads collateral_<n>_pawn_category +
+       collateral_<n>_pawn_subcategory off FormData
+       per row.
+     - actions.ts loans.insert no longer carries
+       slugs (item 314's payload reverted).
+       loan_collateral_items.insert now passes
+       pawn_category_slug + pawn_subcategory_slug
+       per row, with an `as never` boundary cast on
+       the array because db:types is not yet aware
+       of the 0040 columns.
+     - actions.ts compliance_log items_snapshot
+       includes the slug pair per item — police-
+       report exporter inherits the category
+       automatically.
+     - actions.ts audit-log changes JSON emits
+       collateral_categories: array of {pos, cat,
+       sub} so the audit row reflects each row's
+       category at intake time.
+
+ 321. FORM.TSX VOICE HANDLER + STATE SIMPLIFIED.
+     Form-level categorySlug + subcategorySlug
+     state (item 316) deleted. revealReady now
+     just === selectedCustomerId. Voice intake
+     handler no longer auto-picks 'general'
+     category — that responsibility moves into
+     CollateralItemsList where it belongs.
+     CategoryPicker / CategoryBanner imports
+     removed (still used inside CollateralItemsList,
+     just not at form level). PawnIntakeCategory
+     stays as a type-only import for the
+     `categories` prop. Form-level onSubmit guard
+     KEPT (still useful — customer search is the
+     only input visible until a customer is picked
+     and the reveal opens).
+
+ 322. PER-ROW CATEGORY PICKER LANDED IN
+     CollateralItemsList. src/components/pawn/
+     CollateralItemsList.tsx now takes a
+     `categories: PawnIntakeCategory[]` prop, fed
+     down from form.tsx (which receives it from
+     /pawn/new/page.tsx). Major changes:
+     - Row state extends with pawn_category_slug
+       + pawn_subcategory_slug (both null until
+       picked).
+     - CollateralRow renders the full
+       CategoryPicker tile grid at the top until
+       the row's category step is done. Once
+       picked, collapses to a CategoryBanner
+       above the rest of the row. The row's
+       field grid is GATED on the row's
+       categoryStepDone — operator must classify
+       the item before describing it.
+     - Hidden inputs collateral_<n>_pawn_category
+       and collateral_<n>_pawn_subcategory always
+       emitted (empty when not picked) so the
+       server-side validation sees the field
+       even when blank.
+     - addExtractedRow() (voice intake) now
+       defaults pawn_category_slug to
+       defaultCategorySlug ('general' if seeded,
+       else first available top) so voice rows
+       reveal their fields immediately. Operator
+       can hit Change.
+     - addWatchRow() (watch typeahead) defaults
+       to watchCategorySlug ('jewelry' if
+       available) + watchSubcategorySlug
+       ('jewelry → watch' if available, else
+       null), with fallback to defaultCategorySlug.
+     - isPristineRow() updated to treat
+       pawn_category_slug == null as part of the
+       pristine signature so voice / watch
+       auto-population still REPLACES the seed
+       row in place (vs appending) when the
+       form first loads.
+     - eslint-disable on useImperativeHandle deps
+       to match the pattern in CustomerPicker.tsx
+       — the imperative handle is intentionally
+       stable across renders.
+
+--- Session 37 (2026-05-09, third pass) — Customer flow overhaul + market data warehouse + pawn intake wizard ---
+
+ 302. CUSTOMER DASHBOARD STAT-CARD DENSITY PASS
+     (commits 33c420d + 14114b6). Lifetime stats
+     grid on /customers/dashboard/[id] was too
+     visually heavy. Two-step tightening:
+     (a) p-4→p-2.5, h-8 w-8 chip→h-5 w-5,
+         text-2xl→text-lg, gap-2→gap-1, label
+         text-xs→text-[10px] with truncate.
+         Grid bumped from 2/4 to 2/3/4/6
+         responsive cols.
+     (b) lg:grid-cols-6 → lg:grid-cols-8.
+     Card height drops ~40%. 12-card grid now
+     fits in 2 rows on desktop instead of 3.
+     File: src/app/(staff)/customers/dashboard/
+           [id]/content.tsx
+
+ 303. CUSTOMER NAVIGATION FLOW INVERTED (commit
+     e5694ab). Operator request: "/customers
+     list when customer selected opens dashboard,
+     edit customer is from dashboard." Done:
+     - src/app/(staff)/customers/content.tsx:
+       row onClick router.push to /customers/
+       dashboard/[id] (was /customers/[id]).
+     - src/app/(staff)/customers/dashboard/[id]/
+       content.tsx: top-left "← Back to
+       customers" now points to /customers (the
+       list, not the edit page). New top-right
+       pill "✏ Edit customer" links to
+       /customers/[id].
+     - src/app/(staff)/customers/[id]/content.tsx:
+       removed the "View analytics dashboard"
+       pill (no longer the entry point) +
+       removed unused TrendUp icon import.
+     - i18n keys backToCustomers (renamed from
+       singular) + editCustomer + removed
+       viewAnalyticsDashboard.
+
+ 304. CUSTOMER DASHBOARD BEHAVIOR SECTION → 4
+     MODULE-GATED TABS (commit c6531a7).
+     Operator request: "in pawn behavior break
+     that in 4 tabs pawn behaviour, sales
+     behaviour, Layway, Custom Orders (repairs)".
+     Replaced single Pawn-only metrics block
+     with a tabbed BehaviorSection.
+     - Tabs: Pawn / Sales / Layaway / Custom
+       orders (the dashboard label for repairs).
+     - Module-gated — Sales+Layaway hide on
+       !has_retail, Custom orders on !has_repair.
+     - First visible tab is the default.
+     - New metrics computed in page.tsx:
+       sales: avgSale, largestSale,
+         daysSinceLastSale, avgDaysBetweenSales,
+         completedCount
+       layaway: avgTotal, activeCount,
+         avgPaidPct, totalOutstanding, totalCount
+       repair: avgBalance, activeCount,
+         completedCount, mostCommonType (mode of
+         service_type), totalCount
+     - i18n: t.customers.dashboard.behaviorTab*,
+       sales*, layaway*, repair*, serviceType*
+       blocks added to en.ts + es.ts.
+     Files: src/app/(staff)/customers/dashboard/
+            [id]/{content,page}.tsx
+
+ 305. CUSTOMER PICKER TYPEAHEAD ROLLOUT (commit
+     fac09eb). Replaces the legacy 500-cap
+     <select> dropdown across ALL 5 customer-
+     intake forms. Server action ilike search
+     against last_name + first_name + phone, top
+     20 matches, 250ms debounce, keyboard nav
+     (↑↓ Enter Esc).
+     - NEW src/lib/customers/picker-search.ts:
+       searchCustomersForPicker(query),
+       getCustomerForPicker(id) for validation-
+       echo restoration.
+     - NEW src/components/customers/CustomerPicker.
+       tsx (forwardRef): name= for hidden form
+       input, initialCustomer / initialCustomerId
+       prefill, onChange callback for non-form
+       consumers (POS Cart), imperative handle
+       set()/clear() for voice intake prefill.
+     - Wired into 5 forms; each form drops the
+       customers-fetch in its page.tsx
+       (saving ~50KB of payload per intake page):
+         /pawn/new/{page,form}.tsx
+         /repair/new/{page,form}.tsx
+         /pos/sales/new/{page,form}.tsx +
+           components/pos/Cart.tsx
+         /buy/new/form.tsx (was raw "paste UUID"
+           input — major UX upgrade)
+         /appraisals/new/{page,form}.tsx
+     - Lifts the silent 500-customer cap that
+       was masking customer #501+ from intake.
+     - i18n: common.customerPicker block (en+es).
+
+ 306. CUSTOMER PICKER DL NUMBER SEARCH + SCAN ID
+     BUTTON (commit 8164604). Two enhancements
+     to the typeahead:
+     - Text search now matches against id_number
+       (DL/state ID) in addition to name/phone.
+       OR clause extended:
+         last_name.ilike, first_name.ilike,
+         phone.ilike, id_number.ilike.
+     - New enableDlScan prop renders a "Scan ID"
+       button next to the search input. Reuses
+       the Session-18 DlScanner (PDF417 USB
+       scanner). On scan, runs exact-match
+       findCustomerByIdNumber(licenseNumber);
+       auto-selects if found, surfaces an
+       inline amber "no match" notice if not.
+       Operator clicks the form's existing "+
+       New customer" link to create one (no
+       auto-prefill yet — that's a follow-up).
+     - Enabled on /pawn/new + /buy/new only
+       (FL Ch. 539 ID-required intake surfaces).
+       Repair / sales / layaway / appraisals
+       keep the plain picker.
+     - i18n: customerPicker.scanButton,
+       scanNoMatch, scanNoNumber, placeholderWith
+       Dl.
+
+ 307. MARKET DATA WAREHOUSE — PHASE A + B
+     (commit e1c7a17). Cross-tenant pricing
+     aggregation module. Anonymized data layer
+     where every pawn loan, retail sale, and
+     buy-outright transaction emits one row at
+     write time. Admin queries answer "what's
+     the market for an iPhone 7 64GB blue?"
+     with stats like pawn p25/p50/p75, retail
+     p25/p50/p75, last 90 days.
+     - patches/0036-market-data-points.sql: NEW
+       market_data_points table (1536-dim
+       vector embedding column for OpenAI text-
+       embedding-3-small), per-tenant
+       tenants.share_market_data flag, 4
+       triggers (loans, loan_collateral_items,
+       sales-completed, inventory-bought),
+       market_data_search_by_embedding RPC,
+       RLS=superadmin-only-read, NO INSERT/
+       UPDATE/DELETE policies (only service-role
+       + SECURITY DEFINER triggers + the search
+       RPC can read or write).
+     - src/lib/market-data/embed.ts: OpenAI
+       text-embedding-3-small batch embedder,
+       50 rows per call, idempotent.
+     - src/app/api/cron/embed-market-data/
+       route.ts: 15-min cron drains unembedded
+       backlog FIFO. Auth = Bearer CRON_SECRET.
+       audit_log row with tenant_id NULL.
+     - vercel.json: added schedule "*/15 * * * *".
+     - /admin/market-data: superadmin search UI
+       at src/app/(admin)/admin/market-data/
+       {page,content,actions}.tsx. Search input,
+       category/state/date filters, similarity
+       threshold slider, P25/P50/P75/mean per
+       transaction type, sample rows
+       (anonymized — no shop attribution).
+     - src/app/(admin)/layout.tsx: added "Market
+       data" header link.
+     - This is the ONE place in the schema that
+       deliberately violates tenant isolation.
+       source_tenant_id stored for audit but
+       NEVER returned downstream.
+     - Forward-only collection. Backfill is
+       Phase C (deferred).
+
+ 308. PAWN INTAKE WIZARD — STEP 1 CATEGORY TILES
+     (commit 725b9a1). Operator request: "add
+     a panel with buttons this represent pawn
+     category types ... once chosen are going
+     to move us to the next step in a wizard
+     type style". Built as a single-page wizard
+     where step 1 = category picker, step 2 =
+     existing form, transition is in-page.
+     - patches/0037-pawn-intake-categories.sql:
+       NEW pawn_intake_categories table (per-
+       tenant, RLS read=member, write=manager+),
+       NEW tenants.has_firearms BOOLEAN DEFAULT
+       FALSE, seed_pawn_intake_categories()
+       helper, AFTER INSERT trigger on tenants
+       for auto-seed of new tenants. Backfill
+       loops over existing tenants. Default
+       categories: jewelry / electronics /
+       firearms / tools / general.
+     - src/components/pawn/CategoryPicker.tsx:
+       tile-grid picker + CategoryBanner (shows
+       picked category with Change button).
+       Uses Phosphor icons via stable
+       createElement wrapper (CategoryIcon)
+       to satisfy react-hooks/static-
+       components.
+     - /pawn/new gates the rest of the form
+       behind a chosen category; hidden input
+       pawn_category=<slug> rides on submit.
+       Voice intake auto-picks 'general' to
+       skip the picker.
+     - /settings/pawn-categories: NEW CRUD page
+       (list / add / edit / soft-delete) +
+       has_firearms toggle (owner /
+       chain_admin only). Inline English copy
+       (matches existing settings convention,
+       no i18n).
+     - /settings hub gets a new "Pawn
+       categories" card.
+     - Phosphor doesn't ship a Gun icon —
+       Crosshair is the closest fit, mapped via
+       ICON_MAP['Gun'] alias.
+
+ 309. MIGRATION 0037 BACKFILL FIX (commit
+     56d53ea). Operator hit error:
+     `column "deleted_at" does not exist` when
+     applying 0037. Root cause: tenants table
+     uses `is_active BOOLEAN` for soft-suspend,
+     not the `deleted_at TIMESTAMPTZ` pattern
+     other tables use. Fixed the backfill DO
+     block to loop over ALL tenant rows (the
+     ON CONFLICT DO NOTHING in the seed
+     function makes per-row work idempotent).
+     The whole migration is idempotent so
+     re-running is safe.
+
+ 310. PAWN INTAKE SUB-CATEGORIES — TWO-LEVEL
+     HIERARCHY (commit 63439f9). Operator
+     request: "we just added categories i would
+     also like to add sub categories". Cascading
+     wizard step 1 — pick top-level → sub-tile
+     row reveals → pick sub → advance to step 2.
+     Top-levels with no subs (General) advance
+     directly.
+     - patches/0038-pawn-intake-subcategories.sql:
+       ADD COLUMN parent_id UUID self-FK with
+       ON DELETE CASCADE. DROP UNIQUE(tenant_id,
+       slug), CREATE UNIQUE INDEX scoped by
+       COALESCE(parent_id, '00000000-...'::
+       UUID) so a sub of one top can share a
+       slug with a sub of another top.
+       seed_pawn_intake_subcategories() seeds 18
+       defaults (Jewelry: Rings/Chains/Bracelets/
+       Earrings/Pendants/Watches; Electronics:
+       Phones/Laptops/Tablets/Consoles/Audio/TVs;
+       Firearms: Handguns/Rifles/Shotguns;
+       Tools: Power tools/Hand tools/Yard tools;
+       General: none — catch-all). tenant
+       AFTER INSERT trigger updated to call
+       both seeders. Backfill loops existing
+       tenants.
+     - CategoryPicker rewritten with internal
+       drilledTop state. CategoryBanner shows
+       "Jewelry → Ring [Change]".
+     - /pawn/new/page.tsx fetches all rows,
+       groups subs under parents in JS, filters
+       firearms-flagged tiles when has_firearms
+       =false (BOTH top-levels AND sub-rows
+       checked).
+     - /pawn/new/form.tsx tracks both
+       categorySlug + subcategorySlug. Hidden
+       fields pawn_category + pawn_subcategory
+       ride on submit. categoryStepDone gate
+       requires both (or top with no subs) to
+       reveal the rest of the form.
+     - /settings/pawn-categories list view
+       nests subs under their parent with
+       border-l indent + "+ Add sub" pill button
+       per top-level row. Modal gains a Parent
+       (None = top-level) dropdown that pre-fills
+       to the row being edited or the parent
+       being added under.
+     - saveCategoryAction accepts parent_id
+       (UUID or null/'none' string variants).
+
+ 311. CLAUDE-MD-WORTHY GOTCHA: TENANTS USES
+     is_active NOT deleted_at. Discovered via
+     item 309 above. Future migration writers
+     who loop over tenants for backfill must
+     filter by is_active OR loop all rows
+     (depending on whether suspended tenants
+     should also be backfilled). The
+     `deleted_at IS NULL` pattern works for
+     customers / inventory_items / loans /
+     repair_tickets / sales / layaways but
+     NOT for tenants. Worth a CLAUDE.md gotcha
+     entry; not added this session.
+
+--- Session 36 (2026-05-09, second pass) — Customer analytics dashboard at /customers/dashboard/[id] ---
+
+ 294. CUSTOMER ANALYTICS DASHBOARD — NEW ROUTE.
+     Built a per-customer analytics page at
+     /customers/dashboard/[id] (literal segment
+     "dashboard" then customer UUID — exactly
+     what operator asked for). Server file
+     parallel-queries every module table for the
+     customer (loans / sales / repair_tickets /
+     layaways / loan_collateral_items) +
+     loan_events scoped to the customer's loans
+     via .in('loan_id', loanIds). All
+     aggregations in JS — no RPCs / no Postgres
+     aggregate functions. Module-gated by
+     tenant.has_pawn / has_repair / has_retail —
+     a jewelry-only shop with !has_pawn does not
+     see pawn cards, behavior block, lost-pawns
+     list, or gold trend bars. Six rendered
+     sections in order: header / lifetime stats /
+     pawn behavior / 12-month trends / lost pawns /
+     recent activity. tsc clean.
+     Files: src/app/(staff)/customers/dashboard/
+            [id]/page.tsx, content.tsx (NEW)
+
+ 295. CUSTOMER DASHBOARD METRIC SET. Lifetime
+     stats grid (12 cards, module-gated):
+       Pawns count
+       Loaned $ (sum of principal)
+       Active loans (active/extended/partial_paid)
+       Lost pawns (forfeited count)
+       Sales count (completed only)
+       Spent $ (sum of completed sales total)
+       Repairs (count + active count badge)
+       Layaways (count + active count badge)
+       Interest paid lifetime (sum from
+         loan_events where event_type IN
+         ('payment','redemption'), interest_paid)
+       Extensions count (loan_events where
+         event_type='extension')
+       On-time payoff % (redeemed loans where
+         redemption.occurred_at <= due_date /
+         all decided loans)
+       Loyalty pts (customers.loyalty_points_
+         balance)
+     Pawn behavior block (5 metrics): avg
+     principal, redemption rate, forfeit rate,
+     extension rate, avg days late on payoff.
+     Forfeit rate denominator excludes undecided
+     loans (active/extended/partial_paid).
+
+ 296. PURE-SVG 12-MONTH TRENDS CHART. CLAUDE.md
+     mentions Recharts but it isn't in package.
+     json. Rather than add a 250KB+ chart-library
+     dep for a 12-bar stacked chart, built it in
+     ~30 lines of SVG-equivalent flexbox + tinted
+     divs. Bar segments stacked: gold=pawns,
+     success=sales, blue=repairs, success/60=
+     layaways. Bar height normalized against the
+     max-month total. Labels are Jan-Dec abbrevs
+     under each bar; legend below. Themes
+     directly with Luna Azul tokens (bg-gold /
+     bg-success / bg-blue). title attribute on
+     each bar gives a hover tooltip with the
+     per-module breakdown. If a future need
+     warrants Recharts, install then.
+
+ 297. LOST-PAWNS LIST WITH COLLATERAL JOIN. After
+     fetching the customer's loans, filter to
+     status='forfeited', then a single .in(
+     'loan_id', forfeitedIds) query against
+     loan_collateral_items. Build a Map of
+     loan_id -> items[] and render in the Lost
+     Pawns section: date, ticket #, principal,
+     comma-separated item descriptions with
+     weights in grams. No N+1.
+
+ 298. RECENT ACTIVITY UNIFIED FEED — 60 DAYS.
+     Cross-module activity feed merging entries
+     from loan_events, sales (completed_at fall-
+     back to created_at), repair_tickets, and
+     layaways. Filtered by 60-day window in JS,
+     sorted by occurred_at DESC, sliced to 50
+     rows for the render. Each row gets a
+     module-tinted icon (Coins / CashRegister /
+     Wrench / ShoppingBag), label = i18n
+     prefix + status, optional amount, optional
+     detail (sale_kind for sales, title for
+     repairs), and a relative-time stamp.
+
+ 299. I18N — CUSTOMERS.DASHBOARD BLOCK ADDED.
+     ~25 keys in t.customers.dashboard for the
+     six sections + the new t.customers.
+     viewAnalyticsDashboard string for the
+     forward link. Bilingual EN+ES with
+     consistent terminology: 'Empeños perdidos',
+     'Tasa de rescate', 'Tasa de pérdida',
+     'Pagos a tiempo', 'Tendencias',
+     'Apartados', 'Reparaciones', etc.
+     Per CLAUDE.md bilingual rule, no hardcoded
+     copy in either page.tsx or content.tsx.
+     Files: src/lib/i18n/en.ts, src/lib/i18n/es.ts
+
+ 300. "VIEW ANALYTICS DASHBOARD" LINK ON
+     /customers/[id]. Added a new link button in
+     the top-right action area (next to the
+     banned badge), routing to /customers/
+     dashboard/[id]. TrendUp Phosphor icon, blue
+     hover state, follows the existing pill-
+     button pattern. No new component — just a
+     Link.
+     File: src/app/(staff)/customers/[id]/
+           content.tsx
+
+ 301. ROUTE NAMING DECISION. Operator pasted
+     /customers/dashboard/<uuid> as the URL.
+     Honored that exactly even though /customers/
+     [id]/dashboard would be more REST-ful.
+     Next.js routes both patterns; operator's
+     choice stands. If a future refactor wants
+     to flip to nested, both files move and the
+     forward link from /customers/[id] updates —
+     no other call sites.
+
+--- Session 35 (2026-05-09) — Phase 1 redesign-initiative kickoff: dashboard quick-actions row ---
+
+ 290. PHASE 1 REDESIGN INITIATIVE OPENED. Operator
+     asked to "start Phase 1 — improve workflow +
+     redesign for improvements." CLAUDE.md's
+     original Phase 1 (Customers + Inventory) is
+     long-shipped (35 SQL patches in patches/,
+     Phases 0-7 surfaces all live). Reframed via
+     AskUserQuestion: "Phase 1" now means the FIRST
+     SLICE of a NEW UX/redesign initiative on top
+     of the existing app, not the original data-
+     spine phase. Operator confirmed framing.
+     Brainstorming skill HARD-GATE used to scope
+     the first slice; user pivoted mid-brainstorm
+     to a concrete request (3 dashboard buttons —
+     see item 291), so the broad redesign roadmap
+     was deferred. Future Phase-1-redesign
+     sessions will pick up additional surfaces
+     (candidates: /pawn/new, /customers/new,
+     sidebar IA, /pos cart density).
+
+ 291. DASHBOARD QUICK-ACTIONS ROW — SALES / PAWN /
+     ORDERS. Added a new 3-up tile row at the top
+     of /dashboard, above the existing 4-up
+     StatCards row. Each tile is a Link to the
+     corresponding module entrypoint:
+       Sales tile  → /pos     (success-green)
+       Pawn tile   → /pawn    (gold)
+       Orders tile → /repair  (blue)
+     Tiles render only if the matching module is
+     enabled on the tenant — gated on
+     hasRetail / hasPawn / hasRepair flags
+     already loaded in dashboard/page.tsx. If all
+     three are false, the entire row is suppressed
+     (anyQuickAction guard). Tile design: 36px
+     duotone Phosphor icon (ShoppingBag / Coins /
+     Wrench) in a 56×56 white-tinted chip on the
+     left, font-display 2xl uppercase label +
+     opacity-80 sub-label on the right. Tinted
+     bg-{color}/10 + border-{color}/30 +
+     hover:bg-{color}/15 with the standard
+     hover:-translate-y-1 hover:shadow-lg motion
+     budget from DESIGN-lunaazul.md. Component
+     `QuickActionTile` lives inline in content.tsx
+     just above StatCard. tsc clean.
+     File: src/app/(staff)/dashboard/content.tsx
+
+ 292. I18N — DASHBOARD.QUICKACTIONS BLOCK ADDED.
+     New keys in t.dashboard.quickActions:
+       sales / salesSub / pawn / pawnSub /
+       orders / ordersSub
+     EN: Sales / New sale / Pawn / New loan /
+         Orders / Repairs
+     ES: Ventas / Nueva venta / Empeños /
+         Nuevo empeño / Órdenes / Reparaciones
+     'Empeños' matches the existing convention in
+     es.ts (line 63 sidebar, line 722 pawn module
+     keys). Per CLAUDE.md bilingual rule
+     ("hardcoded strings = bug"), all six tile
+     strings flow through useI18n(); no hardcoded
+     copy in the tile component.
+     Files: src/lib/i18n/en.ts, src/lib/i18n/es.ts
+
+ 293. "ORDERS" LABEL SCOPE LOCKED — DASHBOARD-ONLY.
+     Operator wanted the dashboard tile to say
+     "Orders" but the route is /repair. Three
+     options surfaced via AskUserQuestion:
+     (A) dashboard label only, route + sidebar
+     stay "Repair"; (B) full-app rename of
+     repair → orders; (C) use existing "Repairs"
+     label. Operator chose (A). Smallest blast
+     radius — only the new dashboard.quickActions.
+     orders / ordersSub keys mention "Orders".
+     Sidebar, breadcrumbs, route, and existing
+     repair.* i18n keys are unchanged.
+
+--- Session 34 (2026-05-08, late afternoon) — Voice intake diagnostics + STT provider decision ---
+
+ 286. VOICE 503 — DIFFERENTIATED ERROR PER MISSING
+     KEY (commit d56fbfe). Old fallback message
+     "Voice intake is not configured on this
+     deployment" fired on either OPENAI_API_KEY or
+     ANTHROPIC_API_KEY missing without saying
+     which. Replaced single check with three
+     branches in src/app/api/ai/voice/pawn-intake/
+     route.ts: both missing / openai missing /
+     anthropic missing, each mentioning the
+     specific env var to set + redeploy. Operator
+     can now diagnose env config from the inline
+     error UI directly. tsc clean.
+
+ 287. VOICE WHISPER/CLAUDE — UPSTREAM ERROR
+     PASS-THROUGH (commit c59ff43). Generic
+     "Transcription failed" / "Extraction failed"
+     swallowed the actual cause (auth, rate
+     limit, bad audio, network blip). Updated
+     both catch blocks in src/app/api/ai/voice/
+     pawn-intake/route.ts to include
+     e.message.slice(0, 300) in the 502 response.
+     OpenAI + Anthropic SDK error messages don't
+     include API keys (verified — they only
+     reference the call type / status code), so
+     surfacing them to authenticated staff is
+     safe. tsc clean. Operator hit "Transcription
+     failed" right after this shipped, which led
+     directly to item 288.
+
+ 288. STT PROVIDER DECISION — KEEP WHISPER, GET
+     OPENAI KEY. Operator revealed that the value
+     pasted into OPENAI_API_KEY in Vercel is
+     actually an Anthropic key — operator doesn't
+     have an OpenAI account. Investigated whether
+     Claude could replace Whisper: grep'd
+     @anthropic-ai/sdk/resources for audio
+     content-block types, confirmed Anthropic
+     Messages API supports text + image +
+     document content blocks but NOT audio (as of
+     the installed SDK version). So a transcription
+     provider must come from outside Anthropic.
+     Surfaced two options via AskUserQuestion:
+     (A) browser Web Speech API — free, no key,
+     Chrome/Edge-only client-side transcription;
+     (B) OpenAI Whisper — keep current
+     architecture, $5 minimum signup, better
+     accuracy, broader browser support.
+     Operator chose (B). No code changes —
+     operator will sign up at platform.openai.com,
+     load $5, copy the sk-proj-... key, replace
+     the current OPENAI_API_KEY value in Vercel,
+     and redeploy. Decision rationale documented
+     in the new RESUME block: pawn shop runs on
+     Windows AND iPads, so cross-browser support
+     matters more than the $5 floor.
+
+ 289. CLAUDE-DOES-NOT-TRANSCRIBE-AUDIO RULE
+     LOCKED. Investigation in item 288 confirmed
+     that as of @anthropic-ai/sdk currently in
+     package.json, audio is not a supported
+     content-block type on the Messages API.
+     Documented in the Session 34 RESUME's KEY
+     DECISIONS so future sessions don't repeat
+     the investigation. If/when Anthropic ships
+     audio support, the voice route can be
+     simplified to a single Anthropic call;
+     until then Whisper (or an equivalent
+     non-Anthropic STT) stays.
+
+--- Session 33 (2026-05-08) — Voice pawn intake on /pawn/new (Whisper + Haiku, push-to-talk) ---
+
+ 283. VOICE PAWN INTAKE — INITIAL FLOW (commit
+     16e6d43). New: src/components/pawn/
+     VoicePawnButton.tsx + src/app/api/ai/voice/
+     pawn-intake/route.ts. Modified: src/app/
+     (staff)/pawn/new/form.tsx (lifted customers +
+     principal state, wired VoicePawnButton with
+     handleVoiceData callback that injects
+     resolved customer + sets principal + calls
+     collateralRef.current.addExtractedRow);
+     src/components/pawn/CollateralItemsList.tsx
+     (added addExtractedRow to
+     CollateralListHandle, mirrors addWatchRow's
+     pristine-seed-replace behavior so a single
+     fill keeps row count at 1); src/lib/i18n/
+     en.ts + es.ts (pawn.new_.voice block);
+     CLAUDE.md (OPENAI_API_KEY env var
+     documented); package.json +
+     package-lock.json (openai +
+     @anthropic-ai/sdk).
+     Pipeline: Whisper transcription with EN/ES
+     language hint from operator's i18n
+     preference; Claude Haiku 4.5
+     (claude-haiku-4-5-20251001) strict-JSON
+     extraction (customer + principal + one
+     collateral row with category / metal_type /
+     karat / weight_grams / est_value); customers
+     match-or-create via ilike on first + last
+     within tenant, narrowed by date_of_birth
+     when extracted. New customer rows insert
+     via admin client with audit-log action='create',
+     changes.source='voice_intake'. Module-gated
+     on tenants.has_pawn; role-gated inline to
+     owner | chain_admin | manager | pawn_clerk
+     (route returns JSON 4xx instead of using
+     requireRoleInTenant() which redirect()s).
+     Returns 503 "Voice intake is not configured
+     on this deployment" if OPENAI_API_KEY or
+     ANTHROPIC_API_KEY missing.
+     Spec deviations from Armando's original spec:
+     Phosphor not lucide; design tokens not raw
+     colors; Haiku 4.5 not the spec's nonexistent
+     claude-sonnet-4-5; route under /api/ai/voice/
+     per project convention; bilingual EN/ES
+     strings + TTS; auth + module + role gating;
+     audit log on customer create. tsc + lint
+     clean.
+
+ 284. VOICE INTAKE — PUSH-TO-TALK REWIRE (commit
+     103e641). Operator feedback after first
+     ship: click-to-start / click-to-stop felt
+     clunky; wanted hold-to-record / release-to-
+     submit muscle memory. Replaced onClick with
+     onPointerDown + onPointerUp + onPointerCancel
+     in src/components/pawn/VoicePawnButton.tsx.
+     setPointerCapture(pointerId) on press so a
+     drag-off-button release still fires pointerup
+     on the button (mouse path); finger lift on
+     touch always fires on the button anyway. New
+     `arming` phase between press and recorder.start()
+     handles the case where operator releases
+     during the first-press mic-permission prompt:
+     armingRef.current.aborted = true, the start
+     path tears down the stream and returns to
+     idle. Greeting TTS dropped (operator's
+     gesture is self-explanatory; the silent
+     recording flow is more predictable). Post-
+     fill confirmation TTS kept. i18n: start →
+     "Hold to talk" / "Mantén presionado para
+     hablar"; new `listening` key for the held
+     state; hint rephrased to mention press +
+     hold + release; greeting + stop keys
+     removed (dead). tsc + lint clean. Session
+     33 net delta: ~917 lines added across the
+     two commits, ~102 deleted (mostly the old
+     click-based component + dropped i18n keys).
+     Zero changes to server actions or business
+     logic — voice intake is purely a pre-fill
+     layer over the existing form.
+
+ 285. OPEN ISSUE — VOICE INTAKE 503 ON OPERATOR
+     TEST. Route returns 503 "Voice intake is
+     not configured on this deployment" when
+     either OPENAI_API_KEY or ANTHROPIC_API_KEY
+     isn't loaded at runtime. Operator hit this
+     after push and reported. Diagnosis sent:
+     check .env.local (dev) or Vercel env scope +
+     redeploy (production). Awaiting operator
+     confirmation of which environment to fix.
+     Not a code bug — env-not-loaded.
+
+
