@@ -123,20 +123,14 @@ Never kill node processes by image name — always by PID.
     project. Never push Pawn code to the LunaAzul or Abacus repos. Never
     point Pawn's `.env.local` at LunaAzul / Abacus credentials, even
     "just to test."
-    **EXCEPTION (Eddy, 2026-11-21, double-confirmed):** Pawn's
-    `STRIPE_SECRET_KEY` is the RMS Stripe account's LIVE key
-    (acct_1RH52CGLqS4QmOl6, Rodriguez Multi Service LLC — Connect
-    platform), the same key Luna Azul uses. Set in Pawn `.env.local` and
-    Vercel Production. Rotating it breaks BOTH apps — coordinate with the
-    Luna Azul session first. Pawn's webhook secret is NOT shared: Pawn
-    needs its own endpoint + `STRIPE_WEBHOOK_SECRET`.
-    **SECOND EXCEPTION (Eddy, 2026-11-21, double-confirmed):** Eddy's
-    Jewelers Corp. charges in `own_key` mode on the RMS SHOP's live key
-    (acct_1Q0xJ9Hwkn4Ub4Te — the key Luna Azul's RMS shop keeps in its
-    tenant_secrets), stored in Pawn Vault as `stripe_own_secret_key`, and
-    SHARES the "Main Terminal" WisePOS E (tmr_GRw2qghwAC56m4) with Luna
-    Azul. Rotating that key or removing that reader affects both apps.
-    Eddy will replace it with the pawn company's own credentials. The mailbox folder at
+    **History (2026-11-21):** for one live card test Eddy approved
+    (double-confirmed) using RMS keys copied from Luna Azul — the RMS
+    platform key as `STRIPE_SECRET_KEY` and the RMS shop key
+    (acct_1Q0xJ9Hwkn4Ub4Te) in Vault, sharing Luna Azul's "Main Terminal"
+    reader. The test passed (S-000007) and BOTH keys were REMOVED the same
+    day (Vercel + .env.local + Vault); the reader was unlinked, not
+    deleted. Rule 17 is back in full force: Pawn gets the pawn company's
+    OWN Stripe credentials. The mailbox folder at
     `C:\ClaudeMemory\Sass Memory Coonection\` is shared across all three
     Claudes — that's the only shared resource. Cross-app data flows
     through documented integrations, not shared infrastructure.

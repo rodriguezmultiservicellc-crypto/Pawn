@@ -325,15 +325,6 @@ export async function getTerminalReader(args: { tenantId: string; readerId: stri
   })
 }
 
-export async function deleteTerminalReader(args: { tenantId: string; readerId: string }): Promise<void> {
-  const { accountId, apiKey } = await stripeTarget(args.tenantId)
-  await stripeFetch<{ id: string; deleted?: boolean }>(`/terminal/readers/${encodeURIComponent(args.readerId)}`, {
-    method: 'DELETE',
-    accountId,
-    apiKey,
-  })
-}
-
 /** Hand a PaymentIntent to the reader; it starts asking for the card. */
 export async function processPaymentIntentOnReader(args: {
   tenantId: string

@@ -5560,7 +5560,7 @@ export const en = {
     device: 'Device',
     readerId: 'Reader ID',
     remove: 'Remove reader',
-    removeConfirm: 'Remove {label}? Card payments at the counter will use the card machine until you pair a reader again.',
+    removeConfirm: 'Unlink {label} from Pawn? The reader stays registered on Stripe (another app may use it). Card payments here use the card machine until you link a reader again.',
     pairTitle: 'Pair a reader',
     replaceTitle: 'Replace the reader',
     code: 'Registration code',

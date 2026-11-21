@@ -740,6 +740,25 @@ Progress_archive.txt — the items from those sessions are there.)
      Eddy voided S-000007 on the OLD code: Stripe refund succeeded (row
      shows Refunded). The new refund paths are NOT yet exercised live.
 
+ 493. RMS CREDENTIALS REMOVED (Eddy: "done with the rms credentials").
+     - Shop: Vault stripe_own_secret_key cleared (set_tenant_secret ''),
+       reads back none; stripe_charge_mode → connect; reader unlinked
+       (Main Terminal stays registered on Stripe for Luna Azul). 2 audit
+       rows.
+     - Platform: STRIPE_SECRET_KEY removed from Vercel Production (env ls
+       shows none) and from Pawn .env.local. Production redeployed.
+     - Result: no Stripe in Pawn again. Card = card machine; reader and
+       online checkout unavailable until the pawn company's own key.
+       Voiding a reader-card sale now refuses with cardRefundFailed
+       (Stripe unreachable) instead of voiding without a refund.
+     - FIX: Remove reader / replacing a reader used to DELETE the reader on
+       Stripe — wrong once readers can be shared. Now unlink-only;
+       deleteTerminalReader removed; confirm text says so.
+     - CLAUDE.md: both rule-17 exception notes replaced by a dated history
+       note; rule 17 back in full force.
+     NEXT: when the pawn company's Stripe key arrives — Settings → Card
+     reader → The shop's own Stripe key, then pair or link its reader.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

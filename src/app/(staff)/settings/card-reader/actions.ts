@@ -17,7 +17,6 @@ import { logAudit } from '@/lib/audit'
 import { loadShopReader } from '@/lib/pos/reader-server'
 import {
   createTerminalLocation,
-  deleteTerminalReader,
   getTerminalReader,
   registerTerminalReader,
   stripeAccountInfo,
@@ -104,10 +103,8 @@ export async function pairReaderAction(input: PairReaderInput): Promise<ReaderAc
       return { ok: false, error: 'generic' }
     }
 
-    // Replacing a reader: remove the old one from Stripe (best effort).
-    if (current && current.readerId !== reader.id) {
-      await deleteTerminalReader({ tenantId, readerId: current.readerId }).catch(() => undefined)
-    }
+    // Replacing a reader only unlinks the old one from Pawn. It is NOT
+    // deleted on Stripe — a reader can be shared with another app.
 
     await logAudit({
       tenantId,
@@ -133,11 +130,9 @@ export async function removeReaderAction(): Promise<ReaderActionResult> {
   const current = await loadShopReader(tenantId)
   if (!current) return { ok: true }
 
-  if (await tenantStripeReady(tenantId)) {
-    await deleteTerminalReader({ tenantId, readerId: current.readerId }).catch((e) =>
-      console.error('[card-reader] delete in Stripe failed', e instanceof Error ? e.message : e),
-    )
-  }
+  // Unlink only. The reader stays registered on Stripe: it may be shared
+  // with another app (e.g. Luna Azul), and deleting it there would take it
+  // away from that app too. Remove it in the Stripe dashboard if wanted.
   const { error } = await supabase
     .from('settings')
     .update({ stripe_terminal_reader_id: null, stripe_terminal_reader_label: null })

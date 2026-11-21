@@ -5563,7 +5563,7 @@ export const es: Dictionary = {
     device: 'Dispositivo',
     readerId: 'ID del lector',
     remove: 'Quitar lector',
-    removeConfirm: '¿Quitar {label}? Los pagos con tarjeta en el mostrador usarán la máquina de tarjetas hasta que vincule otro lector.',
+    removeConfirm: '¿Desvincular {label} de Pawn? El lector sigue registrado en Stripe (otra app puede usarlo). Los pagos con tarjeta aquí usarán la máquina de tarjetas hasta que vincule otro lector.',
     pairTitle: 'Vincular un lector',
     replaceTitle: 'Reemplazar el lector',
     code: 'Código de registro',
