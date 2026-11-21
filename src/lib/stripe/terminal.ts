@@ -37,15 +37,42 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { stripeFetch } from './http'
+import { getTenantSecret } from '@/lib/secrets/vault'
 import { isStripeTestKey } from '@/lib/pos/reader'
 
+export type StripeChargeMode = 'connect' | 'own_key' | 'platform'
+
+/** Where a shop's card calls go: which key, and (Connect only) which account. */
+export type StripeTarget = { mode: StripeChargeMode; accountId?: string; apiKey?: string }
+
 /**
- * Look up the connected account ID for a tenant. Throws
- * 'tenant_stripe_not_connected' when the tenant hasn't completed Connect
- * onboarding yet — surfaced cleanly in the action layer.
+ * Resolve the Stripe account a shop's card charges run on
+ * (settings.stripe_charge_mode, patches/0087):
+ *   connect   its Express account under the RMS platform (Stripe-Account)
+ *   own_key   its own secret key from Vault
+ *   platform  the RMS account itself (superadmin-set; testing / RMS shops)
+ * Throws 'tenant_stripe_not_connected' when the chosen mode is not set up
+ * yet — surfaced cleanly in the action layer.
  */
-async function getStripeAccountId(tenantId: string): Promise<string> {
+export async function stripeTarget(tenantId: string): Promise<StripeTarget> {
   const admin = createAdminClient()
+  const { data: s } = await admin
+    .from('settings')
+    .select('stripe_charge_mode')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  const mode = (s?.stripe_charge_mode ?? 'connect') as StripeChargeMode
+
+  if (mode === 'platform') {
+    if (!process.env.STRIPE_SECRET_KEY) throw new Error('stripe_secret_key_missing')
+    return { mode }
+  }
+  if (mode === 'own_key') {
+    const apiKey = await getTenantSecret(tenantId, 'stripe_own_secret_key')
+    if (!apiKey) throw new Error('tenant_stripe_not_connected')
+    return { mode, apiKey }
+  }
+
   const { data, error } = await admin
     .from('tenant_billing_settings')
     .select('stripe_account_id')
@@ -57,7 +84,7 @@ async function getStripeAccountId(tenantId: string): Promise<string> {
   if (!data?.stripe_account_id) {
     throw new Error('tenant_stripe_not_connected')
   }
-  return data.stripe_account_id
+  return { mode, accountId: data.stripe_account_id }
 }
 
 export type CardPresentPaymentIntent = {
@@ -80,7 +107,7 @@ export async function createCardPresentPaymentIntent(args: {
   description?: string
   metadata?: Record<string, string>
 }): Promise<CardPresentPaymentIntent> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   const cents = Math.max(1, Math.round(args.amount * 100))
   const currency = (args.currency ?? 'usd').toLowerCase()
 
@@ -103,6 +130,7 @@ export async function createCardPresentPaymentIntent(args: {
     method: 'POST',
     body,
     accountId,
+    apiKey,
   })
 }
 
@@ -113,12 +141,13 @@ export async function cancelPaymentIntent(args: {
   tenantId: string
   paymentIntentId: string
 }): Promise<{ id: string; status: string }> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   return stripeFetch<{ id: string; status: string }>(
     `/payment_intents/${encodeURIComponent(args.paymentIntentId)}/cancel`,
     {
       method: 'POST',
       accountId,
+      apiKey,
     },
   )
 }
@@ -134,7 +163,7 @@ export async function refundCardPayment(args: {
   reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer'
   metadata?: Record<string, string>
 }): Promise<{ id: string; status: string; amount: number }> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   const cents = Math.max(1, Math.round(args.amount * 100))
   const body: Record<string, string | number> = {
     payment_intent: args.paymentIntentId,
@@ -152,6 +181,7 @@ export async function refundCardPayment(args: {
       method: 'POST',
       body,
       accountId,
+      apiKey,
     },
   )
 }
@@ -163,18 +193,63 @@ export async function refundCardPayment(args: {
 // browser SDK, no reader discovery in the browser. Every call acts on the
 // shop's connected account.
 
-/** True when the platform key is a Stripe TEST key (simulated readers allowed). */
-export function stripeTestMode(): boolean {
-  return isStripeTestKey(process.env.STRIPE_SECRET_KEY)
-}
-
-/** The shop has completed Stripe Connect onboarding (an account id exists). */
-export async function tenantHasStripeAccount(tenantId: string): Promise<boolean> {
+/**
+ * True when this shop's charges run on a Stripe TEST key (simulated readers
+ * and "simulate tap" allowed): its own key in own_key mode, else the platform
+ * key.
+ */
+export async function tenantStripeTestMode(tenantId: string): Promise<boolean> {
   try {
-    await getStripeAccountId(tenantId)
-    return true
+    const t = await stripeTarget(tenantId)
+    return isStripeTestKey(t.apiKey ?? process.env.STRIPE_SECRET_KEY)
   } catch {
     return false
+  }
+}
+
+/** The shop's chosen Stripe account is set up, so it can take card charges. */
+export async function tenantStripeReady(tenantId: string): Promise<boolean> {
+  try {
+    const t = await stripeTarget(tenantId)
+    // own_key carries its own key; the other modes need the platform key.
+    return t.mode === 'own_key' || !!process.env.STRIPE_SECRET_KEY
+  } catch {
+    return false
+  }
+}
+
+/** Name + id of the account the shop charges on, for the settings page. */
+export async function stripeAccountInfo(tenantId: string): Promise<{ id: string; name: string | null; live: boolean } | null> {
+  try {
+    const t = await stripeTarget(tenantId)
+    const path = t.accountId ? `/accounts/${encodeURIComponent(t.accountId)}` : '/account'
+    const a = await stripeFetch<{
+      id: string
+      livemode?: boolean
+      business_profile?: { name?: string | null } | null
+      settings?: { dashboard?: { display_name?: string | null } | null } | null
+    }>(path, { method: 'GET', apiKey: t.apiKey })
+    const key = t.apiKey ?? process.env.STRIPE_SECRET_KEY ?? ''
+    return {
+      id: a.id,
+      name: a.business_profile?.name ?? a.settings?.dashboard?.display_name ?? null,
+      live: !isStripeTestKey(key),
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Check a pasted secret key against Stripe before saving it (own_key mode). */
+export async function verifyStripeKey(apiKey: string): Promise<{ ok: true; id: string; name: string | null } | { ok: false; error: string }> {
+  try {
+    const a = await stripeFetch<{ id: string; business_profile?: { name?: string | null } | null }>('/account', {
+      method: 'GET',
+      apiKey,
+    })
+    return { ok: true, id: a.id, name: a.business_profile?.name ?? null }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'stripe_error' }
   }
 }
 
@@ -198,10 +273,11 @@ export async function createTerminalLocation(args: {
   displayName: string
   address: { line1: string; city: string; state: string; postal_code: string }
 }): Promise<{ id: string }> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   return stripeFetch<{ id: string }>('/terminal/locations', {
     method: 'POST',
     accountId,
+    apiKey,
     body: {
       display_name: args.displayName.slice(0, 100),
       'address[line1]': args.address.line1,
@@ -221,10 +297,11 @@ export async function registerTerminalReader(args: {
   label: string
   locationId: string
 }): Promise<StripeReader> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   return stripeFetch<StripeReader>('/terminal/readers', {
     method: 'POST',
     accountId,
+    apiKey,
     body: {
       registration_code: args.registrationCode,
       label: args.label.slice(0, 60),
@@ -235,18 +312,20 @@ export async function registerTerminalReader(args: {
 }
 
 export async function getTerminalReader(args: { tenantId: string; readerId: string }): Promise<StripeReader> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   return stripeFetch<StripeReader>(`/terminal/readers/${encodeURIComponent(args.readerId)}`, {
     method: 'GET',
     accountId,
+    apiKey,
   })
 }
 
 export async function deleteTerminalReader(args: { tenantId: string; readerId: string }): Promise<void> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   await stripeFetch<{ id: string; deleted?: boolean }>(`/terminal/readers/${encodeURIComponent(args.readerId)}`, {
     method: 'DELETE',
     accountId,
+    apiKey,
   })
 }
 
@@ -256,12 +335,13 @@ export async function processPaymentIntentOnReader(args: {
   readerId: string
   paymentIntentId: string
 }): Promise<StripeReader> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   return stripeFetch<StripeReader>(
     `/terminal/readers/${encodeURIComponent(args.readerId)}/process_payment_intent`,
     {
       method: 'POST',
       accountId,
+      apiKey,
       body: {
         payment_intent: args.paymentIntentId,
         // No tip screen at a pawn counter.
@@ -273,10 +353,11 @@ export async function processPaymentIntentOnReader(args: {
 
 /** Stop whatever the reader is doing (clerk cancelled at the counter). */
 export async function cancelReaderAction(args: { tenantId: string; readerId: string }): Promise<StripeReader> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   return stripeFetch<StripeReader>(`/terminal/readers/${encodeURIComponent(args.readerId)}/cancel_action`, {
     method: 'POST',
     accountId,
+    apiKey,
   })
 }
 
@@ -297,19 +378,19 @@ export async function retrievePaymentIntent(args: {
   tenantId: string
   paymentIntentId: string
 }): Promise<CardPresentIntentStatus> {
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
   return stripeFetch<CardPresentIntentStatus>(
     `/payment_intents/${encodeURIComponent(args.paymentIntentId)}?expand[]=latest_charge`,
-    { method: 'GET', accountId },
+    { method: 'GET', accountId, apiKey },
   )
 }
 
 /** TEST MODE ONLY: make a simulated reader "tap" a test card. */
 export async function simulateReaderTap(args: { tenantId: string; readerId: string }): Promise<StripeReader> {
-  if (!stripeTestMode()) throw new Error('stripe_not_test_mode')
-  const accountId = await getStripeAccountId(args.tenantId)
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
+  if (!isStripeTestKey(apiKey ?? process.env.STRIPE_SECRET_KEY)) throw new Error('stripe_not_test_mode')
   return stripeFetch<StripeReader>(
     `/test_helpers/terminal/readers/${encodeURIComponent(args.readerId)}/present_payment_method`,
-    { method: 'POST', accountId },
+    { method: 'POST', accountId, apiKey },
   )
 }

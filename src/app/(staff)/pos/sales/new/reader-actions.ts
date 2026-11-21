@@ -34,8 +34,8 @@ import {
   createCardPresentPaymentIntent,
   processPaymentIntentOnReader,
   simulateReaderTap,
-  stripeTestMode,
-  tenantHasStripeAccount,
+  tenantStripeReady,
+  tenantStripeTestMode,
 } from '@/lib/stripe/terminal'
 import { SALE_STAFF_ROLES, counterContext, createRetailSale, parseRetail } from './sale-core'
 
@@ -56,7 +56,7 @@ export async function startReaderChargeAction(formData: FormData): Promise<Start
   // Can this shop take a reader charge at all? Check before writing a sale.
   const reader = await loadShopReader(c.tenantId)
   if (!reader) return { ok: false, error: 'readerNotPaired' }
-  if (!(await tenantHasStripeAccount(c.tenantId))) return { ok: false, error: 'tenantStripeNotConnected' }
+  if (!(await tenantStripeReady(c.tenantId))) return { ok: false, error: 'tenantStripeNotConnected' }
 
   const created = await createRetailSale(c, parsed.v)
   if (!created.ok) return { ok: false, error: created.error }
@@ -210,9 +210,9 @@ export async function cancelReaderChargeAction(paymentId: string): Promise<{ ok:
 
 /** TEST MODE ONLY — a simulated reader taps a test card. Refused on a live key. */
 export async function simulateReaderTapAction(paymentId: string): Promise<{ ok: boolean; error?: string }> {
-  if (!stripeTestMode()) return { ok: false, error: 'generic' }
   const p = await readerPayment(paymentId)
   if (!p || !p.reader_id) return { ok: false, error: 'generic' }
+  if (!(await tenantStripeTestMode(p.tenant_id))) return { ok: false, error: 'generic' }
   try {
     await simulateReaderTap({ tenantId: p.tenant_id, readerId: p.reader_id })
     return { ok: true }

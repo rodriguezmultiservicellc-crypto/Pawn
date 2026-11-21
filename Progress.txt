@@ -646,6 +646,34 @@ Progress_archive.txt — the items from those sessions are there.)
      Seen, not touched: Luna Azul's NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is
      a TEST key while its secret key is LIVE (Luna Azul's to check).
 
+ 489. STRIPE CHARGE MODE PER SHOP — patches/0087 APPLIED, no policy
+     change. Connect onboarding failed in production: "You can only create
+     new accounts if you've signed up for Connect" — the RMS account is NOT
+     a Connect platform (item 488's "Connect platform: yes" was WRONG:
+     GET /v1/accounts succeeds without Connect). Eddy wants one test on the
+     RMS account, then the company's own credentials.
+     settings.stripe_charge_mode: connect (default) | own_key (shop's own
+     secret key, Vault kind stripe_own_secret_key) | platform (RMS account
+     directly). Trigger settings_guard_stripe_platform_mode refuses moving
+     INTO 'platform' unless auth.jwt() role = service_role (the app writes
+     it only after requireSuperAdmin) — dry run: owner→platform refused,
+     owner→own_key ok, service→platform ok, leaving platform ok.
+     lib/stripe/terminal.ts: getStripeAccountId → stripeTarget() (mode,
+     accountId | apiKey) used by EVERY terminal call (PI, cancel, refund,
+     location, reader, process, retrieve, simulate); stripeFetch takes
+     apiKey; tenantStripeReady / tenantStripeTestMode (per shop key) /
+     stripeAccountInfo / verifyStripeKey. Card reader page: Stripe account
+     section (current account name + id + LIVE/TEST; radio modes; own key
+     checked with Stripe before saving; RMS option superadmin-only);
+     changing account clears the reader + location. setChargeModeAction
+     audited (stripe_charge_mode_change). payment-link.ts (online store /
+     pay links) is STILL Connect-only.
+     Eddy's shop set to 'platform' on his request (service role + audit
+     row). Page verified: "Charging on: Rodriguez Multi Service LLC
+     (acct_1RH52CGLqS4QmOl6) LIVE". 816 tests, lint, build green.
+     NEXT (Eddy): pair the physical reader (Settings → Card reader, code
+     from the reader), then New sale → Card → Card reader with his own card.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

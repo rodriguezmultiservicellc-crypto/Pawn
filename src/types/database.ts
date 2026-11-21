@@ -5836,6 +5836,7 @@ export type Database = {
           store_shipping_policy_es: string | null
           store_tagline_en: string | null
           store_tagline_es: string | null
+          stripe_charge_mode: string
           stripe_terminal_location_id: string | null
           stripe_terminal_reader_id: string | null
           stripe_terminal_reader_label: string | null
@@ -5905,6 +5906,7 @@ export type Database = {
           store_shipping_policy_es?: string | null
           store_tagline_en?: string | null
           store_tagline_es?: string | null
+          stripe_charge_mode?: string
           stripe_terminal_location_id?: string | null
           stripe_terminal_reader_id?: string | null
           stripe_terminal_reader_label?: string | null
@@ -5974,6 +5976,7 @@ export type Database = {
           store_shipping_policy_es?: string | null
           store_tagline_en?: string | null
           store_tagline_es?: string | null
+          stripe_charge_mode?: string
           stripe_terminal_location_id?: string | null
           stripe_terminal_reader_id?: string | null
           stripe_terminal_reader_label?: string | null

@@ -31,6 +31,9 @@ export type SecretKind =
   | 'stripe_access_token'
   | 'stripe_refresh_token'
   | 'stripe_webhook_secret'
+  // settings.stripe_charge_mode = 'own_key' (patches/0087): the shop's own
+  // Stripe secret key — card charges run on the shop's account directly
+  | 'stripe_own_secret_key'
   // tenant_ebay_credentials
   | 'ebay_access_token'
   | 'ebay_refresh_token'

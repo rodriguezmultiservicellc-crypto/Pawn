@@ -4,15 +4,21 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, CreditCard, Trash, WarningCircle } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { pairReaderAction, removeReaderAction, type ReaderActionResult } from './actions'
+import { pairReaderAction, removeReaderAction, setChargeModeAction, type ReaderActionResult } from './actions'
+import type { StripeChargeMode } from '@/lib/stripe/terminal'
 
 export type CardReaderView = {
   canEdit: boolean
-  /** STRIPE_SECRET_KEY is set on the platform. */
-  stripeConfigured: boolean
-  /** The shop finished Stripe Connect onboarding. */
-  connected: boolean
+  isSuperadmin: boolean
+  /** STRIPE_SECRET_KEY (the RMS platform key) is set. */
+  platformKeySet: boolean
+  /** settings.stripe_charge_mode (patches/0087). */
+  mode: StripeChargeMode
+  ownKeySaved: boolean
+  /** The chosen account is set up — card charges can run. */
+  ready: boolean
   testMode: boolean
+  account: { id: string; name: string | null; live: boolean } | null
   reader: { id: string; label: string | null } | null
   live: { status: 'online' | 'offline' | null; deviceType: string | null; serial: string | null } | null
 }
@@ -30,13 +36,19 @@ export default function CardReaderContent({ view }: { view: CardReaderView }) {
   const [code, setCode] = useState('')
   const [label, setLabel] = useState('')
 
-  const canPair = view.canEdit && view.stripeConfigured && view.connected
+  const canPair = view.canEdit && view.ready
+  const [mode, setMode] = useState<StripeChargeMode>(view.mode)
+  const [key, setKey] = useState('')
+  const modes: StripeChargeMode[] = view.isSuperadmin ? ['connect', 'own_key', 'platform'] : view.mode === 'platform' ? ['connect', 'own_key', 'platform'] : ['connect', 'own_key']
+  const modeLabel = { connect: c.modeConnect, own_key: c.modeOwnKey, platform: c.modePlatform }
+  const modeHelp = { connect: c.modeConnectHelp, own_key: c.modeOwnKeyHelp, platform: c.modePlatformHelp }
 
   const show = (r: ReaderActionResult) => {
     if (r.ok) {
       setMsg({ ok: true, text: c.saved })
       setCode('')
       setLabel('')
+      setKey('')
     } else {
       setMsg({ ok: false, text: c.errors[r.error].replace('{detail}', r.detail ?? '') })
     }
@@ -59,18 +71,95 @@ export default function CardReaderContent({ view }: { view: CardReaderView }) {
         </Link>
       </div>
 
-      {!view.stripeConfigured ? (
+      {!view.platformKeySet && view.mode !== 'own_key' ? (
         <Notice text={c.stripeMissing} />
-      ) : !view.connected ? (
+      ) : !view.ready ? (
         <Notice
           text={c.notConnected}
           link={
-            <Link href="/settings/integrations" className="font-semibold text-blue hover:text-blue-2">
-              {c.connectLink}
-            </Link>
+            view.mode === 'connect' ? (
+              <Link href="/settings/integrations" className="font-semibold text-blue hover:text-blue-2">
+                {c.connectLink}
+              </Link>
+            ) : undefined
           }
         />
       ) : null}
+
+      <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{c.accountTitle}</h2>
+          <p className="mt-1 text-sm text-muted">{c.accountHelp}</p>
+          <p className="mt-2 text-sm text-foreground">
+            {view.account
+              ? c.accountCurrent.replace('{name}', view.account.name ?? '—').replace('{id}', view.account.id)
+              : c.accountUnknown}
+            {view.account ? (
+              <span
+                className={`ml-2 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold ${
+                  view.account.live ? 'bg-danger/10 text-danger' : 'bg-info/10 text-info'
+                }`}
+              >
+                {view.account.live ? c.live : c.test}
+              </span>
+            ) : null}
+          </p>
+        </div>
+        <fieldset disabled={!view.canEdit || pending} className="space-y-2">
+          <legend className="sr-only">{c.accountTitle}</legend>
+          {modes.map((m) => (
+            <label key={m} className="flex cursor-pointer items-start gap-3 rounded-xl border border-border px-4 py-3 has-[:checked]:border-blue">
+              <input
+                type="radio"
+                name="stripe_mode"
+                value={m}
+                checked={mode === m}
+                disabled={m === 'platform' && !view.isSuperadmin}
+                onChange={() => setMode(m)}
+                className="mt-1"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-foreground">{modeLabel[m]}</span>
+                <span className="block text-xs text-muted">{modeHelp[m]}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        {mode === 'own_key' && view.canEdit ? (
+          <label className="block space-y-1">
+            <span className="block text-sm font-semibold text-foreground">{c.ownKey}</span>
+            <input
+              type="password"
+              autoComplete="off"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              placeholder={c.ownKeyPlaceholder}
+              className={`${INPUT} font-mono`}
+            />
+            {view.ownKeySaved ? <span className="block text-xs text-muted">{c.ownKeyStored}</span> : null}
+          </label>
+        ) : null}
+        {view.canEdit ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={
+                pending ||
+                (mode === view.mode && mode !== 'own_key') ||
+                (mode === 'own_key' && !key.trim() && !view.ownKeySaved)
+              }
+              onClick={() => {
+                setMsg(null)
+                start(async () => show(await setChargeModeAction({ mode, key })))
+              }}
+              className={GOLD}
+            >
+              {c.saveAccount}
+            </button>
+            {view.reader ? <span className="text-xs text-muted">{c.accountChangeNote}</span> : null}
+          </div>
+        ) : null}
+      </section>
 
       {view.reader ? (
         <section className="rounded-xl border border-border bg-card p-5">

@@ -85,6 +85,7 @@ export type AuditAction =
   | 'card_present_failed'
   | 'terminal_reader_pair'
   | 'terminal_reader_remove'
+  | 'stripe_charge_mode_change'
   // Reports / compliance
   | 'export'
   // Buy-outright (gold-buying / wholesale buy-side)

@@ -47,10 +47,12 @@ export async function stripeFetch<T>(
     accountId?: string
     /** Optional Idempotency-Key header for retry safety on POSTs. */
     idempotencyKey?: string
+    /** A shop's OWN secret key (patches/0087 'own_key'); default = platform key. */
+    apiKey?: string
   },
 ): Promise<T> {
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${stripeSecretKey()}`,
+    Authorization: `Bearer ${init.apiKey ?? stripeSecretKey()}`,
     'Content-Type': 'application/x-www-form-urlencoded',
   }
   if (init.accountId) headers['Stripe-Account'] = init.accountId

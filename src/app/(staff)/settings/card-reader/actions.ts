@@ -10,20 +10,38 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
-import { requireOwner } from '@/lib/supabase/guards'
+import { requireOwner, requireSuperAdmin } from '@/lib/supabase/guards'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getTenantSecret, setTenantSecret } from '@/lib/secrets/vault'
 import { logAudit } from '@/lib/audit'
 import { loadShopReader } from '@/lib/pos/reader-server'
 import {
   createTerminalLocation,
   deleteTerminalReader,
   registerTerminalReader,
-  tenantHasStripeAccount,
+  stripeTarget,
+  tenantStripeReady,
+  verifyStripeKey,
+  type StripeChargeMode,
 } from '@/lib/stripe/terminal'
 import { pairReaderSchema, type PairReaderInput } from '@/lib/pos/reader'
 
 export type ReaderActionResult =
   | { ok: true }
-  | { ok: false; error: 'invalid' | 'notConnected' | 'stripeMissing' | 'addressMissing' | 'pairFailed' | 'generic'; detail?: string }
+  | {
+      ok: false
+      error:
+        | 'invalid'
+        | 'notConnected'
+        | 'stripeMissing'
+        | 'addressMissing'
+        | 'pairFailed'
+        | 'keyInvalid'
+        | 'keyRejected'
+        | 'notAllowed'
+        | 'generic'
+      detail?: string
+    }
 
 async function owner() {
   const ctx = await getCtx()
@@ -37,8 +55,7 @@ export async function pairReaderAction(input: PairReaderInput): Promise<ReaderAc
   const { supabase, userId, tenantId } = await owner()
   const parsed = pairReaderSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: 'invalid' }
-  if (!process.env.STRIPE_SECRET_KEY) return { ok: false, error: 'stripeMissing' }
-  if (!(await tenantHasStripeAccount(tenantId))) return { ok: false, error: 'notConnected' }
+  if (!(await tenantStripeReady(tenantId))) return { ok: false, error: 'notConnected' }
 
   // A Terminal Location is required per reader; create it once from the
   // shop's address and keep it.
@@ -114,7 +131,7 @@ export async function removeReaderAction(): Promise<ReaderActionResult> {
   const current = await loadShopReader(tenantId)
   if (!current) return { ok: true }
 
-  if (process.env.STRIPE_SECRET_KEY) {
+  if (await tenantStripeReady(tenantId)) {
     await deleteTerminalReader({ tenantId, readerId: current.readerId }).catch((e) =>
       console.error('[card-reader] delete in Stripe failed', e instanceof Error ? e.message : e),
     )
@@ -132,6 +149,82 @@ export async function removeReaderAction(): Promise<ReaderActionResult> {
     tableName: 'settings',
     recordId: tenantId,
     changes: { reader_id: current.readerId },
+  })
+  revalidatePath('/settings/card-reader')
+  revalidatePath('/pos/sales/new')
+  return { ok: true }
+}
+
+const STRIPE_SECRET_KEY_RE = /^(sk|rk)_(live|test)_[A-Za-z0-9]{10,}$/
+
+/**
+ * Choose which Stripe account the shop's card charges run on (patches/0087).
+ *   connect   owner — the shop's Express account (Settings → Integrations)
+ *   own_key   owner — the shop's own secret key, checked against Stripe and
+ *             stored in Vault; blank keeps a key already saved
+ *   platform  SUPERADMIN only — the RMS account; written with the service
+ *             role, which is the only role the 0087 trigger lets into this
+ *             mode
+ * A reader + Terminal Location belong to one Stripe account, so a real
+ * change of account clears them (pair the reader again on the new account).
+ */
+export async function setChargeModeAction(input: { mode: StripeChargeMode; key?: string }): Promise<ReaderActionResult> {
+  const mode = input.mode
+  if (mode !== 'connect' && mode !== 'own_key' && mode !== 'platform') return { ok: false, error: 'invalid' }
+
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
+  const tenantId = ctx.tenantId
+
+  let userId: string
+  if (mode === 'platform') {
+    if (ctx.globalRole !== 'superadmin') return { ok: false, error: 'notAllowed' }
+    userId = (await requireSuperAdmin()).userId
+  } else {
+    userId = (await requireOwner(tenantId)).userId
+  }
+
+  const before = await stripeTarget(tenantId).catch(() => null)
+
+  if (mode === 'own_key') {
+    const key = (input.key ?? '').trim()
+    if (key) {
+      if (!STRIPE_SECRET_KEY_RE.test(key)) return { ok: false, error: 'keyInvalid' }
+      const v = await verifyStripeKey(key)
+      if (!v.ok) return { ok: false, error: 'keyRejected', detail: v.error }
+      const saved = await setTenantSecret(tenantId, 'stripe_own_secret_key', key)
+      if (!saved.ok) return { ok: false, error: 'generic' }
+    } else {
+      // Blank keeps a key already saved; own_key with no key at all is refused.
+      if (!(await getTenantSecret(tenantId, 'stripe_own_secret_key'))) return { ok: false, error: 'keyInvalid' }
+    }
+  }
+
+  // service_role write (guarded above): the only path into 'platform'.
+  const admin = createAdminClient()
+  const changed = !before || before.mode !== mode || mode === 'own_key'
+  const { error } = await admin
+    .from('settings')
+    .update({
+      stripe_charge_mode: mode,
+      ...(changed
+        ? { stripe_terminal_reader_id: null, stripe_terminal_reader_label: null, stripe_terminal_location_id: null }
+        : {}),
+    })
+    .eq('tenant_id', tenantId)
+  if (error) {
+    console.error('[card-reader] charge mode save failed', error.message)
+    return { ok: false, error: 'generic' }
+  }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'stripe_charge_mode_change',
+    tableName: 'settings',
+    recordId: tenantId,
+    changes: { from: before?.mode ?? null, to: mode, key_replaced: mode === 'own_key' && !!(input.key ?? '').trim(), reader_cleared: changed },
   })
   revalidatePath('/settings/card-reader')
   revalidatePath('/pos/sales/new')
