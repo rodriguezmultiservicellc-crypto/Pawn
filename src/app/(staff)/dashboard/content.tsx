@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { MetalCalculator } from '@/components/dashboard/MetalCalculator'
+import { useLiveMetals } from '@/components/dashboard/useLiveMetals'
+import type { MetalsStripData } from '@/lib/spot-prices/strip'
 import {
   Users,
   Package,
@@ -25,22 +27,8 @@ import { useI18n } from '@/lib/i18n/context'
 import { shortDateTime } from '@/lib/format/money'
 import type { PledgeAlert } from '@/lib/counts/server'
 import { PledgeAlertBanner } from '@/components/counts/PledgeAlertBanner'
-import type { MetalPurity, MetalType } from '@/types/database-aliases'
+import type { MetalType } from '@/types/database-aliases'
 
-/** One tile on the live metals strip (brief Phase 4.4). */
-export type MetalStripItem = {
-  metal: MetalType
-  purity: MetalPurity
-  /** Shown price: spot per troy oz × the shop's display percent. */
-  perOz: number | null
-  /** Spot per troy oz at 100%. */
-  spotOz: number | null
-  /** Pure-metal spot per troy oz (the calculator popup's base). */
-  pureOz: number | null
-  /** % vs the oldest point in the last 24h; null without two points. */
-  changePct: number | null
-  fetchedAt: string | null
-}
 
 export type TodayCard = {
   repairsPromised: number
@@ -103,10 +91,7 @@ export default function DashboardContent({
   activity,
   library,
   activeLoanCount,
-  metals,
-  metalsStale,
-  metalsUpdatedAt,
-  metalsDisplayPct,
+  metalsStrip,
   todayCard,
   pledgeAlert,
   onlineOrdersWaiting,
@@ -121,11 +106,7 @@ export default function DashboardContent({
   activity: ActivityRow[]
   library: Library
   activeLoanCount: number
-  metals: MetalStripItem[]
-  metalsStale: boolean
-  metalsUpdatedAt: string | null
-  /** Fraction of spot the strip shows (1 = spot). */
-  metalsDisplayPct: number
+  metalsStrip: MetalsStripData
   todayCard: TodayCard
   pledgeAlert: PledgeAlert | null
   onlineOrdersWaiting: number
@@ -161,7 +142,7 @@ export default function DashboardContent({
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <aside className="xl:sticky xl:top-4 xl:order-2 xl:pt-4">
           {/* Live metals (brief Phase 4.4) */}
-          <MetalsStrip metals={metals} stale={metalsStale} updatedAt={metalsUpdatedAt} displayPct={metalsDisplayPct} />
+          <MetalsStrip initial={metalsStrip} />
         </aside>
         <div className="min-w-0 space-y-2 xl:order-1">
 
@@ -398,20 +379,11 @@ export default function DashboardContent({
  * (same 24h rule as the buy / sell counters) so a clerk sees it before
  * quoting anything.
  */
-function MetalsStrip({
-  metals,
-  stale,
-  updatedAt,
-  displayPct,
-}: {
-  metals: MetalStripItem[]
-  stale: boolean
-  updatedAt: string | null
-  displayPct: number
-}) {
+function MetalsStrip({ initial }: { initial: MetalsStripData }) {
   const { t } = useI18n()
   const d = t.dashboard
   const [calcMetal, setCalcMetal] = useState<MetalType | null>(null)
+  const { metals, stale, newestFetchedAt: updatedAt, displayPct } = useLiveMetals(initial)
   return (
     <div
       className={`mt-3 block rounded-xl border p-3 xl:mt-0 ${

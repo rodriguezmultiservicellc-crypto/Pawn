@@ -508,6 +508,21 @@ Progress_archive.txt — the items from those sessions are there.)
      SEEN, NOT FIXED: phone width still overflows (the known top-bar
      issue) and the sidebar logs a hydration mismatch at phone width.
 
+ 482. LIVE METALS AUTO-REFRESH. The dashboard used to show the price from
+     page load until a reload. Now: lib/spot-prices/strip.ts holds
+     loadMetalsStrip + loadDisplayPct (moved out of dashboard/page.tsx,
+     unchanged) and MetalStripItem / MetalsStripData. GET /api/spot/strip
+     (requireStaff, user client for the tenant's display percent, no-store)
+     returns the same data. components/dashboard/useLiveMetals.ts polls it
+     every 2 min while the tab is visible, stops when hidden, and reads at
+     once when the tab comes back; a failed read keeps the last numbers.
+     Reads saved prices only — never calls the provider (the cron does:
+     every 15 min weekdays 8:00-4:45 ET, hourly otherwise). lookup.ts
+     still caches 5 min in-process, so worst case ≈ refresh + 5 + 2 min.
+     Verified in the browser: display percent changed in a second tab,
+     dashboard tab updated 90% → 80% ($3,185.10 → $2,831.20) without a
+     reload; signed-out request → 401; percent restored to 90.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/
