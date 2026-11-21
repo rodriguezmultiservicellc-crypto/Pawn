@@ -3486,9 +3486,8 @@ export const es: Dictionary = {
     sellRateBadge: 'Tasa de venta {pct}%',
     clearRate: 'Borrar',
     meltPanelTitle: 'Valor estimado de fundición',
-    estimatedMelt: 'Valor de fundición',
+    estimatedMelt: 'Fundición completa (100%)',
     spotPerGramLabel: 'Spot / g',
-    payRateMultiplier: 'Tasa de pago',
     purityResolved: 'Pureza',
     // Tarjeta: spot vs lo que paga la tienda tras su ajuste.
     spotLabel: 'Spot',

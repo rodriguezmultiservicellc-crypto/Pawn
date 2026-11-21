@@ -27,6 +27,7 @@ import type { EbayListingRow } from '@/types/database-aliases'
 import { loadTagTemplates } from '@/lib/labels/load'
 import { templateChoices } from '@/lib/labels/templates'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
+import { r4, toMoney } from '@/lib/money'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import type { EbayPanelListing } from '@/components/ebay/InventoryEbayPanel'
 
@@ -241,6 +242,8 @@ async function resolveMelt(args: {
 
   return {
     value: result.value,
+    // Full melt = spot × weight at 100%, before the shop's pay rate.
+    full_value: r4(result.spotPerGram * toMoney(args.weightGrams)),
     effective_per_gram: result.effectivePerGram,
     spot_per_gram: result.spotPerGram,
     multiplier: result.multiplier,

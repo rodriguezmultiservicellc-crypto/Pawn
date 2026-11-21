@@ -13,6 +13,7 @@ import {
   clearSpotPriceCache,
 } from '@/lib/spot-prices/lookup'
 import { clearMeltOverrideCache } from '@/lib/spot-prices/melt'
+import { isValidPurityForMetal } from '@/lib/spot-prices/purity'
 import { toMoney } from '@/lib/pawn/math'
 import type {
   MetalPurity,
@@ -66,7 +67,7 @@ export async function saveSpotOverrideAction(
   if (!VALID_METALS.includes(metalType)) {
     return { error: 'Invalid metal type.' }
   }
-  if (!VALID_PURITIES.includes(purity)) {
+  if (!VALID_PURITIES.includes(purity) || !isValidPurityForMetal(metalType, purity)) {
     return { error: 'Invalid purity.' }
   }
   const pct = parseFloat(pctRaw)
@@ -141,7 +142,9 @@ export async function saveSpotSellRateAction(
   const pctRaw = String(formData.get('sell_multiplier_pct') ?? '').trim()
 
   if (!VALID_METALS.includes(metalType)) return { error: 'Invalid metal type.' }
-  if (!VALID_PURITIES.includes(purity)) return { error: 'Invalid purity.' }
+  if (!VALID_PURITIES.includes(purity) || !isValidPurityForMetal(metalType, purity)) {
+    return { error: 'Invalid purity.' }
+  }
 
   let sellMultiplier: number | null = null
   if (pctRaw !== '') {

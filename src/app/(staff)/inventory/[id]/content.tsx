@@ -18,6 +18,7 @@ import {
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { formatMoney } from '@/lib/format/money'
+import { r2 } from '@/lib/money'
 import { splitConsignment, toMoney } from '@/lib/consignment/math'
 import { isSolidMetal } from '@/lib/spot-prices/purity'
 import {
@@ -67,8 +68,10 @@ export type InventoryPhotoItem = {
 }
 
 export type InventoryMeltSummary = {
-  /** Final melt value (USD, 4dp) including any tenant override multiplier. */
+  /** What the shop pays (USD, 4dp): full melt × the tenant pay rate. */
   value: number
+  /** Full melt (USD, 4dp): spot × weight at 100%, no pay rate. */
+  full_value: number
   /** Effective per-gram price after multiplier. */
   effective_per_gram: number
   /** Raw spot per-gram before multiplier. */
@@ -885,19 +888,22 @@ function MeltPanel({ melt }: { melt: InventoryMeltSummary }) {
         <div>
           <div className="text-xs text-muted">{t.spotPrices.estimatedMelt}</div>
           <div className="font-mono text-lg font-semibold text-foreground">
+            {formatUsd(melt.full_value)}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-muted">{t.spotPrices.youPay}</div>
+          <div className="font-mono text-lg font-semibold text-foreground">
             {formatUsd(melt.value)}
+          </div>
+          <div className="font-mono text-xs text-muted">
+            {t.spotPrices.payRateBadge.replace('{pct}', String(r2(melt.multiplier * 100)))}
           </div>
         </div>
         <div>
           <div className="text-xs text-muted">{t.spotPrices.spotPerGramLabel}</div>
           <div className="font-mono text-sm text-foreground">
             {formatUsd(melt.spot_per_gram)}
-          </div>
-        </div>
-        <div>
-          <div className="text-xs text-muted">{t.spotPrices.payRateMultiplier}</div>
-          <div className="font-mono text-sm text-foreground">
-            {(melt.multiplier * 100).toFixed(2)}%
           </div>
         </div>
         <div>

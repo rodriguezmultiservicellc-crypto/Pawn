@@ -7,7 +7,6 @@ import type { MetalPurity, MetalType } from '@/types/database-aliases'
  */
 export const COUNTER_COMBOS_CLIENT: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }> = [
   { metalType: 'gold', purity: 'pure_24k' },
-  { metalType: 'gold', purity: 'fine' },
   { metalType: 'gold', purity: '22k' },
   { metalType: 'gold', purity: '18k' },
   { metalType: 'gold', purity: '14k' },

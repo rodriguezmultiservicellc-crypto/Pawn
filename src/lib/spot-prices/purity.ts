@@ -27,7 +27,7 @@ export const SPOT_METALS: ReadonlyArray<MetalType> = [
 
 /** Purity buckets that exist per spot metal (mirrors refresh.ts PURITY_MAP). */
 export const PURITIES_BY_METAL: Readonly<Record<string, ReadonlyArray<MetalPurity>>> = {
-  gold: ['pure_24k', 'fine', '22k', '18k', '14k', '10k'],
+  gold: ['pure_24k', '22k', '18k', '14k', '10k'],
   silver: ['fine', 'sterling_925'],
   platinum: ['platinum_950'],
   palladium: ['palladium_950'],
@@ -119,6 +119,11 @@ export type Coating = (typeof COATINGS)[number]
  */
 export function isSolidMetal(coating: string | null | undefined): boolean {
   return coating == null || coating === '' || coating === 'none'
+}
+
+/** Is this purity a real bucket for this spot metal (e.g. gold + 'fine' is not)? */
+export function isValidPurityForMetal(metal: string, purity: string): boolean {
+  return PURITIES_BY_METAL[metal]?.includes(purity as MetalPurity) ?? false
 }
 
 /** Map key used by every spot / override lookup: `${metal}::${purity}`. */

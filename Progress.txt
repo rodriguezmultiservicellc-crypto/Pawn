@@ -63,7 +63,7 @@ OPERATION IN FLIGHT: none
   Last session:   Session 61 (2026-11-21), saved 2026-11-21 ~16:30 ET.
                   Context budget at save: ~35%.
                   Built and live (main == feature/sol-pawn-brief), items
-                  495-501:
+                  495-503:
                   - PC froze at 15:06 (out of RAM on the 12 GB box, dwm
                     OOM) — NOT a code crash. Watchdog heap now 2048 MB.
                   - Lightspeed X-Series inventory import (0089) finished,
@@ -74,6 +74,8 @@ OPERATION IN FLIGHT: none
                     (source, outlet, file, date); the 3,263 already
                     imported were backfilled; detail page shows an
                     "Imported from … on …" badge.
+                  - Item melt panel: full melt + "You pay" separately;
+                    gold "Fine .999" removed (24K is the one top bucket).
                   Migrations 0089-0090 ALL APPLIED.
 
   Session 60 (2026-11-21 ~13:00), items 480-494:
@@ -552,6 +554,27 @@ Progress_archive.txt — the items from those sessions are there.)
       computed SERVER-side (todayInTimezone + loadTenantRules) and passed
       as a string, so no SSR/browser timezone hydration mismatch.
       Source names map in IMPORT_SOURCE_NAMES (brand, not translated).
+
+ 502. ITEM MELT PANEL — FULL MELT AND PAY PRICE SEPARATELY. The panel
+      showed spot × weight × PAY RATE labelled "Melt value", i.e. what
+      the shop would pay, not the metal's worth. Now: "Full melt (100%)"
+      = spot/g × grams (full_value, computed in page.tsx resolveMelt) +
+      "You pay" = the pay-rate value with "Pay rate N%" under it. Key
+      payRateMultiplier removed (orphan); estimatedMelt relabelled.
+      Pay rates live on /inventory/spot-prices (one per metal + purity).
+
+ 503. GOLD "FINE .999" REMOVED — 24K IS THE ONE TOP GOLD BUCKET (Eddy:
+      remove one of 24k / fine). purityFromItem already mapped karat 24
+      to pure_24k, so 24k stays. The enum value 'fine' CANNOT be dropped
+      — silver uses it (fine vs sterling). Changes: refresh.ts
+      PURITY_MAP no longer writes gold/fine spot rows; PURITIES_BY_METAL
+      gold, the spot-prices page COMBOS and bench COUNTER_COMBOS_CLIENT
+      drop it; new isValidPurityForMetal() (purity.ts) now guards the
+      pay-rate + sell-rate save actions and metalSaleLineSchema, so
+      gold+fine is refused server-side. Data: 0 sale_items ever used
+      gold/fine. Left in the DB, inert: 913 historical gold/fine
+      spot_prices rows and the gold/fine override row (pay 90%) — 24K's
+      own override is 80%, unchanged. Full suite 845 tests pass.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 

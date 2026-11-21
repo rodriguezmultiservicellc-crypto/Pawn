@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidPurityForMetal } from '@/lib/spot-prices/purity'
 
 /**
  * Sell-metal (scrap / bullion out the door) schemas — Sol Pawn brief
@@ -56,6 +57,10 @@ export const metalSaleLineSchema = z.object({
   price: z.coerce.number().positive('required').max(1_000_000_000).finite(),
   inventory_item_id: optionalUuid,
   position: z.coerce.number().int().min(0).default(0),
+}).refine((l) => isValidPurityForMetal(l.metal, l.purity), {
+  // e.g. gold + 'fine' — gold's top bucket is 24k; 'fine' is silver only.
+  path: ['purity'],
+  message: 'invalid_purity',
 })
 
 export type MetalSaleLineInput = z.infer<typeof metalSaleLineSchema>

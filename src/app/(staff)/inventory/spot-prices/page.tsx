@@ -28,7 +28,6 @@ const COMBOS: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }> = [
   { metalType: 'gold', purity: '18k' },
   { metalType: 'gold', purity: '14k' },
   { metalType: 'gold', purity: '10k' },
-  { metalType: 'gold', purity: 'fine' },
   { metalType: 'silver', purity: 'fine' },
   { metalType: 'silver', purity: 'sterling_925' },
   { metalType: 'platinum', purity: 'platinum_950' },

@@ -3481,9 +3481,8 @@ export const en = {
     sellRateBadge: 'Sell rate {pct}%',
     clearRate: 'Clear',
     meltPanelTitle: 'Estimated melt value',
-    estimatedMelt: 'Melt value',
+    estimatedMelt: 'Full melt (100%)',
     spotPerGramLabel: 'Spot / g',
-    payRateMultiplier: 'Pay rate',
     purityResolved: 'Purity',
     // Card: spot vs what the shop pays after its override.
     spotLabel: 'Spot',

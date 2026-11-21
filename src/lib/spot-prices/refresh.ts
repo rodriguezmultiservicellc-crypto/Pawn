@@ -43,8 +43,9 @@ const GRAMS_PER_TROY_OZ = 31.1034768
  */
 export const PURITY_MAP: Record<SpotMetal, Array<{ purity: MetalPurity; multiplier: number }>> = {
   gold: [
+    // Gold has ONE top bucket, 24k (Eddy 2026-11-21: 24k and .999 fine were
+    // the same thing twice, with different pay rates). 'fine' stays for silver.
     { purity: 'pure_24k', multiplier: 1.0 },
-    { purity: 'fine', multiplier: 0.999 },
     { purity: '22k', multiplier: 22 / 24 },
     { purity: '18k', multiplier: 18 / 24 },
     { purity: '14k', multiplier: 14 / 24 },
