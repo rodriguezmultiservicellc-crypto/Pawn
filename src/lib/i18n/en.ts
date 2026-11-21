@@ -5541,6 +5541,7 @@ export const en = {
     ownKeyStored: 'A key is saved. Leave blank to keep it.',
     saveAccount: 'Save Stripe account',
     accountChangeNote: 'Changing the account removes the paired reader — pair it again on the new account.',
+    accountChangeConfirm: 'Switch the Stripe account? {label} will be unlinked from Pawn (the reader itself is not deleted). You can link it again under Readers on this Stripe account.',
     existingTitle: 'Readers on this Stripe account',
     existingHelp: 'Already registered to this account — for example by another RMS app. Use one here without a pairing code.',
     useReader: 'Use this reader',

@@ -5544,6 +5544,7 @@ export const es: Dictionary = {
     ownKeyStored: 'Hay una clave guardada. Déjelo vacío para mantenerla.',
     saveAccount: 'Guardar cuenta de Stripe',
     accountChangeNote: 'Cambiar la cuenta quita el lector vinculado — vincúlelo de nuevo en la cuenta nueva.',
+    accountChangeConfirm: '¿Cambiar la cuenta de Stripe? {label} se desvinculará de Pawn (el lector no se borra). Puede vincularlo de nuevo en Lectores en esta cuenta de Stripe.',
     existingTitle: 'Lectores en esta cuenta de Stripe',
     existingHelp: 'Ya registrados en esta cuenta — por ejemplo por otra app de RMS. Use uno aquí sin código de vinculación.',
     useReader: 'Usar este lector',

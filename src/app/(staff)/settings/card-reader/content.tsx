@@ -157,6 +157,8 @@ export default function CardReaderContent({ view }: { view: CardReaderView }) {
                 (mode === 'own_key' && !key.trim() && !view.ownKeySaved)
               }
               onClick={() => {
+                // Another account unlinks the reader (it belongs to one account) — ask first.
+                if (view.reader && mode !== view.mode && !confirm(c.accountChangeConfirm.replace('{label}', view.reader.label ?? view.reader.id))) return
                 setMsg(null)
                 start(async () => show(await setChargeModeAction({ mode, key })))
               }}
