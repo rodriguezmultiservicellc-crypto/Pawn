@@ -2339,6 +2339,18 @@ export const es: Dictionary = {
       footer: {
         pageOf: 'Página {n} de {total}',
       },
+      thankYou: '¡Gracias!',
+    },
+    receiptPrint: {
+      title: '¿Imprimir el recibo?',
+      body: 'Venta {number} — {total}. Elija la impresora.',
+      letter: 'Carta',
+      letterHelp: 'Página completa, impresora normal',
+      thermal: 'Térmica',
+      thermalHelp: 'Impresora de recibos de 40 columnas',
+      sending: 'Enviando a la impresora…',
+      skip: 'Sin recibo',
+      failed: 'No se pudo cargar el recibo. Intente de nuevo.',
     },
     statusBadges: {
       sale: {

@@ -19,6 +19,8 @@ import { computeSubtotal, computeTotal } from '@/lib/pos/cart'
 import { createSaleAction } from './actions'
 import { startReaderChargeAction } from './reader-actions'
 import { formatMoney } from '@/lib/format/money'
+import { Printer } from '@phosphor-icons/react'
+import { PrintReceiptDialog } from '@/components/pos/PrintReceiptDialog'
 
 export default function NewSaleForm({
   inventory,
@@ -50,6 +52,12 @@ export default function NewSaleForm({
     tender: 'cash' | 'card'
   } | null>(null)
   const [cartKey, setCartKey] = useState(0)
+  // The sale just paid — asks "Print the receipt?" right away.
+  const [printFor, setPrintFor] = useState<{
+    saleId: string
+    saleNumber: string | null
+    total: number
+  } | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string> | null>(
     null,
   )
@@ -142,6 +150,7 @@ export default function NewSaleForm({
       }
       if (res.completed) {
         setLastSale(res.completed)
+        setPrintFor(res.completed)
         setCartKey((k) => k + 1)
         // Sold pieces drop out of the picker and quick sale stock counts.
         router.refresh()
@@ -236,6 +245,14 @@ export default function NewSaleForm({
               .replace('{number}', lastSale.saleNumber ?? '')
               .replace('{total}', formatMoney(lastSale.total))}
           </span>
+          <button
+            type="button"
+            onClick={() => setPrintFor(lastSale)}
+            className="inline-flex h-11 items-center gap-1 font-semibold text-blue hover:text-blue-2 hover:underline"
+          >
+            <Printer size={16} weight="bold" />
+            {t.pos.sale.receiptCopy}
+          </button>
           <Link
             href={`/pos/sales/${lastSale.saleId}`}
             className="inline-flex h-11 items-center font-semibold text-blue hover:text-blue-2 hover:underline"
@@ -280,11 +297,21 @@ export default function NewSaleForm({
         }}
         onReaderApproved={(r) => {
           setLastSale({ ...r, tender: 'card' })
+          setPrintFor(r)
           setCartKey((k) => k + 1)
           router.refresh()
         }}
         onOpenSale={(saleId) => router.push(`/pos/sales/${saleId}`)}
       />
+
+      {printFor ? (
+        <PrintReceiptDialog
+          saleId={printFor.saleId}
+          saleNumber={printFor.saleNumber}
+          total={printFor.total}
+          onClose={() => setPrintFor(null)}
+        />
+      ) : null}
 
       {layawayDraft ? (
         <LayawayScheduleDialog

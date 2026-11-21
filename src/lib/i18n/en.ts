@@ -2341,6 +2341,18 @@ export const en = {
       footer: {
         pageOf: 'Page {n} of {total}',
       },
+      thankYou: 'Thank you!',
+    },
+    receiptPrint: {
+      title: 'Print the receipt?',
+      body: 'Sale {number} — {total}. Choose the printer.',
+      letter: 'Letter',
+      letterHelp: 'Full page, regular printer',
+      thermal: 'Thermal',
+      thermalHelp: '40-column receipt printer',
+      sending: 'Sending to the printer…',
+      skip: 'No receipt',
+      failed: 'The receipt could not be loaded. Try again.',
     },
     statusBadges: {
       sale: {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -23,6 +23,7 @@ import { cardSummary, type CardBrand } from '@/lib/pos/card'
 import { ClientTime } from '@/components/ClientTime'
 import { cancelReaderChargeAction, readerChargeStatusAction } from '../new/reader-actions'
 import { VoidSaleDialog } from '@/components/pos/VoidSaleDialog'
+import { PrintReceiptDialog } from '@/components/pos/PrintReceiptDialog'
 import PosRedemptionBlock, {
   type RedemptionEventView,
 } from '@/components/loyalty/PosRedemptionBlock'
@@ -207,13 +208,15 @@ export default function SaleDetailContent({
     })
   }
 
-  function printReceipt() {
-    if (typeof window === 'undefined') return
-    // Open the bilingual PDF endpoint in a new tab. Browser's PDF
-    // viewer surfaces the print button. window.print() of the HTML
-    // page would print the staff UI itself, not a customer receipt.
-    window.open(`/api/print/sale/${sale.id}`, '_blank')
-  }
+  // "Print the receipt?" pops up on its own when a payment made on this page
+  // completes the sale (add payment, reader approval, manager confirm,
+  // Complete sale) — the status flips open → completed after the refresh.
+  const [showPrint, setShowPrint] = useState(false)
+  const prevStatus = useRef(sale.status)
+  useEffect(() => {
+    if (prevStatus.current === 'open' && sale.status === 'completed') setShowPrint(true)
+    prevStatus.current = sale.status
+  }, [sale.status])
 
   return (
     <div className="space-y-5">
@@ -370,7 +373,7 @@ export default function SaleDetailContent({
         {isCompleted ? (
           <button
             type="button"
-            onClick={printReceipt}
+            onClick={() => setShowPrint(true)}
             className="ml-auto inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
           >
             <Printer size={14} weight="bold" />
@@ -440,6 +443,14 @@ export default function SaleDetailContent({
           defaultAmount={sale.balance}
           onClose={() => setShowPay(false)}
           onSubmit={addPaymentAction}
+        />
+      ) : null}
+      {showPrint ? (
+        <PrintReceiptDialog
+          saleId={sale.id}
+          saleNumber={sale.sale_number}
+          total={sale.total}
+          onClose={() => setShowPrint(false)}
         />
       ) : null}
       {showVoid ? (
