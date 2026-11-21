@@ -321,6 +321,20 @@ export type LightspeedMapOptions = {
   acquiredAt: string
   /** import_ref values already present for this tenant + source. */
   existingRefs: Set<string>
+  /** Uploaded file name, for the import stamp in notes. */
+  fileName?: string | null
+}
+
+/**
+ * First line of every imported item's notes (staff-only — notes are not in
+ * public_catalog_items, patches/0072): that it was imported, from where,
+ * and on which day (shop timezone). Same convention as forfeiture's
+ * "Forfeited from ticket …" stamp.
+ */
+export function importStamp(outlet: string, date: string, fileName?: string | null): string {
+  const where = `Lightspeed, outlet ${outlet.replace(/_/g, ' ')}`
+  const file = fileName ? `, file ${fileName}` : ''
+  return clip(`Imported from ${where}${file} on ${date}.`, 200)
 }
 
 const SERVICE_CATEGORY = /^(repair|repairs|service|services|credit|gift ?card)$/i
@@ -333,6 +347,7 @@ export function mapLightspeedRows(opts: LightspeedMapOptions): {
   samples: LightspeedSample[]
 } {
   const { rows, outlet, tenantId, createdBy, acquiredAt, existingRefs } = opts
+  const stamp = importStamp(outlet, acquiredAt, opts.fileName)
   const report: LightspeedReport = {
     totalRows: rows.length,
     toInsert: 0,
@@ -375,7 +390,8 @@ export function mapLightspeedRows(opts: LightspeedMapOptions): {
     const variants = variantSummary(row)
     const description = clip(variants ? `${name} — ${variants}` : name, 500)
     const descText = htmlToText(row.description)
-    const notes = descText && descText.toLowerCase() !== name.toLowerCase() ? clip(descText, 500) : null
+    const descNote = descText && descText.toLowerCase() !== name.toLowerCase() ? descText : null
+    const notes = clip(descNote ? `${stamp}\n${descNote}` : stamp, 500)
     const grams = findGrams(row)
     const { metal, karat, coating } = guessMetal([name, row.tags ?? null, row.handle ?? null, descText])
     const cost = money(row.supply_price) ?? 0

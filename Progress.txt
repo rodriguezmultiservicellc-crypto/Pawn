@@ -60,10 +60,21 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 60 (2026-11-21), saved 2026-11-21 ~13:00 ET.
-                  Context budget at save: high (long session).
+  Last session:   Session 61 (2026-11-21), saved 2026-11-21 ~16:30 ET.
+                  Context budget at save: ~35%.
                   Built and live (main == feature/sol-pawn-brief), items
-                  480-494:
+                  495-499:
+                  - PC froze at 15:06 (out of RAM on the 12 GB box, dwm
+                    OOM) — NOT a code crash. Watchdog heap now 2048 MB.
+                  - Lightspeed X-Series inventory import (0089) finished,
+                    committed 27dd63d, live.
+                  - Inventory Size / Length field (0090) + forfeit carry
+                    + Lightspeed variant fill; item form numbers min=0.
+                  - Imported items' notes start with an import stamp
+                    (source, outlet, file, date).
+                  Migrations 0089-0090 ALL APPLIED.
+
+  Session 60 (2026-11-21 ~13:00), items 480-494:
                   - Dashboard live metals: oz t, display %, right rail,
                     metal calculator popup, auto-refresh (0083) — 480-482
                   - [CRITICAL] sale_create blocked by pg_safeupdate since
@@ -78,23 +89,23 @@ OPERATION IN FLIGHT: none
                   Migrations 0083-0088 ALL APPLIED.
 
   ACTIVE FILE(S):
-    - src/components/pos/{Cart,CardChargeDialog,CardSlipFields,
-      AddPaymentDialog,VoidSaleDialog,ReturnPicker}.tsx
-    - src/app/(staff)/pos/sales/new/{actions,reader-actions,sale-core,
-      form,page}.ts(x); src/app/(staff)/pos/sales/[id]/*;
-      src/app/(staff)/pos/returns/new/actions.ts
-    - src/lib/pos/{card,reader,reader-server,card-refund,
-      card-refund-server,money}.ts; src/lib/stripe/{terminal,http}.ts
-    - src/app/(staff)/settings/card-reader/*;
-      src/app/(staff)/settings/integrations/*
-    - src/app/(staff)/dashboard/*; src/components/dashboard/*;
-      src/lib/spot-prices/{strip,calculator}.ts; src/app/api/spot/strip
-    - patches/0083 … 0088; src/lib/i18n/{en,es}.ts; CLAUDE.md (rule 17
-      history note); Progress.txt
+    - src/lib/imports/{lightspeed,lightspeed.test,access}.ts
+    - src/app/api/imports/inventory/route.ts;
+      src/app/(staff)/inventory/import/{page,content}.tsx
+    - src/components/inventory/InventoryFormFields.tsx;
+      src/app/(staff)/inventory/{new,[id]}/*; src/lib/validations/inventory.ts
+    - src/app/(staff)/pawn/[id]/actions.ts (forfeit carries jewelry_size)
+    - src/lib/labels/resolve.ts (scan matches legacy_code)
+    - patches/0089, 0090; dev-watchdog.mjs; src/lib/i18n/{en,es}.ts
 
   RESUME POINT:
     Clean. main == origin/main == feature/sol-pawn-brief, nothing in
-    flight. Pawn has NO Stripe credentials again (RMS keys removed, 493):
+    flight. The Lightspeed import page (/inventory/import) and the new
+    Size / Length field are live but NEITHER has been opened in a
+    browser: first run a real Lightspeed product export through
+    preview → import, then check an item's Size / Length saves.
+    Carried from Session 60:
+    Pawn has NO Stripe credentials again (RMS keys removed, 493):
     Card at the counter = card machine (external card) only; reader +
     online checkout wait for the PAWN COMPANY's own Stripe key → Settings
     → Card reader → "The shop's own Stripe key", then pair or link its
@@ -128,6 +139,15 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
+    - DEV BOX RAM: 11.9 GB total, ~12 GB committed with VS Code, Chrome,
+      two ChatGPT apps, Claude, Dropbox, RingCentral, Wispr open — before
+      next dev starts. Low-virtual-memory events 2026-11-20 (Chrome 11.6
+      GB) and 2026-11-21 (dwm OOM → freeze → reboot). Watchdog heap is
+      now 2048 MB; tsc needs NODE_OPTIONS=--max-old-space-size=3072.
+    - LIGHTSPEED IMPORT (0089) UNTESTED IN A BROWSER with a real export.
+      Unit tests cover the mapper (10 tests). The commit path inserts
+      through the user's RLS client in 500-row batches; a re-run skips
+      units already imported (import_ref).
     - STRIPE: Pawn has no keys (RMS test keys removed 2026-11-21, 493).
       Charge modes ready (0087): own_key is the expected path for the
       pawn company. Connect needs the PLATFORM account signed up for
@@ -442,6 +462,73 @@ SESSION HISTORY LOG
 2026-09-19, sessions 22, 23, 24, 25, 26, 27, 29, 30, 31, 32 archived
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
+
+--- Session 61 (2026-11-21) — Lightspeed inventory import, Size / Length on inventory, RAM crash diagnosis (branch feature/sol-pawn-brief == main) ---
+
+ 495. "IT CRASHED AGAIN" — OUT OF RAM, NOT A CODE CRASH. Windows logs:
+      15:06 dwm.exe died 0xc00001ad (out of memory; parsecd + Security
+      app crashed with it), 15:09 Resource-Exhaustion low virtual memory,
+      15:14 restart from the Start menu (event 1074, no Kernel-Power 41,
+      no bugcheck). Same warning 2026-11-20 with Chrome at 11.6 GB.
+      Box has 11.9 GB; ~0.4 GB free right after reboot with no dev
+      server. ROOT CAUSE: too many resident apps + next dev allowed a
+      4 GB heap. FIX: dev-watchdog.mjs default DEV_HEAP_MB 4096 → 2048
+      (the 25-min cycle keeps the Turbopack leak under it).
+
+ 496. LIGHTSPEED X-SERIES INVENTORY IMPORT (27dd63d, patches/0089 APPLIED,
+      no RLS change). Work written just before the freeze (last file
+      15:01); resumed, verified, shipped.
+      - inventory_items.import_source + import_ref, CHECK both-or-
+        neither, UNIQUE (tenant_id, import_source, import_ref) WHERE
+        import_ref IS NOT NULL — covers soft-deleted rows so a deleted
+        piece is never resurrected by a re-import.
+      - lib/imports/lightspeed.ts (pure): one inventory row PER UNIT on
+        hand for the chosen outlet (ref '<product id>#<n>'), capped at
+        500/row; skips no-stock, services (track_inventory=0, repair/
+        credit/gift card), inactive, already-imported. Each product is
+        validated through inventoryItemCreateSchema — an import can
+        never write what a clerk couldn't. Lightspeed SKU → legacy_code;
+        grams from weight(G)/variant/name/description; metal/karat/
+        coating guessed from name/tags.
+      - POST /api/imports/inventory (route handler, not a server action
+        — server-action bodies cap ~1 MB): preview | commit, 25 MB max,
+        500-row batches, audit row, revalidates /inventory + catalog.
+      - /inventory/import page (preview stats, samples, warnings) +
+        "Import items" button on /inventory for import roles.
+      - lib/imports/access.ts resolveImportRole(): owner/manager/
+        chain_admin (+ chain_admin at parent HQ) — the customers import
+        route + /settings/import now use it (the duplicated resolver
+        there was removed).
+      - lib/labels/resolve.ts: a scan falls back to legacy_code BEFORE
+        sku_number, so old Lightspeed tags open the right piece (sellable
+        one first when several share the code).
+
+ 497. INVENTORY SIZE / LENGTH (222c4c7, patches/0090 APPLIED, no RLS
+      change). inventory_items.jewelry_size TEXT NULL, same shape as
+      loan_collateral_items.jewelry_size (0042): free text, never
+      normalized. On the new/edit item form next to Condition (EN
+      "Size / Length", ES "Talla / Largo"). Forfeiture now copies the
+      collateral's jewelry_size into the inventory row. Lightspeed
+      import fills it from a variant option named size / length /
+      talla / largo / tamaño / medida (findSize, 2 tests).
+
+ 498. ITEM FORM NUMBERS min=0. Eddy's screenshot showed Wholesale price
+      -0.03. Never saved (Zod nonnegative + DB CHECK from 0067 reject
+      it) — the number input just had no min, so wheel / arrow keys
+      could go below zero. Field in InventoryFormFields now sets min=0
+      on every type=number input (all are prices or weights).
+      Gate: tsc + eslint clean, 51 tests pass, i18n keys present in
+      both locales and all referenced; both deploys READY on Vercel.
+
+ 499. IMPORT STAMP IN NOTES (Eddy: "add in the notes date added and from
+      where and that its an import"). Every Lightspeed-imported item's
+      notes now START with "Imported from Lightspeed, outlet <outlet>,
+      file <name> on <YYYY-MM-DD>." (importStamp in lib/imports/
+      lightspeed.ts; date = shop-timezone today, the same value as
+      acquired_at), then the Lightspeed description on the next line,
+      clipped to 500. notes is staff-only (excluded from
+      public_catalog_items, 0072). English, same as the forfeit stamp —
+      it is record text, not UI. 11 import tests pass.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
@@ -2249,6 +2336,10 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
+    Run a real Lightspeed product export through /inventory/import
+    (preview, then import) and open one imported item: check legacy_code,
+    grams, metal guess, Size / Length, and that a second import of the
+    same file reports every unit as already imported. Then:
     Ask Eddy for the pawn company's own Stripe secret key → Settings →
     Card reader → own key → pair / link its reader → one live reader
     charge + a void (exercises the 492 refund path). Meanwhile: void

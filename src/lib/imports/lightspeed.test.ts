@@ -88,12 +88,12 @@ describe('Lightspeed product export', () => {
       import_source: 'lightspeed',
       acquired_at: '2026-11-21',
     })
-    expect(p1.notes).toBe('10k yellow gold Child Curb ID')
+    expect(p1.notes).toBe('Imported from Lightspeed, outlet Main on 2026-11-21.\n10k yellow gold Child Curb ID')
     expect(p1.tags).toContain('curb')
 
     const p2 = records[2]
     expect(p2).toMatchObject({ weight_grams: 6.3, karat: '14K', source_vendor: 'LAMAR DIAMOND JEWELRY' })
-    expect(p2.notes).toBe('14k XO Bracelet 14k')
+    expect(p2.notes).toBe('Imported from Lightspeed, outlet Main on 2026-11-21.\n14k XO Bracelet 14k')
 
     const p7 = records[3]
     expect(p7).toMatchObject({ coating: 'gold_filled', category: 'bracelet', description: 'Gold Filled Bead Bracelet — teal' })
@@ -160,5 +160,16 @@ describe('findSize', () => {
   it('returns null when no option is a size', () => {
     expect(findSize({ variant_option_one_name: 'Grams', variant_option_one_value: '2.4' })).toBeNull()
     expect(findSize({})).toBeNull()
+  })
+})
+
+describe('import stamp in notes', () => {
+  it('names the source, outlet, file and date', () => {
+    const { records } = mapLightspeedRows({
+      rows: parseCsv(`id,sku,name,supply_price,retail_price,inventory_Main_Store\np1,1,Plain Band,10,20,1`).rows,
+      outlet: 'Main_Store', tenantId: 't', createdBy: 'u', acquiredAt: '2026-11-21',
+      existingRefs: new Set(), fileName: 'export.csv',
+    })
+    expect(records[0].notes).toBe('Imported from Lightspeed, outlet Main Store, file export.csv on 2026-11-21.')
   })
 })

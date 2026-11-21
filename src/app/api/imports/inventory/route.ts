@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
     createdBy: ctx.userId,
     acquiredAt: todayInTimezone(rules.timezone),
     existingRefs,
+    fileName: file instanceof File ? file.name : null,
   })
 
   if (mode !== 'commit') {
