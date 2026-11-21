@@ -491,6 +491,23 @@ Progress_archive.txt — the items from those sessions are there.)
      Verified in the browser: 90% → gold $3,185.10/oz t (= 90% of
      $3,539), no console errors, reset to 100% after.
 
+ 481. DASHBOARD — METALS RIGHT RAIL + CALCULATOR POPUP. 100% spot shown
+     small under the adjusted price. On xl screens the dashboard is a
+     main column + an 18rem sticky right rail holding Live metals
+     (tiles stacked); below xl the widget stays on top. Clicking a metal
+     opens components/dashboard/MetalCalculator.tsx (portal to body —
+     the sticky rail trapped a fixed overlay under the cards): metal
+     tabs, pure spot per oz t, % of market (starts at the shop display
+     percent, not saved), unit oz t / g / dwt, a weight per purity row,
+     value per row + total. Pure math in lib/spot-prices/calculator.ts
+     (+5 tests). The feed stores purity rows (platinum_950 = 0.95 ×
+     spot), so the page passes pureOz = stored ÷ PURITY_MAP multiplier
+     (PURITY_MAP now exported from refresh.ts). 24K row = .999.
+     Verified in the browser: 1 oz t 14K + 2 oz t 18K at 90% = $6,635.63,
+     grams switch recalculates, Esc closes.
+     SEEN, NOT FIXED: phone width still overflows (the known top-bar
+     issue) and the sidebar logs a hydration mismatch at phone width.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

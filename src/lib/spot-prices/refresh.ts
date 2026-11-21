@@ -41,7 +41,7 @@ const GRAMS_PER_TROY_OZ = 31.1034768
  * applicable purity. Spot prices for purities not relevant to a given
  * metal are not generated (e.g. silver doesn't get a 14k row).
  */
-const PURITY_MAP: Record<SpotMetal, Array<{ purity: MetalPurity; multiplier: number }>> = {
+export const PURITY_MAP: Record<SpotMetal, Array<{ purity: MetalPurity; multiplier: number }>> = {
   gold: [
     { purity: 'pure_24k', multiplier: 1.0 },
     { purity: 'fine', multiplier: 0.999 },

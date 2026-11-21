@@ -12,6 +12,8 @@ import {
   getSpotPriceHistory,
 } from '@/lib/spot-prices/lookup'
 import { spotKey } from '@/lib/spot-prices/purity'
+import { PURITY_MAP } from '@/lib/spot-prices/refresh'
+import { isCalcMetal } from '@/lib/spot-prices/calculator'
 import { COUNT_RESOLVE_ROLES } from '@/lib/counts/types'
 import { loadPledgeAlert } from '@/lib/counts/server'
 import type { MetalPurity, MetalType } from '@/types/database-aliases'
@@ -60,12 +62,19 @@ async function loadMetalsStrip(displayPct: number): Promise<{ metals: MetalStrip
       perGram != null && base != null && base > 0 && Number.isFinite(base)
         ? Math.round(((perGram - base) / base) * 1000) / 10
         : null
+    // The feed stores purity-expanded rows (platinum_950 = 0.95 × spot), so
+    // the calculator popup gets the pure-metal spot back.
+    const storeMult =
+      (isCalcMetal(metalType) ? PURITY_MAP[metalType].find((p) => p.purity === purity)?.multiplier : null) ?? 1
     return {
       metal: metalType,
       purity,
       perOz,
       spotOz: spotOz == null ? null : Math.round(spotOz * 100) / 100,
-      changePct, fetchedAt: row?.fetched_at ?? null }
+      pureOz: spotOz == null ? null : Math.round((spotOz / storeMult) * 100) / 100,
+      changePct,
+      fetchedAt: row?.fetched_at ?? null,
+    }
   })
   return { metals, stale: freshness.stale, newestFetchedAt: freshness.newestFetchedAt }
 }

@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
+import { MetalCalculator } from '@/components/dashboard/MetalCalculator'
 import {
   Users,
   Package,
@@ -33,6 +35,8 @@ export type MetalStripItem = {
   perOz: number | null
   /** Spot per troy oz at 100%. */
   spotOz: number | null
+  /** Pure-metal spot per troy oz (the calculator popup's base). */
+  pureOz: number | null
   /** % vs the oldest point in the last 24h; null without two points. */
   changePct: number | null
   fetchedAt: string | null
@@ -152,8 +156,14 @@ export default function DashboardContent({
         </Link>
       ) : null}
 
-      {/* Live metals strip (brief Phase 4.4) */}
-      <MetalsStrip metals={metals} stale={metalsStale} updatedAt={metalsUpdatedAt} displayPct={metalsDisplayPct} />
+      {/* Wide screens: main column + a right rail with Live metals. Narrow
+          screens: one column, metals first (the aside comes first in the DOM). */}
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <aside className="xl:sticky xl:top-4 xl:order-2 xl:pt-4">
+          {/* Live metals (brief Phase 4.4) */}
+          <MetalsStrip metals={metals} stale={metalsStale} updatedAt={metalsUpdatedAt} displayPct={metalsDisplayPct} />
+        </aside>
+        <div className="min-w-0 space-y-2 xl:order-1">
 
       {/* Quick actions */}
       {anyQuickAction ? (
@@ -374,6 +384,8 @@ export default function DashboardContent({
           href="/customers?banned=1"
         />
       </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -399,10 +411,10 @@ function MetalsStrip({
 }) {
   const { t } = useI18n()
   const d = t.dashboard
+  const [calcMetal, setCalcMetal] = useState<MetalType | null>(null)
   return (
-    <Link
-      href="/inventory/spot-prices"
-      className={`mt-3 block rounded-xl border p-3 transition-all hover:-translate-y-0.5 hover:shadow-sm ${
+    <div
+      className={`mt-3 block rounded-xl border p-3 xl:mt-0 ${
         stale ? 'border-danger/40 bg-danger/5' : 'border-border bg-card'
       }`}
     >
@@ -416,15 +428,26 @@ function MetalsStrip({
             </span>
           ) : null}
         </span>
-        <span className={`text-[11px] font-semibold ${stale ? 'text-danger' : 'text-muted'}`}>
-          {updatedAt
-            ? (stale ? d.metalsStale : d.metalsUpdated).replace('{when}', shortDateTime(updatedAt))
-            : d.metalsNoData}
+        <span className="inline-flex items-center gap-3">
+          <span className={`text-[11px] font-semibold ${stale ? 'text-danger' : 'text-muted'}`}>
+            {updatedAt
+              ? (stale ? d.metalsStale : d.metalsUpdated).replace('{when}', shortDateTime(updatedAt))
+              : d.metalsNoData}
+          </span>
+          <Link href="/inventory/spot-prices" className="text-[11px] font-semibold text-blue hover:text-blue-2">
+            {d.metalsOpenSpot}
+          </Link>
         </span>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-1">
         {metals.map((m) => (
-          <div key={`${m.metal}::${m.purity}`} className="rounded-lg bg-background/60 px-3 py-2">
+          <button
+            type="button"
+            key={`${m.metal}::${m.purity}`}
+            onClick={() => setCalcMetal(m.metal)}
+            title={d.calc.open}
+            className="rounded-lg bg-background/60 px-3 py-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-3 focus-visible:outline-blue"
+          >
             <div className="text-[10px] font-bold uppercase tracking-wide text-muted">
               {t.spotPrices.metals[m.metal] ?? m.metal}
               <span className="ml-1 font-normal normal-case">{t.spotPrices.purities[m.purity] ?? m.purity}</span>
@@ -451,10 +474,19 @@ function MetalsStrip({
                 {d.metalsSpotLine.replace('{price}', fmtMoney(m.spotOz))}
               </div>
             ) : null}
-          </div>
+          </button>
         ))}
       </div>
-    </Link>
+      {calcMetal ? (
+        <MetalCalculator
+          metals={metals}
+          initialMetal={calcMetal}
+          displayPct={displayPct}
+          updatedAt={updatedAt}
+          onClose={() => setCalcMetal(null)}
+        />
+      ) : null}
+    </div>
   )
 }
 
