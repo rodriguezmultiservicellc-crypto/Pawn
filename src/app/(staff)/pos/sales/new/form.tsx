@@ -87,6 +87,7 @@ export default function NewSaleForm({
     taxRate: string,
     discount: string,
     notes: string,
+    tender: 'cash' | 'card',
   ) {
     setError(null)
     setFieldErrors(null)
@@ -102,6 +103,7 @@ export default function NewSaleForm({
       discount,
       notes,
     )
+    fd.set('tender', tender)
     startTransition(async () => {
       const res = await createSaleAction(fd)
       if (res.error) {

@@ -10,7 +10,15 @@ import {
   type SaleItemInput,
 } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
-import { afterSaleCompleted, layawayCreate, posErrorKey, saleCreate, type SaleLineInput } from '@/lib/pos/money'
+import {
+  afterSaleCompleted,
+  layawayCreate,
+  posErrorKey,
+  saleAddPayment,
+  saleComplete,
+  saleCreate,
+  type SaleLineInput,
+} from '@/lib/pos/money'
 import type { PaymentMethod } from '@/types/database-aliases'
 
 /**
@@ -136,6 +144,7 @@ export async function createSaleAction(
     taxRate: v.tax_rate,
     discountAmount: v.discount_amount,
     notes: v.notes,
+    tender: formData.get('tender') === 'card' ? 'card' : 'cash',
   })
 }
 
@@ -236,6 +245,8 @@ async function persistSale(args: {
   taxRate: number
   discountAmount: number
   notes: string | null
+  /** Cash is taken at the counter now; card goes to the sale page (reader). */
+  tender: 'cash' | 'card'
 }): Promise<CreateSaleResult> {
   if (args.items.length === 0) return { error: 'cartEmpty' }
 
@@ -266,7 +277,58 @@ async function persistSale(args: {
     },
   })
 
+  if (args.tender === 'cash') await settleCash(args, r.data.saleId, r.data.total)
+
   revalidatePath('/pos')
   revalidatePath('/pos/sales')
   return { redirectTo: `/pos/sales/${r.data.saleId}` }
+}
+
+/**
+ * Charge with Cash: record the cash tender for the full total and complete
+ * the sale, through the same 0076 functions the sale page uses (row locks,
+ * cents, idempotent complete). If either step refuses, the sale stays OPEN
+ * and the clerk lands on its page, where payment can be taken by hand — the
+ * sale itself is already saved, so nothing is lost. Card is not settled
+ * here: a card tender needs the reader / PaymentIntent on the sale page.
+ */
+async function settleCash(
+  args: { userId: string; tenantId: string },
+  saleId: string,
+  total: number,
+): Promise<void> {
+  const { userId, tenantId } = args
+  if (total > 0) {
+    const paid = await saleAddPayment({
+      tenantId,
+      userId,
+      saleId,
+      amount: total,
+      method: 'cash',
+      paymentIntentId: null,
+      readerId: null,
+      notes: null,
+    })
+    if (!paid.ok) return
+    await logAudit({
+      tenantId,
+      userId,
+      action: 'sale_payment_add',
+      tableName: 'sale_payments',
+      recordId: saleId,
+      changes: { amount: total, payment_method: 'cash', paid_total: paid.data.paidTotal, at: 'charge' },
+    })
+  }
+  const done = await saleComplete({ tenantId, userId, saleId })
+  if (!done.ok || !done.data.completed) return
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'sale_complete',
+    tableName: 'sales',
+    recordId: saleId,
+    changes: { total, at: 'charge' },
+  })
+  // Loyalty earn, referral, eBay end — same as completing on the sale page.
+  await afterSaleCompleted({ tenantId, saleId })
 }

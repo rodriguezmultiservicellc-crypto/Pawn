@@ -57,6 +57,7 @@ export function Cart({
     taxRate: string,
     discount: string,
     notes: string,
+    tender: 'cash' | 'card',
   ) => void
   onSaveAsLayaway: (
     customerId: string | null,
@@ -688,7 +689,7 @@ export function Cart({
             type="button"
             disabled={!canSubmit}
             onClick={() =>
-              onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes)
+              onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes, tender === 'card' ? 'card' : 'cash')
             }
             className={`flex h-14 w-full items-center justify-center rounded-md bg-gold text-[17px] font-bold text-navy transition-colors hover:bg-gold-2 disabled:cursor-not-allowed disabled:opacity-45 ${FOCUS}`}
           >
