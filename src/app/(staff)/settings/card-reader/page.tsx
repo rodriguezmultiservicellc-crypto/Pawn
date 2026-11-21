@@ -5,6 +5,7 @@ import { getTenantSecret } from '@/lib/secrets/vault'
 import { loadShopReader } from '@/lib/pos/reader-server'
 import {
   getTerminalReader,
+  listTerminalReaders,
   stripeAccountInfo,
   tenantStripeReady,
   tenantStripeTestMode,
@@ -54,6 +55,18 @@ export default async function CardReaderSettingsPage() {
     }
   }
 
+  // Readers already on this Stripe account (e.g. paired by another RMS app).
+  let existing: CardReaderView['existing'] = []
+  if (ready) {
+    try {
+      existing = (await listTerminalReaders(tenantId))
+        .filter((r) => r.id !== reader?.readerId)
+        .map((r) => ({ id: r.id, label: r.label, deviceType: r.device_type, status: r.status }))
+    } catch {
+      existing = []
+    }
+  }
+
   const view: CardReaderView = {
     canEdit: isSuperadmin || (!!ctx.tenantRole && (EDIT_ROLES as readonly string[]).includes(ctx.tenantRole)),
     isSuperadmin,
@@ -65,6 +78,7 @@ export default async function CardReaderSettingsPage() {
     account,
     reader: reader ? { id: reader.readerId, label: reader.label } : null,
     live,
+    existing,
   }
   return <CardReaderContent view={view} />
 }

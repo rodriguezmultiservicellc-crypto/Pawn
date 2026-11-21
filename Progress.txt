@@ -674,6 +674,35 @@ Progress_archive.txt — the items from those sessions are there.)
      NEXT (Eddy): pair the physical reader (Settings → Card reader, code
      from the reader), then New sale → Card → Card reader with his own card.
 
+ 490. INTEGRATIONS + LUNA AZUL'S RMS READER IN PAWN.
+     - Integrations: Connect start maps Stripe's "signed up for Connect"
+       refusal to flag connect_not_enabled (clear EN/ES banner); the
+       Stripe card shows the shop's charge mode and links to Card reader
+       when the shop is not on Connect (af61233).
+     - The RMS PLATFORM account (acct_1RH52…) has NO readers. Read-only
+       look at Luna Azul: one reader, "Main Terminal" WisePOS E
+       tmr_GRw2qghwAC56m4, on the RMS SHOP's own Stripe account
+       acct_1Q0xJ9Hwkn4Ub4Te (Luna Azul tenant_secrets.stripe_secret_key of
+       "Rodriguez Multi Service", sk_live, a DIFFERENT key).
+     - On Eddy's double confirmation: that key copied READ-ONLY into Pawn
+       Vault (stripe_own_secret_key, read back identical), shop mode →
+       own_key, reader linked with its location tml_FupJNQSSyqGuF1; two
+       audit rows. CLAUDE.md rule 17 has the second exception note.
+     - New: "Readers on this Stripe account" + Use this reader
+       (adoptReaderAction, listTerminalReaders) to reuse a reader already
+       registered on the account — no pairing code.
+     - FIX before shipping: saving own_key again with a blank key would
+       have cleared the paired reader (changed = own_key always true). Now
+       the reader is cleared only when the Stripe ACCOUNT changes (other
+       mode, or a new key on a different account); the save button is off
+       when nothing changed.
+     Verified: Card reader page "Charging on: Rodriguez Multi Service LLC
+     (acct_1Q0xJ9Hwkn4Ub4Te) LIVE", Main Terminal paired (offline at the
+     time); Card reader + POS new sale smoke clean; 816 tests.
+     NEXT (Eddy): power the WisePOS E on (Wi-Fi), New sale → Card → Card
+     reader → Send, tap his own card. The reader is SHARED with Luna Azul:
+     one charge at a time.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

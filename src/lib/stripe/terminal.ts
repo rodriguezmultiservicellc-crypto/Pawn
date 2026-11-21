@@ -256,6 +256,8 @@ export async function verifyStripeKey(apiKey: string): Promise<{ ok: true; id: s
 export type StripeReader = {
   id: string
   label: string | null
+  /** Terminal Location id the reader is registered at. */
+  location?: string | null
   device_type: string | null
   status: 'online' | 'offline' | null
   serial_number: string | null
@@ -393,4 +395,15 @@ export async function simulateReaderTap(args: { tenantId: string; readerId: stri
     `/test_helpers/terminal/readers/${encodeURIComponent(args.readerId)}/present_payment_method`,
     { method: 'POST', accountId, apiKey },
   )
+}
+
+/** Readers already registered on the shop's Stripe account (to reuse one without re-pairing). */
+export async function listTerminalReaders(tenantId: string): Promise<StripeReader[]> {
+  const { accountId, apiKey } = await stripeTarget(tenantId)
+  const r = await stripeFetch<{ data: (StripeReader & { location?: string | null })[] }>('/terminal/readers?limit=50', {
+    method: 'GET',
+    accountId,
+    apiKey,
+  })
+  return r.data
 }

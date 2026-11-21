@@ -18,7 +18,9 @@ import { loadShopReader } from '@/lib/pos/reader-server'
 import {
   createTerminalLocation,
   deleteTerminalReader,
+  getTerminalReader,
   registerTerminalReader,
+  stripeAccountInfo,
   stripeTarget,
   tenantStripeReady,
   verifyStripeKey,
@@ -186,6 +188,9 @@ export async function setChargeModeAction(input: { mode: StripeChargeMode; key?:
   }
 
   const before = await stripeTarget(tenantId).catch(() => null)
+  // The Stripe account charges run on now — a reader belongs to exactly one.
+  const beforeAccount = (await stripeAccountInfo(tenantId))?.id ?? null
+  let newAccount: string | null = null
 
   if (mode === 'own_key') {
     const key = (input.key ?? '').trim()
@@ -193,6 +198,7 @@ export async function setChargeModeAction(input: { mode: StripeChargeMode; key?:
       if (!STRIPE_SECRET_KEY_RE.test(key)) return { ok: false, error: 'keyInvalid' }
       const v = await verifyStripeKey(key)
       if (!v.ok) return { ok: false, error: 'keyRejected', detail: v.error }
+      newAccount = v.id
       const saved = await setTenantSecret(tenantId, 'stripe_own_secret_key', key)
       if (!saved.ok) return { ok: false, error: 'generic' }
     } else {
@@ -203,7 +209,9 @@ export async function setChargeModeAction(input: { mode: StripeChargeMode; key?:
 
   // service_role write (guarded above): the only path into 'platform'.
   const admin = createAdminClient()
-  const changed = !before || before.mode !== mode || mode === 'own_key'
+  // Clear the reader only when the Stripe ACCOUNT really changes: another
+  // mode, or a new own key that belongs to a different account.
+  const changed = !before || before.mode !== mode || (newAccount !== null && newAccount !== beforeAccount)
   const { error } = await admin
     .from('settings')
     .update({
@@ -225,6 +233,50 @@ export async function setChargeModeAction(input: { mode: StripeChargeMode; key?:
     tableName: 'settings',
     recordId: tenantId,
     changes: { from: before?.mode ?? null, to: mode, key_replaced: mode === 'own_key' && !!(input.key ?? '').trim(), reader_cleared: changed },
+  })
+  revalidatePath('/settings/card-reader')
+  revalidatePath('/pos/sales/new')
+  return { ok: true }
+}
+
+/**
+ * Use a reader that is ALREADY registered on the shop's Stripe account (e.g.
+ * one another RMS app paired) — no pairing code. Owners / chain admins. The
+ * reader must exist on the account this shop charges on; its Terminal
+ * Location comes with it.
+ */
+export async function adoptReaderAction(readerId: string): Promise<ReaderActionResult> {
+  const { supabase, userId, tenantId } = await owner()
+  if (!/^tmr_[A-Za-z0-9]+$/.test(readerId)) return { ok: false, error: 'invalid' }
+  if (!(await tenantStripeReady(tenantId))) return { ok: false, error: 'notConnected' }
+
+  let reader: Awaited<ReturnType<typeof getTerminalReader>>
+  try {
+    reader = await getTerminalReader({ tenantId, readerId })
+  } catch (e) {
+    return { ok: false, error: 'pairFailed', detail: e instanceof Error ? e.message : undefined }
+  }
+
+  const { error } = await supabase
+    .from('settings')
+    .update({
+      stripe_terminal_reader_id: reader.id,
+      stripe_terminal_reader_label: (reader.label ?? reader.id).slice(0, 60),
+      stripe_terminal_location_id: reader.location ?? null,
+    })
+    .eq('tenant_id', tenantId)
+  if (error) {
+    console.error('[card-reader] use existing failed', error.message)
+    return { ok: false, error: 'generic' }
+  }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'terminal_reader_pair',
+    tableName: 'settings',
+    recordId: tenantId,
+    changes: { reader_id: reader.id, label: reader.label, device_type: reader.device_type, existing: true },
   })
   revalidatePath('/settings/card-reader')
   revalidatePath('/pos/sales/new')

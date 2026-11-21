@@ -4,7 +4,13 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, CreditCard, Trash, WarningCircle } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { pairReaderAction, removeReaderAction, setChargeModeAction, type ReaderActionResult } from './actions'
+import {
+  pairReaderAction,
+  removeReaderAction,
+  setChargeModeAction,
+  adoptReaderAction,
+  type ReaderActionResult,
+} from './actions'
 import type { StripeChargeMode } from '@/lib/stripe/terminal'
 
 export type CardReaderView = {
@@ -21,6 +27,8 @@ export type CardReaderView = {
   account: { id: string; name: string | null; live: boolean } | null
   reader: { id: string; label: string | null } | null
   live: { status: 'online' | 'offline' | null; deviceType: string | null; serial: string | null } | null
+  /** Other readers already registered on this Stripe account. */
+  existing: { id: string; label: string | null; deviceType: string | null; status: 'online' | 'offline' | null }[]
 }
 
 const INPUT =
@@ -145,7 +153,7 @@ export default function CardReaderContent({ view }: { view: CardReaderView }) {
               type="button"
               disabled={
                 pending ||
-                (mode === view.mode && mode !== 'own_key') ||
+                (mode === view.mode && (mode !== 'own_key' || !key.trim())) ||
                 (mode === 'own_key' && !key.trim() && !view.ownKeySaved)
               }
               onClick={() => {
@@ -190,6 +198,41 @@ export default function CardReaderContent({ view }: { view: CardReaderView }) {
               </button>
             ) : null}
           </div>
+        </section>
+      ) : null}
+
+      {view.canEdit && view.existing.length > 0 ? (
+        <section className="space-y-3 rounded-xl border border-border bg-card p-5">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{c.existingTitle}</h2>
+            <p className="mt-1 text-sm text-muted">{c.existingHelp}</p>
+          </div>
+          <ul className="divide-y divide-border rounded-xl border border-border">
+            {view.existing.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                <span className="font-semibold text-foreground">{r.label ?? r.id}</span>
+                {r.deviceType ? <span className="font-mono text-xs text-muted">{r.deviceType}</span> : null}
+                <span
+                  className={`text-xs font-semibold ${
+                    r.status === 'online' ? 'text-success' : r.status === 'offline' ? 'text-danger' : 'text-muted'
+                  }`}
+                >
+                  {r.status === 'online' ? c.statusOnline : r.status === 'offline' ? c.statusOffline : c.statusUnknown}
+                </span>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => {
+                    setMsg(null)
+                    start(async () => show(await adoptReaderAction(r.id)))
+                  }}
+                  className="ml-auto inline-flex h-11 items-center rounded-md border border-border px-4 text-sm font-semibold text-foreground hover:bg-background disabled:opacity-45"
+                >
+                  {c.useReader}
+                </button>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 
