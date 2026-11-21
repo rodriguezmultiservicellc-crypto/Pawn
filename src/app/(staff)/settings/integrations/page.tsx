@@ -20,6 +20,7 @@ const STRIPE_FLAGS: ReadonlySet<string> = new Set<ConnectRedirectFlag>([
   'misconfigured',
   'stripe_error',
   'save_failed',
+  'connect_not_enabled',
 ])
 
 type SearchParams = Promise<{ stripe?: string }>
@@ -70,7 +71,7 @@ export default async function IntegrationsPage(props: {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_from_email, google_place_id, orocut_style_names',
+        'twilio_account_sid, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_from_email, google_place_id, orocut_style_names, stripe_charge_mode',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -124,6 +125,7 @@ export default async function IntegrationsPage(props: {
       payoutsEnabled: billing?.stripe_payouts_enabled ?? false,
       statusSyncedAt: billing?.stripe_status_synced_at ?? null,
       flag: stripeFlag,
+      chargeMode: (settings?.stripe_charge_mode ?? 'connect') as 'connect' | 'own_key' | 'platform',
     },
     twilio: {
       connected: !!(settings?.twilio_account_sid && secrets.has('twilio_auth_token')),

@@ -62,7 +62,10 @@ export async function GET(req: NextRequest) {
       accountId = account.id
     } catch (err) {
       console.error('[stripe-connect/start] account create failed', err)
-      return NextResponse.redirect(buildSettingsRedirect(appUrl, 'stripe_error'))
+      const msg = err instanceof Error ? err.message : ''
+      // Stripe: "You can only create new accounts if you've signed up for Connect…"
+      const flag = /signed up for Connect/i.test(msg) ? 'connect_not_enabled' : 'stripe_error'
+      return NextResponse.redirect(buildSettingsRedirect(appUrl, flag))
     }
 
     try {

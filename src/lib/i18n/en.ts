@@ -4970,8 +4970,14 @@ export const en = {
       not_connected: 'Not connected',
       onboarding_incomplete: 'Onboarding incomplete',
       connected: 'Connected',
+      otherAccount: 'Another Stripe account',
     },
+    otherAccountPlatform:
+      'Card payments for this shop run on the RMS Stripe account (set by the platform). Connect is not used — manage it in Settings → Card reader.',
+    otherAccountOwnKey:
+      'Card payments for this shop run on the shop’s own Stripe key. Connect is not used — manage it in Settings → Card reader.',
     action: {
+      manageCardPayments: 'Manage card payments',
       connect: 'Connect with Stripe',
       continueOnboarding: 'Continue onboarding',
       openDashboard: 'Open Stripe dashboard',
@@ -5010,6 +5016,8 @@ export const en = {
         'Stripe returned an error. Try again in a moment; if it keeps happening, contact Sol Pawn support.',
       save_failed:
         'Stripe responded but the status could not be saved. Try again.',
+      connect_not_enabled:
+        'The platform’s Stripe account has not signed up for Stripe Connect yet, so shops cannot connect here. Card payments can still run on the shop’s own Stripe key — see Settings → Card reader.',
     },
   },
   team: {

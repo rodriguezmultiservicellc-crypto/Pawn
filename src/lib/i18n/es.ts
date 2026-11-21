@@ -4973,8 +4973,14 @@ export const es: Dictionary = {
       not_connected: 'No conectado',
       onboarding_incomplete: 'Registro incompleto',
       connected: 'Conectado',
+      otherAccount: 'Otra cuenta de Stripe',
     },
+    otherAccountPlatform:
+      'Los pagos con tarjeta de esta tienda se hacen en la cuenta de Stripe de RMS (configurado por la plataforma). Connect no se usa — adminístrelo en Configuración → Lector de tarjetas.',
+    otherAccountOwnKey:
+      'Los pagos con tarjeta de esta tienda se hacen con la clave de Stripe propia de la tienda. Connect no se usa — adminístrelo en Configuración → Lector de tarjetas.',
     action: {
+      manageCardPayments: 'Administrar pagos con tarjeta',
       connect: 'Conectar con Stripe',
       continueOnboarding: 'Continuar el registro',
       openDashboard: 'Abrir panel de Stripe',
@@ -5013,6 +5019,8 @@ export const es: Dictionary = {
         'Stripe devolvió un error. Inténtalo de nuevo en un momento; si persiste, contacta a soporte de Sol Pawn.',
       save_failed:
         'Stripe respondió pero no se pudo guardar el estado. Inténtalo de nuevo.',
+      connect_not_enabled:
+        'La cuenta de Stripe de la plataforma todavía no se inscribió en Stripe Connect, así que las tiendas no pueden conectarse aquí. Los pagos con tarjeta pueden usar la clave de Stripe propia de la tienda — vea Configuración → Lector de tarjetas.',
     },
   },
   team: {

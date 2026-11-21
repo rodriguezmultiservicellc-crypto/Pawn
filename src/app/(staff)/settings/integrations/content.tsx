@@ -39,6 +39,8 @@ export type IntegrationsView = {
     statusSyncedAt: string | null
     /** `?stripe=` flag set by the Connect routes on redirect back here. */
     flag: ConnectRedirectFlag | null
+    /** settings.stripe_charge_mode (0087) — card charges may not use Connect at all. */
+    chargeMode: 'connect' | 'own_key' | 'platform'
   }
   twilio: {
     connected: boolean
@@ -83,7 +85,11 @@ export default function IntegrationsContent({
   const isOwner = !!view.role && OWNER_ROLES.has(view.role)
 
   const sc = view.stripeConnect
+  // Not on Connect: card charges run on the RMS account or the shop's own
+  // key — managed in Settings → Card reader, not here.
+  const otherAccount = sc.chargeMode !== 'connect'
   const stripeAction = (() => {
+    if (otherAccount) return { href: '/settings/card-reader', label: t.stripeConnect.action.manageCardPayments }
     switch (sc.status) {
       case 'connected':
         return {
@@ -99,8 +105,9 @@ export default function IntegrationsContent({
         return { href: CONNECT_PATHS.start, label: t.stripeConnect.action.connect }
     }
   })()
-  const stripePill: PillStatus =
-    sc.status === 'connected'
+  const stripePill: PillStatus = otherAccount
+    ? 'connected'
+    : sc.status === 'connected'
       ? 'connected'
       : sc.status === 'onboarding_incomplete'
         ? 'incomplete'
@@ -155,15 +162,19 @@ export default function IntegrationsContent({
           title={t.stripeConnect.title}
           tagline={t.stripeConnect.tagline}
           status={stripePill}
-          statusLabel={t.stripeConnect.status[sc.status]}
+          statusLabel={otherAccount ? t.stripeConnect.status.otherAccount : t.stripeConnect.status[sc.status]}
           actionHref={stripeAction.href}
           actionLabel={stripeAction.label}
-          actionExternal
+          actionExternal={!otherAccount}
           actionDisabled={!isOwner}
           actionDisabledReason={t.stripeConnect.ownerOnly}
         >
           <p className="mt-2 text-xs text-muted">
-            {t.stripeConnect.help[sc.status]}
+            {otherAccount
+              ? sc.chargeMode === 'platform'
+                ? t.stripeConnect.otherAccountPlatform
+                : t.stripeConnect.otherAccountOwnKey
+              : t.stripeConnect.help[sc.status]}
           </p>
           {sc.status !== 'not_connected' ? (
             <KvList

@@ -97,6 +97,8 @@ export type ConnectRedirectFlag =
   | 'misconfigured'
   | 'stripe_error'
   | 'save_failed'
+  /** The platform (RMS) Stripe account has not signed up for Connect. */
+  | 'connect_not_enabled'
 
 /** Absolute URL back to Settings → Integrations with a status flag. */
 export function buildSettingsRedirect(
