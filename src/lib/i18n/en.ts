@@ -213,7 +213,8 @@ export const en = {
     metalsUpdated: 'Updated {when}',
     metalsStale: 'STALE — last update {when}. Refresh before quoting.',
     metalsNoData: 'No spot prices loaded yet.',
-    metalsPerGram: '/g',
+    metalsPerOz: '/oz t',
+    metalsAtPct: '@ {pct}% of spot',
     todayTitle: 'Today',
     todayRepairsPromised: 'Repairs promised today',
     todayPickupsReady: 'Pickups ready',
@@ -3399,6 +3400,12 @@ export const en = {
     },
     // Refresh history (patches/0058).
     fetchLogTitle: 'Refresh history',
+    displayPctTitle: 'Dashboard display percent',
+    displayPctHelp:
+      'The Live metals widget on the dashboard shows spot per troy ounce times this percent (100 = spot). Display only: buy, sell and melt prices use the rates above.',
+    displayPctSaved: 'Saved',
+    displayPctInvalid: 'Enter a percent above 0 and up to 200.',
+    displayPctError: 'Could not save. Try again.',
     fetchLogHelp:
       'Every scheduled and manual refresh, newest first. A failed row shows which provider failed and why.',
     fetchLogEmpty: 'No refresh has run since this log was added.',

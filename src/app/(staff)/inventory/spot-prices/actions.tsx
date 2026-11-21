@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCtx } from '@/lib/supabase/ctx'
-import { requireStaff, requireRoleInTenant } from '@/lib/supabase/guards'
+import { requireOwner, requireStaff, requireRoleInTenant } from '@/lib/supabase/guards'
 import { logAudit } from '@/lib/audit'
 import {
   refreshSpotPrices,
@@ -184,6 +184,50 @@ export async function saveSpotSellRateAction(
 
   revalidatePath('/inventory/spot-prices')
   revalidatePath('/buy/sell')
+  return { ok: true }
+}
+
+export type DisplayPctState = { ok?: boolean; error?: 'invalid' | 'generic' }
+
+/**
+ * Dashboard live-metals display percent (patches/0083). DISPLAY ONLY — buy,
+ * sell and melt math keep using the overrides above. Owners / chain admins
+ * (settings RLS: owner write); the user client so RLS is the second check.
+ */
+export async function saveDashboardDisplayPctAction(
+  _prev: DisplayPctState,
+  formData: FormData,
+): Promise<DisplayPctState> {
+  const ctx = await getCtx()
+  if (!ctx?.tenantId) return { error: 'generic' }
+  const { supabase, userId } = await requireOwner(ctx.tenantId)
+
+  const pct = parseFloat(String(formData.get('display_pct') ?? '').trim())
+  if (!Number.isFinite(pct) || pct <= 0 || pct > 200) return { error: 'invalid' }
+  const fraction = Math.round(pct * 100) / 10000
+
+  const { data, error } = await supabase
+    .from('settings')
+    .update({ dashboard_spot_display_pct: fraction })
+    .eq('tenant_id', ctx.tenantId)
+    .select('tenant_id')
+    .maybeSingle()
+  if (error || !data) {
+    console.error('[spot-prices] display pct save failed', error?.message)
+    return { error: 'generic' }
+  }
+
+  await logAudit({
+    tenantId: ctx.tenantId,
+    userId,
+    action: 'update',
+    tableName: 'settings',
+    recordId: ctx.tenantId,
+    changes: { dashboard_spot_display_pct: fraction },
+  })
+
+  revalidatePath('/dashboard')
+  revalidatePath('/inventory/spot-prices')
   return { ok: true }
 }
 

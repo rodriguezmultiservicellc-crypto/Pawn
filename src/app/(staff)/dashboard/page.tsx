@@ -17,6 +17,8 @@ import { loadPledgeAlert } from '@/lib/counts/server'
 import type { MetalPurity, MetalType } from '@/types/database-aliases'
 
 /** The four headline feeds on the dashboard strip (brief Phase 4.4). */
+const GRAMS_PER_TROY_OZ = 31.1034768
+
 const STRIP_COMBOS: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }> = [
   { metalType: 'gold', purity: 'pure_24k' },
   { metalType: 'silver', purity: 'fine' },
@@ -25,11 +27,12 @@ const STRIP_COMBOS: ReadonlyArray<{ metalType: MetalType; purity: MetalPurity }>
 ]
 
 /**
- * Live metals strip: latest per-gram price per metal, % change against
+ * Live metals strip: latest price per troy ounce per metal (how bullion
+ * is quoted), % change against
  * the oldest point in the last 24h, and the feed's freshness (red when
  * stale — same 24h rule as the counters, brief 0.1).
  */
-async function loadMetalsStrip(): Promise<{ metals: MetalStripItem[]; stale: boolean; newestFetchedAt: string | null }> {
+async function loadMetalsStrip(displayPct: number): Promise<{ metals: MetalStripItem[]; stale: boolean; newestFetchedAt: string | null }> {
   const [latest, history, freshness] = await Promise.all([
     getLatestSpotPrices(STRIP_COMBOS),
     getSpotPriceHistory({ windowHours: 24 }),
@@ -44,12 +47,20 @@ async function loadMetalsStrip(): Promise<{ metals: MetalStripItem[]; stale: boo
     const key = spotKey(metalType, purity)
     const row = latest.get(key) ?? null
     const perGram = row?.price_per_gram == null ? null : Number(row.price_per_gram)
+    const spotOz =
+      row?.price_per_troy_oz != null
+        ? Number(row.price_per_troy_oz)
+        : perGram == null
+          ? null
+          : perGram * GRAMS_PER_TROY_OZ
+    // Display only (settings.dashboard_spot_display_pct, 0083); % change is unaffected.
+    const perOz = spotOz == null ? null : Math.round(spotOz * displayPct * 100) / 100
     const base = firstInWindow.get(key)
     const changePct =
       perGram != null && base != null && base > 0 && Number.isFinite(base)
         ? Math.round(((perGram - base) / base) * 1000) / 10
         : null
-    return { metal: metalType, purity, perGram, changePct, fetchedAt: row?.fetched_at ?? null }
+    return { metal: metalType, purity, perOz, changePct, fetchedAt: row?.fetched_at ?? null }
   })
   return { metals, stale: freshness.stale, newestFetchedAt: freshness.newestFetchedAt }
 }
@@ -123,7 +134,14 @@ export default async function DashboardPage() {
     : { count: 0 }
 
   // Metals strip (brief Phase 4.4) — platform-wide feed, no tenant data.
-  const strip = await loadMetalsStrip()
+  // Shown at the shop's display percent of spot (settings, 0083).
+  const { data: spotDisplay } = await ctx.supabase
+    .from('settings')
+    .select('dashboard_spot_display_pct')
+    .eq('tenant_id', ctx.tenantId)
+    .maybeSingle()
+  const metalsDisplayPct = Number(spotDisplay?.dashboard_spot_display_pct ?? 1) || 1
+  const strip = await loadMetalsStrip(metalsDisplayPct)
 
   // ── Repair (gated) ─────────────────────────────────────────────────────────
   let readyForPickupCount = 0
@@ -404,6 +422,7 @@ export default async function DashboardPage() {
       metals={strip.metals}
       metalsStale={strip.stale}
       metalsUpdatedAt={strip.newestFetchedAt}
+      metalsDisplayPct={metalsDisplayPct}
       todayCard={{
         repairsPromised: repairsPromisedToday,
         pickupsReady: readyForPickupCount,

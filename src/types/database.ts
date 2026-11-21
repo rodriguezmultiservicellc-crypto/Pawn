@@ -5782,6 +5782,7 @@ export type Database = {
           custom_quote_labor_rate: number
           custom_quote_min_margin_pct: number
           custom_quote_show_cost_breakdown: boolean
+          dashboard_spot_display_pct: number
           default_currency: string
           default_loan_interest_rate: number
           default_loan_term_days: number
@@ -5847,6 +5848,7 @@ export type Database = {
           custom_quote_labor_rate?: number
           custom_quote_min_margin_pct?: number
           custom_quote_show_cost_breakdown?: boolean
+          dashboard_spot_display_pct?: number
           default_currency?: string
           default_loan_interest_rate?: number
           default_loan_term_days?: number
@@ -5912,6 +5914,7 @@ export type Database = {
           custom_quote_labor_rate?: number
           custom_quote_min_margin_pct?: number
           custom_quote_show_cost_breakdown?: boolean
+          dashboard_spot_display_pct?: number
           default_currency?: string
           default_loan_interest_rate?: number
           default_loan_term_days?: number

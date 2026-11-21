@@ -17,7 +17,9 @@ import type { SpotFreshness } from '@/lib/spot-prices/staleness'
 import { pctLabel } from '@/components/buy/EntryModeToggle'
 import {
   refreshSpotPricesAction,
+  saveDashboardDisplayPctAction,
   saveSpotOverrideAction,
+  type DisplayPctState,
   saveSpotSellRateAction,
   type RefreshNowState,
   type SaveOverrideState,
@@ -112,6 +114,8 @@ export default function SpotPricesContent({
   canRefresh,
   freshness,
   fetchLog,
+  displayPct,
+  canEditDisplay,
 }: {
   cards: SpotPriceCard[]
   history: SpotPriceHistoryPoint[]
@@ -119,6 +123,9 @@ export default function SpotPricesContent({
   canRefresh: boolean
   freshness: SpotFreshness
   fetchLog: SpotPriceFetchRow[]
+  /** Dashboard strip display fraction (0083); 1 = spot. */
+  displayPct: number
+  canEditDisplay: boolean
 }) {
   const { t } = useI18n()
 
@@ -200,6 +207,8 @@ export default function SpotPricesContent({
       ) : null}
 
       <OverridesPanel overrides={overrides} />
+
+      {canEditDisplay ? <DashboardDisplayPanel initial={displayPct} /> : null}
 
       <FetchLogPanel rows={fetchLog} />
     </div>
@@ -707,6 +716,53 @@ function RateForm({
       {state.error ? <div className="mt-1 text-xs text-danger">{state.error}</div> : null}
       {state.ok ? <div className="mt-1 text-xs text-success">{t.common.save} ✓</div> : null}
     </form>
+  )
+}
+
+/** Dashboard "Live metals" display percent (0083). Display only. */
+function DashboardDisplayPanel({ initial }: { initial: number }) {
+  const { t } = useI18n()
+  const s = t.spotPrices
+  const [state, formAction, pending] = useActionState<DisplayPctState, FormData>(
+    saveDashboardDisplayPctAction,
+    {},
+  )
+  const [pct, setPct] = useState(String(Math.round(initial * 10000) / 100))
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-4">
+      <h2 className="text-sm font-semibold text-foreground">{s.displayPctTitle}</h2>
+      <p className="mt-1 text-xs text-muted">{s.displayPctHelp}</p>
+      <form action={formAction} className="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          name="display_pct"
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          min="0.01"
+          max="200"
+          required
+          value={pct}
+          onChange={(e) => setPct(e.target.value)}
+          aria-label={s.displayPctTitle}
+          className="h-11 w-28 rounded-xl border border-border bg-card px-3 text-right font-mono text-sm text-foreground focus:border-blue focus:outline-none"
+        />
+        <span className="text-sm text-muted">%</span>
+        <button
+          type="submit"
+          disabled={pending}
+          className="h-11 rounded-xl bg-gold px-5 text-sm font-bold text-navy transition-all hover:-translate-y-0.5 hover:bg-gold-2 hover:shadow-lg disabled:opacity-50"
+        >
+          {pending ? t.common.saving : t.common.save}
+        </button>
+        {state.ok ? <span className="text-xs text-success">{s.displayPctSaved}</span> : null}
+        {state.error ? (
+          <span className="text-xs text-danger">
+            {state.error === 'invalid' ? s.displayPctInvalid : s.displayPctError}
+          </span>
+        ) : null}
+      </form>
+    </section>
   )
 }
 

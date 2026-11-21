@@ -29,7 +29,7 @@ import type { MetalPurity, MetalType } from '@/types/database-aliases'
 export type MetalStripItem = {
   metal: MetalType
   purity: MetalPurity
-  perGram: number | null
+  perOz: number | null
   /** % vs the oldest point in the last 24h; null without two points. */
   changePct: number | null
   fetchedAt: string | null
@@ -99,6 +99,7 @@ export default function DashboardContent({
   metals,
   metalsStale,
   metalsUpdatedAt,
+  metalsDisplayPct,
   todayCard,
   pledgeAlert,
   onlineOrdersWaiting,
@@ -116,6 +117,8 @@ export default function DashboardContent({
   metals: MetalStripItem[]
   metalsStale: boolean
   metalsUpdatedAt: string | null
+  /** Fraction of spot the strip shows (1 = spot). */
+  metalsDisplayPct: number
   todayCard: TodayCard
   pledgeAlert: PledgeAlert | null
   onlineOrdersWaiting: number
@@ -147,7 +150,7 @@ export default function DashboardContent({
       ) : null}
 
       {/* Live metals strip (brief Phase 4.4) */}
-      <MetalsStrip metals={metals} stale={metalsStale} updatedAt={metalsUpdatedAt} />
+      <MetalsStrip metals={metals} stale={metalsStale} updatedAt={metalsUpdatedAt} displayPct={metalsDisplayPct} />
 
       {/* Quick actions */}
       {anyQuickAction ? (
@@ -384,10 +387,12 @@ function MetalsStrip({
   metals,
   stale,
   updatedAt,
+  displayPct,
 }: {
   metals: MetalStripItem[]
   stale: boolean
   updatedAt: string | null
+  displayPct: number
 }) {
   const { t } = useI18n()
   const d = t.dashboard
@@ -402,6 +407,11 @@ function MetalsStrip({
         <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted">
           {stale ? <Warning size={14} weight="bold" className="text-danger" /> : <Scales size={14} weight="bold" />}
           {d.metalsTitle}
+          {displayPct !== 1 ? (
+            <span className="rounded-md bg-gold/15 px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+              {d.metalsAtPct.replace('{pct}', String(Math.round(displayPct * 10000) / 100))}
+            </span>
+          ) : null}
         </span>
         <span className={`text-[11px] font-semibold ${stale ? 'text-danger' : 'text-muted'}`}>
           {updatedAt
@@ -418,8 +428,8 @@ function MetalsStrip({
             </div>
             <div className="flex items-baseline justify-between gap-2">
               <span className={`font-mono text-lg font-bold tabular-nums ${stale ? 'text-danger' : 'text-foreground'}`}>
-                {m.perGram == null ? '—' : fmtMoney(m.perGram)}
-                <span className="ml-1 text-[10px] font-normal text-muted">{d.metalsPerGram}</span>
+                {m.perOz == null ? '—' : fmtMoney(m.perOz)}
+                <span className="ml-1 text-[10px] font-normal text-muted">{d.metalsPerOz}</span>
               </span>
               {m.changePct != null ? (
                 <span

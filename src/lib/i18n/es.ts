@@ -209,7 +209,8 @@ export const es: Dictionary = {
     metalsUpdated: 'Actualizado {when}',
     metalsStale: 'DESACTUALIZADO — última actualización {when}. Actualiza antes de cotizar.',
     metalsNoData: 'Aún no hay precios spot cargados.',
-    metalsPerGram: '/g',
+    metalsPerOz: '/oz troy',
+    metalsAtPct: '@ {pct}% del spot',
     todayTitle: 'Hoy',
     todayRepairsPromised: 'Reparaciones prometidas hoy',
     todayPickupsReady: 'Listas para recoger',
@@ -3404,6 +3405,12 @@ export const es: Dictionary = {
     },
     // Historial de actualizaciones (patches/0058).
     fetchLogTitle: 'Historial de actualizaciones',
+    displayPctTitle: 'Porcentaje en el panel',
+    displayPctHelp:
+      'El widget Metales en vivo del panel muestra el spot por onza troy multiplicado por este porcentaje (100 = spot). Solo visual: los precios de compra, venta y fundición usan las tasas de arriba.',
+    displayPctSaved: 'Guardado',
+    displayPctInvalid: 'Ingrese un porcentaje mayor que 0 y hasta 200.',
+    displayPctError: 'No se pudo guardar. Intente de nuevo.',
     fetchLogHelp:
       'Cada actualización programada y manual, la más reciente primero. Una fila fallida muestra qué proveedor falló y por qué.',
     fetchLogEmpty: 'No se ha ejecutado ninguna actualización desde que se agregó este historial.',

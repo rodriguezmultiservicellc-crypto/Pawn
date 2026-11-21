@@ -480,6 +480,17 @@ Progress_archive.txt — the items from those sessions are there.)
      of INV-000001 popup + settings render. 792 tests, lint, build.
      NOT driven: a real product-button tap (no button in live data).
 
+ 480. DASHBOARD LIVE METALS — TROY OUNCE + DISPLAY PERCENT (patches/0083
+     APPLIED, no policy change). The strip now shows price_per_troy_oz
+     ("/oz t"), not per gram. settings.dashboard_spot_display_pct
+     (numeric(6,4), fraction, default 1, CHECK 0 < x <= 2) scales the
+     shown price; the widget shows "@ 90% of spot" when it is not 100%.
+     Edited on Spot prices → "Dashboard display percent" (owner /
+     chain_admin; saveDashboardDisplayPctAction, user client, audited).
+     DISPLAY ONLY — buy / sell / melt still use spot_price_overrides.
+     Verified in the browser: 90% → gold $3,185.10/oz t (= 90% of
+     $3,539), no console errors, reset to 100% after.
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

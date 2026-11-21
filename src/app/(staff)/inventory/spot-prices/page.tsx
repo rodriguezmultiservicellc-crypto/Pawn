@@ -106,8 +106,19 @@ export default async function SpotPricesPage() {
     ctx.tenantRole === 'manager' ||
     ctx.tenantRole === 'chain_admin'
 
+  // Dashboard strip display percent (0083) — owners / chain admins edit it.
+  const canEditDisplay = ctx.tenantRole === 'owner' || ctx.tenantRole === 'chain_admin'
+  const { data: displayRow } = await ctx.supabase
+    .from('settings')
+    .select('dashboard_spot_display_pct')
+    .eq('tenant_id', ctx.tenantId)
+    .maybeSingle()
+  const displayPct = Number(displayRow?.dashboard_spot_display_pct ?? 1) || 1
+
   return (
     <SpotPricesContent
+      displayPct={displayPct}
+      canEditDisplay={canEditDisplay}
       cards={cards}
       history={historyPoints}
       overrides={overrideTuples}
