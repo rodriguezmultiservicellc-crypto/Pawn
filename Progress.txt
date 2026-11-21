@@ -631,6 +631,21 @@ Progress_archive.txt — the items from those sessions are there.)
      tap" → expect completed sale, payment 'reader' succeeded with brand +
      last4. Also try Cancel mid-charge (sale stays open, row failed).
 
+ 488. STRIPE KEY SET — RMS ACCOUNT, LIVE (Eddy's call, rule 17 exception,
+     double-confirmed after the lane + live-mode warnings). Copied
+     Luna Azul's STRIPE_SECRET_KEY (== its STRIPE_PLATFORM_SECRET_KEY,
+     sk_live) READ-ONLY from LunaAzul Web Sass/src/.env.local into Pawn
+     .env.local and Vercel Production (sensitive), never printed; nothing
+     in the Luna Azul folder changed. Production redeployed. Read-only
+     Stripe check: acct_1RH52CGLqS4QmOl6 "Rodriguez Multi Service LLC", US,
+     charges_enabled, Connect platform (0 connected accounts), Terminal
+     available. CLAUDE.md rule 17 carries the exception note.
+     NOT DONE: Pawn's own webhook endpoint + STRIPE_WEBHOOK_SECRET; the
+     shop's Connect onboarding; pairing a reader. Simulate-tap does not
+     work on a live key — the first real reader charge is the test.
+     Seen, not touched: Luna Azul's NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is
+     a TEST key while its secret key is LIVE (Luna Azul's to check).
+
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
      earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/

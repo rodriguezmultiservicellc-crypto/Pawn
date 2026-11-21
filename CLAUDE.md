@@ -122,7 +122,14 @@ Never kill node processes by image name — always by PID.
     separate anon + service_role keys, separate DB), and its own Vercel
     project. Never push Pawn code to the LunaAzul or Abacus repos. Never
     point Pawn's `.env.local` at LunaAzul / Abacus credentials, even
-    "just to test." The mailbox folder at
+    "just to test."
+    **EXCEPTION (Eddy, 2026-11-21, double-confirmed):** Pawn's
+    `STRIPE_SECRET_KEY` is the RMS Stripe account's LIVE key
+    (acct_1RH52CGLqS4QmOl6, Rodriguez Multi Service LLC — Connect
+    platform), the same key Luna Azul uses. Set in Pawn `.env.local` and
+    Vercel Production. Rotating it breaks BOTH apps — coordinate with the
+    Luna Azul session first. Pawn's webhook secret is NOT shared: Pawn
+    needs its own endpoint + `STRIPE_WEBHOOK_SECRET`. The mailbox folder at
     `C:\ClaudeMemory\Sass Memory Coonection\` is shared across all three
     Claudes — that's the only shared resource. Cross-app data flows
     through documented integrations, not shared infrastructure.
