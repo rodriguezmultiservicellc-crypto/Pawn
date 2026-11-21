@@ -28,6 +28,25 @@ export function categoryLabel(c: Category, t: Dictionary): string {
   }
 }
 
+type Metal = Database['public']['Enums']['metal_type']
+
+export function metalLabel(m: Metal, t: Dictionary): string {
+  switch (m) {
+    case 'gold': return t.inventory.metalGold
+    case 'silver': return t.inventory.metalSilver
+    case 'platinum': return t.inventory.metalPlatinum
+    case 'palladium': return t.inventory.metalPalladium
+    case 'rose_gold': return t.inventory.metalRoseGold
+    case 'white_gold': return t.inventory.metalWhiteGold
+    case 'tungsten': return t.inventory.metalTungsten
+    case 'titanium': return t.inventory.metalTitanium
+    case 'stainless_steel': return t.inventory.metalStainlessSteel
+    case 'mixed': return t.inventory.metalMixed
+    case 'none': return t.inventory.metalNone
+    case 'other': return t.inventory.metalOther
+  }
+}
+
 export function locationLabel(l: Location, t: Dictionary): string {
   switch (l) {
     case 'case': return t.inventory.locCase

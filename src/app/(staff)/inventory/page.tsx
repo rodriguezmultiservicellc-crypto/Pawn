@@ -16,6 +16,7 @@ import type {
 } from '@/types/database-aliases'
 import { loadTagTemplates } from '@/lib/labels/load'
 import { templateChoices } from '@/lib/labels/templates'
+import { resolveImportRole } from '@/lib/imports/access'
 
 type SearchParams = Promise<{
   q?: string
@@ -140,6 +141,7 @@ export default async function InventoryPage(props: {
       conditionFilter={conditionFilter}
       coatingFilter={coatingFilter}
       needsTag={needsTag}
+      canImport={(await resolveImportRole(ctx)) !== null}
       tagChoices={templateChoices(
         await loadTagTemplates(ctx.supabase, ctx.tenantId),
         'inventory',

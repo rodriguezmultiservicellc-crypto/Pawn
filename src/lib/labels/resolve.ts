@@ -82,6 +82,23 @@ export async function resolveScan(supabase: Db, tenantId: string, raw: string): 
     .is('deleted_at', null)
     .limit(1)
     .maybeSingle()
+  if (!item) {
+    // Tags printed by the shop's previous system (e.g. Lightspeed) carry
+    // that system's SKU, kept in legacy_code by the importer. Checked BEFORE
+    // sku_number: a numeric legacy SKU like 12619 would otherwise open
+    // whatever item has sku_number 12619. Several identical pieces share one
+    // legacy code, so a sellable one wins.
+    ;({ data: item } = await supabase
+      .from('inventory_items')
+      .select(cols)
+      .eq('tenant_id', tenantId)
+      .ilike('legacy_code', escapeLike(code))
+      .is('deleted_at', null)
+      .order('status', { ascending: true })
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle())
+  }
   if (!item && parsed.skuNumber) {
     ;({ data: item } = await supabase
       .from('inventory_items')

@@ -4,8 +4,8 @@ import { logAudit } from '@/lib/audit'
 import { parseCsv } from '@/lib/imports/csv'
 import { autoGuessMapping, mapRows } from '@/lib/imports/engine'
 import { getPreset } from '@/lib/imports/presets'
+import { resolveImportRole } from '@/lib/imports/access'
 import type { ImportSourceId, Mapping } from '@/lib/imports/catalog'
-import type { TenantRole } from '@/types/database-aliases'
 
 /**
  * POST /api/imports/customers — bulk customer import (xPawn preset or a
@@ -25,7 +25,6 @@ import type { TenantRole } from '@/types/database-aliases'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-const ALLOWED = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
 const MAX_BYTES = 25 * 1024 * 1024
 const BATCH = 500
 
@@ -39,37 +38,12 @@ function slug(s: string): string {
   )
 }
 
-async function resolveRole(
-  ctx: NonNullable<Awaited<ReturnType<typeof getCtx>>>,
-): Promise<TenantRole | null> {
-  if (ctx.tenantRole && ALLOWED.has(ctx.tenantRole)) return ctx.tenantRole
-  // Chain-admin at the parent tenant counts for a child shop.
-  const { data: t } = await ctx.supabase
-    .from('tenants')
-    .select('parent_tenant_id')
-    .eq('id', ctx.tenantId as string)
-    .maybeSingle()
-  if (t?.parent_tenant_id) {
-    const { data: ca } = await ctx.supabase
-      .from('user_tenants')
-      .select('role')
-      .eq('user_id', ctx.userId)
-      .eq('tenant_id', t.parent_tenant_id)
-      .eq('role', 'chain_admin')
-      .eq('is_active', true)
-      .maybeSingle()
-    if (ca?.role === 'chain_admin') return 'chain_admin'
-  }
-  return ctx.tenantRole ?? null
-}
-
 export async function POST(req: NextRequest) {
   const ctx = await getCtx()
   if (!ctx) return bad(401, 'Not signed in.')
   if (!ctx.tenantId) return bad(403, 'No active tenant.')
 
-  const role = await resolveRole(ctx)
-  if (!role || !ALLOWED.has(role)) return bad(403, 'Insufficient role to import.')
+  if (!(await resolveImportRole(ctx))) return bad(403, 'Insufficient role to import.')
 
   let form: FormData
   try {

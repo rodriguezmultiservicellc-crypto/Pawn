@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MagnifyingGlass, Plus, Image as ImageIcon, Tag, Warning } from '@phosphor-icons/react'
+import { MagnifyingGlass, Plus, Image as ImageIcon, Tag, UploadSimple, Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { categoryLabel } from '@/lib/inventory/labels'
 import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
@@ -71,6 +71,7 @@ export default function InventoryContent({
   conditionFilter,
   coatingFilter,
   needsTag,
+  canImport,
   tagChoices,
 }: {
   items: InventoryListRow[]
@@ -81,6 +82,7 @@ export default function InventoryContent({
   conditionFilter: InventoryConditionFilter
   coatingFilter: InventoryCoatingFilter
   needsTag: boolean
+  canImport: boolean
   tagChoices: TemplateChoice[]
 }) {
   const { t } = useI18n()
@@ -151,13 +153,24 @@ export default function InventoryContent({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">{t.inventory.title}</h1>
-        <Link
-          href="/inventory/new"
-          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
-        >
-          <Plus size={16} weight="bold" />
-          <span>{t.inventory.new}</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          {canImport ? (
+            <Link
+              href="/inventory/import"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 font-medium text-foreground hover:border-gold"
+            >
+              <UploadSimple size={16} weight="bold" />
+              <span>{t.inventory.importItems}</span>
+            </Link>
+          ) : null}
+          <Link
+            href="/inventory/new"
+            className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
+          >
+            <Plus size={16} weight="bold" />
+            <span>{t.inventory.new}</span>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">

@@ -92,6 +92,9 @@ export default function ImportContent() {
           {ti.title}
         </h1>
         <p className="text-sm text-muted">{ti.subtitle}</p>
+        <Link href="/inventory/import" className="mt-1 inline-block text-sm text-blue hover:underline">
+          {ti.inventoryLink}
+        </Link>
       </div>
 
       {/* Step 1 — source */}

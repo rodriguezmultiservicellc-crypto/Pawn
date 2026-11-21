@@ -2492,6 +2492,8 @@ export type Database = {
           finish: string | null
           hold_until: string | null
           id: string
+          import_ref: string | null
+          import_source: string | null
           is_hidden_from_catalog: boolean
           karat: string | null
           legacy_code: string | null
@@ -2542,6 +2544,8 @@ export type Database = {
           finish?: string | null
           hold_until?: string | null
           id?: string
+          import_ref?: string | null
+          import_source?: string | null
           is_hidden_from_catalog?: boolean
           karat?: string | null
           legacy_code?: string | null
@@ -2592,6 +2596,8 @@ export type Database = {
           finish?: string | null
           hold_until?: string | null
           id?: string
+          import_ref?: string | null
+          import_source?: string | null
           is_hidden_from_catalog?: boolean
           karat?: string | null
           legacy_code?: string | null
