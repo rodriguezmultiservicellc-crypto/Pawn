@@ -60,43 +60,50 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 59 (2026-11-13..21), saved 2026-11-21.
-                  Built and live (main == feature/sol-pawn-brief):
-                  - PLAN Phase 4 PRODUCT FEEDS (26a3ca8, 0080) — 476
-                  - POS "Ledger" new sale + quick sale buttons
-                    (871762d, 0081, RLS approved) — 477
-                  - Quick sale from inventory + "already in cart —
-                    add another?" popup (e810103, 0082) — 478
-                  Migrations 0080-0082 ALL APPLIED.
-                  Session 58 (tags 0074, counts 0075, sale money 0076,
-                  online store 0077-0079) is in the history log.
+  Last session:   Session 60 (2026-11-21), saved 2026-11-21 ~13:00 ET.
+                  Context budget at save: high (long session).
+                  Built and live (main == feature/sol-pawn-brief), items
+                  480-494:
+                  - Dashboard live metals: oz t, display %, right rail,
+                    metal calculator popup, auto-refresh (0083) — 480-482
+                  - [CRITICAL] sale_create blocked by pg_safeupdate since
+                    0076 → every counter sale/layaway failed; fixed (0084)
+                  - Charge = cash completes + stays on New sale; out-of-
+                    stock "Add anyway"; external card (0085); Stripe
+                    Terminal reader (0086); per-shop Stripe charge mode
+                    connect/own_key/platform (0087); reuse an existing
+                    reader; refunds never silent + void reason (0088)
+                  - First REAL reader charge passed (S-000007, then voided
+                    + refunded). RMS keys then REMOVED (493).
+                  Migrations 0083-0088 ALL APPLIED.
 
   ACTIVE FILE(S):
-    - src/components/pos/Cart.tsx (Ledger layout, quick sale row,
-      duplicate popup)
-    - src/lib/pos/{quick-sale,quick-sale-server}.ts (+ .test.ts)
-    - src/app/(staff)/settings/quick-sale/{page,content,actions}.ts(x)
-    - src/app/(staff)/pos/sales/new/{page,form}.tsx
-    - patches/0080-product-feeds.sql, 0081-quick-sale-buttons.sql,
-      0082-quick-sale-inventory-link.sql
-    - src/lib/store/{feed,feed-data}.ts,
-      src/app/(public)/s/[slug]/{feeds/products.xml,img/[photoId]}
-    - src/lib/i18n/{en,es}.ts
-    - Progress.txt (this file)
+    - src/components/pos/{Cart,CardChargeDialog,CardSlipFields,
+      AddPaymentDialog,VoidSaleDialog,ReturnPicker}.tsx
+    - src/app/(staff)/pos/sales/new/{actions,reader-actions,sale-core,
+      form,page}.ts(x); src/app/(staff)/pos/sales/[id]/*;
+      src/app/(staff)/pos/returns/new/actions.ts
+    - src/lib/pos/{card,reader,reader-server,card-refund,
+      card-refund-server,money}.ts; src/lib/stripe/{terminal,http}.ts
+    - src/app/(staff)/settings/card-reader/*;
+      src/app/(staff)/settings/integrations/*
+    - src/app/(staff)/dashboard/*; src/components/dashboard/*;
+      src/lib/spot-prices/{strip,calculator}.ts; src/app/api/spot/strip
+    - patches/0083 … 0088; src/lib/i18n/{en,es}.ts; CLAUDE.md (rule 17
+      history note); Progress.txt
 
   RESUME POINT:
     Clean. main == origin/main == feature/sol-pawn-brief, nothing in
-    flight. Plan phases 1, 2a, 0, 3 and 4 are live. Remaining: 2b
-    (RFID — needs the hardware spike), 5 (wish list), 7 (PIN +
-    commissions) — each only on Eddy's go.
-    First ask Eddy: (a) the REST of the pasted Ledger spec (cut off at
-    "RULES - Do not change calculation logic for…"); (b) counter test
-    of a "From inventory" quick sale button — stock two units with the
-    same description + category, make the button, tap twice: the 2nd
-    tap must ask before adding the other unit.
-    Online store / feeds still need item 454 (Stripe) and a Google
-    Merchant / Meta submission of /s/<slug>/feeds/products.xml with
-    Settings → Online store → feed ON.
+    flight. Pawn has NO Stripe credentials again (RMS keys removed, 493):
+    Card at the counter = card machine (external card) only; reader +
+    online checkout wait for the PAWN COMPANY's own Stripe key → Settings
+    → Card reader → "The shop's own Stripe key", then pair or link its
+    reader. First ask Eddy: (a) has he got that key; (b) S-000005 ($10,
+    open, no payment) and S-000006 ($5 card-machine test, refund on the
+    machine) — void them; (c) self-host the 3 Google fonts (Vercel build
+    failed twice on next/font/google downloads — offered, not done);
+    (d) the rest of the Ledger spec + "From inventory" quick sale test
+    (from Session 59).
 
   HOW TO RUN THE BROWSER SMOKE (new this session):
     npm run dev                       # server must be up on :3060
@@ -121,12 +128,22 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
-    - STRIPE IS STILL NOT SET UP (item 454). No Stripe variable in
-      Vercel Production (checked 2026-11-11); without
-      STRIPE_WEBHOOK_SECRET the webhook answers 503 to everything. That
-      now blocks FOUR things: online loan payments, layaway payments,
-      card settlement and the WHOLE ONLINE STORE (S58). The Connect
-      webhook must also be subscribed to checkout.session.expired.
+    - STRIPE: Pawn has no keys (RMS test keys removed 2026-11-21, 493).
+      Charge modes ready (0087): own_key is the expected path for the
+      pawn company. Connect needs the PLATFORM account signed up for
+      Connect (RMS is NOT — Stripe refused account create). Pawn's own
+      webhook endpoint + STRIPE_WEBHOOK_SECRET still not created; reader
+      charges do not need it (polling), online store / pay links /
+      checkout.session.* do. payment-link.ts is Connect-only.
+    - NEW REFUND PATHS (492) not yet exercised live (void/return of a
+      reader-card sale after a Stripe failure); they refuse loudly.
+    - VERCEL BUILDS flaked twice on next/font/google downloads (redeploy
+      fixed both). Permanent fix = self-host the fonts (offered).
+    - LUNA AZUL (other lane, NOT touched): its NEXT_PUBLIC_STRIPE_
+      PUBLISHABLE_KEY is TEST while its secret key is LIVE; shipment
+      payment links lack metadata.kind (handoff written in the scratchpad
+      HANDOFF-LunaAzul-shipment-payment-link-kind.md). Main Terminal stays
+      registered on the RMS shop account for Luna Azul.
     - ONLINE STORE (S58) NOT RUN END TO END. Verified instead: every
       SQL function in a rolled-back transaction on live data (tax,
       shipping, card limit, the second shopper refused, payment →
@@ -413,7 +430,9 @@ PHASE OVERVIEW
           Session 59: 4 product feeds (0080) —
           built and live. Next: 2b RFID
           (hardware), 5, 7. Also S59: POS Ledger
-          + quick sale buttons (0081-0082).)
+          + quick sale buttons (0081-0082).
+          Session 60: POS card payments end to
+          end + sale_create fix (0083-0088).)
 
 ================================================================================
 SESSION HISTORY LOG
@@ -421,64 +440,10 @@ SESSION HISTORY LOG
 
 (Sessions 1-11 archived 2026-04-30, sessions 12-21 archived
 2026-09-19, sessions 22, 23, 24, 25, 26, 27, 29, 30, 31, 32 archived
-2026-11-13 and sessions 33-42 archived 2026-11-21 to
+2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
 
---- Session 59 (2026-11-13..21) — PLAN Phase 4 product feeds, POS "Ledger" new sale, quick sale buttons (branch feature/sol-pawn-brief == main) ---
-
- 476. PHASE 4 — PRODUCT FEEDS (26a3ca8, patches/0080 APPLIED, no
-     policy change). settings.product_feed_enabled (off). Views:
-     public_catalog_items gains condition; public_store_settings gains
-     feed_enabled (flag AND public catalog AND has_retail);
-     public_sold_items (sold in 90 days, or available but reserved).
-     src/lib/store/feed.ts (pure: googleCondition, googleCategory,
-     feedTitle 150 chars, feedEligible = photo + price > 0,
-     buildFeedXml RSS 2.0 g: namespace, FEED_MAX_ITEMS 5000) +
-     feed-data.ts loadFeedItems. GET /s/<slug>/feeds/products.xml (404
-     unless enabled, revalidate 3600). Stable image route
-     /s/<slug>/img/<photoId> (photo must be in the tenant's public
-     catalog; streams bytes, public max-age 3600) replaces
-     catalog/[sku]/image. A sold or reserved item page now renders
-     SoldItemContent (noindex) with 4 similar items instead of a 404.
-     Shared CatalogItemCard. Settings → Online store → FeedCard (URL +
-     counts). Verified: feed fetched + XML parsed with the flag on for
-     eddys (restored after), image route 200/404, sold view dry-run.
-     NOT done: submitting the feed to Google Merchant / Meta.
-
- 477. POS NEW SALE — "LEDGER" LAYOUT + QUICK SALE BUTTONS (871762d,
-     patches/0081 APPLIED; its two RLS policies shown to Eddy and
-     approved: quick_sale_buttons_staff_read, _manager_write; anon
-     revoked). Cart.tsx restyled to Eddy's pasted Ledger spec in the
-     LOCKED Luna Azul tokens (gold action, blue focus, JetBrains Mono
-     numbers): 52px search + gold Add, Custom line, Clear; ledger table
-     #/SKU/Item/Qty/Unit/Amount; 4-zone checkout bar (Total due 40px,
-     Charge, Save as layaway). Totals logic unchanged. Quick sale row
-     (empty until someone adds buttons; "Edit buttons" for
-     owner/chain_admin/manager). /settings/quick-sale CRUD (max 24,
-     reorder, soft delete, audited). lib/pos/quick-sale.ts (pure) +
-     quick-sale-server.ts loader. Hub card in Settings.
-     The pasted spec was cut off at "RULES - Do not change calculation
-     logic for…" — Eddy was asked for the rest; nothing in the math
-     was changed.
-     FIX: dev 404s on /pos/sales/* + build "Declaration or statement
-     expected" — .next/dev/types/routes.d.ts half-written by a dev
-     server killed mid-write; restarting dev regenerated it.
-     FIX: table widened the page on a phone → [contain:inline-size].
-
- 478. QUICK SALE FROM INVENTORY + "ALREADY IN CART" POPUP (e810103,
-     patches/0082 APPLIED, no policy change). quick_sale_buttons gains
-     inventory_item_id (SET NULL), match_description (CHECK =
-     lower(btrim())) and match_category, both-or-neither. Eddy chose
-     "next unit of a product": a tap adds the OLDEST available,
-     unreserved unit with the same description + category as a normal
-     inventory line (sold like a scan, at that unit's own price). Pill
-     shows next price + "N left", disabled at none. Settings form: From
-     inventory | Fixed price. The inline "Already in cart" text is now a
-     Yes/No popup on every add path (scan/search → next unit of the
-     same product, or OK when none is left; plain button → qty+1;
-     product button → next unit). Verified in the browser: double scan
-     of INV-000001 popup + settings render. 792 tests, lint, build.
-     NOT driven: a real product-button tap (no button in live data).
+--- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
  480. DASHBOARD LIVE METALS — TROY OUNCE + DISPLAY PERCENT (patches/0083
      APPLIED, no policy change). The strip now shows price_per_troy_oz
@@ -758,6 +723,73 @@ Progress_archive.txt — the items from those sessions are there.)
        note; rule 17 back in full force.
      NEXT: when the pawn company's Stripe key arrives — Settings → Card
      reader → The shop's own Stripe key, then pair or link its reader.
+
+
+ 494. CHECKPOINT GATE (Session 60). Lane: only Pawn files changed; Luna
+     Azul was READ (env + DB + Stripe) on Eddy's double confirmations, two
+     keys copied then removed — nothing written there; its two issues are
+     in OPEN ISSUES / the handoff. i18n: EN/ES identical, no orphans
+     (scanned pos.card, cardReader; errAuthCode + old pos.terminal stub
+     strings removed). Dead code: deleteTerminalReader, old stub banner,
+     duplicate test-key check, local fmtUsd removed. Duplicates:
+     ClientTime shared; sale-core.ts shared by Charge + reader. tsc, lint,
+     821 tests, production build green.
+
+--- Session 59 (2026-11-13..21) — PLAN Phase 4 product feeds, POS "Ledger" new sale, quick sale buttons (branch feature/sol-pawn-brief == main) ---
+
+ 476. PHASE 4 — PRODUCT FEEDS (26a3ca8, patches/0080 APPLIED, no
+     policy change). settings.product_feed_enabled (off). Views:
+     public_catalog_items gains condition; public_store_settings gains
+     feed_enabled (flag AND public catalog AND has_retail);
+     public_sold_items (sold in 90 days, or available but reserved).
+     src/lib/store/feed.ts (pure: googleCondition, googleCategory,
+     feedTitle 150 chars, feedEligible = photo + price > 0,
+     buildFeedXml RSS 2.0 g: namespace, FEED_MAX_ITEMS 5000) +
+     feed-data.ts loadFeedItems. GET /s/<slug>/feeds/products.xml (404
+     unless enabled, revalidate 3600). Stable image route
+     /s/<slug>/img/<photoId> (photo must be in the tenant's public
+     catalog; streams bytes, public max-age 3600) replaces
+     catalog/[sku]/image. A sold or reserved item page now renders
+     SoldItemContent (noindex) with 4 similar items instead of a 404.
+     Shared CatalogItemCard. Settings → Online store → FeedCard (URL +
+     counts). Verified: feed fetched + XML parsed with the flag on for
+     eddys (restored after), image route 200/404, sold view dry-run.
+     NOT done: submitting the feed to Google Merchant / Meta.
+
+ 477. POS NEW SALE — "LEDGER" LAYOUT + QUICK SALE BUTTONS (871762d,
+     patches/0081 APPLIED; its two RLS policies shown to Eddy and
+     approved: quick_sale_buttons_staff_read, _manager_write; anon
+     revoked). Cart.tsx restyled to Eddy's pasted Ledger spec in the
+     LOCKED Luna Azul tokens (gold action, blue focus, JetBrains Mono
+     numbers): 52px search + gold Add, Custom line, Clear; ledger table
+     #/SKU/Item/Qty/Unit/Amount; 4-zone checkout bar (Total due 40px,
+     Charge, Save as layaway). Totals logic unchanged. Quick sale row
+     (empty until someone adds buttons; "Edit buttons" for
+     owner/chain_admin/manager). /settings/quick-sale CRUD (max 24,
+     reorder, soft delete, audited). lib/pos/quick-sale.ts (pure) +
+     quick-sale-server.ts loader. Hub card in Settings.
+     The pasted spec was cut off at "RULES - Do not change calculation
+     logic for…" — Eddy was asked for the rest; nothing in the math
+     was changed.
+     FIX: dev 404s on /pos/sales/* + build "Declaration or statement
+     expected" — .next/dev/types/routes.d.ts half-written by a dev
+     server killed mid-write; restarting dev regenerated it.
+     FIX: table widened the page on a phone → [contain:inline-size].
+
+ 478. QUICK SALE FROM INVENTORY + "ALREADY IN CART" POPUP (e810103,
+     patches/0082 APPLIED, no policy change). quick_sale_buttons gains
+     inventory_item_id (SET NULL), match_description (CHECK =
+     lower(btrim())) and match_category, both-or-neither. Eddy chose
+     "next unit of a product": a tap adds the OLDEST available,
+     unreserved unit with the same description + category as a normal
+     inventory line (sold like a scan, at that unit's own price). Pill
+     shows next price + "N left", disabled at none. Settings form: From
+     inventory | Fixed price. The inline "Already in cart" text is now a
+     Yes/No popup on every add path (scan/search → next unit of the
+     same product, or OK when none is left; plain button → qty+1;
+     product button → next unit). Verified in the browser: double scan
+     of INV-000001 popup + settings render. 792 tests, lint, build.
+     NOT driven: a real product-button tap (no button in live data).
 
  479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
      pos.sale keys (each grepped to a reference); EN + ES identical;
@@ -2212,900 +2244,15 @@ Progress_archive.txt — the items from those sessions are there.)
      (87 rows). Both are offered as separate options. Merging them is a
      judgement call about what the shop means, not a casing fix.
 
---- Session 52 (2026-09-21) — Security: profiles privesc CLOSED + real browser smoke harness ---
-
- 380. [CRITICAL] profiles PRIVILEGE ESCALATION — CONFIRMED LIVE
-     VULNERABLE, THEN CLOSED (patches/0056). The scaffold hole flagged
-     2026-07-03 and deferred four sessions was real here. Read-only
-     audit against the live DB found `anon` AND `authenticated` holding
-     table-level UPDATE on EVERY profiles column — role and tenant_id
-     included — while policy profiles_update_own was
-     FOR UPDATE USING (id = auth.uid()) with NO WITH CHECK, so Postgres
-     reuses USING for the check and it pins row ownership only.
-     ROOT CAUSE: RLS was being asked to do column authorization, which
-     it cannot do. A row policy says WHICH ROWS you may touch, never
-     WHICH COLUMNS. The grant layer is the column control, and Supabase's
-     default grants had handed out everything.
-     Exploit: PATCH /rest/v1/profiles?id=eq.<self> {"role":"superadmin"}.
-     Payoff verified as total — my_is_superadmin() short-circuits every
-     tenant policy, AND billing_invoices + tenant_subscriptions gate
-     directly on profiles.role = 'superadmin'.
-
- 381. THE FIX IS TWO LAYERS, NOT ONE (patches/0056).
-     (a) GRANT layer — the actual control. REVOKE INSERT/UPDATE/DELETE/
-         TRUNCATE/REFERENCES on profiles FROM anon, authenticated; then
-         GRANT UPDATE (full_name, avatar_url, language) TO authenticated.
-         Column list chosen for THIS app, not copied from Tocoloro.
-         `email` deliberately excluded: it mirrors auth.users.email and
-         renders as identity in /audit and /team, so self-editing it lets
-         one staffer impersonate another in the audit trail.
-         created_at/updated_at excluded — a trigger writing a column does
-         not require the CALLER to hold UPDATE on it.
-     (b) Guard trigger trg_profiles_guard_privilege_columns — refuses any
-         role/tenant_id change made under an end-user JWT. Exists because
-         a lone REVOKE is one careless GRANT ALL (or one scaffold re-run)
-         away from being undone. Escape hatch is a TRANSACTION-LOCAL GUC
-         (app.profile_privilege_write) set only by
-         claim_tenant_with_license_key, which 0056 re-creates for that
-         purpose — that RPC is SECURITY DEFINER but is CALLED by the
-         onboarding user, so their JWT is still on the connection.
-     NO RLS POLICY WAS TOUCHED (CLAUDE.md rule 1).
-
- 382. COMPANION SCAFFOLD HOLE — NOT APPLICABLE HERE. The
-     schema_migrations-without-RLS hole does not exist in this project:
-     there is no schema_migrations table (migrations run through
-     scripts/apply-migration.mjs), and the audit confirmed every table in
-     `public` already has RLS enabled. Also swept every other
-     role-bearing table for the same ownership-pinned-UPDATE pattern —
-     profiles_update_own was the ONLY one. user_tenants has no UPDATE
-     policy at all, so the per-tenant role table was never exposed.
-
- 383. VERIFICATION (live DB, every test forced to roll back via a
-     sentinel RAISE inside its own subtransaction).
-       authenticated SET role=superadmin       -> BLOCKED 42501
-       authenticated SET tenant_id             -> BLOCKED 42501
-       grant layer bypassed (owner) + user JWT -> BLOCKED by trigger
-       service_role / admin client writes role -> still allowed
-       license-key onboarding escape hatch     -> still allowed
-       hatch off again in same txn             -> BLOCKED (no leak)
-       language / full_name / avatar_url       -> still self-editable
-     NOTE FOR FUTURE PROBES: the first trigger test produced a FALSE
-     NEGATIVE ("trigger did not fire"). This DB has exactly one profile
-     and it is already role='superadmin', so the test set superadmin ->
-     superadmin; the trigger correctly saw no privileged change. A
-     privilege-column test must assert the value actually CHANGES.
-
- 384. REAL BROWSER SMOKE HARNESS (scripts/smoke-browser.mjs,
-     `npm run smoke:browser`). Checked Luna Azul as Eddy suggested — its
-     Playwright is playwright-core driving a REMOTE Browserbase session
-     for the DViajero scraping agent (src/lib/dviajero/agent.ts), not an
-     e2e harness, and there are no local browsers. So Pawn got its own:
-     playwright-core as a devDependency, driving installed Chrome via
-     executablePath (no browser download, no revision-matching against
-     the ms-playwright cache). Signs in FOR REAL — admin generateLink ->
-     verifyOtp -> session cookies produced by driving @supabase/ssr
-     itself rather than hand-rolling its cookie format — then drives 30
-     staff routes reporting per route: HTTP status, unexpected redirects,
-     uncaught exceptions, console errors, failed subresource requests and
-     untranslated i18n keys found in RENDERED TEXT. --gates flips the two
-     feature-4 module flags on for the run and restores them in a finally
-     block. --only / --repeat / --verbose for chasing flaky failures.
-     Screenshots to .smoke/ (gitignored). Exit 1 on any failure.
-
- 385. [BUG] APP-WIDE HYDRATION MISMATCH, FOUND BY THE NEW HARNESS
-     (src/components/version-footer.tsx). VersionFooter called
-     relativeTime(buildTime) DURING RENDER, and relativeTime reads
-     Date.now(). Server emitted "12s ago", client hydrated "13s ago"
-     whenever the two renders straddled a second boundary. React's diff
-     named it exactly: +13s ago / -12s ago under <VersionFooter>.
-     ROOT CAUSE: a time-derived value computed in render on both sides of
-     the SSR boundary. Because the footer sits in the ROOT LAYOUT, the
-     hydration error fired on EVERY page and React threw away the server
-     HTML for that subtree to re-render it client-side.
-     Worst in dev (buildTime is seconds old, so the Ns granularity makes
-     a mismatch near-certain) but live too — right after a deploy and at
-     any unit boundary (59s->60s, 59m->60m).
-     FIX: buildAge starts as '' and is filled in from a useEffect after
-     mount, so first paint agrees on both sides; a 30s interval also
-     keeps it fresh instead of frozen at page-load time.
-
- 386. A WARM DEV SERVER HIDES HYDRATION BUGS — the methodology lesson of
-     this session. The harness's FIRST run reported 30/30 clean and that
-     was a FALSE NEGATIVE: it had hit an already-compiled dev server
-     (an orphan — TaskStop killed the npm wrapper but left `next dev`
-     listening on :3060). The SAME code failed 30/30 against a cold one,
-     because a warm server renders fast enough that both sides usually
-     produce the same string. A clean smoke only counts from cold: stop
-     the server BY PID, delete .next, restart, then smoke. Verified the
-     fix that exact way -> 30/30 clean, tsc + lint + 497 tests green.
-
---- Session 51 (2026-09-19) — PawnSmarts-parity feature 4: store credit + consignment ---
-
- 368. STORE CREDIT (patches/0052 + 0053). 0052 is enum-only —
-     payment_method += 'store_credit' — because the Management API sends
-     a patch as ONE transaction and Postgres refuses to use a new enum
-     value in the transaction that adds it (same split as 0049/0050).
-     0053 adds customers.store_credit_balance NUMERIC(18,4) maintained
-     by an AFTER INSERT trigger on the new append-only
-     store_credit_events ledger, with CHECK (>= 0) as the safety net and
-     a per-kind sign CHECK so an app-side sign slip cannot corrupt a
-     balance. Seven kinds: issue_return / issue_buy / issue_manual /
-     redeem_pos / redeem_undo / clawback / adjust_manual. A partial
-     unique index gives idempotency on the issue + undo kinds (a
-     double-submitted return cannot credit twice; one redemption cannot
-     be undone twice) while leaving redeem_pos and manual adjustments
-     repeatable on purpose. settings.store_credit_enabled (off by
-     default) + settings.store_credit_expiry_days (informational ONLY —
-     nothing expires credit, it is a liability and several states treat
-     unclaimed balances as unclaimed property).
-
- 369. THE REDEEM RPC IS THE WHOLE POINT (0053). A store-credit tender is
-     three writes that must be atomic: the ledger debit, the
-     sale_payments row, and the sales.paid_total roll-up. Doing them as
-     three PostgREST calls from a server action leaves three ways to
-     half-apply a tender — credit taken with no payment recorded, or a
-     payment recorded against credit nobody was charged for. So
-     store_credit_redeem_on_sale(tenant, sale, amount, by) does all
-     three under FOR UPDATE locks on the sale and the customer, and
-     'store_credit' is deliberately EXCLUDED from paymentMethodSchema
-     so the generic add-payment path cannot reach it. Companions:
-     store_credit_undo_sale_redemption() (open sale — soft-deletes the
-     payment, backs out paid_total, writes the compensating row) and
-     store_credit_restore_for_sale() (void path — leaves the payment
-     rows as history, exactly like the card-refund path, and puts the
-     credit back). All three are service_role-only; the guards run
-     first (Rule 10). Errors are raised as stable tokens
-     (store_credit_insufficient_balance etc.) so the UI translates them
-     instead of showing Postgres text.
-
- 370. STORE-CREDIT SURFACES. POS: a tender block on the sale detail
-     (balance, "use max" capped by BOTH the balance and what the sale
-     still owes, per-redemption undo). Customer detail: balance +
-     5-row ledger + an owner/manager adjust modal where direction is a
-     CHOICE and a reason is mandatory (a clerk typing "-50" for "50"
-     must not be able to hand out money). Returns: 'store_credit' as a
-     refund method, offered only with an identified customer and the
-     module on, checked BEFORE the return row is written. Buy-outright:
-     'store_credit' as a payout method — issued AFTER compliance_log so
-     a purchase that never reached the police-report ledger cannot
-     leave credit behind; if the credit write fails the purchase STANDS
-     (compliance_log is write-once by design, Rule 15) and the error
-     tells staff to issue it by hand. Receipt PDF prints "Store credit /
-     Crédito de tienda". The daily register correctly ignores
-     store-credit payments — they are neither drawer cash nor a card
-     batch.
-
- 371. CONSIGNMENT (patches/0054). consignors are ALWAYS backed by a
-     customers row (never a second copy of someone's identity), carry
-     the DEFAULT commission + payout method, and get a per-tenant
-     'CN-000001'. inventory_items gains consignor_id +
-     consignment_commission_pct (FROZEN at intake — changing the
-     consignor default never re-prices goods already on the floor) +
-     consignment_min_price + consignment_expires_on, with a CHECK that
-     a consignor implies source='consigned' AND a commission.
-     consignment_payables is a SIGNED ledger, not a mutable row:
-     kind='accrual' when a consigned line sells, kind='reversal' when
-     the sale voids or the line comes back. Balance = SUM(payable_amount)
-     WHERE status='open'. Negative is a VALID state — a reversal landing
-     after the consignor was paid means they owe the shop, and the next
-     payout nets it off; mutating the accrual instead would silently
-     erase a payment that actually happened. consignment_payouts records
-     each cash-out, and consignment_pay_out() settles every open row in
-     one transaction (refusing a zero or negative net). Staff RLS on
-     payables and payouts is SELECT-ONLY — every write is a trigger or
-     that RPC.
-
- 372. THE ACCOUNTING IS TRIGGER-OWNED (0054). accrue on sales.status →
-     'completed' (covers retail completion AND layaway payoff, because
-     both flip the sale to 'completed'); reverse in full on → 'voided';
-     reverse pro-rata on return_items INSERT. Gross is sale_items
-     .line_total — what the line actually realized after any LINE
-     discount; a cart-level discount (where loyalty redemption also
-     lands) is the shop's own giveaway and is NOT prorated onto
-     consigned lines. A separate BEFORE trigger on sale_items refuses
-     any line whose EFFECTIVE per-unit price (line_total / quantity,
-     i.e. after the line discount) falls below consignment_min_price —
-     guarding unit_price alone would let a discount walk straight
-     through the floor promised to the consignor. Same-tenant guards on
-     consignors.customer_id and inventory_items.consignor_id.
-
- 373. [BUG] CONSIGNMENT REVERSALS DOUBLE-COUNTED (found by the smoke
-     test, fixed in patches/0055 before any shop had data). Root cause:
-     consignment_reverse_on_void() reversed the FULL accrual for every
-     line on the sale and consignment_reverse_on_return() reversed its
-     pro-rata share of the FULL accrual — neither looked at reversals
-     that had already landed. So a line fully returned (−160) and then
-     voided (−160 again) put the consignor at −160 on an item that only
-     ever accrued +160, and voidSaleAction IS reachable on a
-     'fully_returned' sale. Repeated partial returns summing past the
-     quantity sold had the same shape. 0055 adds
-     consignment_unreversed_fraction() and both triggers now clamp:
-     return reverses MIN(pro-rata, remainder), void reverses exactly the
-     remainder, either skips when the remainder is already zero.
-     Verified: three 1-unit returns against a 2-unit line followed by a
-     void leave the line at exactly 0.00, never negative.
-
- 374. CONSIGNMENT SURFACES. /consignors (list with live open balances +
-     items on the floor, "owes shop" when negative), /consignors/new
-     (customer picker + terms), /consignors/[id] (terms editor, items
-     with agreement-expiry countdown in the SHOP's timezone and a
-     return-to-consignor action, the full payable ledger naming
-     Sold / Returned / Sale voided distinctly, payout history, and a
-     payout dialog). Consignment fields appear on the inventory form
-     only when source='consigned' and unmount otherwise — the Zod
-     schema also CLEARS them server-side, because switching an item from
-     consigned to bought without clearing would keep accruing a payable
-     on goods the shop now owns. Commission is a FRACTION everywhere
-     (column, schema, trigger); a shared CommissionField takes a percent
-     and converts, so "20" can never become 2000%. /settings/consignment
-     + a Consignors sidebar entry gated on settings.consignment_enabled.
-
- 375. RULE 13 DELETE GATE EXTENDED. canDeleteCustomer() now also blocks
-     on unspent store credit and on open consignment (goods still on the
-     floor or an unsettled payable balance). Both are money the shop
-     owes a person whose record would otherwise vanish. Reasons are
-     translated EN+ES like the existing ones. CLAUDE.md rule 19 records
-     both module conventions.
-
- 376. VERIFICATION. Everything above was exercised against the LIVE
-     database inside a DO block ending in a deliberate RAISE, so the
-     whole transaction rolled back and nothing persisted (confirmed
-     after: 0 consignors, 0 payables, 0 payouts, 0 credit events, both
-     gates still FALSE). 26 assertions covering the sign CHECK, the
-     append-only trigger, overdraw / overpay refusal, undo + double-undo,
-     undo refused on a closed sale, void restore + idempotent re-restore,
-     the coherence CHECK, the floor price with and without a line
-     discount, no accrual before completion, no double accrual on
-     re-completion, payout + "nothing payable", pro-rata partial return,
-     the over-return clamp and the void clamp. tsc, eslint, 504 unit
-     tests and the production build are all green.
-
- 377. PRE-SAVE QUALITY GATE — 4 ORPHAN i18n KEYS. storeCredit.panel
-     .viewAll and consignment.detail.terms were written and never wired
-     (the terms heading reuses form.editTitle); both deleted from EN+ES.
-     consignment.item.badge / .badgeOwed were written for a consigned-
-     item badge that never got built — BUILT it instead of deleting:
-     the inventory detail header now shows "On consignment" plus what
-     the consignor takes home at the current price, via the shared
-     splitConsignment() so the preview and the eventual accrual agree.
-     That page previously said nothing about an item not being the
-     shop's property, which is exactly what a clerk needs to know
-     before quoting a price under a trigger-enforced floor.
-
- 378. [BUG] CONSIGNMENT FIELDS LOST ON A VALIDATION ERROR.
-     echoToInventoryFieldValues() in inventory/[id]/content.tsx never
-     mapped the four consignment fields, so a failed save on the EDIT
-     form silently reverted the clerk's typed consignor / commission /
-     floor / expiry back to the DB values — the exact wipe the echo
-     mechanism exists to prevent. (The NEW form was already correct.)
-     Mapped them.
-
- 379. DEAD CODE + DUPLICATE LOGIC SWEEP. Deleted five helpers written
-     ahead of consumers that nothing called: readBalance,
-     consignorBalance (the singular — the list uses the plural, the
-     detail computes from the ledger it already has), sumDeltas,
-     checkFloorPrice (the DB trigger is the authority; a second copy of
-     that rule in dead TS is pure drift risk) and
-     inventoryConsignmentSchema, plus their tests and two now-unused
-     Zod helpers. Extracted src/lib/money.ts for r4 / r2 / toMoney,
-     which this session had copy-pasted into TWO new modules;
-     store-credit/math.ts and consignment/math.ts now re-export from
-     it. FLAGGED, NOT TOUCHED: r4 / toMoney also sit duplicated in
-     lib/pawn/math.ts, lib/pos/cart.ts and lib/repair/billing.ts —
-     pre-existing, load-bearing on three shipped surfaces, and a
-     repo-wide money refactor is the operator's call, not a gate fix.
-     497 tests (down from 504 — the seven that only exercised deleted
-     helpers went with them), lint / tsc / build green.
-
---- Session 50 (2026-09-19) — PawnSmarts-parity: jurisdiction rules + comms automations + OFAC screening ---
-
- 362. COMPETITIVE TEARDOWN OF PAWNSMARTS (no code). app.pawnsmarts.com
-     is a Vite/React SPA on Supabase; read its public JS bundle instead
-     of the UI (no browser tool available). Mapped: pricing ($49
-     Report-to-Leads / $89 Essential / $129 Professional), 61
-     jurisdiction rule sets, offline-first (Dexie + sync queue),
-     firearms (ATF bound book, 4473, NICS, FFL transfer), OFAC,
-     fingerprint capture, check cashing, store credit, consignment,
-     drip marketing (birthday / dormant / win-back / thank-you), QZ
-     Tray direct printing, Fortis pay-links. They have NO repair
-     module, NO customer portal, NO Spanish, and are single-shop
-     (user-scoped rows, not tenants). That gap list produced the
-     4-feature plan; 1-3 shipped this session.
-
- 363. JURISDICTION RULES — DATA-DRIVEN STATUTORY LIMITS (patches/0048,
-     commit d636939). New GLOBAL jurisdictions table (rate cap +
-     optional tiers, period, min-charge ceiling, min/max term, grace +
-     weekend roll, buy hold, repair abandon, retention years, police
-     reporting, bilingual ticket_notices, ticket_backpage, verified_on /
-     verified_source). tenants.jurisdiction_code + tenants.timezone;
-     settings.grace_period_days. SQL helpers tenant_today(),
-     jurisdiction_max_rate() (blended tiers), tenant_grace_days(),
-     loan_forfeit_eligible_date(), tenant_buy_hold_days(). TRIGGERS
-     enforce: rate / min-charge / term on loan insert, grace before a
-     forfeiture status flip, the rate-menu cap, and no early release or
-     shortening of a purchase hold. The app mirror in
-     src/lib/jurisdictions (pure, unit-tested against the SQL results)
-     exists only to show a translated error first. US-FL seeded,
-     VERIFIED against the 2026 Florida Statutes 539.001 — and the
-     statute corrected two of our numbers: retention is 3 years
-     (CLAUDE.md said 2) and maturity must be exactly 30 days (the form
-     allowed 1-180). New: /settings/compliance (owner picks
-     jurisdiction / timezone / periods) and /admin/jurisdictions
-     (superadmin editor). The pawn-ticket legal block now prints the
-     jurisdiction notices EN+ES; the back page falls back to the
-     jurisdiction text (TS constant deleted). CLAUDE.md rule 18.
-
- 364. [CRITICAL] BUY-OUTRIGHT NEVER REACHED THE POLICE REPORT (fixed in
-     0048 / d636939). Root cause: compliance_log.source_table CHECK has
-     allowed only ('loans','sales') since 0001, but the buy action
-     inserts source_table='inventory_items' — and never checked the
-     insert result, so every buy silently failed to log. Confirmed on
-     the live DB: 1 bought item, 0 buy_outright compliance rows. CHECK
-     widened; the action now checks the error and soft-deletes the
-     just-inserted items rather than leave an unreported purchase.
-     ALSO: canDeleteCustomer() existed but was never called (the Rule 13
-     delete gate was dead) and matched buys on
-     customer_snapshot->>customer_id when the snapshot key is id.
-     Wired + fixed, now driven by jurisdictions.record_retention_years.
-
- 365. COMMS AUTOMATIONS — CONFIGURABLE REMINDERS + LIFECYCLE MARKETING
-     (patches/0049 + 0050, commit 906ce3d). 0049 is enum-only
-     (loan_final_notice, birthday_greeting, dormant_winback,
-     forfeiture_winback, redemption_thankyou) because Postgres refuses
-     to use a new enum value inside the transaction that adds it — the
-     rest lives in 0050. comm_automations = per-tenant on/off + day
-     offset OVERRIDING code defaults (src/lib/comms/automations.ts,
-     tested); comm_automation_sends = permanent send-once ledger keyed
-     by a deterministic automation_key, replacing the old 24h
-     message_log window that could double-send or block a retry.
-     Catch-up window of 2 days, latest-step-wins after an outage.
-     loan_final_notice is anchored to the STATUTORY forfeiture date
-     from 0048. Lifecycle audience RPCs (birthday incl. Feb-29, dormant
-     by last real transaction) are marketing-only: opt-in customers,
-     7-day per-customer cap, off by default. New lifecycle-messages
-     cron; maturity-reminders rewritten on the shared runner with
-     shop-local dates. seed_default_message_templates now runs for
-     EVERY tenant + on tenant insert — before this only one hard-coded
-     tenant id had templates, so every future shop would have hit
-     silent template_missing failures. The dispatcher gained the
-     email <-> phone fallback its header always claimed, plus WhatsApp
-     -> SMS fallback when no approved Content SID exists. The SMS
-     opt-out footer is now bilingual.
-
- 366. OFAC SDN SCREENING AT INTAKE (patches/0051, commit b19cca5).
-     ofac_list_versions + ofac_sdn_names (individuals + aliases,
-     pg_trgm GIN index) refreshed by a daily content-hashed cron off
-     Treasury's SDN.CSV / ALT.CSV; first load 7,535 individuals /
-     16,185 names (published 2026-09-17), ~15s, idempotent.
-     ofac_candidates() does the index lookup (~12ms); scoring is pure
-     TS (token-set Jaro-Winkler, 70% customer coverage + 30% SDN
-     coverage) — the SDN-coverage term is what stops "Jose Garcia"
-     from matching "GIL GARCIA, Jose Alejandro" while "Nicolas Maduro"
-     still hits "MADURO MOROS, Nicolas". DOB-year conflicts are
-     recorded but never block. ofac_screenings is append-only (only
-     review fields change; FK cascades allowed via pg_trigger_depth).
-     intakeGate() now blocks pawn + buy on a banned customer — which
-     was NEVER enforced server-side before, only filtered out of the
-     customer picker — plus unreviewed and confirmed matches. Owner /
-     manager clears a false positive (documented reason) or confirms
-     (which also bans). The screening id is stamped into the compliance
-     snapshot.
-
- 367. SESSION INTERRUPTED BY A MACHINE POWER-OFF (2026-09-19). Git Bash
-     stopped being able to fork (cygheap, Win32 error 299) during a
-     verification build; the box was powered off by hand. Nothing was
-     lost: feature 3 was intact on disk, the OFAC load had completed
-     (verified after recovery — one current version, name_count 16,185
-     matching 16,185 rows), and the temp dev server on :3099 died with
-     the shutdown. See CRASH-RECOVERY-2026-09-19.md (written by a
-     sibling session; delete once read).
-
---- Session 49 (2026-07-22, eighth pass) — Sol Pawn rebrand + marketing landing + logout + cross-tenant fix + customer import (5,217) + self-serve import section ---
-
- 355. QUICKCUSTOMERMODAL PHYSICAL DESCRIPTION + SOL PAWN REBRAND
-     (commit 7db99b9). (a) QuickCustomerModal.tsx gained the "Physical
-     description & employment" fieldset (height feet+inches -> composed
-     hidden height_inches, weight, sex, hair, eyes, place_of_employment,
-     identifying marks) — the server createCustomerFromForm already read
-     these; reused existing t.customers.* keys, no new i18n. (b) Renamed
-     the app brand "Pawn" -> "Sol Pawn" across every user-facing surface:
-     wordmarks ((auth)/onboard/portal-login/root/staff/admin layouts),
-     app-version APP_NAME, layout <title>/OG, i18n common.appName +
-     landing.poweredBy (EN/ES), platform email from-name, dunning emails
-     (EN+ES bodies + signatures), admin-notify subject, "Sol Pawn (RMS)"
-     platform-notification descriptions, settings billing card. LEFT as
-     domain (not brand): pawn-loans module/nav label, /pawn routes,
-     has_pawn, "Pawn forfeit"/"Pawns" stats, PawnTicket* PDF types, the
-     "Pawn, jewelry, and repair" service tagline.
-
- 356. MARKETING LANDING AT APEX "/" (commit 7db99b9). New
-     src/components/marketing/LandingPage.tsx — self-contained BILINGUAL
-     marketing page (own EN/ES copy dict + toggle, not the product i18n)
-     modeled on lunaazul.online but in the pawn domain + Sol Pawn design
-     tokens (navy/gold, Playfair). Sections: sticky nav, hero + gold
-     radial, live-stats strip (navy), 10-module grid, how-it-works (3
-     steps), 3 pricing tiers (Free/$79/$149 — PLACEHOLDER), FAQ accordion,
-     final CTA, footer. src/app/page.tsx renders it + sniffs Accept-
-     Language (es-* -> Spanish, else English) server-side for the initial
-     lang. proxy.ts: logged-out "/" now falls through to the landing
-     (was redirect->/login); authed users still role-routed by the "/"
-     block. Tenant subdomains still rewrite to /s/<slug>.
-
- 357. STAFF/ADMIN LOGOUT + TOP-BAR ACTIONS (commit 7db99b9). Root cause:
-     the staff and superadmin (/admin) top bars showed the user name but
-     had NO logout control at all — operators were stuck signed in. New
-     src/components/layout/StaffTopBarActions.tsx (client): EN|ES language
-     toggle (persists to profile via I18nProvider setLang), user name, and
-     a Log Out button (supabase.auth.signOut() -> hard nav /login). Wired
-     into (staff)/layout.tsx and (admin)/layout.tsx (both also had the
-     stale "Pawn" wordmark -> "Sol Pawn"). Portal + no-tenant already had
-     logout. Reused t.nav.logOut; language codes need no i18n.
-
- 358. [SECURITY] CROSS-TENANT DETAIL-PAGE LEAK FIXED (commit 75c5e02).
-     RLS on tenant-scoped tables is membership-based, so ctx.supabase
-     returns rows for ANY tenant the user belongs to; 8 [id] pages loaded
-     their record by .eq('id', id) ALONE, and the per-page has_pawn/
-     has_repair gate reads the RECORD's own tenant_id -> zero cross-tenant
-     protection. A user staff at 2+ tenants (or chain staff) could open
-     another of their tenants' records (loan books, full customer PII,
-     sale/payment data) by editing the URL. FIX (mirrors the /buy/[id]
-     reference): each page bails on no active tenant + adds .eq('tenant_id',
-     ctx.tenantId). Pages: pawn, customers, customers/dashboard, pos/sales,
-     pos/layaways, repair, appraisals, inventory. Audited all 9 sibling
-     actions.ts write paths — already SAFE (resolver fetches record ->
-     requireRoleInTenant(record.tenant_id) -> mutations scoped .eq(
-     'tenant_id', record.tenant_id)); no change. Removed the resolved
-     handoff SECURITY-FIXES-TODO.md.
-
- 359. CUSTOMER IMPORT FIELDS + xPAWN IMPORT OF 5,217 (commit 18fa554).
-     patches/0047-customers-import-fields.sql: customers.race (FL
-     pawnbroker/LeadsOnline field), legacy_ref + import_source, partial
-     UNIQUE(tenant_id, legacy_ref) for idempotent re-runnable imports.
-     Applied via apply-migration.mjs; db:types regenerated. New
-     scripts/import-xpawn-customers.mjs: dry-run-default CLI with a quote-
-     aware CSV parser + per-field normalizers (M/D/YYYY dates, feet+inches
-     height 509->69", phone formatting, id_type enum mapping), junk/test-
-     row filtering, legacy_ref dedupe, batched service-role inserts + one
-     audit row. Ran --commit on the 5,218-row export: 5,217 customers
-     inserted into Eddy's Jewelers (1 dummy skipped, 4 unparseable DOBs
-     nulled). Verified: 5,217 imported / 5,217 distinct legacy_ref / with-
-     race 5,206 / with-dob 5,205. SSN dropped (no column); Warning->note;
-     Race->race column.
-
- 360. CUSTOMERS LIST — ID SEARCH + SCAN ID (commit ec0ea1c). Root gap:
-     the /customers list search covered name/phone/email but NOT
-     id_number, and had no scan button — useless for 5k+ imported
-     customers who all carry DL numbers. page.tsx OR clause now also
-     matches id_number (ilike). content.tsx: added a "Scan ID" button
-     reusing DlScanner -> findCustomerByIdNumber (exact id_number match)
-     -> router.push to the customer's dashboard; no match drops the
-     scanned number into the search box + shows the existing scanNoMatch
-     notice with a Create-new link. Reused dlScanner/customerPicker i18n.
-
- 361. SELF-SERVE IMPORT SECTION (commit 6952cfd). /settings/import
-     (owner/manager/chain_admin). NEW src/lib/imports/: csv.ts (RFC4180
-     parser), engine.ts (normalizers + autoGuessMapping + mapRows ->
-     records + report), catalog.ts (client-safe TARGET_FIELDS with EN/ES
-     labels + IMPORT_SOURCES + report/sample types), presets.ts (fixed
-     xPawn mapping + Warning/skip-test specials). NEW Route Handler POST
-     /api/imports/customers (runtime nodejs, maxDuration 60) — server
-     actions cap ~1MB so a Route Handler carries the multi-MB upload;
-     inline owner/manager/chain_admin role gate (+ chain-admin-parent
-     fallback like the voice route); mode=preview returns headers +
-     auto-guessed mapping + report + 10 samples and writes nothing; mode=
-     commit batch-inserts (500) via the tenant-scoped client + one audit
-     row (action 'create', kind:'import'). Idempotent: import_source +
-     legacy_ref (0047). xPawn -> fixed preset; generic -> user mapping (or
-     auto-guess), import_source = slug(vendor_label). NEW UI page/content:
-     source picker (xPawn / Generic CSV) + optional vendor label, upload,
-     Preview, a column-mapping editor (generic only; header->field <select>
-     pre-filled from auto-guess), report + sample table, "Import N
-     customers" commit, done state. Bilingual (new t.imports.* EN+ES).
-     Settings hub gains a Data-import card. gate: tsc/lint/build green.
-
---- Session 48 (2026-07-01, seventh pass) — Apply migrations 0045 + 0046, regenerate types, drop stale casts ---
-
- 354. APPLIED PATCHES 0045 + 0046 + DB:TYPES + CAST CLEANUP.
-     Operator asked to run the two pending migrations. Applied via
-     scripts/apply-migration.mjs (Supabase Management API, each file
-     sent as one transaction; HTTP 201, "no result rows — DDL applied
-     successfully"): (1) patches/0045-loan-drafts.sql (loan_drafts
-     table — Save-as-draft, pending since Session 45); (2) patches/
-     0046-repair-line-items.sql (repair_ticket_line_items + staff RLS
-     + lock trigger + backfill, from Session 47). NEW RLS on 0046 is a
-     new-table staff read/write pair (my_accessible_tenant_ids +
-     my_is_staff) — no change to any existing tenant-isolation policy;
-     rule #1 respected (policy shown in full when written). Ran
-     `npm run db:types` — src/types/database.ts regenerated (155,677
-     bytes) with both new tables. BACKFILL VERIFIED via a throwaway
-     count query through the same runner: 1 existing non-deleted
-     repair ticket -> 1 line item, 1 ticket_with_items (full parity).
-     Then removed the now-stale temporary bridges written in Session
-     47: repair/new/actions.ts + repair/[id]/page.tsx dropped the
-     `as unknown as SupabaseClient` generic-client casts (and the
-     row-shape `as unknown as Array<...>` in page.tsx) and now use the
-     typed ctx.supabase directly, since both tables are in database.ts;
-     removed the two SupabaseClient imports + stale "until db:types"
-     comments. tsc --noEmit clean, eslint clean on both files. Commit
-     385ab6a pushed to main (3 files, +119/-20). Both runtime blockers
-     from Sessions 45 + 47 cleared — repair multi-item flow and pawn
-     Save-as-draft are live on the deploy. Only remaining verification
-     is a browser smoke test (no in-session browser).
-
---- Session 47 (2026-06-30, sixth pass) — Repair ticket multi-item redesign (line items + chip title-builder + per-item service) ---
-
- 350. REPAIR_TICKET_LINE_ITEMS TABLE (patches/0046-repair-line-items.sql,
-     NEW). A repair ticket now holds MULTIPLE customer items. New child
-     table: id, ticket_id (FK CASCADE), tenant_id, line_index, item_type
-     TEXT NOT NULL, karat TEXT, weight_grams NUMERIC(10,4) (metal-weight
-     rule), dimension TEXT, title TEXT NOT NULL (composed), service_type
-     service_type NOT NULL (PER ITEM), work_needed TEXT, created_at,
-     deleted_at. Staff RLS (read + write) mirroring repair_ticket_stones
-     (my_accessible_tenant_ids + my_is_staff). Indexes on (ticket_id,
-     line_index) and (tenant_id) WHERE deleted_at IS NULL. LOCK
-     IMMUTABILITY (rule #14): repair_line_items_enforce_lock() BEFORE
-     UPDATE/DELETE raises when the parent repair_tickets.is_locked = TRUE
-     (INSERT stays open, matching stones). BACKFILL: one line item per
-     existing non-deleted ticket derived from its title / description /
-     service_type (item_type='other'), idempotent via NOT EXISTS, so the
-     detail page renders legacy tickets through the same path. NOTIFY
-     pgrst + documented rollback. OPERATOR: apply 0046 then db:types.
-
- 351. PURE COMPOSER + DERIVERS (src/lib/repair/line-items.ts, NEW) +
-     11 vitest cases (line-items.test.ts, NEW). composeLineItemTitle
-     builds "Necklace · 14k · 2.8g · 18\"" from canonical ENGLISH type
-     labels (ITEM_TYPES) so stored titles are language-stable;
-     normalizeWeightGrams trims trailing zeros / rejects <=0 / non-finite;
-     deriveItemDescription joins "title — work" one line per item;
-     deriveTicketTitle = first item + " (+N)" (capped 200). ITEM_TYPES
-     (ring/necklace/bracelet/earrings/pendant/chain/watch/other) +
-     KARAT_OPTIONS (10k/14k/18k/21k/22k/24k/925/950). Validation
-     (validations/repair.ts): repairLineItemSchema + repairLineItemsArray
-     Schema (min 1 'at_least_one_item', max 30); repairTicketCreateSchema
-     now takes line_items[] and DROPS the single service_type / title /
-     item_description / description (derived server-side instead).
-
- 352. INTAKE FORM REWRITE (repair/new/form.tsx). Multi-item composer on
-     the two-pane surface: each item is a LineItemEditor card with item-
-     type chips, karat chips, typed weight(g) + length/size, per-item
-     service chips (reusing SERVICE_TILES), work-needed input, and a LIVE
-     composed title preview. Add/remove items (min 1). Hidden fields per
-     item: line_item_count + li_<n>_{item_type,karat,weight_grams,
-     dimension,title,service_type,work_needed}. Stones editor still
-     ticket-level, shown when ANY item is stone_setting|custom. Rail now
-     lists built items + count (replaced the single service-type row);
-     estimate calculator unchanged (still display-only). canOpen =
-     customer selected + >=1 item with an item_type. notes_internal
-     relabeled "Repair notes (tech)". createRepairTicketAction
-     (repair/new/actions.ts): readLineItemRows parses li_<n>_*, filters
-     to rows with an item_type, validates, derives ticket title/item_
-     description/service_type, inserts the ticket, then inserts line items
-     via a generic-client cast (repair_ticket_line_items absent from
-     database.ts until db:types). Audit adds line_items_count.
-
- 353. DETAIL PAGE LINE-ITEM RENDER (repair/[id]/page.tsx + content.tsx).
-     page.tsx fetches repair_ticket_line_items via generic-client cast
-     (id, line_index, title, service_type, work_needed), maps to new
-     RepairLineItemView[], threads to RepairTicketDetail. content.tsx
-     ItemPanel now renders the item list (title + ServiceTypeBadge +
-     work_needed); the free-text item_description block shows ONLY as a
-     legacy fallback when a ticket has zero line items (the removed
-     ticket.description render orphaned repair.detail.workNeeded, deleted
-     from en+es). i18n: repair.new_ gained items block (itemsHelp /
-     itemLabel / itemType / itemTypes.* / karat / weightGrams /
-     weightPlaceholder / dimension / dimensionPlaceholder / service /
-     workNeeded / workNeededPlaceholder / titlePreview / titleEmpty /
-     addItem / removeItem / atLeastOneItem / railItemsTitle / railNoItems)
-     and dropped the now-orphaned single-item keys (serviceType /
-     serviceTypeHelp / titleField / titlePlaceholder / itemDescription /
-     itemDescriptionPlaceholder / description / descriptionPlaceholder /
-     railServiceNone / serviceHelp); sectionItem repurposed to "Items",
-     sectionStaff to "Repair notes", railMissingHint updated. en+es at
-     parity (es: Dictionary → tsc-guaranteed). GATE: tsc clean, eslint
-     clean, vitest 424/424 (413 + 11 new), npm run build green.
-
---- Session 46 (2026-06-30, fifth pass) — New repair ticket redesign (two-pane work surface + rail) from new-repair-ticket.html ---
-
- 349. NEW REPAIR TICKET REDESIGN — TWO-PANE WORK SURFACE + NAVY RAIL.
-     From operator mockup new-repair-ticket.html. Rewrote ONLY
-     src/app/(staff)/repair/new/form.tsx into the two-pane layout
-     (grid lg:[1fr_360px]); createRepairTicketAction + its FormData
-     contract + repairTicketCreateSchema validation UNCHANGED (repair
-     intake is a regulated write -> same Session-43 discipline as the
-     POS/pawn-new intake redesigns: reshape the component, submit the
-     same fields). LEFT work surface: Customer section (CustomerPicker
-     now with ref + onChange for the rail chip/gating; "Create new
-     customer" swapped from a <Link> to QuickCustomerModal, same as
-     pawn-new — onCreated -> customerPickerRef.set + select) + Item &
-     service (7 service-type TILES replacing the old <select>:
-     repair/stone_setting/sizing/restring/plating/engraving/custom,
-     each Phosphor icon [Wrench/Diamond/Ruler/LinkSimple/PaintBrush/
-     PenNib/Sparkle], gold-on-active; submits a hidden
-     name="service_type" = the picked value) + title (controlled) +
-     item description (controlled) + work-needed (description) + inline
-     stones editor rendered when service is stone_setting|custom
-     (StoneRowEditor unchanged, stone_count + stone_<n>_* names intact)
-     + intake photos (big dashed dropzone, name="intake_files"
-     multiple) + internal notes (name="notes_internal"). RIGHT navy
-     rail: customer chip (customerLabel or railNoCustomer), service-
-     type row, assign technician (name="assigned_to"), promised pickup
-     (name="promised_date"), ESTIMATE block (labor + materials ->
-     estimated total, deposit -> balance due at pickup) rendered via a
-     new RailMoney sub-component — DISPLAY-ONLY calculator, inputs have
-     NO name= so nothing is submitted (repair_tickets.quote_amount +
-     deposit_amount are a deliberate POST-intake workflow with their
-     own events/timestamps/immutability trigger; setting them at intake
-     would bypass quote_set + status->'quoted'); Open ticket submit
-     (disabled + onSubmit-guarded until selectedCustomerId + title +
-     itemDesc) + Cancel link + railMissingHint. StoneRowEditor + Input
-     helpers left byte-identical. New repair.new_ rail i18n keys en+es
-     at parity (railSummaryTitle / railNoCustomer / railServiceNone /
-     serviceHelp / photosHelp / estimateLabel / estimateHelp /
-     laborLabel / materialsLabel / estimatedTotal / depositLabel /
-     balanceDue / railMissingHint). Verified: tsc --noEmit clean,
-     eslint clean, npm run build green, vitest 413/413. NOTE: the
-     mockup's 5 illustrative tiles included a non-enum "appraisal" and
-     speculative variant fields (metal/karat/size/etc.) — shipped the
-     7 real enum tiles and did NOT add variant fields the server can't
-     persist (free-text item desc + work-needed cover them).
-
---- Session 45 (2026-06-30, fourth pass) — Pawn Phase 2 step 1: Save-as-draft (loan_drafts) + dashboard redesign (pawn-dashboard.html) ---
-
- 345. SAVE AS DRAFT — DEDICATED loan_drafts TABLE. Operator was
-     asked (genuine regulated-schema fork) how to store drafts; chose
-     a separate table over (a) adding 'draft' to the loan_status enum +
-     relaxing the loans CHECK constraints + skipping the ticket-number
-     trigger, or (b) keeping all terms required. ROOT REASONING: the
-     loans table enforces principal>0 / term_days 1-365 / due_date NOT
-     NULL at the DB level and a BEFORE-INSERT trigger burns a
-     sequential PT-NNNNNN number on every insert — so a "customer-only"
-     draft is impossible without altering a regulated financial table
-     and consuming a ticket number auditors expect to be contiguous.
-     patches/0045-loan-drafts.sql (NEW): loan_drafts (id, tenant_id FK,
-     customer_id FK NOT NULL, payload JSONB DEFAULT '{}', created/
-     updated_by, created/updated_at, deleted_at), idx on (tenant_id,
-     updated_at desc) + (customer_id), update_updated_at trigger, RLS
-     ENABLE + loan_drafts_staff_read/_write mirroring the loans
-     policies exactly (NEW table/NEW policies — no existing isolation
-     altered), NOTIFY pgrst. OPERATOR: apply 0045 then `npm run
-     db:types`. Until then loan_drafts is reached via a generically-
-     typed client (`supabase as unknown as SupabaseClient`) —
-     documented, drops to typed access post-db:types.
-
- 346. DRAFT ACTIONS + LIST + RESUME + FINALIZE-DELETE. New
-     src/app/(staff)/pawn/drafts/actions.ts: saveLoanDraft(formData)
-     (gate has_pawn + requireRoleInTenant owner/manager/pawn_clerk/
-     chain_admin; require customer_id [the one hard requirement];
-     defense-in-depth customer-belongs-to-tenant check; buildDraftPayload
-     -> insert or update by draft_id; audit create/update) and
-     deleteLoanDraft(formData) (soft-delete via deleted_at; audit
-     soft_delete) — both redirect-style (formData)=>Promise<void>, not
-     useActionState. New /pawn/drafts page.tsx (loads drafts via
-     generic client + parseDraftPayload -> DraftRow[]) + content.tsx
-     (table: customer / items / principal / saved-at; Continue ->
-     /pawn/new?draft=id; Discard -> deleteLoanDraft form). /pawn/new
-     page.tsx reads ?draft= and loads the row -> initialDraft prop.
-     form.tsx: seeds principal/termDays/rateChoice/notes + CustomerPicker
-     initialCustomerId from the draft, injects collateral rows once on
-     mount via collateralRef.addExtractedRow (photos NOT restored —
-     not staged; category slugs NOT restored — addExtractedRow
-     limitation, same as voice intake), hidden draft_id + rate_id
-     inputs, and a rail "Save as draft" button (useTransition; builds
-     FormData from the form element; disabled until a customer is
-     picked). createLoanAction reads draft_id and soft-deletes the
-     draft after a successful issue (before redirect). /pawn list
-     gained a "Drafts" link.
-
- 347. SHARED INTAKE PARSER — src/lib/pawn/intake-form.ts (NEW,
-     non-'use server' so multiple action files can import its sync
-     helpers). readCollateralRows was MOVED here verbatim out of
-     pawn/new/actions.ts (createLoanAction now imports it — no
-     duplicate copy); added buildDraftPayload(fd) (drops photo Files —
-     can't stage in JSONB; re-attached on resume+finalize) and
-     parseDraftPayload(unknown) (defensive coerce of stored JSONB back
-     to LoanDraftPayload). Keeps the draft payload and the real loan
-     insert reading the exact same collateral_<n>_* field names.
-
- 348. DASHBOARD REDESIGN (from operator mockup pawn-dashboard.html).
-     Server src/app/(staff)/dashboard/page.tsx (read-only surface, so
-     extending the READ is safe + build-verifiable — same rule as the
-     Session-44 /pawn list): book-driven MONEY KPIs computed via
-     canonical payoffBalance over the active loan book + a batched
-     loan_events fetch — onLoanNow (Σ principalOutstanding), interestDue7
-     (Σ interestOutstanding for loans due in [today, today+7]),
-     overdueAtRisk (Σ payoff for due<today); plus today's sales $/count.
-     Attention counts gained overdueLoanCount + repairsNeedPartsCount.
-     loansDueSoon (overdue-first, top 6, with payoff + customer). Cross-
-     module recent-activity feed: recent sales (has_retail) + recent
-     loan_events (has_pawn, embedded loan->customer) merged, sorted by
-     time desc, top 8; event_type maps to kind (issued->loan,
-     redemption->redeem, else pay). Removed the old recentCustomers/
-     recentItems panels + queries and the now-unused activeRepairCount/
-     in7/addDaysIso. Client dashboard/content.tsx (REWRITTEN): header +
-     long localized date, 3 module-gated quick-action cards (New sale ->
-     /pos/sales/new, New loan -> /pawn/new, New repair -> /repair/new),
-     money KPI row (accent bars navy/warning/danger/success), 5-card
-     needs-attention row (Due this week / Overdue loans / Items on hold
-     / Ready for pickup / Repairs need parts; per-tone hot styling +
-     muted zero state), two-column lower (loans-due-soon list + activity
-     feed with kind icons), library row (customers / inventory / banned).
-     New dashboard.* i18n block (~40 keys) en+es at parity. Also: the
-     official FL Pawnbroker Transaction Form PDF was added to the repo
-     root as the compliance reference for a FUTURE ticket-print pass
-     (operator chose to keep-as-reference and continue drafts now).
-
---- Session 44 (2026-06-30, third pass) — /pawn list redesign (stats + collateral/payoff + row actions) + /pawn/new create-customer modal ---
-
- 342. PAWN LOANS LIST REDESIGN — STATS STRIP + COLLATERAL/PAYOFF
-     COLUMNS + ROW ACTIONS (from operator mockup
-     pawn-loans-list.html). The /pawn list was a 6-column table
-     (ticket/customer/principal/due/days/status); rebuilt to match
-     the mockup. SERVER src/app/(staff)/pawn/page.tsx: this is a
-     READ-ONLY list (no regulated write), so extending the read is
-     safe + fully build-verifiable. Added min_monthly_charge to the
-     main loan select. After building+filtering the displayed rows,
-     gathers a single batched loan_events fetch (.in('loan_id', …))
-     over the UNION of displayed rows + active book + redeemed-30d,
-     grouped into a Map and coerced to numbers (EventLite). Batched
-     loan_collateral_items fetch for displayed rows -> first
-     description + extra count. Per non-terminal row computes payoff
-     via canonical payoffBalance() (principal + accrued interest,
-     events-aware); terminal rows get payoff=null (shown as "—" —
-     payoff for redeemed/forfeited is misleading). Book-wide STATS
-     STRIP (independent of the active filter): fetches active book
-     (NON_TERMINAL, cap 1000) + redeemed-in-30d (updated_at >=
-     today-30, cap 1000); onLoanNow = Σ principalOutstanding;
-     dueSoon/overdue counts+payoff Σ classified by daysBetween;
-     redeemedInterest = Σ appliedPayments().interestApplied. Search
-     `q` now also matches customer_phone. CLIENT
-     src/app/(staff)/pawn/content.tsx (REWRITTEN): PawnListRow gained
-     collateral_label/collateral_extra/payoff/accrued_interest; new
-     PawnStats export. 4 StatCard cells with left accent borders
-     (navy/warning/danger/success). Filter pills restyled navy/gold
-     (Chip: active = navy bg white, error = danger bg, warning =
-     warning bg; count chip recolors). Table gained Collateral +
-     Payoff-due columns; SortHeader makes Principal/Payoff/Due
-     client-side sortable (default due asc; payoff nulls sort last).
-     Rows: left border-l-4 danger(overdue)/warning(dueSoon), relative
-     due labels (relOverdue "{n} days overdue" / relDueIn "in {n}
-     days"), Take payment (open)/View (terminal) primary button +
-     RowMenu kebab. RowMenu renders via createPortal to document.body
-     positioned at the button rect (so table overflow-x-auto can't
-     clip it), closes on outside-click/scroll/resize; items View
-     ticket / Extend / Redeem (open only) / Print ticket (window.open
-     /api/print/loan/[id] — render-only, does NOT lock the ticket) /
-     Mark forfeited (danger, open only). All navigation kebab items
-     route to /pawn/[id] where the regulated extend/redeem/forfeit
-     actions actually live — not duplicated into the list.
-
- 343. /pawn/new "CREATE NEW CUSTOMER" — INLINE MODAL (was a page
-     navigation). Operator: the Create-new-customer button should pop
-     up, not send them to /customers/new. NEW
-     src/components/customers/QuickCustomerModal.tsx: createPortal
-     modal, useActionState over a new inline action, fields
-     first_name*/last_name* + phone/email/dob + an ID fieldset
-     (id_type select/id_number/id_state/id_expiry); on success hands
-     the new {id,label} up via onCreated and closes (one-shot guard
-     ref). In form.tsx the <Link href="/customers/new"> became a
-     button toggling showCustomerModal; onCreated calls
-     customerPickerRef.current.set(c) + sets selectedCustomerId/
-     customerLabel so the picker shows the new walk-in immediately.
-     SHARED CORE (no duplicate insert): extracted
-     src/lib/customers/create.ts createCustomerFromForm() —
-     CUSTOMER_FORM_FIELDS + zod validate + insert + referral-code +
-     audit, returns { ok, id, firstName, lastName } | { ok:false,
-     fieldErrors?/error?, echo } and does NOT redirect/revalidate.
-     Existing customers/new/actions.ts createCustomerAction slimmed
-     to: guard -> core -> on !ok return fieldErrors/error, on ok
-     revalidate + redirect(/customers/[id]) (behavior byte-identical).
-     NEW src/app/(staff)/customers/new/inline-actions.ts
-     createCustomerInlineAction: guard -> core -> returns
-     { customer:{ id, label } } (label = "Last, First · phone" to
-     match picker-search shape) without navigating. Guard FIRST
-     (requireStaff), RLS still enforces tenant isolation on insert.
-
- 344. SESSION 44 i18n (en+es, parity verified). pawn.list gained:
-     collateral, payoffDue, intSuffix, moreCount, takePayment, view,
-     viewTicket, extendRenew, redeem, printTicket, markForfeited,
-     rowActions, relOverdue, relDueIn, statOnLoan(+Sub),
-     statDueSoon(+Sub), statOverdue(+Sub), statRedeemed(+Sub); also
-     widened searchPlaceholder to mention phone. pawn.new_ gained
-     quickCustomerTitle/Help/IdSection/Save/Error. Modal field labels
-     REUSE existing t.customers.* (firstName/lastName/phone/email/dob/
-     idType/idNumber/idIssuingState/idExpiry + idType* options) — no
-     new keys for those. Verified build-clean: tsc --noEmit clean,
-     eslint clean, npm run build green, vitest 413/413 pass.
-
---- Session 43 (2026-06-30, second pass) — Two-pane redesigns: POS new-sale + New Pawn Ticket (Phase 1) ---
-
- 340. POS NEW-SALE REDESIGN — TWO-PANE WORK SURFACE +
-     CHECKOUT RAIL (commit 2ee3299). From operator
-     mockup pos-new-sale.html + brief. Rewrote ONLY
-     src/components/pos/Cart.tsx; form.tsx, actions.ts,
-     page.tsx, lib/pos/cart.ts unchanged (the Cart
-     computes tax fraction + resolved discount and
-     passes them to the existing onSubmitSale/
-     onSaveAsLayaway callbacks).
-     - Left work surface: ScanBar (autofocus + refocus
-       after every add for barcode guns; Enter resolves
-       exact SKU -> single partial hit -> multi-hit
-       picker pre-seeded -> inline "no item found").
-       Add item / Add custom line / Clear. Line items:
-       inventory = unique units (qty locked 1, re-scan
-       no-op + "already in cart"); custom lines get a
-       qty stepper + inline name/price.
-     - Right navy rail: customer (embedded
-       CustomerPicker) + order summary [subtotal,
-       discount $/% segmented toggle resolved to $ and
-       capped at subtotal, tax editable % chip -> stored
-       as fraction (raw decimal never shown), live
-       Total] + tender (cash/card; split disabled
-       "coming soon") + Charge {amount} + Save as
-       layaway + collapsible note.
-     - src/components/pos/AddInventoryItemDialog.tsx
-       gained an initialQuery prop for the multi-hit
-       handoff.
-     - i18n: new pos.sale.* keys en+es (identical);
-       removed orphaned taxRateHelp.
-     DEVIATIONS (existing schema/flow preserved): money
-     stays numeric(18,4) r4 (not integer cents, rule 11);
-     no per-line taxable / no tenant default tax rate /
-     no held-sales / no split-tender; tender UI-only
-     (payment still finalized on /pos/sales/[id]); mobile
-     rail stacks (no bottom-pin). npm run build clean.
-
- 341. NEW PAWN TICKET REDESIGN — PHASE 1: TWO-PANE +
-     STICKY LOAN RAIL (commit 984374c). From operator
-     mockup new-pawn-ticket.html + brief. Layout +
-     interaction only; createLoanAction, validation, and
-     data model UNCHANGED.
-     - Rewrote src/app/(staff)/pawn/new/form.tsx into a
-       two-pane grid (lg:grid-cols-[1fr_360px]). Left:
-       voice + customer + collateral editor + signature/
-       notes. Right: sticky navy loan-summary rail.
-     - Terms MOVED into the rail; the old left-column
-       "Loan terms" fieldset is gone. Rail holds
-       principal (large $ input), interest rate select
-       (from config), term, issue date (locked today),
-       auto due date, plus hidden interest_rate_monthly /
-       min_monthly_charge / due_date inputs so the
-       unchanged action still reads the same FormData.
-     - Live Collateral-value box + LTV state:
-       src/components/pawn/CollateralItemsList.tsx gained
-       an onTotalsChange(count, totalValue) prop (reports
-       via a useEffect; counts only started rows). Rail
-       color-codes principal vs collateral value: ok
-       (shows "{pct}% of value"), over ("Over value"),
-       or neutral (item count).
-     - Live redemption box: principal + principal *
-       monthly_rate * term/30, with includes-{interest}
-       line.
-     - Financing toggle (Pawn active / Buy outright):
-       Buy bridges to the existing /buy/new regulated
-       flow (in-place buy deferred to Phase 2).
-     - Issue button disabled until customer + principal>0
-       + >=1 collateral item; rail missing-hint shown
-       otherwise.
-     - i18n: new pawn.new_ keys en+es (financingPawn/Buy,
-       railSummaryTitle, collateralValue, ltvCovered/Over,
-       redemptionLabel/Includes, collateralItemsLabel,
-       manageRatesHint, railMissingHint, itemOne/Many);
-       removed the dead duplicate key I introduced.
-     PHASE 2 DEFERRED (operator chose full scope; each
-     needs a migration + regulated-action change + verify
-     pass): Save-as-draft (loan_status 'draft'), pawn-
-     history re-pawn panel, in-place Buy-outright merge.
-     tsc + eslint clean, npm run build clean, 413 tests.
-
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Ask Eddy for the rest of the Ledger spec ("RULES - …" was cut off)
-    and for a counter test of a "From inventory" quick sale button (two
-    units, tap twice → popup). Next plan phase (2b RFID needs hardware;
-    else 5 or 7) only on his "do phase N".
+    Ask Eddy for the pawn company's own Stripe secret key → Settings →
+    Card reader → own key → pair / link its reader → one live reader
+    charge + a void (exercises the 492 refund path). Meanwhile: void
+    S-000005 / S-000006 (with him), and offer the self-hosted fonts fix.
     Still open from REVIEW-2026-11-11: pawn redeem / return
     double-submit, accrual dates in UTC outside the reports,
     metal-counter consignment (finding 15), /audit hydration, and the
