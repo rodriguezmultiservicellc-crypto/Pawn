@@ -202,6 +202,9 @@ function RecentSalesPanel({ rows }: { rows: PosHomeRecentSale[] }) {
           <ArrowsClockwise size={14} weight="regular" />
           {t.pos.register.todaySales}
         </h2>
+        <Link href="/pos/sales" className="text-xs text-blue hover:underline">
+          {t.nav.saleHistory}
+        </Link>
       </header>
       {rows.length === 0 ? (
         <div className="px-3 py-6 text-center text-sm text-muted">

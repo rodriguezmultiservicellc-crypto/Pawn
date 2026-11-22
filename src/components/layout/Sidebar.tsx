@@ -191,6 +191,15 @@ export function Sidebar({
       visible: canSeeCounts,
       child: true,
     },
+    // Consigned goods ARE inventory, the shop just doesn't own them.
+    {
+      kind: 'item',
+      href: '/consignors',
+      label: t.nav.consignors,
+      icon: <HandCoins size={16} weight="regular" />,
+      visible: consignmentEnabled,
+      child: true,
+    },
     {
       kind: 'item',
       href: '/inventory/transfers',
@@ -198,28 +207,42 @@ export function Sidebar({
       icon: <ArrowsLeftRight size={18} weight="regular" />,
       visible: canSeeTransfers,
     },
-    // Consignors sit under Inventory: consigned goods ARE inventory, the
-    // shop just doesn't own them.
-    {
-      kind: 'item',
-      href: '/consignors',
-      label: t.nav.consignors,
-      icon: <HandCoins size={18} weight="regular" />,
-      visible: consignmentEnabled,
-    },
 
     // Modules — gated per tenant.has_pawn / has_repair / has_retail.
     { kind: 'section' },
-    // POS first, straight into a new sale — the most-used counter action.
-    // The new-sale page links back to the /pos hub (layaways, returns,
-    // register), and the item stays highlighted anywhere under /pos.
+    // POS hub (register, returns) with its three everyday pages under it.
+    // The longest matching root wins, so /pos/sales/123 lights Sale
+    // history and /pos/returns lights POS.
     {
       kind: 'item',
-      href: '/pos/sales/new',
-      activePrefix: '/pos',
+      href: '/pos',
       label: t.nav.pos,
       icon: <CashRegister size={18} weight="regular" />,
       visible: modules.has_retail,
+    },
+    {
+      kind: 'item',
+      href: '/pos/sales/new',
+      label: t.nav.newSale,
+      icon: <Plus size={16} weight="regular" />,
+      visible: modules.has_retail,
+      child: true,
+    },
+    {
+      kind: 'item',
+      href: '/pos/layaways',
+      label: t.nav.layawayList,
+      icon: <Wallet size={16} weight="regular" />,
+      visible: modules.has_retail,
+      child: true,
+    },
+    {
+      kind: 'item',
+      href: '/pos/sales',
+      label: t.nav.saleHistory,
+      icon: <Receipt size={16} weight="regular" />,
+      visible: modules.has_retail,
+      child: true,
     },
     // Orders paid on the shop's website (patches/0078). A more specific
     // root than /pos, so it — not POS — lights up on its own pages.

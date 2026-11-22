@@ -164,6 +164,8 @@ const ROUTES = [
   ['dashboard', '/dashboard'],
   ['customers', '/customers'],
   ['customers merge', '/customers/merge'],
+  ['sale history', '/pos/sales'],
+  ['sale history (customer)', ids.customer && `/pos/sales?customer=${ids.customer}&status=completed`],
   ['inventory', '/inventory'],
   ['inventory detail', ids.item && `/inventory/${ids.item}`],
   ['pawn', '/pawn'],

@@ -81,6 +81,8 @@ OPERATION IN FLIGHT: none
                   - Loyalty ledger repaired to match 0028 (507, 0092).
                   - Print tags menu no longer opens off-screen (508).
                   - Sidebar: Inventory → New item / Import / Counts (509).
+                  - POS → New sale / Layaway list / Sale history, new
+                    /pos/sales page; Consignors under Inventory (510).
                   Migrations 0089-0092 ALL APPLIED.
 
   Session 60 (2026-11-21 ~13:00), items 480-494:
@@ -692,6 +694,20 @@ Progress_archive.txt — the items from those sessions are there.)
       EN+ES. Browser-checked on /inventory/import.
       Then (Eddy): Spot prices + eBay listings moved out of the Inventory
       group to lead the records group, directly above Appraisals.
+
+ 510. SIDEBAR POS GROUP + SALE HISTORY PAGE. POS now links the /pos hub
+      with children New sale (/pos/sales/new), Layaway list
+      (/pos/layaways) and Sale history (/pos/sales); Consignors moved
+      under Inventory as a child (still gated on consignment_enabled).
+      NEW /pos/sales — there was no sales list (the hub shows the last
+      25, and the customer page's /pos/sales?customer= link was a 404).
+      GET-form filters in the URL: sale #, status, type, from / to (the
+      shop's calendar day via dayStartInTimezone, rule 18), customer
+      chip; 50 per page with exact count; has_retail gate; RLS client +
+      tenant filter. Hub "Today's sales" links to it. Smoke: added two
+      routes; sale routes 5/5 clean on a COLD server. NOTE: a warm dev
+      server 404'd every /pos/sales/* child after the new page.tsx
+      appeared — stale .next route cache, gone after deleting .next.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
