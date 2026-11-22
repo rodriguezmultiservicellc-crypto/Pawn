@@ -60,101 +60,111 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 62 (2026-11-22), saved 2026-11-22 01:50.
-                  Context budget at save: ~45%.
+  Last session:   Session 63 (2026-11-22), saved 2026-11-22 13:15.
+                  Context budget at save: ~65% (my estimate; one context
+                  compaction happened mid-session).
                   Built and live (main == feature/sol-pawn-brief), items
-                  514-519:
-                  - Fonts self-hosted: next/font/google → next/font/local,
-                    files in src/app/fonts. The build no longer needs
-                    Google (that download failed two Vercel builds).
-                  - Sidebar groups open and close: Inventory, POS, Pawns,
-                    Repair. Closed groups persist per browser.
-                  - Communications and Loyalty left the sidebar; both are
-                    cards on /settings, each page with a "Back to
-                    settings" link.
-                  - /settings hub translated EN + ES (new settingsHub
-                    dictionary namespace).
-                  - New "System tools" sidebar group: Sell metal, Spot
-                    prices, Appraisals, Bench tools.
-                  No migrations this session.
+                  520-530. FOUR MIGRATIONS, ALL APPLIED: 0093-0096.
+                  - Loyalty settings page translated (520).
+                  - Loyalty / Store credit / Consignment settings forms
+                    no longer reset after a save (521).
+                  - LAYAWAY TERMS: saved plans in Settings, picked in the
+                    New layaway dialog, "Custom" = type by hand (522,
+                    0093).
+                  - Quick "New customer" popup could not save anyone —
+                    fixed; it is now also on the sale form behind a "+"
+                    (523, 524).
+                  - SALES TAX BY DISTRICT: Settings → Sales tax, one line
+                    per tax, total kept in settings.default_tax_rate by a
+                    trigger (524, 0094; CLAUDE.md rule 20).
+                  - PER-ITEM TAX CAP on a tax line; ONE database function
+                    now computes a sale's tax (529, 0095).
+                  - Customer phone / email validated (526).
+                  - Receipt balance large and boxed; layaway list "Due
+                    soon" tab no longer sticks (527, 528).
+                  - CARD READER TIPS, credited to the employee (530,
+                    0096; CLAUDE.md rule 21) — NOT tested against Stripe.
 
-  Session 61 (2026-11-21 → 11-22), items 495-513:
-                  - PC froze at 15:06 (out of RAM on the 12 GB box, dwm
-                    OOM) — NOT a code crash. Watchdog heap now 2048 MB.
-                  - Lightspeed X-Series inventory import (0089) finished,
-                    committed 27dd63d, live.
-                  - Inventory Size / Length field (0090) + forfeit carry
-                    + Lightspeed variant fill; item form numbers min=0.
-                  - Imported items' notes start with an import stamp
-                    (source, outlet, file, date); the 3,263 already
-                    imported were backfilled; detail page shows an
-                    "Imported from … on …" badge.
-                  - Item melt panel: full melt + "You pay" separately;
-                    gold "Fine .999" removed (24K is the one top bucket).
-                  - Customer search matches full names (505).
-                  - Customer MERGE tool + duplicate finder (506, 0091).
-                  - Loyalty ledger repaired to match 0028 (507, 0092).
-                  - Print tags menu no longer opens off-screen (508).
-                  - Sidebar: Inventory → New item / Import / Counts (509).
-                  - POS → New sale / Layaway list / Sale history, new
-                    /pos/sales page; Consignors under Inventory (510).
-                  - Layaway receipt + print popup on create / payment;
-                    Transfers under Inventory (511); customer signs
-                    the layaway terms on the receipt.
-                  - Sidebar groups: Pawns heading (New pawn / Pawns /
-                    Buy outright / Loan calculator), Repair heading (New
-                    repair / Repairs / Custom quotes), Sell metal above
-                    Spot prices (512); Online orders under POS (513).
-                  - Eddy's duplicate customer is NOT merged — he picks
-                    which record to keep at /customers/merge.
-                  Migrations 0089-0092 ALL APPLIED.
+  Session 62 (2026-11-22), items 514-519: fonts self-hosted
+                  (next/font/local), sidebar groups open / close, System
+                  tools group, Communications + Loyalty moved under
+                  /settings, /settings hub translated. No migrations.
 
   ACTIVE FILE(S):
-    - src/components/layout/Sidebar.tsx (open / close groups, System
-      tools group, 515 + 518)
-    - src/app/layout.tsx; src/app/fonts/* (self-hosted fonts, 514)
-    - src/app/(staff)/settings/{page,content}.tsx (hub translated,
-      Loyalty card, 517 + 519)
-    - src/app/(staff)/settings/communications/content.tsx;
-      src/app/(staff)/settings/import/content.tsx;
-      src/app/(staff)/settings/loyalty/content.tsx (back link, 516 +
-      519)
-    - src/lib/i18n/{en,es}.ts (settingsHub, common.collapseGroup /
-      expandGroup / backToSettings, nav.systemTools)
-    - src/app/(staff)/customers/merge/*; patches/0091, 0092
-    - src/lib/pos/receipt-{data,thermal,html}.ts (layaway receipt)
-    - src/lib/imports/{lightspeed,lightspeed.test,access}.ts
-    - src/app/api/imports/inventory/route.ts;
-      src/app/(staff)/inventory/import/{page,content}.tsx
-    - src/components/inventory/InventoryFormFields.tsx;
-      src/app/(staff)/inventory/{new,[id]}/*; src/lib/validations/inventory.ts
-    - src/app/(staff)/pawn/[id]/actions.ts (forfeit carries jewelry_size)
-    - src/lib/labels/resolve.ts (scan matches legacy_code)
-    - patches/0089, 0090; dev-watchdog.mjs; src/lib/i18n/{en,es}.ts
-    - src/app/(staff)/inventory/[id]/{page,content}.tsx (import badge,
-      MeltPanel full melt + You pay)
-    - src/lib/spot-prices/{purity,refresh}.ts; src/lib/bench/combos.ts;
-      src/app/(staff)/inventory/spot-prices/{page,actions}.tsx;
-      src/lib/validations/metal-sale.ts (gold 'fine' removed)
+    - src/lib/pos/sales-tax.ts (+ .test.ts, -server.ts) — tax lines,
+      quoteSaleTax (mirror of the database), computeCartTotals
+    - patches/0094-tax-rates.sql, 0095-tax-item-cap.sql (sales_tax_quote,
+      sale_create / layaway_create + p_tax_mode, online_order_reserve)
+    - src/components/pos/Cart.tsx; src/app/(staff)/pos/sales/new/
+      {page,form,actions,sale-core}.tsx; src/lib/pos/money.ts;
+      src/lib/validations/pos.ts
+    - src/app/(staff)/settings/sales-tax/* ; settings/layaway-terms/* ;
+      settings/card-reader/{actions,content,page,TipsCard}.tsx
+    - src/lib/pos/layaway-terms.ts (+ test, -server);
+      src/components/pos/LayawayScheduleDialog.tsx; patches/0093
+    - src/lib/pos/{reader,reader-server,card-settle}.ts;
+      src/lib/stripe/terminal.ts; src/app/api/stripe/webhook/route.ts;
+      src/lib/reports/tips.ts; src/app/(staff)/reports/tips/*;
+      patches/0096-reader-tips.sql
+    - src/lib/pos/returns.ts (refund uses the line's own tax);
+      src/lib/pos/receipt-{data,html,thermal}.ts;
+      src/lib/pdf/SaleReceiptPDF.tsx (balance box, tip line)
+    - src/lib/customers/{create,phone,field-errors}.ts;
+      src/lib/validations/customer.ts;
+      src/components/customers/QuickCustomerModal.tsx
+    - src/lib/ui/submit-keeping-values.ts; settings/{loyalty,
+      store-credit,consignment}/content.tsx
+    - src/app/(staff)/pos/layaways/content.tsx (filter tabs)
+    - src/lib/i18n/{en,es}.ts (112 keys added, both languages)
 
   RESUME POINT:
-    Clean. main == origin/main == feature/sol-pawn-brief, nothing in
-    flight. Session 62 was UI only (fonts, sidebar, /settings) and all
-    of it was driven in a real browser on the dev server before each
-    push; nothing from it is waiting on a test.
+    Clean. main == origin/main == feature/sol-pawn-brief at the Session
+    63 checkpoint, nothing in flight, working tree clean. Everything
+    below is built, pushed and deployed; what is left is Eddy's setup
+    and three things nobody has run for real yet.
+
+    WHAT EDDY HAS TO SET UP (the features do nothing until he does):
+      1. Settings → Sales tax: add his tax lines (he named Florida 6% +
+         county 1.5%) and type the per-item cap on the county line. Until
+         then the Tax field on a sale starts at 0, as before.
+      2. Settings → Layaway terms: he already created "90 Days"
+         (default) and "30 Days" himself during the session.
+      3. Card reader tips: blocked on the pawn company's own Stripe key
+         (rule 17) — see Session 60 carry-over below.
+
+    NOT YET RUN FOR REAL (say so before relying on any of it):
+      a. A real sale taxed by the shop's tax lines (p_tax_mode='shop')
+         through the API. Proven in a rolled-back dry run and on screen
+         with the request blocked. The API loads safeupdate (0084); every
+         new UPDATE has a WHERE in the form 0084 used, but the first real
+         capped sale is the first one down that path. If Charge answers
+         "Something went wrong", read the Vercel log line "[pos.money]
+         sale_create" FIRST.
+      b. Opening a layaway from saved terms end to end (the dialog was
+         tested up to the request; Eddy opened L-000002 and L-000003
+         himself, which worked).
+      c. Anything Stripe: tips, the tip Configuration call, the webhook
+         with a tipped charge. See KNOWN ISSUES "CARD READER TIPS".
+
+    HOW THIS SESSION TESTED MONEY CODE WITHOUT TOUCHING LIVE DATA (reuse
+    it): migration SQL + a DO block of test sales + a final RAISE
+    EXCEPTION carrying the results as JSON, sent as ONE request to the
+    Management API. The whole thing rolls back; the numbers come back in
+    the error message. tenant_counters is a table, so sale / layaway
+    numbers roll back too. (The API itself cannot run a rolled-back call:
+    "Prefer: tx=rollback" is ignored.)
+
     Carried from Session 61: Eddy works the /customers/merge list (53
-    duplicate groups, his own pair first), and the Lightspeed import
-    page (/inventory/import) + the Size / Length field are live but
-    not yet opened in a browser with a real export.
-    Carried from Session 60:
-    Pawn has NO Stripe credentials again (RMS keys removed, 493):
-    Card at the counter = card machine (external card) only; reader +
-    online checkout wait for the PAWN COMPANY's own Stripe key → Settings
-    → Card reader → "The shop's own Stripe key", then pair or link its
-    reader. First ask Eddy: (a) has he got that key; (b) S-000005 ($10,
-    open, no payment) and S-000006 ($5 card-machine test, refund on the
-    machine) — void them; (c) the rest of the Ledger spec + "From
-    inventory" quick sale test (from Session 59).
+    duplicate groups, his own pair first); the Lightspeed import page +
+    the Size / Length field are live but not yet opened in a browser
+    with a real export.
+    Carried from Session 60: Pawn has NO Stripe credentials (RMS keys
+    removed, 493). Card at the counter = card machine only; reader,
+    tips and online checkout wait for the PAWN COMPANY's own Stripe key →
+    Settings → Card reader → "The shop's own Stripe key", then pair or
+    link its reader. Still to ask Eddy: (a) has he got that key;
+    (b) void S-000005 ($10, open) and S-000006 ($5 card-machine test);
+    (c) the rest of the Ledger spec + "From inventory" quick sale test.
 
   HOW TO RUN THE BROWSER SMOKE (new this session):
     npm run dev                       # server must be up on :3060
@@ -506,6 +516,158 @@ SESSION HISTORY LOG
 2026-09-19, sessions 22, 23, 24, 25, 26, 27, 29, 30, 31, 32 archived
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
+
+--- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
+
+ 520. LOYALTY SETTINGS PAGE TRANSLATED (7e22e6e).
+      src/app/(staff)/settings/loyalty/content.tsx reads every string
+      from a new loyalty.settings block (EN + ES). actions.ts returns
+      error CODES ('validation_failed' | 'save_failed') instead of the
+      raw database message, so the error line is translated too; the
+      Save button shows "Saving…".
+
+ 521. SETTINGS FORMS RESET AFTER A SAVE [BUG] (4a3a441).
+      Root cause: React resets a <form action={fn}> when the action
+      finishes, but component state stays. On Loyalty, Store credit and
+      Consignment the "turn on" checkbox is held in state, so after a
+      save it SHOWED unticked while the page still treated it as on — a
+      second Save would have switched the module off.
+      Fix: new src/lib/ui/submit-keeping-values.ts (onSubmit +
+      startTransition, no reset), used by the three forms. Browser-
+      checked on Loyalty and Store credit with a rejected save;
+      Consignment has the same line but was not submitted (every value
+      it accepts would have saved).
+
+ 522. LAYAWAY TERMS (633f2a5, patches/0093 APPLIED).
+      Eddy: most shops write every layaway on the same terms.
+      - Table layaway_terms (name, schedule_kind, down_payment_pct,
+        first_payment_days, term_days, cancellation_fee_pct, is_default,
+        is_active, position). One default per shop (unique index). RLS
+        approved by Eddy: staff read, owner + manager write.
+      - src/lib/pos/layaway-terms.ts: schema (percent typed, fraction
+        stored), applyLayawayTerm(term, total, today) → dates counted
+        from the shop's today (todayInTimezone), minimum down payment.
+      - Settings → Layaway terms: add / edit / reorder / default / remove.
+        The first plan added becomes the default.
+      - src/components/pos/LayawayScheduleDialog.tsx: a Terms list
+        (default picked), a read-only summary, the down payment pre-
+        filled at the plan's share (more is allowed, less is refused),
+        and "Custom" = the original fields. No plans = the old dialog.
+      - layaways and layaway_create() are unchanged: the dialog sends
+        the same fields. The audit log records which terms were used
+        (layaway_term_id → name).
+
+ 523. QUICK "NEW CUSTOMER" POPUP COULD NOT SAVE ANYONE [BUG] (c33555e).
+      Found while wiring it into the sale form. Root cause:
+      createCustomerFromForm passed formData.get() straight to the
+      schema; the popup has no country / id_country / comm_preference /
+      language field, so those arrived as NULL, and zod's .default()
+      only fills UNDEFINED. Every save was refused, with no message,
+      because the popup shows errors only under fields it has. Affected
+      the pawn, repair and quote forms too.
+      Fix: src/lib/customers/create.ts sends a missing field as
+      undefined. The popup also keeps what was typed after a refused
+      save (submitKeepingValues). Browser-checked on the sale form only.
+
+ 524. SALES TAX BY DISTRICT + CUSTOMER "+" ON THE SALE FORM (1fc3e09,
+      patches/0094 APPLIED).
+      - Table tax_rates (name, level state|county|city|district|other,
+        rate numeric(6,4), is_active). RLS approved by Eddy with
+        MANAGERS able to edit: staff read, owner + manager write.
+      - Trigger trg_tax_rates_sync_total (SECURITY DEFINER — managers
+        cannot write settings) keeps settings.default_tax_rate = sum of
+        the active rows; refuses a stack over 100%. Nothing else writes
+        that column now (CLAUDE.md rule 20).
+      - Settings → Sales tax; hub card shows the total. A rate finer
+        than two decimals of a percent is refused, not rounded.
+      - New sale / layaway: the Tax field starts at the shop's total and
+        shows what it is made of; the clerk can still change it.
+      - Online store settings show the rate and link to Sales tax
+        (toSettingsPatch and tax_rate_pct removed).
+      - Cart.tsx: "+" beside the customer search opens
+        QuickCustomerModal; the new customer goes onto the sale.
+      - The Open layaway button states the amount it will collect.
+
+ 525. LAYAWAY L-000002: "TYPED 150, CHARGED 50" — NOT REPRODUCED.
+      Audit log + rows show the server stored exactly what the browser
+      sent (down_payment 50). 12 ways of changing the box to 150 on the
+      LIVE site (request captured and aborted) all sent 150. Eddy said
+      to ignore it. L-000002 was not touched (paid $50, balance $150).
+      The button label from 524 is the safeguard.
+
+ 526. CUSTOMER PHONE + EMAIL VALIDATED (46740a9).
+      Eddy's screenshot: phone "dfdd", email "fds". Phone was
+      optionalTrimmedString — anything saved. New
+      src/lib/customers/phone.ts normalizePhone(): digits + the usual
+      separators, 7-15 digits; 10 digits (or 11 starting with 1) is
+      stored as "(813) 555-0100", the shape all 8,005 existing phone
+      values already have (checked read-only: none would fail the
+      rule). Error codes 'invalid_phone' / 'invalid_email' translated by
+      src/lib/customers/field-errors.ts on the popup and the full new /
+      edit forms (they used to show the raw validator text).
+
+ 527. RECEIPT BALANCE LARGE (ccd8d03).
+      balanceOwed() in src/lib/pos/receipt-thermal.ts: what is still
+      owed, printed ONCE under "Paid" — heavy box at 24pt on the letter
+      receipt (2x the Total), a box on the PDF, capitals between "="
+      rules on thermal. It was a small field inside the layaway terms.
+
+ 528. LAYAWAY LIST "DUE SOON" STUCK ON EVERY TAB [BUG] (ccd8d03).
+      Eddy: "when i click active again it doesnt bring up the active".
+      Root cause: every status chip built its link with the current due
+      window, and the Due soon chip had no off state, so after one click
+      "Active" still filtered to due-soon until the page was reopened.
+      Fix in src/app/(staff)/pos/layaways/content.tsx: Due soon is its
+      own view; any status tab leaves it; clicking it again turns it
+      off. Assumed this was the page he meant.
+
+ 529. PER-ITEM TAX CAP, ANY STATE (09a0640, patches/0095 APPLIED).
+      Eddy: "add a cap but not just for florida".
+      - tax_rates.item_cap: "only the first $X of each item", per unit.
+        NULL = the whole price. No state's figure is in the code.
+      - sales_tax_quote(tenant, qty[], net[]): ONE function computes a
+        sale's tax. Tax is rounded ONCE on the whole sale; the split by
+        tax line and by sale line is reconciled to the cent (leftover
+        cent to the largest).
+      - sale_create / layaway_create gain p_tax_mode (default 'flat', so
+        old callers are unchanged): 'shop' = the shop's tax lines, caps
+        included, cart discount spread over the lines first; 'flat' =
+        the rate the clerk typed. online_order_reserve uses the same
+        function. Bodies were generated from the LIVE definitions.
+      - New: sales.tax_breakdown (tax per tax line) and
+        sale_items.tax_amount (tax per line). Returns refund the line's
+        own tax when present (src/lib/pos/returns.ts).
+      - src/lib/pos/sales-tax.ts quoteSaleTax / computeCartTotals: the
+        same arithmetic in whole cents (BigInt for the discount split);
+        tests are pinned to the numbers the database produced, plus 400
+        random carts proving "no cap" equals the old formula.
+      - Verified: rolled-back dry run (sale, layaway, online order), unit
+        tests, sale screen in a browser ($10,000 item → $10,675.00, not
+        $10,750.00). See RESUME POINT (a) for what was not.
+
+ 530. CARD READER TIPS, CREDITED TO THE EMPLOYEE (a43607a,
+      patches/0096 APPLIED). Eddy: like Luna Azul, with a switch, and
+      the tip saved to the proper user.
+      - Read Luna Azul's version READ-ONLY for reference (a switch +
+        skip_tipping; it does not credit an employee). No file there was
+        touched.
+      - settings.reader_tips_enabled / reader_tip_percentages /
+        stripe_terminal_tip_config_id; sale_payments.tip_amount /
+        tip_user_id; sale_card_payment_set_tip() is the only writer and
+        records a tip once (CLAUDE.md rule 21).
+      - processPaymentIntentOnReader({ askForTip }): off → skip_tipping
+        (as before); on → the reader offers the shop's choices, kept in
+        a Stripe Terminal Configuration by ensureReaderTipChoices().
+      - [BUG avoided] the webhook refused any card tender whose charged
+        amount differed from the tender; a tipped charge would never
+        have settled there. It now expects tender + the tip Stripe
+        reports.
+      - Tip on the sale page, the paid-sale banner, all three receipts;
+        Reports → Tips (per employee + each tip).
+      - Stripe facts were read from Stripe's docs on 2026-11-22:
+        process_config[skip_tipping], tipping[usd][percentages][n] on
+        /terminal/configurations, configuration_overrides on the
+        Location, amount_details.tip.amount on the PaymentIntent.
 
 --- Session 62 (2026-11-22) — Self-hosted fonts, sidebar groups open / close, System tools group, /settings translated (branch feature/sol-pawn-brief == main) ---
 
@@ -2651,16 +2813,18 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Eddy works the /customers/merge duplicates list (53 groups),
-    starting with his own pair. If a merge errors, the message is
-    translated; raw cause is in the Vercel log "[customer-merge]".
-    Open a few imported items (Lightspeed import done + re-run verified
-    idempotent, item 504) and spot-check legacy_code, grams, metal guess,
-    Size / Length, and the melt panel at the new 24K 90% rate. Then:
-    Ask Eddy for the pawn company's own Stripe secret key → Settings →
-    Card reader → own key → pair / link its reader → one live reader
-    charge + a void (exercises the 492 refund path). Meanwhile: void
-    S-000005 / S-000006 (with him).
+    Ask Eddy whether he has entered his tax lines (Settings → Sales
+    tax) and rung up a real sale since. If Charge or Save as layaway
+    failed, the first suspect is sale_create in 'shop' tax mode (never
+    run through the API before — see RESUME POINT (a)); read the Vercel
+    log "[pos.money] sale_create". If it worked, that item is closed.
+    Then, in his order of interest:
+    - show the per-district split somewhere (sales.tax_breakdown is
+      stored but shown nowhere: receipt, sale page, a tax report);
+    - Eddy works the /customers/merge duplicates list (53 groups);
+    - the pawn company's own Stripe key → pair the reader → one tipped
+      TEST sale (KNOWN ISSUES "CARD READER TIPS" lists what to confirm);
+      void S-000005 / S-000006 with him.
     Still open from REVIEW-2026-11-11: pawn redeem / return
     double-submit, accrual dates in UTC outside the reports,
     metal-counter consignment (finding 15), /audit hydration, and the
@@ -2668,6 +2832,15 @@ PENDING — NEXT UP
     Timeline / Timer / Opened) — verify those in PRODUCTION.
 
   AWAITING A DECISION FROM EDDY (not blocking anything):
+    - Tips: who is "the proper user"? Built as whoever is logged in when
+      the card is run. Not asked: choosing another employee at the
+      counter, reassigning a tip afterwards, pooling, refunding a tip on
+      a return.
+    - New layaway "Custom" still asks for the cancellation fee as a
+      decimal (0.10); Settings uses a percent (10). Switch Custom to a
+      percent?
+    - Consignment settings: an empty default-commission field saves 0%.
+      Make it required, or treat empty as "unchanged"?
     - Phase 0 / item 408: deactivate the "24.96% — 111" loan rate
       (tenant_loan_rates dd6ec17f)? Used by exactly one redeemed loan
       (2026-05-07); deactivating hides it from the picker and leaves
