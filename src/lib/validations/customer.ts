@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { normalizePhone } from '@/lib/customers/phone'
 
 /**
  * Customer Zod schemas. Every form, server action, and API endpoint that
@@ -63,14 +64,31 @@ const tagsSchema = z
   )
   .default([])
 
+/**
+ * Optional phone: blank → null; otherwise it must be a phone number
+ * (normalizePhone) and is stored in its normal form. The message is an error
+ * code the forms translate (customers.fieldErrors).
+ */
+const optionalPhone = z
+  .preprocess(
+    (v) => {
+      if (typeof v !== 'string') return v
+      const trimmed = v.trim()
+      return trimmed === '' ? null : trimmed
+    },
+    z.string().max(40, 'invalid_phone').nullable().optional(),
+  )
+  .refine((v) => v == null || normalizePhone(v) !== null, { message: 'invalid_phone' })
+  .transform((v) => (v == null ? null : normalizePhone(v)))
+
 export const customerCreateSchema = z.object({
   first_name: z.string().trim().min(1, 'required').max(80),
   last_name: z.string().trim().min(1, 'required').max(80),
   middle_name: optionalTrimmedString,
   date_of_birth: optionalDate,
 
-  phone: optionalTrimmedString,
-  phone_alt: optionalTrimmedString,
+  phone: optionalPhone,
+  phone_alt: optionalPhone,
   email: z
     .preprocess(
       (v) => {
@@ -78,7 +96,7 @@ export const customerCreateSchema = z.object({
         const trimmed = v.trim()
         return trimmed === '' ? null : trimmed
       },
-      z.string().email().max(254).nullable().optional(),
+      z.string().email('invalid_email').max(254, 'invalid_email').nullable().optional(),
     )
     .transform((v) => v ?? null),
 

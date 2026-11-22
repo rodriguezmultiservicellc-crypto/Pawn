@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
+import { customerFieldErrorText } from '@/lib/customers/field-errors'
 import {
   CustomerFormFields,
   emptyCustomer,
@@ -173,7 +174,7 @@ export default function NewCustomerForm({
     }
   }
 
-  const fieldError = (key: string) => state.fieldErrors?.[key]
+  const fieldError = (key: string) => customerFieldErrorText(t, state.fieldErrors?.[key])
 
   return (
     <div className="space-y-6">

@@ -333,6 +333,12 @@ export const es: Dictionary = {
 
   customers: {
     title: 'Clientes',
+    // Códigos de error de campo de customerCreateSchema.
+    fieldErrors: {
+      required: 'Obligatorio',
+      invalid_phone: 'Ingrese un número de teléfono: solo dígitos, de 7 a 15, como (813) 555-0100.',
+      invalid_email: 'Ingrese un correo electrónico completo, como nombre@ejemplo.com.',
+    },
     new: 'Nuevo cliente',
     dashboard: {
       backToCustomers: 'Volver a clientes',

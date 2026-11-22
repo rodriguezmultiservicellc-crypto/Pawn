@@ -14,6 +14,7 @@ import {
   User,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { customerFieldErrorText } from '@/lib/customers/field-errors'
 import { isBrowserRenderableImage } from '@/lib/uploads/mime'
 import {
   CustomerFormFields,
@@ -279,7 +280,7 @@ export default function CustomerDetail({
     FormData
   >(updateCustomerAction, {})
 
-  const fieldError = (key: string) => state.fieldErrors?.[key]
+  const fieldError = (key: string) => customerFieldErrorText(t, state.fieldErrors?.[key])
 
   const recordInitial: CustomerFieldValues = {
     first_name: customer.first_name,

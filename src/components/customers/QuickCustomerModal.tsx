@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { submitKeepingValues } from '@/lib/ui/submit-keeping-values'
+import { customerFieldErrorText } from '@/lib/customers/field-errors'
 import {
   descriptionOptions,
   EYE_COLOR_OPTIONS,
@@ -84,7 +85,10 @@ export default function QuickCustomerModal({
 
   if (!open) return null
 
-  const fe = state.fieldErrors ?? {}
+  // Error codes from the schema, in the user's language.
+  const fe: Record<string, string | undefined> = Object.fromEntries(
+    Object.entries(state.fieldErrors ?? {}).map(([k, code]) => [k, customerFieldErrorText(t, code)]),
+  )
 
   return createPortal(
     <div
@@ -133,7 +137,7 @@ export default function QuickCustomerModal({
               <input name="last_name" required className={inputCls(!!fe.last_name)} />
             </Field>
             <Field label={tc.phone} error={fe.phone}>
-              <input name="phone" inputMode="tel" className={inputCls(!!fe.phone)} />
+              <input name="phone" type="tel" inputMode="tel" autoComplete="off" className={inputCls(!!fe.phone)} />
             </Field>
             <Field label={tc.email} error={fe.email}>
               <input name="email" type="email" className={inputCls(!!fe.email)} />

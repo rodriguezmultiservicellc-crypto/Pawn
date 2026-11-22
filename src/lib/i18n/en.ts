@@ -337,6 +337,12 @@ export const en = {
 
   customers: {
     title: 'Customers',
+    // Field error codes from customerCreateSchema.
+    fieldErrors: {
+      required: 'Required',
+      invalid_phone: 'Enter a phone number: digits only, 7 to 15 of them, like (813) 555-0100.',
+      invalid_email: 'Enter a full email address, like name@example.com.',
+    },
     new: 'New customer',
     dashboard: {
       backToCustomers: 'Back to customers',
