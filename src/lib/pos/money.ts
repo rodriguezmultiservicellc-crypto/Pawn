@@ -15,6 +15,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { recordEarnSale, maybeCreditReferral } from '@/lib/loyalty/events'
 import { endListing } from '@/lib/ebay/listings'
 import type { PaymentMethod } from '@/types/database-aliases'
+import type { SaleTaxMode, TaxExemption } from './sales-tax'
 
 type Fns = Database['public']['Functions']
 type Admin = SupabaseClient<Database>
@@ -25,6 +26,7 @@ export const SALE_MONEY_ERRORS = [
   'cart_empty',
   'cart_too_large',
   'bad_tax_rate',
+  'bad_tax_exempt',
   'customer_required',
   'no_open_session',
   'customer_not_found',
@@ -77,6 +79,7 @@ export function posErrorKey(err: SaleMoneyError): string {
       return 'cardDetailsInvalid'
     case 'bad_line':
     case 'bad_tax_rate':
+    case 'bad_tax_exempt':
     case 'bad_amount':
       return 'validationFailed'
     default:
@@ -105,8 +108,10 @@ export async function saleCreate(args: {
   registerSessionId: string
   customerId: string | null
   taxRate: number
-  /** 'shop' = the shop's tax lines, caps included; 'flat' = taxRate (0095). */
-  taxMode: 'shop' | 'flat'
+  /** 'shop' = the shop's tax lines, caps included; 'flat' = taxRate (0095); 'exempt' = no tax (0097). */
+  taxMode: SaleTaxMode
+  /** Set exactly when taxMode is 'exempt' — the database refuses any other pairing. */
+  taxExempt: TaxExemption | null
   discount: number
   notes: string | null
   items: SaleLineInput[]
@@ -122,6 +127,8 @@ export async function saleCreate(args: {
     p_notes: args.notes,
     p_items: args.items,
     p_tax_mode: args.taxMode,
+    p_tax_exempt_reason: args.taxExempt?.reason ?? null,
+    p_tax_exempt_certificate: args.taxExempt?.certificate ?? null,
   } as unknown as Fns['sale_create']['Args']
   const { data, error } = await createAdminClient().rpc('sale_create', params)
   const row = data?.[0]
@@ -135,8 +142,10 @@ export async function layawayCreate(args: {
   registerSessionId: string
   customerId: string
   taxRate: number
-  /** 'shop' = the shop's tax lines, caps included; 'flat' = taxRate (0095). */
-  taxMode: 'shop' | 'flat'
+  /** 'shop' = the shop's tax lines, caps included; 'flat' = taxRate (0095); 'exempt' = no tax (0097). */
+  taxMode: SaleTaxMode
+  /** Set exactly when taxMode is 'exempt' — the database refuses any other pairing. */
+  taxExempt: TaxExemption | null
   discount: number
   notes: string | null
   items: SaleLineInput[]
@@ -163,6 +172,8 @@ export async function layawayCreate(args: {
     p_final_due_date: args.finalDueDate,
     p_cancellation_fee: args.cancellationFeePct,
     p_tax_mode: args.taxMode,
+    p_tax_exempt_reason: args.taxExempt?.reason ?? null,
+    p_tax_exempt_certificate: args.taxExempt?.certificate ?? null,
   } as unknown as Fns['layaway_create']['Args']
   const { data, error } = await createAdminClient().rpc('layaway_create', params)
   const row = data?.[0]

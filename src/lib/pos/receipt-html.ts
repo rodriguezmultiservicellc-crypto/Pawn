@@ -25,6 +25,7 @@ import {
   shopDateTime,
   thermalReceiptLines,
   balanceOwed,
+  receiptTax,
 } from './receipt-thermal'
 
 export function escapeHtml(s: string): string {
@@ -98,11 +99,20 @@ function letterHtml(data: SaleReceiptDoc, title: string): string {
     data.customer?.full_name?.trim() || bi(en.customer.anonymous, es.customer.anonymous)
   const owed = balanceOwed(data)
   const terms = layawayTerms(data)
+  const tax = receiptTax(data)
 
   const label = (a: string, b: string) =>
     a.trim().toLowerCase() === b.trim().toLowerCase()
       ? e(a)
       : `${e(a)} <span class="es">/ ${e(b)}</span>`
+
+  // The Tax line of the totals: "Tax exempt" with the reason and certificate
+  // under it, or the tax followed by its split by tax line.
+  const taxRows = tax.exempt
+    ? `<div class="line"><span>${label(tax.exempt.en, tax.exempt.es)}<div class="sub">${label(tax.exempt.reasonEn, tax.exempt.reasonEs)}${tax.exempt.certificate ? ` · <span class="mono">${e(tax.exempt.certificate)}</span>` : ''}</div></span><span class="num">${e(money(data.tax_amount))}</span></div>`
+    : `<div class="line"><span>${label(en.totals.tax, es.totals.tax)}</span><span class="num">${e(money(data.tax_amount))}</span></div>${tax.lines
+        .map((l) => `<div class="line part"><span>${e(l.label)}</span><span class="num">${e(money(l.tax))}</span></div>`)
+        .join('')}`
 
   const itemRows = data.items
     .map(
@@ -147,6 +157,7 @@ td{border-bottom:1px solid ${reportColors.divider};padding:5px 6px;vertical-alig
 .sub{font-size:8.5pt;color:${reportColors.muted}}
 .totals{margin-left:auto;width:50%;margin-top:10px}
 .line{display:flex;justify-content:space-between;gap:12px;padding:2px 0}
+.line.part{padding:0 0 0 14px;font-size:8.5pt;color:${reportColors.muted}}
 .balance{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:10px;padding:10px 14px;border:2.5px solid ${reportColors.ink};border-radius:6px;color:${reportColors.ink};font-weight:700;font-size:14pt;text-transform:uppercase;letter-spacing:.03em}
 .balance .num{font-size:24pt;letter-spacing:0}
 .balance .es{font-weight:700}
@@ -185,7 +196,7 @@ td{border-bottom:1px solid ${reportColors.divider};padding:5px 6px;vertical-alig
   <div class="field"><div class="k">${label(en.customer.name, es.customer.name)}</div><div class="v">${e(customerName)}</div></div>
   <div class="field"><div class="k">${label(en.customer.phone, es.customer.phone)}</div><div class="v">${e(data.customer?.phone ?? '—')}</div></div>
   <div class="field"><div class="k">${label(en.meta.kind, es.meta.kind)}</div><div class="v">${data.sale_kind === 'layaway' ? label(en.meta.kindLayaway, es.meta.kindLayaway) : label(en.meta.kindRetail, es.meta.kindRetail)}</div></div>
-  <div class="field"><div class="k">${label(en.meta.taxRate, es.meta.taxRate)}</div><div class="v">${e(`${(data.tax_rate * 100).toFixed(2)}%`)}</div></div>
+  <div class="field"><div class="k">${label(en.meta.taxRate, es.meta.taxRate)}</div><div class="v">${tax.exempt ? label(tax.exempt.en, tax.exempt.es) : e(`${(data.tax_rate * 100).toFixed(2)}%`)}</div></div>
 </div>
 <hr>
 <h2>${label(en.sections.items, es.sections.items)}</h2>
@@ -206,7 +217,7 @@ ${
 <div class="totals">
   <div class="line"><span>${label(en.totals.subtotal, es.totals.subtotal)}</span><span class="num">${e(money(data.subtotal))}</span></div>
   ${data.discount_amount > 0 ? `<div class="line"><span>${label(en.totals.discount, es.totals.discount)}</span><span class="num">${e(money(-data.discount_amount))}</span></div>` : ''}
-  <div class="line"><span>${label(en.totals.tax, es.totals.tax)}</span><span class="num">${e(money(data.tax_amount))}</span></div>
+  ${taxRows}
   <div class="line grand"><span>${label(en.totals.total, es.totals.total)}</span><span class="num">${e(money(data.total))}</span></div>
 </div>
 <hr>

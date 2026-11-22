@@ -5,6 +5,7 @@ import {
   byTaxLevel,
   computeCartTotals,
   quoteSaleTax,
+  saleTaxLines,
   taxBreakdown,
   taxModeFor,
   taxRateInputSchema,
@@ -232,5 +233,58 @@ describe('the sale screen', () => {
       shop,
     })
     expect(t).toMatchObject({ subtotal: 10100, discount: 100, tax: 676.49, total: 10676.49 })
+  })
+
+  it('charges nothing when the sale is exempt (no shop lines, rate 0)', () => {
+    const t = computeCartTotals({ lines: [ring], discount: 0, taxFraction: 0, shop: null })
+    expect(t).toMatchObject({ mode: 'flat', tax: 0, total: 10000 })
+  })
+})
+
+describe('saleTaxLines (the split a sale kept)', () => {
+  // sales.tax_breakdown exactly as the database wrote it for a $200.00 sale
+  // (dry run of patches/0097, 2026-11-22).
+  const stored = [
+    { tax: 12.0, name: 'FLDOR', rate: 0.06, level: 'state', taxable: 200.0, item_cap: 50000.0 },
+    { tax: 3.0, name: 'Hillsborough', rate: 0.015, level: 'county', taxable: 200.0, item_cap: null },
+  ]
+
+  it('lists each tax line with its share', () => {
+    expect(saleTaxLines(stored, 200)).toEqual([
+      { label: 'FLDOR 6%', tax: 12 },
+      { label: 'Hillsborough 1.5%', tax: 3 },
+    ])
+  })
+
+  it('says what a capped line was charged on, only when the cap applied', () => {
+    const capped = [
+      { tax: 600, name: 'State', rate: 0.06, level: 'state', taxable: 10000, item_cap: null },
+      { tax: 75, name: 'County', rate: 0.015, level: 'county', taxable: 5000, item_cap: 5000 },
+    ]
+    expect(saleTaxLines(capped, 10000)).toEqual([
+      { label: 'State 6%', tax: 600 },
+      { label: 'County 1.5% x $5,000.00', tax: 75 },
+    ])
+  })
+
+  it('reads numbers that arrive as text', () => {
+    const asText = [
+      { tax: '12.00', name: 'A', rate: '0.0600', taxable: '200.00' },
+      { tax: '3.00', name: 'B', rate: '0.0150', taxable: '200.00' },
+    ]
+    expect(saleTaxLines(asText, 200).map((l) => l.tax)).toEqual([12, 3])
+  })
+
+  it('is empty when there is nothing to split', () => {
+    expect(saleTaxLines(null, 200)).toEqual([])
+    expect(saleTaxLines('nonsense', 200)).toEqual([])
+    expect(saleTaxLines([], 200)).toEqual([])
+    // One tax on the whole price: the Tax line already says it.
+    expect(saleTaxLines([stored[0]], 200)).toEqual([])
+  })
+
+  it('still shows a single line that stopped at a cap', () => {
+    const one = [{ tax: 75, name: 'County', rate: 0.015, taxable: 5000, item_cap: 5000 }]
+    expect(saleTaxLines(one, 10000)).toEqual([{ label: 'County 1.5% x $5,000.00', tax: 75 }])
   })
 })

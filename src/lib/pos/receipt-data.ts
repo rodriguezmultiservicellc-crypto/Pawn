@@ -54,6 +54,7 @@ export async function loadSaleReceiptData(args: {
       .select(
         `id, tenant_id, sale_number, sale_kind, status, is_locked,
          subtotal, discount_amount, tax_rate, tax_amount, total, paid_total,
+         tax_breakdown, tax_exempt, tax_exempt_reason, tax_exempt_certificate,
          notes, customer_id, created_at, completed_at,
          customer:customers(first_name, last_name, middle_name, phone, email)`,
       )
@@ -170,6 +171,10 @@ export async function loadSaleReceiptData(args: {
     discount_amount: Number(sale.discount_amount ?? 0),
     tax_rate: Number(sale.tax_rate ?? 0),
     tax_amount: Number(sale.tax_amount ?? 0),
+    tax_breakdown: sale.tax_breakdown ?? null,
+    tax_exempt: sale.tax_exempt
+      ? { reason: sale.tax_exempt_reason ?? 'other', certificate: sale.tax_exempt_certificate }
+      : null,
     total: Number(sale.total ?? 0),
     paid_total: Number(sale.paid_total ?? 0),
     notes: sale.notes ?? null,

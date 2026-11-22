@@ -13,8 +13,9 @@
  */
 
 import type { Dictionary } from '@/lib/i18n/en'
-import type { SaleReceiptPayment } from '@/lib/pdf/SaleReceiptPDF'
+import type { SaleReceiptData, SaleReceiptPayment } from '@/lib/pdf/SaleReceiptPDF'
 import type { SaleReceiptDoc } from './receipt-data'
+import { isTaxExemptReason, saleTaxLines, type SaleTaxLine } from './sales-tax'
 
 export const THERMAL_WIDTH = 40
 
@@ -163,6 +164,38 @@ export function balanceOwed(data: SaleReceiptDoc): { en: string; es: string; amo
 }
 
 /**
+ * What every receipt format prints about the sale's tax, under the totals:
+ *   exempt  the sale was rung up tax exempt (patches/0097) — the label, the
+ *           reason and the certificate number, each in both languages. The
+ *           Tax line reads "Tax exempt" instead of a rate.
+ *   lines   the tax by tax line ("FLDOR 6%", "Hillsborough 1.5%"), from what
+ *           the sale itself kept (patches/0095). Empty when there is nothing
+ *           to split.
+ */
+export function receiptTax(data: SaleReceiptData): {
+  exempt: { en: string; es: string; reasonEn: string; reasonEs: string; certificate: string | null } | null
+  lines: SaleTaxLine[]
+} {
+  const en = data.i18n.en.salesTax.exempt
+  const es = data.i18n.es.salesTax.exempt
+  const ex = data.tax_exempt
+  if (!ex) return { exempt: null, lines: saleTaxLines(data.tax_breakdown, data.subtotal - data.discount_amount) }
+  const known = isTaxExemptReason(ex.reason) ? ex.reason : null
+  return {
+    exempt: {
+      en: en.label,
+      es: es.label,
+      reasonEn: known ? en.reasons[known] : ex.reason,
+      reasonEs: known ? es.reasons[known] : ex.reason,
+      certificate: ex.certificate?.trim()
+        ? `${bi(en.certificateShort, es.certificateShort)} ${ex.certificate.trim()}`
+        : null,
+    },
+    lines: [],
+  }
+}
+
+/**
  * The layaway block shared by the Letter and Thermal receipts: bilingual
  * label/value rows plus the cancellation policy in each language. Null for
  * a plain sale.
@@ -254,13 +287,23 @@ export function thermalReceiptLines(data: SaleReceiptDoc, width: number = THERMA
   if (data.discount_amount > 0) {
     push(...row(bi(en.totals.discount, es.totals.discount), money(-data.discount_amount), W))
   }
-  push(
-    ...row(
-      `${bi(en.totals.tax, es.totals.tax)} ${percent(data.tax_rate)}`,
-      money(data.tax_amount),
-      W,
-    ),
-  )
+  const tax = receiptTax(data)
+  if (tax.exempt) {
+    // No tax was charged, on purpose: say so, and why.
+    push(...row(bi(tax.exempt.en, tax.exempt.es), money(data.tax_amount), W))
+    push(...indented(bi(tax.exempt.reasonEn, tax.exempt.reasonEs), W))
+    if (tax.exempt.certificate) push(...indented(tax.exempt.certificate, W))
+  } else {
+    push(
+      ...row(
+        `${bi(en.totals.tax, es.totals.tax)} ${percent(data.tax_rate)}`,
+        money(data.tax_amount),
+        W,
+      ),
+    )
+    // The same tax, by who it is collected for (state, county, ...).
+    for (const l of tax.lines) push(...row(`  ${l.label}`, money(l.tax), W))
+  }
   push(heavy)
   push(...row(bi(en.totals.total, es.totals.total).toUpperCase(), money(data.total), W))
   push(heavy)

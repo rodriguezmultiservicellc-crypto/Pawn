@@ -5,7 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
-import { saleCreateSchema, type SaleCreateInput, type SaleItemInput } from '@/lib/validations/pos'
+import { saleCreateSchema, taxExemptionOf, type SaleCreateInput, type SaleItemInput } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
 import { posErrorKey, saleCreate, type SaleLineInput } from '@/lib/pos/money'
 
@@ -81,6 +81,8 @@ export function parseRetail(formData: FormData): { ok: true; v: SaleCreateInput 
     customer_id: formData.get('customer_id'),
     tax_rate: formData.get('tax_rate'),
     tax_mode: formData.get('tax_mode'),
+    tax_exempt_reason: formData.get('tax_exempt_reason'),
+    tax_exempt_certificate: formData.get('tax_exempt_certificate'),
     discount_amount: formData.get('discount_amount'),
     notes: formData.get('notes'),
     items: readItems(formData),
@@ -114,6 +116,7 @@ export async function createRetailSale(
     customerId: v.customer_id ?? null,
     taxRate: v.tax_rate,
     taxMode: v.tax_mode,
+    taxExempt: taxExemptionOf(v),
     discount: v.discount_amount,
     notes: v.notes ?? null,
     items: toLines(v.items),
@@ -132,6 +135,9 @@ export async function createRetailSale(
       customer_id: v.customer_id ?? null,
       total: r.data.total,
       item_count: v.items.length,
+      ...(v.tax_mode === 'exempt'
+        ? { tax_exempt_reason: v.tax_exempt_reason, tax_exempt_certificate: v.tax_exempt_certificate }
+        : {}),
     },
   })
   return { ok: true, sale: r.data }

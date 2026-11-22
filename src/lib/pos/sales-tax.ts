@@ -21,7 +21,7 @@
  */
 
 import { z } from 'zod'
-import { fractionToPercent } from '@/lib/format/money'
+import { formatMoney, fractionToPercent } from '@/lib/format/money'
 import { computeLineTotal, computeTotal, r2, type CartLine, type CartTotals } from './cart'
 
 export const SALES_TAX_EDIT_ROLES = ['owner', 'chain_admin', 'manager'] as const
@@ -219,6 +219,62 @@ export function quoteSaleTax(
     parts,
   }
 }
+
+// ── A sale's stored tax split (sales.tax_breakdown) ───────────────────────
+
+/** One tax line of a finished sale, as a receipt or the sale page shows it. */
+export type SaleTaxLine = { label: string; tax: number }
+
+/**
+ * The tax of a sale by tax line — "FLDOR 6%", "Hillsborough 1.5%" — read
+ * from what the database kept with the sale (sales.tax_breakdown), never
+ * from the shop's rates of today. A line that stopped at part of the price
+ * (a per-item cap) says what it was charged on: "County 1.5% x $5,000.00".
+ *
+ * Empty when there is nothing to split: a flat-rate or older sale (no
+ * breakdown), or a single tax line on the whole price — the Tax line above
+ * already says it all.
+ *
+ * @param taxableBase the sale after every discount (subtotal − discount)
+ */
+export function saleTaxLines(breakdown: unknown, taxableBase: number): SaleTaxLine[] {
+  if (!Array.isArray(breakdown)) return []
+  const parts = breakdown.flatMap((p) => {
+    if (!p || typeof p !== 'object') return []
+    const o = p as Record<string, unknown>
+    const name = typeof o.name === 'string' ? o.name.trim() : ''
+    const rate = Number(o.rate)
+    const tax = Number(o.tax)
+    const taxable = Number(o.taxable)
+    if (!name || !isFinite(rate) || !isFinite(tax) || !isFinite(taxable)) return []
+    return [{ name, rate, tax, capped: taxable < taxableBase - 0.005, taxable }]
+  })
+  if (parts.length === 0 || (parts.length === 1 && !parts[0].capped)) return []
+  return parts.map((p) => ({
+    label: `${p.name} ${fractionToPercent(p.rate)}%${p.capped ? ` x ${formatMoney(p.taxable)}` : ''}`,
+    tax: p.tax,
+  }))
+}
+
+// ── Tax-exempt sales (patches/0097) ───────────────────────────────────────
+
+/** Why no tax was charged. The same list as the CHECK on sales.tax_exempt_reason. */
+export const TAX_EXEMPT_REASONS = ['resale', 'organization', 'government', 'export', 'other'] as const
+export type TaxExemptReason = (typeof TAX_EXEMPT_REASONS)[number]
+export const TAX_EXEMPT_CERTIFICATE_MAX = 60
+
+/** An exempt sale: the reason, and the buyer's certificate number when there is one. */
+export type TaxExemption = { reason: TaxExemptReason; certificate: string | null }
+
+export function isTaxExemptReason(v: unknown): v is TaxExemptReason {
+  return typeof v === 'string' && (TAX_EXEMPT_REASONS as readonly string[]).includes(v)
+}
+
+/**
+ * How sale_create taxes a sale: 'shop' = the shop's tax lines, 'flat' = one
+ * typed rate, 'exempt' = no tax, with the reason kept on the sale.
+ */
+export type SaleTaxMode = 'shop' | 'flat' | 'exempt'
 
 // ── The sale screen ───────────────────────────────────────────────────────
 

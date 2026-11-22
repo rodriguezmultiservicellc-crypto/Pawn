@@ -1,4 +1,11 @@
 import { z } from 'zod'
+import {
+  TAX_EXEMPT_CERTIFICATE_MAX,
+  TAX_EXEMPT_REASONS,
+  type SaleTaxMode,
+  type TaxExemptReason,
+  type TaxExemption,
+} from '@/lib/pos/sales-tax'
 
 /**
  * POS Zod schemas — register sessions, sales, sale items, sale payments,
@@ -120,15 +127,51 @@ export const saleItemsArraySchema = z
  * How a sale is taxed (sale_create p_tax_mode, patches/0095): 'shop' = by the
  * shop's own tax lines, per-item caps included; 'flat' = tax_rate on the
  * whole sale. Absent → 'flat', what every sale was before 0095.
+ * 'exempt' (patches/0097) = no tax; the sale keeps the reason.
  */
 const taxModeSchema = z.preprocess(
   (v) => (v == null || v === '' ? 'flat' : v),
-  z.enum(['flat', 'shop']),
+  z.enum(['flat', 'shop', 'exempt']),
 )
+
+/** The exemption of a tax-exempt sale. Both absent unless tax_mode = 'exempt'. */
+const taxExemptFields = {
+  tax_exempt_reason: z.preprocess(
+    (v) => (v == null || (typeof v === 'string' && v.trim() === '') ? null : v),
+    z.enum(TAX_EXEMPT_REASONS).nullable(),
+  ),
+  tax_exempt_certificate: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null),
+    z.string().max(TAX_EXEMPT_CERTIFICATE_MAX).nullable(),
+  ),
+}
+
+/** An exempt sale names its reason; any other sale carries no exemption. */
+function exemptionMatchesMode(v: {
+  tax_mode: SaleTaxMode
+  tax_exempt_reason: string | null
+  tax_exempt_certificate: string | null
+}): boolean {
+  return v.tax_mode === 'exempt'
+    ? v.tax_exempt_reason != null
+    : v.tax_exempt_reason == null && v.tax_exempt_certificate == null
+}
+
+/** The exemption to send to sale_create, or null for a taxed sale. */
+export function taxExemptionOf(v: {
+  tax_mode: SaleTaxMode
+  tax_exempt_reason: TaxExemptReason | null
+  tax_exempt_certificate: string | null
+}): TaxExemption | null {
+  return v.tax_mode === 'exempt' && v.tax_exempt_reason
+    ? { reason: v.tax_exempt_reason, certificate: v.tax_exempt_certificate }
+    : null
+}
 
 export const saleCreateSchema = z.object({
   customer_id: optionalUuid,
   tax_mode: taxModeSchema,
+  ...taxExemptFields,
   // Decimal fraction; e.g. 0.0825 = 8.25%.
   tax_rate: z
     .preprocess(
@@ -139,7 +182,7 @@ export const saleCreateSchema = z.object({
   discount_amount: requiredDecimalNonNeg.default(0),
   notes: optionalTrimmedString,
   items: saleItemsArraySchema,
-})
+}).refine(exemptionMatchesMode, { path: ['tax_exempt_reason'], message: 'tax_exempt_reason' })
 export type SaleCreateInput = z.infer<typeof saleCreateSchema>
 
 // ── Sale payment ────────────────────────────────────────────────────────────
@@ -191,6 +234,7 @@ export const layawayCreateSchema = z.object({
   // Layaway requires an identified customer.
   customer_id: z.string().uuid('invalid_customer'),
   tax_mode: taxModeSchema,
+  ...taxExemptFields,
   tax_rate: z
     .preprocess(
       (v) => (typeof v === 'string' && v.trim() === '' ? 0 : v),
@@ -217,7 +261,7 @@ export const layawayCreateSchema = z.object({
     z.string().uuid().nullable().optional(),
   ),
   items: saleItemsArraySchema,
-})
+}).refine(exemptionMatchesMode, { path: ['tax_exempt_reason'], message: 'tax_exempt_reason' })
 export type LayawayCreateInput = z.infer<typeof layawayCreateSchema>
 
 // ── Layaway payment ─────────────────────────────────────────────────────────

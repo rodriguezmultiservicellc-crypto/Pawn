@@ -21,6 +21,7 @@ import {
 } from '@react-pdf/renderer'
 import { reportColors } from '@/lib/tokens'
 import type { Dictionary } from '@/lib/i18n/en'
+import { receiptTax } from '@/lib/pos/receipt-thermal'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,13 @@ export type SaleReceiptData = {
   discount_amount: number
   tax_rate: number
   tax_amount: number
+  /**
+   * sales.tax_breakdown as stored — the tax by tax line at the time of the
+   * sale (patches/0095). Null on a flat-rate or older sale.
+   */
+  tax_breakdown?: unknown
+  /** Set when the sale was rung up tax exempt (patches/0097). */
+  tax_exempt?: { reason: string; certificate: string | null } | null
   total: number
   paid_total: number
   notes: string | null
@@ -279,6 +287,21 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: PALETTE.ink,
   },
+  // Under the Tax line: the tax by tax line, or why the sale is exempt.
+  totalsPartLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingLeft: 10,
+  },
+  totalsPartLabel: {
+    fontSize: 7.5,
+    color: PALETTE.muted,
+  },
+  totalsPartValue: {
+    fontFamily: 'JetBrains Mono',
+    fontSize: 7.5,
+    color: PALETTE.muted,
+  },
   totalsGrand: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -429,6 +452,7 @@ function Field({
 export default function SaleReceiptPDF({ data }: { data: SaleReceiptData }) {
   const en = data.i18n.en.pos.print
   const es = data.i18n.es.pos.print
+  const tax = receiptTax(data)
 
   const tenantSubline = joinAddress([
     data.tenant.address,
@@ -503,7 +527,7 @@ export default function SaleReceiptPDF({ data }: { data: SaleReceiptData }) {
           <Field
             labelEn={en.meta.taxRate}
             labelEs={es.meta.taxRate}
-            value={formatPercent(data.tax_rate)}
+            value={tax.exempt ? `${tax.exempt.en} / ${tax.exempt.es}` : formatPercent(data.tax_rate)}
           />
         </View>
 
@@ -586,12 +610,28 @@ export default function SaleReceiptPDF({ data }: { data: SaleReceiptData }) {
             ) : null}
             <View style={styles.totalsLine}>
               <Text style={styles.totalsLabel}>
-                {en.totals.tax} / {es.totals.tax}
+                {tax.exempt
+                  ? `${tax.exempt.en} / ${tax.exempt.es}`
+                  : `${en.totals.tax} / ${es.totals.tax}`}
               </Text>
               <Text style={styles.totalsValue}>
                 {formatMoney(data.tax_amount)}
               </Text>
             </View>
+            {tax.exempt ? (
+              <View style={styles.totalsPartLine}>
+                <Text style={styles.totalsPartLabel}>
+                  {tax.exempt.reasonEn} / {tax.exempt.reasonEs}
+                  {tax.exempt.certificate ? ` · ${tax.exempt.certificate}` : ''}
+                </Text>
+              </View>
+            ) : null}
+            {tax.lines.map((l, i) => (
+              <View key={i} style={styles.totalsPartLine}>
+                <Text style={styles.totalsPartLabel}>{l.label}</Text>
+                <Text style={styles.totalsPartValue}>{formatMoney(l.tax)}</Text>
+              </View>
+            ))}
             <View style={styles.totalsGrand}>
               <Text style={styles.totalsGrandLabel}>
                 {en.totals.total} / {es.totals.total}

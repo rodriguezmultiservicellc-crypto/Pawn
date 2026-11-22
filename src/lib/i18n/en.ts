@@ -6097,7 +6097,7 @@ export const en = {
     hubNone: 'No tax set',
     total: 'Total charged',
     totalNone: 'No sales tax is charged',
-    uses: 'This total fills the Tax field on New sale and on layaways (the clerk can still change it for an exempt sale) and is charged on online orders picked up or shipped inside your state.',
+    uses: 'This total fills the Tax field on New sale and on layaways (the clerk can still change it, or mark the sale tax exempt) and is charged on online orders picked up or shipped inside your state.',
     addTitle: 'Add a tax',
     name: 'Name',
     namePlaceholder: 'e.g. State sales tax',
@@ -6116,6 +6116,21 @@ export const en = {
     itemCapHelp:
       'Leave "Only on the first" empty to tax the whole price. Fill it in when a tax stops at part of each item’s price — some states and counties tax only the first few thousand dollars of an item. It counts per item: two items on one sale each get their own limit.',
     capNote: '(first {amount} of each item)',
+    // A tax-exempt sale (patches/0097): New sale, the sale page, receipts.
+    exempt: {
+      label: 'Tax exempt',
+      reason: 'Reason for the exemption',
+      certificate: 'Certificate number',
+      certificatePlaceholder: 'Certificate no. (optional)',
+      certificateShort: 'Cert.',
+      reasons: {
+        resale: 'Resale',
+        organization: 'Exempt organization',
+        government: 'Government',
+        export: 'Shipped out of state',
+        other: 'Other',
+      },
+    },
     active: 'Charge it',
     add: 'Add tax',
     save: 'Save',

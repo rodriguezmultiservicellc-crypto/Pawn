@@ -9,6 +9,7 @@ import SaleDetailContent, {
   type SaleDetailStoreCredit,
 } from './content'
 import { computeBalance, toMoney } from '@/lib/pos/cart'
+import { saleTaxLines } from '@/lib/pos/sales-tax'
 import type {
   CardPresentStatus,
   PaymentMethod,
@@ -29,6 +30,7 @@ export default async function SaleDetailPage(props: { params: Params }) {
     .select(
       `id, tenant_id, sale_number, sale_kind, status, customer_id,
        subtotal, tax_amount, tax_rate, discount_amount, total, paid_total,
+       tax_breakdown, tax_exempt, tax_exempt_reason, tax_exempt_certificate,
        returned_total, notes, is_locked, completed_at, created_at, updated_at,
        void_reason, voided_at, voided_by,
        customer:customers(id, first_name, last_name, phone, email)`,
@@ -130,6 +132,12 @@ export default async function SaleDetailPage(props: { params: Params }) {
     subtotal: toMoney(sale.subtotal),
     tax_amount: toMoney(sale.tax_amount),
     tax_rate: toMoney(sale.tax_rate),
+    // The tax by tax line, as the sale itself kept it (patches/0095).
+    tax_lines: saleTaxLines(sale.tax_breakdown, toMoney(sale.subtotal) - toMoney(sale.discount_amount)),
+    // Rung up tax exempt (patches/0097): the reason and the certificate.
+    tax_exempt: sale.tax_exempt
+      ? { reason: sale.tax_exempt_reason ?? 'other', certificate: sale.tax_exempt_certificate }
+      : null,
     discount_amount: toMoney(sale.discount_amount),
     total: toMoney(sale.total),
     paid_total: toMoney(sale.paid_total),

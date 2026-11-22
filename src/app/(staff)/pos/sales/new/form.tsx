@@ -19,7 +19,7 @@ import { createSaleAction } from './actions'
 import { startReaderChargeAction } from './reader-actions'
 import { formatMoney } from '@/lib/format/money'
 import type { LayawayTerm } from '@/lib/pos/layaway-terms'
-import { computeCartTotals, taxModeFor, type ShopTax } from '@/lib/pos/sales-tax'
+import { computeCartTotals, taxModeFor, type ShopTax, type TaxExemption } from '@/lib/pos/sales-tax'
 import { Printer } from '@phosphor-icons/react'
 import { PrintReceiptDialog } from '@/components/pos/PrintReceiptDialog'
 
@@ -81,6 +81,7 @@ export default function NewSaleForm({
     taxRate: string
     discount: string
     notes: string
+    exempt: TaxExemption | null
   } | null>(null)
 
   function buildFormData(
@@ -90,15 +91,24 @@ export default function NewSaleForm({
     taxRate: string,
     discount: string,
     notes: string,
+    exempt: TaxExemption | null,
     extra?: LayawayScheduleSubmit,
   ): FormData {
     const fd = new FormData()
     fd.set('sale_kind', saleKind)
     if (customerId) fd.set('customer_id', customerId)
-    fd.set('tax_rate', taxRate || '0')
     // 'shop' = taxed by the shop's tax lines, per-item caps included (0095);
-    // 'flat' = the clerk typed another rate.
-    fd.set('tax_mode', taxModeFor(parseFloat(taxRate || '0') || 0, shopTax))
+    // 'flat' = the clerk typed another rate; 'exempt' = no tax, and the sale
+    // keeps the reason and the certificate number (0097).
+    if (exempt) {
+      fd.set('tax_rate', '0')
+      fd.set('tax_mode', 'exempt')
+      fd.set('tax_exempt_reason', exempt.reason)
+      if (exempt.certificate) fd.set('tax_exempt_certificate', exempt.certificate)
+    } else {
+      fd.set('tax_rate', taxRate || '0')
+      fd.set('tax_mode', taxModeFor(parseFloat(taxRate || '0') || 0, shopTax))
+    }
     fd.set('discount_amount', discount || '0')
     if (notes) fd.set('notes', notes)
     fd.set('items_count', String(lines.length))
@@ -129,6 +139,7 @@ export default function NewSaleForm({
     taxRate: string,
     discount: string,
     notes: string,
+    exempt: TaxExemption | null,
     tender: 'cash' | 'card',
     card?: CardSlip,
   ) {
@@ -146,6 +157,7 @@ export default function NewSaleForm({
       taxRate,
       discount,
       notes,
+      exempt,
     )
     fd.set('tender', tender)
     if (tender === 'card' && card) {
@@ -184,6 +196,7 @@ export default function NewSaleForm({
     taxRate: string,
     discount: string,
     notes: string,
+    exempt: TaxExemption | null,
   ) {
     setError(null)
     setFieldErrors(null)
@@ -195,7 +208,7 @@ export default function NewSaleForm({
       setError(t.pos.errors.cartEmpty)
       return
     }
-    setLayawayDraft({ customerId, lines, taxRate, discount, notes })
+    setLayawayDraft({ customerId, lines, taxRate, discount, notes, exempt })
   }
 
   async function submitLayaway(
@@ -209,6 +222,7 @@ export default function NewSaleForm({
       layawayDraft.taxRate,
       layawayDraft.discount,
       layawayDraft.notes,
+      layawayDraft.exempt,
       extra,
     )
     const res = await createSaleAction(fd)
@@ -235,7 +249,8 @@ export default function NewSaleForm({
         })),
         discount: parseFloat(layawayDraft.discount || '0') || 0,
         taxFraction: parseFloat(layawayDraft.taxRate || '0') || 0,
-        shop: shopTax,
+        // An exempt layaway owes no tax (its taxRate is already '0').
+        shop: layawayDraft.exempt ? null : shopTax,
       }).total
     : 0
 
@@ -308,10 +323,10 @@ export default function NewSaleForm({
         canAddOutOfStock={canAddOutOfStock}
         reader={reader}
         stripeTestMode={stripeTestMode}
-        onStartReaderCharge={async (customerId, lines, taxRate, discount, notes) => {
+        onStartReaderCharge={async (customerId, lines, taxRate, discount, notes, exempt) => {
           setError(null)
           setLastSale(null)
-          const fd = buildFormData('retail', customerId, lines, taxRate, discount, notes)
+          const fd = buildFormData('retail', customerId, lines, taxRate, discount, notes, exempt)
           return startReaderChargeAction(fd)
         }}
         onReaderApproved={(r) => {

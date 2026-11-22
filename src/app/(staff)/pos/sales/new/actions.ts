@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { layawayCreateSchema } from '@/lib/validations/pos'
+import { layawayCreateSchema, taxExemptionOf } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
 import { externalCardSchema, type ExternalCard } from '@/lib/pos/card'
 import {
@@ -113,6 +113,8 @@ async function createLayawayInternal(args: {
     customer_id: args.formData.get('customer_id'),
     tax_rate: args.formData.get('tax_rate'),
     tax_mode: args.formData.get('tax_mode'),
+    tax_exempt_reason: args.formData.get('tax_exempt_reason'),
+    tax_exempt_certificate: args.formData.get('tax_exempt_certificate'),
     discount_amount: args.formData.get('discount_amount'),
     schedule_kind: args.formData.get('schedule_kind') ?? 'weekly',
     down_payment: args.formData.get('down_payment'),
@@ -142,6 +144,7 @@ async function createLayawayInternal(args: {
     customerId: v.customer_id,
     taxRate: v.tax_rate,
     taxMode: v.tax_mode,
+    taxExempt: taxExemptionOf(v),
     discount: v.discount_amount,
     notes: v.notes,
     items: toLines(v.items),
@@ -171,6 +174,9 @@ async function createLayawayInternal(args: {
       cancellation_fee_pct: v.cancellation_fee_pct,
       terms: await layawayTermsLabel(args.supabase, args.tenantId, v.layaway_term_id),
       completed: r.data.completed,
+      ...(v.tax_mode === 'exempt'
+        ? { tax_exempt_reason: v.tax_exempt_reason, tax_exempt_certificate: v.tax_exempt_certificate }
+        : {}),
     },
   })
   if (r.data.completed) await afterSaleCompleted({ tenantId: args.tenantId, saleId: r.data.saleId })

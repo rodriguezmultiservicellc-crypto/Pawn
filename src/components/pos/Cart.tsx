@@ -5,7 +5,16 @@ import Link from 'next/link'
 import { MagnifyingGlass, Minus, Plus, Trash } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { computeLineTotal, computeSubtotal, r4 } from '@/lib/pos/cart'
-import { computeCartTotals, taxBreakdown, type ShopTax } from '@/lib/pos/sales-tax'
+import {
+  computeCartTotals,
+  taxBreakdown,
+  TAX_EXEMPT_CERTIFICATE_MAX,
+  TAX_EXEMPT_REASONS,
+  isTaxExemptReason,
+  type ShopTax,
+  type TaxExemption,
+  type TaxExemptReason,
+} from '@/lib/pos/sales-tax'
 import { addQuickSale, matchKey, nextUnit, unitsLeft, unlinkedLine, type QuickSaleButton, type QuickUnit } from '@/lib/pos/quick-sale'
 import { Footer, Modal } from './Modal'
 import { CardChargeDialog, type ReaderApproved } from './CardChargeDialog'
@@ -70,6 +79,8 @@ export function Cart({
     taxRate: string,
     discount: string,
     notes: string,
+    /** Set when the sale is tax exempt (patches/0097); taxRate is then '0'. */
+    exempt: TaxExemption | null,
     tender: 'cash' | 'card',
     /** Card machine slip — required when tender is 'card' (patches/0085). */
     card?: CardSlip,
@@ -80,6 +91,7 @@ export function Cart({
     taxRate: string,
     discount: string,
     notes: string,
+    exempt: TaxExemption | null,
   ) => void
   busy?: boolean
   error?: string | null
@@ -97,12 +109,14 @@ export function Cart({
     taxRate: string,
     discount: string,
     notes: string,
+    exempt: TaxExemption | null,
   ) => Promise<StartReaderResult>
   onReaderApproved?: (r: ReaderApproved) => void
   onOpenSale?: (saleId: string) => void
 }) {
   const { t } = useI18n()
   const ts = t.pos.sale
+  const tx = t.salesTax.exempt
 
   const [lines, setLines] = useState<CartLineState[]>([])
   const [customerId, setCustomerId] = useState<string | null>(
@@ -111,6 +125,10 @@ export function Cart({
   // Tax kept as a percentage in the UI; converted to a fraction on submit.
   // Starts at the shop's own rate; the clerk can change it (exempt sale).
   const [taxPercent, setTaxPercent] = useState<string>(shopTax?.percent ?? '0')
+  // Tax exempt (patches/0097): no tax is charged and the sale keeps why.
+  const [exempt, setExempt] = useState(false)
+  const [exemptReason, setExemptReason] = useState<TaxExemptReason>('resale')
+  const [exemptCert, setExemptCert] = useState('')
   const [discMode, setDiscMode] = useState<DiscMode>('amt')
   const [discInput, setDiscInput] = useState<string>('0')
   // "+" beside the customer search: add a walk-in without leaving the sale.
@@ -161,7 +179,7 @@ export function Cart({
     [lines],
   )
 
-  const taxFraction = (parseFloat(taxPercent) || 0) / 100
+  const taxFraction = exempt ? 0 : (parseFloat(taxPercent) || 0) / 100
   const discInputNum = parseFloat(discInput) || 0
   const discountDollars = Math.min(
     subtotal,
@@ -173,10 +191,11 @@ export function Cart({
 
   // While the Tax field shows the shop's own rate the sale is taxed by the
   // shop's tax lines, per-item caps included — the same arithmetic the
-  // database runs (0095). A rate the clerk typed is charged flat.
+  // database runs (0095). A rate the clerk typed is charged flat; an exempt
+  // sale is charged nothing.
   const totals = useMemo(
-    () => computeCartTotals({ lines, discount: discountDollars, taxFraction, shop: shopTax }),
-    [lines, discountDollars, taxFraction, shopTax],
+    () => computeCartTotals({ lines, discount: discountDollars, taxFraction, shop: exempt ? null : shopTax }),
+    [lines, discountDollars, taxFraction, shopTax, exempt],
   )
 
   // ── Cart mutations ────────────────────────────────────────────────────
@@ -390,6 +409,9 @@ export function Cart({
 
   const canSubmit = !busy && lines.length > 0
   const taxRateForSubmit = String(taxFraction)
+  const exemptForSubmit: TaxExemption | null = exempt
+    ? { reason: exemptReason, certificate: exemptCert.trim() || null }
+    : null
   const discountForSubmit = discountDollars.toFixed(2)
   const showQuickRow = quickSales.length > 0 || canEditQuickSales
 
@@ -708,16 +730,55 @@ export function Cart({
                   step="0.001"
                   min={0}
                   max={100}
-                  value={taxPercent}
+                  value={exempt ? '0' : taxPercent}
                   onChange={(e) => setTaxPercent(e.target.value)}
+                  disabled={exempt}
                   aria-label={ts.taxRate}
-                  className={`${SMALL_INPUT} w-[4.5rem]`}
+                  className={`${SMALL_INPUT} w-[4.5rem] disabled:cursor-not-allowed disabled:opacity-45`}
                 />
                 %
               </span>
             </span>
             <span className="shrink-0 whitespace-nowrap font-mono font-semibold text-foreground">{fmtMoney(totals.tax)}</span>
           </div>
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold text-foreground">
+            <input
+              type="checkbox"
+              checked={exempt}
+              onChange={(e) => setExempt(e.target.checked)}
+              className={`h-5 w-5 rounded border-border ${FOCUS}`}
+            />
+            {tx.label}
+          </label>
+          {/* Why no tax is charged: kept on the sale and printed on the receipt. */}
+          {exempt ? (
+            <div className="grid grid-cols-1 gap-2">
+              <select
+                value={exemptReason}
+                onChange={(e) => {
+                  if (isTaxExemptReason(e.target.value)) setExemptReason(e.target.value)
+                }}
+                aria-label={tx.reason}
+                className={`h-11 min-w-0 rounded-md border border-border bg-card px-2.5 text-sm text-foreground outline-none focus:border-blue ${FOCUS}`}
+              >
+                {TAX_EXEMPT_REASONS.map((r) => (
+                  <option key={r} value={r}>
+                    {tx.reasons[r]}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={exemptCert}
+                onChange={(e) => setExemptCert(e.target.value)}
+                maxLength={TAX_EXEMPT_CERTIFICATE_MAX}
+                placeholder={tx.certificatePlaceholder}
+                aria-label={tx.certificate}
+                autoComplete="off"
+                className={`h-11 min-w-0 rounded-md border border-border bg-card px-2.5 font-mono text-sm text-foreground outline-none focus:border-blue ${FOCUS}`}
+              />
+            </div>
+          ) : null}
           {/* What the shop's rate is made of — hidden once the clerk changes it. */}
           {shopTax && totals.mode === 'shop' ? (
             <p className="text-xs text-muted">
@@ -747,7 +808,7 @@ export function Cart({
             disabled={!canSubmit}
             onClick={() => {
               if (tender === 'card') setCardAsk(true)
-              else onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes, 'cash')
+              else onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes, exemptForSubmit, 'cash')
             }}
             className={`flex h-14 w-full items-center justify-center rounded-md bg-gold text-[17px] font-bold text-navy transition-colors hover:bg-gold-2 disabled:cursor-not-allowed disabled:opacity-45 ${FOCUS}`}
           >
@@ -757,7 +818,7 @@ export function Cart({
             type="button"
             disabled={!canSubmit || layawayDisabled}
             onClick={() =>
-              onSaveAsLayaway(customerId, lines, taxRateForSubmit, discountForSubmit, notes)
+              onSaveAsLayaway(customerId, lines, taxRateForSubmit, discountForSubmit, notes, exemptForSubmit)
             }
             className={`${OUTLINE_BTN} w-full justify-center text-foreground`}
           >
@@ -775,11 +836,11 @@ export function Cart({
           onCancel={() => setCardAsk(false)}
           onRecord={(slip) => {
             setCardAsk(false)
-            onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes, 'card', slip)
+            onSubmitSale(customerId, lines, taxRateForSubmit, discountForSubmit, notes, exemptForSubmit, 'card', slip)
           }}
           onStartReader={() =>
             onStartReaderCharge
-              ? onStartReaderCharge(customerId, lines, taxRateForSubmit, discountForSubmit, notes)
+              ? onStartReaderCharge(customerId, lines, taxRateForSubmit, discountForSubmit, notes, exemptForSubmit)
               : Promise.resolve({ ok: false, error: 'readerNotPaired' } as const)
           }
           onReaderApproved={(r) => {

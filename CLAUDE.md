@@ -178,7 +178,7 @@ Never kill node processes by image name — always by PID.
     special district. `settings.default_tax_rate` is the SUM of the active
     rows, kept by the trigger `trg_tax_rates_sync_total`. NEVER write that
     column from app code. The POS pre-fills its Tax field from it (the
-    clerk may still change it for an exempt sale) and the online store
+    clerk may still change it, or mark the sale tax exempt) and the online store
     charges it. Rates come from the shop, never from constants (rule 18).
     They are `numeric(6,4)`: a rate finer than 0.01% (8.875%) is refused,
     not rounded. Managers may edit (RLS: owner + manager write; the trigger
@@ -196,6 +196,20 @@ Never kill node processes by image name — always by PID.
       whole transaction rolls back).
     - `p_tax_mode = 'flat'` (the default) is a rate the clerk typed: one
       rate on the whole sale, no caps.
+    - `p_tax_mode = 'exempt'` (patches/0097) is the "Tax exempt" switch on
+      New sale: no tax, and the sale keeps `tax_exempt`, `tax_exempt_reason`
+      (resale | organization | government | export | other — the list is
+      `TAX_EXEMPT_REASONS` AND a CHECK on `sales`; change both) and the
+      optional `tax_exempt_certificate`. They are written once by
+      `sale_create` (a trigger refuses any later change): a wrong exemption
+      is fixed by voiding the sale and ringing it again. Typing 0 in the
+      Tax field still works but records nothing — an exempt sale should use
+      the switch.
+    - Receipts (thermal, letter, PDF) and the sale page print the tax by tax
+      line from `sales.tax_breakdown` — what the sale kept, never today's
+      `tax_rates` — and "Tax exempt" with the reason and certificate. One
+      helper feeds all three formats: `receiptTax()` in
+      `src/lib/pos/receipt-thermal.ts`.
     - A 'shop' sale keeps `sales.tax_breakdown` (tax per tax line) and
       `sale_items.tax_amount` (tax per line). Returns refund the line's own
       tax when present; older and flat sales fall back to a proportional

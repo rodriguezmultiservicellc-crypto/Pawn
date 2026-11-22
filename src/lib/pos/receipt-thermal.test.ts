@@ -252,3 +252,78 @@ describe('a tip added on the card reader', () => {
     expect(thermalReceiptLines(doc()).join(' | ')).not.toContain('Propina')
   })
 })
+
+describe('the tax by tax line', () => {
+  // $1,200.00 after the discount: state on all of it, county on it too.
+  const split = doc({
+    tax_breakdown: [
+      { tax: 72, name: 'FLDOR', rate: 0.06, level: 'state', taxable: 1200, item_cap: null },
+      { tax: 18, name: 'Hillsborough', rate: 0.015, level: 'county', taxable: 1200, item_cap: null },
+    ],
+  })
+
+  it('prints each tax line under the Tax line, adding up to it', () => {
+    const lines = thermalReceiptLines(split)
+    const at = lines.findIndex((l) => l.startsWith('Tax / Impuesto'))
+    expect(lines[at]).toMatch(/\$90\.00$/)
+    expect(lines[at + 1]).toMatch(/^ {2}FLDOR 6% +\$72\.00$/)
+    expect(lines[at + 2]).toMatch(/^ {2}Hillsborough 1\.5% +\$18\.00$/)
+    for (const l of lines) expect(l.length).toBeLessThanOrEqual(40)
+  })
+
+  it('is on the letter page too', () => {
+    const html = saleReceiptHtml(split, 'letter')
+    expect(html).toContain('FLDOR 6%')
+    expect(html).toContain('$72.00')
+    expect(html).toContain('Hillsborough 1.5%')
+    expect(html).toContain('$18.00')
+  })
+
+  it('prints no split for a flat-rate or older sale', () => {
+    const text = thermalReceiptLines(doc()).join(' | ')
+    expect(text).not.toContain('FLDOR')
+    expect(saleReceiptHtml(doc(), 'letter')).not.toContain('class="line part"')
+  })
+})
+
+describe('a tax-exempt sale', () => {
+  const exempt = doc({
+    tax_rate: 0,
+    tax_amount: 0,
+    total: 1200,
+    paid_total: 1200,
+    tax_exempt: { reason: 'organization', certificate: '85-8012345678C-9' },
+  })
+
+  it('says so in both languages, with the reason and the certificate', () => {
+    const lines = thermalReceiptLines(exempt)
+    const at = lines.findIndex((l) => l.startsWith('Tax exempt / Exento de impuesto'))
+    expect(at).toBeGreaterThan(0)
+    expect(lines[at]).toMatch(/\$0\.00$/)
+    const text = lines.join(' | ')
+    expect(text).toContain('Exempt organization')
+    expect(text).toContain('exenta')
+    expect(text).toContain('Cert. 85-8012345678C-9')
+    // No "Tax 0%" line next to it.
+    expect(lines.some((l) => l.startsWith('Tax / Impuesto'))).toBe(false)
+    for (const l of lines) expect(l.length).toBeLessThanOrEqual(40)
+  })
+
+  it('prints without a certificate number', () => {
+    const lines = thermalReceiptLines(doc({ tax_amount: 0, tax_exempt: { reason: 'resale', certificate: null } }))
+    const text = lines.join(' | ')
+    expect(text).toContain('Resale / Reventa')
+    expect(text).not.toContain('Cert.')
+  })
+
+  it('is on the letter page, escaped', () => {
+    const html = saleReceiptHtml(
+      doc({ tax_amount: 0, tax_exempt: { reason: 'other', certificate: '<b>12</b>' } }),
+      'letter',
+    )
+    expect(html).toContain('Tax exempt')
+    expect(html).toContain('Exento de impuesto')
+    expect(html).toContain('Cert. &lt;b&gt;12&lt;/b&gt;')
+    expect(html).not.toContain('<b>12</b>')
+  })
+})

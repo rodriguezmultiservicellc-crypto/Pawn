@@ -6100,7 +6100,7 @@ export const es: Dictionary = {
     hubNone: 'Sin impuesto definido',
     total: 'Total que se cobra',
     totalNone: 'No se cobra impuesto sobre ventas',
-    uses: 'Este total llena el campo Impuesto en Nueva venta y en los apartados (el empleado puede cambiarlo en una venta exenta) y se cobra en los pedidos en línea que se recogen o se envían dentro de su estado.',
+    uses: 'Este total llena el campo Impuesto en Nueva venta y en los apartados (el empleado puede cambiarlo o marcar la venta como exenta de impuesto) y se cobra en los pedidos en línea que se recogen o se envían dentro de su estado.',
     addTitle: 'Agregar un impuesto',
     name: 'Nombre',
     namePlaceholder: 'p. ej. Impuesto estatal',
@@ -6119,6 +6119,21 @@ export const es: Dictionary = {
     itemCapHelp:
       'Deje "Solo sobre los primeros" vacío para gravar el precio completo. Llénelo cuando un impuesto se detiene en parte del precio de cada artículo: algunos estados y condados gravan solo los primeros miles de dólares de un artículo. Cuenta por artículo: dos artículos en una misma venta tienen cada uno su propio límite.',
     capNote: '(primeros {amount} de cada artículo)',
+    // Venta exenta de impuesto (patches/0097): Nueva venta, la venta, recibos.
+    exempt: {
+      label: 'Exento de impuesto',
+      reason: 'Motivo de la exención',
+      certificate: 'Número de certificado',
+      certificatePlaceholder: 'N.º de certificado (opcional)',
+      certificateShort: 'Cert.',
+      reasons: {
+        resale: 'Reventa',
+        organization: 'Organización exenta',
+        government: 'Gobierno',
+        export: 'Envío fuera del estado',
+        other: 'Otro',
+      },
+    },
     active: 'Cobrarlo',
     add: 'Agregar impuesto',
     save: 'Guardar',

@@ -22,6 +22,7 @@ import { AddPaymentDialog } from '@/components/pos/AddPaymentDialog'
 import { cardSummary, type CardBrand } from '@/lib/pos/card'
 import { ClientTime } from '@/components/ClientTime'
 import { cancelReaderChargeAction, readerChargeStatusAction } from '../new/reader-actions'
+import { isTaxExemptReason, type SaleTaxLine } from '@/lib/pos/sales-tax'
 import { VoidSaleDialog } from '@/components/pos/VoidSaleDialog'
 import { PrintReceiptDialog } from '@/components/pos/PrintReceiptDialog'
 import PosRedemptionBlock, {
@@ -56,6 +57,8 @@ export type SaleDetailView = {
   subtotal: number
   tax_amount: number
   tax_rate: number
+  tax_lines: SaleTaxLine[]
+  tax_exempt: { reason: string; certificate: string | null } | null
   discount_amount: number
   total: number
   paid_total: number
@@ -401,6 +404,30 @@ export default function SaleDetailContent({
           tone={sale.balance > 0 ? 'warning' : 'neutral'}
         />
       </div>
+
+      {/* Why no tax was charged, or the tax by who it is collected for. */}
+      {sale.tax_exempt ? (
+        <p className="text-sm text-muted">
+          <span className="font-semibold text-foreground">{t.salesTax.exempt.label}</span>
+          {' — '}
+          {isTaxExemptReason(sale.tax_exempt.reason)
+            ? t.salesTax.exempt.reasons[sale.tax_exempt.reason]
+            : sale.tax_exempt.reason}
+          {sale.tax_exempt.certificate ? (
+            <>
+              {' · '}
+              {t.salesTax.exempt.certificateShort}{' '}
+              <span className="font-mono">{sale.tax_exempt.certificate}</span>
+            </>
+          ) : null}
+        </p>
+      ) : sale.tax_lines.length > 0 ? (
+        <p className="text-sm text-muted">
+          <span className="font-semibold text-foreground">{t.pos.sale.tax}</span>
+          {': '}
+          {sale.tax_lines.map((l) => `${l.label} ${fmtMoney(l.tax)}`).join(' · ')}
+        </p>
+      ) : null}
 
       {/* Loyalty redemption */}
       {loyalty.enabled && sale.customer_id && (

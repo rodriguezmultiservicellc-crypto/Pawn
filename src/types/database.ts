@@ -5859,6 +5859,9 @@ export type Database = {
           subtotal: number
           tax_amount: number
           tax_breakdown: Json | null
+          tax_exempt: boolean
+          tax_exempt_certificate: string | null
+          tax_exempt_reason: string | null
           tax_rate: number
           tenant_id: string
           total: number
@@ -5889,6 +5892,9 @@ export type Database = {
           subtotal?: number
           tax_amount?: number
           tax_breakdown?: Json | null
+          tax_exempt?: boolean
+          tax_exempt_certificate?: string | null
+          tax_exempt_reason?: string | null
           tax_rate?: number
           tenant_id: string
           total?: number
@@ -5919,6 +5925,9 @@ export type Database = {
           subtotal?: number
           tax_amount?: number
           tax_breakdown?: Json | null
+          tax_exempt?: boolean
+          tax_exempt_certificate?: string | null
+          tax_exempt_reason?: string | null
           tax_rate?: number
           tenant_id?: string
           total?: number
@@ -7692,6 +7701,8 @@ export type Database = {
           p_notes: string
           p_register_session_id: string
           p_schedule_kind: string
+          p_tax_exempt_certificate?: string
+          p_tax_exempt_reason?: string
           p_tax_mode?: string
           p_tax_rate: number
           p_tenant_id: string
@@ -7928,6 +7939,8 @@ export type Database = {
           p_notes: string
           p_register_session_id: string
           p_sale_kind: Database["public"]["Enums"]["sale_kind"]
+          p_tax_exempt_certificate?: string
+          p_tax_exempt_reason?: string
           p_tax_mode?: string
           p_tax_rate: number
           p_tenant_id: string
