@@ -4694,6 +4694,30 @@ export const en = {
       merge_in: 'Moved in from a merged duplicate',
       merge_out: 'Moved to the merged customer',
     },
+
+    // /settings/loyalty (staff). The page title comes from settingsHub.loyalty.
+    settings: {
+      subtitle:
+        'Set how customers earn and redeem points, and the referral bonus, for this shop. While loyalty is off, no points are earned, redeemed or awarded — existing balances stay.',
+      enableLegend: 'Turn on',
+      enableLabel: 'Turn on loyalty for this shop',
+      earnLegend: 'Earn rates',
+      earnHelp: 'Points awarded per dollar of activity.',
+      earnHelpDisabled: 'Turn on loyalty above to set the rates.',
+      earnRetail: 'Retail sales — points per $1 of subtotal',
+      earnLoanInterest: 'Loan interest paid — points per $1',
+      redemptionLegend: 'Redemption',
+      redemptionRate: 'Points required per $1 of discount',
+      redemptionHelp: 'The starting value is 100: 1 point is worth $0.01.',
+      referralLegend: 'Referral bonus',
+      referralBonus:
+        'Points for the referrer on the referred customer’s first qualifying transaction',
+      saved: 'Saved.',
+      errors: {
+        validation_failed: 'Check the values and try again.',
+        save_failed: 'Could not save. Try again.',
+      },
+    },
   },
 
   // The /settings landing page. Cards that belong to a feature with its own

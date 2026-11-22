@@ -11,7 +11,8 @@ import { logAudit } from '@/lib/audit'
 const SETTINGS_ROLES = ['owner', 'chain_admin'] as const
 
 export type UpdateLoyaltySettingsState = {
-  error?: string
+  /** Error code — the page translates it (loyalty.settings.errors). */
+  error?: 'validation_failed' | 'save_failed'
   fieldErrors?: Record<string, string>
   ok?: boolean
 }
@@ -72,7 +73,10 @@ export async function updateLoyaltySettingsAction(
       loyalty_referral_bonus: v.loyalty_referral_bonus,
     })
     .eq('tenant_id', ctx.tenantId)
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[settings/loyalty] update failed:', error.message)
+    return { error: 'save_failed' }
+  }
 
   await logAudit({
     tenantId: ctx.tenantId,

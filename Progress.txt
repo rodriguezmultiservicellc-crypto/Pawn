@@ -2752,9 +2752,20 @@ PENDING — NEXT UP
     - /billing shows the subscription status and cycle as raw English
       enum text, and the settings sub-pages other than Import and
       Communications hardcode "Back to settings" (common.backToSettings
-      exists now — point them at it). The Loyalty settings page
-      (/settings/loyalty) is hardcoded English end to end apart from
-      its new back link. Rule 6 debt, seen in Session 62.
+      exists now — point them at it). Rule 6 debt, seen in Session 62.
+      (/settings/loyalty itself was translated 2026-11-22, EN + ES,
+      keys in loyalty.settings; its save action now returns error
+      codes instead of the raw database message.)
+    - /settings/loyalty: after a submit the form resets itself. Seen
+      2026-11-22 on a REJECTED save (invalid value): the "turn on" box
+      shows unticked while the page still treats loyalty as on (rate
+      fields stay editable), and the number fields go back to the saved
+      values. A second Save from that state would send loyalty OFF.
+      NOT tested on a successful save (that writes live settings).
+      /settings/store-credit and /settings/consignment use the same
+      checked={enabled} + form action pattern — not tested there.
+      Fix: submit through onSubmit + startTransition so React does not
+      reset the form, on all three pages.
     - Buy receipt (/buy/[id]) and
       src/components/version-footer.tsx ("Version & Deploy", "Latest
       deploy", "Commit", "Branch", "Author", "Built", "Version history",

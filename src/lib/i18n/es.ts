@@ -4694,6 +4694,30 @@ export const es: Dictionary = {
       merge_in: 'Traspasado desde un duplicado fusionado',
       merge_out: 'Traspasado al cliente fusionado',
     },
+
+    // /settings/loyalty (personal). El título sale de settingsHub.loyalty.
+    settings: {
+      subtitle:
+        'Define cómo los clientes ganan y canjean puntos, y el bono por referido, en esta tienda. Con lealtad desactivada no se ganan, canjean ni otorgan puntos — los saldos existentes se conservan.',
+      enableLegend: 'Activar',
+      enableLabel: 'Activar lealtad en esta tienda',
+      earnLegend: 'Tasas para ganar puntos',
+      earnHelp: 'Puntos otorgados por cada dólar de actividad.',
+      earnHelpDisabled: 'Activa lealtad arriba para definir las tasas.',
+      earnRetail: 'Ventas — puntos por cada $1 del subtotal',
+      earnLoanInterest: 'Interés de préstamo pagado — puntos por cada $1',
+      redemptionLegend: 'Canje',
+      redemptionRate: 'Puntos necesarios por cada $1 de descuento',
+      redemptionHelp: 'El valor inicial es 100: 1 punto vale $0.01.',
+      referralLegend: 'Bono por referido',
+      referralBonus:
+        'Puntos para quien refiere, en la primera transacción válida del cliente referido',
+      saved: 'Guardado.',
+      errors: {
+        validation_failed: 'Revisa los valores e inténtalo de nuevo.',
+        save_failed: 'No se pudo guardar. Inténtalo de nuevo.',
+      },
+    },
   },
 
   // La página principal de /settings. Las tarjetas de funciones con su
