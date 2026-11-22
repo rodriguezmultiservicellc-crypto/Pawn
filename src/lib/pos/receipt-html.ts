@@ -147,7 +147,14 @@ td{border-bottom:1px solid ${reportColors.divider};padding:5px 6px;vertical-alig
 .line{display:flex;justify-content:space-between;gap:12px;padding:2px 0}
 .grand{border-top:1px solid ${reportColors.ink};margin-top:4px;padding-top:4px;font-weight:700;color:${reportColors.ink};font-size:12pt}
 .policy{font-size:9pt}
-.policy p{margin:4px 0}`
+.policy p{margin:4px 0}
+.sign{margin-top:14px;page-break-inside:avoid;break-inside:avoid}
+.sign p{margin:4px 0}
+.sign-row{display:flex;gap:32px;margin-top:40px}
+.sign-box{flex:1}
+.sign-box.date{flex:0 0 30%}
+.sign-line{border-bottom:1px solid ${reportColors.ink};height:0}
+.sign .k{font-size:8pt;text-transform:uppercase;letter-spacing:.04em;color:${reportColors.muted};margin-top:4px}`
 
   const body = `
 <div class="head">
@@ -214,6 +221,14 @@ ${terms.rows.map(([k, v]) => `  <div class="field"><div class="k">${e(k)}</div><
 <div class="policy" style="margin-top:8px">
   <p>${e(terms.policyEn)}</p>
   <p>${e(terms.policyEs)}</p>
+</div>
+<div class="sign">
+  <p class="policy">${e(en.layaway.acknowledge)}</p>
+  <p class="policy">${e(es.layaway.acknowledge)}</p>
+  <div class="sign-row">
+    <div class="sign-box"><div class="sign-line"></div><div class="k">${label(en.layaway.signature, es.layaway.signature)}</div></div>
+    <div class="sign-box date"><div class="sign-line"></div><div class="k">${label(en.layaway.date, es.layaway.date)}</div></div>
+  </div>
 </div>`
     : ''
 }

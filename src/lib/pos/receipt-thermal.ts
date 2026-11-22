@@ -273,6 +273,18 @@ export function thermalReceiptLines(data: SaleReceiptDoc, width: number = THERMA
     push(...wrap(terms.policyEn, W))
     push('')
     push(...wrap(terms.policyEs, W))
+
+    // Customer acknowledgement + signature, both languages.
+    push(rule)
+    push(...wrap(en.layaway.acknowledge, W))
+    push('')
+    push(...wrap(es.layaway.acknowledge, W))
+    push('', '', '')
+    push('_'.repeat(W))
+    push(...wrap(bi(en.layaway.signature, es.layaway.signature), W))
+    push('', '')
+    push('_'.repeat(Math.min(W, 20)))
+    push(...wrap(bi(en.layaway.date, es.layaway.date), W))
   }
 
   // ── Notes

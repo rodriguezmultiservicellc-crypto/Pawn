@@ -727,6 +727,13 @@ Progress_archive.txt — the items from those sessions are there.)
       5 new receipt tests (18 total). Browser-checked L-000001: dialog,
       Letter page, Thermal text (40 cols). Also: Transfers is now a child
       of Inventory in the sidebar.
+      Then (Eddy): the layaway receipt has the customer sign. Under the
+      terms: "I have read and understand the layaway terms … and I agree
+      to them" in EN + ES, then a Customer signature / Firma del cliente
+      line and a Date / Fecha line (Letter: side by side, kept on one
+      page; Thermal: full-width rule). Layaway receipts only — a plain
+      sale has no signature block (tested). Paper signature; no digital
+      capture.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 

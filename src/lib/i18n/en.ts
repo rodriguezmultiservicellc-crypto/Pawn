@@ -2497,6 +2497,10 @@ export const en = {
           'Your items are held for you until the balance is paid in full. If this layaway is cancelled, payments are refunded minus a {pct} cancellation fee.',
         policyNoFee:
           'Your items are held for you until the balance is paid in full. If this layaway is cancelled, payments are refunded in full.',
+        acknowledge:
+          'I have read and understand the layaway terms above, including the payment schedule and the cancellation policy, and I agree to them.',
+        signature: 'Customer signature',
+        date: 'Date',
       },
     },
     receiptPrint: {

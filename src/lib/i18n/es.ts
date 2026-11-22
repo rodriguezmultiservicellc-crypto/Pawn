@@ -2495,6 +2495,10 @@ export const es: Dictionary = {
           'Sus artículos se guardan para usted hasta que el saldo esté pagado por completo. Si este apartado se cancela, se reembolsan los pagos menos un cargo por cancelación del {pct}.',
         policyNoFee:
           'Sus artículos se guardan para usted hasta que el saldo esté pagado por completo. Si este apartado se cancela, se reembolsan los pagos por completo.',
+        acknowledge:
+          'He leído y entiendo las condiciones del apartado indicadas arriba, incluido el calendario de pagos y la política de cancelación, y las acepto.',
+        signature: 'Firma del cliente',
+        date: 'Fecha',
       },
     },
     receiptPrint: {

@@ -168,6 +168,22 @@ describe('layaway receipt', () => {
     expect(html).toContain('L-000001')
     expect(html).toContain(escapeHtml(es.pos.print.layaway.terms))
   })
+
+  it('has the customer sign that they understand the terms, both languages', () => {
+    const flat = text.replace(/\s+/g, ' ')
+    expect(flat).toContain(en.pos.print.layaway.acknowledge)
+    expect(flat).toContain(es.pos.print.layaway.acknowledge)
+    expect(text).toContain('Customer signature / Firma del cliente')
+    expect(lines).toContain('_'.repeat(40))
+    const html = saleReceiptHtml(lay, 'letter')
+    expect(html).toContain('<div class="sign-line">')
+    expect(html).toContain(escapeHtml(es.pos.print.layaway.acknowledge))
+  })
+
+  it('a plain sale has no signature block', () => {
+    expect(thermalReceiptLines(doc()).join('\n')).not.toContain(en.pos.print.layaway.signature)
+    expect(saleReceiptHtml(doc(), 'letter')).not.toContain('<div class="sign-line">')
+  })
 })
 
 describe('saleReceiptHtml', () => {
