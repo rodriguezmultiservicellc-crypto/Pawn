@@ -735,6 +735,13 @@ Progress_archive.txt — the items from those sessions are there.)
       sale has no signature block (tested). Paper signature; no digital
       capture.
 
+ 512. [UI] SIDEBAR: Online orders moved below Custom quotes. "Pawns" is
+      now a group HEADING (NavItem.heading — not a link, never active,
+      hidden when the sidebar is collapsed) over New pawn (/pawn/new),
+      Pawns (/pawn), Buy outright (/buy/new, active for /buy/*) and Loan
+      calculator. Sell metal stays top-level below the group. nav.pawn
+      (now unused) replaced by nav.pawns / nav.newPawn, EN + ES.
+
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
  480. DASHBOARD LIVE METALS — TROY OUNCE + DISPLAY PERCENT (patches/0083

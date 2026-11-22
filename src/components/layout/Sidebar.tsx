@@ -155,6 +155,9 @@ export function Sidebar({
     activePrefix?: string
     /** Sub-item of the entry above it: indented, 16px icon. */
     child?: boolean
+    /** Group label over its children: not a link, never active, hidden
+     *  when the sidebar is collapsed (the children's icons remain). */
+    heading?: boolean
   }
   type NavSection = {
     /** Visual divider between groups. Renders as a hairline (collapsed)
@@ -245,26 +248,48 @@ export function Sidebar({
       visible: modules.has_retail,
       child: true,
     },
+    // Pawns — a heading (not a link) over the pawn counter's four pages.
+    {
+      kind: 'item',
+      href: '#pawns',
+      label: t.nav.pawns,
+      icon: <Coins size={18} weight="regular" />,
+      visible: modules.has_pawn,
+      heading: true,
+    },
+    {
+      kind: 'item',
+      href: '/pawn/new',
+      label: t.nav.newPawn,
+      icon: <Plus size={16} weight="regular" />,
+      visible: modules.has_pawn,
+      child: true,
+    },
     {
       kind: 'item',
       href: '/pawn',
-      label: t.nav.pawn,
-      icon: <Coins size={18} weight="regular" />,
+      label: t.nav.pawns,
+      icon: <Coins size={16} weight="regular" />,
       visible: modules.has_pawn,
+      child: true,
+    },
+    {
+      kind: 'item',
+      href: '/buy/new',
+      // Buy-outright detail pages live at /buy/<id>.
+      activePrefix: '/buy',
+      label: t.nav.buyOutright,
+      icon: <HandCoins size={16} weight="regular" />,
+      visible: modules.has_pawn,
+      child: true,
     },
     {
       kind: 'item',
       href: '/pawn/calculator',
       label: t.nav.loanCalculator,
-      icon: <Calculator size={18} weight="regular" />,
+      icon: <Calculator size={16} weight="regular" />,
       visible: modules.has_pawn,
-    },
-    {
-      kind: 'item',
-      href: '/buy/new',
-      label: t.nav.buyOutright,
-      icon: <HandCoins size={18} weight="regular" />,
-      visible: modules.has_pawn,
+      child: true,
     },
     // Sell metal (brief Phase 3) — scrap / bullion out the door. Rung up
     // as a sale, so a retail-only shop gets it too.
@@ -409,7 +434,7 @@ export function Sidebar({
 
   // The longest visible root that contains the current path.
   const bestActiveRoot = items.reduce<string | null>((best, it) => {
-    if (it.kind !== 'item' || it.visible === false) return best
+    if (it.kind !== 'item' || it.visible === false || it.heading) return best
     const root = it.activePrefix ?? it.href
     const hit = pathname === root || pathname.startsWith(root + '/')
     return hit && (!best || root.length > best.length) ? root : best
@@ -464,6 +489,18 @@ export function Sidebar({
                 role="separator"
                 className="my-2 border-t border-white/10"
               />
+            )
+          }
+          if (it.heading) {
+            if (collapsed) return null
+            return (
+              <div
+                key={it.href}
+                className={`flex items-center gap-2 rounded-lg ${itemPadX} py-2 text-sm font-medium text-white/65`}
+              >
+                <span className="text-white/65">{it.icon}</span>
+                <span className="truncate">{it.label}</span>
+              </div>
             )
           }
           const activeRoot = it.activePrefix ?? it.href
