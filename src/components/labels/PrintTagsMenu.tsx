@@ -11,6 +11,9 @@ import { CaretDown, Printer } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TagKind, TemplateChoice } from '@/lib/labels/templates'
 
+/** Tailwind w-72. */
+const MENU_WIDTH_PX = 288
+
 export function tagPrintUrl(kind: TagKind, target: Record<string, string>, template: string | null, format: 'pdf' | 'zpl'): string {
   const sp = new URLSearchParams({ kind, ...target, format })
   if (template) sp.set('template', template)
@@ -38,6 +41,7 @@ export default function PrintTagsMenu({
 }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
+  const [align, setAlign] = useState<'left' | 'right'>('right')
   const ref = useRef<HTMLDivElement>(null)
   const def = choices.find((c) => c.isDefault) ?? choices[0]
 
@@ -77,13 +81,20 @@ export default function PrintTagsMenu({
         disabled={disabled}
         aria-label={t.tags.formatZpl}
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          // Open toward the side with room: a toolbar button on the left of
+          // the page must not spill under the sidebar, a header button on
+          // the right must not run off the screen.
+          const r = ref.current?.getBoundingClientRect()
+          if (r) setAlign(r.left + MENU_WIDTH_PX + 8 <= window.innerWidth ? 'left' : 'right')
+          setOpen((v) => !v)
+        }}
         className={`${base} ${compact ? 'px-1.5 py-1' : 'px-2 py-2'} -ml-px rounded-r-md`}
       >
         <CaretDown size={compact ? 10 : 12} weight="bold" />
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-30 mt-1 w-72 rounded-xl border border-border bg-card p-1 shadow-lg">
+        <div className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} top-full z-30 mt-1 w-72 rounded-xl border border-border bg-card p-1 shadow-lg`}>
           {choices.map((c) => (
             <div key={c.key} className="rounded-lg px-2 py-1.5">
               <div className="text-sm font-semibold text-foreground">

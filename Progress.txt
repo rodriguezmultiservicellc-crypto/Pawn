@@ -78,7 +78,9 @@ OPERATION IN FLIGHT: none
                     gold "Fine .999" removed (24K is the one top bucket).
                   - Customer search matches full names (505).
                   - Customer MERGE tool + duplicate finder (506, 0091).
-                  Migrations 0089-0091 ALL APPLIED.
+                  - Loyalty ledger repaired to match 0028 (507, 0092).
+                  - Print tags menu no longer opens off-screen (508).
+                  Migrations 0089-0092 ALL APPLIED.
 
   Session 60 (2026-11-21 ~13:00), items 480-494:
                   - Dashboard live metals: oz t, display %, right rail,
@@ -150,14 +152,6 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
-    - LOYALTY LEDGER DRIFT (found 2026-11-21, NOT fixed): patches/0028's
-      loyalty_events_apply_balance + block_mutation triggers and
-      customers_referral_same_tenant DO NOT EXIST on the live DB (no
-      loyalty functions at all), and the live kind CHECK lacks
-      'redeem_undo' / 'earn_clawback' that lib/loyalty/events.ts
-      inserts. Today 0 events / 0 points, so nothing is wrong yet — but
-      the first earned points will not move the balance. Fix = re-apply
-      0028's trigger section + widen the CHECK. Ask Eddy before.
     - VERCEL SKIPPED ONE PRODUCTION BUILD (2026-11-21): the push of
       76afc5b to main built only the branch Preview, no Production, even
       after 4+ min. An empty commit (6ae1da5) retriggered it. Cause not
@@ -665,6 +659,28 @@ Progress_archive.txt — the items from those sessions are there.)
       come from i18n (were hardcoded English).
       The Eddy duplicate is STILL NOT MERGED — Eddy picks which record
       to keep, in the UI.
+
+ 507. [BUG] LOYALTY LEDGER HAD DRIFTED FROM 0028 (patches/0092 APPLIED;
+      no RLS change). Live DB had: no balance trigger (points logged but
+      never reaching customers.loyalty_points_balance), no append-only
+      trigger, no referral same-tenant trigger; kind CHECK missing
+      'redeem_undo' / 'earn_clawback' (lib/loyalty inserts both → would
+      fail); idempotency index had lost its kind filter (a 2nd redeem /
+      repeat undo on a sale would fail). 0092 restores all of it per
+      0028 (+ merge_in/out kinds); the block trigger lets FK cascades
+      through (trigger depth > 1). Nothing to backfill: 0 events, all
+      balances 0, no tenant has loyalty_enabled. Verified in a rolled-
+      back transaction: earn 120 / redeem 50 + 20 / undo 20 / clawback
+      10 → balance 60; UPDATE on the ledger blocked; duplicate earn on
+      the same sale refused. Cross-tenant referral guard NOT exercised
+      (only one tenant exists). loyalty_events stays RLS-on with no
+      policies — every read/write is the admin client after a guard.
+
+ 508. [UI] PRINT TAGS MENU OPENED OFF-SCREEN on /inventory (anchored
+      right-0, so a toolbar button at the left spilled under the
+      sidebar). PrintTagsMenu now picks the side on open: left-aligned
+      when there is room to the right, else right-aligned. Browser-
+      checked at 1015px: menu 348-654px, main content starts 221px.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
