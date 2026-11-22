@@ -32,6 +32,8 @@ import {
   Wallet,
   ListChecks,
   Globe,
+  Plus,
+  UploadSimple,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { TenantRole, TenantType } from '@/types/database-aliases'
@@ -137,6 +139,8 @@ export function Sidebar({
   const canSeeBilling = !!tenantRole && BILLING_ROLES.has(tenantRole)
   const canSeeLoyalty = !!tenantRole && LOYALTY_ROLES.has(tenantRole)
   const canSeeCounts = !!tenantRole && COUNT_ROLES.has(tenantRole)
+  // Same roles as lib/imports/access resolveImportRole.
+  const canSeeImport = !!tenantRole && AUDIT_ROLES.has(tenantRole)
   const canSeeTransfers =
     tenant?.tenant_type === 'shop' && !!tenant.parent_tenant_id
 
@@ -149,6 +153,8 @@ export function Sidebar({
     visible?: boolean
     /** Highlight for every path under this prefix, when href is a deep link. */
     activePrefix?: string
+    /** Sub-item of the entry above it: indented, 16px icon. */
+    child?: boolean
   }
   type NavSection = {
     /** Visual divider between groups. Renders as a hairline (collapsed)
@@ -161,19 +167,36 @@ export function Sidebar({
     { kind: 'item', href: '/dashboard', label: t.nav.dashboard, icon: <House size={18} weight="regular" /> },
     { kind: 'item', href: '/customers', label: t.nav.customers, icon: <Users size={18} weight="regular" /> },
     { kind: 'item', href: '/inventory', label: t.nav.inventory, icon: <Package size={18} weight="regular" /> },
+    // Inventory's own actions, indented under it.
+    {
+      kind: 'item',
+      href: '/inventory/new',
+      label: t.nav.newItem,
+      icon: <Plus size={16} weight="regular" />,
+      child: true,
+    },
+    {
+      kind: 'item',
+      href: '/inventory/import',
+      label: t.nav.importInventory,
+      icon: <UploadSimple size={16} weight="regular" />,
+      visible: canSeeImport,
+      child: true,
+    },
+    {
+      kind: 'item',
+      href: '/inventory/counts',
+      label: t.nav.counts,
+      icon: <ListChecks size={16} weight="regular" />,
+      visible: canSeeCounts,
+      child: true,
+    },
     {
       kind: 'item',
       href: '/inventory/transfers',
       label: t.nav.transfers,
       icon: <ArrowsLeftRight size={18} weight="regular" />,
       visible: canSeeTransfers,
-    },
-    {
-      kind: 'item',
-      href: '/inventory/counts',
-      label: t.nav.counts,
-      icon: <ListChecks size={18} weight="regular" />,
-      visible: canSeeCounts,
     },
     // eBay listings — under Inventory because the listings ARE inventory
     // items being published. Settings/integrations entry is owner-only and
@@ -442,7 +465,7 @@ export function Sidebar({
             <Link
               key={it.href}
               href={it.href}
-              className={`flex items-center gap-2 rounded-lg ${itemPadX} py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 rounded-lg ${it.child && !collapsed ? 'pl-8 pr-3 py-1.5' : `${itemPadX} py-2`} text-sm font-medium transition-colors ${
                 isActive
                   ? 'bg-white/10 text-gold'
                   : 'text-white/65 hover:bg-white/5 hover:text-white'

@@ -75,6 +75,8 @@ export const en = {
     inventory: 'Inventory',
     transfers: 'Transfers',
     counts: 'Counts',
+    newItem: 'New item',
+    importInventory: 'Import',
     onlineOrders: 'Online orders',
     spotPrices: 'Spot prices',
     ebayListings: 'eBay listings',

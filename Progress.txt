@@ -80,6 +80,7 @@ OPERATION IN FLIGHT: none
                   - Customer MERGE tool + duplicate finder (506, 0091).
                   - Loyalty ledger repaired to match 0028 (507, 0092).
                   - Print tags menu no longer opens off-screen (508).
+                  - Sidebar: Inventory → New item / Import / Counts (509).
                   Migrations 0089-0092 ALL APPLIED.
 
   Session 60 (2026-11-21 ~13:00), items 480-494:
@@ -681,6 +682,14 @@ Progress_archive.txt — the items from those sessions are there.)
       sidebar). PrintTagsMenu now picks the side on open: left-aligned
       when there is room to the right, else right-aligned. Browser-
       checked at 1015px: menu 348-654px, main content starts 221px.
+
+ 509. [UI] SIDEBAR: Inventory now has indented sub-items New item
+      (/inventory/new, all staff), Import (/inventory/import, owner /
+      manager / chain_admin — same as resolveImportRole) and Counts
+      (moved under it, same COUNT_ROLES). NavItem.child = indented,
+      16px icon; collapsed sidebar shows them as plain icons. Only the
+      most specific item highlights. nav.newItem / nav.importInventory
+      EN+ES. Browser-checked on /inventory/import.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
