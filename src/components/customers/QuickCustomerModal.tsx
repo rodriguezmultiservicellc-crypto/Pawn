@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { submitKeepingValues } from '@/lib/ui/submit-keeping-values'
 import {
   descriptionOptions,
   EYE_COLOR_OPTIONS,
@@ -111,7 +112,8 @@ export default function QuickCustomerModal({
           </button>
         </div>
 
-        <form action={formAction} className="space-y-4 px-5 py-4">
+        {/* onSubmit, not action: a refused save must not wipe what was typed. */}
+        <form onSubmit={submitKeepingValues(formAction)} className="space-y-4 px-5 py-4">
           {state.error ? (
             <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
               {state.error}

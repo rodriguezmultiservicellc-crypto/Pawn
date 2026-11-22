@@ -409,3 +409,32 @@ describe('customerDocumentUploadSchema', () => {
     ).toBe(false)
   })
 })
+
+describe('customerCreateSchema — a form that leaves fields out (quick popup)', () => {
+  // The popup on the sale / pawn / repair forms has no country, language or
+  // contact-preference field. createCustomerFromForm hands those to the
+  // schema as undefined so the defaults apply.
+  it('fills the defaults for fields the form does not have', () => {
+    const r = customerCreateSchema.safeParse({ first_name: 'Ana', last_name: 'Perez', phone: '8135550100' })
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.country).toBe('US')
+      expect(r.data.id_country).toBe('US')
+      expect(r.data.comm_preference).toBe('sms')
+      expect(r.data.language).toBe('en')
+      expect(r.data.email).toBeNull()
+    }
+  })
+
+  it('refuses the same form when the missing fields arrive as null', () => {
+    const r = customerCreateSchema.safeParse({
+      first_name: 'Ana',
+      last_name: 'Perez',
+      country: null,
+      id_country: null,
+      comm_preference: null,
+      language: null,
+    })
+    expect(r.success).toBe(false)
+  })
+})

@@ -73,11 +73,15 @@ export async function createCustomerFromForm(args: {
 }): Promise<CreateCustomerCoreResult> {
   const { supabase, tenantId, userId, formData } = args
 
-  const raw: Record<string, FormDataEntryValue | null> = {}
+  const raw: Record<string, FormDataEntryValue | undefined> = {}
   const echo: Record<string, string> = {}
   for (const key of CUSTOMER_FORM_FIELDS) {
     const v = formData.get(key)
-    raw[key] = v
+    // A field the form does not have (the quick popup has no country,
+    // language or contact preference) must reach the schema as "missing",
+    // not null: only then do its defaults apply (US / en / sms). Sent as
+    // null, every quick-popup save was refused with no visible error.
+    raw[key] = v ?? undefined
     echo[key] = typeof v === 'string' ? v : ''
   }
 
