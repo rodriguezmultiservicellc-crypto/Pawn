@@ -1,6 +1,9 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import Link from 'next/link'
+import { ArrowLeft } from '@phosphor-icons/react'
+import { useI18n } from '@/lib/i18n/context'
 import {
   updateLoyaltySettingsAction,
   type UpdateLoyaltySettingsState,
@@ -26,12 +29,20 @@ export default function LoyaltySettingsContent({
     INITIAL_STATE,
   )
   const [enabled, setEnabled] = useState(initial.loyalty_enabled)
+  const { t } = useI18n()
 
   const inputClass =
     'w-32 rounded-md border border-border bg-card px-3 py-2 text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-gold/50 disabled:cursor-not-allowed disabled:opacity-60'
 
   return (
     <div className="px-4 py-8">
+      <Link
+        href="/settings"
+        className="mb-2 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+      >
+        <ArrowLeft size={14} weight="bold" />
+        {t.common.backToSettings}
+      </Link>
       <h1 className="mb-2 text-2xl font-semibold text-foreground">Loyalty &amp; Referrals</h1>
       <p className="mb-6 text-sm text-muted">
         Configure point earn / redemption rates and referral bonuses for this shop.

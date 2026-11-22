@@ -101,7 +101,6 @@ export const es: Dictionary = {
     audit: 'Auditoría',
     team: 'Equipo',
     settings: 'Ajustes',
-    loyalty: 'Lealtad',
     consignors: 'Consignatarios',
     storeCredit: 'Crédito de tienda',
     consignment: 'Consignación',
@@ -4767,6 +4766,13 @@ export const es: Dictionary = {
       description:
         'Botones del paso 1 de Nuevo empeño (Joyería / Electrónica / Armas de fuego / Herramientas / General). Edita, reordena o agrega categorías propias. El control de armas de fuego también está aquí.',
       detail: 'Administrar categorías',
+    },
+    loyalty: {
+      title: 'Lealtad y referidos',
+      description:
+        'Tasas para ganar y canjear puntos y el bono por referido. Al desactivarlo no se generan puntos nuevos — los saldos existentes se conservan.',
+      enabled: 'Lealtad activada',
+      disabled: 'Lealtad desactivada',
     },
     tenantInfo: {
       title: 'Datos de la tienda',

@@ -39,7 +39,7 @@ export default async function SettingsPage() {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid, store_credit_enabled, consignment_enabled, consignment_default_commission_pct, stripe_terminal_reader_label, stripe_terminal_reader_id',
+        'twilio_account_sid, loyalty_enabled, store_credit_enabled, consignment_enabled, consignment_default_commission_pct, stripe_terminal_reader_label, stripe_terminal_reader_id',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -129,6 +129,7 @@ export default async function SettingsPage() {
       graceDays: rules.graceDays,
       buyHoldDays: rules.buyHoldDays,
     },
+    loyalty: { enabled: settings?.loyalty_enabled === true },
     storeCredit: { enabled: settings?.store_credit_enabled === true },
     consignment: {
       enabled: settings?.consignment_enabled === true,

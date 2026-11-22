@@ -60,10 +60,25 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 61 (2026-11-21 → 11-22), saved 2026-11-22.
-                  Context budget at save: ~35%.
+  Last session:   Session 62 (2026-11-22), saved 2026-11-22 01:50.
+                  Context budget at save: ~45%.
                   Built and live (main == feature/sol-pawn-brief), items
-                  495-513:
+                  514-519:
+                  - Fonts self-hosted: next/font/google → next/font/local,
+                    files in src/app/fonts. The build no longer needs
+                    Google (that download failed two Vercel builds).
+                  - Sidebar groups open and close: Inventory, POS, Pawns,
+                    Repair. Closed groups persist per browser.
+                  - Communications and Loyalty left the sidebar; both are
+                    cards on /settings, each page with a "Back to
+                    settings" link.
+                  - /settings hub translated EN + ES (new settingsHub
+                    dictionary namespace).
+                  - New "System tools" sidebar group: Sell metal, Spot
+                    prices, Appraisals, Bench tools.
+                  No migrations this session.
+
+  Session 61 (2026-11-21 → 11-22), items 495-513:
                   - PC froze at 15:06 (out of RAM on the 12 GB box, dwm
                     OOM) — NOT a code crash. Watchdog heap now 2048 MB.
                   - Lightspeed X-Series inventory import (0089) finished,
@@ -94,22 +109,18 @@ OPERATION IN FLIGHT: none
                     which record to keep at /customers/merge.
                   Migrations 0089-0092 ALL APPLIED.
 
-  Session 60 (2026-11-21 ~13:00), items 480-494:
-                  - Dashboard live metals: oz t, display %, right rail,
-                    metal calculator popup, auto-refresh (0083) — 480-482
-                  - [CRITICAL] sale_create blocked by pg_safeupdate since
-                    0076 → every counter sale/layaway failed; fixed (0084)
-                  - Charge = cash completes + stays on New sale; out-of-
-                    stock "Add anyway"; external card (0085); Stripe
-                    Terminal reader (0086); per-shop Stripe charge mode
-                    connect/own_key/platform (0087); reuse an existing
-                    reader; refunds never silent + void reason (0088)
-                  - First REAL reader charge passed (S-000007, then voided
-                    + refunded). RMS keys then REMOVED (493).
-                  Migrations 0083-0088 ALL APPLIED.
-
   ACTIVE FILE(S):
-    - src/components/layout/Sidebar.tsx (nav groups, 509-513)
+    - src/components/layout/Sidebar.tsx (open / close groups, System
+      tools group, 515 + 518)
+    - src/app/layout.tsx; src/app/fonts/* (self-hosted fonts, 514)
+    - src/app/(staff)/settings/{page,content}.tsx (hub translated,
+      Loyalty card, 517 + 519)
+    - src/app/(staff)/settings/communications/content.tsx;
+      src/app/(staff)/settings/import/content.tsx;
+      src/app/(staff)/settings/loyalty/content.tsx (back link, 516 +
+      519)
+    - src/lib/i18n/{en,es}.ts (settingsHub, common.collapseGroup /
+      expandGroup / backToSettings, nav.systemTools)
     - src/app/(staff)/customers/merge/*; patches/0091, 0092
     - src/lib/pos/receipt-{data,thermal,html}.ts (layaway receipt)
     - src/lib/imports/{lightspeed,lightspeed.test,access}.ts
@@ -128,10 +139,13 @@ OPERATION IN FLIGHT: none
 
   RESUME POINT:
     Clean. main == origin/main == feature/sol-pawn-brief, nothing in
-    flight. The Lightspeed import page (/inventory/import) and the new
-    Size / Length field are live but NEITHER has been opened in a
-    browser: first run a real Lightspeed product export through
-    preview → import, then check an item's Size / Length saves.
+    flight. Session 62 was UI only (fonts, sidebar, /settings) and all
+    of it was driven in a real browser on the dev server before each
+    push; nothing from it is waiting on a test.
+    Carried from Session 61: Eddy works the /customers/merge list (53
+    duplicate groups, his own pair first), and the Lightspeed import
+    page (/inventory/import) + the Size / Length field are live but
+    not yet opened in a browser with a real export.
     Carried from Session 60:
     Pawn has NO Stripe credentials again (RMS keys removed, 493):
     Card at the counter = card machine (external card) only; reader +
@@ -139,10 +153,8 @@ OPERATION IN FLIGHT: none
     → Card reader → "The shop's own Stripe key", then pair or link its
     reader. First ask Eddy: (a) has he got that key; (b) S-000005 ($10,
     open, no payment) and S-000006 ($5 card-machine test, refund on the
-    machine) — void them; (c) self-host the 3 Google fonts (Vercel build
-    failed twice on next/font/google downloads — offered, not done);
-    (d) the rest of the Ledger spec + "From inventory" quick sale test
-    (from Session 59).
+    machine) — void them; (c) the rest of the Ledger spec + "From
+    inventory" quick sale test (from Session 59).
 
   HOW TO RUN THE BROWSER SMOKE (new this session):
     npm run dev                       # server must be up on :3060
@@ -191,8 +203,6 @@ OPERATION IN FLIGHT: none
       checkout.session.* do. payment-link.ts is Connect-only.
     - NEW REFUND PATHS (492) not yet exercised live (void/return of a
       reader-card sale after a Stripe failure); they refuse loudly.
-    - VERCEL BUILDS flaked twice on next/font/google downloads (redeploy
-      fixed both). Permanent fix = self-host the fonts (offered).
     - LUNA AZUL (other lane, NOT touched): its NEXT_PUBLIC_STRIPE_
       PUBLISHABLE_KEY is TEST while its secret key is LIVE; shipment
       payment links lack metadata.kind (handoff written in the scratchpad
@@ -496,6 +506,80 @@ SESSION HISTORY LOG
 2026-09-19, sessions 22, 23, 24, 25, 26, 27, 29, 30, 31, 32 archived
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
+
+--- Session 62 (2026-11-22) — Self-hosted fonts, sidebar groups open / close, System tools group, /settings translated (branch feature/sol-pawn-brief == main) ---
+
+ 514. FONTS SELF-HOSTED (9866c4b). src/app/layout.tsx: next/font/google
+      → next/font/local. One latin variable-weight woff2 per family in
+      src/app/fonts/ (dm-sans, playfair-display, jetbrains-mono), each
+      with its OFL license beside it; files taken from the
+      @fontsource-variable 5.3.0 packages (same Google Fonts releases),
+      copied into the repo, NOT added as dependencies. CSS variable
+      names are unchanged (--font-dm-sans / --font-playfair /
+      --font-jetbrains-mono), so globals.css and every component are
+      untouched. Weight ranges: DM Sans 100-1000, Playfair 400-900,
+      JetBrains Mono 100-800. Playfair uses the Times New Roman
+      fallback metrics; the mono face has adjustFontFallback off.
+      WHY: the build-time download from Google failed two Vercel
+      builds. Verified in a browser: three font requests, all to the
+      app, none to fonts.googleapis / fonts.gstatic. CLAUDE.md font
+      line updated to match.
+
+ 515. SIDEBAR GROUPS OPEN AND CLOSE (9866c4b).
+      src/components/layout/Sidebar.tsx. Inventory, POS, Pawns and
+      Repair fold their sub-items. Inventory / POS keep their link and
+      get a caret button at the right; the Pawns / Repair headings are
+      one button. NavItem gained `group`; the row without `child` is
+      the group's own row. Closed groups live in localStorage
+      `pawn.sidebar.groups.closed` (comma-joined ids), read through
+      useSyncExternalStore with a '' server snapshot — so the server
+      HTML and the first client render match and there is no hydration
+      mismatch (checked: reload with every group closed, zero console
+      errors). All groups start open. A closed group whose page is
+      current lights its own row gold. The icon rail ignores group
+      state and shows every icon (it has no heading to reopen from).
+      New buttons use focus-visible rings so a mouse click leaves no
+      gold box. New keys: common.collapseGroup / expandGroup.
+
+ 516. COMMUNICATIONS MOVED UNDER SETTINGS (9866c4b). Sidebar entry
+      removed; /settings already had the Communications card (first
+      one). The Communications page got a "Back to settings" link.
+      nav.communications deleted; imports.backToSettings moved to
+      common.backToSettings (the import page reads it from there now).
+      On /settings/communications the sidebar lights Settings.
+
+ 517. /SETTINGS HUB TRANSLATED EN + ES (86338c4).
+      src/app/(staff)/settings/content.tsx — every card title,
+      description, status pill and detail line reads from the new
+      `settingsHub` namespace (70 keys, identical trees in en.ts and
+      es.ts). Subscription status / billing cycle and the tenant-type
+      badge are mapped from their enum values, raw value as fallback.
+      "Configure {name}" is split around {name} so the shop name stays
+      bold. Two wording changes on purpose: the Spanish loan-rate and
+      pawn-category cards say "Nuevo empeño" where English still shows
+      `/pawn/new`, and the read-only Tenant info note (non-owners) now
+      says only the owner can edit instead of naming /settings/general.
+      Verified in a browser in both languages (language toggle clicked
+      with the profile-language POST stubbed, so Eddy's saved language
+      was not changed): 18 cards each side, no English left in Spanish.
+
+ 518. "SYSTEM TOOLS" SIDEBAR GROUP (86338c4). New heading (Toolbox
+      icon, group id `tools`) over Sell metal, Spot prices, Appraisals,
+      Bench tools, in that order, at the top of the reporting section;
+      eBay listings and Reports follow as normal rows. Opens / closes
+      like Pawns and Repair. Group headings now WRAP instead of
+      truncating: the Spanish label "Herramientas del sistema" does not
+      fit on one line at w-52. New key nav.systemTools.
+
+ 519. LOYALTY MOVED UNDER SETTINGS. Sidebar entry removed (Store credit
+      and Billing stay). The /settings hub had NO Loyalty card, so one
+      was added: owner / chain_admin only (same gate as the page and
+      the old sidebar entry), status from settings.loyalty_enabled
+      (page.tsx now selects it; SettingsHubView.loyalty), text in
+      settingsHub.loyalty. The Loyalty page got the "Back to settings"
+      link. nav.loyalty deleted. Verified in a browser: card in EN +
+      ES, card → page → back link → /settings, Settings lit in the
+      sidebar on the Loyalty page.
 
 --- Session 61 (2026-11-21) — Lightspeed inventory import, Size / Length on inventory, RAM crash diagnosis (branch feature/sol-pawn-brief == main) ---
 
@@ -2576,7 +2660,7 @@ PENDING — NEXT UP
     Ask Eddy for the pawn company's own Stripe secret key → Settings →
     Card reader → own key → pair / link its reader → one live reader
     charge + a void (exercises the 492 refund path). Meanwhile: void
-    S-000005 / S-000006 (with him), and offer the self-hosted fonts fix.
+    S-000005 / S-000006 (with him).
     Still open from REVIEW-2026-11-11: pawn redeem / return
     double-submit, accrual dates in UTC outside the reports,
     metal-counter consignment (finding 15), /audit hydration, and the
@@ -2665,7 +2749,13 @@ PENDING — NEXT UP
         leave it, since compliance_log is write-once by design.
 
   KNOWN ISSUES TO REVISIT:
-    - Settings hub (/settings), buy receipt (/buy/[id]) and
+    - /billing shows the subscription status and cycle as raw English
+      enum text, and the settings sub-pages other than Import and
+      Communications hardcode "Back to settings" (common.backToSettings
+      exists now — point them at it). The Loyalty settings page
+      (/settings/loyalty) is hardcoded English end to end apart from
+      its new back link. Rule 6 debt, seen in Session 62.
+    - Buy receipt (/buy/[id]) and
       src/components/version-footer.tsx ("Version & Deploy", "Latest
       deploy", "Commit", "Branch", "Author", "Built", "Version history",
       "Current") are hardcoded English — pre-existing Rule 6 debt. The

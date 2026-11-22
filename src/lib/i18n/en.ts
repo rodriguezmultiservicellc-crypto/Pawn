@@ -106,7 +106,6 @@ export const en = {
     audit: 'Audit log',
     team: 'Team',
     settings: 'Settings',
-    loyalty: 'Loyalty',
     consignors: 'Consignors',
     storeCredit: 'Store credit',
     consignment: 'Consignment',
@@ -4767,6 +4766,13 @@ export const en = {
       description:
         'Tile buttons shown on /pawn/new step 1 (Jewelry / Electronics / Firearms / Tools / General). Edit, reorder, or add custom categories. Firearms gate lives here too.',
       detail: 'Manage categories',
+    },
+    loyalty: {
+      title: 'Loyalty & referrals',
+      description:
+        'Point earn and redemption rates and the referral bonus. Turning it off stops new points — existing balances stay.',
+      enabled: 'Loyalty is on',
+      disabled: 'Loyalty is off',
     },
     tenantInfo: {
       title: 'Tenant info',

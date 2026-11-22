@@ -29,7 +29,6 @@ import {
   CurrencyDollar,
   HandCoins,
   Receipt,
-  Trophy,
   Wallet,
   ListChecks,
   Globe,
@@ -517,13 +516,6 @@ export function Sidebar({
       label: t.nav.team,
       icon: <UsersThree size={18} weight="regular" />,
       visible: canSeeAudit, // owner / chain_admin / manager
-    },
-    {
-      kind: 'item',
-      href: '/settings/loyalty',
-      label: t.nav.loyalty,
-      icon: <Trophy size={18} weight="regular" />,
-      visible: canSeeLoyalty,
     },
     {
       kind: 'item',

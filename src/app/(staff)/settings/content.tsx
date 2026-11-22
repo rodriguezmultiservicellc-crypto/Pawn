@@ -24,6 +24,7 @@ import {
   ListChecks,
   Sparkle,
   Lightning,
+  Trophy,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
@@ -55,6 +56,7 @@ export type SettingsHubView = {
     graceDays: number
     buyHoldDays: number
   }
+  loyalty: { enabled: boolean }
   storeCredit: { enabled: boolean }
   consignment: { enabled: boolean; defaultCommissionPct: number }
   /** Paired Stripe Terminal reader (patches/0086), or null. */
@@ -324,6 +326,19 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
               : t.jurisdiction.settings.jurisdictionNone
           }
         />
+
+        {isOwner && (
+          <Card
+            href="/settings/loyalty"
+            icon={<Trophy size={20} weight="regular" />}
+            title={h.loyalty.title}
+            description={h.loyalty.description}
+            status={view.loyalty.enabled ? 'configured' : 'needs_setup'}
+            statusDetail={
+              view.loyalty.enabled ? h.loyalty.enabled : h.loyalty.disabled
+            }
+          />
+        )}
 
         {isOwner && (
           <Card
