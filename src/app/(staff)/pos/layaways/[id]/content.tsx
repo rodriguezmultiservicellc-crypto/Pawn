@@ -2,12 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   CashRegister,
   Prohibit,
   Calendar,
+  Printer,
 } from '@phosphor-icons/react'
+import { PrintReceiptDialog } from '@/components/pos/PrintReceiptDialog'
 import { useI18n } from '@/lib/i18n/context'
 import { LayawayStatusBadge } from '@/components/pos/Badges'
 import { LayawayPaymentDialog } from '@/components/pos/LayawayPaymentDialog'
@@ -65,13 +68,31 @@ export default function LayawayDetailContent({
   layaway,
   items,
   payments,
+  autoPrint = false,
 }: {
   layaway: LayawayDetailView
   items: LayawayDetailItem[]
   payments: LayawayDetailPayment[]
+  /** Arrived straight from creating the layaway — open the print dialog. */
+  autoPrint?: boolean
 }) {
   const { t } = useI18n()
+  const router = useRouter()
+  const [showPrint, setShowPrint] = useState(autoPrint)
   const [showPay, setShowPay] = useState(false)
+
+  function closePrint() {
+    setShowPrint(false)
+    // Drop ?print=1 so a reload doesn't ask again.
+    if (autoPrint) router.replace(`/pos/layaways/${layaway.id}`, { scroll: false })
+  }
+
+  async function payThenPrint(fd: FormData) {
+    const res = await addLayawayPaymentAction(fd)
+    // A payment is money in hand, same as a sale: offer its receipt.
+    if (res.ok) setShowPrint(true)
+    return res
+  }
   const [showCancel, setShowCancel] = useState(false)
   const [showReminder, setShowReminder] = useState(false)
 
@@ -161,7 +182,24 @@ export default function LayawayDetailContent({
             {t.pos.layaway.cancel}
           </button>
         ) : null}
+        <button
+          type="button"
+          onClick={() => setShowPrint(true)}
+          className="ml-auto inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
+        >
+          <Printer size={14} weight="bold" />
+          {t.pos.sale.receiptCopy}
+        </button>
       </div>
+      {showPrint ? (
+        <PrintReceiptDialog
+          saleId={layaway.sale_id}
+          saleNumber={null}
+          layawayNumber={layaway.layaway_number}
+          total={layaway.total_due}
+          onClose={closePrint}
+        />
+      ) : null}
       {showReminder ? (
         <SendReminderDialog
           customerId={layaway.customer_id}
@@ -319,7 +357,7 @@ export default function LayawayDetailContent({
           layawayId={layaway.id}
           defaultAmount={layaway.balance_remaining}
           onClose={() => setShowPay(false)}
-          onSubmit={addLayawayPaymentAction}
+          onSubmit={payThenPrint}
         />
       ) : null}
       {showCancel ? (

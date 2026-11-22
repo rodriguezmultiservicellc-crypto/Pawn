@@ -140,6 +140,44 @@ export function cardDetail(p: SaleReceiptPayment, en: PrintDict, es: PrintDict):
   return `${brand}****${p.card_last4}${auth}`
 }
 
+/** "12/21/2026" from a calendar date (YYYY-MM-DD) — no timezone shift. */
+export function calendarDate(iso: string | null): string {
+  if (!iso) return '-'
+  const [y, m, d] = iso.slice(0, 10).split('-')
+  return y && m && d ? `${m}/${d}/${y}` : iso
+}
+
+/**
+ * The layaway block shared by the Letter and Thermal receipts: bilingual
+ * label/value rows plus the cancellation policy in each language. Null for
+ * a plain sale.
+ */
+export function layawayTerms(data: SaleReceiptDoc): {
+  rows: Array<[string, string]>
+  policyEn: string
+  policyEs: string
+} | null {
+  const l = data.layaway
+  if (!l) return null
+  const en = data.i18n.en.pos.print.layaway
+  const es = data.i18n.es.pos.print.layaway
+  const kind = (['weekly', 'biweekly', 'monthly', 'custom'] as const).find((k) => k === l.schedule_kind)
+  const pct = percent(l.cancellation_fee_pct)
+  const rows: Array<[string, string]> = [
+    [bi(en.schedule, es.schedule), kind ? bi(en.schedules[kind], es.schedules[kind]) : l.schedule_kind],
+    [bi(en.firstDue, es.firstDue), calendarDate(l.first_payment_due)],
+  ]
+  if (l.final_due_date) rows.push([bi(en.finalDue, es.finalDue), calendarDate(l.final_due_date)])
+  rows.push([bi(en.cancellationFee, es.cancellationFee), pct])
+  rows.push([bi(en.balance, es.balance), money(l.balance_remaining)])
+  const noFee = l.cancellation_fee_pct <= 0
+  return {
+    rows,
+    policyEn: noFee ? en.policyNoFee : en.policy.replace('{pct}', pct),
+    policyEs: noFee ? es.policyNoFee : es.policy.replace('{pct}', pct),
+  }
+}
+
 export function thermalReceiptLines(data: SaleReceiptDoc, width: number = THERMAL_WIDTH): string[] {
   const en = data.i18n.en.pos.print
   const es = data.i18n.es.pos.print
@@ -159,10 +197,17 @@ export function thermalReceiptLines(data: SaleReceiptDoc, width: number = THERMA
   push(heavy)
 
   // ── Sale meta
-  push(...center(bi(en.header, es.header).toUpperCase(), W))
-  push(...row(bi(en.sections.sale, es.sections.sale), data.sale_number || '-', W))
+  const terms = layawayTerms(data)
+  if (data.layaway) {
+    push(...center(bi(en.layaway.header, es.layaway.header).toUpperCase(), W))
+    push(...row(bi(en.layaway.number, es.layaway.number), data.layaway.layaway_number || '-', W))
+    push(...row(bi(en.sections.sale, es.sections.sale), data.sale_number || '-', W))
+  } else {
+    push(...center(bi(en.header, es.header).toUpperCase(), W))
+    push(...row(bi(en.sections.sale, es.sections.sale), data.sale_number || '-', W))
+  }
   push(...wrap(shopDateTime(data.issued_at, data.timezone), W))
-  if (data.sale_kind === 'layaway') {
+  if (data.sale_kind === 'layaway' && !data.layaway) {
     push(...row(bi(en.meta.kind, es.meta.kind), bi(en.meta.kindLayaway, es.meta.kindLayaway), W))
   }
   const customerName = data.customer?.full_name?.trim()
@@ -215,8 +260,19 @@ export function thermalReceiptLines(data: SaleReceiptDoc, width: number = THERMA
   }
   push(...row(bi(en.totals.paid, es.totals.paid), money(data.paid_total), W))
   const balance = Math.max(0, data.total - data.paid_total)
-  if (balance > 0.005) {
+  if (balance > 0.005 && !terms) {
     push(...row(bi(en.totals.balance, es.totals.balance), money(balance), W))
+  }
+
+  // ── Layaway terms (balance printed here, from the layaway itself)
+  if (terms) {
+    push(rule)
+    push(...center(bi(en.layaway.terms, es.layaway.terms).toUpperCase(), W))
+    for (const [k, v] of terms.rows) push(...row(k, v, W))
+    push('')
+    push(...wrap(terms.policyEn, W))
+    push('')
+    push(...wrap(terms.policyEs, W))
   }
 
   // ── Notes

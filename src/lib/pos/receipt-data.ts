@@ -26,6 +26,19 @@ export type SaleReceiptDoc = SaleReceiptData & {
   issued_at: string
   /** The shop's IANA timezone — every printed time is in it, never UTC. */
   timezone: string
+  /** Set when the sale is a layaway: its number and the agreed terms. */
+  layaway: LayawayReceiptTerms | null
+}
+
+export type LayawayReceiptTerms = {
+  layaway_number: string
+  status: string
+  schedule_kind: string
+  first_payment_due: string | null
+  final_due_date: string | null
+  /** Fraction, e.g. 0.10 = 10% kept on cancellation. */
+  cancellation_fee_pct: number
+  balance_remaining: number
 }
 
 export async function loadSaleReceiptData(args: {
@@ -79,6 +92,30 @@ export async function loadSaleReceiptData(args: {
   const { data: tenant, error: tenantErr } = tenantRes
   if (tenantErr) throw new Error(`tenant_lookup_failed: ${tenantErr.message}`)
   if (!tenant) throw new Error('tenant_not_found')
+
+  let layaway: LayawayReceiptTerms | null = null
+  if (sale.sale_kind === 'layaway') {
+    const { data: l } = await supabase
+      .from('layaways')
+      .select(
+        'layaway_number, status, schedule_kind, first_payment_due, final_due_date, cancellation_fee_pct, balance_remaining',
+      )
+      .eq('sale_id', saleId)
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (l) {
+      layaway = {
+        layaway_number: l.layaway_number ?? '',
+        status: l.status,
+        schedule_kind: l.schedule_kind,
+        first_payment_due: l.first_payment_due,
+        final_due_date: l.final_due_date,
+        cancellation_fee_pct: Number(l.cancellation_fee_pct ?? 0),
+        balance_remaining: Number(l.balance_remaining ?? 0),
+      }
+    }
+  }
 
   const items: SaleReceiptItem[] = (itemsRes.data ?? []).map((r) => {
     const inv = (r as unknown as { inventory: { sku: string | null } | null }).inventory
@@ -152,5 +189,6 @@ export async function loadSaleReceiptData(args: {
     printed_on: todayInTimezone(rules.timezone),
     issued_at: sale.completed_at ?? sale.created_at,
     timezone: rules.timezone,
+    layaway,
   }
 }

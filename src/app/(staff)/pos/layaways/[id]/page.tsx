@@ -13,9 +13,15 @@ import type {
 } from '@/types/database-aliases'
 
 type Params = Promise<{ id: string }>
+type SearchParams = Promise<{ print?: string }>
 
-export default async function LayawayDetailPage(props: { params: Params }) {
+export default async function LayawayDetailPage(props: {
+  params: Params
+  searchParams: SearchParams
+}) {
   const { id } = await props.params
+  // ?print=1 — just created at the counter: ask to print right away.
+  const autoPrint = (await props.searchParams).print === '1'
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
@@ -116,6 +122,7 @@ export default async function LayawayDetailPage(props: { params: Params }) {
       layaway={view}
       items={items}
       payments={payments}
+      autoPrint={autoPrint}
     />
   )
 }

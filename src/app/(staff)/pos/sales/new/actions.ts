@@ -167,7 +167,8 @@ async function createLayawayInternal(args: {
 
   revalidatePath('/pos')
   revalidatePath('/pos/layaways')
-  return { redirectTo: `/pos/layaways/${r.data.layawayId}` }
+  // ?print=1: the layaway page opens the print dialog, like a paid sale.
+  return { redirectTo: `/pos/layaways/${r.data.layawayId}?print=1` }
 }
 
 /**

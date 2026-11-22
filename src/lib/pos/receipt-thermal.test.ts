@@ -48,8 +48,19 @@ function doc(over: Partial<SaleReceiptDoc> = {}): SaleReceiptDoc {
     printed_on: '2026-11-21',
     issued_at: '2026-11-21T18:06:00Z',
     timezone: 'America/New_York',
+    layaway: null,
     ...over,
   }
+}
+
+const LAYAWAY = {
+  layaway_number: 'L-000001',
+  status: 'active',
+  schedule_kind: 'monthly',
+  first_payment_due: '2026-12-21',
+  final_due_date: '2027-03-21',
+  cancellation_fee_pct: 0.1,
+  balance_remaining: 290,
 }
 
 describe('thermal layout helpers', () => {
@@ -117,6 +128,45 @@ describe('thermalReceiptLines', () => {
   it('names a walk-in when there is no customer', () => {
     const anon = thermalReceiptLines(doc({ customer: null })).join('\n')
     expect(anon).toContain(en.pos.print.customer.anonymous)
+  })
+})
+
+describe('layaway receipt', () => {
+  const lay = doc({ sale_kind: 'layaway', paid_total: 1000, layaway: LAYAWAY })
+  const lines = thermalReceiptLines(lay)
+  const text = lines.join('\n')
+
+  it('every line fits in 40 columns', () => {
+    for (const l of lines) expect(l.length).toBeLessThanOrEqual(40)
+  })
+
+  it('leads with the layaway number and keeps the sale number', () => {
+    expect(text).toContain('LAYAWAY RECEIPT / RECIBO DE APARTADO')
+    expect(text).toContain('L-000001')
+    expect(text).toContain('S-000007')
+  })
+
+  it('prints the terms bilingual, dates without a timezone shift', () => {
+    expect(text).toContain('Monthly / Mensual')
+    expect(text).toContain('12/21/2026')
+    expect(text).toContain('03/21/2027')
+    expect(text).toContain('10%')
+    expect(text).toContain('$290.00')
+    expect(text).toContain(en.pos.print.layaway.policy.replace('{pct}', '10%').slice(0, 30))
+    expect(text.replace(/\s+/g, ' ')).toContain(es.pos.print.layaway.policy.replace('{pct}', '10%'))
+  })
+
+  it('says refunded in full when there is no cancellation fee', () => {
+    const noFee = thermalReceiptLines(doc({ sale_kind: 'layaway', layaway: { ...LAYAWAY, cancellation_fee_pct: 0 } }))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+    expect(noFee).toContain(en.pos.print.layaway.policyNoFee)
+  })
+
+  it('letter page carries the same terms', () => {
+    const html = saleReceiptHtml(lay, 'letter')
+    expect(html).toContain('L-000001')
+    expect(html).toContain(escapeHtml(es.pos.print.layaway.terms))
   })
 })
 

@@ -19,6 +19,7 @@ import {
   THERMAL_WIDTH,
   bi,
   cardDetail,
+  layawayTerms,
   money,
   paymentLabel,
   shopDateTime,
@@ -56,7 +57,10 @@ ${body}
 }
 
 export function saleReceiptHtml(data: SaleReceiptDoc, format: ReceiptFormat): string {
-  const title = `${data.i18n.en.pos.print.header} ${data.sale_number}`
+  const p = data.i18n.en.pos.print
+  const title = data.layaway
+    ? `${p.layaway.header} ${data.layaway.layaway_number}`
+    : `${p.header} ${data.sale_number}`
   return format === 'thermal' ? thermalHtml(data, title) : letterHtml(data, title)
 }
 
@@ -92,6 +96,7 @@ function letterHtml(data: SaleReceiptDoc, title: string): string {
   const customerName =
     data.customer?.full_name?.trim() || bi(en.customer.anonymous, es.customer.anonymous)
   const balance = Math.max(0, data.total - data.paid_total)
+  const terms = layawayTerms(data)
 
   const label = (a: string, b: string) =>
     a.trim().toLowerCase() === b.trim().toLowerCase()
@@ -152,8 +157,14 @@ td{border-bottom:1px solid ${reportColors.divider};padding:5px 6px;vertical-alig
     ${contact ? `<div class="small">${e(contact)}</div>` : ''}
   </div>
   <div>
-    <div class="kicker">${label(en.header, es.header)}</div>
-    <div class="number">${e(data.sale_number || '—')}</div>
+    ${
+      data.layaway
+        ? `<div class="kicker">${label(en.layaway.header, es.layaway.header)}</div>
+    <div class="number">${e(data.layaway.layaway_number || '—')}</div>
+    <div class="small" style="text-align:right">${label(en.sections.sale, es.sections.sale)} <span class="mono">${e(data.sale_number || '—')}</span></div>`
+        : `<div class="kicker">${label(en.header, es.header)}</div>
+    <div class="number">${e(data.sale_number || '—')}</div>`
+    }
     <div class="small" style="text-align:right">${e(shopDateTime(data.issued_at, data.timezone))}</div>
   </div>
 </div>
@@ -191,8 +202,21 @@ ${
 ${data.payments.length === 0 ? `<p class="small">${label(en.paymentsEmpty, es.paymentsEmpty)}</p>` : paymentRows}
 <div class="totals">
   <div class="line grand"><span>${label(en.totals.paid, es.totals.paid)}</span><span class="num">${e(money(data.paid_total))}</span></div>
-  ${balance > 0.005 ? `<div class="line"><span>${label(en.totals.balance, es.totals.balance)}</span><span class="num">${e(money(balance))}</span></div>` : ''}
+  ${balance > 0.005 && !terms ? `<div class="line"><span>${label(en.totals.balance, es.totals.balance)}</span><span class="num">${e(money(balance))}</span></div>` : ''}
 </div>
+${
+  terms
+    ? `<hr>
+<h2>${label(en.layaway.terms, es.layaway.terms)}</h2>
+<div class="grid">
+${terms.rows.map(([k, v]) => `  <div class="field"><div class="k">${e(k)}</div><div class="v">${e(v)}</div></div>`).join('\n')}
+</div>
+<div class="policy" style="margin-top:8px">
+  <p>${e(terms.policyEn)}</p>
+  <p>${e(terms.policyEs)}</p>
+</div>`
+    : ''
+}
 ${data.notes?.trim() ? `<hr><h2>${label(en.notes, es.notes)}</h2><p>${e(data.notes)}</p>` : ''}
 <hr>
 <div class="policy">

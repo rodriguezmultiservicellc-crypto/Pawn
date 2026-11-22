@@ -204,8 +204,9 @@ export function Sidebar({
       kind: 'item',
       href: '/inventory/transfers',
       label: t.nav.transfers,
-      icon: <ArrowsLeftRight size={18} weight="regular" />,
+      icon: <ArrowsLeftRight size={16} weight="regular" />,
       visible: canSeeTransfers,
+      child: true,
     },
 
     // Modules — gated per tenant.has_pawn / has_repair / has_retail.

@@ -2476,10 +2476,31 @@ export const es: Dictionary = {
         pageOf: 'Página {n} de {total}',
       },
       thankYou: '¡Gracias!',
+      layaway: {
+        header: 'Recibo de apartado',
+        number: 'Apartado',
+        terms: 'Condiciones del apartado',
+        schedule: 'Calendario de pagos',
+        schedules: {
+          weekly: 'Semanal',
+          biweekly: 'Cada 2 semanas',
+          monthly: 'Mensual',
+          custom: 'Personalizado',
+        },
+        firstDue: 'Primer pago vence',
+        finalDue: 'Último pago vence',
+        balance: 'Saldo pendiente',
+        cancellationFee: 'Cargo por cancelación',
+        policy:
+          'Sus artículos se guardan para usted hasta que el saldo esté pagado por completo. Si este apartado se cancela, se reembolsan los pagos menos un cargo por cancelación del {pct}.',
+        policyNoFee:
+          'Sus artículos se guardan para usted hasta que el saldo esté pagado por completo. Si este apartado se cancela, se reembolsan los pagos por completo.',
+      },
     },
     receiptPrint: {
       title: '¿Imprimir el recibo?',
       body: 'Venta {number} — {total}. Elija la impresora.',
+      bodyLayaway: 'Apartado {number} — {total}. Elija la impresora.',
       letter: 'Carta',
       letterHelp: 'Página completa, impresora normal',
       thermal: 'Térmica',

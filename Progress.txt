@@ -83,6 +83,8 @@ OPERATION IN FLIGHT: none
                   - Sidebar: Inventory → New item / Import / Counts (509).
                   - POS → New sale / Layaway list / Sale history, new
                     /pos/sales page; Consignors under Inventory (510).
+                  - Layaway receipt + print popup on create / payment;
+                    Transfers under Inventory (511).
                   Migrations 0089-0092 ALL APPLIED.
 
   Session 60 (2026-11-21 ~13:00), items 480-494:
@@ -708,6 +710,23 @@ Progress_archive.txt — the items from those sessions are there.)
       routes; sale routes 5/5 clean on a COLD server. NOTE: a warm dev
       server 404'd every /pos/sales/* child after the new page.tsx
       appeared — stale .next route cache, gone after deleting .next.
+
+ 511. LAYAWAY RECEIPT + PRINT POPUP. Layaways had no receipt. The
+      layaway's sale receipt (/api/print/sale/[saleId]/receipt, Letter +
+      Thermal) now carries the layaway: loadSaleReceiptData adds
+      `layaway` (number, schedule, first/final due, cancellation fee,
+      balance) when sale_kind='layaway'; header becomes "Layaway Receipt
+      / Recibo de apartado" + L-number (sale # kept small); a "Layaway
+      terms" block prints both languages incl. the refund policy (paid
+      minus fee — matches cancelLayawayAction; "refunded in full" at 0%).
+      Shared layawayTerms() feeds both formats; calendar dates print
+      without a timezone shift. PrintReceiptDialog takes layawayNumber.
+      Popup opens: right after creating a layaway (redirect now
+      /pos/layaways/[id]?print=1, param dropped on close) and after each
+      layaway payment; "Print receipt" button always on the layaway page.
+      5 new receipt tests (18 total). Browser-checked L-000001: dialog,
+      Letter page, Thermal text (40 cols). Also: Transfers is now a child
+      of Inventory in the sidebar.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 

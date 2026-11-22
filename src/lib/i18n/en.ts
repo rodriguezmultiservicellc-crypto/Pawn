@@ -2478,10 +2478,31 @@ export const en = {
         pageOf: 'Page {n} of {total}',
       },
       thankYou: 'Thank you!',
+      layaway: {
+        header: 'Layaway Receipt',
+        number: 'Layaway',
+        terms: 'Layaway terms',
+        schedule: 'Payment schedule',
+        schedules: {
+          weekly: 'Weekly',
+          biweekly: 'Every 2 weeks',
+          monthly: 'Monthly',
+          custom: 'Custom',
+        },
+        firstDue: 'First payment due',
+        finalDue: 'Final payment due',
+        balance: 'Balance remaining',
+        cancellationFee: 'Cancellation fee',
+        policy:
+          'Your items are held for you until the balance is paid in full. If this layaway is cancelled, payments are refunded minus a {pct} cancellation fee.',
+        policyNoFee:
+          'Your items are held for you until the balance is paid in full. If this layaway is cancelled, payments are refunded in full.',
+      },
     },
     receiptPrint: {
       title: 'Print the receipt?',
       body: 'Sale {number} — {total}. Choose the printer.',
+      bodyLayaway: 'Layaway {number} — {total}. Choose the printer.',
       letter: 'Letter',
       letterHelp: 'Full page, regular printer',
       thermal: 'Thermal',

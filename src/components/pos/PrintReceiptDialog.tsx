@@ -33,11 +33,15 @@ export function PrintReceiptDialog({
   saleId,
   saleNumber,
   total,
+  layawayNumber,
   onClose,
 }: {
   saleId: string
   saleNumber: string | null
   total: number
+  /** A layaway's receipt (its sale's receipt carries the layaway terms):
+   *  the dialog names the layaway instead of the sale. */
+  layawayNumber?: string
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -87,8 +91,8 @@ export function PrintReceiptDialog({
   return (
     <Modal title={t.pos.receiptPrint.title} onClose={onClose}>
       <p className="mb-4 text-sm text-text-secondary">
-        {t.pos.receiptPrint.body
-          .replace('{number}', saleNumber ?? '')
+        {(layawayNumber ? t.pos.receiptPrint.bodyLayaway : t.pos.receiptPrint.body)
+          .replace('{number}', layawayNumber ?? saleNumber ?? '')
           .replace('{total}', formatMoney(total))}
       </p>
       {error ? (
