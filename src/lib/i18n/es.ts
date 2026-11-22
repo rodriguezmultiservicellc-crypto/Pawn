@@ -87,6 +87,7 @@ export const es: Dictionary = {
     buyOutright: 'Compra directa',
     sellMetal: 'Venta de metal',
     tools: 'Herramientas',
+    systemTools: 'Herramientas del sistema',
     collections: 'Cobranza',
     quotes: 'Cotizaciones',
     repair: 'Reparación',
@@ -4693,6 +4694,103 @@ export const es: Dictionary = {
       adjust_manual: 'Ajuste',
       merge_in: 'Traspasado desde un duplicado fusionado',
       merge_out: 'Traspasado al cliente fusionado',
+    },
+  },
+
+  // La página principal de /settings. Las tarjetas de funciones con su
+  // propio espacio (etapas de reparación, etiquetas, lector…) leen de allí.
+  settingsHub: {
+    title: 'Ajustes',
+    // La página muestra {name} en negrita.
+    configure: 'Configurar {name}',
+    tenantTypes: {
+      chain_hq: 'Casa matriz',
+      shop: 'Sucursal',
+      standalone: 'Independiente',
+    },
+    status: {
+      configured: 'Configurado',
+      partial: 'Parcial',
+      needsSetup: 'Falta configurar',
+    },
+    communications: {
+      title: 'Comunicaciones',
+      description:
+        'SMS / WhatsApp de Twilio + correo de Resend — credenciales de la tienda y plantillas para los recordatorios a clientes.',
+      noProviders: 'Ningún proveedor configurado',
+    },
+    integrations: {
+      title: 'Integraciones',
+      description:
+        'Stripe Connect, Twilio, Resend, eBay y otros servicios que se pueden conectar.',
+      connectedCount: '{n} de {total} conectadas',
+    },
+    dataImport: {
+      title: 'Importar datos',
+      description:
+        'Trae clientes desde otro sistema de empeño (xPawn, Bravo o cualquier CSV). Revisa antes de confirmar; se puede repetir sin crear duplicados.',
+      detail: 'Importar clientes',
+    },
+    billing: {
+      title: 'Suscripción y facturación',
+      description:
+        'Tu plan de suscripción de Sol Pawn, facturas recientes y método de pago.',
+      noSubscription: 'Sin suscripción',
+      statuses: {
+        trialing: 'Prueba',
+        active: 'Activa',
+        past_due: 'Vencida',
+        cancelled: 'Cancelada',
+        unpaid: 'Sin pagar',
+        incomplete: 'Incompleta',
+        incomplete_expired: 'Expirada',
+      },
+      cycles: {
+        monthly: 'Mensual',
+        yearly: 'Anual',
+      },
+    },
+    spotPrices: {
+      title: 'Precios spot de metales',
+      description:
+        'Multiplicadores de pago de la tienda sobre los precios spot de la plataforma. Los usa el panel de valor de fundición.',
+      detail: 'Administrar ajustes',
+    },
+    loanRates: {
+      title: 'Tasas de préstamo',
+      description:
+        'Menú de tasas de interés que aparece en Nuevo empeño. Una tasa se marca como predeterminada. Siempre se puede usar una tasa personalizada.',
+      detail: 'Administrar tasas',
+    },
+    pawnCategories: {
+      title: 'Categorías de empeño',
+      description:
+        'Botones del paso 1 de Nuevo empeño (Joyería / Electrónica / Armas de fuego / Herramientas / General). Edita, reordena o agrega categorías propias. El control de armas de fuego también está aquí.',
+      detail: 'Administrar categorías',
+    },
+    tenantInfo: {
+      title: 'Datos de la tienda',
+      description:
+        'Razón social, nombre comercial, dirección, teléfono, correo. Los cambios se reflejan en facturas, recibos y mensajes a clientes.',
+      contactOk: 'contacto ✓',
+      contactMissing: 'sin contacto',
+      addressOk: 'dirección ✓',
+      addressMissing: 'sin dirección',
+      readOnlyNote:
+        'Nombre de la tienda, dirección, teléfono, módulos. Solo el dueño puede editarlos.',
+      modulesLine: 'Módulos: {list}',
+      noModules: 'ninguno',
+    },
+    modules: {
+      title: 'Módulos',
+      enabledCount: '{n} de {total} activos',
+      pawn: 'Empeño',
+      repair: 'Reparación',
+      retail: 'Venta / Caja',
+      retailShort: 'Venta',
+      on: 'sí',
+      off: 'no',
+      note: 'Los módulos se definen al crear la tienda. Se cambian desde la consola de administración de la plataforma.',
     },
   },
 

@@ -25,6 +25,7 @@ import {
   Storefront,
   CreditCard,
   Calculator,
+  Toolbox,
   CurrencyDollar,
   HandCoins,
   Receipt,
@@ -51,9 +52,10 @@ import type { TenantRole, TenantType } from '@/types/database-aliases'
  *     back to desktop.
  *
  * Group open / close:
- *   - Inventory, POS, Pawns and Repair each fold their sub-items away. The
- *     caret on the group row toggles it; Inventory and POS stay links, the
- *     Pawns and Repair headings toggle on a click anywhere in the row.
+ *   - Inventory, POS, Pawns, Repair and System tools each fold their
+ *     sub-items away. The caret on the group row toggles it; Inventory and
+ *     POS stay links, the Pawns, Repair and System tools headings toggle on
+ *     a click anywhere in the row.
  *   - Closed groups persist in localStorage under
  *     `pawn.sidebar.groups.closed`. All groups start open.
  *   - A closed group that holds the current page lights its own row, so
@@ -95,7 +97,7 @@ function readPersistedCollapsed(): boolean {
   }
 }
 
-type GroupId = 'inventory' | 'pos' | 'pawns' | 'repair'
+type GroupId = 'inventory' | 'pos' | 'pawns' | 'repair' | 'tools'
 
 const GROUPS_KEY = 'pawn.sidebar.groups.closed'
 const GROUPS_EVENT = 'pawn:sidebar-groups'
@@ -418,24 +420,55 @@ export function Sidebar({
       child: true,
     },
 
-    // Reporting + records. Sell metal, Spot prices and eBay listings lead
-    // this group (Eddy, 2026-11-21).
+    // Reporting + records, led by the System tools group (Eddy,
+    // 2026-11-22): a heading over Sell metal, Spot prices, Appraisals and
+    // Bench tools. Appraisals and Bench tools are open to every staff
+    // role, so the heading always has something under it.
     { kind: 'section' },
+    {
+      kind: 'item',
+      href: '#system-tools',
+      group: 'tools',
+      label: t.nav.systemTools,
+      icon: <Toolbox size={18} weight="regular" />,
+      heading: true,
+    },
     // Sell metal (brief Phase 3) — scrap / bullion out the door. Rung up
     // as a sale, so a retail-only shop gets it too.
     {
       kind: 'item',
       href: '/buy/sell',
+      group: 'tools',
       label: t.nav.sellMetal,
-      icon: <Coins size={18} weight="regular" />,
+      icon: <Coins size={16} weight="regular" />,
       visible: modules.has_pawn || modules.has_retail,
+      child: true,
     },
     {
       kind: 'item',
       href: '/inventory/spot-prices',
+      group: 'tools',
       label: t.nav.spotPrices,
-      icon: <Scales size={18} weight="regular" />,
+      icon: <Scales size={16} weight="regular" />,
       visible: canSeeSettings || modules.has_pawn || modules.has_retail,
+      child: true,
+    },
+    {
+      kind: 'item',
+      href: '/appraisals',
+      group: 'tools',
+      label: t.nav.appraisals,
+      icon: <Certificate size={16} weight="regular" />,
+      child: true,
+    },
+    // Bench calculators (brief Phase 4.1) — any staff role.
+    {
+      kind: 'item',
+      href: '/tools',
+      group: 'tools',
+      label: t.nav.tools,
+      icon: <Calculator size={16} weight="regular" />,
+      child: true,
     },
     {
       kind: 'item',
@@ -443,19 +476,6 @@ export function Sidebar({
       label: t.nav.ebayListings,
       icon: <Storefront size={18} weight="regular" />,
       visible: modules.has_retail,
-    },
-    {
-      kind: 'item',
-      href: '/appraisals',
-      label: t.nav.appraisals,
-      icon: <Certificate size={18} weight="regular" />,
-    },
-    // Bench calculators (brief Phase 4.1) — any staff role.
-    {
-      kind: 'item',
-      href: '/tools',
-      label: t.nav.tools,
-      icon: <Calculator size={18} weight="regular" />,
     },
     { kind: 'item', href: '/reports', label: t.nav.reports, icon: <ChartBar size={18} weight="regular" /> },
     // Collections (brief Phase 4.3) — everyone who owes money, all sources.
@@ -627,12 +647,15 @@ export function Sidebar({
                 type="button"
                 onClick={() => group && toggleGroup(group)}
                 aria-expanded={open}
+                title={it.label}
                 className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 ${rowTone(lit)}`}
               >
                 <span className={lit ? 'text-gold' : 'text-white/65'}>
                   {it.icon}
                 </span>
-                <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                {/* Wraps instead of truncating: "Herramientas del sistema"
+                    does not fit on one line at this width. */}
+                <span className="min-w-0 flex-1 leading-tight">{it.label}</span>
                 {groupCaret(open)}
               </button>
             )

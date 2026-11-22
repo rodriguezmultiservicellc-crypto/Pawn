@@ -61,10 +61,13 @@ export type SettingsHubView = {
   cardReader: { label: string | null } | null
 }
 
+type CardStatus = 'configured' | 'needs_setup' | 'partial'
+
 const OWNER_ROLES = new Set(['owner', 'chain_admin'])
 
 export default function SettingsContent({ view }: { view: SettingsHubView }) {
   const { t } = useI18n()
+  const h = t.settingsHub
   const integrationsConfigured = [
     view.integrations.stripeConnect.connected,
     view.integrations.twilio.connected,
@@ -73,10 +76,31 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
   ].filter(Boolean).length
 
   const enabledModules = [
-    view.modules.pawn && 'Pawn',
-    view.modules.repair && 'Repair',
-    view.modules.retail && 'Retail',
+    view.modules.pawn && h.modules.pawn,
+    view.modules.repair && h.modules.repair,
+    view.modules.retail && h.modules.retailShort,
   ].filter(Boolean) as string[]
+
+  // Enum values from the DB; an unknown one falls back to its raw text.
+  const tenantTypeLabel =
+    (h.tenantTypes as Record<string, string>)[view.tenantType] ??
+    view.tenantType.replace('_', ' ')
+  const subscriptionDetail = view.subscription
+    ? [
+        view.subscription.planName ?? '—',
+        (h.billing.statuses as Record<string, string>)[view.subscription.status] ??
+          view.subscription.status,
+        (h.billing.cycles as Record<string, string>)[view.subscription.cycle] ??
+          view.subscription.cycle,
+      ].join(' · ')
+    : h.billing.noSubscription
+  const tenantInfoDetail = [
+    view.contactFilled ? h.tenantInfo.contactOk : h.tenantInfo.contactMissing,
+    view.addressFilled ? h.tenantInfo.addressOk : h.tenantInfo.addressMissing,
+  ].join(' · ')
+  const tenantInfoStatus: CardStatus =
+    view.contactFilled && view.addressFilled ? 'configured' : 'partial'
+  const [configureBefore, configureAfter = ''] = h.configure.split('{name}')
 
   const isOwner = !!view.role && OWNER_ROLES.has(view.role)
   const canEditQuickSale =
@@ -87,12 +111,14 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-display text-2xl font-bold text-foreground">Settings</h1>
+        <h1 className="font-display text-2xl font-bold text-foreground">{h.title}</h1>
         <p className="text-sm text-muted">
-          Configure <span className="font-medium text-foreground">{view.tenantName}</span>
+          {configureBefore}
+          <span className="font-medium text-foreground">{view.tenantName}</span>
+          {configureAfter}
           {view.tenantType !== 'standalone' ? (
             <span className="ml-1 rounded-full bg-background px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted">
-              {view.tenantType.replace('_', ' ')}
+              {tenantTypeLabel}
             </span>
           ) : null}
         </p>
@@ -102,8 +128,8 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
         <Card
           href="/settings/communications"
           icon={<ChatCircleText size={20} weight="regular" />}
-          title="Communications"
-          description="Twilio SMS / WhatsApp + Resend email — per-tenant credentials and templates for customer reminders."
+          title={h.communications.title}
+          description={h.communications.description}
           status={
             view.integrations.twilio.connected || view.integrations.resend.connected
               ? 'configured'
@@ -114,27 +140,29 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             const labels: string[] = []
             if (s.twilio.connected) labels.push('Twilio')
             if (s.resend.connected) labels.push('Resend')
-            return labels.length ? labels.join(' · ') : 'No providers configured'
+            return labels.length ? labels.join(' · ') : h.communications.noProviders
           })()}
         />
 
         <Card
           href="/settings/integrations"
           icon={<Plug size={20} weight="regular" />}
-          title="Integrations"
-          description="Stripe Connect, Twilio, Resend, eBay, and other connectable services."
+          title={h.integrations.title}
+          description={h.integrations.description}
           status={integrationsConfigured > 0 ? 'configured' : 'needs_setup'}
-          statusDetail={`${integrationsConfigured} of 4 connected`}
+          statusDetail={h.integrations.connectedCount
+            .replace('{n}', String(integrationsConfigured))
+            .replace('{total}', '4')}
         />
 
         {canImport ? (
           <Card
             href="/settings/import"
             icon={<UploadSimple size={20} weight="regular" />}
-            title="Data import"
-            description="Bring customers in from another pawn system (xPawn, Bravo, or any CSV). Preview before you commit; re-runnable without duplicates."
+            title={h.dataImport.title}
+            description={h.dataImport.description}
             status="configured"
-            statusDetail="Import customers"
+            statusDetail={h.dataImport.detail}
           />
         ) : null}
 
@@ -142,39 +170,35 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
           <Card
             href="/billing"
             icon={<CreditCard size={20} weight="regular" />}
-            title="Subscription & Billing"
-            description="Your Sol Pawn subscription plan, recent invoices, and payment method."
+            title={h.billing.title}
+            description={h.billing.description}
             status={
               view.subscription?.status === 'active' ||
               view.subscription?.status === 'trialing'
                 ? 'configured'
                 : 'needs_setup'
             }
-            statusDetail={
-              view.subscription
-                ? `${view.subscription.planName ?? '—'} · ${view.subscription.status} · ${view.subscription.cycle}`
-                : 'No subscription'
-            }
+            statusDetail={subscriptionDetail}
           />
         ) : null}
 
         <Card
           href="/inventory/spot-prices"
           icon={<Coins size={20} weight="regular" />}
-          title="Bullion spot prices"
-          description="Per-tenant pay-rate multipliers on top of platform spot prices. Used by the melt-value panel."
+          title={h.spotPrices.title}
+          description={h.spotPrices.description}
           status="configured"
-          statusDetail="Manage overrides"
+          statusDetail={h.spotPrices.detail}
         />
 
         {view.modules.pawn ? (
           <Card
             href="/settings/loan-rates"
             icon={<Percent size={20} weight="regular" />}
-            title="Loan rates"
-            description="Variable interest-rate menu shown on /pawn/new. One rate is marked default. Custom-rate fallback always available."
+            title={h.loanRates.title}
+            description={h.loanRates.description}
             status="configured"
-            statusDetail="Manage rate menu"
+            statusDetail={h.loanRates.detail}
           />
         ) : null}
 
@@ -182,10 +206,10 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
           <Card
             href="/settings/pawn-categories"
             icon={<Tag size={20} weight="regular" />}
-            title="Pawn categories"
-            description="Tile buttons shown on /pawn/new step 1 (Jewelry / Electronics / Firearms / Tools / General). Edit, reorder, or add custom categories. Firearms gate lives here too."
+            title={h.pawnCategories.title}
+            description={h.pawnCategories.description}
             status="configured"
-            statusDetail="Manage categories"
+            statusDetail={h.pawnCategories.detail}
           />
         ) : null}
 
@@ -261,39 +285,26 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
           <Card
             href="/settings/general"
             icon={<Buildings size={20} weight="regular" />}
-            title="Tenant info"
-            description="Legal name, DBA, address, phone, email. Edits flow back into invoices, receipts, and customer comms."
-            status={
-              view.contactFilled && view.addressFilled
-                ? 'configured'
-                : 'partial'
-            }
-            statusDetail={[
-              view.contactFilled ? 'contact ✓' : 'no contact',
-              view.addressFilled ? 'address ✓' : 'no address',
-            ].join(' · ')}
+            title={h.tenantInfo.title}
+            description={h.tenantInfo.description}
+            status={tenantInfoStatus}
+            statusDetail={tenantInfoDetail}
           />
         ) : (
           <SectionCard
             icon={<Buildings size={20} weight="regular" />}
-            title="Tenant info"
-            status={
-              view.contactFilled && view.addressFilled
-                ? 'configured'
-                : 'partial'
-            }
-            statusDetail={[
-              view.contactFilled ? 'contact ✓' : 'no contact',
-              view.addressFilled ? 'address ✓' : 'no address',
-            ].join(' · ')}
+            title={h.tenantInfo.title}
+            status={tenantInfoStatus}
+            statusDetail={tenantInfoDetail}
           >
-            <p className="mt-2 text-xs text-muted">
-              Tenant name, address, phone, modules. Owner-only edit at{' '}
-              <span className="font-mono">/settings/general</span>.
-            </p>
+            <p className="mt-2 text-xs text-muted">{h.tenantInfo.readOnlyNote}</p>
             <div className="mt-2 text-[11px] text-muted">
-              Modules:{' '}
-              {enabledModules.length ? enabledModules.join(' · ') : 'none'}
+              {h.tenantInfo.modulesLine.replace(
+                '{list}',
+                enabledModules.length
+                  ? enabledModules.join(' · ')
+                  : h.tenantInfo.noModules,
+              )}
             </div>
           </SectionCard>
         )}
@@ -346,31 +357,30 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
 
         <SectionCard
           icon={<Wrench size={20} weight="regular" />}
-          title="Modules"
+          title={h.modules.title}
           status={enabledModules.length > 0 ? 'configured' : 'needs_setup'}
-          statusDetail={`${enabledModules.length} of 3 enabled`}
+          statusDetail={h.modules.enabledCount
+            .replace('{n}', String(enabledModules.length))
+            .replace('{total}', '3')}
         >
           <ul className="mt-2 space-y-1 text-[11px]">
             <ModuleLine
               icon={<Coins size={12} weight="bold" />}
-              name="Pawn"
+              name={h.modules.pawn}
               enabled={view.modules.pawn}
             />
             <ModuleLine
               icon={<Wrench size={12} weight="bold" />}
-              name="Repair"
+              name={h.modules.repair}
               enabled={view.modules.repair}
             />
             <ModuleLine
               icon={<CashRegister size={12} weight="bold" />}
-              name="Retail / POS"
+              name={h.modules.retail}
               enabled={view.modules.retail}
             />
           </ul>
-          <p className="mt-2 text-[11px] text-muted">
-            Module flags are set when the tenant is provisioned. Toggle from
-            the platform admin console.
-          </p>
+          <p className="mt-2 text-[11px] text-muted">{h.modules.note}</p>
         </SectionCard>
       </section>
     </div>
@@ -389,7 +399,7 @@ function Card({
   icon: React.ReactNode
   title: string
   description: string
-  status: 'configured' | 'needs_setup' | 'partial'
+  status: CardStatus
   statusDetail: string
 }) {
   return (
@@ -426,7 +436,7 @@ function SectionCard({
 }: {
   icon: React.ReactNode
   title: string
-  status: 'configured' | 'needs_setup' | 'partial'
+  status: CardStatus
   statusDetail: string
   children: React.ReactNode
 }) {
@@ -443,16 +453,14 @@ function SectionCard({
   )
 }
 
-function StatusPill({
-  status,
-}: {
-  status: 'configured' | 'needs_setup' | 'partial'
-}) {
+function StatusPill({ status }: { status: CardStatus }) {
+  const { t } = useI18n()
+  const labels = t.settingsHub.status
   if (status === 'configured') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success">
         <CheckCircle size={10} weight="bold" />
-        Configured
+        {labels.configured}
       </span>
     )
   }
@@ -460,14 +468,14 @@ function StatusPill({
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
         <Clock size={10} weight="bold" />
-        Partial
+        {labels.partial}
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">
       <WarningCircle size={10} weight="bold" />
-      Needs setup
+      {labels.needsSetup}
     </span>
   )
 }
@@ -481,6 +489,7 @@ function ModuleLine({
   name: string
   enabled: boolean
 }) {
+  const { t } = useI18n()
   return (
     <li
       className={`flex items-center gap-1.5 ${enabled ? 'text-foreground' : 'text-muted/60'}`}
@@ -488,7 +497,7 @@ function ModuleLine({
       <span className={enabled ? 'text-success' : 'text-muted/40'}>{icon}</span>
       <span>{name}</span>
       <span className="ml-auto font-mono">
-        {enabled ? 'on' : 'off'}
+        {enabled ? t.settingsHub.modules.on : t.settingsHub.modules.off}
       </span>
     </li>
   )

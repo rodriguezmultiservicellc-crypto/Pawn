@@ -92,6 +92,7 @@ export const en = {
     buyOutright: 'Buy outright',
     sellMetal: 'Sell metal',
     tools: 'Bench tools',
+    systemTools: 'System tools',
     collections: 'Collections',
     repair: 'Repair',
     newRepair: 'New repair',
@@ -4693,6 +4694,103 @@ export const en = {
       adjust_manual: 'Adjustment',
       merge_in: 'Moved in from a merged duplicate',
       merge_out: 'Moved to the merged customer',
+    },
+  },
+
+  // The /settings landing page. Cards that belong to a feature with its own
+  // namespace (repair stages, tags, card reader…) read their text from there.
+  settingsHub: {
+    title: 'Settings',
+    // {name} is rendered in bold by the page.
+    configure: 'Configure {name}',
+    tenantTypes: {
+      chain_hq: 'Chain HQ',
+      shop: 'Shop',
+      standalone: 'Standalone',
+    },
+    status: {
+      configured: 'Configured',
+      partial: 'Partial',
+      needsSetup: 'Needs setup',
+    },
+    communications: {
+      title: 'Communications',
+      description:
+        'Twilio SMS / WhatsApp + Resend email — per-tenant credentials and templates for customer reminders.',
+      noProviders: 'No providers configured',
+    },
+    integrations: {
+      title: 'Integrations',
+      description:
+        'Stripe Connect, Twilio, Resend, eBay, and other connectable services.',
+      connectedCount: '{n} of {total} connected',
+    },
+    dataImport: {
+      title: 'Data import',
+      description:
+        'Bring customers in from another pawn system (xPawn, Bravo, or any CSV). Preview before you commit; re-runnable without duplicates.',
+      detail: 'Import customers',
+    },
+    billing: {
+      title: 'Subscription & Billing',
+      description:
+        'Your Sol Pawn subscription plan, recent invoices, and payment method.',
+      noSubscription: 'No subscription',
+      statuses: {
+        trialing: 'Trial',
+        active: 'Active',
+        past_due: 'Past due',
+        cancelled: 'Cancelled',
+        unpaid: 'Unpaid',
+        incomplete: 'Incomplete',
+        incomplete_expired: 'Expired',
+      },
+      cycles: {
+        monthly: 'Monthly',
+        yearly: 'Yearly',
+      },
+    },
+    spotPrices: {
+      title: 'Bullion spot prices',
+      description:
+        'Per-tenant pay-rate multipliers on top of platform spot prices. Used by the melt-value panel.',
+      detail: 'Manage overrides',
+    },
+    loanRates: {
+      title: 'Loan rates',
+      description:
+        'Variable interest-rate menu shown on /pawn/new. One rate is marked default. Custom-rate fallback always available.',
+      detail: 'Manage rate menu',
+    },
+    pawnCategories: {
+      title: 'Pawn categories',
+      description:
+        'Tile buttons shown on /pawn/new step 1 (Jewelry / Electronics / Firearms / Tools / General). Edit, reorder, or add custom categories. Firearms gate lives here too.',
+      detail: 'Manage categories',
+    },
+    tenantInfo: {
+      title: 'Tenant info',
+      description:
+        'Legal name, DBA, address, phone, email. Edits flow back into invoices, receipts, and customer comms.',
+      contactOk: 'contact ✓',
+      contactMissing: 'no contact',
+      addressOk: 'address ✓',
+      addressMissing: 'no address',
+      readOnlyNote:
+        'Tenant name, address, phone, modules. Only the owner can edit them.',
+      modulesLine: 'Modules: {list}',
+      noModules: 'none',
+    },
+    modules: {
+      title: 'Modules',
+      enabledCount: '{n} of {total} enabled',
+      pawn: 'Pawn',
+      repair: 'Repair',
+      retail: 'Retail / POS',
+      retailShort: 'Retail',
+      on: 'on',
+      off: 'off',
+      note: 'Module flags are set when the tenant is provisioned. Toggle from the platform admin console.',
     },
   },
 
