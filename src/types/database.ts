@@ -5658,6 +5658,7 @@ export type Database = {
           returned_qty: number
           sale_id: string
           spot_per_gram: number | null
+          tax_amount: number | null
           tenant_id: string
           unit_price: number
           updated_at: string
@@ -5679,6 +5680,7 @@ export type Database = {
           returned_qty?: number
           sale_id: string
           spot_per_gram?: number | null
+          tax_amount?: number | null
           tenant_id: string
           unit_price?: number
           updated_at?: string
@@ -5700,6 +5702,7 @@ export type Database = {
           returned_qty?: number
           sale_id?: string
           spot_per_gram?: number | null
+          tax_amount?: number | null
           tenant_id?: string
           unit_price?: number
           updated_at?: string
@@ -5849,6 +5852,7 @@ export type Database = {
           status: Database["public"]["Enums"]["sale_status"]
           subtotal: number
           tax_amount: number
+          tax_breakdown: Json | null
           tax_rate: number
           tenant_id: string
           total: number
@@ -5878,6 +5882,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal?: number
           tax_amount?: number
+          tax_breakdown?: Json | null
           tax_rate?: number
           tenant_id: string
           total?: number
@@ -5907,6 +5912,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal?: number
           tax_amount?: number
+          tax_breakdown?: Json | null
           tax_rate?: number
           tenant_id?: string
           total?: number
@@ -6535,6 +6541,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_active: boolean
+          item_cap: number | null
           level: string
           name: string
           rate: number
@@ -6548,6 +6555,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_active?: boolean
+          item_cap?: number | null
           level: string
           name: string
           rate: number
@@ -6561,6 +6569,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_active?: boolean
+          item_cap?: number | null
           level?: string
           name?: string
           rate?: number
@@ -7668,6 +7677,7 @@ export type Database = {
           p_notes: string
           p_register_session_id: string
           p_schedule_kind: string
+          p_tax_mode?: string
           p_tax_rate: number
           p_tenant_id: string
           p_user_id: string
@@ -7893,6 +7903,7 @@ export type Database = {
           p_notes: string
           p_register_session_id: string
           p_sale_kind: Database["public"]["Enums"]["sale_kind"]
+          p_tax_mode?: string
           p_tax_rate: number
           p_tenant_id: string
           p_user_id: string
@@ -7901,6 +7912,15 @@ export type Database = {
           o_sale_id: string
           o_sale_number: string
           o_total: number
+        }[]
+      }
+      sales_tax_quote: {
+        Args: { p_net: number[]; p_qty: number[]; p_tenant_id: string }
+        Returns: {
+          o_breakdown: Json
+          o_line_tax: number[]
+          o_rate: number
+          o_tax: number
         }[]
       }
       seed_custom_quote_templates: {

@@ -2770,15 +2770,29 @@ PENDING — NEXT UP
       write, SECURITY DEFINER trigger keeps settings.default_tax_rate =
       sum of active rows — CLAUDE.md rule 20). The shop has NO tax
       rates saved yet (total 0%) — Eddy enters them at Settings → Sales
-      tax (he named FL 6% + county 1.5%). Limits, none handled yet:
-        * Florida's county surtax applies only to the first $5,000 of a
-          single item (Fla. Stat. 212.054(2)(b) — from memory, NOT
-          re-verified this session; confirm before relying on it). The
-          app charges the full stacked rate on the whole price, so a
-          $10,000 piece is over-taxed by 1.5% of $5,000. Fixing it means
-          changing sale_create() (patches/0076).
-        * A sale stores one tax_rate, not the split per district, so a
-          state-vs-county tax report cannot be exact after rates change.
+      tax (he named FL 6% + county 1.5%).
+      PER-ITEM CAP (patches/0095, applied 2026-11-22, Eddy: "add a cap
+      but not just for florida"): each tax line has an optional "only
+      on the first $X of each item". Eddy must TYPE the cap on his
+      county line — nothing is pre-filled (Florida's surtax stops at
+      $5,000 per item per Fla. Stat. 212.054(2)(b); from memory, NOT
+      re-verified — he should confirm the figure). Verified: dry run in
+      a rolled-back transaction (sale_create, layaway_create,
+      online_order_reserve), unit tests pinned to those numbers, and
+      the sale screen in a browser. NOT verified: a real sale through
+      the API with the cap on — the API loads safeupdate (see 0084) and
+      a rolled-back API call is not possible; every new UPDATE has a
+      WHERE in the same form 0084 used.
+      Still open:
+        * Receipts print the nominal "Tax rate 7.50%" even when a cap
+          makes the tax smaller; the per-district split is stored
+          (sales.tax_breakdown) but shown nowhere yet (receipt, sale
+          page, a tax-by-district report).
+        * A tax that applies only ABOVE an amount (a bracket, e.g.
+          Tennessee's single-article tax) is not supported — only "the
+          first $X".
+        * Editing a sale's discount after it is rung up does not
+          recompute tax (pre-existing) nor the per-line tax.
         * Rates finer than 0.01% (8.875%) are refused: every tax column
           is numeric(6,4).
         * The metal-sale form (/buy/sell) still starts its tax at 0.

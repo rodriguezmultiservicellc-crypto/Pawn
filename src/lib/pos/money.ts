@@ -105,6 +105,8 @@ export async function saleCreate(args: {
   registerSessionId: string
   customerId: string | null
   taxRate: number
+  /** 'shop' = the shop's tax lines, caps included; 'flat' = taxRate (0095). */
+  taxMode: 'shop' | 'flat'
   discount: number
   notes: string | null
   items: SaleLineInput[]
@@ -119,6 +121,7 @@ export async function saleCreate(args: {
     p_discount: args.discount,
     p_notes: args.notes,
     p_items: args.items,
+    p_tax_mode: args.taxMode,
   } as unknown as Fns['sale_create']['Args']
   const { data, error } = await createAdminClient().rpc('sale_create', params)
   const row = data?.[0]
@@ -132,6 +135,8 @@ export async function layawayCreate(args: {
   registerSessionId: string
   customerId: string
   taxRate: number
+  /** 'shop' = the shop's tax lines, caps included; 'flat' = taxRate (0095). */
+  taxMode: 'shop' | 'flat'
   discount: number
   notes: string | null
   items: SaleLineInput[]
@@ -157,6 +162,7 @@ export async function layawayCreate(args: {
     p_first_payment_due: args.firstPaymentDue,
     p_final_due_date: args.finalDueDate,
     p_cancellation_fee: args.cancellationFeePct,
+    p_tax_mode: args.taxMode,
   } as unknown as Fns['layaway_create']['Args']
   const { data, error } = await createAdminClient().rpc('layaway_create', params)
   const row = data?.[0]

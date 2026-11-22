@@ -18,7 +18,7 @@ export async function loadTaxRates(
 ): Promise<TaxRate[]> {
   let q = supabase
     .from('tax_rates')
-    .select('id, name, level, rate, is_active')
+    .select('id, name, level, rate, item_cap, is_active')
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
@@ -31,6 +31,7 @@ export async function loadTaxRates(
       name: r.name,
       level: r.level as TaxLevel,
       rate: Number(r.rate),
+      item_cap: r.item_cap == null ? null : Number(r.item_cap),
       is_active: r.is_active,
     })),
   )

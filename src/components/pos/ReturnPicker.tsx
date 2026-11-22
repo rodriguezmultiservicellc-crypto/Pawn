@@ -17,6 +17,8 @@ export type ReturnPickerSaleItem = {
   unit_price: number
   /** sale_items.line_total — net of the line discount. */
   line_total: number
+  /** sale_items.tax_amount: this line's own tax (0095); null on older and flat-rate sales. */
+  line_tax: number | null
   returned_qty: number
   has_inventory: boolean
 }
@@ -77,6 +79,7 @@ export function ReturnPicker({
             sold_quantity: it.quantity,
             already_returned: it.returned_qty,
             line_total: it.line_total,
+            line_tax: it.line_tax,
             return_quantity: isFinite(q) && q > 0 ? q : 0,
           }
         }),

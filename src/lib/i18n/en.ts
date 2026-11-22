@@ -6068,6 +6068,12 @@ export const en = {
       other: 'Other',
     },
     rate: 'Rate (%)',
+    itemCap: 'Only on the first ($ per item)',
+    itemCapShort: 'first $',
+    itemCapPlaceholder: 'whole price',
+    itemCapHelp:
+      'Leave "Only on the first" empty to tax the whole price. Fill it in when a tax stops at part of each item’s price — some states and counties tax only the first few thousand dollars of an item. It counts per item: two items on one sale each get their own limit.',
+    capNote: '(first {amount} of each item)',
     active: 'Charge it',
     add: 'Add tax',
     save: 'Save',
@@ -6076,7 +6082,7 @@ export const en = {
     removeConfirm: 'Remove "{name}"? Sales already rung up keep the tax they were charged.',
     empty: 'No taxes yet. Add your state rate first, then your county.',
     errors: {
-      invalid: 'Enter a name and a rate above 0.',
+      invalid: 'Enter a name and a rate above 0. "Only on the first" cannot be 0: leave it empty to tax the whole price.',
       precision: 'A rate can have up to two decimals, like 1.5 or 6.25.',
       limit: 'A shop can list up to {max} taxes.',
       total_too_high: 'These taxes add up to more than 100%.',

@@ -80,6 +80,7 @@ export function parseRetail(formData: FormData): { ok: true; v: SaleCreateInput 
   const parsed = saleCreateSchema.safeParse({
     customer_id: formData.get('customer_id'),
     tax_rate: formData.get('tax_rate'),
+    tax_mode: formData.get('tax_mode'),
     discount_amount: formData.get('discount_amount'),
     notes: formData.get('notes'),
     items: readItems(formData),
@@ -112,6 +113,7 @@ export async function createRetailSale(
     registerSessionId: c.registerSessionId,
     customerId: v.customer_id ?? null,
     taxRate: v.tax_rate,
+    taxMode: v.tax_mode,
     discount: v.discount_amount,
     notes: v.notes ?? null,
     items: toLines(v.items),

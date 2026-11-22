@@ -105,7 +105,7 @@ export async function createReturnAction(
   const { data: liveItems, error: itemsErr } = await supabase
     .from('sale_items')
     .select(
-      'id, sale_id, inventory_item_id, description, quantity, unit_price, line_total, returned_qty',
+      'id, sale_id, inventory_item_id, description, quantity, unit_price, line_total, returned_qty, tax_amount',
     )
     .eq('sale_id', sale.id)
     .eq('tenant_id', tenantId)
@@ -136,6 +136,7 @@ export async function createReturnAction(
       sold_quantity: it.quantity,
       already_returned: it.returned_qty,
       line_total: it.line_total,
+      line_tax: it.tax_amount,
       return_quantity: requested.get(it.id) ?? 0,
     })),
   })

@@ -6071,6 +6071,12 @@ export const es: Dictionary = {
       other: 'Otro',
     },
     rate: 'Tasa (%)',
+    itemCap: 'Solo sobre los primeros ($ por artículo)',
+    itemCapShort: 'primeros $',
+    itemCapPlaceholder: 'precio completo',
+    itemCapHelp:
+      'Deje "Solo sobre los primeros" vacío para gravar el precio completo. Llénelo cuando un impuesto se detiene en parte del precio de cada artículo: algunos estados y condados gravan solo los primeros miles de dólares de un artículo. Cuenta por artículo: dos artículos en una misma venta tienen cada uno su propio límite.',
+    capNote: '(primeros {amount} de cada artículo)',
     active: 'Cobrarlo',
     add: 'Agregar impuesto',
     save: 'Guardar',
@@ -6079,7 +6085,7 @@ export const es: Dictionary = {
     removeConfirm: '¿Quitar "{name}"? Las ventas ya registradas conservan el impuesto que se les cobró.',
     empty: 'Aún no hay impuestos. Agregue primero la tasa de su estado y luego la de su condado.',
     errors: {
-      invalid: 'Ingrese un nombre y una tasa mayor que 0.',
+      invalid: 'Ingrese un nombre y una tasa mayor que 0. "Solo sobre los primeros" no puede ser 0: déjelo vacío para gravar el precio completo.',
       precision: 'Una tasa puede tener hasta dos decimales, como 1.5 o 6.25.',
       limit: 'Una tienda puede listar hasta {max} impuestos.',
       total_too_high: 'Estos impuestos suman más del 100%.',

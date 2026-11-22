@@ -38,6 +38,45 @@ describe('isReturnableSaleStatus', () => {
   })
 })
 
+describe('computeReturnRefund — a sale that kept each line\'s own tax (0095)', () => {
+  // A $10,000 ring and a $100 chain; 6% state + 1.5% county capped at $5,000
+  // per item: the ring carries $675 (6.75%), the chain $7.50 (7.5%).
+  const capped = sale({ subtotal: 10100, tax_amount: 682.5, total: 10782.5, paid_total: 10782.5 })
+  const ring = (over: Partial<ReturnLine> = {}) => line({ line_total: 10000, line_tax: 675, ...over })
+  const chain = (over: Partial<ReturnLine> = {}) => line({ line_total: 100, line_tax: 7.5, ...over })
+
+  it('refunds the tax that line was charged, not an average', () => {
+    const r = computeReturnRefund({ sale: capped, lines: [ring({ return_quantity: 0 }), chain()] })
+    // The average rate would give back $6.76.
+    expect(r.tax).toBe(7.5)
+    expect(r.total).toBe(107.5)
+  })
+
+  it('returning the capped item gives back its own tax', () => {
+    const r = computeReturnRefund({ sale: capped, lines: [ring(), chain({ return_quantity: 0 })] })
+    expect(r.tax).toBe(675)
+    expect(r.total).toBe(10675)
+  })
+
+  it('part of a line gets that part of its tax', () => {
+    const two = sale({ subtotal: 12000, tax_amount: 870, total: 12870, paid_total: 12870 })
+    const r = computeReturnRefund({
+      sale: two,
+      lines: [line({ sold_quantity: 2, line_total: 12000, line_tax: 870, return_quantity: 1 })],
+    })
+    expect(r.tax).toBe(435)
+    expect(r.total).toBe(6435)
+  })
+
+  it('falls back to the proportional share when any line has no tax of its own', () => {
+    const r = computeReturnRefund({
+      sale: capped,
+      lines: [ring({ return_quantity: 0, line_tax: null }), chain()],
+    })
+    expect(r.tax).toBe(6.7574)
+  })
+})
+
 describe('computeReturnRefund', () => {
   it('plain sale, no discount, no tax', () => {
     const r = computeReturnRefund({ sale: sale(), lines: [line()] })

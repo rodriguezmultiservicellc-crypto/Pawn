@@ -11,7 +11,11 @@
  *                  (line_total is already net of the line discount)
  *   discount     = the sale's cart-level discount × merchandise ÷ sale subtotal
  *                  (loyalty redemptions live in the same column)
- *   tax          = the sale's tax × the same share
+ *   tax          = the sale's tax × the same share — or, when the sale kept
+ *                  each line's own tax (patches/0095), Σ line tax × (qty
+ *                  returned ÷ qty sold). With a per-item tax cap the two
+ *                  differ: a $10,000 ring and a $100 chain do not carry the
+ *                  same percentage.
  *   total        = merchandise − discount + tax
  *
  * It is never `quantity × unit_price`: that ignores every discount and the
@@ -54,6 +58,11 @@ export type ReturnLine = {
   already_returned: Money
   /** sale_items.line_total (net of line_discount) */
   line_total: Money
+  /**
+   * sale_items.tax_amount — this line's share of the sale's tax (0095).
+   * Null / missing on older sales and flat-rate sales.
+   */
+  line_tax?: Money
   /** Quantity being returned now. 0 for lines not in this return. */
   return_quantity: number
 }
@@ -101,6 +110,9 @@ export function computeReturnRefund(args: {
   let lineSum = 0
   let isFinal = args.lines.length > 0
   const lineValues: number[] = []
+  // Exact tax of the returned goods — only if EVERY line of the sale has one.
+  let lineTaxKnown = args.lines.length > 0
+  let lineTaxReturned = 0
 
   for (const ln of args.lines) {
     const sold = toMoney(ln.sold_quantity)
@@ -113,6 +125,8 @@ export function computeReturnRefund(args: {
     const value = sold > 0 ? r4((lineTotal * qty) / sold) : 0
     lineValues.push(value)
     merchandise = r4(merchandise + value)
+    if (ln.line_tax == null) lineTaxKnown = false
+    else if (sold > 0) lineTaxReturned = r4(lineTaxReturned + (toMoney(ln.line_tax) * qty) / sold)
 
     if (remaining - qty > EPS) isFinal = false
   }
@@ -122,7 +136,7 @@ export function computeReturnRefund(args: {
   const base = sale.subtotal > 0 ? sale.subtotal : lineSum
   const share = base > 0 ? Math.min(1, merchandise / base) : 0
   const discount = r4(sale.discount * share)
-  const rawTax = r4(sale.tax * share)
+  const rawTax = lineTaxKnown ? r4(Math.min(sale.tax, lineTaxReturned)) : r4(sale.tax * share)
 
   const cap = r4(Math.max(0, Math.min(sale.total, sale.paid) - sale.returned))
   const raw = r4(Math.max(0, merchandise - discount + rawTax))

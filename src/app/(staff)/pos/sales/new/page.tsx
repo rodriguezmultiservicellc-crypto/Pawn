@@ -7,7 +7,6 @@ import { loadQuickSaleButtons } from '@/lib/pos/quick-sale-server'
 import { loadShopReader } from '@/lib/pos/reader-server'
 import { LAYAWAY_TERMS_EDIT_ROLES } from '@/lib/pos/layaway-terms'
 import { loadLayawayTerms } from '@/lib/pos/layaway-terms-server'
-import { taxBreakdown } from '@/lib/pos/sales-tax'
 import { loadTaxRates } from '@/lib/pos/sales-tax-server'
 import { fractionToPercent } from '@/lib/format/money'
 import { tenantStripeReady, tenantStripeTestMode } from '@/lib/stripe/terminal'
@@ -83,9 +82,9 @@ export default async function NewSalePage(props: {
       reader={reader ? { label: reader.label } : null}
       stripeTestMode={testMode}
       layawayTerms={layawayTerms}
-      defaultTax={{
+      shopTax={{
         percent: fractionToPercent(Number(taxSetting?.default_tax_rate ?? 0)),
-        breakdown: taxBreakdown(taxRates),
+        rates: taxRates,
       }}
       canEditLayawayTerms={!!ctx.tenantRole && (LAYAWAY_TERMS_EDIT_ROLES as readonly string[]).includes(ctx.tenantRole)}
       timezone={tenant.timezone}

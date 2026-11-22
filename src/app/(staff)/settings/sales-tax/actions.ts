@@ -48,7 +48,7 @@ function columns(input: TaxRateInput) {
     return { ok: false as const, error: precision ? ('precision' as const) : ('invalid' as const) }
   }
   const v = parsed.data
-  return { ok: true as const, row: { name: v.name, level: v.level, rate: v.percent, is_active: v.is_active } }
+  return { ok: true as const, row: { name: v.name, level: v.level, rate: v.percent, item_cap: v.item_cap, is_active: v.is_active } }
 }
 
 /** The trigger refuses a stack that adds up to more than 100%. */

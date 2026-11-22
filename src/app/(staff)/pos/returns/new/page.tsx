@@ -38,7 +38,7 @@ export default async function NewReturnPage(props: {
   const { data: itemsRows } = await ctx.supabase
     .from('sale_items')
     .select(
-      'id, inventory_item_id, description, quantity, unit_price, line_total, returned_qty',
+      'id, inventory_item_id, description, quantity, unit_price, line_total, returned_qty, tax_amount',
     )
     .eq('sale_id', sale.id)
     .is('deleted_at', null)
@@ -50,6 +50,7 @@ export default async function NewReturnPage(props: {
     quantity: Number(it.quantity),
     unit_price: Number(it.unit_price),
     line_total: Number(it.line_total),
+    line_tax: it.tax_amount == null ? null : Number(it.tax_amount),
     returned_qty: Number(it.returned_qty ?? 0),
     has_inventory: !!it.inventory_item_id,
   }))

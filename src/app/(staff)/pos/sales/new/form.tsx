@@ -15,11 +15,11 @@ import {
 import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
 import type { QuickSaleButton } from '@/lib/pos/quick-sale'
 import type { CardSlip } from '@/components/pos/CardSlipFields'
-import { computeSubtotal, computeTotal } from '@/lib/pos/cart'
 import { createSaleAction } from './actions'
 import { startReaderChargeAction } from './reader-actions'
 import { formatMoney } from '@/lib/format/money'
 import type { LayawayTerm } from '@/lib/pos/layaway-terms'
+import { computeCartTotals, taxModeFor, type ShopTax } from '@/lib/pos/sales-tax'
 import { Printer } from '@phosphor-icons/react'
 import { PrintReceiptDialog } from '@/components/pos/PrintReceiptDialog'
 
@@ -34,7 +34,7 @@ export default function NewSaleForm({
   layawayTerms,
   canEditLayawayTerms,
   timezone,
-  defaultTax,
+  shopTax,
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId: string | null
@@ -48,8 +48,8 @@ export default function NewSaleForm({
   canEditLayawayTerms: boolean
   /** The shop's timezone: layaway due dates count from the shop's "today". */
   timezone: string
-  /** The shop's sales tax (Settings → Sales tax): total percent + what it is made of. */
-  defaultTax: { percent: string; breakdown: string }
+  /** The shop's sales tax (Settings → Sales tax): total percent + its tax lines. */
+  shopTax: ShopTax
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -94,6 +94,9 @@ export default function NewSaleForm({
     fd.set('sale_kind', saleKind)
     if (customerId) fd.set('customer_id', customerId)
     fd.set('tax_rate', taxRate || '0')
+    // 'shop' = taxed by the shop's tax lines, per-item caps included (0095);
+    // 'flat' = the clerk typed another rate.
+    fd.set('tax_mode', taxModeFor(parseFloat(taxRate || '0') || 0, shopTax))
     fd.set('discount_amount', discount || '0')
     if (notes) fd.set('notes', notes)
     fd.set('items_count', String(lines.length))
@@ -222,16 +225,15 @@ export default function NewSaleForm({
   }
 
   const layawayTotal = layawayDraft
-    ? computeTotal({
-        subtotal: computeSubtotal(
-          layawayDraft.lines.map((l) => ({
-            quantity: l.quantity,
-            unit_price: l.unit_price,
-            line_discount: l.line_discount,
-          })),
-        ),
+    ? computeCartTotals({
+        lines: layawayDraft.lines.map((l) => ({
+          quantity: l.quantity,
+          unit_price: l.unit_price,
+          line_discount: l.line_discount,
+        })),
         discount: parseFloat(layawayDraft.discount || '0') || 0,
-        tax_rate: parseFloat(layawayDraft.taxRate || '0') || 0,
+        taxFraction: parseFloat(layawayDraft.taxRate || '0') || 0,
+        shop: shopTax,
       }).total
     : 0
 
@@ -290,7 +292,7 @@ export default function NewSaleForm({
       ) : null}
 
       <Cart
-        defaultTax={defaultTax}
+        shopTax={shopTax}
         key={cartKey}
         inventory={inventory}
         initialCustomerId={initialCustomerId}

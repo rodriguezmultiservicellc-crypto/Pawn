@@ -116,8 +116,19 @@ export const saleItemsArraySchema = z
 
 // ── Create sale ─────────────────────────────────────────────────────────────
 
+/**
+ * How a sale is taxed (sale_create p_tax_mode, patches/0095): 'shop' = by the
+ * shop's own tax lines, per-item caps included; 'flat' = tax_rate on the
+ * whole sale. Absent → 'flat', what every sale was before 0095.
+ */
+const taxModeSchema = z.preprocess(
+  (v) => (v == null || v === '' ? 'flat' : v),
+  z.enum(['flat', 'shop']),
+)
+
 export const saleCreateSchema = z.object({
   customer_id: optionalUuid,
+  tax_mode: taxModeSchema,
   // Decimal fraction; e.g. 0.0825 = 8.25%.
   tax_rate: z
     .preprocess(
@@ -179,6 +190,7 @@ export const layawayScheduleKindSchema = z.enum([
 export const layawayCreateSchema = z.object({
   // Layaway requires an identified customer.
   customer_id: z.string().uuid('invalid_customer'),
+  tax_mode: taxModeSchema,
   tax_rate: z
     .preprocess(
       (v) => (typeof v === 'string' && v.trim() === '' ? 0 : v),

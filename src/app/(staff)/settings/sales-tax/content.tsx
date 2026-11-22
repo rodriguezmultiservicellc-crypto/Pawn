@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Trash } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { fractionToPercent } from '@/lib/format/money'
+import { formatMoney, fractionToPercent } from '@/lib/format/money'
 import {
   SALES_TAX_MAX,
   TAX_LEVELS,
@@ -16,9 +16,9 @@ import {
 } from '@/lib/pos/sales-tax'
 import { createTaxRateAction, removeTaxRateAction, updateTaxRateAction } from './actions'
 
-type Draft = { name: string; level: TaxLevel; percent: string; is_active: boolean }
+type Draft = { name: string; level: TaxLevel; percent: string; item_cap: string; is_active: boolean }
 
-const BLANK: Draft = { name: '', level: 'state', percent: '', is_active: true }
+const BLANK: Draft = { name: '', level: 'state', percent: '', item_cap: '', is_active: true }
 
 const inputCls =
   'h-11 rounded-md border border-border bg-card px-3 text-sm text-foreground focus:border-blue focus:outline-none focus-visible:outline-3 focus-visible:outline-blue'
@@ -35,7 +35,8 @@ export default function SalesTaxContent({ rates }: { rates: TaxRate[] }) {
   const [draft, setDraft] = useState<Draft>(BLANK)
   const full = rates.length >= SALES_TAX_MAX
   const total = totalTaxRate(rates)
-  const breakdown = taxBreakdown(rates)
+  const capNote = (cap: number) => st.capNote.replace('{amount}', formatMoney(cap))
+  const breakdown = taxBreakdown(rates, capNote)
 
   const errorText = (code: Exclude<ActionResult, { ok: true }>['error']) =>
     st.errors[code].replace('{max}', String(SALES_TAX_MAX))
@@ -128,6 +129,19 @@ export default function SalesTaxContent({ rates }: { rates: TaxRate[] }) {
               className={`${inputCls} w-28 text-right font-mono`}
             />
           </label>
+          <label className="block space-y-1 text-sm">
+            <span className="block font-semibold text-foreground">{st.itemCap}</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0.01"
+              value={draft.item_cap}
+              placeholder={st.itemCapPlaceholder}
+              onChange={(e) => setDraft((d) => ({ ...d, item_cap: e.target.value }))}
+              className={`${inputCls} w-40 text-right font-mono`}
+            />
+          </label>
           <button type="submit" disabled={pending || full} className={goldBtn}>
             {st.add}
           </button>
@@ -138,6 +152,7 @@ export default function SalesTaxContent({ rates }: { rates: TaxRate[] }) {
             </span>
           ) : null}
         </div>
+        <p className="max-w-3xl text-xs text-muted">{st.itemCapHelp}</p>
       </form>
 
       <section className="overflow-hidden rounded-xl border border-border bg-card">
@@ -148,7 +163,7 @@ export default function SalesTaxContent({ rates }: { rates: TaxRate[] }) {
             {rates.map((r) => (
               <Row
                 // A saved change gives the row new values; start its fields from them.
-                key={`${r.id}:${r.name}:${r.level}:${r.rate}:${r.is_active}`}
+                key={`${r.id}:${r.name}:${r.level}:${r.rate}:${r.item_cap}:${r.is_active}`}
                 rate={r}
                 pending={pending}
                 onSave={(v) => run(() => updateTaxRateAction(r.id, v as TaxRateInput))}
@@ -181,6 +196,7 @@ function Row({
     name: rate.name,
     level: rate.level,
     percent: fractionToPercent(rate.rate),
+    item_cap: rate.item_cap == null ? '' : String(rate.item_cap),
     is_active: rate.is_active,
   }
   const [v, setV] = useState<Draft>(saved)
@@ -188,7 +204,10 @@ function Row({
     v.name !== saved.name ||
     v.level !== saved.level ||
     v.is_active !== saved.is_active ||
-    Number(v.percent) !== Number(saved.percent)
+    Number(v.percent) !== Number(saved.percent) ||
+    // '' (no cap) and a number are different; two numbers compare by value.
+    (v.item_cap.trim() === '') !== (saved.item_cap === '') ||
+    Number(v.item_cap) !== Number(saved.item_cap)
 
   return (
     <li className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-3 last:border-b-0">
@@ -224,6 +243,20 @@ function Row({
           className={`${inputCls} w-28 text-right font-mono`}
         />
         %
+      </span>
+      <span className="inline-flex items-center gap-1 text-sm text-muted">
+        {st.itemCapShort}
+        <input
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          min="0.01"
+          value={v.item_cap}
+          placeholder={st.itemCapPlaceholder}
+          onChange={(e) => setV((d) => ({ ...d, item_cap: e.target.value }))}
+          aria-label={st.itemCap}
+          className={`${inputCls} w-36 text-right font-mono`}
+        />
       </span>
       <label className="flex h-11 items-center gap-2 text-sm text-foreground">
         <input

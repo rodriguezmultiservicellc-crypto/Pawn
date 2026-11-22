@@ -4,7 +4,8 @@ import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { MagnifyingGlass, Minus, Plus, Trash } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { computeLineTotal, computeSubtotal, computeTotal, r4 } from '@/lib/pos/cart'
+import { computeLineTotal, computeSubtotal, r4 } from '@/lib/pos/cart'
+import { computeCartTotals, taxBreakdown, type ShopTax } from '@/lib/pos/sales-tax'
 import { addQuickSale, matchKey, nextUnit, unitsLeft, unlinkedLine, type QuickSaleButton, type QuickUnit } from '@/lib/pos/quick-sale'
 import { Footer, Modal } from './Modal'
 import { CardChargeDialog, type ReaderApproved } from './CardChargeDialog'
@@ -44,7 +45,7 @@ const SMALL_INPUT = `h-11 rounded-md border border-border bg-card px-2.5 text-ri
 export function Cart({
   inventory,
   initialCustomerId,
-  defaultTax,
+  shopTax,
   onSubmitSale,
   onSaveAsLayaway,
   busy,
@@ -61,8 +62,8 @@ export function Cart({
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId?: string | null
-  /** The shop's sales tax (Settings → Sales tax): total percent + its parts. */
-  defaultTax?: { percent: string; breakdown: string }
+  /** The shop's sales tax (Settings → Sales tax): total percent + its tax lines. */
+  shopTax?: ShopTax
   onSubmitSale: (
     customerId: string | null,
     lines: CartLineState[],
@@ -109,7 +110,7 @@ export function Cart({
   )
   // Tax kept as a percentage in the UI; converted to a fraction on submit.
   // Starts at the shop's own rate; the clerk can change it (exempt sale).
-  const [taxPercent, setTaxPercent] = useState<string>(defaultTax?.percent ?? '0')
+  const [taxPercent, setTaxPercent] = useState<string>(shopTax?.percent ?? '0')
   const [discMode, setDiscMode] = useState<DiscMode>('amt')
   const [discInput, setDiscInput] = useState<string>('0')
   // "+" beside the customer search: add a walk-in without leaving the sale.
@@ -170,14 +171,12 @@ export function Cart({
     ),
   )
 
+  // While the Tax field shows the shop's own rate the sale is taxed by the
+  // shop's tax lines, per-item caps included — the same arithmetic the
+  // database runs (0095). A rate the clerk typed is charged flat.
   const totals = useMemo(
-    () =>
-      computeTotal({
-        subtotal,
-        discount: discountDollars,
-        tax_rate: taxFraction,
-      }),
-    [subtotal, discountDollars, taxFraction],
+    () => computeCartTotals({ lines, discount: discountDollars, taxFraction, shop: shopTax }),
+    [lines, discountDollars, taxFraction, shopTax],
   )
 
   // ── Cart mutations ────────────────────────────────────────────────────
@@ -720,8 +719,10 @@ export function Cart({
             <span className="shrink-0 whitespace-nowrap font-mono font-semibold text-foreground">{fmtMoney(totals.tax)}</span>
           </div>
           {/* What the shop's rate is made of — hidden once the clerk changes it. */}
-          {defaultTax?.breakdown && Number(taxPercent) === Number(defaultTax.percent) ? (
-            <p className="text-xs text-muted">{defaultTax.breakdown}</p>
+          {shopTax && totals.mode === 'shop' ? (
+            <p className="text-xs text-muted">
+              {taxBreakdown(shopTax.rates, (cap) => t.salesTax.capNote.replace('{amount}', fmtMoney(cap)))}
+            </p>
           ) : null}
         </div>
 

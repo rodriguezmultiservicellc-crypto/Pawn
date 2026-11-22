@@ -112,6 +112,7 @@ async function createLayawayInternal(args: {
   const parsed = layawayCreateSchema.safeParse({
     customer_id: args.formData.get('customer_id'),
     tax_rate: args.formData.get('tax_rate'),
+    tax_mode: args.formData.get('tax_mode'),
     discount_amount: args.formData.get('discount_amount'),
     schedule_kind: args.formData.get('schedule_kind') ?? 'weekly',
     down_payment: args.formData.get('down_payment'),
@@ -140,6 +141,7 @@ async function createLayawayInternal(args: {
     registerSessionId: args.registerSessionId,
     customerId: v.customer_id,
     taxRate: v.tax_rate,
+    taxMode: v.tax_mode,
     discount: v.discount_amount,
     notes: v.notes,
     items: toLines(v.items),

@@ -183,6 +183,23 @@ Never kill node processes by image name — always by PID.
     They are `numeric(6,4)`: a rate finer than 0.01% (8.875%) is refused,
     not rounded. Managers may edit (RLS: owner + manager write; the trigger
     is SECURITY DEFINER because managers cannot write `settings`).
+    - **A tax line can stop at part of an item's price** (`tax_rates.item_cap`,
+      patches/0095 — "only the first $X of each item", per unit). The cap
+      is the shop's setting, never a state constant in code.
+    - **One function computes a sale's tax:** `sales_tax_quote()`, used by
+      `sale_create` / `layaway_create` (`p_tax_mode = 'shop'`) and the
+      online store. Tax is rounded ONCE on the whole sale. The sale screen
+      mirrors it in whole cents (`quoteSaleTax` in
+      `src/lib/pos/sales-tax.ts`); its tests are pinned to numbers the
+      database produced. Change one side → change the other and re-run
+      the dry run (a migration + test DO block that ends in RAISE, so the
+      whole transaction rolls back).
+    - `p_tax_mode = 'flat'` (the default) is a rate the clerk typed: one
+      rate on the whole sale, no caps.
+    - A 'shop' sale keeps `sales.tax_breakdown` (tax per tax line) and
+      `sale_items.tax_amount` (tax per line). Returns refund the line's own
+      tax when present; older and flat sales fall back to a proportional
+      share.
 
 ---
 
