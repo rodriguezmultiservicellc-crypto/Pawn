@@ -25,9 +25,11 @@ import {
   Sparkle,
   Lightning,
   Trophy,
+  CalendarCheck,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
+import { LAYAWAY_TERMS_EDIT_ROLES } from '@/lib/pos/layaway-terms'
 
 export type SettingsHubView = {
   tenantId: string
@@ -107,6 +109,8 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
   const isOwner = !!view.role && OWNER_ROLES.has(view.role)
   const canEditQuickSale =
     !!view.role && (QUICK_SALE_EDIT_ROLES as readonly string[]).includes(view.role)
+  const canEditLayawayTerms =
+    !!view.role && (LAYAWAY_TERMS_EDIT_ROLES as readonly string[]).includes(view.role)
   const canImport =
     !!view.role && ['owner', 'manager', 'chain_admin'].includes(view.role)
 
@@ -256,6 +260,17 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             description={t.quickSale.hubDescription}
             status="configured"
             statusDetail={t.quickSale.label}
+          />
+        ) : null}
+
+        {view.modules.retail && canEditLayawayTerms ? (
+          <Card
+            href="/settings/layaway-terms"
+            icon={<CalendarCheck size={20} weight="regular" />}
+            title={t.layawayTerms.title}
+            description={t.layawayTerms.hubDescription}
+            status="configured"
+            statusDetail={t.layawayTerms.hubDetail}
           />
         ) : null}
 

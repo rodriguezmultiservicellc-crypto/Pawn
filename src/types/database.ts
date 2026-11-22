@@ -3322,6 +3322,78 @@ export type Database = {
           },
         ]
       }
+      layaway_terms: {
+        Row: {
+          cancellation_fee_pct: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          down_payment_pct: number
+          first_payment_days: number
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          position: number
+          schedule_kind: string
+          tenant_id: string
+          term_days: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cancellation_fee_pct?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          down_payment_pct?: number
+          first_payment_days: number
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          position?: number
+          schedule_kind: string
+          tenant_id: string
+          term_days: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cancellation_fee_pct?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          down_payment_pct?: number
+          first_payment_days?: number
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          position?: number
+          schedule_kind?: string
+          tenant_id?: string
+          term_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layaway_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layaway_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layaways: {
         Row: {
           balance_remaining: number

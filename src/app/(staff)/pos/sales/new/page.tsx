@@ -5,6 +5,8 @@ import type { InventoryPickRow } from '@/components/pos/AddInventoryItemDialog'
 import { OUT_OF_STOCK_ADD_ROLES, QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
 import { loadQuickSaleButtons } from '@/lib/pos/quick-sale-server'
 import { loadShopReader } from '@/lib/pos/reader-server'
+import { LAYAWAY_TERMS_EDIT_ROLES } from '@/lib/pos/layaway-terms'
+import { loadLayawayTerms } from '@/lib/pos/layaway-terms-server'
 import { tenantStripeReady, tenantStripeTestMode } from '@/lib/stripe/terminal'
 
 type SearchParams = Promise<{ customer?: string }>
@@ -18,7 +20,7 @@ export default async function NewSalePage(props: {
 
   const { data: tenant } = await ctx.supabase
     .from('tenants')
-    .select('has_retail')
+    .select('has_retail, timezone')
     .eq('id', ctx.tenantId)
     .maybeSingle()
   if (!tenant?.has_retail) redirect('/dashboard')
@@ -44,7 +46,7 @@ export default async function NewSalePage(props: {
   ])
   const reader = stripeReady ? await loadShopReader(ctx.tenantId) : null
 
-  const [{ data: items }, quickSales] = await Promise.all([
+  const [{ data: items }, quickSales, layawayTerms] = await Promise.all([
     ctx.supabase
       .from('inventory_items')
       .select('id, sku, description, list_price, category')
@@ -54,6 +56,7 @@ export default async function NewSalePage(props: {
       .order('created_at', { ascending: false })
       .limit(500),
     loadQuickSaleButtons(ctx.supabase, ctx.tenantId, { activeOnly: true }),
+    loadLayawayTerms(ctx.supabase, ctx.tenantId, { activeOnly: true }),
   ])
 
   const inventoryOpts: InventoryPickRow[] = (items ?? []).map((i) => ({
@@ -73,6 +76,9 @@ export default async function NewSalePage(props: {
       canAddOutOfStock={!!ctx.tenantRole && (OUT_OF_STOCK_ADD_ROLES as readonly string[]).includes(ctx.tenantRole)}
       reader={reader ? { label: reader.label } : null}
       stripeTestMode={testMode}
+      layawayTerms={layawayTerms}
+      canEditLayawayTerms={!!ctx.tenantRole && (LAYAWAY_TERMS_EDIT_ROLES as readonly string[]).includes(ctx.tenantRole)}
+      timezone={tenant.timezone}
     />
   )
 }

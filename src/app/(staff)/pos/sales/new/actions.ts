@@ -19,6 +19,7 @@ import {
   parseRetail,
   readItems,
   toLines,
+  type CounterContext,
   type IncomingItem,
 } from './sale-core'
 
@@ -58,6 +59,7 @@ export async function createSaleAction(
       userId: c.userId,
       tenantId: c.tenantId,
       registerSessionId: c.registerSessionId,
+      supabase: c.supabase,
     })
   }
 
@@ -105,6 +107,7 @@ async function createLayawayInternal(args: {
   userId: string
   tenantId: string
   registerSessionId: string
+  supabase: CounterContext['supabase']
 }): Promise<CreateSaleResult> {
   const parsed = layawayCreateSchema.safeParse({
     customer_id: args.formData.get('customer_id'),
@@ -118,6 +121,7 @@ async function createLayawayInternal(args: {
     final_due_date: args.formData.get('final_due_date'),
     cancellation_fee_pct: args.formData.get('cancellation_fee_pct'),
     notes: args.formData.get('notes'),
+    layaway_term_id: args.formData.get('layaway_term_id'),
     items: args.items,
   })
   if (!parsed.success) {
@@ -160,6 +164,10 @@ async function createLayawayInternal(args: {
       total_due: r.data.total,
       down_payment: v.down_payment,
       schedule_kind: v.schedule_kind,
+      first_payment_due: v.first_payment_due,
+      final_due_date: v.final_due_date,
+      cancellation_fee_pct: v.cancellation_fee_pct,
+      terms: await layawayTermsLabel(args.supabase, args.tenantId, v.layaway_term_id),
       completed: r.data.completed,
     },
   })
@@ -169,6 +177,25 @@ async function createLayawayInternal(args: {
   revalidatePath('/pos/layaways')
   // ?print=1: the layaway page opens the print dialog, like a paid sale.
   return { redirectTo: `/pos/layaways/${r.data.layawayId}?print=1` }
+}
+
+/**
+ * Name of the saved terms (patches/0093) the clerk picked, for the audit
+ * trail. 'custom' when the terms were typed by hand.
+ */
+async function layawayTermsLabel(
+  supabase: CounterContext['supabase'],
+  tenantId: string,
+  termId: string | null | undefined,
+): Promise<string> {
+  if (!termId) return 'custom'
+  const { data } = await supabase
+    .from('layaway_terms')
+    .select('name')
+    .eq('id', termId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  return data?.name ?? 'custom'
 }
 
 /**

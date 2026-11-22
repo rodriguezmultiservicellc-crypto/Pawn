@@ -198,6 +198,12 @@ export const layawayCreateSchema = z.object({
     )
     .default(0),
   notes: optionalTrimmedString,
+  // The saved terms (patches/0093) the clerk picked; absent under "Custom".
+  // Audit trail only — the layaway keeps its own dates, down payment and fee.
+  layaway_term_id: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.string().uuid().nullable().optional(),
+  ),
   items: saleItemsArraySchema,
 })
 export type LayawayCreateInput = z.infer<typeof layawayCreateSchema>

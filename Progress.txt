@@ -2756,16 +2756,22 @@ PENDING — NEXT UP
       (/settings/loyalty itself was translated 2026-11-22, EN + ES,
       keys in loyalty.settings; its save action now returns error
       codes instead of the raw database message.)
-    - /settings/loyalty: after a submit the form resets itself. Seen
-      2026-11-22 on a REJECTED save (invalid value): the "turn on" box
-      shows unticked while the page still treats loyalty as on (rate
-      fields stay editable), and the number fields go back to the saved
-      values. A second Save from that state would send loyalty OFF.
-      NOT tested on a successful save (that writes live settings).
-      /settings/store-credit and /settings/consignment use the same
-      checked={enabled} + form action pattern — not tested there.
-      Fix: submit through onSubmit + startTransition so React does not
-      reset the form, on all three pages.
+    - FIXED 2026-11-22: the Loyalty / Store credit / Consignment settings
+      forms no longer reset after a submit (they submit through
+      src/lib/ui/submit-keeping-values.ts). Browser-checked on Loyalty
+      and Store credit with a rejected save; Consignment has the same
+      one-line change but was not submitted (see next item).
+    - /settings/consignment: an EMPTY default-commission field saves 0%
+      (the hidden field sends '' and z.coerce.number() reads it as 0).
+      Seen 2026-11-22 while testing, not fixed — needs a "required"
+      rule or an empty-means-unchanged decision.
+    - Layaway terms (patches/0093, applied to the live DB 2026-11-22,
+      RLS approved by Eddy: staff read, owner/manager write). The shop
+      has NO terms saved yet — Eddy creates them at Settings → Layaway
+      terms. The test run left audit_log rows for "ZZ-TEST" terms
+      (created and removed the same minute); the rows themselves are
+      gone. Custom mode in the New layaway dialog still asks for the
+      cancellation fee as a decimal fraction (0.10), unchanged.
     - Buy receipt (/buy/[id]) and
       src/components/version-footer.tsx ("Version & Deploy", "Latest
       deploy", "Commit", "Branch", "Author", "Built", "Version history",

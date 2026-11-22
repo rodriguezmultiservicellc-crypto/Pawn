@@ -19,6 +19,7 @@ import { computeSubtotal, computeTotal } from '@/lib/pos/cart'
 import { createSaleAction } from './actions'
 import { startReaderChargeAction } from './reader-actions'
 import { formatMoney } from '@/lib/format/money'
+import type { LayawayTerm } from '@/lib/pos/layaway-terms'
 import { Printer } from '@phosphor-icons/react'
 import { PrintReceiptDialog } from '@/components/pos/PrintReceiptDialog'
 
@@ -30,6 +31,9 @@ export default function NewSaleForm({
   canAddOutOfStock,
   reader,
   stripeTestMode,
+  layawayTerms,
+  canEditLayawayTerms,
+  timezone,
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId: string | null
@@ -38,6 +42,11 @@ export default function NewSaleForm({
   canAddOutOfStock: boolean
   reader: { label: string | null } | null
   stripeTestMode: boolean
+  /** The shop's active saved layaway terms (patches/0093), in list order. */
+  layawayTerms: LayawayTerm[]
+  canEditLayawayTerms: boolean
+  /** The shop's timezone: layaway due dates count from the shop's "today". */
+  timezone: string
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -101,6 +110,7 @@ export default function NewSaleForm({
       fd.set('first_payment_due', extra.first_payment_due)
       fd.set('final_due_date', extra.final_due_date)
       fd.set('cancellation_fee_pct', extra.cancellation_fee_pct || '0')
+      if (extra.layaway_term_id) fd.set('layaway_term_id', extra.layaway_term_id)
     }
     return fd
   }
@@ -316,6 +326,9 @@ export default function NewSaleForm({
       {layawayDraft ? (
         <LayawayScheduleDialog
           total={layawayTotal}
+          terms={layawayTerms}
+          canEditTerms={canEditLayawayTerms}
+          timezone={timezone}
           onClose={() => setLayawayDraft(null)}
           onSubmit={submitLayaway}
         />

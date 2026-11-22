@@ -4698,12 +4698,12 @@ export const es: Dictionary = {
     // /settings/loyalty (personal). El título sale de settingsHub.loyalty.
     settings: {
       subtitle:
-        'Define cómo los clientes ganan y canjean puntos, y el bono por referido, en esta tienda. Con lealtad desactivada no se ganan, canjean ni otorgan puntos — los saldos existentes se conservan.',
+        'Defina cómo los clientes ganan y canjean puntos, y el bono por referido, en esta tienda. Con lealtad desactivada no se ganan, canjean ni otorgan puntos — los saldos existentes se conservan.',
       enableLegend: 'Activar',
       enableLabel: 'Activar lealtad en esta tienda',
       earnLegend: 'Tasas para ganar puntos',
       earnHelp: 'Puntos otorgados por cada dólar de actividad.',
-      earnHelpDisabled: 'Activa lealtad arriba para definir las tasas.',
+      earnHelpDisabled: 'Active lealtad arriba para definir las tasas.',
       earnRetail: 'Ventas — puntos por cada $1 del subtotal',
       earnLoanInterest: 'Interés de préstamo pagado — puntos por cada $1',
       redemptionLegend: 'Canje',
@@ -4714,8 +4714,8 @@ export const es: Dictionary = {
         'Puntos para quien refiere, en la primera transacción válida del cliente referido',
       saved: 'Guardado.',
       errors: {
-        validation_failed: 'Revisa los valores e inténtalo de nuevo.',
-        save_failed: 'No se pudo guardar. Inténtalo de nuevo.',
+        validation_failed: 'Revise los valores e intente de nuevo.',
+        save_failed: 'No se pudo guardar. Intente de nuevo.',
       },
     },
   },
@@ -5988,6 +5988,57 @@ export const es: Dictionary = {
       limit: 'Una tienda puede tener hasta 24 botones.',
       not_found: 'Ese artículo ya no está en el inventario. Elija otro.',
       generic: 'No se pudo guardar. Intente de nuevo.',
+    },
+  },
+  // Planes de apartado guardados (patches/0093): Ajustes → Términos de
+  // apartado y el selector de términos en el diálogo de Nuevo apartado.
+  layawayTerms: {
+    title: 'Términos de apartado',
+    subtitle:
+      'Guarde los planes de apartado que ofrece su tienda. El predeterminado queda elegido cuando un empleado abre un apartado nuevo; puede elegir otro, o Personalizado para escribir todo a mano.',
+    hubDescription:
+      'Planes de apartado guardados: calendario de pagos, anticipo, fechas y cargo por cancelación. Uno es el predeterminado para los apartados nuevos.',
+    hubDetail: 'Se usa en Nuevo apartado',
+    addTitle: 'Agregar términos',
+    editTitle: 'Editar términos',
+    name: 'Nombre',
+    namePlaceholder: 'p. ej. 90 días · 20% de anticipo',
+    downPaymentPercent: 'Anticipo (%)',
+    downPaymentPercentHelp: 'Parte del total que se paga al abrir el apartado. 0 = sin anticipo.',
+    firstPaymentDays: 'Primer pago (días después de abrir)',
+    termDays: 'Saldado en (días)',
+    cancellationFeePercent: 'Cargo por cancelación (%)',
+    cancellationFeePercentHelp: 'Parte del dinero pagado que la tienda retiene cuando se cancela un apartado.',
+    active: 'Ofrecer en Nuevo apartado',
+    add: 'Agregar términos',
+    save: 'Guardar',
+    saved: 'Guardado.',
+    default: 'Predeterminado',
+    makeDefault: 'Hacer predeterminado',
+    off: 'Desactivado',
+    remove: 'Quitar',
+    removeConfirm: '¿Quitar "{name}"? Los apartados ya abiertos no cambian.',
+    moveUp: 'Mover antes',
+    moveDown: 'Mover después',
+    empty: 'Aún no hay términos de apartado. Hasta que agregue alguno, el empleado escribe los términos de cada apartado.',
+    summary:
+      '{schedule} · {down}% de anticipo · primer pago el día {first} · saldado para el día {term} · {fee}% de cargo por cancelación',
+    errors: {
+      invalid: 'Revise los valores. El primer pago no puede vencer después de la fecha de saldo.',
+      limit: 'Una tienda puede guardar hasta {max} juegos de términos.',
+      not_found: 'Esos términos ya no existen. Recargue la página.',
+      inactive_default: 'Active estos términos antes de hacerlos predeterminados.',
+      generic: 'No se pudo guardar. Intente de nuevo.',
+    },
+    dialog: {
+      terms: 'Términos',
+      custom: 'Personalizado',
+      defaultMark: '{name} (predeterminado)',
+      cancellationFee: 'Cargo por cancelación',
+      downPaymentMin: 'Estos términos piden un anticipo de al menos {amount}.',
+      downPaymentTooLow: 'Estos términos requieren un anticipo de al menos {amount}. Elija Personalizado para recibir menos.',
+      manage: 'Editar términos',
+      noTermsHint: '¿Usa siempre los mismos términos? Guárdelos en Ajustes → Términos de apartado y se llenan aquí.',
     },
   },
   storeSettings: {
