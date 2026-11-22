@@ -60,10 +60,10 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 61 (2026-11-21), saved 2026-11-21 ~17:30 ET.
-                  Context budget at save: ~45%.
+  Last session:   Session 61 (2026-11-21 → 11-22), saved 2026-11-22.
+                  Context budget at save: ~35%.
                   Built and live (main == feature/sol-pawn-brief), items
-                  495-505:
+                  495-513:
                   - PC froze at 15:06 (out of RAM on the 12 GB box, dwm
                     OOM) — NOT a code crash. Watchdog heap now 2048 MB.
                   - Lightspeed X-Series inventory import (0089) finished,
@@ -84,7 +84,14 @@ OPERATION IN FLIGHT: none
                   - POS → New sale / Layaway list / Sale history, new
                     /pos/sales page; Consignors under Inventory (510).
                   - Layaway receipt + print popup on create / payment;
-                    Transfers under Inventory (511).
+                    Transfers under Inventory (511); customer signs
+                    the layaway terms on the receipt.
+                  - Sidebar groups: Pawns heading (New pawn / Pawns /
+                    Buy outright / Loan calculator), Repair heading (New
+                    repair / Repairs / Custom quotes), Sell metal above
+                    Spot prices (512); Online orders under POS (513).
+                  - Eddy's duplicate customer is NOT merged — he picks
+                    which record to keep at /customers/merge.
                   Migrations 0089-0092 ALL APPLIED.
 
   Session 60 (2026-11-21 ~13:00), items 480-494:
@@ -102,6 +109,9 @@ OPERATION IN FLIGHT: none
                   Migrations 0083-0088 ALL APPLIED.
 
   ACTIVE FILE(S):
+    - src/components/layout/Sidebar.tsx (nav groups, 509-513)
+    - src/app/(staff)/customers/merge/*; patches/0091, 0092
+    - src/lib/pos/receipt-{data,thermal,html}.ts (layaway receipt)
     - src/lib/imports/{lightspeed,lightspeed.test,access}.ts
     - src/app/api/imports/inventory/route.ts;
       src/app/(staff)/inventory/import/{page,content}.tsx
@@ -744,6 +754,12 @@ Progress_archive.txt — the items from those sessions are there.)
       Then: "Repair" heading over New repair (/repair/new), Repairs
       (/repair) and Custom quotes; Sell metal moved to lead the records
       group, directly above Spot prices. nav.newRepair / nav.repairs.
+
+ 513. [UI] SIDEBAR: ONLINE ORDERS UNDER POS (aac09f7, 2026-11-22). Now the
+      last POS child after Sale history (child, 16px icon, same gate
+      has_retail && canSeeCounts). /pos/online-orders is a longer root
+      than /pos, so it alone lights up on its pages. tsc + lint clean;
+      not browser-checked.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
