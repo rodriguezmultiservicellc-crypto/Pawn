@@ -5765,6 +5765,8 @@ export type Database = {
           sale_id: string
           stripe_payment_intent_id: string | null
           tenant_id: string
+          tip_amount: number
+          tip_user_id: string | null
           updated_at: string
         }
         Insert: {
@@ -5785,6 +5787,8 @@ export type Database = {
           sale_id: string
           stripe_payment_intent_id?: string | null
           tenant_id: string
+          tip_amount?: number
+          tip_user_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -5805,6 +5809,8 @@ export type Database = {
           sale_id?: string
           stripe_payment_intent_id?: string | null
           tenant_id?: string
+          tip_amount?: number
+          tip_user_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -5995,6 +6001,8 @@ export type Database = {
           orocut_style_names: string[]
           pawn_ticket_backpage: string | null
           product_feed_enabled: boolean
+          reader_tip_percentages: number[]
+          reader_tips_enabled: boolean
           repair_ready_auto_notify: boolean
           resend_from_email: string | null
           resend_from_name: string | null
@@ -6014,6 +6022,7 @@ export type Database = {
           stripe_terminal_location_id: string | null
           stripe_terminal_reader_id: string | null
           stripe_terminal_reader_label: string | null
+          stripe_terminal_tip_config_id: string | null
           tag_cost_code: string | null
           tenant_id: string
           twilio_account_sid: string | null
@@ -6065,6 +6074,8 @@ export type Database = {
           orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
           product_feed_enabled?: boolean
+          reader_tip_percentages?: number[]
+          reader_tips_enabled?: boolean
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null
@@ -6084,6 +6095,7 @@ export type Database = {
           stripe_terminal_location_id?: string | null
           stripe_terminal_reader_id?: string | null
           stripe_terminal_reader_label?: string | null
+          stripe_terminal_tip_config_id?: string | null
           tag_cost_code?: string | null
           tenant_id: string
           twilio_account_sid?: string | null
@@ -6135,6 +6147,8 @@ export type Database = {
           orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
           product_feed_enabled?: boolean
+          reader_tip_percentages?: number[]
+          reader_tips_enabled?: boolean
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null
@@ -6154,6 +6168,7 @@ export type Database = {
           stripe_terminal_location_id?: string | null
           stripe_terminal_reader_id?: string | null
           stripe_terminal_reader_label?: string | null
+          stripe_terminal_tip_config_id?: string | null
           tag_cost_code?: string | null
           tenant_id?: string
           twilio_account_sid?: string | null
@@ -7876,6 +7891,16 @@ export type Database = {
       sale_card_payment_set_details: {
         Args: { p_brand: string; p_last4: string; p_payment_id: string }
         Returns: boolean
+      }
+      sale_card_payment_set_tip: {
+        Args: { p_payment_id: string; p_tip: number }
+        Returns: {
+          o_recorded: boolean
+          o_sale_id: string
+          o_tenant_id: string
+          o_tip: number
+          o_user_id: string
+        }[]
       }
       sale_card_payment_succeeded: {
         Args: { p_payment_id: string }

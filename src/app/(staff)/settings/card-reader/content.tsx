@@ -12,6 +12,7 @@ import {
   type ReaderActionResult,
 } from './actions'
 import type { StripeChargeMode } from '@/lib/stripe/terminal'
+import { TipsCard, type ReaderTipsView } from './TipsCard'
 
 export type CardReaderView = {
   canEdit: boolean
@@ -29,6 +30,8 @@ export type CardReaderView = {
   live: { status: 'online' | 'offline' | null; deviceType: string | null; serial: string | null } | null
   /** Other readers already registered on this Stripe account. */
   existing: { id: string; label: string | null; deviceType: string | null; status: 'online' | 'offline' | null }[]
+  /** Tips on the reader (patches/0096). */
+  tips: ReaderTipsView
 }
 
 const INPUT =
@@ -289,6 +292,8 @@ export default function CardReaderContent({ view }: { view: CardReaderView }) {
           </div>
         </form>
       ) : null}
+
+      <TipsCard tips={view.tips} canEdit={view.canEdit} hasReader={!!view.reader} />
     </div>
   )
 }

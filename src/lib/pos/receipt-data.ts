@@ -78,7 +78,7 @@ export async function loadSaleReceiptData(args: {
       .order('position', { ascending: true }),
     supabase
       .from('sale_payments')
-      .select('amount, payment_method, occurred_at, card_last4, card_brand, card_auth_code')
+      .select('amount, payment_method, occurred_at, card_last4, card_brand, card_auth_code, tip_amount')
       .eq('sale_id', saleId)
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
@@ -136,6 +136,7 @@ export async function loadSaleReceiptData(args: {
     card_last4: p.card_last4,
     card_brand: p.card_brand,
     card_auth_code: p.card_auth_code,
+    tip: Number(p.tip_amount ?? 0),
   }))
 
   const c = (

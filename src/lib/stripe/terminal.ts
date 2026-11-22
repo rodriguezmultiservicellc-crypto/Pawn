@@ -36,7 +36,7 @@
 
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { stripeFetch } from './http'
+import { stripeFetch, type StripeFormBody } from './http'
 import { getTenantSecret } from '@/lib/secrets/vault'
 import { isStripeTestKey } from '@/lib/pos/reader'
 
@@ -325,11 +325,18 @@ export async function getTerminalReader(args: { tenantId: string; readerId: stri
   })
 }
 
-/** Hand a PaymentIntent to the reader; it starts asking for the card. */
+/**
+ * Hand a PaymentIntent to the reader; it starts asking for the card.
+ * `askForTip` (settings.reader_tips_enabled, patches/0096): when false the
+ * reader is told to skip its tip screen for this charge. When true nothing
+ * is sent and the reader offers the shop's tip choices — if the shop's
+ * Terminal Configuration has any (ensureReaderTipChoices).
+ */
 export async function processPaymentIntentOnReader(args: {
   tenantId: string
   readerId: string
   paymentIntentId: string
+  askForTip: boolean
 }): Promise<StripeReader> {
   const { accountId, apiKey } = await stripeTarget(args.tenantId)
   return stripeFetch<StripeReader>(
@@ -340,8 +347,7 @@ export async function processPaymentIntentOnReader(args: {
       apiKey,
       body: {
         payment_intent: args.paymentIntentId,
-        // No tip screen at a pawn counter.
-        'process_config[skip_tipping]': true,
+        ...(args.askForTip ? {} : { 'process_config[skip_tipping]': true }),
       },
     },
   )
@@ -360,6 +366,10 @@ export async function cancelReaderAction(args: { tenantId: string; readerId: str
 export type CardPresentIntentStatus = {
   id: string
   status: string
+  /** Cents charged — includes the tip once the charge succeeds. */
+  amount?: number
+  /** Tip added on the reader, cents: null = not asked, 0 = none chosen. */
+  amount_details?: { tip?: { amount?: number | null } | null } | null
   last_payment_error?: { message?: string | null; code?: string | null; decline_code?: string | null } | null
   latest_charge?: {
     id: string
@@ -403,4 +413,74 @@ export async function listTerminalReaders(tenantId: string): Promise<StripeReade
     apiKey,
   })
   return r.data
+}
+
+/**
+ * Put the shop's tip choices on its reader (patches/0096).
+ *
+ * A reader only shows a tip screen when the Terminal Configuration that
+ * applies to its Location has tip choices for the currency. This keeps
+ * those choices in ONE configuration and returns its id:
+ *   - the configuration this app saved before → its tip choices are updated;
+ *   - else the configuration the Location already uses, if any → tip choices
+ *     are added to it (its other settings are left alone);
+ *   - else a new configuration is created and set on the Location.
+ * Stripe says a change can take a few minutes to reach the reader.
+ * Turning tips OFF does not touch Stripe: each charge is sent with
+ * skip_tipping instead.
+ */
+export async function ensureReaderTipChoices(args: {
+  tenantId: string
+  readerId: string
+  locationId: string | null
+  configId: string | null
+  percentages: number[]
+}): Promise<{ configId: string }> {
+  const { accountId, apiKey } = await stripeTarget(args.tenantId)
+  const tipping: StripeFormBody = {}
+  args.percentages.forEach((p, i) => {
+    tipping[`tipping[usd][percentages][${i}]`] = p
+  })
+  const updateTips = (id: string) =>
+    stripeFetch<{ id: string }>(`/terminal/configurations/${encodeURIComponent(id)}`, {
+      method: 'POST',
+      accountId,
+      apiKey,
+      body: tipping,
+    })
+
+  if (args.configId) {
+    try {
+      return { configId: (await updateTips(args.configId)).id }
+    } catch (e) {
+      // Deleted on Stripe's side, or from another account: set it up again.
+      console.warn('[terminal] saved tip configuration could not be updated', e instanceof Error ? e.message : e)
+    }
+  }
+
+  const locationId =
+    args.locationId ?? (await getTerminalReader({ tenantId: args.tenantId, readerId: args.readerId })).location ?? null
+  if (!locationId) throw new Error('reader_has_no_location')
+
+  const location = await stripeFetch<{ id: string; configuration_overrides?: string | null }>(
+    `/terminal/locations/${encodeURIComponent(locationId)}`,
+    { method: 'GET', accountId, apiKey },
+  )
+  if (location.configuration_overrides) {
+    return { configId: (await updateTips(location.configuration_overrides)).id }
+  }
+
+  const created = await stripeFetch<{ id: string }>('/terminal/configurations', {
+    method: 'POST',
+    accountId,
+    apiKey,
+    body: { ...tipping, name: 'Counter reader tips' },
+  })
+  await stripeFetch<{ id: string }>(`/terminal/locations/${encodeURIComponent(locationId)}`, {
+    method: 'POST',
+    accountId,
+    apiKey,
+    body: { configuration_overrides: created.id },
+  })
+  return { configId: created.id }
 }

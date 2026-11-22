@@ -97,6 +97,10 @@ export type SaleDetailPayment = {
   card_last4: string | null
   card_brand: string | null
   card_auth_code: string | null
+  /** Tip added on the card reader — charged on top of `amount` (patches/0096). */
+  tip_amount: number
+  /** Name of the employee the tip belongs to; null when unknown or no tip. */
+  tip_employee: string | null
 }
 
 export type SaleDetailLoyalty = {
@@ -587,6 +591,12 @@ function PaymentsPanel({
               {cardSummary(p, (b) => t.pos.card.brands[b as CardBrand] ?? b, t.pos.card.authShort) ? (
                 <span className="basis-full font-mono text-xs text-muted">
                   {cardSummary(p, (b) => t.pos.card.brands[b as CardBrand] ?? b, t.pos.card.authShort)}
+                </span>
+              ) : null}
+              {p.tip_amount > 0 ? (
+                <span className="basis-full text-xs font-semibold text-foreground">
+                  {t.pos.card.tipLine.replace('{amount}', fmtMoney(p.tip_amount))}
+                  {p.tip_employee ? ` · ${p.tip_employee}` : ''}
                 </span>
               ) : null}
               {p.payment_method === 'card' &&

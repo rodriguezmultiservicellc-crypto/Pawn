@@ -273,6 +273,8 @@ export function thermalReceiptLines(data: SaleReceiptDoc, width: number = THERMA
     push(...row(paymentLabel(p.method, en, es), money(p.amount), W))
     const card = cardDetail(p, en, es)
     if (card) push(...indented(card, W))
+    // A tip added on the card reader: charged on top of the payment above.
+    if ((p.tip ?? 0) > 0) push(...row(bi(en.tip, es.tip), money(p.tip ?? 0), W))
   }
   push(...row(bi(en.totals.paid, es.totals.paid), money(data.paid_total), W))
   // What is still owed: boxed between heavy rules, in capitals, so it is the

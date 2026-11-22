@@ -17,6 +17,7 @@ import { logAudit } from '@/lib/audit'
 import { loadShopReader } from '@/lib/pos/reader-server'
 import {
   createTerminalLocation,
+  ensureReaderTipChoices,
   getTerminalReader,
   registerTerminalReader,
   stripeAccountInfo,
@@ -25,7 +26,7 @@ import {
   verifyStripeKey,
   type StripeChargeMode,
 } from '@/lib/stripe/terminal'
-import { pairReaderSchema, type PairReaderInput } from '@/lib/pos/reader'
+import { pairReaderSchema, readerTipsSchema, type PairReaderInput, type ReaderTipsInput } from '@/lib/pos/reader'
 
 export type ReaderActionResult =
   | { ok: true }
@@ -40,6 +41,9 @@ export type ReaderActionResult =
         | 'keyInvalid'
         | 'keyRejected'
         | 'notAllowed'
+        | 'tipsInvalid'
+        | 'tipsNeedReader'
+        | 'tipsSetupFailed'
         | 'generic'
       detail?: string
     }
@@ -272,6 +276,73 @@ export async function adoptReaderAction(readerId: string): Promise<ReaderActionR
     tableName: 'settings',
     recordId: tenantId,
     changes: { reader_id: reader.id, label: reader.label, device_type: reader.device_type, existing: true },
+  })
+  revalidatePath('/settings/card-reader')
+  revalidatePath('/pos/sales/new')
+  return { ok: true }
+}
+
+/**
+ * Tips on the reader (patches/0096). Owners only.
+ *
+ * ON: the shop's tip choices are put on the reader through Stripe first; the
+ * switch is saved only if that worked, so "on" always means the reader can
+ * ask. OFF: nothing changes on Stripe — every charge is sent with
+ * skip_tipping, so the screen is gone on the very next sale.
+ */
+export async function saveReaderTipsAction(input: ReaderTipsInput): Promise<ReaderActionResult> {
+  const { supabase, userId, tenantId } = await owner()
+  const parsed = readerTipsSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: 'tipsInvalid' }
+  const v = parsed.data
+
+  let configId: string | null = null
+  if (v.enabled) {
+    const reader = await loadShopReader(tenantId)
+    if (!reader) return { ok: false, error: 'tipsNeedReader' }
+    if (!(await tenantStripeReady(tenantId))) return { ok: false, error: 'notConnected' }
+    const { data: s } = await supabase
+      .from('settings')
+      .select('stripe_terminal_tip_config_id')
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    try {
+      configId = (
+        await ensureReaderTipChoices({
+          tenantId,
+          readerId: reader.readerId,
+          locationId: reader.locationId,
+          configId: s?.stripe_terminal_tip_config_id ?? null,
+          percentages: v.percentages,
+        })
+      ).configId
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : undefined
+      console.error('[card-reader] tips setup failed', detail)
+      return { ok: false, error: 'tipsSetupFailed', detail }
+    }
+  }
+
+  const { error } = await supabase
+    .from('settings')
+    .update({
+      reader_tips_enabled: v.enabled,
+      reader_tip_percentages: v.percentages,
+      ...(configId ? { stripe_terminal_tip_config_id: configId } : {}),
+    })
+    .eq('tenant_id', tenantId)
+  if (error) {
+    console.error('[card-reader] tips save failed', error.message)
+    return { ok: false, error: 'generic' }
+  }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'update',
+    tableName: 'settings',
+    recordId: tenantId,
+    changes: { section: 'reader_tips', enabled: v.enabled, percentages: v.percentages, configuration: configId },
   })
   revalidatePath('/settings/card-reader')
   revalidatePath('/pos/sales/new')

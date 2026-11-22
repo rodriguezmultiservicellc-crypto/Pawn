@@ -62,6 +62,8 @@ export default function NewSaleForm({
     saleNumber: string | null
     total: number
     tender: 'cash' | 'card'
+    /** Tip added on the card reader, on top of the total. */
+    tip?: number
   } | null>(null)
   const [cartKey, setCartKey] = useState(0)
   // The sale just paid — asks "Print the receipt?" right away.
@@ -259,6 +261,7 @@ export default function NewSaleForm({
             {(lastSale.tender === 'card' ? t.pos.sale.completedBannerCard : t.pos.sale.completedBannerCash)
               .replace('{number}', lastSale.saleNumber ?? '')
               .replace('{total}', formatMoney(lastSale.total))}
+            {lastSale.tip ? ` ${t.pos.sale.tipCollected.replace('{amount}', formatMoney(lastSale.tip))}` : ''}
           </span>
           <button
             type="button"

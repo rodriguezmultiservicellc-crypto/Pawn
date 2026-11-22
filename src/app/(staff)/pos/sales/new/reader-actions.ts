@@ -109,7 +109,12 @@ export async function startReaderChargeAction(formData: FormData): Promise<Start
   })
 
   try {
-    await processPaymentIntentOnReader({ tenantId: c.tenantId, readerId: reader.readerId, paymentIntentId: piId })
+    await processPaymentIntentOnReader({
+      tenantId: c.tenantId,
+      readerId: reader.readerId,
+      paymentIntentId: piId,
+      askForTip: reader.tipsEnabled,
+    })
   } catch (e) {
     // Reader offline / busy: the tender stays pending — the dialog offers
     // Try again (same intent) or Cancel.
@@ -163,6 +168,7 @@ export async function retryReaderChargeAction(paymentId: string): Promise<{ ok: 
       tenantId: p.tenant_id,
       readerId: p.reader_id,
       paymentIntentId: p.stripe_payment_intent_id,
+      askForTip: (await loadShopReader(p.tenant_id))?.tipsEnabled === true,
     })
     return { ok: true }
   } catch (e) {

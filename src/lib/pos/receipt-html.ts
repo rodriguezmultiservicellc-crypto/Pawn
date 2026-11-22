@@ -119,7 +119,8 @@ function letterHtml(data: SaleReceiptDoc, title: string): string {
   const paymentRows = data.payments
     .map((p) => {
       const card = cardDetail(p, en, es)
-      return `<div class="line"><span>${e(paymentLabel(p.method, en, es))} · ${e(shopDateTime(p.occurred_at, data.timezone))}${card ? ` · <span class="mono">${e(card)}</span>` : ''}</span><span class="num">${e(money(p.amount))}</span></div>`
+      const tip = (p.tip ?? 0) > 0 ? `<div class="line"><span>${label(en.tip, es.tip)}</span><span class="num">${e(money(p.tip ?? 0))}</span></div>` : ''
+      return `<div class="line"><span>${e(paymentLabel(p.method, en, es))} · ${e(shopDateTime(p.occurred_at, data.timezone))}${card ? ` · <span class="mono">${e(card)}</span>` : ''}</span><span class="num">${e(money(p.amount))}</span></div>${tip}`
     })
     .join('')
 

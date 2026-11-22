@@ -15,7 +15,13 @@ import {
 import { Modal, Footer } from './Modal'
 import { CardSlipFields, EMPTY_SLIP, slipComplete, type CardSlip } from './CardSlipFields'
 
-export type ReaderApproved = { saleId: string; saleNumber: string | null; total: number }
+export type ReaderApproved = {
+  saleId: string
+  saleNumber: string | null
+  total: number
+  /** Tip the customer added on the reader (charged on top of the total); 0 = none. */
+  tip: number
+}
 
 type Phase =
   | { k: 'idle' }
@@ -87,7 +93,7 @@ export function CardChargeDialog({
       if (stop || !r) return
       if (r.state === 'approved') {
         stop = true
-        onReaderApproved({ saleId: r.saleId, saleNumber: r.saleNumber, total: r.total })
+        onReaderApproved({ saleId: r.saleId, saleNumber: r.saleNumber, total: r.total, tip: r.tip })
       } else if (r.state === 'declined') {
         setPhase({ k: 'declined', message: r.message })
       } else if (r.state === 'canceled') {

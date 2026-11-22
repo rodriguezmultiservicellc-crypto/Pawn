@@ -156,7 +156,12 @@ export async function addPaymentAction(
   // pending; "Check reader" / "Cancel card charge" on the payment row (or the
   // webhook, or a manager's confirmation) finish it.
   if (shopReader && paymentIntentId) {
-    await processPaymentIntentOnReader({ tenantId, readerId: shopReader.readerId, paymentIntentId }).catch((e) =>
+    await processPaymentIntentOnReader({
+      tenantId,
+      readerId: shopReader.readerId,
+      paymentIntentId,
+      askForTip: shopReader.tipsEnabled,
+    }).catch((e) =>
       console.error('[pos.addPayment] process_payment_intent failed', e instanceof Error ? e.message : e),
     )
   }

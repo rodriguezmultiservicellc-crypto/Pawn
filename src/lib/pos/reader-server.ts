@@ -2,7 +2,8 @@ import 'server-only'
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/audit'
-import { settleSaleCardPayment } from './card-settle'
+import { recordReaderTip, settleSaleCardPayment } from './card-settle'
+import { tipOf } from './reader'
 import { afterSaleCompleted, saleComplete } from './money'
 import { mapStripeBrand, readerChargeState, type ReaderChargeState, type ReaderActionView } from './reader'
 import {
@@ -17,13 +18,19 @@ import {
  * guard the role FIRST; everything here uses the service-role client.
  */
 
-export type ShopReader = { readerId: string; label: string | null; locationId: string | null }
+export type ShopReader = {
+  readerId: string
+  label: string | null
+  locationId: string | null
+  /** Ask for a tip on the reader (patches/0096). */
+  tipsEnabled: boolean
+}
 
 /** The shop's paired reader, or null (settings, 0086). */
 export async function loadShopReader(tenantId: string): Promise<ShopReader | null> {
   const { data } = await createAdminClient()
     .from('settings')
-    .select('stripe_terminal_reader_id, stripe_terminal_reader_label, stripe_terminal_location_id')
+    .select('stripe_terminal_reader_id, stripe_terminal_reader_label, stripe_terminal_location_id, reader_tips_enabled')
     .eq('tenant_id', tenantId)
     .maybeSingle()
   if (!data?.stripe_terminal_reader_id) return null
@@ -31,6 +38,7 @@ export async function loadShopReader(tenantId: string): Promise<ShopReader | nul
     readerId: data.stripe_terminal_reader_id,
     label: data.stripe_terminal_reader_label,
     locationId: data.stripe_terminal_location_id,
+    tipsEnabled: data.reader_tips_enabled === true,
   }
 }
 
@@ -56,7 +64,15 @@ function chargeCard(pi: CardPresentIntentStatus): { brand: string | null; last4:
 
 export type ReaderPoll =
   | (ReaderChargeState & { state: 'waiting' | 'declined' | 'canceled'; saleId: string })
-  | { state: 'approved'; saleId: string; saleNumber: string | null; total: number; completed: boolean }
+  | {
+      state: 'approved'
+      saleId: string
+      saleNumber: string | null
+      total: number
+      completed: boolean
+      /** Tip the customer added on the reader; 0 when none. Charged on top of the total. */
+      tip: number
+    }
 
 /**
  * Read the charge from Stripe and move the sale on when it is approved:
@@ -101,6 +117,20 @@ export async function pollReaderCharge(args: {
     })
   }
 
+  // The tip, if the customer added one: recorded once, credited to the
+  // employee who ran this payment. Never part of the sale's paid total.
+  const tipped = await recordReaderTip(admin, payment.id, tipOf(pi))
+  if (tipped.recorded) {
+    await logAudit({
+      tenantId,
+      userId,
+      action: 'card_tip_recorded',
+      tableName: 'sale_payments',
+      recordId: payment.id,
+      changes: { source: 'reader_poll', payment_intent: payment.stripe_payment_intent_id, tip: tipped.tip, tip_user_id: tipped.userId },
+    })
+  }
+
   const card = chargeCard(pi)
   if (card.last4 || card.brand) {
     await admin.rpc('sale_card_payment_set_details', {
@@ -138,5 +168,6 @@ export async function pollReaderCharge(args: {
     saleNumber: sale?.sale_number ?? null,
     total: Number(sale?.total ?? settled.amount),
     completed: sale?.status === 'completed',
+    tip: tipped.tip,
   }
 }

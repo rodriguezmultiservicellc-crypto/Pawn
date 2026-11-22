@@ -22,7 +22,8 @@ import {
   authorizeLinkEvent,
   webhookSecretOrNull,
 } from '@/lib/stripe/webhook-guard'
-import { settleSaleCardPayment } from '@/lib/pos/card-settle'
+import { recordReaderTip, settleSaleCardPayment } from '@/lib/pos/card-settle'
+import { tipOf } from '@/lib/pos/reader'
 import type {
   StripePaymentLinkRow,
   LoanEventRow,
@@ -89,7 +90,10 @@ type CheckoutSessionLite = {
 
 type PaymentIntentLite = {
   id: string
+  /** Cents charged — includes a reader tip once the charge succeeds. */
   amount?: number | null
+  /** Tip added on the reader, cents (patches/0096). */
+  amount_details?: { tip?: { amount?: number | null } | null } | null
   currency?: string | null
   metadata?: Record<string, string> | null
 }
@@ -424,10 +428,15 @@ async function settleSaleCardTender(
     return true
   }
 
+  // The charge must be the tender we asked for — plus the tip, when the
+  // customer added one on the reader. Stripe reports the tip separately, so
+  // anything else that does not add up is still refused.
   const expectedCents = Math.max(1, Math.round(Number(pay.amount) * 100))
-  if (pi.amount !== expectedCents) {
+  const tip = tipOf(pi)
+  const tipCents = Math.round(tip * 100)
+  if ((pi.amount ?? 0) - tipCents !== expectedCents) {
     console.error(
-      `[stripe-webhook] refused card tender ${pay.id}: amount ${pi.amount} != expected ${expectedCents}`,
+      `[stripe-webhook] refused card tender ${pay.id}: amount ${pi.amount} (tip ${tipCents}) != expected ${expectedCents}`,
     )
     return true
   }
@@ -442,6 +451,20 @@ async function settleSaleCardTender(
     console.error(
       `[stripe-webhook] card tender ${pay.id} succeeded but sale ${pay.sale_id} is not open — needs a refund`,
     )
+  }
+
+  // Credit the tip to the employee who ran the payment (once — the counter's
+  // own status check may already have done it).
+  const tipped = await recordReaderTip(admin, pay.id, tip)
+  if (tipped.recorded) {
+    await logAudit({
+      tenantId: pay.tenant_id,
+      userId: '00000000-0000-0000-0000-000000000000',
+      action: 'card_tip_recorded',
+      tableName: 'sale_payments',
+      recordId: pay.id,
+      changes: { sale_id: pay.sale_id, via: 'stripe_webhook', payment_intent_id: pi.id, tip: tipped.tip, tip_user_id: tipped.userId },
+    })
   }
 
   if (settled.reason !== 'not_pending') {

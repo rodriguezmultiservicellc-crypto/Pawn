@@ -61,3 +61,28 @@ export async function settleSaleCardPayment(
     paidTotal: Number(row.paid_total),
   }
 }
+
+/**
+ * Record the tip Stripe reported on an approved reader charge and credit it
+ * to the employee who ran the payment (sale_card_payment_set_tip, 0096).
+ * Written once: the counter's status check and the webhook can both call
+ * this for the same charge. A tip is never part of the sale's paid total.
+ */
+export async function recordReaderTip(
+  admin: SupabaseClient<Database>,
+  salePaymentId: string,
+  tip: number,
+): Promise<{ recorded: boolean; tip: number; userId: string | null }> {
+  if (!(tip > 0)) return { recorded: false, tip: 0, userId: null }
+  const { data, error } = await admin.rpc('sale_card_payment_set_tip', {
+    p_payment_id: salePaymentId,
+    p_tip: tip,
+  })
+  if (error) {
+    // The card WAS charged the tip. Loud, so it can be found and entered.
+    console.error(`[pos.tip] tip ${tip} on payment ${salePaymentId} was charged but NOT recorded: ${error.message}`)
+    return { recorded: false, tip: 0, userId: null }
+  }
+  const row = Array.isArray(data) ? data[0] : data
+  return { recorded: row?.o_recorded === true, tip: Number(row?.o_tip ?? 0), userId: row?.o_user_id ?? null }
+}

@@ -31,7 +31,7 @@ export default async function CardReaderSettingsPage() {
 
   const { data: s } = await createAdminClient()
     .from('settings')
-    .select('stripe_charge_mode')
+    .select('stripe_charge_mode, reader_tips_enabled, reader_tip_percentages')
     .eq('tenant_id', tenantId)
     .maybeSingle()
   const mode = (s?.stripe_charge_mode ?? 'connect') as StripeChargeMode
@@ -79,6 +79,7 @@ export default async function CardReaderSettingsPage() {
     reader: reader ? { id: reader.readerId, label: reader.label } : null,
     live,
     existing,
+    tips: { enabled: s?.reader_tips_enabled === true, percentages: s?.reader_tip_percentages ?? [] },
   }
   return <CardReaderContent view={view} />
 }

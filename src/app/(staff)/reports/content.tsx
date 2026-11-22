@@ -12,6 +12,7 @@ import {
   Buildings,
   ChartBar,
   ListChecks,
+  HandCoins,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { Dictionary } from '@/lib/i18n/en'
@@ -67,6 +68,12 @@ export default function ReportsLanding({
       href: '/reports/sales-summary',
       icon: <ShoppingBag size={20} weight="regular" />,
       title: 'salesSummary',
+      visible: modules.has_retail,
+    },
+    {
+      href: '/reports/tips',
+      icon: <HandCoins size={20} weight="regular" />,
+      title: 'tips',
       visible: modules.has_retail,
     },
     {

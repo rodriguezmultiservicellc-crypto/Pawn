@@ -81,6 +81,8 @@ export type AuditAction =
   | 'register_close'
   | 'register_reconcile'
   | 'card_present_succeeded'
+  // A tip added on the card reader, credited to an employee (patches/0096)
+  | 'card_tip_recorded'
   // Stripe Terminal reader at the counter (patches/0086)
   | 'card_present_failed'
   | 'terminal_reader_pair'

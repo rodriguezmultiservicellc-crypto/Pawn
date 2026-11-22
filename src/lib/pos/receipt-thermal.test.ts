@@ -222,3 +222,33 @@ describe('saleReceiptHtml', () => {
     expect(letter).toContain('S-000007')
   })
 })
+
+describe('a tip added on the card reader', () => {
+  const tipped = doc({
+    payments: [
+      { amount: 1290, method: 'card', occurred_at: '2026-11-21T18:05:00Z', card_last4: '4242', card_brand: 'visa', tip: 20 },
+    ],
+  })
+
+  it('is printed under the payment it rode on, in both languages', () => {
+    const lines = thermalReceiptLines(tipped)
+    const at = lines.findIndex((l) => l.startsWith('Tip / Propina'))
+    expect(at).toBeGreaterThan(0)
+    expect(lines[at]).toContain('$20.00')
+    for (const l of lines) expect(l.length).toBeLessThanOrEqual(40)
+    const html = saleReceiptHtml(tipped, 'letter')
+    expect(html).toContain('Propina')
+    expect(html).toContain('$20.00')
+  })
+
+  it('is not part of what was paid toward the sale', () => {
+    const text = thermalReceiptLines(tipped).join(' | ')
+    // Paid stays the sale amount; nothing is owed.
+    expect(text).toContain('$1,290.00')
+    expect(text.toUpperCase()).not.toContain(en.pos.print.totals.balance.toUpperCase())
+  })
+
+  it('prints no tip line when there is none', () => {
+    expect(thermalReceiptLines(doc()).join(' | ')).not.toContain('Propina')
+  })
+})

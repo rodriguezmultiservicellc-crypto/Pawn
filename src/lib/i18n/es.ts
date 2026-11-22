@@ -1070,6 +1070,7 @@ export const es: Dictionary = {
       register_close: 'Caja cerrada',
       register_reconcile: 'Caja conciliada',
       card_present_succeeded: 'Pago con tarjeta exitoso',
+      card_tip_recorded: 'Propina con tarjeta registrada',
       export: 'Reporte exportado',
       // Per-table overrides for richer phrasing.
       perTable: {
@@ -1107,6 +1108,7 @@ export const es: Dictionary = {
         sale_payments: {
           sale_payment_add: 'Pago de venta agregado',
           card_present_succeeded: 'Pago con tarjeta exitoso',
+          card_tip_recorded: 'Propina con tarjeta registrada',
         },
         returns: {
           return_create: 'Devolución emitida',
@@ -2277,6 +2279,7 @@ export const es: Dictionary = {
       voidReasonMissing: 'No se registró un motivo.',
       completedBannerCash: 'Venta {number} completada — {total} en efectivo. Lista para la próxima venta.',
       completedBannerCard: 'Venta {number} completada — {total} con tarjeta. Lista para la próxima venta.',
+      tipCollected: 'Propina en la tarjeta: {amount}.',
       viewSale: 'Ver venta / recibo',
       dismiss: 'Cerrar',
       outOfStock: 'Sin existencias',
@@ -2314,6 +2317,7 @@ export const es: Dictionary = {
       methodReader: 'Tarjeta (lector Stripe)',
       authShort: 'Aut.',
       machineChip: 'Máquina de tarjetas',
+      tipLine: 'Propina {amount}',
       modeReader: 'Lector de tarjetas',
       modeMachine: 'Máquina de tarjetas',
       sendToReader: 'Enviar {total} al lector',
@@ -2486,6 +2490,7 @@ export const es: Dictionary = {
         pageOf: 'Página {n} de {total}',
       },
       thankYou: '¡Gracias!',
+      tip: 'Propina',
       layaway: {
         header: 'Recibo de apartado',
         number: 'Apartado',
@@ -3144,6 +3149,10 @@ export const es: Dictionary = {
         title: 'Resumen de Ventas',
         description: 'Ventas completadas con subtotales, devoluciones y neto.',
       },
+      tips: {
+        title: 'Propinas',
+        description: 'Propinas del lector de tarjetas, con el total de cada empleado.',
+      },
       repairSummary: {
         title: 'Tickets de Reparación',
         description: 'Tickets creados en el rango con conteos por estado.',
@@ -3246,6 +3255,27 @@ export const es: Dictionary = {
         revenue: 'Ingreso',
         margin: 'Margen',
         avgDays: 'Días promedio',
+      },
+    },
+    tips: {
+      subtitle: 'Propinas que los clientes agregaron en el lector de tarjetas. Cada propina pertenece al empleado que cobró ese pago con tarjeta.',
+      byEmployee: 'Por empleado',
+      eachTip: 'Cada propina',
+      unknownEmployee: 'Empleado desconocido',
+      empty: 'No hay propinas en estas fechas.',
+      columns: {
+        employee: 'Empleado',
+        count: 'Propinas',
+        total: 'Total',
+        when: 'Cuándo',
+        sale: 'Venta #',
+        card: 'Tarjeta',
+        saleAmount: 'Pagado en la venta',
+        tip: 'Propina',
+      },
+      totals: {
+        total: 'Total de propinas',
+        count: 'Número de propinas',
       },
     },
     salesSummary: {
@@ -5933,6 +5963,15 @@ export const es: Dictionary = {
     statusOnline: 'En línea',
     statusOffline: 'Desconectado',
     statusUnknown: 'Estado desconocido',
+    tips: {
+      title: 'Propinas',
+      help: 'El lector de tarjetas puede pedirle una propina al cliente. La propina se suma al cargo de la tarjeta, aparte de la venta, y se acredita al empleado que cobró ese pago con tarjeta. Nunca forma parte del total de la venta.',
+      enable: 'Pedir propina en el lector de tarjetas',
+      choices: 'Opciones de propina (%)',
+      choicesHelp: 'Hasta tres, en este orden en el lector. Un cambio puede tardar unos minutos en llegar al lector.',
+      needReader: 'Vincule un lector de tarjetas antes de activar las propinas.',
+      save: 'Guardar propinas',
+    },
     device: 'Dispositivo',
     readerId: 'ID del lector',
     remove: 'Quitar lector',
@@ -5956,6 +5995,9 @@ export const es: Dictionary = {
       keyInvalid: 'Ingrese una clave secreta de Stripe (sk_live_…, sk_test_… o rk_…).',
       keyRejected: 'Stripe no aceptó esa clave: {detail}',
       notAllowed: 'Solo el superadministrador de la plataforma puede usar la cuenta de Stripe de RMS.',
+      tipsInvalid: 'Ingrese de una a tres opciones de propina, cada una un número entero del 1 al 100.',
+      tipsNeedReader: 'Vincule un lector de tarjetas antes de activar las propinas.',
+      tipsSetupFailed: 'Stripe no aceptó la configuración de propinas, así que no se activaron. {detail}',
       generic: 'No se pudo guardar. Intente de nuevo.',
     },
   },

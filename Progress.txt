@@ -2798,6 +2798,27 @@ PENDING — NEXT UP
         * The metal-sale form (/buy/sell) still starts its tax at 0.
       The test run left audit_log rows for "ZZ-TEST" tax rates and one
       "ZZ-TEST DELETE ME" customer (rows themselves removed).
+    - CARD READER TIPS (patches/0096, applied 2026-11-22; CLAUDE.md rule
+      21). Settings → Card reader → Tips (owners): on/off + up to three
+      percent choices. Tip is saved on the card payment and credited to
+      the employee who ran it; Reports → Tips totals per employee
+      (owner / chain admin / manager). Shown on the sale page, the
+      paid-sale banner and all three receipts.
+      NOT TESTED AGAINST STRIPE: Pawn has no Stripe key and no reader
+      (rule 17), so no real charge, tip screen, webhook or Terminal
+      Configuration call has run. Checked: the database function in a
+      rolled-back dry run, unit tests, and the settings / report / sale
+      / receipt screens in a browser. First thing to do when the pawn
+      company's Stripe account is connected: pair the reader, turn tips
+      on (watch for a Stripe error — the Configuration API call is
+      written from the docs, read 2026-11-22), run one tipped sale in
+      TEST mode and confirm (a) the sale completes, (b) the tip shows
+      on the sale page and in Reports → Tips, (c) the webhook did not
+      log "refused card tender".
+      Decisions Eddy has not been asked: the tip goes to whoever is
+      logged in at the counter (no picking another employee, no
+      reassigning afterwards, no tip pooling); a return does not refund
+      the tip; the tips report has no CSV / PDF export.
     - Quick "New customer" popup (QuickCustomerModal — pawn, repair,
       quote and now sale forms) could not save anyone: country,
       id_country, comm_preference and language reached the schema as

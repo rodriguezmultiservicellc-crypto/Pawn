@@ -201,6 +201,23 @@ Never kill node processes by image name — always by PID.
       tax when present; older and flat sales fall back to a proportional
       share.
 
+21. **A card-reader tip is not part of the sale** (patches/0096).
+    `sale_payments.tip_amount` is what the customer added on the reader;
+    the card was charged `amount + tip_amount`. It never enters
+    `sales.paid_total` or a balance. `tip_user_id` is the employee it
+    belongs to — whoever ran that card payment (`performed_by`).
+    - `sale_card_payment_set_tip()` is the ONLY writer of those two
+      columns; it records a tip once, so the counter's status check and
+      the Stripe webhook can both call it.
+    - The webhook refuses a card tender whose charged amount is not the
+      tender **plus the tip Stripe reports** (`amount_details.tip.amount`).
+      Never loosen that check to "amount >= tender".
+    - Tips are off unless `settings.reader_tips_enabled`. Off = every
+      reader charge is sent with `skip_tipping`. On = the shop's choices
+      (`reader_tip_percentages`) live in a Stripe Terminal Configuration
+      (`ensureReaderTipChoices`); the switch is saved only if Stripe
+      accepted them.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

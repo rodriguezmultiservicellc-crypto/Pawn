@@ -92,3 +92,23 @@ export const pairReaderSchema = z.object({
   label: z.string().trim().min(1).max(60),
 })
 export type PairReaderInput = z.input<typeof pairReaderSchema>
+
+// ── Tips on the reader (patches/0096) ─────────────────────────────────────
+
+/** Settings → Card reader → Tips: the switch and the choices the reader offers. */
+export const readerTipsSchema = z.object({
+  enabled: z.boolean(),
+  /** Whole percents, in the order the reader shows them. One to three. */
+  percentages: z.array(z.coerce.number().int().min(1).max(100)).min(1).max(3),
+})
+export type ReaderTipsInput = z.input<typeof readerTipsSchema>
+
+/**
+ * The tip Stripe reports on a card-present PaymentIntent, in dollars.
+ * amount_details.tip.amount is cents: null when the reader did not ask,
+ * 0 when the customer chose no tip.
+ */
+export function tipOf(pi: { amount_details?: { tip?: { amount?: number | null } | null } | null }): number {
+  const cents = pi.amount_details?.tip?.amount
+  return typeof cents === 'number' && isFinite(cents) && cents > 0 ? Math.round(cents) / 100 : 0
+}

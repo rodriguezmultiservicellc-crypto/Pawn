@@ -1067,6 +1067,7 @@ export const en = {
       register_close: 'Closed register',
       register_reconcile: 'Reconciled register',
       card_present_succeeded: 'Card payment succeeded',
+      card_tip_recorded: 'Card tip recorded',
       export: 'Exported report',
       // Per-table overrides for richer phrasing.
       perTable: {
@@ -1104,6 +1105,7 @@ export const en = {
         sale_payments: {
           sale_payment_add: 'Added sale payment',
           card_present_succeeded: 'Card payment succeeded',
+          card_tip_recorded: 'Card tip recorded',
         },
         returns: {
           return_create: 'Issued return',
@@ -2280,6 +2282,7 @@ export const en = {
       voidReasonMissing: 'No reason was recorded.',
       completedBannerCash: 'Sale {number} completed — {total} cash. Ready for the next sale.',
       completedBannerCard: 'Sale {number} completed — {total} card. Ready for the next sale.',
+      tipCollected: 'Tip on the card: {amount}.',
       viewSale: 'View sale / receipt',
       dismiss: 'Dismiss',
       outOfStock: 'Out of stock',
@@ -2317,6 +2320,7 @@ export const en = {
       methodReader: 'Card (Stripe reader)',
       authShort: 'Auth',
       machineChip: 'Card machine',
+      tipLine: 'Tip {amount}',
       modeReader: 'Card reader',
       modeMachine: 'Card machine',
       sendToReader: 'Send {total} to the reader',
@@ -2488,6 +2492,7 @@ export const en = {
         pageOf: 'Page {n} of {total}',
       },
       thankYou: 'Thank you!',
+      tip: 'Tip',
       layaway: {
         header: 'Layaway Receipt',
         number: 'Layaway',
@@ -3140,6 +3145,10 @@ export const en = {
         title: 'Sales Summary',
         description: 'Completed sales with subtotals, returns, and net.',
       },
+      tips: {
+        title: 'Tips',
+        description: 'Card reader tips, with a total for each employee.',
+      },
       repairSummary: {
         title: 'Repair Tickets',
         description: 'Tickets created in the date range with status counts.',
@@ -3242,6 +3251,27 @@ export const en = {
         revenue: 'Revenue',
         margin: 'Margin',
         avgDays: 'Avg days held',
+      },
+    },
+    tips: {
+      subtitle: 'Tips customers added on the card reader. Each tip belongs to the employee who ran that card payment.',
+      byEmployee: 'By employee',
+      eachTip: 'Each tip',
+      unknownEmployee: 'Unknown employee',
+      empty: 'No tips in these dates.',
+      columns: {
+        employee: 'Employee',
+        count: 'Tips',
+        total: 'Total',
+        when: 'When',
+        sale: 'Sale #',
+        card: 'Card',
+        saleAmount: 'Paid on the sale',
+        tip: 'Tip',
+      },
+      totals: {
+        total: 'Tips total',
+        count: 'Number of tips',
       },
     },
     salesSummary: {
@@ -5930,6 +5960,15 @@ export const en = {
     statusOnline: 'Online',
     statusOffline: 'Offline',
     statusUnknown: 'Status unknown',
+    tips: {
+      title: 'Tips',
+      help: 'The card reader can ask the customer for a tip. The tip is added to the card charge, on top of the sale, and is credited to the employee who rang up that card payment. It is never part of the sale total.',
+      enable: 'Ask for a tip on the card reader',
+      choices: 'Tip choices (%)',
+      choicesHelp: 'Up to three, shown on the reader in this order. A change can take a few minutes to reach the reader.',
+      needReader: 'Pair a card reader before turning tips on.',
+      save: 'Save tips',
+    },
     device: 'Device',
     readerId: 'Reader ID',
     remove: 'Remove reader',
@@ -5953,6 +5992,9 @@ export const en = {
       keyInvalid: 'Enter a Stripe secret key (sk_live_…, sk_test_… or rk_…).',
       keyRejected: 'Stripe did not accept that key: {detail}',
       notAllowed: 'Only the platform superadmin can use the RMS Stripe account.',
+      tipsInvalid: 'Enter one to three tip choices, each a whole number from 1 to 100.',
+      tipsNeedReader: 'Pair a card reader before turning tips on.',
+      tipsSetupFailed: 'Stripe did not accept the tip settings, so tips were not turned on. {detail}',
       generic: 'Could not save. Try again.',
     },
   },

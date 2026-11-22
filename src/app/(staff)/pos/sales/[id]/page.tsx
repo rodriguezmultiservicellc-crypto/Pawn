@@ -60,7 +60,7 @@ export default async function SaleDetailPage(props: { params: Params }) {
     ctx.supabase
       .from('sale_payments')
       .select(
-        'id, amount, payment_method, card_present_status, stripe_payment_intent_id, reader_id, notes, occurred_at, card_entry, card_last4, card_brand, card_auth_code',
+        'id, amount, payment_method, card_present_status, stripe_payment_intent_id, reader_id, notes, occurred_at, card_entry, card_last4, card_brand, card_auth_code, tip_amount, tip_user_id',
       )
       .eq('sale_id', id)
       .is('deleted_at', null)
@@ -79,6 +79,16 @@ export default async function SaleDetailPage(props: { params: Params }) {
     returned_qty: Number(it.returned_qty ?? 0),
   }))
 
+  // Names of the employees a tip belongs to (patches/0096). Read with the
+  // service-role client only for ids on this sale's own payments; the page
+  // has already checked the user may see this sale.
+  const tipUserIds = [...new Set((payRows ?? []).map((p) => p.tip_user_id).filter((v): v is string => !!v))]
+  const tipNames = new Map<string, string>()
+  if (tipUserIds.length > 0) {
+    const { data: tipProfiles } = await createAdminClient().from('profiles').select('id, full_name').in('id', tipUserIds)
+    for (const pr of tipProfiles ?? []) if (pr.full_name) tipNames.set(pr.id, pr.full_name)
+  }
+
   const payments: SaleDetailPayment[] = (payRows ?? []).map((p) => ({
     id: p.id,
     amount: Number(p.amount),
@@ -93,6 +103,8 @@ export default async function SaleDetailPage(props: { params: Params }) {
     card_last4: p.card_last4,
     card_brand: p.card_brand,
     card_auth_code: p.card_auth_code,
+    tip_amount: Number(p.tip_amount ?? 0),
+    tip_employee: p.tip_user_id ? (tipNames.get(p.tip_user_id) ?? null) : null,
   }))
 
   const c = (sale as unknown as {

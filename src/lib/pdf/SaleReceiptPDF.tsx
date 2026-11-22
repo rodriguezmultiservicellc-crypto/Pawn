@@ -41,6 +41,8 @@ export type SaleReceiptPayment = {
   card_last4?: string | null
   card_brand?: string | null
   card_auth_code?: string | null
+  /** Tip added on the card reader, charged on top of `amount` (patches/0096). */
+  tip?: number
 }
 
 export type SaleReceiptCustomer = {
@@ -630,6 +632,16 @@ export default function SaleReceiptPDF({ data }: { data: SaleReceiptData }) {
                 </Text>
               </View>
             ))}
+            {data.payments
+              .filter((p) => (p.tip ?? 0) > 0)
+              .map((p, i) => (
+                <View key={`tip-${i}`} style={styles.paymentRow}>
+                  <Text style={styles.paymentMethod}>
+                    {en.tip} / {es.tip}
+                  </Text>
+                  <Text style={styles.paymentAmount}>{formatMoney(p.tip ?? 0)}</Text>
+                </View>
+              ))}
             <View style={styles.totalsGrand}>
               <Text style={styles.totalsGrandLabel}>
                 {en.totals.paid} / {es.totals.paid}
