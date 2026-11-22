@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { submitKeepingValues } from '@/lib/ui/submit-keeping-values'
 import {
   updateLoyaltySettingsAction,
   type UpdateLoyaltySettingsState,
@@ -47,7 +48,7 @@ export default function LoyaltySettingsContent({
       <h1 className="mb-2 text-2xl font-semibold text-foreground">{t.settingsHub.loyalty.title}</h1>
       <p className="mb-6 text-sm text-muted">{ls.subtitle}</p>
 
-      <form action={formAction} className="space-y-6">
+      <form onSubmit={submitKeepingValues(formAction)} className="space-y-6">
         <fieldset className="rounded-lg border border-border p-4">
           <legend className="px-2 text-sm font-medium text-foreground">{ls.enableLegend}</legend>
           <label className="flex items-center gap-2 text-sm text-foreground">

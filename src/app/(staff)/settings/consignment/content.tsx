@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { submitKeepingValues } from '@/lib/ui/submit-keeping-values'
 import { CommissionField } from '@/components/consignment/CommissionField'
 import {
   updateConsignmentSettingsAction,
@@ -45,7 +46,7 @@ export default function ConsignmentSettingsContent({
         <p className="mt-1 text-sm text-muted">{ts.subtitle}</p>
       </div>
 
-      <form action={action} className="space-y-4">
+      <form onSubmit={submitKeepingValues(action)} className="space-y-4">
         <fieldset className="rounded-xl border border-border bg-card p-4">
           <label className="flex items-start gap-3 text-sm text-foreground">
             <input
