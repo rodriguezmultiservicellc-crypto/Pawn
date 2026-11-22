@@ -61,6 +61,9 @@ export const en = {
     fixErrorsBelow: 'Please fix the highlighted fields below.',
     collapseSidebar: 'Collapse sidebar',
     expandSidebar: 'Expand sidebar',
+    collapseGroup: 'Close {group}',
+    expandGroup: 'Open {group}',
+    backToSettings: 'Back to settings',
   },
 
   lang: {
@@ -102,7 +105,6 @@ export const en = {
     audit: 'Audit log',
     team: 'Team',
     settings: 'Settings',
-    communications: 'Communications',
     loyalty: 'Loyalty',
     consignors: 'Consignors',
     storeCredit: 'Store credit',
@@ -4695,7 +4697,6 @@ export const en = {
   },
 
   imports: {
-    backToSettings: 'Back to settings',
     title: 'Data import',
     subtitle:
       'Bring customers in from another pawn system. Preview before you commit — re-runnable without duplicates.',

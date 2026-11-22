@@ -262,7 +262,10 @@ the find/replace map.
   `--color-card`, `--color-border`, `--color-foreground`,
   `--color-text-secondary`, `--color-muted`, `--color-success`,
   `--color-warning`, `--color-danger`, `--color-info`, etc.).
-- **Fonts** — `next/font/google` loads three families:
+- **Fonts** — `next/font/local` loads three families, self-hosted in
+  `src/app/fonts/` (latin variable woff2 + OFL license each; never go
+  back to `next/font/google` — its build-time download failed Vercel
+  builds):
   - **DM Sans** (`--font-dm-sans` / `font-sans`) — body / UI default,
     weight 400. Labels: 600. Buttons: 700.
   - **Playfair Display** (`--font-playfair` / `font-display`) — page

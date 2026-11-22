@@ -86,7 +86,7 @@ export default function ImportContent() {
           className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
-          {ti.backToSettings}
+          {t.common.backToSettings}
         </Link>
         <h1 className="mt-2 font-display text-2xl font-bold text-foreground">
           {ti.title}

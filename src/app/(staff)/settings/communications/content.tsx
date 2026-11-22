@@ -1,7 +1,9 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
+import Link from 'next/link'
 import {
+  ArrowLeft,
   ChatCircleText,
   EnvelopeSimple,
   Gear,
@@ -96,7 +98,14 @@ export default function CommunicationsContent({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+        >
+          <ArrowLeft size={14} weight="bold" />
+          {t.common.backToSettings}
+        </Link>
+        <h1 className="mt-2 font-display text-2xl font-bold text-foreground">
           {t.comms.settingsTitle}
         </h1>
         <p className="mt-1 text-sm text-muted">{t.comms.settingsSubtitle}</p>

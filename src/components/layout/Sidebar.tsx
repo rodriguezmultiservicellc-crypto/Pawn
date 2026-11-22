@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -18,10 +18,10 @@ import {
   Gear,
   ClockCounterClockwise,
   ArrowsLeftRight,
-  ChatCircleText,
   Certificate,
   CaretDoubleLeft,
   CaretDoubleRight,
+  CaretDown,
   Storefront,
   CreditCard,
   Calculator,
@@ -49,6 +49,17 @@ import type { TenantRole, TenantType } from '@/types/database-aliases'
  *   - Phone-size viewport (≤800px) auto-collapses regardless of the
  *     persisted preference, restoring the user's choice when crossing
  *     back to desktop.
+ *
+ * Group open / close:
+ *   - Inventory, POS, Pawns and Repair each fold their sub-items away. The
+ *     caret on the group row toggles it; Inventory and POS stay links, the
+ *     Pawns and Repair headings toggle on a click anywhere in the row.
+ *   - Closed groups persist in localStorage under
+ *     `pawn.sidebar.groups.closed`. All groups start open.
+ *   - A closed group that holds the current page lights its own row, so
+ *     the user still sees where they are.
+ *   - The icon rail (collapsed sidebar) ignores this and shows every icon:
+ *     it has no heading row to reopen a group from.
  */
 
 type Modules = {
@@ -81,6 +92,36 @@ function readPersistedCollapsed(): boolean {
     return localStorage.getItem(STORAGE_KEY) === '1'
   } catch {
     return false
+  }
+}
+
+type GroupId = 'inventory' | 'pos' | 'pawns' | 'repair'
+
+const GROUPS_KEY = 'pawn.sidebar.groups.closed'
+const GROUPS_EVENT = 'pawn:sidebar-groups'
+
+// The closed groups as one comma-joined string: a primitive snapshot, so
+// useSyncExternalStore compares it by value. The server snapshot is ''
+// (all open), which keeps hydration identical to the server HTML; React
+// switches to the stored value right after.
+function readClosedGroups(): string {
+  try {
+    return localStorage.getItem(GROUPS_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function serverClosedGroups(): string {
+  return ''
+}
+
+function subscribeClosedGroups(onChange: () => void): () => void {
+  window.addEventListener('storage', onChange)
+  window.addEventListener(GROUPS_EVENT, onChange)
+  return () => {
+    window.removeEventListener('storage', onChange)
+    window.removeEventListener(GROUPS_EVENT, onChange)
   }
 }
 
@@ -133,6 +174,26 @@ export function Sidebar({
     })
   }
 
+  const closedGroups = new Set(
+    useSyncExternalStore(
+      subscribeClosedGroups,
+      readClosedGroups,
+      serverClosedGroups,
+    )
+      .split(',')
+      .filter(Boolean),
+  )
+
+  const toggleGroup = (group: GroupId) => {
+    const next = new Set(closedGroups)
+    if (next.has(group)) next.delete(group)
+    else next.add(group)
+    try {
+      localStorage.setItem(GROUPS_KEY, [...next].join(','))
+    } catch {}
+    window.dispatchEvent(new Event(GROUPS_EVENT))
+  }
+
   const canSeeAudit = !!tenantRole && AUDIT_ROLES.has(tenantRole)
   const canSeeCollections = !!tenantRole && COLLECTIONS_ROLES.has(tenantRole)
   const canSeeSettings = !!tenantRole && SETTINGS_ROLES.has(tenantRole)
@@ -158,6 +219,9 @@ export function Sidebar({
     /** Group label over its children: not a link, never active, hidden
      *  when the sidebar is collapsed (the children's icons remain). */
     heading?: boolean
+    /** The open / close group this row belongs to. The row without
+     *  `child` is the group's own row and carries the caret. */
+    group?: GroupId
   }
   type NavSection = {
     /** Visual divider between groups. Renders as a hairline (collapsed)
@@ -169,11 +233,12 @@ export function Sidebar({
     // Operations — top-level day-to-day navigation, no section label.
     { kind: 'item', href: '/dashboard', label: t.nav.dashboard, icon: <House size={18} weight="regular" /> },
     { kind: 'item', href: '/customers', label: t.nav.customers, icon: <Users size={18} weight="regular" /> },
-    { kind: 'item', href: '/inventory', label: t.nav.inventory, icon: <Package size={18} weight="regular" /> },
+    { kind: 'item', href: '/inventory', label: t.nav.inventory, icon: <Package size={18} weight="regular" />, group: 'inventory' },
     // Inventory's own actions, indented under it.
     {
       kind: 'item',
       href: '/inventory/new',
+      group: 'inventory',
       label: t.nav.newItem,
       icon: <Plus size={16} weight="regular" />,
       child: true,
@@ -181,6 +246,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/inventory/import',
+      group: 'inventory',
       label: t.nav.importInventory,
       icon: <UploadSimple size={16} weight="regular" />,
       visible: canSeeImport,
@@ -189,6 +255,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/inventory/counts',
+      group: 'inventory',
       label: t.nav.counts,
       icon: <ListChecks size={16} weight="regular" />,
       visible: canSeeCounts,
@@ -198,6 +265,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/consignors',
+      group: 'inventory',
       label: t.nav.consignors,
       icon: <HandCoins size={16} weight="regular" />,
       visible: consignmentEnabled,
@@ -206,6 +274,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/inventory/transfers',
+      group: 'inventory',
       label: t.nav.transfers,
       icon: <ArrowsLeftRight size={16} weight="regular" />,
       visible: canSeeTransfers,
@@ -220,6 +289,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/pos',
+      group: 'pos',
       label: t.nav.pos,
       icon: <CashRegister size={18} weight="regular" />,
       visible: modules.has_retail,
@@ -227,6 +297,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/pos/sales/new',
+      group: 'pos',
       label: t.nav.newSale,
       icon: <Plus size={16} weight="regular" />,
       visible: modules.has_retail,
@@ -235,6 +306,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/pos/layaways',
+      group: 'pos',
       label: t.nav.layawayList,
       icon: <Wallet size={16} weight="regular" />,
       visible: modules.has_retail,
@@ -243,6 +315,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/pos/sales',
+      group: 'pos',
       label: t.nav.saleHistory,
       icon: <Receipt size={16} weight="regular" />,
       visible: modules.has_retail,
@@ -253,6 +326,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/pos/online-orders',
+      group: 'pos',
       label: t.nav.onlineOrders,
       icon: <Globe size={16} weight="regular" />,
       visible: modules.has_retail && canSeeCounts,
@@ -262,6 +336,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '#pawns',
+      group: 'pawns',
       label: t.nav.pawns,
       icon: <Coins size={18} weight="regular" />,
       visible: modules.has_pawn,
@@ -270,6 +345,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/pawn/new',
+      group: 'pawns',
       label: t.nav.newPawn,
       icon: <Plus size={16} weight="regular" />,
       visible: modules.has_pawn,
@@ -278,6 +354,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/pawn',
+      group: 'pawns',
       label: t.nav.pawns,
       icon: <Coins size={16} weight="regular" />,
       visible: modules.has_pawn,
@@ -286,6 +363,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/buy/new',
+      group: 'pawns',
       // Buy-outright detail pages live at /buy/<id>.
       activePrefix: '/buy',
       label: t.nav.buyOutright,
@@ -296,6 +374,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/pawn/calculator',
+      group: 'pawns',
       label: t.nav.loanCalculator,
       icon: <Calculator size={16} weight="regular" />,
       visible: modules.has_pawn,
@@ -305,6 +384,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '#repair',
+      group: 'repair',
       label: t.nav.repair,
       icon: <Wrench size={18} weight="regular" />,
       visible: modules.has_repair,
@@ -313,6 +393,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/repair/new',
+      group: 'repair',
       label: t.nav.newRepair,
       icon: <Plus size={16} weight="regular" />,
       visible: modules.has_repair,
@@ -321,6 +402,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/repair',
+      group: 'repair',
       label: t.nav.repairs,
       icon: <Wrench size={16} weight="regular" />,
       visible: modules.has_repair,
@@ -329,6 +411,7 @@ export function Sidebar({
     {
       kind: 'item',
       href: '/repair/quotes',
+      group: 'repair',
       label: t.nav.quotes,
       icon: <Sparkle size={16} weight="regular" />,
       visible: modules.has_repair,
@@ -417,13 +500,6 @@ export function Sidebar({
     },
     {
       kind: 'item',
-      href: '/settings/communications',
-      label: t.nav.communications,
-      icon: <ChatCircleText size={18} weight="regular" />,
-      visible: canSeeSettings,
-    },
-    {
-      kind: 'item',
       href: '/settings/loyalty',
       label: t.nav.loyalty,
       icon: <Trophy size={18} weight="regular" />,
@@ -460,8 +536,33 @@ export function Sidebar({
     return hit && (!best || root.length > best.length) ? root : best
   }, null)
 
+  const visibleItems = items.filter(
+    (it): it is NavItem => it.kind === 'item' && it.visible !== false,
+  )
+  // The group holding the current page: its row lights up while closed.
+  const activeGroup =
+    visibleItems.find(
+      (it) => !it.heading && (it.activePrefix ?? it.href) === bestActiveRoot,
+    )?.group ?? null
+  // Only a group with something under it gets a caret.
+  const groupsWithChildren = new Set(
+    visibleItems.filter((it) => it.child && it.group).map((it) => it.group),
+  )
+  // The icon rail shows every icon, so nothing counts as closed there.
+  const isClosed = (group?: GroupId) =>
+    !collapsed && !!group && closedGroups.has(group)
+
   const widthClass = collapsed ? 'w-16' : 'w-52'
   const itemPadX = collapsed ? 'px-0 justify-center' : 'px-3'
+  const rowTone = (lit: boolean) =>
+    lit ? 'bg-white/10 text-gold' : 'text-white/65 hover:bg-white/5 hover:text-white'
+  const groupCaret = (open: boolean) => (
+    <CaretDown
+      size={14}
+      weight="bold"
+      className={`shrink-0 transition-transform ${open ? '' : '-rotate-90'}`}
+    />
+  )
 
   return (
     <nav
@@ -484,7 +585,11 @@ export function Sidebar({
       </button>
 
       {items
-        .filter((it) => it.kind === 'section' || it.visible !== false)
+        .filter(
+          (it) =>
+            it.kind === 'section' ||
+            (it.visible !== false && !(it.child && isClosed(it.group))),
+        )
         // Drop a section divider whose group is empty (all items filtered
         // out by visibility) or that lands at the end of the list. Two
         // passes:
@@ -513,20 +618,38 @@ export function Sidebar({
           }
           if (it.heading) {
             if (collapsed) return null
+            const group = it.group
+            const open = !isClosed(group)
+            const lit = !open && activeGroup === group
             return (
-              <div
+              <button
                 key={it.href}
-                className={`flex items-center gap-2 rounded-lg ${itemPadX} py-2 text-sm font-medium text-white/65`}
+                type="button"
+                onClick={() => group && toggleGroup(group)}
+                aria-expanded={open}
+                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 ${rowTone(lit)}`}
               >
-                <span className="text-white/65">{it.icon}</span>
-                <span className="truncate">{it.label}</span>
-              </div>
+                <span className={lit ? 'text-gold' : 'text-white/65'}>
+                  {it.icon}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                {groupCaret(open)}
+              </button>
             )
           }
           const activeRoot = it.activePrefix ?? it.href
+          // A group's own row (Inventory, POS) carries the caret.
+          const caretGroup =
+            !collapsed && !it.child && it.group && groupsWithChildren.has(it.group)
+              ? it.group
+              : null
+          const groupOpen = !isClosed(it.group)
           // Only the most specific match lights up: /inventory/counts is
-          // Counts, not Inventory as well.
-          const isActive = activeRoot === bestActiveRoot
+          // Counts, not Inventory as well — unless Inventory is closed and
+          // Counts is hidden, then Inventory stands in for it.
+          const isActive =
+            activeRoot === bestActiveRoot ||
+            (!!caretGroup && !groupOpen && activeGroup === caretGroup)
           if (it.disabled) {
             return (
               <span
@@ -540,15 +663,42 @@ export function Sidebar({
               </span>
             )
           }
+          if (caretGroup) {
+            const caretLabel = (
+              groupOpen ? t.common.collapseGroup : t.common.expandGroup
+            ).replace('{group}', it.label)
+            return (
+              <div
+                key={it.href}
+                className={`flex items-center rounded-lg text-sm font-medium transition-colors ${rowTone(isActive)}`}
+              >
+                <Link
+                  href={it.href}
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-lg py-2 pl-3"
+                >
+                  <span className={isActive ? 'text-gold' : 'text-white/65'}>
+                    {it.icon}
+                  </span>
+                  <span className="truncate">{it.label}</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(caretGroup)}
+                  aria-expanded={groupOpen}
+                  aria-label={caretLabel}
+                  title={caretLabel}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
+                >
+                  {groupCaret(groupOpen)}
+                </button>
+              </div>
+            )
+          }
           return (
             <Link
               key={it.href}
               href={it.href}
-              className={`flex items-center gap-2 rounded-lg ${it.child && !collapsed ? 'pl-8 pr-3 py-1.5' : `${itemPadX} py-2`} text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-white/10 text-gold'
-                  : 'text-white/65 hover:bg-white/5 hover:text-white'
-              }`}
+              className={`flex items-center gap-2 rounded-lg ${it.child && !collapsed ? 'pl-8 pr-3 py-1.5' : `${itemPadX} py-2`} text-sm font-medium transition-colors ${rowTone(isActive)}`}
               title={collapsed ? it.label : undefined}
               aria-label={collapsed ? it.label : undefined}
             >

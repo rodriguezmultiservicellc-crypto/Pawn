@@ -56,6 +56,9 @@ export const es: Dictionary = {
     fixErrorsBelow: 'Por favor corrija los campos resaltados abajo.',
     collapseSidebar: 'Contraer menú',
     expandSidebar: 'Expandir menú',
+    collapseGroup: 'Cerrar {group}',
+    expandGroup: 'Abrir {group}',
+    backToSettings: 'Volver a ajustes',
   },
 
   lang: {
@@ -97,7 +100,6 @@ export const es: Dictionary = {
     audit: 'Auditoría',
     team: 'Equipo',
     settings: 'Ajustes',
-    communications: 'Comunicaciones',
     loyalty: 'Lealtad',
     consignors: 'Consignatarios',
     storeCredit: 'Crédito de tienda',
@@ -4695,7 +4697,6 @@ export const es: Dictionary = {
   },
 
   imports: {
-    backToSettings: 'Volver a ajustes',
     title: 'Importar datos',
     subtitle:
       'Trae clientes desde otro sistema de empeño. Previsualiza antes de confirmar — se puede re-ejecutar sin duplicados.',
