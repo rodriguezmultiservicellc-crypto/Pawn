@@ -60,8 +60,11 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 64 (2026-11-22). Items 531-534, ONE MIGRATION,
-                  APPLIED: 0097.
+  Last session:   Session 64 (2026-11-22). Items 531-535, TWO MIGRATIONS,
+                  BOTH APPLIED: 0097, 0098.
+                  - Online orders keep their tax split and carry it onto
+                    the sale; shipped out of state = exempt 'export'
+                    (535, 0098).
                   - SALES TAX REPORT at /reports/sales-tax, with CSV and
                     PDF (533).
                   - Eddy rang real test sales: 'shop' tax mode and Tax
@@ -534,7 +537,7 @@ SESSION HISTORY LOG
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
 
---- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report (branch feature/sol-pawn-brief == main) ---
+--- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 
  531. THE RECEIPT SHOWS THE TAX BY TAX LINE.
       Under "Tax" every receipt format now lists what the sale kept in
@@ -645,6 +648,45 @@ Progress_archive.txt — the items from those sessions are there.)
       tax $690.00.
       Sales already rung up keep what they were charged: S-000017
       ($200) was under both caps, so its $15.00 is the same either way.
+
+ 535. ONLINE ORDERS KEEP THEIR TAX SPLIT (patches/0098, APPLIED).
+      An online order was quoted by sales_tax_quote() but kept only the
+      total, so its sale had no split, no tax per line, and — shipped out
+      of state — nothing saying why it had no tax. Now:
+      - online_order_reserve stores online_orders.tax_breakdown,
+        tax_exempt_reason ('export' when shipped out of the shop's
+        state) and online_order_items.tax_amount.
+      - online_order_paid copies them to sales.tax_breakdown,
+        sales.tax_exempt + tax_exempt_reason and sale_items.tax_amount.
+        The Shipping line carries tax 0 when a split was kept, so every
+        line has its own tax and a return refunds exactly.
+      - The quote is stored, not recomputed at payment: the shopper is
+        charged what was quoted, and the tax lines can change in the
+        30-minute reservation window.
+      - A shop with no tax lines stays a plain no-tax sale (not exempt).
+      Same signatures (CREATE OR REPLACE), grants kept (service_role
+      only), no RLS change. Bodies = the live definitions + lines marked
+      0098. No app code reads the new columns; the receipt, the sale
+      page and the sales tax report pick the split up from the sale.
+      VERIFIED by a dry run on live data, rolled back (the store has 0
+      orders, so nothing real exists to check against):
+        pickup, $6,000 + $200  → tax $450.00 = FLDOR $372.00 on $6,200
+                                 + Hillsborough $78.00 on $5,200; lines
+                                 $435.00 and $15.00; sale completed
+        shipped to GA, $300    → tax 0, exempt 'export', sale $312.00
+        shipped in FL, $100    → tax $7.50; Shipping $12.00 line tax 0
+        shop with no tax lines → tax 0, NOT exempt
+      (This run also exercised the corrected cap of item 534.)
+      NOT VERIFIED: a real online order — the online store has never run
+      end to end (no Stripe key, see OPEN ISSUES).
+      KNOWN LIMIT: on the sales tax report the "Taxable sales" tile is
+      sales before tax minus no-tax sales, so an untaxed SHIPPING charge
+      on a taxed online order is inside it. The "By tax line" rows are
+      exact (they show what each tax was charged on). Whether shipping
+      should be taxed at all is a state rule the shop has not been asked
+      about — Florida generally taxes delivery charges unless they are
+      separately stated AND optional. Ask Eddy before the store goes
+      live.
 
 --- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
 
@@ -2949,10 +2991,8 @@ PENDING — NEXT UP
     run through the API before — see RESUME POINT (a)); read the Vercel
     log "[pos.money] sale_create". If it worked, that item is closed.
     Then, in his order of interest:
-    - online orders keep no tax split (online_order_reserve stores only
-      the total), so the sales tax report lists them under "One rate, no
-      split". Carry the breakdown onto the sale when the online store
-      goes live;
+    - ask Eddy whether the shop taxes SHIPPING on online orders (today
+      it never does — item 535 KNOWN LIMIT) before the store goes live;
     - Eddy works the /customers/merge duplicates list (53 groups);
     - the pawn company's own Stripe key → pair the reader → one tipped
       TEST sale (KNOWN ISSUES "CARD READER TIPS" lists what to confirm);

@@ -283,6 +283,20 @@ describe('saleTaxLines (the split a sale kept)', () => {
     expect(saleTaxLines([stored[0]], 200)).toEqual([])
   })
 
+  it('an online order with shipping: the tax was charged on the piece, not the shipping', () => {
+    // sales.tax_breakdown of a $100.00 piece + $12.00 shipping, as the
+    // database wrote it (dry run of patches/0098, 2026-11-22). The sale is
+    // $112.00 before tax; each tax line was charged on $100.00.
+    const online = [
+      { tax: 6.0, name: 'FLDOR', rate: 0.06, level: 'state', taxable: 100.0, item_cap: null },
+      { tax: 1.5, name: 'Hillsborough', rate: 0.015, level: 'county', taxable: 100.0, item_cap: 5000.0 },
+    ]
+    expect(saleTaxLines(online, 112)).toEqual([
+      { label: 'FLDOR 6% x $100.00', tax: 6 },
+      { label: 'Hillsborough 1.5% x $100.00', tax: 1.5 },
+    ])
+  })
+
   it('still shows a single line that stopped at a cap', () => {
     const one = [{ tax: 75, name: 'County', rate: 0.015, taxable: 5000, item_cap: 5000 }]
     expect(saleTaxLines(one, 10000)).toEqual([{ label: 'County 1.5% x $5,000.00', tax: 75 }])

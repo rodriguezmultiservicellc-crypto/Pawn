@@ -218,6 +218,15 @@ Never kill node processes by image name — always by PID.
       are in that file's header: keep them when touching it, so a voided
       sale nets to zero however the periods are cut. It pages past the
       API's 1,000-row default; do not drop that.
+    - An online order keeps what it was QUOTED (patches/0098):
+      `online_orders.tax_breakdown`, `tax_exempt_reason` and
+      `online_order_items.tax_amount` are written by
+      `online_order_reserve` and copied onto the sale by
+      `online_order_paid` — never recomputed at payment, because the
+      shopper was charged the quote. Shipped out of the shop's state =
+      no tax AND `tax_exempt_reason = 'export'`. A shop with no tax lines
+      is a plain no-tax sale, not an exemption. Shipping is never taxed
+      (its sale line carries tax 0).
     - A 'shop' sale keeps `sales.tax_breakdown` (tax per tax line) and
       `sale_items.tax_amount` (tax per line). Returns refund the line's own
       tax when present; older and flat sales fall back to a proportional

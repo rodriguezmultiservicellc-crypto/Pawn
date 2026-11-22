@@ -4344,6 +4344,7 @@ export type Database = {
           order_id: string
           position: number
           sku: string
+          tax_amount: number | null
           tenant_id: string
           unit_price: number
         }
@@ -4355,6 +4356,7 @@ export type Database = {
           order_id: string
           position?: number
           sku: string
+          tax_amount?: number | null
           tenant_id: string
           unit_price: number
         }
@@ -4366,6 +4368,7 @@ export type Database = {
           order_id?: string
           position?: number
           sku?: string
+          tax_amount?: number | null
           tenant_id?: string
           unit_price?: number
         }
@@ -4445,6 +4448,8 @@ export type Database = {
           stripe_session_id: string | null
           subtotal: number
           tax_amount: number
+          tax_breakdown: Json | null
+          tax_exempt_reason: string | null
           tax_rate: number
           tenant_id: string
           total: number
@@ -4488,6 +4493,8 @@ export type Database = {
           stripe_session_id?: string | null
           subtotal: number
           tax_amount?: number
+          tax_breakdown?: Json | null
+          tax_exempt_reason?: string | null
           tax_rate?: number
           tenant_id: string
           total: number
@@ -4531,6 +4538,8 @@ export type Database = {
           stripe_session_id?: string | null
           subtotal?: number
           tax_amount?: number
+          tax_breakdown?: Json | null
+          tax_exempt_reason?: string | null
           tax_rate?: number
           tenant_id?: string
           total?: number
