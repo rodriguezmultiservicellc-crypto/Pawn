@@ -286,6 +286,31 @@ const styles = StyleSheet.create({
     borderTopColor: PALETTE.ink,
     borderTopStyle: 'solid',
   },
+  // What is still owed — the largest number on the page.
+  balanceBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderWidth: 2,
+    borderColor: PALETTE.ink,
+    borderStyle: 'solid',
+    borderRadius: 4,
+  },
+  balanceLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: PALETTE.ink,
+    textTransform: 'uppercase',
+  },
+  balanceValue: {
+    fontFamily: 'JetBrains Mono',
+    fontSize: 18,
+    fontWeight: 700,
+    color: PALETTE.ink,
+  },
   totalsGrandLabel: {
     fontSize: 10,
     fontWeight: 700,
@@ -614,11 +639,11 @@ export default function SaleReceiptPDF({ data }: { data: SaleReceiptData }) {
               </Text>
             </View>
             {balanceDue > 0.005 ? (
-              <View style={styles.totalsLine}>
-                <Text style={styles.totalsLabel}>
+              <View style={styles.balanceBox}>
+                <Text style={styles.balanceLabel}>
                   {en.totals.balance} / {es.totals.balance}
                 </Text>
-                <Text style={styles.totalsValue}>
+                <Text style={styles.balanceValue}>
                   {formatMoney(balanceDue)}
                 </Text>
               </View>

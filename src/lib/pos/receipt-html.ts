@@ -24,6 +24,7 @@ import {
   paymentLabel,
   shopDateTime,
   thermalReceiptLines,
+  balanceOwed,
 } from './receipt-thermal'
 
 export function escapeHtml(s: string): string {
@@ -95,7 +96,7 @@ function letterHtml(data: SaleReceiptDoc, title: string): string {
   const contact = [t.phone, t.email].filter(Boolean).join(' · ')
   const customerName =
     data.customer?.full_name?.trim() || bi(en.customer.anonymous, es.customer.anonymous)
-  const balance = Math.max(0, data.total - data.paid_total)
+  const owed = balanceOwed(data)
   const terms = layawayTerms(data)
 
   const label = (a: string, b: string) =>
@@ -145,6 +146,9 @@ td{border-bottom:1px solid ${reportColors.divider};padding:5px 6px;vertical-alig
 .sub{font-size:8.5pt;color:${reportColors.muted}}
 .totals{margin-left:auto;width:50%;margin-top:10px}
 .line{display:flex;justify-content:space-between;gap:12px;padding:2px 0}
+.balance{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:10px;padding:10px 14px;border:2.5px solid ${reportColors.ink};border-radius:6px;color:${reportColors.ink};font-weight:700;font-size:14pt;text-transform:uppercase;letter-spacing:.03em}
+.balance .num{font-size:24pt;letter-spacing:0}
+.balance .es{font-weight:700}
 .grand{border-top:1px solid ${reportColors.ink};margin-top:4px;padding-top:4px;font-weight:700;color:${reportColors.ink};font-size:12pt}
 .policy{font-size:9pt}
 .policy p{margin:4px 0}
@@ -209,8 +213,8 @@ ${
 ${data.payments.length === 0 ? `<p class="small">${label(en.paymentsEmpty, es.paymentsEmpty)}</p>` : paymentRows}
 <div class="totals">
   <div class="line grand"><span>${label(en.totals.paid, es.totals.paid)}</span><span class="num">${e(money(data.paid_total))}</span></div>
-  ${balance > 0.005 && !terms ? `<div class="line"><span>${label(en.totals.balance, es.totals.balance)}</span><span class="num">${e(money(balance))}</span></div>` : ''}
 </div>
+${owed ? `<div class="balance"><span>${label(owed.en, owed.es)}</span><span class="num">${e(money(owed.amount))}</span></div>` : ''}
 ${
   terms
     ? `<hr>

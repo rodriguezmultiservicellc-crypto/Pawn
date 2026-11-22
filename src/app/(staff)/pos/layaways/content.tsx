@@ -33,31 +33,34 @@ export default function LayawayListContent({
 }) {
   const { t } = useI18n()
 
+  // "Due soon" is a view of its own: while it is on, no status tab is lit,
+  // and clicking any status tab leaves it.
+  const dueSoon = dueWindow === 'dueSoon7'
   const filterChips: Array<{ key: string; label: string; active: boolean }> = [
     {
       key: 'all',
       label: t.pos.layaway.filtersAll,
-      active: statusFilter === 'all',
+      active: !dueSoon && statusFilter === 'all',
     },
     {
       key: 'active',
       label: t.pos.layaway.filtersActive,
-      active: statusFilter === 'active',
+      active: !dueSoon && statusFilter === 'active',
     },
     {
       key: 'completed',
       label: t.pos.layaway.filtersCompleted,
-      active: statusFilter === 'completed',
+      active: !dueSoon && statusFilter === 'completed',
     },
     {
       key: 'cancelled',
       label: t.pos.layaway.filtersCancelled,
-      active: statusFilter === 'cancelled',
+      active: !dueSoon && statusFilter === 'cancelled',
     },
     {
       key: 'defaulted',
       label: t.pos.layaway.filtersDefaulted,
-      active: statusFilter === 'defaulted',
+      active: !dueSoon && statusFilter === 'defaulted',
     },
   ]
 
@@ -91,7 +94,8 @@ export default function LayawayListContent({
         {filterChips.map((chip) => (
           <Link
             key={chip.key}
-            href={buildHref({ status: chip.key, due: dueWindow })}
+            href={buildHref({ status: chip.key })}
+            aria-current={chip.active ? 'page' : undefined}
             className={`rounded-full border px-3 py-1 text-xs ${
               chip.active
                 ? 'border-gold bg-gold text-navy'
@@ -102,9 +106,11 @@ export default function LayawayListContent({
           </Link>
         ))}
         <Link
-          href={buildHref({ status: statusFilter, due: 'dueSoon7' })}
+          // Click again to switch it off (back to Active).
+          href={buildHref({ status: 'active', due: dueSoon ? 'all' : 'dueSoon7' })}
+          aria-current={dueSoon ? 'page' : undefined}
           className={`rounded-full border px-3 py-1 text-xs ${
-            dueWindow === 'dueSoon7'
+            dueSoon
               ? 'border-warning bg-warning/10 text-warning'
               : 'border-border bg-card text-foreground hover:bg-background hover:text-foreground'
           }`}

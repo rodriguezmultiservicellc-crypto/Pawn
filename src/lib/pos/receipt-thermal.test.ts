@@ -119,10 +119,15 @@ describe('thermalReceiptLines', () => {
   })
 
   it('shows a balance line only when money is still owed', () => {
-    expect(text).not.toContain(en.pos.print.totals.balance)
-    const owing = thermalReceiptLines(doc({ paid_total: 1000 })).join('\n')
-    expect(owing).toContain(en.pos.print.totals.balance)
-    expect(owing).toContain('$290.00')
+    expect(text.toUpperCase()).not.toContain(en.pos.print.totals.balance.toUpperCase())
+    const owing = thermalReceiptLines(doc({ paid_total: 1000 }))
+    // In capitals, boxed between heavy rules, so it stands out on plain text.
+    const at = owing.findIndex((l) => l.includes(en.pos.print.totals.balance.toUpperCase()))
+    expect(at).toBeGreaterThan(0)
+    const end = owing.findIndex((l, i) => i > at && l === '='.repeat(40))
+    expect(owing[at - 1]).toBe('='.repeat(40))
+    expect(end).toBeGreaterThan(at)
+    expect(owing.slice(at, end).join(' ')).toContain('$290.00')
   })
 
   it('names a walk-in when there is no customer', () => {
@@ -154,6 +159,21 @@ describe('layaway receipt', () => {
     expect(text).toContain('$290.00')
     expect(text).toContain(en.pos.print.layaway.policy.replace('{pct}', '10%').slice(0, 30))
     expect(text.replace(/\s+/g, ' ')).toContain(es.pos.print.layaway.policy.replace('{pct}', '10%'))
+  })
+
+  it('prints the balance once, large, right under what was paid', () => {
+    const label = en.pos.print.layaway.balance.toUpperCase()
+    const at = lines.findIndex((l) => l.includes(label))
+    expect(at).toBeGreaterThan(0)
+    expect(lines[at - 1]).toBe('='.repeat(40))
+    expect(lines.filter((l) => l.toUpperCase().includes(label))).toHaveLength(1)
+    // Before the terms block, not buried inside it.
+    expect(at).toBeLessThan(lines.findIndex((l) => l.includes(en.pos.print.layaway.terms.toUpperCase())))
+
+    const html = saleReceiptHtml(lay, 'letter')
+    expect(html.match(/class="balance"/g)).toHaveLength(1)
+    expect(html).toContain(`<div class="balance"><span>${escapeHtml(en.pos.print.layaway.balance)}`)
+    expect(html.indexOf('class="balance"')).toBeLessThan(html.indexOf(escapeHtml(en.pos.print.layaway.terms) + ' '))
   })
 
   it('says refunded in full when there is no cancellation fee', () => {

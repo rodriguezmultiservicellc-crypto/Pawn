@@ -148,6 +148,21 @@ export function calendarDate(iso: string | null): string {
 }
 
 /**
+ * What the customer still owes, for the large balance line every receipt
+ * prints right under "Paid". A layaway reads its own balance; any other
+ * sale owes total − paid. Null when nothing is owed.
+ */
+export function balanceOwed(data: SaleReceiptDoc): { en: string; es: string; amount: number } | null {
+  const print = { en: data.i18n.en.pos.print, es: data.i18n.es.pos.print }
+  if (data.layaway) {
+    const amount = Math.max(0, data.layaway.balance_remaining)
+    return amount > 0.005 ? { en: print.en.layaway.balance, es: print.es.layaway.balance, amount } : null
+  }
+  const amount = Math.max(0, data.total - data.paid_total)
+  return amount > 0.005 ? { en: print.en.totals.balance, es: print.es.totals.balance, amount } : null
+}
+
+/**
  * The layaway block shared by the Letter and Thermal receipts: bilingual
  * label/value rows plus the cancellation policy in each language. Null for
  * a plain sale.
@@ -157,6 +172,8 @@ export function layawayTerms(data: SaleReceiptDoc): {
   policyEn: string
   policyEs: string
 } | null {
+  // The balance is NOT one of these rows: it is the number the customer
+  // needs most, so each receipt prints it on its own, large (balanceOwed).
   const l = data.layaway
   if (!l) return null
   const en = data.i18n.en.pos.print.layaway
@@ -169,7 +186,6 @@ export function layawayTerms(data: SaleReceiptDoc): {
   ]
   if (l.final_due_date) rows.push([bi(en.finalDue, es.finalDue), calendarDate(l.final_due_date)])
   rows.push([bi(en.cancellationFee, es.cancellationFee), pct])
-  rows.push([bi(en.balance, es.balance), money(l.balance_remaining)])
   const noFee = l.cancellation_fee_pct <= 0
   return {
     rows,
@@ -259,12 +275,16 @@ export function thermalReceiptLines(data: SaleReceiptDoc, width: number = THERMA
     if (card) push(...indented(card, W))
   }
   push(...row(bi(en.totals.paid, es.totals.paid), money(data.paid_total), W))
-  const balance = Math.max(0, data.total - data.paid_total)
-  if (balance > 0.005 && !terms) {
-    push(...row(bi(en.totals.balance, es.totals.balance), money(balance), W))
+  // What is still owed: boxed between heavy rules, in capitals, so it is the
+  // first thing read on a strip of plain text.
+  const owed = balanceOwed(data)
+  if (owed) {
+    push(heavy)
+    push(...row(bi(owed.en, owed.es).toUpperCase(), money(owed.amount), W))
+    push(heavy)
   }
 
-  // ── Layaway terms (balance printed here, from the layaway itself)
+  // ── Layaway terms
   if (terms) {
     push(rule)
     push(...center(bi(en.layaway.terms, es.layaway.terms).toUpperCase(), W))
