@@ -741,6 +741,9 @@ Progress_archive.txt — the items from those sessions are there.)
       Pawns (/pawn), Buy outright (/buy/new, active for /buy/*) and Loan
       calculator. Sell metal stays top-level below the group. nav.pawn
       (now unused) replaced by nav.pawns / nav.newPawn, EN + ES.
+      Then: "Repair" heading over New repair (/repair/new), Repairs
+      (/repair) and Custom quotes; Sell metal moved to lead the records
+      group, directly above Spot prices. nav.newRepair / nav.repairs.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 

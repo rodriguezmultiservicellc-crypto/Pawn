@@ -291,28 +291,38 @@ export function Sidebar({
       visible: modules.has_pawn,
       child: true,
     },
-    // Sell metal (brief Phase 3) — scrap / bullion out the door. Rung up
-    // as a sale, so a retail-only shop gets it too.
+    // Repair — a heading over the bench's three pages.
     {
       kind: 'item',
-      href: '/buy/sell',
-      label: t.nav.sellMetal,
-      icon: <Coins size={18} weight="regular" />,
-      visible: modules.has_pawn || modules.has_retail,
+      href: '#repair',
+      label: t.nav.repair,
+      icon: <Wrench size={18} weight="regular" />,
+      visible: modules.has_repair,
+      heading: true,
+    },
+    {
+      kind: 'item',
+      href: '/repair/new',
+      label: t.nav.newRepair,
+      icon: <Plus size={16} weight="regular" />,
+      visible: modules.has_repair,
+      child: true,
     },
     {
       kind: 'item',
       href: '/repair',
-      label: t.nav.repair,
-      icon: <Wrench size={18} weight="regular" />,
+      label: t.nav.repairs,
+      icon: <Wrench size={16} weight="regular" />,
       visible: modules.has_repair,
+      child: true,
     },
     {
       kind: 'item',
       href: '/repair/quotes',
       label: t.nav.quotes,
-      icon: <Sparkle size={18} weight="regular" />,
+      icon: <Sparkle size={16} weight="regular" />,
       visible: modules.has_repair,
+      child: true,
     },
     // Orders paid on the shop's website (patches/0078). A more specific
     // root than /pos, so it — not POS — lights up on its own pages.
@@ -324,9 +334,18 @@ export function Sidebar({
       visible: modules.has_retail && canSeeCounts,
     },
 
-    // Reporting + records. Spot prices and eBay listings lead this group
-    // (Eddy, 2026-11-21) — reference / publishing, not counter work.
+    // Reporting + records. Sell metal, Spot prices and eBay listings lead
+    // this group (Eddy, 2026-11-21).
     { kind: 'section' },
+    // Sell metal (brief Phase 3) — scrap / bullion out the door. Rung up
+    // as a sale, so a retail-only shop gets it too.
+    {
+      kind: 'item',
+      href: '/buy/sell',
+      label: t.nav.sellMetal,
+      icon: <Coins size={18} weight="regular" />,
+      visible: modules.has_pawn || modules.has_retail,
+    },
     {
       kind: 'item',
       href: '/inventory/spot-prices',

@@ -91,6 +91,8 @@ export const en = {
     tools: 'Bench tools',
     collections: 'Collections',
     repair: 'Repair',
+    newRepair: 'New repair',
+    repairs: 'Repairs',
     quotes: 'Custom quotes',
     pos: 'POS',
     appraisals: 'Appraisals',

@@ -87,6 +87,8 @@ export const es: Dictionary = {
     collections: 'Cobranza',
     quotes: 'Cotizaciones',
     repair: 'Reparación',
+    newRepair: 'Nueva reparación',
+    repairs: 'Reparaciones',
     pos: 'Caja',
     appraisals: 'Tasaciones',
     reports: 'Reportes',
