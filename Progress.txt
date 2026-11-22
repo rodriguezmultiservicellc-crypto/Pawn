@@ -60,8 +60,13 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 64 (2026-11-22). Items 531-532, ONE MIGRATION,
+  Last session:   Session 64 (2026-11-22). Items 531-533, ONE MIGRATION,
                   APPLIED: 0097.
+                  - SALES TAX REPORT at /reports/sales-tax, with CSV and
+                    PDF (533).
+                  - Eddy rang real test sales: 'shop' tax mode and Tax
+                    exempt both work through the API (S-000016,
+                    S-000017).
                   - The receipt (thermal, letter, PDF) and the sale page
                     show the tax by tax line (531).
                   - TAX-EXEMPT SALES: a "Tax exempt" checkbox on New sale
@@ -531,7 +536,7 @@ SESSION HISTORY LOG
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
 
---- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales (branch feature/sol-pawn-brief == main) ---
+--- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report (branch feature/sol-pawn-brief == main) ---
 
  531. THE RECEIPT SHOWS THE TAX BY TAX LINE.
       Under "Tax" every receipt format now lists what the sale kept in
@@ -580,6 +585,53 @@ Progress_archive.txt — the items from those sessions are there.)
       work with no console error (requests blocked — no sale written).
       NOT VERIFIED: a real exempt sale, and a real receipt with the
       split — no sale in the database has a tax_breakdown yet.
+      (Both closed the same day — see 533.)
+
+ 533. SALES TAX REPORT (/reports/sales-tax, + CSV and PDF).
+      What the shop files its sales tax return from, read from what each
+      sale KEPT (tax_amount, tax_breakdown, tax_exempt) — never from
+      today's tax_rates.
+      - Tiles: sales before tax, sales with no tax, taxable sales, tax
+        collected, tax refunded, net tax.
+      - By tax line: taxable sales, tax collected, returned, tax
+        refunded, net taxable, net tax. A sale with no split kept (typed
+        rate, online order, pre-0095) is listed as "One rate, no split
+        (7.5%)". Two rates of the same tax stay on separate rows.
+      - Sales with no tax, by reason, then each such sale with its
+        certificate. "No reason recorded" = Tax typed as 0 by hand.
+      - Returns and voids, when there are any.
+      WHEN THINGS COUNT (header of src/lib/reports/sales-tax.ts): a sale
+      the day it is COMPLETED (an open layaway is not counted — its tax
+      appears the day it is paid off); a return the day it is issued; a
+      void the day it is made, only for a sale completed before the
+      dates. A sale completed and voided inside the dates is left out,
+      with its returns. A voided sale nets to zero however the periods
+      are cut (tested).
+      A RETURN'S TAX IS SPLIT BY TAX LINE EXACTLY: refundByTaxLine()
+      works from what each returned item sold for (cart discount
+      included), so a capped tax gives back only what it took; the split
+      always adds up to returns.tax_amount.
+      The loader pages every query (1,000 rows at a time) — the API's
+      default page would under-report silently.
+      Files: src/lib/reports/sales-tax.ts (+ test, 30 tests),
+      sales-tax-export.ts (CSV: one row per document and tax line; PDF:
+      tax lines, then no-tax reasons), src/app/(staff)/reports/sales-tax/
+      {page,content}.tsx, src/app/api/reports/sales-tax/{csv,pdf}/
+      route.ts, reports hub card, smoke-browser route, 38 i18n keys
+      (EN + ES). lib/pos/sales-tax.ts: parseTaxBreakdown() (saleTaxLines
+      now uses it). No migration.
+      VERIFIED on the real data in a browser (production build): the
+      page equals an independent SQL total for the last 30 days (9 sales,
+      $90.00 before tax, $0.75 tax, $5.00 exempt, $75.00 no reason); no
+      console error; CSV 9 rows; PDF returns a valid file. 971 tests,
+      tsc, lint, build green.
+      NOT VERIFIED: the PDF was not looked at (no PDF viewer in the
+      session — its rows are unit-tested); returns and voids exist only
+      in tests (the database has none); a chain HQ rollup.
+      EDDY'S REAL TEST SALES (2026-11-22) closed two open items: S-000016
+      rung up Tax exempt (Resale + certificate) and S-000017 (layaway,
+      'shop' tax mode: $12.00 FLDOR + $3.00 Hillsborough) both went
+      through the API and print correctly on the thermal receipt.
 
 --- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
 
@@ -2877,20 +2929,19 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Eddy entered his tax lines (FLDOR 6% + Hillsborough 1.5%) but no
-    sale has been rung up with them yet (no sales.tax_breakdown in the
-    database on 2026-11-22). Ask him to ring one normal sale and one
-    "Tax exempt" sale and print both receipts — the first real run of
-    sale_create in 'shop' and 'exempt' mode through the API. Also ask
-    about the cap on the wrong tax line (see RESUME block).
-    Earlier note: ask Eddy whether he has rung up a real sale since. If Charge or Save as layaway
+    Ask Eddy about the cap on the wrong tax line (see RESUME block):
+    FLDOR has "first $50,000", Hillsborough has none. Then ask him to
+    open Reports → Sales Tax and its PDF export (the PDF layout was not
+    looked at). Real 'shop' and 'exempt' sales already went through
+    (S-000016, S-000017). If Charge or Save as layaway
     failed, the first suspect is sale_create in 'shop' tax mode (never
     run through the API before — see RESUME POINT (a)); read the Vercel
     log "[pos.money] sale_create". If it worked, that item is closed.
     Then, in his order of interest:
-    - a sales tax report (collected by tax line, exempt sales by
-      reason) — the receipt and the sale page show the split since
-      Session 64, no report does;
+    - online orders keep no tax split (online_order_reserve stores only
+      the total), so the sales tax report lists them under "One rate, no
+      split". Carry the breakdown onto the sale when the online store
+      goes live;
     - Eddy works the /customers/merge duplicates list (53 groups);
     - the pawn company's own Stripe key → pair the reader → one tipped
       TEST sale (KNOWN ISSUES "CARD READER TIPS" lists what to confirm);

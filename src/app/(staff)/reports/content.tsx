@@ -13,6 +13,7 @@ import {
   ChartBar,
   ListChecks,
   HandCoins,
+  Percent,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type { Dictionary } from '@/lib/i18n/en'
@@ -74,6 +75,12 @@ export default function ReportsLanding({
       href: '/reports/tips',
       icon: <HandCoins size={20} weight="regular" />,
       title: 'tips',
+      visible: modules.has_retail,
+    },
+    {
+      href: '/reports/sales-tax',
+      icon: <Percent size={20} weight="regular" />,
+      title: 'salesTax',
       visible: modules.has_retail,
     },
     {

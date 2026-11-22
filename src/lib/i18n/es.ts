@@ -3153,6 +3153,10 @@ export const es: Dictionary = {
         title: 'Propinas',
         description: 'Propinas del lector de tarjetas, con el total de cada empleado.',
       },
+      salesTax: {
+        title: 'Impuesto sobre Ventas',
+        description: 'Impuesto cobrado por línea de impuesto, ventas sin impuesto por motivo e impuesto devuelto.',
+      },
       repairSummary: {
         title: 'Tickets de Reparación',
         description: 'Tickets creados en el rango con conteos por estado.',
@@ -3276,6 +3280,53 @@ export const es: Dictionary = {
       totals: {
         total: 'Total de propinas',
         count: 'Número de propinas',
+      },
+    },
+    // /reports/sales-tax — de aquí la tienda presenta su declaración de impuesto sobre ventas.
+    salesTax: {
+      subtitle:
+        'Ventas completadas en estas fechas, con el impuesto que se le cobró a cada venta cuando se registró. Un apartado cuenta el día en que se termina de pagar. Una devolución o una anulación cuenta el día en que se hizo.',
+      byLine: 'Por línea de impuesto',
+      emptyLines: 'No se cobró impuesto en estas fechas.',
+      noTax: 'Ventas sin impuesto, por motivo',
+      noTaxSales: 'Cada venta sin impuesto',
+      givenBack: 'Devoluciones y anulaciones',
+      flatLine: 'Una sola tasa, sin desglose ({rate}%)',
+      noReason: 'Sin motivo registrado',
+      noReasonHelp:
+        '"Sin motivo registrado" es una venta en la que el campo Impuesto se puso en 0 a mano. Marque Exento de impuesto en Nueva venta para que se guarden el motivo y el certificado.',
+      kinds: {
+        return: 'Devolución',
+        void: 'Anulación',
+      },
+      totals: {
+        gross: 'Ventas antes de impuesto',
+        noTax: 'Ventas sin impuesto',
+        taxable: 'Ventas gravables',
+        collected: 'Impuesto cobrado',
+        refunded: 'Impuesto devuelto',
+        net: 'Impuesto neto',
+      },
+      columns: {
+        line: 'Impuesto',
+        chargedBy: 'Lo cobra',
+        rate: 'Tasa',
+        taxable: 'Ventas gravables',
+        tax: 'Impuesto cobrado',
+        refundedTaxable: 'Devuelto',
+        taxRefunded: 'Impuesto devuelto',
+        netTaxable: 'Gravable neto',
+        netTax: 'Impuesto neto',
+        reason: 'Motivo',
+        count: 'Ventas',
+        amount: 'Importe',
+        when: 'Cuándo',
+        sale: 'Venta #',
+        customer: 'Cliente',
+        certificate: 'Certificado',
+        type: 'Tipo',
+        number: 'Número',
+        beforeTax: 'Antes de impuesto',
       },
     },
     salesSummary: {

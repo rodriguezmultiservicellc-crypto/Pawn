@@ -238,8 +238,22 @@ export type SaleTaxLine = { label: string; tax: number }
  * @param taxableBase the sale after every discount (subtotal − discount)
  */
 export function saleTaxLines(breakdown: unknown, taxableBase: number): SaleTaxLine[] {
+  const parts = parseTaxBreakdown(breakdown).map((p) => ({ ...p, capped: p.taxable < taxableBase - 0.005 }))
+  if (parts.length === 0 || (parts.length === 1 && !parts[0].capped)) return []
+  return parts.map((p) => ({
+    label: `${p.name} ${fractionToPercent(p.rate)}%${p.capped ? ` x ${formatMoney(p.taxable)}` : ''}`,
+    tax: p.tax,
+  }))
+}
+
+/**
+ * sales.tax_breakdown as typed parts. The column is JSON written by
+ * sales_tax_quote(); anything that is not a well-formed tax line is dropped,
+ * so a NULL (flat-rate or older sale) reads as no parts.
+ */
+export function parseTaxBreakdown(breakdown: unknown): SaleTaxPart[] {
   if (!Array.isArray(breakdown)) return []
-  const parts = breakdown.flatMap((p) => {
+  return breakdown.flatMap((p) => {
     if (!p || typeof p !== 'object') return []
     const o = p as Record<string, unknown>
     const name = typeof o.name === 'string' ? o.name.trim() : ''
@@ -247,13 +261,10 @@ export function saleTaxLines(breakdown: unknown, taxableBase: number): SaleTaxLi
     const tax = Number(o.tax)
     const taxable = Number(o.taxable)
     if (!name || !isFinite(rate) || !isFinite(tax) || !isFinite(taxable)) return []
-    return [{ name, rate, tax, capped: taxable < taxableBase - 0.005, taxable }]
+    const level = (TAX_LEVELS as readonly unknown[]).includes(o.level) ? (o.level as TaxLevel) : 'other'
+    const cap = o.item_cap == null ? null : Number(o.item_cap)
+    return [{ name, level, rate, item_cap: cap != null && isFinite(cap) ? cap : null, taxable, tax }]
   })
-  if (parts.length === 0 || (parts.length === 1 && !parts[0].capped)) return []
-  return parts.map((p) => ({
-    label: `${p.name} ${fractionToPercent(p.rate)}%${p.capped ? ` x ${formatMoney(p.taxable)}` : ''}`,
-    tax: p.tax,
-  }))
 }
 
 // ── Tax-exempt sales (patches/0097) ───────────────────────────────────────

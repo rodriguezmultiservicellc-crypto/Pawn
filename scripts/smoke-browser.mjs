@@ -159,6 +159,7 @@ const ROUTES = [
   ['reports hub', '/reports'],
   ['police report', '/reports/police-report'],
   ['daily register', '/reports/daily-register'],
+  ['sales tax report', '/reports/sales-tax'],
   ['inventory turn', '/reports/inventory-turn'],
   ['pawn aging', '/reports/pawn-aging'],
   ['dashboard', '/dashboard'],

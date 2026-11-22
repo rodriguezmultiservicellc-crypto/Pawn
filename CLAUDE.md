@@ -210,6 +210,14 @@ Never kill node processes by image name — always by PID.
       `tax_rates` — and "Tax exempt" with the reason and certificate. One
       helper feeds all three formats: `receiptTax()` in
       `src/lib/pos/receipt-thermal.ts`.
+    - The sales tax report (`/reports/sales-tax`,
+      `src/lib/reports/sales-tax.ts`) is built from the same stored
+      values. A sale counts the day it was COMPLETED (an open layaway is
+      not counted yet), a return the day it was issued, a void the day it
+      was made and only for a sale counted in an earlier period. The rules
+      are in that file's header: keep them when touching it, so a voided
+      sale nets to zero however the periods are cut. It pages past the
+      API's 1,000-row default; do not drop that.
     - A 'shop' sale keeps `sales.tax_breakdown` (tax per tax line) and
       `sale_items.tax_amount` (tax per line). Returns refund the line's own
       tax when present; older and flat sales fall back to a proportional

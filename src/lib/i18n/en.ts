@@ -3149,6 +3149,10 @@ export const en = {
         title: 'Tips',
         description: 'Card reader tips, with a total for each employee.',
       },
+      salesTax: {
+        title: 'Sales Tax',
+        description: 'Tax collected by tax line, sales with no tax by reason, and tax refunded.',
+      },
       repairSummary: {
         title: 'Repair Tickets',
         description: 'Tickets created in the date range with status counts.',
@@ -3272,6 +3276,53 @@ export const en = {
       totals: {
         total: 'Tips total',
         count: 'Number of tips',
+      },
+    },
+    // /reports/sales-tax — what the shop files its sales tax return from.
+    salesTax: {
+      subtitle:
+        'Sales completed in these dates, by the tax each sale was charged when it was rung up. A layaway counts on the day it is paid off. A return or a void counts on the day it was made.',
+      byLine: 'By tax line',
+      emptyLines: 'No tax was collected in these dates.',
+      noTax: 'Sales with no tax, by reason',
+      noTaxSales: 'Each sale with no tax',
+      givenBack: 'Returns and voids',
+      flatLine: 'One rate, no split ({rate}%)',
+      noReason: 'No reason recorded',
+      noReasonHelp:
+        '"No reason recorded" is a sale where the Tax field was set to 0 by hand. Tick Tax exempt on New sale instead, so the reason and the certificate are kept.',
+      kinds: {
+        return: 'Return',
+        void: 'Void',
+      },
+      totals: {
+        gross: 'Sales before tax',
+        noTax: 'Sales with no tax',
+        taxable: 'Taxable sales',
+        collected: 'Tax collected',
+        refunded: 'Tax refunded',
+        net: 'Net tax',
+      },
+      columns: {
+        line: 'Tax',
+        chargedBy: 'Charged by',
+        rate: 'Rate',
+        taxable: 'Taxable sales',
+        tax: 'Tax collected',
+        refundedTaxable: 'Returned',
+        taxRefunded: 'Tax refunded',
+        netTaxable: 'Net taxable',
+        netTax: 'Net tax',
+        reason: 'Reason',
+        count: 'Sales',
+        amount: 'Amount',
+        when: 'When',
+        sale: 'Sale #',
+        customer: 'Customer',
+        certificate: 'Certificate',
+        type: 'Type',
+        number: 'Number',
+        beforeTax: 'Before tax',
       },
     },
     salesSummary: {
