@@ -248,6 +248,16 @@ export function Sidebar({
       visible: modules.has_retail,
       child: true,
     },
+    // Orders paid on the shop's website (patches/0078). A more specific
+    // root than /pos, so it — not POS — lights up on its own pages.
+    {
+      kind: 'item',
+      href: '/pos/online-orders',
+      label: t.nav.onlineOrders,
+      icon: <Globe size={16} weight="regular" />,
+      visible: modules.has_retail && canSeeCounts,
+      child: true,
+    },
     // Pawns — a heading (not a link) over the pawn counter's four pages.
     {
       kind: 'item',
@@ -323,15 +333,6 @@ export function Sidebar({
       icon: <Sparkle size={16} weight="regular" />,
       visible: modules.has_repair,
       child: true,
-    },
-    // Orders paid on the shop's website (patches/0078). A more specific
-    // root than /pos, so it — not POS — lights up on its own pages.
-    {
-      kind: 'item',
-      href: '/pos/online-orders',
-      label: t.nav.onlineOrders,
-      icon: <Globe size={18} weight="regular" />,
-      visible: modules.has_retail && canSeeCounts,
     },
 
     // Reporting + records. Sell metal, Spot prices and eBay listings lead
