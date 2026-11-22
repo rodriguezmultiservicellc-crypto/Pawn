@@ -60,7 +60,7 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 64 (2026-11-22). Items 531-533, ONE MIGRATION,
+  Last session:   Session 64 (2026-11-22). Items 531-534, ONE MIGRATION,
                   APPLIED: 0097.
                   - SALES TAX REPORT at /reports/sales-tax, with CSV and
                     PDF (533).
@@ -73,11 +73,9 @@ OPERATION IN FLIGHT: none
                     with a reason + certificate number, kept on the sale
                     and printed on the receipt (532, 0097; CLAUDE.md
                     rule 20).
-                  - TO TELL EDDY: his tax lines look swapped — the
-                    "first $" cap is on FLDOR (state, $50,000) and
-                    Hillsborough (county) has none. Florida caps the
-                    COUNTY surtax (first $5,000 of each item), not the
-                    state 6%. Nothing was changed; it is his setting.
+                  - TAX LINES CORRECTED on Eddy's instruction (534): the
+                    "first $" cap moved from FLDOR ($50,000) to
+                    Hillsborough ($5,000). FLDOR 6% now has no cap.
 
   Session 63 (2026-11-22), saved 2026-11-22 13:15.
                   Context budget at save: ~65% (my estimate; one context
@@ -632,6 +630,21 @@ Progress_archive.txt — the items from those sessions are there.)
       rung up Tax exempt (Resale + certificate) and S-000017 (layaway,
       'shop' tax mode: $12.00 FLDOR + $3.00 Hillsborough) both went
       through the API and print correctly on the thermal receipt.
+
+ 534. TAX LINES CORRECTED (data, live DB, on Eddy's instruction: "move
+      it to hillsborough at 5000").
+      tax_rates for Eddy's Jewelers Corp.: FLDOR (state 6%) item_cap
+      50000 → NULL; Hillsborough (county 1.5%) item_cap NULL → 5000.
+      One transaction, each UPDATE pinned to the row id + tenant + the
+      value it had; two audit_log rows ('update', tax_rates) in the shape
+      the Settings page writes, marked "via Claude session 64". The total
+      rate is unchanged (7.5%) — a cap does not enter
+      settings.default_tax_rate.
+      CHECKED with sales_tax_quote() (read-only) on a $10,000 + $200
+      sale: FLDOR $612.00 on $10,200; Hillsborough $78.00 on $5,200;
+      tax $690.00.
+      Sales already rung up keep what they were charged: S-000017
+      ($200) was under both caps, so its $15.00 is the same either way.
 
 --- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
 
@@ -2929,10 +2942,8 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Ask Eddy about the cap on the wrong tax line (see RESUME block):
-    FLDOR has "first $50,000", Hillsborough has none. Then ask him to
-    open Reports → Sales Tax and its PDF export (the PDF layout was not
-    looked at). Real 'shop' and 'exempt' sales already went through
+    Ask Eddy to open Reports → Sales Tax and its PDF export (the PDF
+    layout was not looked at). Real 'shop' and 'exempt' sales already went through
     (S-000016, S-000017). If Charge or Save as layaway
     failed, the first suspect is sale_create in 'shop' tax mode (never
     run through the API before — see RESUME POINT (a)); read the Vercel
