@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Camera,
   Eye,
+  GitMerge,
   Trash,
   Upload,
   Prohibit,
@@ -235,11 +236,17 @@ export default function CustomerDetail({
   storeCredit,
   ofac,
   canDeleteDocuments,
+  canMerge = false,
+  justMerged = false,
 }: {
   customer: CustomerRecord
   documents: CustomerDocumentItem[]
   /** owner / manager / chain_admin may remove an ID scan or signature. */
   canDeleteDocuments: boolean
+  /** owner / manager / chain_admin may merge a duplicate into this record. */
+  canMerge?: boolean
+  /** Arrived here right after a merge (?merged=1). */
+  justMerged?: boolean
   hasPawn?: boolean
   hasRepair?: boolean
   hasRetail?: boolean
@@ -341,6 +348,15 @@ export default function CustomerDetail({
           </Link>
         </div>
         <div className="flex items-center gap-2">
+          {canMerge ? (
+            <Link
+              href={`/customers/merge?keep=${customer.id}`}
+              className="inline-flex items-center gap-1 text-sm text-blue hover:underline"
+            >
+              <GitMerge size={14} weight="bold" />
+              {t.customers.mergeIntoThis}
+            </Link>
+          ) : null}
           {customer.is_banned ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger">
               <Prohibit size={12} weight="bold" />
@@ -349,6 +365,12 @@ export default function CustomerDetail({
           ) : null}
         </div>
       </div>
+
+      {justMerged ? (
+        <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
+          {t.customers.mergedBanner}
+        </div>
+      ) : null}
 
       <div className="flex items-start gap-4">
         <PhotoBlock

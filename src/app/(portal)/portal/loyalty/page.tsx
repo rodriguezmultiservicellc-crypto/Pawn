@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { ensureReferralCode } from '@/lib/loyalty/events'
 import { buildPublicLandingUrl } from '@/lib/loyalty/url'
 import LoyaltyPortalContent from './content'
+import type { LoyaltyEventKind } from '@/types/database-aliases'
 
 export const revalidate = 60
 
@@ -92,7 +93,7 @@ export default async function PortalLoyaltyPage() {
       }}
       activity={(activity ?? []).map((e) => ({
         id: e.id,
-        kind: e.kind as 'earn_sale' | 'earn_loan_interest' | 'earn_referral_bonus' | 'redeem_pos' | 'redeem_undo' | 'earn_clawback' | 'adjust_manual',
+        kind: e.kind as LoyaltyEventKind,
         points_delta: e.points_delta,
         reason: e.reason,
         created_at: e.created_at,

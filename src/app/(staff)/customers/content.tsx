@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MagnifyingGlass, Plus, Prohibit } from '@phosphor-icons/react'
+import { GitMerge, MagnifyingGlass, Plus, Prohibit } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import DlScanner from '@/components/customers/DlScanner'
 import { findCustomerByIdNumber } from '@/lib/customers/picker-search'
@@ -27,10 +27,12 @@ export default function CustomersContent({
   customers,
   query,
   onlyBanned,
+  canMerge = false,
 }: {
   customers: CustomerListRow[]
   query: string
   onlyBanned: boolean
+  canMerge?: boolean
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -86,13 +88,24 @@ export default function CustomersContent({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">{t.customers.title}</h1>
-        <Link
-          href="/customers/new"
-          className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
-        >
-          <Plus size={16} weight="bold" />
-          <span>{t.customers.new}</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          {canMerge ? (
+            <Link
+              href="/customers/merge"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 font-medium text-foreground hover:border-blue"
+            >
+              <GitMerge size={16} weight="bold" />
+              <span>{t.customers.mergeLink}</span>
+            </Link>
+          ) : null}
+          <Link
+            href="/customers/new"
+            className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"
+          >
+            <Plus size={16} weight="bold" />
+            <span>{t.customers.new}</span>
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

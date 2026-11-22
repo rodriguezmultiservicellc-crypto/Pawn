@@ -4,30 +4,15 @@ import { useState } from 'react'
 import { Trophy, Copy, Check, ArrowClockwise } from '@phosphor-icons/react'
 import AdjustPointsModal from './AdjustPointsModal'
 import ResetReferralCodeForm from './ResetReferralCodeForm'
+import type { LoyaltyEventKind } from '@/types/database-aliases'
+import { useI18n } from '@/lib/i18n/context'
 
 export type LoyaltyEventView = {
   id: string
-  kind:
-    | 'earn_sale'
-    | 'earn_loan_interest'
-    | 'earn_referral_bonus'
-    | 'redeem_pos'
-    | 'redeem_undo'
-    | 'earn_clawback'
-    | 'adjust_manual'
+  kind: LoyaltyEventKind
   points_delta: number
   reason: string | null
   created_at: string
-}
-
-const KIND_LABEL: Record<LoyaltyEventView['kind'], string> = {
-  earn_sale: 'Retail purchase',
-  earn_loan_interest: 'Loan interest',
-  earn_referral_bonus: 'Referral bonus',
-  redeem_pos: 'Redeemed at checkout',
-  redeem_undo: 'Reverted redemption',
-  earn_clawback: 'Sale reversed',
-  adjust_manual: 'Adjustment',
 }
 
 export default function LoyaltyPanel({
@@ -50,6 +35,7 @@ export default function LoyaltyPanel({
   redemptionRate: number
   canAdjust: boolean
 }) {
+  const { t } = useI18n()
   const [showModal, setShowModal] = useState(false)
   const [copied, setCopied] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
@@ -143,7 +129,7 @@ export default function LoyaltyPanel({
               key={e.id}
               className="flex items-center justify-between gap-2 border-b border-border py-1.5 last:border-b-0"
             >
-              <span className="text-foreground">{KIND_LABEL[e.kind]}</span>
+              <span className="text-foreground">{t.loyalty.kinds[e.kind]}</span>
               <span
                 className={`font-mono ${
                   e.points_delta >= 0 ? 'text-success' : 'text-danger'

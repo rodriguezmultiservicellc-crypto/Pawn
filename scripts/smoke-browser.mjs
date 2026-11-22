@@ -163,6 +163,7 @@ const ROUTES = [
   ['pawn aging', '/reports/pawn-aging'],
   ['dashboard', '/dashboard'],
   ['customers', '/customers'],
+  ['customers merge', '/customers/merge'],
   ['inventory', '/inventory'],
   ['inventory detail', ids.item && `/inventory/${ids.item}`],
   ['pawn', '/pawn'],

@@ -801,6 +801,20 @@ export type StoreCreditEventKind =
   | 'redeem_undo'
   | 'clawback'
   | 'adjust_manual'
+  /** Customer merge compensating pair (patches/0091). */
+  | 'merge_in'
+  | 'merge_out'
+
+export type LoyaltyEventKind =
+  | 'earn_sale'
+  | 'earn_loan_interest'
+  | 'earn_referral_bonus'
+  | 'redeem_pos'
+  | 'redeem_undo'
+  | 'earn_clawback'
+  | 'adjust_manual'
+  | 'merge_in'
+  | 'merge_out'
 
 export type StoreCreditEventRow =
   Database['public']['Tables']['store_credit_events']['Row']

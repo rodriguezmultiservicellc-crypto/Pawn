@@ -4,15 +4,7 @@
 import { useState } from 'react'
 import { Trophy, Copy, Check } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-
-type Kind =
-  | 'earn_sale'
-  | 'earn_loan_interest'
-  | 'earn_referral_bonus'
-  | 'redeem_pos'
-  | 'redeem_undo'
-  | 'earn_clawback'
-  | 'adjust_manual'
+import type { LoyaltyEventKind as Kind } from '@/types/database-aliases'
 
 export default function LoyaltyPortalContent({
   customer,

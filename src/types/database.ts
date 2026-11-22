@@ -1691,6 +1691,74 @@ export type Database = {
           },
         ]
       }
+      customer_merges: {
+        Row: {
+          fk_move_counts: Json
+          id: string
+          loser_id: string
+          loser_snapshot: Json
+          notes: string | null
+          performed_at: string
+          performed_by: string | null
+          tenant_id: string
+          winner_before: Json
+          winner_id: string
+        }
+        Insert: {
+          fk_move_counts: Json
+          id?: string
+          loser_id: string
+          loser_snapshot: Json
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          tenant_id: string
+          winner_before: Json
+          winner_id: string
+        }
+        Update: {
+          fk_move_counts?: Json
+          id?: string
+          loser_id?: string
+          loser_snapshot?: Json
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          tenant_id?: string
+          winner_before?: Json
+          winner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_merges_loser_id_fkey"
+            columns: ["loser_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_merges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_merges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_merges_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_portal_invites: {
         Row: {
           consumed_at: string | null
@@ -1788,6 +1856,7 @@ export type Database = {
           legacy_ref: string | null
           loyalty_points_balance: number
           marketing_opt_in: boolean
+          merged_into_id: string | null
           middle_name: string | null
           notes: string | null
           phone: string | null
@@ -1843,6 +1912,7 @@ export type Database = {
           legacy_ref?: string | null
           loyalty_points_balance?: number
           marketing_opt_in?: boolean
+          merged_into_id?: string | null
           middle_name?: string | null
           notes?: string | null
           phone?: string | null
@@ -1898,6 +1968,7 @@ export type Database = {
           legacy_ref?: string | null
           loyalty_points_balance?: number
           marketing_opt_in?: boolean
+          merged_into_id?: string | null
           middle_name?: string | null
           notes?: string | null
           phone?: string | null
@@ -1919,6 +1990,13 @@ export type Database = {
           zip?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customers_referred_by_customer_id_fkey"
             columns: ["referred_by_customer_id"]
@@ -7410,6 +7488,10 @@ export type Database = {
         }[]
       }
       custom_quote_public: { Args: { p_token: string }; Returns: Json }
+      customer_merge_repoint: {
+        Args: { p_new: string; p_old: string }
+        Returns: boolean
+      }
       delete_tenant_cascade: {
         Args: { p_tenant_id: string }
         Returns: undefined
@@ -7503,6 +7585,16 @@ export type Database = {
       loan_forfeit_eligible_date: {
         Args: { p_due_date: string; p_tenant_id: string }
         Returns: string
+      }
+      merge_customers: {
+        Args: {
+          p_actor: string
+          p_loser_id: string
+          p_notes?: string
+          p_tenant_id: string
+          p_winner_id: string
+        }
+        Returns: Json
       }
       my_accessible_tenant_ids: { Args: never; Returns: string[] }
       my_chain_tenant_ids: { Args: never; Returns: string[] }

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { customerSearchFilters } from '@/lib/customers/search'
+import { canMergeCustomers } from '@/lib/customers/merge'
 import CustomersContent, { type CustomerListRow } from './content'
 
 type SearchParams = Promise<{ q?: string; banned?: string }>
@@ -48,6 +49,7 @@ export default async function CustomersPage(props: {
       customers={(customers ?? []) as CustomerListRow[]}
       query={q}
       onlyBanned={onlyBanned}
+      canMerge={canMergeCustomers(ctx.tenantRole)}
     />
   )
 }

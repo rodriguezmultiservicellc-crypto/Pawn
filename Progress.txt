@@ -76,7 +76,9 @@ OPERATION IN FLIGHT: none
                     "Imported from … on …" badge.
                   - Item melt panel: full melt + "You pay" separately;
                     gold "Fine .999" removed (24K is the one top bucket).
-                  Migrations 0089-0090 ALL APPLIED.
+                  - Customer search matches full names (505).
+                  - Customer MERGE tool + duplicate finder (506, 0091).
+                  Migrations 0089-0091 ALL APPLIED.
 
   Session 60 (2026-11-21 ~13:00), items 480-494:
                   - Dashboard live metals: oz t, display %, right rail,
@@ -148,6 +150,14 @@ OPERATION IN FLIGHT: none
     that stopping the npm wrapper leaves `next dev` orphaned on :3060.
 
   OPEN ISSUES / BLOCKERS:
+    - LOYALTY LEDGER DRIFT (found 2026-11-21, NOT fixed): patches/0028's
+      loyalty_events_apply_balance + block_mutation triggers and
+      customers_referral_same_tenant DO NOT EXIST on the live DB (no
+      loyalty functions at all), and the live kind CHECK lacks
+      'redeem_undo' / 'earn_clawback' that lib/loyalty/events.ts
+      inserts. Today 0 events / 0 points, so nothing is wrong yet — but
+      the first earned points will not move the balance. Fix = re-apply
+      0028's trigger section + widen the CHECK. Ask Eddy before.
     - VERCEL SKIPPED ONE PRODUCTION BUILD (2026-11-21): the push of
       76afc5b to main built only the branch Preview, no Production, even
       after 4+ min. An empty commit (6ae1da5) retriggered it. Cause not
@@ -612,6 +622,49 @@ Progress_archive.txt — the items from those sessions are there.)
       ID ending 2130 (one from the 2026-07-28 xPawn import, one created
       2026-04-28 with the RMS email) — a duplicate. Not merged; asked
       Eddy (merging touches loans / ID scans / compliance rows).
+
+ 506. CUSTOMER MERGE TOOL (patches/0091 APPLIED; no existing RLS policy
+      changed). Modeled on Luna Azul's merge_customers(). /customers/merge
+      (owner / manager / chain_admin — lib/customers/merge.ts): Keep +
+      Duplicate pickers with swap, preview (both records side by side,
+      per-table record counts, warnings: different ID numbers / both
+      have portal logins / ban carries over), "what the merge does",
+      optional reason, two-step confirm → lands on the kept customer
+      with a "Duplicate merged" banner. "Possible duplicates" list below
+      (lib/customers/duplicates.ts, 7 tests): same ID number, or same
+      name + phone / email / DOB, strongest signal wins, oldest record
+      suggested as keep. Found 53 groups at Eddy's Jewelers — most look
+      like the xPawn import loading a person twice (same ID with and
+      without dashes). Links: "Merge duplicates" on /customers, "Merge a
+      duplicate into this customer" on the detail page; a merged-away
+      id redirects to the survivor (follows up to 5 hops).
+      DB (merge_customers(tenant, winner, loser, actor, notes), SECURITY
+      DEFINER, EXECUTE revoked from anon/authenticated — service_role
+      only, tenant re-checked inside): locks both rows, sets
+      loser.merged_into_id + deleted_at FIRST, fills the winner's blanks
+      (ID block and address move as units, never mixed; ban carries
+      over; tags unioned; portal login / referral code / legacy_ref move
+      if the winner has none), phones / email / address that found no
+      slot + the loser's notes go into the winner's notes, repoints 17
+      tables + referrals, moves store credit and loyalty points as
+      'merge_out' / 'merge_in' ledger pairs (new kinds; sign CHECK
+      updated), writes customer_merges (loser snapshot + winner before
+      + counts; RLS on, no policies) and audit_log 'customer_merge'.
+      LOCKED RECORDS: the 7 lock guards (printed loans, locked sales /
+      repairs, printed appraisals, accepted quotes, message_log,
+      ofac_screenings) now allow customer_id to change ONLY when
+      customer_merge_repoint(old,new) — old was merged INTO new. Every
+      other frozen field stays frozen; compliance_log untouched.
+      VERIFIED: dry run on the real Eddy pair inside a forced-rollback
+      transaction (39 rows moved incl. 3 printed loans + 3 locked sales;
+      a plain customer_id change on a printed loan still refused before
+      AND after the merge); browser check of the preview + confirm step
+      (no console errors; did NOT merge); smoke 3/3 clean (added
+      /customers/merge to smoke-browser.mjs). Also: one LoyaltyEventKind
+      alias replaces 4 hand-copied unions; LoyaltyPanel kind labels now
+      come from i18n (were hardcoded English).
+      The Eddy duplicate is STILL NOT MERGED — Eddy picks which record
+      to keep, in the UI.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
@@ -2419,6 +2472,9 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
+    Eddy works the /customers/merge duplicates list (53 groups),
+    starting with his own pair. If a merge errors, the message is
+    translated; raw cause is in the Vercel log "[customer-merge]".
     Open a few imported items (Lightspeed import done + re-run verified
     idempotent, item 504) and spot-check legacy_code, grams, metal guess,
     Size / Length, and the melt panel at the new 24K 90% rate. Then:

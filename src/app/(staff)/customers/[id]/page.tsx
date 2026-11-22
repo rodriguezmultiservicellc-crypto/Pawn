@@ -7,11 +7,13 @@ import {
   getSignedUrl,
 } from '@/lib/supabase/storage'
 import CustomerDetail, { type CustomerDocumentItem } from './content'
+import { canMergeCustomers } from '@/lib/customers/merge'
 import type { OfacScreeningView } from '@/components/customers/OfacPanel'
 import type { OfacMatch } from '@/lib/compliance/ofac/match'
 import type {
   LayawayStatus,
   Language,
+  LoyaltyEventKind,
   RepairStatus,
   SaleKind,
   SaleStatus,
@@ -22,9 +24,14 @@ import type {
 const PORTAL_MANAGE_ROLES = new Set(['owner', 'chain_admin', 'manager'])
 
 type Params = Promise<{ id: string }>
+type SearchParams = Promise<{ merged?: string }>
 
-export default async function CustomerDetailPage(props: { params: Params }) {
+export default async function CustomerDetailPage(props: {
+  params: Params
+  searchParams: SearchParams
+}) {
   const { id } = await props.params
+  const justMerged = (await props.searchParams).merged === '1'
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
@@ -39,7 +46,24 @@ export default async function CustomerDetailPage(props: { params: Params }) {
     .is('deleted_at', null)
     .maybeSingle()
 
-  if (!customer) redirect('/customers')
+  if (!customer) {
+    // A record merged into another one (patches/0091): old links open the
+    // survivor. Follow a short chain in case the survivor was merged later.
+    let target: string | null = id
+    for (let hop = 0; hop < 5 && target; hop++) {
+      const { data: row }: { data: { merged_into_id: string | null; deleted_at: string | null } | null } =
+        await ctx.supabase
+        .from('customers')
+        .select('merged_into_id, deleted_at')
+        .eq('id', target)
+        .eq('tenant_id', ctx.tenantId)
+        .maybeSingle()
+      if (!row) break
+      if (!row.deleted_at) redirect(`/customers/${target}`)
+      target = row.merged_into_id
+    }
+    redirect('/customers')
+  }
 
   // Portal-invite status: most-recent invite + whether the customer has
   // a live client membership at this tenant. Both queries via admin
@@ -286,6 +310,8 @@ export default async function CustomerDetailPage(props: { params: Params }) {
       customer={customerNarrowed}
       documents={documents}
       canDeleteDocuments={canAdjust}
+      canMerge={canMergeCustomers(ctx.tenantRole)}
+      justMerged={justMerged}
       hasPawn={hasPawn}
       hasRepair={hasRepair}
       hasRetail={hasRetail}
@@ -313,14 +339,7 @@ export default async function CustomerDetailPage(props: { params: Params }) {
         referralCode,
         recentEvents: (loyaltyEvents ?? []).map((e) => ({
           id: e.id,
-          kind: e.kind as
-            | 'earn_sale'
-            | 'earn_loan_interest'
-            | 'earn_referral_bonus'
-            | 'redeem_pos'
-            | 'redeem_undo'
-            | 'earn_clawback'
-            | 'adjust_manual',
+          kind: e.kind as LoyaltyEventKind,
           points_delta: e.points_delta,
           reason: e.reason,
           created_at: e.created_at,
