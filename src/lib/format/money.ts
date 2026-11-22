@@ -18,6 +18,11 @@ export function formatPercent(decimal: number | null | undefined): string {
   return `${(decimal * 100).toFixed(2)}%`
 }
 
+/** A stored fraction as the percent a person reads and types: 0.125 → "12.5". */
+export function fractionToPercent(fraction: number): string {
+  return String(Math.round(fraction * 10000) / 100)
+}
+
 export function formatNumber(n: number | null | undefined): string {
   if (n == null || !isFinite(n)) return '—'
   return n.toLocaleString('en-US')

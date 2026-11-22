@@ -2765,6 +2765,37 @@ PENDING — NEXT UP
       (the hidden field sends '' and z.coerce.number() reads it as 0).
       Seen 2026-11-22 while testing, not fixed — needs a "required"
       rule or an empty-means-unchanged decision.
+    - Sales tax by district (patches/0094, applied to the live DB
+      2026-11-22, RLS approved by Eddy: staff read, owner + manager
+      write, SECURITY DEFINER trigger keeps settings.default_tax_rate =
+      sum of active rows — CLAUDE.md rule 20). The shop has NO tax
+      rates saved yet (total 0%) — Eddy enters them at Settings → Sales
+      tax (he named FL 6% + county 1.5%). Limits, none handled yet:
+        * Florida's county surtax applies only to the first $5,000 of a
+          single item (Fla. Stat. 212.054(2)(b) — from memory, NOT
+          re-verified this session; confirm before relying on it). The
+          app charges the full stacked rate on the whole price, so a
+          $10,000 piece is over-taxed by 1.5% of $5,000. Fixing it means
+          changing sale_create() (patches/0076).
+        * A sale stores one tax_rate, not the split per district, so a
+          state-vs-county tax report cannot be exact after rates change.
+        * Rates finer than 0.01% (8.875%) are refused: every tax column
+          is numeric(6,4).
+        * The metal-sale form (/buy/sell) still starts its tax at 0.
+      The test run left audit_log rows for "ZZ-TEST" tax rates and one
+      "ZZ-TEST DELETE ME" customer (rows themselves removed).
+    - Quick "New customer" popup (QuickCustomerModal — pawn, repair,
+      quote and now sale forms) could not save anyone: country,
+      id_country, comm_preference and language reached the schema as
+      null, so its defaults never applied, and the popup showed no
+      error. Fixed 2026-11-22 in src/lib/customers/create.ts (missing
+      field = undefined). Browser-checked on the sale form only.
+    - Layaway L-000002 (2026-11-22): Eddy reported typing a $150 down
+      payment and being charged $50. Server stored exactly what the
+      browser sent (50). NOT reproduced — 12 ways of typing 150 on the
+      live site all sent 150. Eddy said to ignore it. The Open layaway
+      button now states the amount it will collect. L-000002 itself was
+      not touched (paid $50, balance $150).
     - Layaway terms (patches/0093, applied to the live DB 2026-11-22,
       RLS approved by Eddy: staff read, owner/manager write). The shop
       has NO terms saved yet — Eddy creates them at Settings → Layaway

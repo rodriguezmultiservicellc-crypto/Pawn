@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { fractionToPercent } from '@/lib/format/money'
 import {
   applyLayawayTerm,
-  fractionToPercent,
   initialLayawayTerm,
   layawayTermInputSchema,
 } from './layaway-terms'

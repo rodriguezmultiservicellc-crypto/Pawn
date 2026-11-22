@@ -7,6 +7,9 @@ import { loadQuickSaleButtons } from '@/lib/pos/quick-sale-server'
 import { loadShopReader } from '@/lib/pos/reader-server'
 import { LAYAWAY_TERMS_EDIT_ROLES } from '@/lib/pos/layaway-terms'
 import { loadLayawayTerms } from '@/lib/pos/layaway-terms-server'
+import { taxBreakdown } from '@/lib/pos/sales-tax'
+import { loadTaxRates } from '@/lib/pos/sales-tax-server'
+import { fractionToPercent } from '@/lib/format/money'
 import { tenantStripeReady, tenantStripeTestMode } from '@/lib/stripe/terminal'
 
 type SearchParams = Promise<{ customer?: string }>
@@ -46,7 +49,7 @@ export default async function NewSalePage(props: {
   ])
   const reader = stripeReady ? await loadShopReader(ctx.tenantId) : null
 
-  const [{ data: items }, quickSales, layawayTerms] = await Promise.all([
+  const [{ data: items }, quickSales, layawayTerms, taxRates, { data: taxSetting }] = await Promise.all([
     ctx.supabase
       .from('inventory_items')
       .select('id, sku, description, list_price, category')
@@ -57,6 +60,9 @@ export default async function NewSalePage(props: {
       .limit(500),
     loadQuickSaleButtons(ctx.supabase, ctx.tenantId, { activeOnly: true }),
     loadLayawayTerms(ctx.supabase, ctx.tenantId, { activeOnly: true }),
+    loadTaxRates(ctx.supabase, ctx.tenantId, { activeOnly: true }),
+    // The total a sale is charged: kept by the 0094 trigger = sum of the rates.
+    ctx.supabase.from('settings').select('default_tax_rate').eq('tenant_id', ctx.tenantId).maybeSingle(),
   ])
 
   const inventoryOpts: InventoryPickRow[] = (items ?? []).map((i) => ({
@@ -77,6 +83,10 @@ export default async function NewSalePage(props: {
       reader={reader ? { label: reader.label } : null}
       stripeTestMode={testMode}
       layawayTerms={layawayTerms}
+      defaultTax={{
+        percent: fractionToPercent(Number(taxSetting?.default_tax_rate ?? 0)),
+        breakdown: taxBreakdown(taxRates),
+      }}
       canEditLayawayTerms={!!ctx.tenantRole && (LAYAWAY_TERMS_EDIT_ROLES as readonly string[]).includes(ctx.tenantRole)}
       timezone={tenant.timezone}
     />

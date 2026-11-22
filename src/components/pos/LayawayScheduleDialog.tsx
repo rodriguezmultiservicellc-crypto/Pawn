@@ -5,9 +5,9 @@ import { Calendar, ShoppingBag } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { formatCalendarDate } from '@/lib/format/date'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
+import { fractionToPercent } from '@/lib/format/money'
 import {
   applyLayawayTerm,
-  fractionToPercent,
   initialLayawayTerm,
   type LayawayTerm,
 } from '@/lib/pos/layaway-terms'
@@ -77,6 +77,9 @@ export function LayawayScheduleDialog({
   const [finalDueDate, setFinalDueDate] = useState<string>('')
   const [cancellationFeePct, setCancellationFeePct] = useState<string>('0.10')
 
+  // What "Open layaway" will collect now — shown on the button itself, read
+  // from the same value that is sent, so the clerk sees the exact amount.
+  const downNow = Number.parseFloat(downPayment || '0')
   const picked = terms.find((term) => term.id === choice) ?? null
   const plan = picked ? applied(picked) : null
 
@@ -92,8 +95,7 @@ export function LayawayScheduleDialog({
   function submit() {
     setError(null)
     if (plan && picked) {
-      const down = Number.parseFloat(downPayment || '0')
-      if (!Number.isFinite(down) || down + 0.005 < plan.down_payment_min) {
+      if (!Number.isFinite(downNow) || downNow + 0.005 < plan.down_payment_min) {
         setError(lt.downPaymentTooLow.replace('{amount}', fmtMoney(plan.down_payment_min)))
         return
       }
@@ -335,7 +337,9 @@ export function LayawayScheduleDialog({
           <Calendar size={14} weight="bold" />
           {pending
             ? t.pos.layaway.submitCreating
-            : t.pos.layaway.submitCreate}
+            : Number.isFinite(downNow) && downNow > 0
+              ? lt.submitWithDown.replace('{amount}', fmtMoney(downNow))
+              : lt.submitNoDown}
         </button>
       </Footer>
     </Modal>

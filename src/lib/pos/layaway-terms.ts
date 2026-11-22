@@ -56,11 +56,6 @@ export const layawayTermInputSchema = z
 
 export type LayawayTermInput = z.input<typeof layawayTermInputSchema>
 
-/** A stored fraction as the percent a person reads: 0.125 → "12.5". */
-export function fractionToPercent(fraction: number): string {
-  return String(Math.round(fraction * 10000) / 100)
-}
-
 export type AppliedLayawayTerm = {
   schedule_kind: LayawayScheduleKind
   /** Minimum down payment for this total, to the cent. */

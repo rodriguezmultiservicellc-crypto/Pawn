@@ -10,7 +10,8 @@ import { Footer, Modal } from './Modal'
 import { CardChargeDialog, type ReaderApproved } from './CardChargeDialog'
 import type { StartReaderResult } from '@/app/(staff)/pos/sales/new/reader-actions'
 import type { CardSlip } from './CardSlipFields'
-import CustomerPicker from '@/components/customers/CustomerPicker'
+import CustomerPicker, { type CustomerPickerHandle } from '@/components/customers/CustomerPicker'
+import QuickCustomerModal from '@/components/customers/QuickCustomerModal'
 import {
   AddInventoryItemDialog,
   type InventoryPickRow,
@@ -43,6 +44,7 @@ const SMALL_INPUT = `h-11 rounded-md border border-border bg-card px-2.5 text-ri
 export function Cart({
   inventory,
   initialCustomerId,
+  defaultTax,
   onSubmitSale,
   onSaveAsLayaway,
   busy,
@@ -59,6 +61,8 @@ export function Cart({
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId?: string | null
+  /** The shop's sales tax (Settings → Sales tax): total percent + its parts. */
+  defaultTax?: { percent: string; breakdown: string }
   onSubmitSale: (
     customerId: string | null,
     lines: CartLineState[],
@@ -103,11 +107,14 @@ export function Cart({
   const [customerId, setCustomerId] = useState<string | null>(
     initialCustomerId ?? null,
   )
-  // Tax kept as a percentage in the UI; converted to a fraction on
-  // submit. No tenant/register default exists yet — defaults to 0.
-  const [taxPercent, setTaxPercent] = useState<string>('0')
+  // Tax kept as a percentage in the UI; converted to a fraction on submit.
+  // Starts at the shop's own rate; the clerk can change it (exempt sale).
+  const [taxPercent, setTaxPercent] = useState<string>(defaultTax?.percent ?? '0')
   const [discMode, setDiscMode] = useState<DiscMode>('amt')
   const [discInput, setDiscInput] = useState<string>('0')
+  // "+" beside the customer search: add a walk-in without leaving the sale.
+  const customerPickerRef = useRef<CustomerPickerHandle>(null)
+  const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [notes, setNotes] = useState<string>('')
   const [showNote, setShowNote] = useState(false)
   const [tender, setTender] = useState<Tender>('cash')
@@ -612,9 +619,30 @@ export function Cart({
         <div className="space-y-2 border-border p-4">
           <div className={LABEL}>{ts.customer}</div>
           <CustomerPicker
+            ref={customerPickerRef}
             name="customer_id"
             initialCustomerId={initialCustomerId ?? null}
             onChange={(c) => setCustomerId(c?.id ?? null)}
+            // Shown while searching; once a customer is picked the X clears it.
+            trailing={customerId ? null : (
+              <button
+                type="button"
+                onClick={() => setShowCustomerModal(true)}
+                aria-label={t.pawn.new_.newCustomerShort}
+                title={t.pawn.new_.newCustomerShort}
+                className={`grid w-12 shrink-0 place-items-center rounded-xl border-2 border-border bg-background text-foreground transition-colors hover:bg-background ${FOCUS}`}
+              >
+                <Plus size={16} weight="bold" />
+              </button>
+            )}
+          />
+          <QuickCustomerModal
+            open={showCustomerModal}
+            onClose={() => setShowCustomerModal(false)}
+            onCreated={(c) => {
+              customerPickerRef.current?.set(c)
+              setCustomerId(c.id)
+            }}
           />
           <button
             type="button"
@@ -691,6 +719,10 @@ export function Cart({
             </span>
             <span className="shrink-0 whitespace-nowrap font-mono font-semibold text-foreground">{fmtMoney(totals.tax)}</span>
           </div>
+          {/* What the shop's rate is made of — hidden once the clerk changes it. */}
+          {defaultTax?.breakdown && Number(taxPercent) === Number(defaultTax.percent) ? (
+            <p className="text-xs text-muted">{defaultTax.breakdown}</p>
+          ) : null}
         </div>
 
         {/* c. Tender */}

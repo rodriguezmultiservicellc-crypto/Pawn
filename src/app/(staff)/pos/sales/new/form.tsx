@@ -34,6 +34,7 @@ export default function NewSaleForm({
   layawayTerms,
   canEditLayawayTerms,
   timezone,
+  defaultTax,
 }: {
   inventory: InventoryPickRow[]
   initialCustomerId: string | null
@@ -47,6 +48,8 @@ export default function NewSaleForm({
   canEditLayawayTerms: boolean
   /** The shop's timezone: layaway due dates count from the shop's "today". */
   timezone: string
+  /** The shop's sales tax (Settings → Sales tax): total percent + what it is made of. */
+  defaultTax: { percent: string; breakdown: string }
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -287,6 +290,7 @@ export default function NewSaleForm({
       ) : null}
 
       <Cart
+        defaultTax={defaultTax}
         key={cartKey}
         inventory={inventory}
         initialCustomerId={initialCustomerId}

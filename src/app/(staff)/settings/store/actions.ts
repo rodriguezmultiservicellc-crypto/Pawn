@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireOwner } from '@/lib/supabase/guards'
 import { logAudit } from '@/lib/audit'
-import { storeSettingsSchema, toSettingsPatch, type StoreSettingsInput } from '@/lib/store/settings'
+import { storeSettingsSchema, type StoreSettingsInput } from '@/lib/store/settings'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cleanDomainInput, isAppHost, verificationRecordName } from '@/lib/store/custom-domain'
 import { randomBytes } from 'node:crypto'
@@ -22,7 +22,7 @@ export async function saveStoreSettingsAction(input: StoreSettingsInput): Promis
 
   const parsed = storeSettingsSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: 'invalid' }
-  const patch = toSettingsPatch(parsed.data)
+  const patch = parsed.data
 
   const { error } = await supabase.from('settings').update(patch).eq('tenant_id', ctx.tenantId)
   if (error) {

@@ -14,6 +14,7 @@ const inputCls =
 
 export default function StoreSettingsContent({
   initial,
+  taxPercent,
   canEdit,
   catalogLive,
   stripeConnected,
@@ -22,6 +23,8 @@ export default function StoreSettingsContent({
   feed,
 }: {
   initial: StoreSettingsInput
+  /** Total sales tax, e.g. "7.5" — set under Settings → Sales tax. */
+  taxPercent: string
   canEdit: boolean
   catalogLive: boolean
   stripeConnected: boolean
@@ -107,7 +110,16 @@ export default function StoreSettingsContent({
       <section className="space-y-4 rounded-xl border border-border bg-card p-5">
         {toggle('online_checkout_enabled', s.checkout, s.checkoutHelp)}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {num('tax_rate_pct', s.taxRate, s.taxHelp, '0.001')}
+          <div className="space-y-1 text-sm">
+            <span className="block font-semibold text-foreground">{s.taxRate}</span>
+            <div className="flex min-h-[38px] flex-wrap items-center gap-x-3">
+              <span className="font-mono text-foreground">{taxPercent}%</span>
+              <Link href="/settings/sales-tax" className="text-blue hover:text-blue-2">
+                {s.taxManage}
+              </Link>
+            </div>
+            <span className="block text-xs text-muted">{s.taxHelp}</span>
+          </div>
           {num('online_order_max', s.orderMax, s.orderMaxHelp)}
           {num('online_reservation_minutes', s.reservation, s.reservationHelp, '1')}
         </div>

@@ -1,7 +1,8 @@
 /**
  * Online store settings (patches/0078 settings columns). Pure. The form
- * sends percents and dollars; the database stores a fraction and numeric
- * money, and its CHECKs are the final word.
+ * sends dollars; the database stores numeric money, and its CHECKs are the
+ * final word. The sales tax rate is NOT here: it is the total of the shop's
+ * tax_rates (patches/0094, Settings → Sales tax), kept by a trigger.
  */
 
 import { z } from 'zod'
@@ -15,7 +16,6 @@ const text = (max: number) =>
 
 export const storeSettingsSchema = z.object({
   online_checkout_enabled: z.boolean(),
-  tax_rate_pct: z.coerce.number().min(0).max(99.99),
   online_pickup_enabled: z.boolean(),
   online_ship_enabled: z.boolean(),
   ship_flat_rate: money,
@@ -40,9 +40,3 @@ export const storeSettingsSchema = z.object({
   .refine((v) => !v.online_checkout_enabled || v.online_pickup_enabled || v.online_ship_enabled)
 
 export type StoreSettingsInput = z.input<typeof storeSettingsSchema>
-
-/** Form values → settings row patch. */
-export function toSettingsPatch(v: z.output<typeof storeSettingsSchema>) {
-  const { tax_rate_pct, ...rest } = v
-  return { ...rest, default_tax_rate: Math.round(tax_rate_pct * 100) / 10000 }
-}

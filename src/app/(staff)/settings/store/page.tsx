@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { fractionToPercent } from '@/lib/format/money'
 import { getCtx } from '@/lib/supabase/ctx'
 import { isTenantStripeConnected } from '@/lib/stripe/payment-link'
 import { storeBaseUrl } from '@/lib/tenant-resolver'
@@ -37,7 +38,6 @@ export default async function StoreSettingsPage() {
 
   const initial: StoreSettingsInput = {
     online_checkout_enabled: s?.online_checkout_enabled ?? false,
-    tax_rate_pct: Math.round(Number(s?.default_tax_rate ?? 0) * 10000) / 100,
     online_pickup_enabled: s?.online_pickup_enabled ?? true,
     online_ship_enabled: s?.online_ship_enabled ?? false,
     ship_flat_rate: Number(s?.ship_flat_rate ?? 0),
@@ -64,6 +64,7 @@ export default async function StoreSettingsPage() {
   return (
     <StoreSettingsContent
       initial={initial}
+      taxPercent={fractionToPercent(Number(s?.default_tax_rate ?? 0))}
       canEdit={EDIT.has(ctx.tenantRole)}
       catalogLive={catalogLive}
       stripeConnected={stripe}

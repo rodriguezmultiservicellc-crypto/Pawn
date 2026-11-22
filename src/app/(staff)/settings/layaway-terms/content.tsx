@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { ArrowDown, ArrowLeft, ArrowUp, PencilSimple, Star, Trash } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { Modal, Footer } from '@/components/pos/Modal'
+import { fractionToPercent } from '@/lib/format/money'
 import {
   LAYAWAY_SCHEDULE_KINDS,
   LAYAWAY_TERMS_MAX,
-  fractionToPercent,
   type LayawayTerm,
   type LayawayTermInput,
 } from '@/lib/pos/layaway-terms'

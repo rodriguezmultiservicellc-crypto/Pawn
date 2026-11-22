@@ -26,10 +26,13 @@ import {
   Lightning,
   Trophy,
   CalendarCheck,
+  Bank,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { QUICK_SALE_EDIT_ROLES } from '@/lib/pos/quick-sale'
 import { LAYAWAY_TERMS_EDIT_ROLES } from '@/lib/pos/layaway-terms'
+import { SALES_TAX_EDIT_ROLES } from '@/lib/pos/sales-tax'
+import { fractionToPercent } from '@/lib/format/money'
 
 export type SettingsHubView = {
   tenantId: string
@@ -58,6 +61,8 @@ export type SettingsHubView = {
     graceDays: number
     buyHoldDays: number
   }
+  /** Total sales tax rate (fraction) — the sum of the shop's active tax_rates. */
+  salesTax: { rate: number }
   loyalty: { enabled: boolean }
   storeCredit: { enabled: boolean }
   consignment: { enabled: boolean; defaultCommissionPct: number }
@@ -111,6 +116,8 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
     !!view.role && (QUICK_SALE_EDIT_ROLES as readonly string[]).includes(view.role)
   const canEditLayawayTerms =
     !!view.role && (LAYAWAY_TERMS_EDIT_ROLES as readonly string[]).includes(view.role)
+  const canEditSalesTax =
+    !!view.role && (SALES_TAX_EDIT_ROLES as readonly string[]).includes(view.role)
   const canImport =
     !!view.role && ['owner', 'manager', 'chain_admin'].includes(view.role)
 
@@ -260,6 +267,21 @@ export default function SettingsContent({ view }: { view: SettingsHubView }) {
             description={t.quickSale.hubDescription}
             status="configured"
             statusDetail={t.quickSale.label}
+          />
+        ) : null}
+
+        {view.modules.retail && canEditSalesTax ? (
+          <Card
+            href="/settings/sales-tax"
+            icon={<Bank size={20} weight="regular" />}
+            title={t.salesTax.title}
+            description={t.salesTax.hubDescription}
+            status={view.salesTax.rate > 0 ? 'configured' : 'needs_setup'}
+            statusDetail={
+              view.salesTax.rate > 0
+                ? t.salesTax.hubTotal.replace('{rate}', fractionToPercent(view.salesTax.rate))
+                : t.salesTax.hubNone
+            }
           />
         ) : null}
 

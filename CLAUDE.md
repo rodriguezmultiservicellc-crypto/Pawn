@@ -173,6 +173,17 @@ Never kill node processes by image name — always by PID.
       hides or stops an existing obligation — balances stay visible and
       accruals keep firing.
 
+20. **The sales tax total is owned by the database.** `tax_rates`
+    (patches/0094) lists a shop's taxes by district — state, county, city,
+    special district. `settings.default_tax_rate` is the SUM of the active
+    rows, kept by the trigger `trg_tax_rates_sync_total`. NEVER write that
+    column from app code. The POS pre-fills its Tax field from it (the
+    clerk may still change it for an exempt sale) and the online store
+    charges it. Rates come from the shop, never from constants (rule 18).
+    They are `numeric(6,4)`: a rate finer than 0.01% (8.875%) is refused,
+    not rounded. Managers may edit (RLS: owner + manager write; the trigger
+    is SECURITY DEFINER because managers cannot write `settings`).
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

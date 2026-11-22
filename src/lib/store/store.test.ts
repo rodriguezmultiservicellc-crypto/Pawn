@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { checkoutSchema } from './validation'
-import { storeSettingsSchema, toSettingsPatch } from './settings'
+import { storeSettingsSchema } from './settings'
 import { orderError } from './orders-errors'
 
 const ID = '11111111-1111-4111-8111-111111111111'
@@ -31,7 +31,6 @@ describe('checkoutSchema', () => {
 describe('storeSettingsSchema', () => {
   const base = {
     online_checkout_enabled: true,
-    tax_rate_pct: '7.5',
     online_pickup_enabled: true,
     online_ship_enabled: false,
     ship_flat_rate: '0',
@@ -48,9 +47,10 @@ describe('storeSettingsSchema', () => {
     store_accent_color: '',
     product_feed_enabled: false,
   }
-  it('converts the percent to a fraction and blanks to null', () => {
-    const patch = toSettingsPatch(storeSettingsSchema.parse(base))
-    expect(patch.default_tax_rate).toBe(0.075)
+  it('turns blanks into null and never writes the tax rate', () => {
+    const patch = storeSettingsSchema.parse(base)
+    // The rate is the total of tax_rates (0094), kept by a trigger.
+    expect('default_tax_rate' in patch).toBe(false)
     expect(patch.ship_free_over).toBeNull()
     expect(patch.store_tagline_en).toBe('Fine jewelry')
     expect(patch.store_accent_color).toBeNull()
