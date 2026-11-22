@@ -245,15 +245,6 @@ export function Sidebar({
       visible: modules.has_retail,
       child: true,
     },
-    // Orders paid on the shop's website (patches/0078). A more specific
-    // root than /pos, so it — not POS — lights up on its own pages.
-    {
-      kind: 'item',
-      href: '/pos/online-orders',
-      label: t.nav.onlineOrders,
-      icon: <Globe size={18} weight="regular" />,
-      visible: modules.has_retail && canSeeCounts,
-    },
     {
       kind: 'item',
       href: '/pawn',
@@ -297,6 +288,15 @@ export function Sidebar({
       label: t.nav.quotes,
       icon: <Sparkle size={18} weight="regular" />,
       visible: modules.has_repair,
+    },
+    // Orders paid on the shop's website (patches/0078). A more specific
+    // root than /pos, so it — not POS — lights up on its own pages.
+    {
+      kind: 'item',
+      href: '/pos/online-orders',
+      label: t.nav.onlineOrders,
+      icon: <Globe size={18} weight="regular" />,
+      visible: modules.has_retail && canSeeCounts,
     },
 
     // Reporting + records. Spot prices and eBay listings lead this group
