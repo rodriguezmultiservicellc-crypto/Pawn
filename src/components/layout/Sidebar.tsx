@@ -198,16 +198,6 @@ export function Sidebar({
       icon: <ArrowsLeftRight size={18} weight="regular" />,
       visible: canSeeTransfers,
     },
-    // eBay listings — under Inventory because the listings ARE inventory
-    // items being published. Settings/integrations entry is owner-only and
-    // users will navigate there from the per-listing UI.
-    {
-      kind: 'item',
-      href: '/inventory/listings/ebay',
-      label: t.nav.ebayListings,
-      icon: <Storefront size={18} weight="regular" />,
-      visible: modules.has_retail,
-    },
     // Consignors sit under Inventory: consigned goods ARE inventory, the
     // shop just doesn't own them.
     {
@@ -216,13 +206,6 @@ export function Sidebar({
       label: t.nav.consignors,
       icon: <HandCoins size={18} weight="regular" />,
       visible: consignmentEnabled,
-    },
-    {
-      kind: 'item',
-      href: '/inventory/spot-prices',
-      label: t.nav.spotPrices,
-      icon: <Scales size={18} weight="regular" />,
-      visible: canSeeSettings || modules.has_pawn || modules.has_retail,
     },
 
     // Modules — gated per tenant.has_pawn / has_repair / has_retail.
@@ -292,8 +275,23 @@ export function Sidebar({
       visible: modules.has_repair,
     },
 
-    // Reporting + records.
+    // Reporting + records. Spot prices and eBay listings lead this group
+    // (Eddy, 2026-11-21) — reference / publishing, not counter work.
     { kind: 'section' },
+    {
+      kind: 'item',
+      href: '/inventory/spot-prices',
+      label: t.nav.spotPrices,
+      icon: <Scales size={18} weight="regular" />,
+      visible: canSeeSettings || modules.has_pawn || modules.has_retail,
+    },
+    {
+      kind: 'item',
+      href: '/inventory/listings/ebay',
+      label: t.nav.ebayListings,
+      icon: <Storefront size={18} weight="regular" />,
+      visible: modules.has_retail,
+    },
     {
       kind: 'item',
       href: '/appraisals',

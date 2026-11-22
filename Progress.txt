@@ -690,6 +690,8 @@ Progress_archive.txt — the items from those sessions are there.)
       16px icon; collapsed sidebar shows them as plain icons. Only the
       most specific item highlights. nav.newItem / nav.importInventory
       EN+ES. Browser-checked on /inventory/import.
+      Then (Eddy): Spot prices + eBay listings moved out of the Inventory
+      group to lead the records group, directly above Appraisals.
 
 --- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
 
