@@ -60,11 +60,15 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 64 (2026-11-22/23). Items 531-539, THREE
+  Last session:   Session 64 (2026-11-22/23). Items 531-541, THREE
                   MIGRATIONS, ALL APPLIED: 0097, 0098, 0099.
                   - THE OLD PAWN BOOK IS IMPORTED (537): 12,782 loans,
                     65 open. Pawn audit report (539). Loan search by
-                    customer fixed (538).
+                    customer fixed (538). Payment receipts + reprint
+                    (540). Customer history + "pawned before" chips on
+                    New pawn (541).
+                  - OPEN REQUEST: Eddy sent IMG_3973.HEIC (Downloads) —
+                    "this is how the pawn ticket needs to look".
                   - Online orders keep their tax split and carry it onto
                     the sale; shipped out of state = exempt 'export'
                     (535, 0098).
@@ -828,6 +832,45 @@ Progress_archive.txt — the items from those sessions are there.)
       with no pieces. PDF returns a valid file — its layout was NOT looked
       at (no PDF viewer here). PDF headings are English like the other
       report PDFs.
+
+ 540. PAWN PAYMENT RECEIPT + "PRINT RECEIPT" ON EVERY PAYMENT (Eddy:
+      "buttons to reprint previous payments"). Pawn had NO payment receipt.
+      - src/lib/pawn/payment-receipt.ts (pure, 10 tests): reads the split
+        the payment event RECORDED (never refigures), the principal left
+        after it, and what it did — an extension / redemption written
+        within 2 minutes behind it is the same visit ("New due date",
+        "Ticket redeemed"). Bilingual EN / ES on the page. Thermal (40
+        columns) and Letter, like the sale receipt.
+      - GET /api/print/loan/[id]/payment/[eventId]?format=letter|thermal
+        (staff of the loan's shop; 404 for an event that is not a payment
+        of that loan; audit row print_render / payment_receipt).
+      - PrintReceiptDialog split: ReceiptFormatDialog (body + urlFor) is
+        the chooser for ANY receipt; the sale dialog wraps it.
+        receipt-html.ts exports receiptPage + thermalReceiptPage.
+      - Loan page event log: a Print receipt button on each payment.
+      Verified in the browser: ticket 15634's $100 payment prints
+      "Principal $100.00 / balance $1,700.00"; a redemption says TICKET
+      REDEEMED; an extension says the new due date; wrong event 404; bad
+      format 400. NOT DONE: the dialog does not open by itself right after
+      Record payment / Extend / Redeem — the clerk presses Print receipt
+      on the new row. Not printed on a real receipt printer.
+
+ 541. NEW PAWN: THE CUSTOMER'S HISTORY + "PAWNED BEFORE" CHIPS (Eddy: "I
+      want to know what he has picked up and what he has lost"; "items
+      they have pawned before and picked up, like 10k Chain 23.6g Figaro").
+      - src/lib/pawn/customer-history.ts (pure, 9 tests) +
+        pawn/new/history-actions.ts (read-only, staff of the shop).
+      - Top of the form, once a customer is picked: Pawned / Picked up /
+        Lost / Open / On loan now / Since; "Show tickets" lists the last
+        12 with outcome and pieces; link to all of them.
+      - Next to the category pills: one gold chip per piece from REDEEMED
+        tickets only (a lost piece is the shop's), the same piece once
+        with its newest value. A click adds the row filled in (category,
+        description, karat, weight, size, marks, serials) with the last
+        loan amount as the value.
+      Verified in the browser on a customer with 6 tickets (1 picked up,
+      4 lost, 1 open): panel matches; the chip added "10k box chain,
+      34.3 g, $1,000".
 
 --- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
 

@@ -23,6 +23,7 @@ import { ForfeitConfirmDialog } from '@/components/pawn/ForfeitConfirmDialog'
 import { VoidLoanDialog } from '@/components/pawn/VoidLoanDialog'
 import { RedeemConfirmDialog } from '@/components/pawn/RedeemConfirmDialog'
 import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
+import { ReceiptFormatDialog } from '@/components/pos/PrintReceiptDialog'
 import PrintTagsMenu from '@/components/labels/PrintTagsMenu'
 import type { TemplateChoice } from '@/lib/labels/templates'
 import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
@@ -341,7 +342,7 @@ export default function PawnLoanDetail({
         </div>
       </div>
 
-      <EventLogPanel events={events} />
+      <EventLogPanel events={events} loanId={loan.id} ticketNumber={loan.ticket_number} />
 
       {dialog === 'payment' ? (
         <RecordPaymentDialog
@@ -622,8 +623,18 @@ function CollateralPanel({
   )
 }
 
-function EventLogPanel({ events }: { events: LoanEventView[] }) {
+function EventLogPanel({
+  events,
+  loanId,
+  ticketNumber,
+}: {
+  events: LoanEventView[]
+  loanId: string
+  ticketNumber: string
+}) {
   const { t } = useI18n()
+  // The payment whose receipt is being printed (again).
+  const [receiptFor, setReceiptFor] = useState<LoanEventView | null>(null)
   if (events.length === 0) {
     return (
       <section className="rounded-xl border border-border bg-card p-4">
@@ -653,8 +664,20 @@ function EventLogPanel({ events }: { events: LoanEventView[] }) {
                   </span>
                 ) : null}
               </div>
-              <div className="font-mono text-xs text-muted">
-                {new Date(e.occurred_at).toLocaleString()}
+              <div className="flex items-center gap-3">
+                {e.event_type === 'payment' ? (
+                  <button
+                    type="button"
+                    onClick={() => setReceiptFor(e)}
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-semibold text-foreground hover:bg-background"
+                  >
+                    <Printer size={14} weight="bold" />
+                    {t.pawn.detail.receipt.print}
+                  </button>
+                ) : null}
+                <div className="font-mono text-xs text-muted">
+                  {new Date(e.occurred_at).toLocaleString()}
+                </div>
               </div>
             </div>
             <div className="mt-1 grid grid-cols-3 gap-3 text-xs">
@@ -695,6 +718,15 @@ function EventLogPanel({ events }: { events: LoanEventView[] }) {
           </li>
         ))}
       </ul>
+      {receiptFor ? (
+        <ReceiptFormatDialog
+          body={t.pawn.detail.receipt.dialogBody
+            .replace('{total}', fmtMoney(receiptFor.amount ?? 0))
+            .replace('{number}', ticketNumber)}
+          urlFor={(format) => `/api/print/loan/${loanId}/payment/${receiptFor.id}?format=${format}`}
+          onClose={() => setReceiptFor(null)}
+        />
+      ) : null}
     </section>
   )
 }

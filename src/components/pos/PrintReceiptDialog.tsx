@@ -45,6 +45,32 @@ export function PrintReceiptDialog({
   onClose: () => void
 }) {
   const { t } = useI18n()
+  return (
+    <ReceiptFormatDialog
+      body={(layawayNumber ? t.pos.receiptPrint.bodyLayaway : t.pos.receiptPrint.body)
+        .replace('{number}', layawayNumber ?? saleNumber ?? '')
+        .replace('{total}', formatMoney(total))}
+      urlFor={(format) => `/api/print/sale/${saleId}/receipt?format=${format}`}
+      onClose={onClose}
+    />
+  )
+}
+
+/**
+ * The Letter / Thermal chooser itself, for any receipt that prints as an
+ * HTML page: the sale receipt above, and a pawn payment receipt.
+ * `urlFor(format)` is the page to print; `body` says what is being printed.
+ */
+export function ReceiptFormatDialog({
+  body,
+  urlFor,
+  onClose,
+}: {
+  body: string
+  urlFor: (format: ReceiptFormat) => string
+  onClose: () => void
+}) {
+  const { t } = useI18n()
   const [busy, setBusy] = useState<ReceiptFormat | null>(null)
   const [error, setError] = useState<string | null>(null)
   // The dialog only ever mounts after a click or a completed payment, never
@@ -60,7 +86,7 @@ export function PrintReceiptDialog({
       /* remembering the choice is a convenience only */
     }
     try {
-      await printHtmlFromUrl(`/api/print/sale/${saleId}/receipt?format=${format}`)
+      await printHtmlFromUrl(urlFor(format))
       onClose()
     } catch {
       setError(t.pos.receiptPrint.failed)
@@ -90,11 +116,7 @@ export function PrintReceiptDialog({
 
   return (
     <Modal title={t.pos.receiptPrint.title} onClose={onClose}>
-      <p className="mb-4 text-sm text-text-secondary">
-        {(layawayNumber ? t.pos.receiptPrint.bodyLayaway : t.pos.receiptPrint.body)
-          .replace('{number}', layawayNumber ?? saleNumber ?? '')
-          .replace('{total}', formatMoney(total))}
-      </p>
+      <p className="mb-4 text-sm text-text-secondary">{body}</p>
       {error ? (
         <div role="alert" className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}

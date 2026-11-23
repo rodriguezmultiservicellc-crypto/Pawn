@@ -18,6 +18,8 @@ import type {
   InventoryCategory,
   MetalType,
 } from '@/types/database-aliases'
+import { formatMoney } from '@/lib/format/money'
+import type { PreviousPawnItem } from '@/lib/pawn/customer-history'
 import CategoryPicker, {
   CategoryBanner,
   type PawnIntakeCategory,
@@ -249,8 +251,11 @@ export const CollateralItemsList = forwardRef<
     onTotalsChange?: (count: number, totalValue: number) => void
     /** Section label shown before the category pills. */
     title: string
+    /** Pieces this customer pawned and picked up before: one chip each,
+     *  and a click writes the piece again with what was lent last time. */
+    previousItems?: ReadonlyArray<PreviousPawnItem>
   }
->(function CollateralItemsList({ categories, onTotalsChange, title }, ref) {
+>(function CollateralItemsList({ categories, onTotalsChange, title, previousItems = [] }, ref) {
   const { t } = useI18n()
   // Starts empty: the table shows "Pick a category above…" until a pill,
   // voice intake or a resumed draft adds the first row.
@@ -316,6 +321,45 @@ export const CollateralItemsList = forwardRef<
             category: inventoryCategoryFromSlug(c.slug, null),
           }
         : { ...base, pending_top_slug: c.slug }
+    setRows((prev) => [...prev, row])
+    setOpen(row.uid, true)
+  }
+
+  // A piece pawned before: the row arrives filled in, ready to check and
+  // adjust. Its category must be one this shop still has; otherwise it goes
+  // under the default and the clerk picks.
+  function addPrevious(p: PreviousPawnItem) {
+    const top = categories.find((c) => c.slug === p.pawn_category_slug)
+    const sub = top?.subcategories.find((s) => s.slug === p.pawn_subcategory_slug)
+    const firearmType: FirearmType =
+      p.firearm_type === 'handgun' || p.firearm_type === 'rifle' || p.firearm_type === 'shotgun' || p.firearm_type === 'other'
+        ? p.firearm_type
+        : ''
+    const row: Row = {
+      ...newRow(),
+      pawn_category_slug: top?.slug ?? defaultCategorySlug,
+      pawn_subcategory_slug: sub?.slug ?? null,
+      description: p.description,
+      category: p.category as InventoryCategory,
+      metal_type: (p.metal_type ?? '') as MetalType | '',
+      karat: p.karat != null ? String(p.karat) : '',
+      weight_grams: p.weight_grams != null ? String(p.weight_grams) : '',
+      jewelry_size: p.jewelry_size ?? '',
+      color: p.color ?? '',
+      gemstone_description: p.gemstone_description ?? '',
+      unique_marks: p.unique_marks ?? '',
+      firearm_make: p.firearm_make ?? '',
+      firearm_model: p.firearm_model ?? '',
+      firearm_caliber: p.firearm_caliber ?? '',
+      firearm_serial_number: p.firearm_serial_number ?? '',
+      firearm_type: firearmType,
+      electronic_brand: p.electronic_brand ?? '',
+      electronic_model: p.electronic_model ?? '',
+      electronic_serial: p.electronic_serial ?? '',
+      tool_brand: p.tool_brand ?? '',
+      tool_model: p.tool_model ?? '',
+      est_value: p.last_value > 0 ? String(p.last_value) : '0',
+    }
     setRows((prev) => [...prev, row])
     setOpen(row.uid, true)
   }
@@ -465,6 +509,32 @@ export const CollateralItemsList = forwardRef<
           ))
         )}
       </div>
+
+      {/* Pieces this customer pawned and picked up before. */}
+      {previousItems.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`mr-2 ${LABEL}`}>{tn.history.pawnedBefore}</span>
+          {previousItems.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => addPrevious(p)}
+              title={tn.history.pawnedBeforeHelp
+                .replace('{value}', formatMoney(p.last_value))
+                .replace('{ticket}', p.last_ticket)}
+              className={`inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-4 py-1 text-left text-sm font-semibold text-foreground transition-colors hover:border-gold hover:bg-gold/20 ${FOCUS}`}
+            >
+              <Plus size={14} weight="bold" className="shrink-0" />
+              <span className="truncate">{p.label}</span>
+              {p.last_value > 0 ? (
+                <span className="shrink-0 font-mono text-xs font-normal text-text-secondary">
+                  {formatMoney(p.last_value)}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div
         className="min-h-[240px] overflow-x-auto rounded-lg border border-border [contain:inline-size]"

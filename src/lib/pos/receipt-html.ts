@@ -39,7 +39,8 @@ export function escapeHtml(s: string): string {
 
 const e = escapeHtml
 
-function page(title: string, css: string, body: string): string {
+/** The bare printable page every receipt format is built on. */
+export function receiptPage(title: string, css: string, body: string): string {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -69,7 +70,15 @@ export function saleReceiptHtml(data: SaleReceiptDoc, format: ReceiptFormat): st
 // ── Thermal ────────────────────────────────────────────────────────────────
 
 function thermalHtml(data: SaleReceiptDoc, title: string): string {
-  const text = thermalReceiptLines(data, THERMAL_WIDTH).map(e).join('\n')
+  return thermalReceiptPage(title, thermalReceiptLines(data, THERMAL_WIDTH))
+}
+
+/**
+ * Any 40-column text receipt as a page for the receipt printer — the sale
+ * receipt and the pawn payment receipt print through this one page.
+ */
+export function thermalReceiptPage(title: string, lines: ReadonlyArray<string>): string {
+  const text = lines.map(e).join('\n')
   // A monospace glyph is ~0.6em wide, so 40 columns ≈ 24em. Sizing the font
   // off the page width (vw = the printable width when printing) makes the
   // 40 columns fill whatever roll the driver reports, capped so a wide
@@ -81,7 +90,7 @@ font-family:"Courier New",Courier,"Lucida Console",monospace;
 font-size:min(calc(100vw / ${(THERMAL_WIDTH * 0.6 + 0.6).toFixed(1)}), 14px);
 line-height:1.2;color:#000;font-weight:600}
 .feed{height:12mm}`
-  return page(title, css, `<pre>${text}</pre><div class="feed"></div>`)
+  return receiptPage(title, css, `<pre>${text}</pre><div class="feed"></div>`)
 }
 
 // ── Letter ─────────────────────────────────────────────────────────────────
@@ -258,5 +267,5 @@ ${data.notes?.trim() ? `<hr><h2>${label(en.notes, es.notes)}</h2><p>${e(data.not
 <hr>
 <p class="small" style="text-align:center">${label(en.thankYou, es.thankYou)}</p>`
 
-  return page(title, css, body)
+  return receiptPage(title, css, body)
 }

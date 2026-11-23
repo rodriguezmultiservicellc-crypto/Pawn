@@ -31,6 +31,9 @@ import {
   type CollateralListHandle,
 } from '@/components/pawn/CollateralItemsList'
 import type { InventoryCategory, MetalType } from '@/types/database-aliases'
+import { CustomerPawnHistory } from '@/components/pawn/CustomerPawnHistory'
+import type { CustomerPawnHistory as PawnHistory } from '@/lib/pawn/customer-history'
+import { loadCustomerPawnHistoryAction } from './history-actions'
 import VoicePawnButton, {
   type PawnVoiceData,
 } from '@/components/pawn/VoicePawnButton'
@@ -175,6 +178,32 @@ export default function NewPawnLoanForm({
   const [sigPreview, setSigPreview] = useState<string | null>(null)
   const collateralRef = useRef<CollateralListHandle>(null)
 
+  // The picked customer's pawn history. Kept with the customer it belongs
+  // to, so a slow answer for the previous customer is never shown for the
+  // next one.
+  const [historyState, setHistoryState] = useState<{
+    customerId: string
+    history: PawnHistory | null
+    failed: boolean
+  } | null>(null)
+  useEffect(() => {
+    if (!selectedCustomerId) return
+    let live = true
+    const customerId = selectedCustomerId
+    loadCustomerPawnHistoryAction(customerId)
+      .then((res) => {
+        if (live) setHistoryState({ customerId, history: res.ok ? res.history : null, failed: !res.ok })
+      })
+      .catch(() => {
+        if (live) setHistoryState({ customerId, history: null, failed: true })
+      })
+    return () => {
+      live = false
+    }
+  }, [selectedCustomerId])
+  const customerHistory =
+    historyState && historyState.customerId === selectedCustomerId ? historyState : null
+
   // Resume a saved draft: inject its collateral rows into the editor once on
   // mount. Photos aren't restored (not staged in the draft); category slugs
   // aren't restored by addExtractedRow yet (same limitation as voice intake)
@@ -296,6 +325,13 @@ export default function NewPawnLoanForm({
             {tn.financingBuy}
           </Link>
         </div>
+        {selectedCustomerId ? (
+          <CustomerPawnHistory
+            customerId={selectedCustomerId}
+            history={customerHistory?.history ?? null}
+            failed={customerHistory?.failed ?? false}
+          />
+        ) : null}
         <VoicePawnButton onDataExtracted={handleVoiceData} />
       </div>
 
@@ -353,6 +389,7 @@ export default function NewPawnLoanForm({
           ref={collateralRef}
           categories={categories}
           title={`2 · ${tn.sectionAddCollateral}`}
+          previousItems={customerHistory?.history?.previous_items ?? []}
           onTotalsChange={(count, total) => {
             setCollateralCount(count)
             setCollateralValue(total)

@@ -1,0 +1,130 @@
+import { describe, expect, it } from 'vitest'
+import { en } from '@/lib/i18n/en'
+import { es } from '@/lib/i18n/es'
+import {
+  paymentReceiptFacts,
+  paymentReceiptHtml,
+  paymentReceiptLines,
+  type PaymentReceiptDoc,
+  type ReceiptEventInput,
+} from './payment-receipt'
+
+const ev = (over: Partial<ReceiptEventInput>): ReceiptEventInput => ({
+  id: 'e',
+  event_type: 'payment',
+  amount: 0,
+  principal_paid: 0,
+  interest_paid: 0,
+  fees_paid: 0,
+  payment_method: 'cash',
+  new_due_date: null,
+  occurred_at: '2026-10-31T17:10:05.000Z',
+  ...over,
+})
+
+const events: ReceiptEventInput[] = [
+  ev({ id: 'issued', event_type: 'issued', amount: 1800, payment_method: null, occurred_at: '2026-08-22T17:01:40.000Z' }),
+  ev({ id: 'p1', amount: 180, interest_paid: '180.0000', occurred_at: '2026-09-20T15:00:00.000Z' }),
+  ev({ id: 'x1', event_type: 'extension', amount: null, payment_method: null, new_due_date: '2026-10-22', occurred_at: '2026-09-20T15:00:01.000Z' }),
+  ev({ id: 'p2', amount: 100, principal_paid: 100, occurred_at: '2026-10-31T17:10:05.000Z' }),
+  ev({ id: 'p3', amount: 1870, principal_paid: 1700, interest_paid: 170, occurred_at: '2026-11-20T15:00:00.000Z' }),
+  ev({ id: 'r1', event_type: 'redemption', amount: null, payment_method: null, occurred_at: '2026-11-20T15:00:01.000Z' }),
+]
+
+describe('paymentReceiptFacts', () => {
+  it('reads the recorded split and the principal left after that payment', () => {
+    expect(paymentReceiptFacts({ principal: 1800, events, eventId: 'p2' })).toMatchObject({
+      amount: 100,
+      principal_paid: 100,
+      interest_paid: 0,
+      principal_balance: 1700,
+      new_due_date: null,
+      redeemed: false,
+    })
+  })
+
+  it('an extension written right behind the payment is its new due date', () => {
+    expect(paymentReceiptFacts({ principal: 1800, events, eventId: 'p1' })).toMatchObject({
+      interest_paid: 180,
+      principal_balance: 1800,
+      new_due_date: '2026-10-22',
+      redeemed: false,
+    })
+  })
+
+  it('a redemption right behind the payment closes the ticket: nothing owed', () => {
+    expect(paymentReceiptFacts({ principal: 1800, events, eventId: 'p3' })).toMatchObject({
+      amount: 1870,
+      principal_balance: 0,
+      redeemed: true,
+    })
+  })
+
+  it('does not borrow the extension of a LATER visit', () => {
+    const later = [
+      ev({ id: 'p1', amount: 20, interest_paid: 20, occurred_at: '2026-01-10T15:00:00.000Z' }),
+      ev({ id: 'x', event_type: 'extension', new_due_date: '2026-03-01', occurred_at: '2026-01-12T15:00:00.000Z' }),
+    ]
+    expect(paymentReceiptFacts({ principal: 200, events: later, eventId: 'p1' })?.new_due_date).toBeNull()
+  })
+
+  it('is not a receipt for anything but a payment of this loan', () => {
+    expect(paymentReceiptFacts({ principal: 1800, events, eventId: 'x1' })).toBeNull()
+    expect(paymentReceiptFacts({ principal: 1800, events, eventId: 'nope' })).toBeNull()
+  })
+
+  it('works whatever order the events arrive in', () => {
+    const shuffled = [events[4], events[1], events[5], events[0], events[3], events[2]]
+    expect(paymentReceiptFacts({ principal: 1800, events: shuffled, eventId: 'p2' })?.principal_balance).toBe(1700)
+  })
+})
+
+const doc = (eventId: string): PaymentReceiptDoc => ({
+  ...paymentReceiptFacts({ principal: 1800, events, eventId })!,
+  ticket_number: '15634',
+  loan_principal: 1800,
+  customer_name: 'Ana Diaz',
+  tenant: { name: 'Shop Corp.', dba: "Eddy's Jewelers", address: '1 Main St', city: 'Tampa', state: 'FL', zip: '33602', phone: '(813) 555-0100' },
+  timezone: 'America/New_York',
+  i18n: { en, es },
+})
+
+describe('paymentReceiptLines', () => {
+  it('never prints a line wider than the paper', () => {
+    for (const id of ['p1', 'p2', 'p3']) {
+      for (const l of paymentReceiptLines(doc(id), 40)) expect(l.length).toBeLessThanOrEqual(40)
+    }
+  })
+
+  it('prints both languages, the amounts and the balance', () => {
+    const text = paymentReceiptLines(doc('p2'), 40).join('\n')
+    expect(text).toContain("EDDY'S JEWELERS")
+    expect(text).toContain('15634')
+    expect(text).toContain('Ana Diaz')
+    expect(text).toContain('10/31/2026 1:10 PM')
+    expect(text).toMatch(/TOTAL PAID \/ TOTAL PAGADO\s+\$100\.00/)
+    expect(text).toMatch(/\$1,700\.00/)
+    expect(text).toContain('Cash / Efectivo')
+    // Nothing was paid toward interest: no $0.00 interest line.
+    expect(text).not.toMatch(/Interest \/ Inter.s/)
+  })
+
+  it('says the new due date on an extension and the redemption on a payoff', () => {
+    expect(paymentReceiptLines(doc('p1'), 40).join('\n')).toContain('10/22/2026')
+    const paidOff = paymentReceiptLines(doc('p3'), 40).join('\n')
+    expect(paidOff).toMatch(/REDEEMED/)
+    expect(paidOff).not.toMatch(/Principal balance/)
+  })
+})
+
+describe('paymentReceiptHtml', () => {
+  it('escapes what it prints, in both formats', () => {
+    const d = { ...doc('p2'), customer_name: '<b>Ana</b> & Co' }
+    for (const format of ['thermal', 'letter'] as const) {
+      const html = paymentReceiptHtml(d, format)
+      expect(html).toContain('&lt;b&gt;Ana&lt;/b&gt; &amp; Co')
+      expect(html).not.toContain('<b>Ana</b>')
+      expect(html.startsWith('<!doctype html>')).toBe(true)
+    }
+  })
+})
