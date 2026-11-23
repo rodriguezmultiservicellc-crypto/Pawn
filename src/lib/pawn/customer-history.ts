@@ -10,9 +10,12 @@
  * A voided ticket never happened: it is counted on its own and left out of
  * the totals.
  *
- * `previous_items` are the pieces of REDEEMED tickets only — a forfeited
- * piece is the shop's now and cannot come back across the counter. The same
- * piece pawned five times is one entry (newest value, times counted).
+ * `previous_items` are the pieces the customer can bring back: a piece is
+ * offered only when its NEWEST ticket was redeemed. A piece on an open
+ * ticket is in the shop's safe right now, and a forfeited piece is the
+ * shop's — neither can come across the counter, however many times it was
+ * picked up before that. The same piece pawned five times is one entry
+ * (newest value, redeemed tickets counted).
  */
 
 export type HistoryLoanInput = {
@@ -108,6 +111,8 @@ export function outcomeOf(status: string): HistoryOutcome {
   return 'open'
 }
 
+const SAME_DAY_ORDER: Record<HistoryOutcome, number> = { open: 0, forfeited: 1, redeemed: 2, voided: 3 }
+
 /** "10k Figaro chain 23.6g" — karat, what it is, weight. */
 export function pawnItemLabel(item: {
   description: string
@@ -138,7 +143,18 @@ export function buildCustomerPawnHistory(args: {
   loans: ReadonlyArray<HistoryLoanInput>
   items: ReadonlyArray<HistoryItemInput>
 }): CustomerPawnHistory {
-  const loans = args.loans.slice().sort((a, b) => (a.issue_date < b.issue_date ? 1 : a.issue_date > b.issue_date ? -1 : 0))
+  // Newest first. Two tickets written the same day: the one that is not
+  // redeemed is the later one (a customer picks a piece up and pawns it
+  // again the same day — never the other way round).
+  const loans = args.loans
+    .slice()
+    .sort((a, b) =>
+      a.issue_date < b.issue_date
+        ? 1
+        : a.issue_date > b.issue_date
+          ? -1
+          : SAME_DAY_ORDER[outcomeOf(a.status)] - SAME_DAY_ORDER[outcomeOf(b.status)],
+    )
   const byLoan = new Map<string, HistoryItemInput[]>()
   for (const it of args.items) {
     const list = byLoan.get(it.loan_id)
@@ -159,6 +175,8 @@ export function buildCustomerPawnHistory(args: {
     previous_items: [],
   }
   const pieces = new Map<string, PreviousPawnItem>()
+  /** Pieces whose newest ticket is open or forfeited: with the shop, not the customer. */
+  const withShop = new Set<string>()
 
   for (const l of loans) {
     const outcome = outcomeOf(l.status)
@@ -178,13 +196,18 @@ export function buildCustomerPawnHistory(args: {
     h.total += 1
     if (outcome === 'open') h.open_principal += Number(l.principal)
     if (!h.first_date || l.issue_date < h.first_date) h.first_date = l.issue_date
-    if (outcome !== 'redeemed') continue
-    // Loans run newest first, so the first sighting of a piece is its latest.
+    // Loans run newest first, so the first sighting of a piece is its latest
+    // — and that ticket alone says where the piece is today.
     for (const it of items) {
       const key = pieceKey(it)
       const seen = pieces.get(key)
       if (seen) {
-        seen.times += 1
+        if (outcome === 'redeemed') seen.times += 1
+        continue
+      }
+      if (withShop.has(key)) continue
+      if (outcome !== 'redeemed') {
+        withShop.add(key)
         continue
       }
       const { loan_id: _loan, position: _pos, karat, weight_grams, est_value, ...rest } = it

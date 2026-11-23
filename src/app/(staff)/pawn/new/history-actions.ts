@@ -4,6 +4,7 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import {
   buildCustomerPawnHistory,
+  outcomeOf,
   type CustomerPawnHistory,
   type HistoryItemInput,
   type HistoryLoanInput,
@@ -45,7 +46,11 @@ export async function loadCustomerPawnHistoryAction(
   const loans = (loanRows ?? []) as HistoryLoanInput[]
 
   let items: HistoryItemInput[] = []
-  const ids = loans.slice(0, ITEM_LOANS).map((l) => l.id)
+  // The newest tickets, plus every open one however old: a piece on an open
+  // ticket is in the safe, and the "pawned before" chips must know it.
+  const ids = loans
+    .filter((l, i) => i < ITEM_LOANS || outcomeOf(l.status) === 'open')
+    .map((l) => l.id)
   if (ids.length > 0) {
     const { data: itemRows, error: itemErr } = await supabase
       .from('loan_collateral_items')

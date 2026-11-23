@@ -103,6 +103,54 @@ describe('buildCustomerPawnHistory', () => {
     expect(h.first_date).toBe('2023-03-01')
   })
 
+  it('does not offer a piece that is on an open ticket now, even if it was picked up before', () => {
+    // Ticket 15466 picked up, then the same chain pawned again on 15634.
+    const h = buildCustomerPawnHistory({
+      loans: [
+        loan({ id: 'before', ticket_number: '15466', status: 'redeemed', issue_date: '2025-05-26' }),
+        loan({ id: 'now', ticket_number: '15634', status: 'active', issue_date: '2026-08-21', principal: 1800 }),
+      ],
+      items: [
+        item({ loan_id: 'before', description: '10k box chain', weight_grams: 34.3, est_value: 1000 }),
+        item({ loan_id: 'now', description: '10k box chain', weight_grams: 34.3, est_value: 1800 }),
+        item({ loan_id: 'before', position: 1, description: 'Wedding band', weight_grams: 4 }),
+      ],
+    })
+    expect(h.previous_items.map((p) => p.label)).toEqual(['10k Wedding band 4g'])
+  })
+
+  it('does not offer a piece that was picked up once and lost later', () => {
+    const h = buildCustomerPawnHistory({
+      loans: [
+        loan({ id: 'won', status: 'redeemed', issue_date: '2013-01-18' }),
+        loan({ id: 'lost', status: 'forfeited', issue_date: '2016-01-19' }),
+      ],
+      items: [item({ loan_id: 'won' }), item({ loan_id: 'lost' })],
+    })
+    expect(h.previous_items).toEqual([])
+  })
+
+  it('offers a piece again once the later ticket is picked up too', () => {
+    const h = buildCustomerPawnHistory({
+      loans: [
+        loan({ id: 'lost', status: 'forfeited', issue_date: '2016-01-19' }),
+        loan({ id: 'won', ticket_number: '300', status: 'redeemed', issue_date: '2020-03-02' }),
+      ],
+      items: [item({ loan_id: 'lost' }), item({ loan_id: 'won', est_value: 700 })],
+    })
+    expect(h.previous_items).toHaveLength(1)
+    expect(h.previous_items[0]).toMatchObject({ times: 1, last_value: 700, last_ticket: '300' })
+  })
+
+  it('picked up and pawned again the same day: the open ticket is the later one', () => {
+    const day = '2026-08-21'
+    const items = [item({ loan_id: 'closed' }), item({ loan_id: 'open' })]
+    const closed = loan({ id: 'closed', status: 'redeemed', issue_date: day })
+    const open = loan({ id: 'open', status: 'extended', issue_date: day })
+    expect(buildCustomerPawnHistory({ loans: [closed, open], items }).previous_items).toEqual([])
+    expect(buildCustomerPawnHistory({ loans: [open, closed], items }).previous_items).toEqual([])
+  })
+
   it('lists recent tickets newest first with their pieces', () => {
     const h = buildCustomerPawnHistory({
       loans: [loan({ id: 'a', ticket_number: '1', issue_date: '2024-01-01' }), loan({ id: 'b', ticket_number: '2', issue_date: '2026-01-01', status: 'forfeited' })],
