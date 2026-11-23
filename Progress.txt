@@ -709,8 +709,23 @@ Progress_archive.txt — the items from those sessions are there.)
                            phone only); 65 with a negative balance totalling
                            $47,987.57 (probably owed to the shop — not
                            confirmed); 6 with store credit, $510.00.
-      MISSING: the pawn CUSTOMERS table (names, IDs, addresses) — asked
-      Eddy to export it. Without it the 71 open loans cannot be moved.
+      LATER THE SAME DAY Eddy added three text exports (tables drawn with
+      | and -, every value CUT at 18 characters):
+      - Customers.txt      5,225 pawn customers. All 4,572 customer keys on
+                           the tickets are in it, and all 43 open-loan
+                           customers have name, ID type + number, DOB and
+                           address. CUT: 904 streets, 63 last names (958
+                           customers; 6 streets + 1 last name among the 43).
+                           Holds 70 SSNs — sensitive, sitting in Dropbox.
+                           No emails, no fingerprints. ID expiry in mixed
+                           formats; 33 same name + DOB groups.
+      - GunLog.txt         1,532 firearm log entries, 2010-2020, 1,521
+                           checked out; serials are NOT cut, names and
+                           addresses are (271 exit names).
+      - Tickets.txt        the same 16,333 tickets as Tickets.xls, notes
+                           cut shorter — adds nothing, ignore it.
+      ASKED EDDY: export Customers and GunLog again as .xls (the .xls
+      exports keep the full text) before any import.
       Odd rows to settle before any import: open tickets from 2013 (3) and
       2019 (1); two empty $0 tickets (#20674, #21668); buy #21667 still
       marked active; ticket #6103 three times; ~400 junk karat values.
@@ -3032,8 +3047,9 @@ PENDING — NEXT UP
       (tmr_FVm2lgEWATm2nL, item 536) → one tipped TEST sale (KNOWN ISSUES
       "CARD READER TIPS" lists what to confirm); void S-000005 / S-000006
       with him.
-    - old-system data in Dropbox (item 536): waiting on the pawn
-      CUSTOMERS export before planning an import;
+    - old-system data in Dropbox (item 536): customers arrived but cut at
+      18 characters — waiting on Customers + GunLog as .xls before
+      planning an import;
     Still open from REVIEW-2026-11-11: pawn redeem / return
     double-submit, accrual dates in UTC outside the reports,
     metal-counter consignment (finding 15), /audit hydration, and the
