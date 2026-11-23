@@ -7,15 +7,21 @@ import { type PayoffResult, daysBetween, todayDateString } from '@/lib/pawn/math
  * Pure render — no actions. Shows the current payoff balance breakdown plus
  * the days-to-due / days-overdue indicator. Caller computes the
  * PayoffResult via lib/pawn/math.payoffFromLoan() with the loan + events.
+ *
+ * `closed` (redeemed / forfeited / voided): no due indicator — a closed
+ * ticket is not overdue — and the total reads as the balance when it closed.
+ * The caller passes a PayoffResult figured as of the closing day.
  */
 export function PayoffCalculator({
   payoff,
   dueDate,
   today,
+  closed = false,
 }: {
   payoff: PayoffResult
   dueDate: string
   today?: string
+  closed?: boolean
 }) {
   const { t } = useI18n()
   const todayStr = today ?? todayDateString()
@@ -29,7 +35,7 @@ export function PayoffCalculator({
         <h2 className="text-sm font-semibold text-foreground">
           {t.pawn.detail.payoffPanelTitle}
         </h2>
-        <DueBadge days={days} isOverdue={isOverdue} />
+        {closed ? null : <DueBadge days={days} isOverdue={isOverdue} />}
       </header>
 
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -50,7 +56,7 @@ export function PayoffCalculator({
 
       <div className="mt-4 flex items-center justify-between rounded-lg border border-navy/20 bg-navy/5 px-3 py-2">
         <span className="text-sm font-semibold text-foreground">
-          {t.pawn.detail.totalDue}
+          {closed ? t.pawn.detail.totalAtClose : t.pawn.detail.totalDue}
         </span>
         <span className="font-mono text-xl font-bold text-navy">
           {fmt(payoff.payoff)}

@@ -60,8 +60,11 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 64 (2026-11-22). Items 531-535, TWO MIGRATIONS,
-                  BOTH APPLIED: 0097, 0098.
+  Last session:   Session 64 (2026-11-22/23). Items 531-539, THREE
+                  MIGRATIONS, ALL APPLIED: 0097, 0098, 0099.
+                  - THE OLD PAWN BOOK IS IMPORTED (537): 12,782 loans,
+                    65 open. Pawn audit report (539). Loan search by
+                    customer fixed (538).
                   - Online orders keep their tax split and carry it onto
                     the sale; shipped out of state = exempt 'export'
                     (535, 0098).
@@ -736,6 +739,95 @@ Progress_archive.txt — the items from those sessions are there.)
       saves the shop's secret key himself at Settings → Card reader → "The
       shop's own Stripe key"; the page then lists the reader under "Readers
       on this Stripe account" → Use this reader (no pairing code).
+
+ 537. THE OLD PAWN BOOK IS IN PAWN (xPawn import, 2026-11-23). Eddy: "2"
+      (import everything), then "we need the history of pickups".
+      WHAT WAS LOADED (Eddy's Jewelers Corp., one transaction):
+        12,782 loans    redeemed 9,604 · forfeited 3,017 · voided 96 ·
+                        OPEN 65 (active 23, extended 32, partial_paid 10)
+        20,563 collateral items
+        83,998 events   issued 12,782 · payment 34,683 · extension 23,816 ·
+                        redemption 9,604 · forfeiture 3,017 · void 96
+        principal $4,354,734.71 · principal paid $3,417,256.89 ·
+        interest paid $1,273,872.48 · open principal $40,085.00
+      + 7 customers written since the July import (xpawn:5717-5723) with
+        the existing scripts/import-xpawn-customers.mjs, from Customers.txt
+        (ONE of them, 5718, has its street cut at 18 characters — fix by
+        hand; none has a phone).
+      HOW: patches/0099 (legacy_ref on loans / collateral / events, no
+      policy change) APPLIED. src/lib/imports/xpawn-loans.ts (pure, 22
+      tests) maps; scripts/import-xpawn-loans.mjs stages into the holding
+      schema xpawn_stage, dry-runs (RAISE → rollback) and commits. The
+      conversion checks its totals against the files and aborts on a
+      difference; every DB trigger (rate cap, $5 minimum, 30-day term) ran
+      on every row. Second run: 0 inserted. See CLAUDE.md rule 22.
+      PICKUPS: every redeemed ticket has its redemption event (date,
+      operator) and the payment that closed it; 27 picked up by someone
+      other than the pledgor carry "Picked up by <name>" on that event.
+      DECISIONS MADE (tell Eddy if he asks):
+      - Old tickets keep their printed number ("15664"); the loan counter
+        was set to 15664, so the next new ticket is PT-015665.
+      - A $5 charge on a small loan = the type's rate + min_monthly_charge
+        5 (same money). 55 tickets with a charge that is not a 4-decimal
+        rate got the nearest rate + a note with the old charge; ONE (#7778,
+        2012, $130 on $500 = 26%) was capped at 25% with the note.
+      - No compliance_log rows, no inventory for old forfeits.
+      NOT IMPORTED:
+      - 3,433 BUYS (type 0). Pawn has no table for a buy: it is inventory
+        pieces + a police-report row. Needs Eddy's decision.
+      - 105 tickets with no amount (empty voids; 5 of them "open" with $0
+        and no item: #8772, #8773, #20674, #13836, #21668).
+      - 13 tickets of the old system's TEST customer (key 1).
+      - 340 voided payments (they net to nothing).
+      - GunLog.txt (1,532 firearm log lines): Pawn has no gun log.
+      - Lightspeed customers (575 retail) and their $47,987.57 balances.
+      - Inventory: ALREADY in Pawn since 2026-11-21 (3,263 pieces,
+        import_source lightspeed) — not re-imported, not reconciled
+        against product-export.csv (file says 3,402 units in stock).
+      TELL EDDY — PAWN CHARGES BY THE DAY: the old system charged a full
+      30-day period; Pawn accrues interest daily from the issue date. On
+      the 65 open loans Pawn shows about $48,745 owed today against about
+      $50,617 the old way (my estimate from "Paid Until") — about $1,870
+      less. Ticket 15664 ($300, 6 days old): $306.00 in Pawn, $330.00 old.
+      Not an import error; it is how Pawn figures a payoff.
+      Messages: no SMS/email provider is saved for the shop, so nothing
+      was sent. Loan reminders are ON by default — the day Twilio/Resend
+      is connected, the open loans start getting them.
+      VERIFIED: database counts and sums = the files; /pawn list, tabs,
+      loan pages (history, pickup note, gun serial), customer page,
+      dashboard, collections, pawn aging — 200, no console errors. Loan
+      Activity 2014 on screen = $122,256.55 interest / $325,423.42
+      principal = the old payment file exactly (3,460 payments).
+      LEFT IN THE DATABASE: holding schema xpawn_stage (a copy of the
+      mapped data, no customer details). Drop it with
+      `node scripts/import-xpawn-loans.mjs drop-stage` — Eddy not asked yet.
+
+ 538. FOUND BY THE IMPORT, FIXED.
+      - Loan Activity report read at most 1,000 events (the API's silent
+        limit). Now paged: src/lib/reports/all-rows.ts (allRows + chunks),
+        shared with the sales tax report.
+      - A CLOSED loan's page showed "Days overdue: 7115" and interest
+        accrued to today. Now figured as of the day it closed; no due
+        badge; total reads "Balance when closed" (EN/ES).
+      - LOAN SEARCH BY CUSTOMER NEVER WORKED (Eddy: "the loan search by
+        customer last name or first name is not working"): the query
+        asked for ticket_number first and matched names afterwards, in
+        memory. Now two queries merged — ticket number, and customer
+        (first/last name or phone, one filter per word, so "luis perez"
+        and "Perez, Luis" both work). A search with no tab picked looks in
+        EVERY status; a picked tab narrows it. Verified: "cardenas" → 59
+        loans (= the database), 4 on the Active tab.
+
+ 539. PAWN AUDIT REPORT (Eddy: "a pawn audit report, only the tickets that
+      are here, to check off in the safe"). /reports/pawn-audit (+ PDF,
+      CSV, hub card, smoke route). Open loans only, one row per PIECE with
+      a box to tick, the ticket on its first row, in ticket-number order;
+      a ticket with no pieces recorded is listed and counted. No date
+      range (ReportPageShell hideRange). src/lib/reports/pawn-audit.ts +
+      8 tests. Live data: 65 tickets, 81 pieces, $40,085.00; 1 ticket
+      with no pieces. PDF returns a valid file — its layout was NOT looked
+      at (no PDF viewer here). PDF headings are English like the other
+      report PDFs.
 
 --- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
 
@@ -3047,9 +3139,10 @@ PENDING — NEXT UP
       (tmr_FVm2lgEWATm2nL, item 536) → one tipped TEST sale (KNOWN ISSUES
       "CARD READER TIPS" lists what to confirm); void S-000005 / S-000006
       with him.
-    - old-system data in Dropbox (item 536): customers arrived but cut at
-      18 characters — waiting on Customers + GunLog as .xls before
-      planning an import;
+    - xPawn import follow-ups (item 537): Eddy decides the 3,433 old
+      BUYS and the gun log; fix the street of customer xpawn:5718; drop
+      the holding schema xpawn_stage (ask first); reconcile inventory
+      against product-export.csv; tell him Pawn charges by the day;
     Still open from REVIEW-2026-11-11: pawn redeem / return
     double-submit, accrual dates in UTC outside the reports,
     metal-counter consignment (finding 15), /audit hydration, and the

@@ -1391,6 +1391,7 @@ export const es: Dictionary = {
       interestAccrued: 'Interés acumulado',
       interestOutstanding: 'Interés pendiente',
       totalDue: 'Total a pagar hoy',
+      totalAtClose: 'Saldo al cerrar',
       daysToDue: 'Días para vencer',
       daysOverdue: 'Días vencido',
       collateralPanelTitle: 'Prenda (bloqueada al recibir)',
@@ -3137,6 +3138,10 @@ export const es: Dictionary = {
         title: 'Antigüedad de Empeños',
         description: 'Préstamos activos por días al vencimiento / vencidos.',
       },
+      pawnAudit: {
+        title: 'Auditoría de Empeños',
+        description: 'Cada prenda que debe estar en la caja fuerte: una lista para verificar.',
+      },
       loanActivity: {
         title: 'Redenciones / Decomisos / Intereses',
         description: 'Eventos de préstamo en el rango con ingreso por intereses.',
@@ -3223,6 +3228,29 @@ export const es: Dictionary = {
       totals: {
         principal: 'Total principal',
       },
+    },
+    pawnAudit: {
+      intro: 'Solo boletos de empeño abiertos: lo que debe estar en la tienda ahora. Imprímala y marque cada pieza.',
+      columns: {
+        check: 'Está',
+        ticket: 'Boleto',
+        customer: 'Cliente',
+        issued: 'Emitido',
+        due: 'Vence',
+        piece: 'Pieza',
+        description: 'Descripción',
+        loan: 'Préstamo',
+      },
+      totals: {
+        tickets: 'Boletos abiertos',
+        pieces: 'Piezas',
+        principal: 'Prestado sobre ellos',
+        withoutItems: 'Boletos sin piezas registradas',
+      },
+      noItems: 'Este boleto no tiene piezas registradas',
+      size: 'Talla',
+      serial: 'Serie',
+      empty: 'No hay boletos de empeño abiertos.',
     },
     loanActivity: {
       columns: {

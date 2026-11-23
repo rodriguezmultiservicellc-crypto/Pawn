@@ -11,6 +11,9 @@ import { ExportButtons } from './ExportButtons'
  * Common shell for per-report pages. Provides the header, range picker,
  * export buttons, and totals strip; the caller passes the table body in
  * via `children`.
+ *
+ * `hideRange`: for a report that is a picture of now (the pawn audit), not
+ * of a period — no date picker. `from` / `to` still feed the export links.
  */
 export function ReportPageShell({
   title,
@@ -19,6 +22,7 @@ export function ReportPageShell({
   to,
   totals,
   exportExtra,
+  hideRange = false,
   children,
 }: {
   title: string
@@ -27,6 +31,7 @@ export function ReportPageShell({
   to: string
   totals?: ReadonlyArray<{ label: string; value: string }>
   exportExtra?: Record<string, string>
+  hideRange?: boolean
   children: ReactNode
 }) {
   const { t } = useI18n()
@@ -46,7 +51,7 @@ export function ReportPageShell({
         <ExportButtons slug={slug} from={from} to={to} extra={exportExtra} />
       </div>
 
-      <DateRangePicker from={from} to={to} />
+      {hideRange ? null : <DateRangePicker from={from} to={to} />}
 
       {totals && totals.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

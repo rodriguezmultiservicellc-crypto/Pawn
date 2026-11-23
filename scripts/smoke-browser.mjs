@@ -162,6 +162,7 @@ const ROUTES = [
   ['sales tax report', '/reports/sales-tax'],
   ['inventory turn', '/reports/inventory-turn'],
   ['pawn aging', '/reports/pawn-aging'],
+  ['pawn audit', '/reports/pawn-audit'],
   ['dashboard', '/dashboard'],
   ['customers', '/customers'],
   ['customers merge', '/customers/merge'],

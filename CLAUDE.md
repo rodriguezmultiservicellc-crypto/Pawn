@@ -249,6 +249,34 @@ Never kill node processes by image name — always by PID.
       (`ensureReaderTipChoices`); the switch is saved only if Stripe
       accepted them.
 
+22. **An imported loan is a loan like any other — and it remembers where
+    it came from** (patches/0099). `loans.legacy_ref`,
+    `loan_collateral_items.legacy_ref` and `loan_events.legacy_ref` hold
+    the old system's record (`xpawn:ticket:18749`, `xpawn:item:…`,
+    `xpawn:pay:35063[:ext|:red]`); NULL for anything written in Pawn.
+    Eddy's Jewelers' xPawn book (2004 → 2026-11-17) was loaded on
+    2026-11-23: 12,782 loans, 20,563 items, 83,998 events.
+    - The importer is `scripts/import-xpawn-loans.mjs` (stage → dry-run →
+      commit) over the pure, tested mapping in
+      `src/lib/imports/xpawn-loans.ts`. The conversion is ONE transaction
+      that checks its own totals against the files and aborts on any
+      difference. Running it again writes nothing.
+    - Old tickets keep the number printed on the customer's paper ticket
+      (`15664`, no prefix). New tickets continue the count as
+      `PT-015665` — the two can never collide.
+    - It writes NO `compliance_log` rows (rule 15): those transactions
+      were reported by the old system when they happened, and rows there
+      would queue them for the next police export. Old forfeits create no
+      inventory. Old BUYS (xPawn ticket type 0) are NOT imported — a buy
+      in Pawn is inventory + a compliance row, and there is no place for
+      a 2009 buy that is neither.
+    - A closed imported loan keeps its real closing time in
+      `loans.updated_at` — the retention clock (rule 13) and the lifecycle
+      messages read it. Never bulk-touch imported loans.
+    - Loan lists are now far past 1,000 rows. Anything that adds up loans
+      or loan events must page (`allRows` in `src/lib/reports/all-rows.ts`)
+      or count with `head: true`; a plain select stops at 1,000 silently.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

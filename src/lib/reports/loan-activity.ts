@@ -8,6 +8,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { allRows } from './all-rows'
 import { reportBounds } from './range'
 import type { Database } from '@/types/database'
 import type { LoanEventType } from '@/types/database-aliases'
@@ -36,20 +37,24 @@ export async function getLoanActivity(args: {
   // The shop's day, not UTC's (REVIEW-2026-11-11 finding 10).
   const { fromIso, toExclusiveIso } = reportBounds(range)
 
-  const { data, error } = await supabase
-    .from('loan_events')
-    .select(
-      `id, tenant_id, loan_id, event_type, amount,
-       principal_paid, interest_paid, fees_paid, occurred_at,
-       loan:loans(ticket_number, customer:customers(first_name, last_name))`,
-    )
-    .in('tenant_id', tenantIds as string[])
-    .in('event_type', ['payment', 'redemption', 'forfeiture'])
-    .gte('occurred_at', fromIso)
-    .lt('occurred_at', toExclusiveIso)
-    .order('occurred_at', { ascending: false })
-
-  if (error) throw new Error(`loan_activity_query_failed: ${error.message}`)
+  // Paged: a long range over an imported loan book is far past the API's
+  // 1,000-row answer, and a short read would under-report the income.
+  const data = await allRows<unknown>('loan_activity_query', (from, to) =>
+    supabase
+      .from('loan_events')
+      .select(
+        `id, tenant_id, loan_id, event_type, amount,
+         principal_paid, interest_paid, fees_paid, occurred_at,
+         loan:loans(ticket_number, customer:customers(first_name, last_name))`,
+      )
+      .in('tenant_id', tenantIds as string[])
+      .in('event_type', ['payment', 'redemption', 'forfeiture'])
+      .gte('occurred_at', fromIso)
+      .lt('occurred_at', toExclusiveIso)
+      .order('occurred_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, to),
+  )
 
   type Joined = {
     id: string
@@ -67,7 +72,7 @@ export async function getLoanActivity(args: {
     } | null
   }
 
-  const rows: LoanActivityRow[] = ((data ?? []) as unknown as Joined[]).map(
+  const rows: LoanActivityRow[] = (data as Joined[]).map(
     (e) => ({
       event_id: e.id,
       tenant_id: e.tenant_id,

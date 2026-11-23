@@ -54,6 +54,12 @@ export default function ReportsLanding({
       visible: modules.has_pawn,
     },
     {
+      href: '/reports/pawn-audit',
+      icon: <ListChecks size={20} weight="regular" />,
+      title: 'pawnAudit',
+      visible: modules.has_pawn,
+    },
+    {
       href: '/reports/loan-activity',
       icon: <Receipt size={20} weight="regular" />,
       title: 'loanActivity',

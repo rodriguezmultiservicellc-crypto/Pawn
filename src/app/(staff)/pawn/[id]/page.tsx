@@ -9,7 +9,7 @@ import {
 } from '@/lib/supabase/storage'
 import { payoffFromLoan, todayDateString } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { loanForfeitEligibility } from '@/lib/jurisdictions/rules'
+import { loanForfeitEligibility, todayInTimezone } from '@/lib/jurisdictions/rules'
 import PawnLoanDetail, {
   type LoanCollateralView,
   type LoanEventView,
@@ -147,6 +147,14 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
   const today = todayDateString()
   const rules = await loadTenantRules(ctx.supabase, loan.tenant_id)
   const forfeit = loanForfeitEligibility(rules, loan.due_date)
+  // A closed loan stopped accruing the day it closed: figure it as of that
+  // day (the shop's), not today — a ticket redeemed years ago must not show
+  // years of interest.
+  const closing = events
+    .filter((e) => e.event_type === 'redemption' || e.event_type === 'forfeiture' || e.event_type === 'void')
+    .reduce<string | null>((last, e) => (last == null || e.occurred_at > last ? e.occurred_at : last), null)
+  const isClosed = loan.status === 'redeemed' || loan.status === 'forfeited' || loan.status === 'voided'
+  const payoffAsOf = isClosed && closing ? todayInTimezone(rules.timezone, new Date(closing)) : today
   const payoff = payoffFromLoan(
     {
       principal: loan.principal,
@@ -155,7 +163,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
       min_monthly_charge: loan.min_monthly_charge,
     },
     events,
-    today,
+    payoffAsOf,
   )
 
   const c = (loan as unknown as { customer: { id: string; first_name: string; last_name: string; phone: string | null; email: string | null } | null }).customer

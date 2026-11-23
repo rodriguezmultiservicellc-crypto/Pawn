@@ -308,6 +308,7 @@ export default function PawnLoanDetail({
             payoff={payoff}
             dueDate={loan.due_date}
             today={today}
+            closed={isTerminal}
           />
 
           {loan.signature_signed_url ? (

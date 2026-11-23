@@ -1400,6 +1400,7 @@ export const en = {
       interestAccrued: 'Interest accrued',
       interestOutstanding: 'Interest outstanding',
       totalDue: 'Total payoff today',
+      totalAtClose: 'Balance when closed',
       daysToDue: 'Days to due',
       daysOverdue: 'Days overdue',
       collateralPanelTitle: 'Collateral (locked at intake)',
@@ -3133,6 +3134,10 @@ export const en = {
         title: 'Pawn Aging',
         description: 'Active loans bucketed by days-to-due / overdue.',
       },
+      pawnAudit: {
+        title: 'Pawn Audit',
+        description: 'Every pledge that should be in the safe — a list to check off.',
+      },
       loanActivity: {
         title: 'Redemptions / Forfeitures / Interest',
         description: 'Loan events in the date range with interest income.',
@@ -3219,6 +3224,29 @@ export const en = {
       totals: {
         principal: 'Total principal',
       },
+    },
+    pawnAudit: {
+      intro: 'Open pawn tickets only: what should be in the shop right now. Print it and check off each piece.',
+      columns: {
+        check: 'Here',
+        ticket: 'Ticket',
+        customer: 'Customer',
+        issued: 'Issued',
+        due: 'Due',
+        piece: 'Piece',
+        description: 'Description',
+        loan: 'Loan',
+      },
+      totals: {
+        tickets: 'Open tickets',
+        pieces: 'Pieces',
+        principal: 'Loaned on them',
+        withoutItems: 'Tickets with no pieces recorded',
+      },
+      noItems: 'No pieces recorded on this ticket',
+      size: 'Size',
+      serial: 'S/N',
+      empty: 'No open pawn tickets.',
     },
     loanActivity: {
       columns: {

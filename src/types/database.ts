@@ -3524,6 +3524,7 @@ export type Database = {
           id: string
           jewelry_size: string | null
           karat: number | null
+          legacy_ref: string | null
           loan_id: string
           metal_type: Database["public"]["Enums"]["metal_type"] | null
           pawn_category_slug: string | null
@@ -3561,6 +3562,7 @@ export type Database = {
           id?: string
           jewelry_size?: string | null
           karat?: number | null
+          legacy_ref?: string | null
           loan_id: string
           metal_type?: Database["public"]["Enums"]["metal_type"] | null
           pawn_category_slug?: string | null
@@ -3598,6 +3600,7 @@ export type Database = {
           id?: string
           jewelry_size?: string | null
           karat?: number | null
+          legacy_ref?: string | null
           loan_id?: string
           metal_type?: Database["public"]["Enums"]["metal_type"] | null
           pawn_category_slug?: string | null
@@ -3699,6 +3702,7 @@ export type Database = {
           fees_paid: number
           id: string
           interest_paid: number
+          legacy_ref: string | null
           loan_id: string
           new_due_date: string | null
           notes: string | null
@@ -3715,6 +3719,7 @@ export type Database = {
           fees_paid?: number
           id?: string
           interest_paid?: number
+          legacy_ref?: string | null
           loan_id: string
           new_due_date?: string | null
           notes?: string | null
@@ -3731,6 +3736,7 @@ export type Database = {
           fees_paid?: number
           id?: string
           interest_paid?: number
+          legacy_ref?: string | null
           loan_id?: string
           new_due_date?: string | null
           notes?: string | null
@@ -3776,6 +3782,7 @@ export type Database = {
           interest_rate_monthly: number
           is_printed: boolean
           issue_date: string
+          legacy_ref: string | null
           min_monthly_charge: number | null
           notes: string | null
           principal: number
@@ -3799,6 +3806,7 @@ export type Database = {
           interest_rate_monthly: number
           is_printed?: boolean
           issue_date?: string
+          legacy_ref?: string | null
           min_monthly_charge?: number | null
           notes?: string | null
           principal: number
@@ -3822,6 +3830,7 @@ export type Database = {
           interest_rate_monthly?: number
           is_printed?: boolean
           issue_date?: string
+          legacy_ref?: string | null
           min_monthly_charge?: number | null
           notes?: string | null
           principal?: number

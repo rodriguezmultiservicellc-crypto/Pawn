@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import PawnContent, { type PawnListRow, type PawnStats } from './content'
 import type { LoanStatus } from '@/types/database-aliases'
+import { customerSearchFilters } from '@/lib/customers/search'
 import {
   todayDateString,
   addDaysIso,
@@ -40,7 +41,9 @@ export default async function PawnListPage(props: {
 
   const params = await props.searchParams
   const q = (params.q ?? '').trim()
-  const statusFilter = (params.status ?? 'active') as LoanStatus | 'all' | 'dueSoon'
+  // A search with no tab picked looks in every status: someone typing a name
+  // wants that customer's tickets, open or closed. A picked tab narrows it.
+  const statusFilter = (params.status ?? (q ? 'all' : 'active')) as LoanStatus | 'all' | 'dueSoon'
   const dueWindow = (params.due ?? 'all') as
     | 'all'
     | 'overdue'
@@ -52,59 +55,91 @@ export default async function PawnListPage(props: {
   const in7 = addDaysIso(today, 7)
   const in14 = addDaysIso(today, 14)
 
-  // Embedded select pulls customer name in one round-trip.
-  let query = ctx.supabase
-    .from('loans')
-    .select(
-      `id, ticket_number, customer_id, principal, interest_rate_monthly,
+  const tenantId: string = ctx.tenantId
+  const LOAN_COLUMNS = `id, ticket_number, customer_id, principal, interest_rate_monthly,
        min_monthly_charge, term_days, issue_date, due_date, status,
-       is_printed, created_at,
-       customer:customers(id, first_name, last_name, phone)`,
-    )
-    .eq('tenant_id', ctx.tenantId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(200)
-
-  // Status filter — special "active" pseudostatus = active|extended|partial_paid.
-  if (statusFilter === 'active') {
-    query = query.in('status', NON_TERMINAL_STATUSES)
-  } else if (
-    statusFilter === 'redeemed' ||
-    statusFilter === 'forfeited' ||
-    statusFilter === 'voided' ||
-    statusFilter === 'extended' ||
-    statusFilter === 'partial_paid'
-  ) {
-    query = query.eq('status', statusFilter)
-  }
-  // 'all' / 'dueSoon' fall through to no .eq() and rely on dueWindow.
-
-  // Due-date window filter.
-  if (dueWindow === 'overdue') {
-    query = query.lt('due_date', today).in('status', NON_TERMINAL_STATUSES)
-  } else if (dueWindow === 'dueSoon7') {
-    query = query
-      .gte('due_date', today)
-      .lte('due_date', in7)
-      .in('status', NON_TERMINAL_STATUSES)
-  } else if (dueWindow === 'dueSoon14') {
-    query = query
-      .gte('due_date', today)
-      .lte('due_date', in14)
-      .in('status', NON_TERMINAL_STATUSES)
+       is_printed, created_at`
+  const CUSTOMER_COLUMNS = 'id, first_name, last_name, phone'
+  type ListedCustomer = { first_name: string; last_name: string; phone: string | null }
+  type ListedLoan = {
+    id: string
+    ticket_number: string | null
+    customer_id: string
+    principal: number | string
+    interest_rate_monthly: number | string
+    min_monthly_charge: number | string | null
+    term_days: number
+    issue_date: string
+    due_date: string
+    status: string
+    is_printed: boolean
+    created_at: string
+    customer: ListedCustomer | null
   }
 
-  if (customerFilter) {
-    query = query.eq('customer_id', customerFilter)
+  /** The list query with the tab, due-date and customer filters applied. */
+  const listQuery = (select: string) => {
+    let query = ctx.supabase
+      .from('loans')
+      .select(select)
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(200)
+
+    // Status filter — special "active" pseudostatus = active|extended|partial_paid.
+    if (statusFilter === 'active') {
+      query = query.in('status', NON_TERMINAL_STATUSES)
+    } else if (
+      statusFilter === 'redeemed' ||
+      statusFilter === 'forfeited' ||
+      statusFilter === 'voided' ||
+      statusFilter === 'extended' ||
+      statusFilter === 'partial_paid'
+    ) {
+      query = query.eq('status', statusFilter)
+    }
+    // 'all' / 'dueSoon' fall through to no .eq() and rely on dueWindow.
+
+    // Due-date window filter.
+    if (dueWindow === 'overdue') {
+      query = query.lt('due_date', today).in('status', NON_TERMINAL_STATUSES)
+    } else if (dueWindow === 'dueSoon7') {
+      query = query.gte('due_date', today).lte('due_date', in7).in('status', NON_TERMINAL_STATUSES)
+    } else if (dueWindow === 'dueSoon14') {
+      query = query.gte('due_date', today).lte('due_date', in14).in('status', NON_TERMINAL_STATUSES)
+    }
+
+    if (customerFilter) query = query.eq('customer_id', customerFilter)
+    return query
   }
 
-  if (q) {
-    const escaped = q.replace(/[%_]/g, (m) => '\\' + m)
-    query = query.or(`ticket_number.ilike.%${escaped}%`)
+  // Search: a ticket number OR the customer (name or phone). The customer is
+  // in another table, so these are two queries, merged. (Asking the database
+  // for the ticket number first and matching names afterwards — the earlier
+  // behaviour — could never find a customer by name.)
+  let loans: ListedLoan[]
+  if (!q) {
+    const { data } = await listQuery(`${LOAN_COLUMNS}, customer:customers(${CUSTOMER_COLUMNS})`)
+    loans = (data ?? []) as unknown as ListedLoan[]
+  } else {
+    const ticket = q.replace(/[,()]/g, '').replace(/[%_\\]/g, (m) => '\\' + m)
+    let byCustomer = listQuery(`${LOAN_COLUMNS}, customers!inner(${CUSTOMER_COLUMNS})`)
+    // One filter per word, ANDed: "luis perez" and "Perez, Luis" both work.
+    for (const filter of customerSearchFilters(q, ['first_name', 'last_name', 'phone'])) {
+      byCustomer = byCustomer.or(filter, { referencedTable: 'customers' })
+    }
+    const [byTicket, byName] = await Promise.all([
+      listQuery(`${LOAN_COLUMNS}, customer:customers(${CUSTOMER_COLUMNS})`).ilike('ticket_number', `%${ticket}%`),
+      byCustomer,
+    ])
+    const merged = new Map<string, ListedLoan>()
+    for (const l of (byTicket.data ?? []) as unknown as ListedLoan[]) merged.set(l.id, l)
+    for (const l of (byName.data ?? []) as unknown as Array<ListedLoan & { customers: ListedCustomer | null }>) {
+      if (!merged.has(l.id)) merged.set(l.id, { ...l, customer: l.customers })
+    }
+    loans = [...merged.values()].sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200)
   }
-
-  const { data: loans } = await query
 
   // Status counts (parallel) for the filter chips.
   const [
@@ -165,12 +200,9 @@ export default async function PawnListPage(props: {
   }
   const mathById = new Map<string, LoanMathFields>()
 
-  // Filter the list further by `q` against customer name OR phone (server-side
-  // text search across embedded relations isn't trivial to express in
-  // PostgREST; we filter in-memory — list is capped at 200 anyway).
-  let rows: PawnListRow[] = (loans ?? []).map((l) => {
-    const c = (l as unknown as { customer: { first_name: string; last_name: string; phone: string | null } | null }).customer
-    const lm = l as unknown as LoanMathFields
+  const rows: PawnListRow[] = loans.map((l) => {
+    const c = l.customer
+    const lm: LoanMathFields = l
     mathById.set(l.id, {
       principal: lm.principal,
       interest_rate_monthly: lm.interest_rate_monthly,
@@ -197,16 +229,6 @@ export default async function PawnListPage(props: {
       accrued_interest: null,
     }
   })
-
-  if (q) {
-    const ql = q.toLowerCase()
-    rows = rows.filter(
-      (r) =>
-        r.ticket_number.toLowerCase().includes(ql) ||
-        r.customer_name.toLowerCase().includes(ql) ||
-        (r.customer_phone ?? '').toLowerCase().includes(ql),
-    )
-  }
 
   // ── Book-wide stats strip (independent of the active filter) ───────────────
   const since30 = addDaysIso(today, -30)

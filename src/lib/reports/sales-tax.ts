@@ -27,6 +27,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { allocateDiscount, parseTaxBreakdown, TAX_LEVELS, type SaleTaxPart } from '@/lib/pos/sales-tax'
+import { allRows, chunks } from './all-rows'
 import { reportBounds } from './range'
 import type { ReportRange } from './types'
 
@@ -436,31 +437,16 @@ function toSale(s: SaleRow): TaxSaleInput {
   }
 }
 
-const PAGE = 1000
 
 /**
  * Every row of a query, 1,000 at a time. A tax report that stopped at the
  * API's default page would under-report without saying so.
  */
-async function all<T>(
+function all<T>(
   what: string,
   page: (from: number, to: number) => PromiseLike<{ data: unknown; error: { message: string } | null }>,
 ): Promise<T[]> {
-  const out: T[] = []
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await page(from, from + PAGE - 1)
-    if (error) throw new Error(`sales_tax_${what}_failed: ${error.message}`)
-    const rows = (data ?? []) as T[]
-    out.push(...rows)
-    if (rows.length < PAGE) return out
-  }
-}
-
-/** `ids` in groups small enough for one request each. */
-function chunks<T>(ids: ReadonlyArray<T>, size = 150): T[][] {
-  const out: T[][] = []
-  for (let i = 0; i < ids.length; i += size) out.push(ids.slice(i, i + size))
-  return out
+  return allRows<T>(`sales_tax_${what}`, page)
 }
 
 export async function getSalesTaxReport(args: {
