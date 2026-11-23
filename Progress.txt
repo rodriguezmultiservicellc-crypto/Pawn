@@ -688,6 +688,40 @@ Progress_archive.txt — the items from those sessions are there.)
       separately stated AND optional. Ask Eddy before the store goes
       live.
 
+ 536. EDDY'S JEWELERS' OLD DATA + ITS OWN READER (2026-11-23, READ ONLY —
+      nothing imported, no code or DB change).
+      Eddy put the shop's exports in C:\Users\rodri\Dropbox\ and asked for
+      a check. All read cleanly (SheetJS in the session scratchpad):
+      - Tickets.xls        16,333 pawn/buy tickets, 2004-03 → 2026-11-17,
+                           4,572 customer KEYS (no names). 71 still open
+                           ($40,385.00 lent, $39,921.48 owed, 43 customers).
+                           Ticket Type 2 = loan at 10% per period (11,953),
+                           0 = buy (3,433), 1/3/4 = old plans (my reading
+                           of the numbers; the file has no legend).
+      - PawnPayments.xls   35,023 payments, all match a ticket; 340 void.
+                           Type 1 = interest, 3 = redemption, 4 = principal
+                           paydown, 5 = credit (my reading).
+      - Items.xls          25,772 items, all match a ticket; weight, karat,
+                           size, gun serial + gun log no. No pictures.
+      - product-export.csv 5,507 Lightspeed products, 2,251 in stock. Karat
+                           and weight are free text ("2.5g/18"").
+      - lightspeed-customers-export-33871.csv  575 RETAIL customers (name +
+                           phone only); 65 with a negative balance totalling
+                           $47,987.57 (probably owed to the shop — not
+                           confirmed); 6 with store credit, $510.00.
+      MISSING: the pawn CUSTOMERS table (names, IDs, addresses) — asked
+      Eddy to export it. Without it the 71 open loans cannot be moved.
+      Odd rows to settle before any import: open tickets from 2013 (3) and
+      2019 (1); two empty $0 tickets (#20674, #21668); buy #21667 still
+      marked active; ticket #6103 three times; ~400 junk karat values.
+      THE SHOP'S OWN READER (Eddy, same day): BBPOS WisePOS E, serial
+      WSC513128037790, Stripe id tmr_FVm2lgEWATm2nL, on Eddy's Jewelers'
+      OWN Stripe account (rule 17 satisfied). NOT LINKED: Pawn still has no
+      Stripe key for the shop (settings: mode connect, no reader). Eddy
+      saves the shop's secret key himself at Settings → Card reader → "The
+      shop's own Stripe key"; the page then lists the reader under "Readers
+      on this Stripe account" → Use this reader (no pairing code).
+
 --- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
 
  520. LOYALTY SETTINGS PAGE TRANSLATED (7e22e6e).
@@ -2994,9 +3028,12 @@ PENDING — NEXT UP
     - ask Eddy whether the shop taxes SHIPPING on online orders (today
       it never does — item 535 KNOWN LIMIT) before the store goes live;
     - Eddy works the /customers/merge duplicates list (53 groups);
-    - the pawn company's own Stripe key → pair the reader → one tipped
-      TEST sale (KNOWN ISSUES "CARD READER TIPS" lists what to confirm);
-      void S-000005 / S-000006 with him.
+    - the pawn company's own Stripe key → link ITS reader
+      (tmr_FVm2lgEWATm2nL, item 536) → one tipped TEST sale (KNOWN ISSUES
+      "CARD READER TIPS" lists what to confirm); void S-000005 / S-000006
+      with him.
+    - old-system data in Dropbox (item 536): waiting on the pawn
+      CUSTOMERS export before planning an import;
     Still open from REVIEW-2026-11-11: pawn redeem / return
     double-submit, accrual dates in UTC outside the reports,
     metal-counter consignment (finding 15), /audit hydration, and the
