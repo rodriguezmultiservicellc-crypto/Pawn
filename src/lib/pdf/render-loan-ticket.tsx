@@ -30,11 +30,9 @@ import {
   getSignedUrl,
 } from '@/lib/supabase/storage'
 import {
-  dailyRateFromMonthly,
   interestAccrued,
   payoffBalance,
   r4,
-  todayDateString,
   toMoney,
 } from '@/lib/pawn/math'
 import { registerPdfFonts } from './fonts'
@@ -76,12 +74,12 @@ export async function renderLoanTicketPdf(args: {
     .select(
       `id, tenant_id, customer_id, ticket_number, principal,
        interest_rate_monthly, min_monthly_charge, term_days, issue_date,
-       due_date, status, is_printed, signature_path, notes, created_at,
+       due_date, status, signature_path, created_at,
        customer:customers(
          id, first_name, last_name, middle_name, date_of_birth,
          address1, address2, city, state, zip,
-         phone, phone_alt, email,
-         id_type, id_number, id_state, id_expiry,
+         phone, phone_alt,
+         id_type, id_number, id_state,
          sex, race, height_inches, weight_lbs, eye_color, hair_color,
          identifying_marks, place_of_employment
        )`,
@@ -98,7 +96,7 @@ export async function renderLoanTicketPdf(args: {
   const [tenantRes, settingsRes] = await Promise.all([
     supabase
       .from('tenants')
-      .select('id, name, dba, address, city, state, zip, phone, email')
+      .select('id, name, dba, address, city, state, zip, phone')
       .eq('id', tenantId)
       .maybeSingle(),
     supabase
@@ -125,7 +123,7 @@ export async function renderLoanTicketPdf(args: {
     .from('loan_collateral_items')
     .select(
       `description, category, metal_type, karat, weight_grams, est_value,
-       photo_path, position, jewelry_size, color, gemstone_description,
+       position, jewelry_size, color, gemstone_description,
        unique_marks, firearm_make, firearm_model, firearm_caliber,
        firearm_serial_number, firearm_type, firearm_barrel_length_inches,
        firearm_action_type, firearm_capacity, firearm_finish,
@@ -145,7 +143,6 @@ export async function renderLoanTicketPdf(args: {
       karat: c.karat == null ? null : Number(c.karat),
       weight_grams: c.weight_grams == null ? null : Number(c.weight_grams),
       est_value: c.est_value == null ? 0 : Number(c.est_value),
-      has_photo: Boolean(c.photo_path),
       jewelry_size: c.jewelry_size,
       color: c.color,
       gemstone_description: c.gemstone_description,
@@ -195,11 +192,9 @@ export async function renderLoanTicketPdf(args: {
         state: string | null
         zip: string | null
         phone: string | null
-        email: string | null
         id_type: string | null
         id_number: string | null
         id_state: string | null
-        id_expiry: string | null
         phone_alt: string | null
         sex: string | null
         race: string | null
@@ -213,14 +208,8 @@ export async function renderLoanTicketPdf(args: {
     }
   ).customer
 
-  const fullName = c
-    ? [c.first_name, c.middle_name, c.last_name]
-        .filter((s): s is string => Boolean(s && s.trim()))
-        .join(' ')
-    : '—'
 
   const customer: PawnTicketCustomer = {
-    full_name: fullName,
     first_name: c?.first_name ?? '',
     last_name: c?.last_name ?? '',
     middle_name: c?.middle_name ?? null,
@@ -240,11 +229,9 @@ export async function renderLoanTicketPdf(args: {
     state: c?.state ?? null,
     zip: c?.zip ?? null,
     phone: c?.phone ?? null,
-    email: c?.email ?? null,
     id_type: c?.id_type ?? null,
     id_number: c?.id_number ?? null,
     id_state: c?.id_state ?? null,
-    id_expiry: c?.id_expiry ?? null,
   }
 
   const tenantView: PawnTicketTenant = {
@@ -255,7 +242,6 @@ export async function renderLoanTicketPdf(args: {
     state: tenant.state,
     zip: tenant.zip,
     phone: tenant.phone,
-    email: tenant.email,
   }
 
   // ── 6. Compute end-of-term interest + payoff
@@ -270,7 +256,6 @@ export async function renderLoanTicketPdf(args: {
     minMonthlyCharge,
   )
   const totalPayoffAtTerm = r4(principal + termInterest)
-  const dailyRate = dailyRateFromMonthly(monthlyRate)
 
   // The form's lending boxes. Statutory values come from the tenant's
   // jurisdiction (rule 18); the money is the app's own loan math, so the
@@ -305,28 +290,21 @@ export async function renderLoanTicketPdf(args: {
   const data: PawnTicketData = {
     ticket_number: loan.ticket_number ?? '',
     status: loan.status as LoanStatus,
-    is_printed: loan.is_printed,
     principal,
-    interest_rate_monthly: monthlyRate,
-    min_monthly_charge: minMonthlyCharge > 0 ? minMonthlyCharge : null,
-    term_days: loan.term_days,
     issue_date: loan.issue_date,
     due_date: loan.due_date,
     total_interest_at_term: termInterest,
     total_payoff_at_term: totalPayoffAtTerm,
-    daily_rate: dailyRate,
     apr,
     transaction_time: transactionTime,
     default_date: defaultDate,
     amount_at_default: amountAtDefault,
     jurisdiction_name: rules.jurisdiction?.name ?? null,
-    notes: loan.notes ?? null,
     customer,
     tenant: tenantView,
     collateral,
     signatureImage,
     i18n: { en, es },
-    printed_on: todayDateString(),
     backpage_text: backpageText,
     legal_notices: rules.jurisdiction?.ticket_notices ?? [],
   }

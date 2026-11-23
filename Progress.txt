@@ -60,8 +60,19 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 64 (2026-11-22/23). Items 531-542, THREE
-                  MIGRATIONS, ALL APPLIED: 0097, 0098, 0099.
+  Last session:   Session 64 (2026-11-22/23), saved 2026-11-23 18:50.
+                  Context budget at save: high (my estimate ~80%; two
+                  context compactions happened in this session).
+                  Items 531-543, THREE MIGRATIONS, ALL APPLIED: 0097,
+                  0098, 0099. main == feature/sol-pawn-brief.
+                  ACTIVE FILES (last touched):
+                    src/lib/pdf/PawnTransactionForm.tsx (new ticket front)
+                    src/lib/pdf/PawnTicketPDF.tsx, render-loan-ticket.tsx
+                    scripts/import-xpawn-loans.mjs,
+                    src/lib/imports/xpawn-loans.ts (the import)
+                  RESUME POINT: nothing is half-built. The next move is
+                  Eddy's answer to the charging question below; until
+                  then do not change src/lib/pawn/math.ts.
                   - THE OLD PAWN BOOK IS IMPORTED (537): 12,782 loans,
                     65 open. Pawn audit report (539). Loan search by
                     customer fixed (538). Payment receipts + reprint
@@ -917,6 +928,26 @@ Progress_archive.txt — the items from those sessions are there.)
         periods). Same root as the open question in item 537.
       NOT VERIFIED: printed on paper; the barcode scanned (its encoding
       is unit-tested against the Code 39 table, not read by a scanner).
+
+ 543. CHECKPOINT GATE (Session 64, second save). Lane: only Pawn files
+      changed; Dropbox and Downloads were READ only; nothing touched in
+      Luna Azul or Abacus.
+      - Wording: en/es key trees identical (tsc). Removed the old ticket
+        page's keys nothing reads now: pawn.print header, sections,
+        customer, terms, collateral, signatures, notes, legal.terms,
+        footer.ticketLabel. Kept pawn.print.legal.placeholder — the form
+        prints it when a shop has NO jurisdiction on file, as before.
+      - Dead code: PawnTicketData fields no page prints (full_name, email,
+        id_expiry, is_printed, interest_rate_monthly, min_monthly_charge,
+        term_days, daily_rate, notes, printed_on, has_photo) and their
+        loader lines; the unused page style and two palette colors.
+      - Duplicates: the form uses bi() and money() from
+        pos/receipt-thermal instead of its own copies; chunks() lives in
+        reports/all-rows.ts for both reports.
+      - Left as is, on purpose: report PDF headings in English (every
+        report PDF is); the same open-status list in several report files.
+      tsc, 1,026 tests, lint, build green; ticket 15645 re-printed after
+      the cleanup: 3 pages, same as before.
 
 --- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
 
@@ -3214,13 +3245,21 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Ask Eddy to open Reports → Sales Tax and its PDF export (the PDF
-    layout was not looked at). Real 'shop' and 'exempt' sales already went through
-    (S-000016, S-000017). If Charge or Save as layaway
-    failed, the first suspect is sale_create in 'shop' tax mode (never
-    run through the API before — see RESUME POINT (a)); read the Vercel
-    log "[pos.money] sale_create". If it worked, that item is closed.
+    Get Eddy's answer: does the shop charge pawn interest BY THE DAY (how
+    Pawn figures a payoff today) or BY THE FULL 30-DAY PERIOD (his old
+    system, his paper ticket, and what Florida's text on the reverse
+    describes: full charge inside the first 30 days, daily only on
+    extensions)? It moves real money on the 65 open loans (~$1,870 today)
+    and decides the sentence left off the new ticket. If "by the period":
+    change payoffBalance / interestAccrued in src/lib/pawn/math.ts (and
+    its tests), the payoff card, the ticket's default-date amount, and
+    restore the "no refund of the finance charge" line through
+    jurisdictions.ticket_notices (rule 18), not as a constant.
+    Also ask him to look at a printed ticket (Customer copy / reverse /
+    Store copy) and one payment receipt on his real printers.
     Then, in his order of interest:
+    - Sales Tax report: ask him to open it and its PDF export once (the
+      PDF layout was not looked at);
     - ask Eddy whether the shop taxes SHIPPING on online orders (today
       it never does — item 535 KNOWN LIMIT) before the store goes live;
     - Eddy works the /customers/merge duplicates list (53 groups);

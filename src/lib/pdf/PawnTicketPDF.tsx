@@ -50,7 +50,6 @@ export type PawnTicketCollateral = {
   karat: number | null
   weight_grams: number | null
   est_value: number
-  has_photo: boolean
   // FS 539.001 + per-category attributes (patches/0041, 0043). Printed as a
   // full-width detail sub-line under each row to satisfy the statute's item-
   // description requirements (serial, color, gemstones, finish, etc.).
@@ -76,7 +75,6 @@ export type PawnTicketCollateral = {
 }
 
 export type PawnTicketCustomer = {
-  full_name: string
   first_name: string
   last_name: string
   middle_name: string | null
@@ -97,11 +95,9 @@ export type PawnTicketCustomer = {
   state: string | null
   zip: string | null
   phone: string | null
-  email: string | null
   id_type: string | null
   id_number: string | null
   id_state: string | null
-  id_expiry: string | null
 }
 
 export type PawnTicketTenant = {
@@ -112,26 +108,18 @@ export type PawnTicketTenant = {
   state: string | null
   zip: string | null
   phone: string | null
-  email: string | null
 }
 
 export type PawnTicketData = {
   ticket_number: string
   status: LoanStatus
-  is_printed: boolean
   principal: number
-  interest_rate_monthly: number
-  /** Optional per-month interest floor. Null = no minimum. */
-  min_monthly_charge: number | null
-  term_days: number
   issue_date: string
   due_date: string
   /** Total interest at end-of-term (principal × monthlyRate × term/30). */
   total_interest_at_term: number
   /** Total payoff at end-of-term (principal + total_interest_at_term). */
   total_payoff_at_term: number
-  /** Daily rate (monthly / 30) — informational only. */
-  daily_rate: number
   /** Finance charge over the term as a yearly rate (charge ÷ principal × 365 ÷ term days). */
   apr: number
   /** Time of day the ticket was written, in the shop's timezone ("11:02 AM"). */
@@ -142,7 +130,6 @@ export type PawnTicketData = {
   amount_at_default: number
   /** The tenant's jurisdiction ("Florida") — heads the form. Null when none is on file. */
   jurisdiction_name: string | null
-  notes: string | null
   customer: PawnTicketCustomer
   tenant: PawnTicketTenant
   collateral: ReadonlyArray<PawnTicketCollateral>
@@ -153,8 +140,6 @@ export type PawnTicketData = {
    *  set up as a client-side React Context — server code hands the strings
    *  in directly. */
   i18n: { en: Dictionary; es: Dictionary }
-  /** Date this PDF is being rendered (for the printed-on stamp). ISO date. */
-  printed_on: string
   /** English-only legal disclosure printed on the reverse side. The pawn
    *  ticket is a legal document — operator confirmed this block must be
    *  English regardless of customer language preference. Resolved upstream
@@ -173,22 +158,9 @@ const PALETTE = {
   body: reportColors.body,
   muted: reportColors.muted,
   divider: reportColors.divider,
-  gold: '#ff385c',
-  cloud: '#f7f7f7',
 } as const
 
 const styles = StyleSheet.create({
-  page: {
-    paddingTop: 36,
-    paddingBottom: 48,
-    paddingHorizontal: 36,
-    fontSize: 9,
-    fontFamily: 'Inter',
-    fontWeight: 500,
-    color: PALETTE.body,
-    lineHeight: 1.4,
-  },
-
   // ── Footer
   footer: {
     position: 'absolute',

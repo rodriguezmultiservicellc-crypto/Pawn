@@ -20,6 +20,7 @@
 
 import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { reportColors } from '@/lib/tokens'
+import { bi as bl, money } from '@/lib/pos/receipt-thermal'
 import type { PawnTicketCollateral, PawnTicketData } from './PawnTicketPDF'
 
 const INK = reportColors.ink
@@ -59,12 +60,6 @@ const s = StyleSheet.create({
 
 type FormLabels = PawnTicketData['i18n']['en']['pawn']['print']['form']
 type InventoryWords = PawnTicketData['i18n']['en']['inventory']
-
-const bl = (en: string, es: string): string =>
-  en.trim().toLowerCase() === es.trim().toLowerCase() ? en : `${en} / ${es}`
-
-const money = (n: number): string =>
-  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 /** 2026-09-16 → 9/16/2026 (a calendar date, no timezone shift). */
 const mdy = (iso: string | null): string => {
@@ -431,7 +426,15 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
           </View>
         </View>
 
-        {/* The jurisdiction's statements, English beside Spanish. */}
+        {/* The jurisdiction's statements, English beside Spanish. A shop with
+            no jurisdiction on file prints the placeholder instead, so the
+            missing legal text is impossible to overlook. */}
+        {data.legal_notices.length === 0 ? (
+          <View style={[s.row, { marginTop: 4 }]}>
+            <Text style={[s.notice, { flex: 1, paddingRight: 6 }]}>{data.i18n.en.pawn.print.legal.placeholder}</Text>
+            <Text style={[s.notice, { flex: 1, paddingLeft: 6 }]}>{data.i18n.es.pawn.print.legal.placeholder}</Text>
+          </View>
+        ) : null}
         {data.legal_notices.length > 0 ? (
           <View style={[s.row, { marginTop: 4 }]}>
             <View style={{ flex: 1, paddingRight: 6 }}>
