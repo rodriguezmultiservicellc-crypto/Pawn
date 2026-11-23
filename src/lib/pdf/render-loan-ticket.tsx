@@ -32,12 +32,14 @@ import {
 import {
   dailyRateFromMonthly,
   interestAccrued,
+  payoffBalance,
   r4,
   todayDateString,
   toMoney,
 } from '@/lib/pawn/math'
 import { registerPdfFonts } from './fonts'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { loanForfeitEligibility } from '@/lib/jurisdictions/rules'
 import PawnTicketPDF, {
   type PawnTicketCollateral,
   type PawnTicketCustomer,
@@ -74,12 +76,14 @@ export async function renderLoanTicketPdf(args: {
     .select(
       `id, tenant_id, customer_id, ticket_number, principal,
        interest_rate_monthly, min_monthly_charge, term_days, issue_date,
-       due_date, status, is_printed, signature_path, notes,
+       due_date, status, is_printed, signature_path, notes, created_at,
        customer:customers(
          id, first_name, last_name, middle_name, date_of_birth,
          address1, address2, city, state, zip,
-         phone, email,
-         id_type, id_number, id_state, id_expiry
+         phone, phone_alt, email,
+         id_type, id_number, id_state, id_expiry,
+         sex, race, height_inches, weight_lbs, eye_color, hair_color,
+         identifying_marks, place_of_employment
        )`,
     )
     .eq('id', loanId)
@@ -196,6 +200,15 @@ export async function renderLoanTicketPdf(args: {
         id_number: string | null
         id_state: string | null
         id_expiry: string | null
+        phone_alt: string | null
+        sex: string | null
+        race: string | null
+        height_inches: number | null
+        weight_lbs: number | null
+        eye_color: string | null
+        hair_color: string | null
+        identifying_marks: string | null
+        place_of_employment: string | null
       } | null
     }
   ).customer
@@ -208,6 +221,18 @@ export async function renderLoanTicketPdf(args: {
 
   const customer: PawnTicketCustomer = {
     full_name: fullName,
+    first_name: c?.first_name ?? '',
+    last_name: c?.last_name ?? '',
+    middle_name: c?.middle_name ?? null,
+    sex: c?.sex ?? null,
+    race: c?.race ?? null,
+    height_inches: c?.height_inches ?? null,
+    weight_lbs: c?.weight_lbs ?? null,
+    eye_color: c?.eye_color ?? null,
+    hair_color: c?.hair_color ?? null,
+    identifying_marks: c?.identifying_marks ?? null,
+    place_of_employment: c?.place_of_employment ?? null,
+    phone_alt: c?.phone_alt ?? null,
     date_of_birth: c?.date_of_birth ?? null,
     address1: c?.address1 ?? null,
     address2: c?.address2 ?? null,
@@ -247,6 +272,35 @@ export async function renderLoanTicketPdf(args: {
   const totalPayoffAtTerm = r4(principal + termInterest)
   const dailyRate = dailyRateFromMonthly(monthlyRate)
 
+  // The form's lending boxes. Statutory values come from the tenant's
+  // jurisdiction (rule 18); the money is the app's own loan math, so the
+  // ticket never promises a figure the payoff screen would not charge.
+  const defaultDate = loanForfeitEligibility(rules, loan.due_date).lastRedemptionDate
+  // What redeeming costs on the default date: the payoff screen's own figure
+  // for that day — so a ticket reprinted after payments or extensions counts
+  // what was already paid.
+  const { data: paidEvents, error: paidErr } = await supabase
+    .from('loan_events')
+    .select('principal_paid, interest_paid, fees_paid')
+    .eq('loan_id', loanId)
+    .eq('tenant_id', tenantId)
+    .limit(1000)
+  if (paidErr) throw new Error(`loan_events_failed: ${paidErr.message}`)
+  const amountAtDefault = payoffBalance({
+    principal,
+    monthlyRate,
+    issueDate: loan.issue_date,
+    today: defaultDate,
+    events: paidEvents ?? [],
+    minMonthlyCharge,
+  }).payoff
+  const apr = principal > 0 && loan.term_days > 0 ? r4((termInterest / principal) * (365 / loan.term_days)) : 0
+  const transactionTime = new Date(loan.created_at).toLocaleTimeString('en-US', {
+    timeZone: rules.timezone,
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+
   // ── 7. Assemble + render
   const data: PawnTicketData = {
     ticket_number: loan.ticket_number ?? '',
@@ -261,6 +315,11 @@ export async function renderLoanTicketPdf(args: {
     total_interest_at_term: termInterest,
     total_payoff_at_term: totalPayoffAtTerm,
     daily_rate: dailyRate,
+    apr,
+    transaction_time: transactionTime,
+    default_date: defaultDate,
+    amount_at_default: amountAtDefault,
+    jurisdiction_name: rules.jurisdiction?.name ?? null,
     notes: loan.notes ?? null,
     customer,
     tenant: tenantView,

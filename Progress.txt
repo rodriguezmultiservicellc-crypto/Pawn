@@ -60,15 +60,18 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 64 (2026-11-22/23). Items 531-541, THREE
+  Last session:   Session 64 (2026-11-22/23). Items 531-542, THREE
                   MIGRATIONS, ALL APPLIED: 0097, 0098, 0099.
                   - THE OLD PAWN BOOK IS IMPORTED (537): 12,782 loans,
                     65 open. Pawn audit report (539). Loan search by
                     customer fixed (538). Payment receipts + reprint
                     (540). Customer history + "pawned before" chips on
                     New pawn (541).
-                  - OPEN REQUEST: Eddy sent IMG_3973.HEIC (Downloads) —
-                    "this is how the pawn ticket needs to look".
+                  - The pawn ticket now prints as the Florida
+                    transaction form, after Eddy's photo (542).
+                  - DECISION WAITING ON EDDY: charge by the DAY (Pawn
+                    today) or by the full 30-day PERIOD (his old system
+                    and his paper form). See 537 and 542.
                   - Online orders keep their tax split and carry it onto
                     the sale; shipped out of state = exempt 'export'
                     (535, 0098).
@@ -871,6 +874,49 @@ Progress_archive.txt — the items from those sessions are there.)
       Verified in the browser on a customer with 6 tickets (1 picked up,
       4 lost, 1 open): panel matches; the chip added "10k box chain,
       34.3 g, $1,000".
+
+ 542. THE PAWN TICKET IS NOW THE TRANSACTION FORM (Eddy sent a photo of
+      his paper ticket, IMG_3973.HEIC: "this is how the pawn ticket needs
+      to look"). The old front page (a generic 2-page layout) is gone.
+      - src/lib/pdf/PawnTransactionForm.tsx: the Florida Pawnbroker
+        Transaction Form layout — title, shop, Code 39 barcode of the
+        ticket number, control number box, copy label, transaction date +
+        time, maturity date, type-of-transaction boxes; pledgor block
+        (name parts, DOB, sex, race, address, phones, employment, ID #,
+        type, state, height, weight, eyes, hair, marks); one block per
+        item (a third row for firearms: action, caliber, finish, barrels,
+        barrel length); Truth in Lending boxes (amount financed, finance
+        charge, total of payments, APR, maturity); the jurisdiction's
+        statements EN beside ES; pawn default date + amount; employee /
+        signature lines; thumb print box. Bilingual labels throughout.
+      - Document order: Customer copy, reverse, Store copy — a duplex
+        printer backs the customer's sheet with the terms. The reverse was
+        2 pages; its type went from 7.5 to 6.6 pt so it is ONE side.
+      - render-loan-ticket loads the extra customer fields, the time, the
+        default date (rules) and the amount on it (payoffBalance with the
+        loan's events, so a reprint after payments is right: ticket 15520
+        prints $519.00 = hand calculation), APR = charge / principal x
+        365 / term.
+      - PawnTicketPDF.tsx went from 1,064 to ~340 lines (old front page,
+        its styles and helpers removed).
+      LOOKED AT (PDF rendered to pictures with pdf.js in headless Chrome —
+      scratchpad pdf-shot.cjs, reusable): 1, 3 pieces and a handgun each
+      fit ONE sheet per copy (3 pages in all); 4+ pieces flow onto a
+      second sheet per copy (about 8% of old tickets).
+      DIFFERENT FROM HIS PAPER FORM, ON PURPOSE — TELL EDDY:
+      - Not printed: the code legends (Pawn prints words, not codes), the
+        "Privacy Statement" box, the fax number, and two sentences that
+        are not in Pawn's Florida text: "If you pay off your loan early
+        you will not be entitled to a refund of part of the finance
+        charge" and the pledgor's "under penalty of perjury" line. The
+        first would be UNTRUE in Pawn today (it charges by the day).
+      - Printed where his form has those: the three statements Pawn holds
+        for Florida, in English and Spanish.
+      - His form says $480.00 to redeem on the default date; Pawn prints
+        $481.33 for the same ticket (61 days by the day vs two full
+        periods). Same root as the open question in item 537.
+      NOT VERIFIED: printed on paper; the barcode scanned (its encoding
+      is unit-tested against the Code 39 table, not read by a scanner).
 
 --- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
 

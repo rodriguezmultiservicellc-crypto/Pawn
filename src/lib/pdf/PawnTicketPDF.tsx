@@ -1,14 +1,11 @@
-/* eslint-disable jsx-a11y/alt-text */
 /**
  * Pawn ticket PDF — bilingual EN+ES per CLAUDE.md Rule 6.
  *
- * Layout strategy:
- *   - Stacked-pair labels for field rows ("Principal / Principal",
- *     "Interest rate / Tasa de interés"), so each field row stays compact.
- *   - Full bilingual paragraphs (two columns) for legal disclosure.
- *   - Letter paper (8.5" × 11"). Density tuned so one ticket fits on one
- *     page when collateral count is ≤ ~5 items; spills to additional pages
- *     beyond that.
+ * The document, in print order:
+ *   1. Customer copy — the transaction form (PawnTransactionForm.tsx)
+ *   2. Reverse side — the shop's reverse-side text, sized to fit one side
+ *   3. Store copy — the same form
+ * A duplex printer backs the customer's sheet with the reverse.
  *
  * Imagery: collateral photos are NOT embedded. Paper isn't a great medium
  * for jewelry thumbs and the ticket is regulatory not marketing. Customer
@@ -29,7 +26,6 @@
 
 import {
   Document,
-  Image,
   Page,
   StyleSheet,
   Text,
@@ -38,6 +34,7 @@ import {
 import { reportColors } from '@/lib/tokens'
 import type { Dictionary } from '@/lib/i18n/en'
 import type { TicketNotice } from '@/lib/jurisdictions/rules'
+import { TransactionFormPage } from './PawnTransactionForm'
 import type {
   InventoryCategory,
   LoanStatus,
@@ -80,6 +77,19 @@ export type PawnTicketCollateral = {
 
 export type PawnTicketCustomer = {
   full_name: string
+  first_name: string
+  last_name: string
+  middle_name: string | null
+  sex: string | null
+  race: string | null
+  height_inches: number | null
+  weight_lbs: number | null
+  eye_color: string | null
+  hair_color: string | null
+  identifying_marks: string | null
+  place_of_employment: string | null
+  /** The customer's second phone — the form's "Business phone". */
+  phone_alt: string | null
   date_of_birth: string | null
   address1: string | null
   address2: string | null
@@ -122,6 +132,16 @@ export type PawnTicketData = {
   total_payoff_at_term: number
   /** Daily rate (monthly / 30) — informational only. */
   daily_rate: number
+  /** Finance charge over the term as a yearly rate (charge ÷ principal × 365 ÷ term days). */
+  apr: number
+  /** Time of day the ticket was written, in the shop's timezone ("11:02 AM"). */
+  transaction_time: string
+  /** Last day to redeem: maturity + the jurisdiction's grace. */
+  default_date: string
+  /** What redeeming costs on that day, figured with the app's own loan math. */
+  amount_at_default: number
+  /** The tenant's jurisdiction ("Florida") — heads the form. Null when none is on file. */
+  jurisdiction_name: string | null
   notes: string | null
   customer: PawnTicketCustomer
   tenant: PawnTicketTenant
@@ -169,248 +189,6 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
   },
 
-  // ── Header
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  headerTenantBlock: {
-    flexDirection: 'column',
-    maxWidth: '60%',
-  },
-  tenantName: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: PALETTE.ink,
-    letterSpacing: -0.1,
-  },
-  tenantSubline: {
-    fontSize: 8,
-    color: PALETTE.muted,
-    marginTop: 1,
-  },
-  ticketBadge: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-  },
-  ticketKicker: {
-    fontSize: 7,
-    color: PALETTE.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  ticketNumber: {
-    fontFamily: 'JetBrains Mono',
-    fontSize: 18,
-    fontWeight: 700,
-    color: PALETTE.gold,
-    marginTop: 2,
-  },
-  statusPill: {
-    marginTop: 4,
-    fontSize: 7,
-    fontWeight: 700,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    color: PALETTE.body,
-    backgroundColor: PALETTE.cloud,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-
-  divider: {
-    borderBottomWidth: 1,
-    borderBottomColor: PALETTE.divider,
-    borderBottomStyle: 'solid',
-    marginVertical: 8,
-  },
-
-  // ── Section
-  sectionTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 6,
-  },
-  sectionTitle: {
-    fontSize: 9,
-    fontWeight: 700,
-    color: PALETTE.ink,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  sectionTitleEs: {
-    fontSize: 8,
-    color: PALETTE.muted,
-    fontStyle: 'normal',
-  },
-
-  // ── Field rows (stacked bilingual labels)
-  fieldGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  fieldCell: {
-    paddingHorizontal: 4,
-    paddingVertical: 3,
-    width: '50%',
-  },
-  fieldCellThird: {
-    paddingHorizontal: 4,
-    paddingVertical: 3,
-    width: '33.3333%',
-  },
-  fieldLabel: {
-    fontSize: 7,
-    color: PALETTE.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  fieldLabelEs: {
-    fontSize: 7,
-    color: PALETTE.muted,
-    fontStyle: 'normal',
-  },
-  fieldValue: {
-    fontSize: 10,
-    color: PALETTE.ink,
-    marginTop: 1,
-  },
-  fieldValueMono: {
-    fontFamily: 'JetBrains Mono',
-    fontSize: 10,
-    color: PALETTE.ink,
-    marginTop: 1,
-  },
-
-  // ── Collateral table
-  table: {
-    borderTopWidth: 1,
-    borderTopColor: PALETTE.divider,
-    borderBottomWidth: 1,
-    borderBottomColor: PALETTE.divider,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: PALETTE.cloud,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-  },
-  tableHeaderCell: {
-    fontSize: 7,
-    fontWeight: 700,
-    color: PALETTE.ink,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  tableHeaderCellEs: {
-    fontSize: 6,
-    color: PALETTE.muted,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-    borderTopWidth: 1,
-    borderTopColor: PALETTE.divider,
-    borderTopStyle: 'solid',
-  },
-  tableCell: {
-    fontSize: 9,
-    color: PALETTE.body,
-  },
-  tableCellMono: {
-    fontFamily: 'JetBrains Mono',
-    fontSize: 9,
-    color: PALETTE.ink,
-    textAlign: 'right',
-  },
-  colIdx: { width: '4%' },
-  colDesc: { width: '36%' },
-  colCat: { width: '12%' },
-  colMetal: { width: '12%' },
-  colKarat: { width: '8%' },
-  colWeight: { width: '12%' },
-  colValue: { width: '16%' },
-
-  // Full-width FS 539.001 attribute sub-line under a collateral row.
-  detailRow: {
-    paddingHorizontal: 4,
-    paddingBottom: 4,
-  },
-  detailText: {
-    fontSize: 7,
-    color: PALETTE.muted,
-    lineHeight: 1.35,
-  },
-
-  photoNote: {
-    marginTop: 4,
-    fontSize: 7,
-    color: PALETTE.muted,
-    fontStyle: 'italic',
-  },
-
-  // ── Legal block
-  legalRow: {
-    flexDirection: 'row',
-    marginTop: 4,
-    columnGap: 12,
-  },
-  legalCol: {
-    flex: 1,
-  },
-  legalLang: {
-    fontSize: 7,
-    fontWeight: 700,
-    color: PALETTE.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 2,
-  },
-  legalText: {
-    fontSize: 8,
-    color: PALETTE.body,
-    lineHeight: 1.35,
-  },
-
-  // ── Signatures
-  signatureGrid: {
-    flexDirection: 'row',
-    columnGap: 16,
-    marginTop: 12,
-  },
-  signatureCell: {
-    flex: 1,
-  },
-  signatureLine: {
-    borderTopWidth: 1,
-    borderTopColor: PALETTE.ink,
-    borderTopStyle: 'solid',
-    marginTop: 26,
-  },
-  signatureLabel: {
-    fontSize: 7,
-    color: PALETTE.muted,
-    marginTop: 2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  signatureImageBox: {
-    height: 28,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-  },
-  signatureImage: {
-    height: 28,
-    objectFit: 'contain',
-  },
-
   // ── Footer
   footer: {
     position: 'absolute',
@@ -430,10 +208,10 @@ const styles = StyleSheet.create({
 
   // ── Backpage (reverse-side legal disclosure, English-only)
   backpagePage: {
-    paddingTop: 32,
-    paddingBottom: 36,
-    paddingHorizontal: 36,
-    fontSize: 7.5,
+    paddingTop: 26,
+    paddingBottom: 30,
+    paddingHorizontal: 32,
+    fontSize: 6.6,
     fontFamily: 'Inter',
     fontWeight: 500,
     color: PALETTE.body,
@@ -448,52 +226,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   backpageParagraph: {
-    fontSize: 7.5,
+    fontSize: 6.6,
     color: PALETTE.body,
-    marginBottom: 5,
-    lineHeight: 1.35,
+    marginBottom: 3.5,
+    lineHeight: 1.28,
   },
   backpageMonoLine: {
     fontFamily: 'JetBrains Mono',
-    fontSize: 7.5,
+    fontSize: 6.6,
     color: PALETTE.body,
     marginBottom: 1,
-    lineHeight: 1.4,
+    lineHeight: 1.3,
   },
   backpageRule: {
     borderBottomWidth: 1,
     borderBottomColor: PALETTE.divider,
     borderBottomStyle: 'solid',
-    marginVertical: 6,
+    marginVertical: 4,
   },
 })
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function formatMoney(n: number): string {
-  if (!isFinite(n)) return '—'
-  return n.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
-
-function formatPercent(decimalRate: number): string {
-  if (!isFinite(decimalRate)) return '—'
-  return `${(decimalRate * 100).toFixed(2)}%`
-}
-
-function joinAddress(parts: ReadonlyArray<string | null | undefined>): string {
-  return parts.filter((p): p is string => Boolean(p && p.trim())).join(', ') || '—'
-}
-
-function dash(value: string | number | null | undefined): string {
-  if (value == null) return '—'
-  if (typeof value === 'string') return value.trim() || '—'
-  return String(value)
-}
 
 // ── Backpage block parser ──────────────────────────────────────────────────
 //
@@ -524,497 +275,18 @@ function parseBackpageBlocks(text: string): BackpageBlock[] {
   return blocks
 }
 
-// ── Field component ────────────────────────────────────────────────────────
-
-function Field({
-  labelEn,
-  labelEs,
-  value,
-  mono,
-  width,
-}: {
-  labelEn: string
-  labelEs: string
-  value: React.ReactNode
-  mono?: boolean
-  width?: 'half' | 'third'
-}) {
-  return (
-    <View style={width === 'third' ? styles.fieldCellThird : styles.fieldCell}>
-      <Text style={styles.fieldLabel}>
-        {labelEn}
-        <Text style={styles.fieldLabelEs}> / {labelEs}</Text>
-      </Text>
-      <Text style={mono ? styles.fieldValueMono : styles.fieldValue}>
-        {value}
-      </Text>
-    </View>
-  )
-}
-
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
   const en = data.i18n.en.pawn.print
   const es = data.i18n.es.pawn.print
 
-  // Bilingual FS 539.001 attribute sub-line for one collateral item.
-  // Labels sourced from the pawn.new_ namespace (same labels the intake form
-  // uses); "EN/ES" pairs, collapsed when identical. Empty fields omitted.
-  const ne = data.i18n.en.pawn.new_
-  const ns = data.i18n.es.pawn.new_
-  const firearmType = (v: string | null, d: typeof ne): string | null => {
-    switch (v) {
-      case 'handgun':
-        return d.itemFirearmTypeHandgun
-      case 'rifle':
-        return d.itemFirearmTypeRifle
-      case 'shotgun':
-        return d.itemFirearmTypeShotgun
-      case 'other':
-        return d.itemFirearmTypeOther
-      default:
-        return v
-    }
-  }
-  const collateralDetailLine = (c: PawnTicketCollateral): string => {
-    const parts: string[] = []
-    const push = (le: string, ls: string, val: string | number | null) => {
-      if (val == null) return
-      const s = String(val).trim()
-      if (s === '') return
-      const label = le === ls ? le : `${le}/${ls}`
-      parts.push(`${label}: ${s}`)
-    }
-    push(ne.itemColor, ns.itemColor, c.color)
-    push(ne.itemJewelrySize, ns.itemJewelrySize, c.jewelry_size)
-    push(ne.itemGemstones, ns.itemGemstones, c.gemstone_description)
-    push(ne.itemFirearmMake, ns.itemFirearmMake, c.firearm_make)
-    push(ne.itemFirearmModel, ns.itemFirearmModel, c.firearm_model)
-    push(ne.itemFirearmCaliber, ns.itemFirearmCaliber, c.firearm_caliber)
-    push(
-      ne.itemFirearmSerialNumber,
-      ns.itemFirearmSerialNumber,
-      c.firearm_serial_number,
-    )
-    if (c.firearm_type) {
-      const le = firearmType(c.firearm_type, ne)
-      const lsv = firearmType(c.firearm_type, ns)
-      const val = le === lsv ? le : `${le}/${lsv}`
-      push(ne.itemFirearmType, ns.itemFirearmType, val)
-    }
-    push(ne.itemFirearmActionType, ns.itemFirearmActionType, c.firearm_action_type)
-    push(
-      ne.itemFirearmBarrelLength,
-      ns.itemFirearmBarrelLength,
-      c.firearm_barrel_length_inches,
-    )
-    push(ne.itemFirearmCapacity, ns.itemFirearmCapacity, c.firearm_capacity)
-    push(ne.itemFirearmFinish, ns.itemFirearmFinish, c.firearm_finish)
-    push(ne.itemFirearmBarrels, ns.itemFirearmBarrels, c.firearm_number_of_barrels)
-    push(ne.itemElectronicBrand, ns.itemElectronicBrand, c.electronic_brand)
-    push(ne.itemElectronicModel, ns.itemElectronicModel, c.electronic_model)
-    push(ne.itemElectronicSerial, ns.itemElectronicSerial, c.electronic_serial)
-    push(ne.itemToolBrand, ns.itemToolBrand, c.tool_brand)
-    push(ne.itemToolModel, ns.itemToolModel, c.tool_model)
-    push(ne.itemUniqueMarks, ns.itemUniqueMarks, c.unique_marks)
-    return parts.join('   ·   ')
-  }
-
-  const tenantSubline = joinAddress([
-    data.tenant.address,
-    data.tenant.city,
-    data.tenant.state,
-    data.tenant.zip,
-  ])
-
-  const customerAddress = joinAddress([
-    data.customer.address1,
-    data.customer.address2,
-    data.customer.city,
-    data.customer.state,
-    data.customer.zip,
-  ])
-
-  const tenantPhone = data.tenant.phone ?? ''
-  const tenantEmail = data.tenant.email ?? ''
-  const tenantContact = [tenantPhone, tenantEmail].filter(Boolean).join('  ·  ')
-
   return (
     <Document title={`Pawn Ticket ${data.ticket_number}`}>
-      <Page size="LETTER" style={styles.page} wrap>
-        {/* ── Header */}
-        <View style={styles.headerRow}>
-          <View style={styles.headerTenantBlock}>
-            <Text style={styles.tenantName}>
-              {data.tenant.dba?.trim() || data.tenant.name}
-            </Text>
-            {data.tenant.dba?.trim() ? (
-              <Text style={styles.tenantSubline}>{data.tenant.name}</Text>
-            ) : null}
-            <Text style={styles.tenantSubline}>{tenantSubline}</Text>
-            {tenantContact ? (
-              <Text style={styles.tenantSubline}>{tenantContact}</Text>
-            ) : null}
-          </View>
-          <View style={styles.ticketBadge}>
-            <Text style={styles.ticketKicker}>
-              {en.header} / {es.header}
-            </Text>
-            <Text style={styles.ticketNumber}>{data.ticket_number}</Text>
-            {data.status !== 'active' ? (
-              <Text style={styles.statusPill}>{data.status}</Text>
-            ) : null}
-          </View>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* ── Customer */}
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>
-            {en.sections.customer}
-            <Text style={styles.sectionTitleEs}> / {es.sections.customer}</Text>
-          </Text>
-        </View>
-        <View style={styles.fieldGrid}>
-          <Field
-            labelEn={en.customer.name}
-            labelEs={es.customer.name}
-            value={dash(data.customer.full_name)}
-          />
-          <Field
-            labelEn={en.customer.dob}
-            labelEs={es.customer.dob}
-            value={dash(data.customer.date_of_birth)}
-            mono
-          />
-          <Field
-            labelEn={en.customer.address}
-            labelEs={es.customer.address}
-            value={customerAddress}
-          />
-          <Field
-            labelEn={en.customer.phone}
-            labelEs={es.customer.phone}
-            value={dash(data.customer.phone)}
-          />
-          <Field
-            labelEn={en.customer.email}
-            labelEs={es.customer.email}
-            value={dash(data.customer.email)}
-          />
-          <Field
-            labelEn={en.customer.idType}
-            labelEs={es.customer.idType}
-            value={dash(data.customer.id_type)}
-          />
-          <Field
-            labelEn={en.customer.idNumber}
-            labelEs={es.customer.idNumber}
-            value={dash(data.customer.id_number)}
-            mono
-          />
-          <Field
-            labelEn={en.customer.idState}
-            labelEs={es.customer.idState}
-            value={dash(data.customer.id_state)}
-          />
-          <Field
-            labelEn={en.customer.idExpiry}
-            labelEs={es.customer.idExpiry}
-            value={dash(data.customer.id_expiry)}
-            mono
-          />
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* ── Loan terms */}
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>
-            {en.sections.terms}
-            <Text style={styles.sectionTitleEs}> / {es.sections.terms}</Text>
-          </Text>
-        </View>
-        <View style={styles.fieldGrid}>
-          <Field
-            labelEn={en.terms.principal}
-            labelEs={es.terms.principal}
-            value={formatMoney(data.principal)}
-            mono
-            width="third"
-          />
-          <Field
-            labelEn={en.terms.interestRateMonthly}
-            labelEs={es.terms.interestRateMonthly}
-            value={formatPercent(data.interest_rate_monthly)}
-            mono
-            width="third"
-          />
-          {data.min_monthly_charge != null ? (
-            <Field
-              labelEn={en.terms.minMonthlyCharge ?? 'Min interest / mo'}
-              labelEs={es.terms.minMonthlyCharge ?? 'Interés mín. / mes'}
-              value={formatMoney(data.min_monthly_charge)}
-              mono
-              width="third"
-            />
-          ) : (
-            <Field
-              labelEn={en.terms.dailyRateNote}
-              labelEs={es.terms.dailyRateNote}
-              value={formatPercent(data.daily_rate)}
-              mono
-              width="third"
-            />
-          )}
-          <Field
-            labelEn={en.terms.termDays}
-            labelEs={es.terms.termDays}
-            value={`${data.term_days} d`}
-            mono
-            width="third"
-          />
-          <Field
-            labelEn={en.terms.issueDate}
-            labelEs={es.terms.issueDate}
-            value={data.issue_date}
-            mono
-            width="third"
-          />
-          <Field
-            labelEn={en.terms.dueDate}
-            labelEs={es.terms.dueDate}
-            value={data.due_date}
-            mono
-            width="third"
-          />
-          <Field
-            labelEn={en.terms.totalInterestAtTerm}
-            labelEs={es.terms.totalInterestAtTerm}
-            value={formatMoney(data.total_interest_at_term)}
-            mono
-          />
-          <Field
-            labelEn={en.terms.totalPayoffAtTerm}
-            labelEs={es.terms.totalPayoffAtTerm}
-            value={formatMoney(data.total_payoff_at_term)}
-            mono
-          />
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* ── Collateral */}
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>
-            {en.collateral.title}
-            <Text style={styles.sectionTitleEs}>
-              {' '}
-              / {es.collateral.title}
-            </Text>
-          </Text>
-        </View>
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderCell, styles.colIdx]}>
-              {en.collateral.columns.index}
-            </Text>
-            <Text style={[styles.tableHeaderCell, styles.colDesc]}>
-              {en.collateral.columns.description}
-              <Text style={styles.tableHeaderCellEs}>
-                {' / '}
-                {es.collateral.columns.description}
-              </Text>
-            </Text>
-            <Text style={[styles.tableHeaderCell, styles.colCat]}>
-              {en.collateral.columns.category}
-              <Text style={styles.tableHeaderCellEs}>
-                {' / '}
-                {es.collateral.columns.category}
-              </Text>
-            </Text>
-            <Text style={[styles.tableHeaderCell, styles.colMetal]}>
-              {en.collateral.columns.metal}
-              <Text style={styles.tableHeaderCellEs}>
-                {' / '}
-                {es.collateral.columns.metal}
-              </Text>
-            </Text>
-            <Text style={[styles.tableHeaderCell, styles.colKarat]}>
-              {en.collateral.columns.karat}
-            </Text>
-            <Text style={[styles.tableHeaderCell, styles.colWeight]}>
-              {en.collateral.columns.weightGrams}
-            </Text>
-            <Text
-              style={[
-                styles.tableHeaderCell,
-                styles.colValue,
-                { textAlign: 'right' },
-              ]}
-            >
-              {en.collateral.columns.estValue}
-              <Text style={styles.tableHeaderCellEs}>
-                {' / '}
-                {es.collateral.columns.estValue}
-              </Text>
-            </Text>
-          </View>
-          {data.collateral.length === 0 ? (
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableCell, { width: '100%' }]}>—</Text>
-            </View>
-          ) : (
-            data.collateral.map((c, i) => {
-              const detailLine = collateralDetailLine(c)
-              return (
-                <View key={i} wrap={false}>
-                  <View style={styles.tableRow}>
-                    <Text style={[styles.tableCellMono, styles.colIdx]}>
-                      {i + 1}
-                    </Text>
-                    <Text style={[styles.tableCell, styles.colDesc]}>
-                      {c.description}
-                    </Text>
-                    <Text style={[styles.tableCell, styles.colCat]}>
-                      {c.category}
-                    </Text>
-                    <Text style={[styles.tableCell, styles.colMetal]}>
-                      {c.metal_type ?? '—'}
-                    </Text>
-                    <Text style={[styles.tableCellMono, styles.colKarat]}>
-                      {c.karat == null ? '—' : `${c.karat}k`}
-                    </Text>
-                    <Text style={[styles.tableCellMono, styles.colWeight]}>
-                      {c.weight_grams == null
-                        ? '—'
-                        : `${c.weight_grams.toFixed(2)} g`}
-                    </Text>
-                    <Text style={[styles.tableCellMono, styles.colValue]}>
-                      {formatMoney(c.est_value)}
-                    </Text>
-                  </View>
-                  {detailLine ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailText}>{detailLine}</Text>
-                    </View>
-                  ) : null}
-                </View>
-              )
-            })
-          )}
-        </View>
-        {data.collateral.some((c) => c.has_photo) ? (
-          <Text style={styles.photoNote}>
-            {en.collateral.photosOnFile} / {es.collateral.photosOnFile}
-          </Text>
-        ) : null}
-
-        <View style={styles.divider} />
-
-        {/* ── Legal disclosure */}
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>
-            {en.sections.legal}
-            <Text style={styles.sectionTitleEs}> / {es.sections.legal}</Text>
-          </Text>
-        </View>
-        <View style={styles.legalRow}>
-          {(['en', 'es'] as const).map((lang) => {
-            const dict = lang === 'en' ? en : es
-            return (
-              <View key={lang} style={styles.legalCol}>
-                <Text style={styles.legalLang}>{lang.toUpperCase()}</Text>
-                {data.legal_notices.length > 0 ? (
-                  data.legal_notices.map((n, i) => (
-                    <Text
-                      key={i}
-                      style={[
-                        styles.legalText,
-                        i > 0 ? { marginTop: 4 } : {},
-                        n.bold ? { fontWeight: 700 } : {},
-                      ]}
-                    >
-                      {lang === 'en' ? n.en : n.es || n.en}
-                    </Text>
-                  ))
-                ) : (
-                  <>
-                    <Text style={styles.legalText}>{dict.legal.placeholder}</Text>
-                    <Text style={[styles.legalText, { marginTop: 4 }]}>
-                      {dict.legal.terms}
-                    </Text>
-                  </>
-                )}
-              </View>
-            )
-          })}
-        </View>
-
-        {data.notes ? (
-          <>
-            <View style={styles.divider} />
-            <Text style={styles.fieldLabel}>
-              {en.notes} / {es.notes}
-            </Text>
-            <Text style={[styles.fieldValue, { marginTop: 2 }]}>
-              {data.notes}
-            </Text>
-          </>
-        ) : null}
-
-        {/* ── Signatures */}
-        <View style={styles.signatureGrid}>
-          <View style={styles.signatureCell}>
-            <View style={styles.signatureImageBox}>
-              {data.signatureImage ? (
-                <Image src={data.signatureImage} style={styles.signatureImage} />
-              ) : null}
-            </View>
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>
-              {en.signatures.customerSignature} /{' '}
-              {es.signatures.customerSignature}
-            </Text>
-          </View>
-          <View style={styles.signatureCell}>
-            <View style={styles.signatureImageBox} />
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>
-              {en.signatures.staffSignature} / {es.signatures.staffSignature}
-            </Text>
-          </View>
-          <View style={styles.signatureCell}>
-            <View style={styles.signatureImageBox} />
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>
-              {en.signatures.date} / {es.signatures.date}
-              {'  '}
-              <Text style={{ fontFamily: 'JetBrains Mono' }}>
-                {data.printed_on}
-              </Text>
-            </Text>
-          </View>
-        </View>
-
-        {/* ── Footer */}
-        <View style={styles.footer} fixed>
-          <Text style={styles.footerTicket}>
-            {data.ticket_number}  ·  {data.tenant.dba?.trim() || data.tenant.name}
-          </Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `${en.footer.pageOf
-                .replace('{n}', String(pageNumber))
-                .replace('{total}', String(totalPages))} / ${es.footer.pageOf
-                .replace('{n}', String(pageNumber))
-                .replace('{total}', String(totalPages))}`
-            }
-          />
-        </View>
-      </Page>
+      {/* The form itself (PawnTransactionForm.tsx). Customer copy first, with
+          the reverse right behind it — so a duplex printer backs the
+          customer's sheet with the terms — then the store's copy. */}
+      <TransactionFormPage data={data} copy="customer" />
 
       {/* ── Reverse side: legal disclosure / policy. English-only by
           operator policy — the ticket is a legal document. Omitted when
@@ -1059,6 +331,8 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
         </View>
       </Page>
       ) : null}
+
+      <TransactionFormPage data={data} copy="store" />
     </Document>
   )
 }
