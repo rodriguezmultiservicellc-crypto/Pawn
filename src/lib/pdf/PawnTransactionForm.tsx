@@ -48,15 +48,18 @@ const s = StyleSheet.create({
   value: { fontSize: 8.6, fontWeight: 600, marginTop: 1 },
   mono: { fontFamily: 'JetBrains Mono' },
   band: { backgroundColor: INK, color: '#ffffff', fontSize: 8.5, fontWeight: 700, textAlign: 'center', paddingVertical: 2.5 },
-  // truth in lending
-  tilCell: { flex: 1, paddingHorizontal: 4, paddingVertical: 3, borderRightWidth: 0.5, borderRightColor: LINE, minHeight: 46 },
-  tilHead: { fontSize: 7.6, fontWeight: 700 },
-  tilSub: { fontSize: 5.2, color: SOFT, marginTop: 1 },
-  tilValue: { fontSize: 12, fontWeight: 700, fontFamily: 'JetBrains Mono', textAlign: 'right', marginTop: 3 },
+  // truth in lending — the term on top, then its explanation beside the
+  // figure: the foot stays short so the front holds more items.
+  footBand: { backgroundColor: INK, color: '#ffffff', fontSize: 7.5, fontWeight: 700, textAlign: 'center', paddingVertical: 1.5 },
+  tilCell: { flex: 1, paddingHorizontal: 3.5, paddingTop: 2, paddingBottom: 2.5, borderRightWidth: 0.5, borderRightColor: LINE },
+  tilHead: { fontSize: 6.6, fontWeight: 700 },
+  tilBody: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 1 },
+  tilSub: { flex: 1, fontSize: 4.9, lineHeight: 1.15, color: SOFT, paddingRight: 3 },
+  tilValue: { flexShrink: 0, fontSize: 10.5, fontWeight: 700, fontFamily: 'JetBrains Mono' },
   // statements + signature
-  notice: { fontSize: 6, lineHeight: 1.25, marginBottom: 2 },
+  notice: { fontSize: 6, lineHeight: 1.12, marginBottom: 1.2 },
   sigLine: { borderTopWidth: 0.8, borderTopColor: LINE, marginTop: 2, paddingTop: 1.5 },
-  thumb: { width: 78, height: 68, borderWidth: 0.8, borderColor: LINE },
+  thumb: { width: 100, height: 52, borderWidth: 0.8, borderColor: LINE, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 1.5 },
 })
 
 type FormLabels = PawnTicketData['i18n']['en']['pawn']['print']['form']
@@ -294,10 +297,14 @@ export function estimateItemHeight(item: PawnTicketCollateral, kind: string, met
   return row1 + row2 + (firearm ? 34 : 0) + 1.6
 }
 
-/** Height of the statements column(s) at the foot (s.notice: 6pt). */
+/** Height of the statements column(s) at the foot (s.notice: 6pt × 1.12). */
 function noticesHeight(texts: ReadonlyArray<string>): number {
-  return texts.reduce((sum, text) => sum + wrapLines(text, 80) * 7.5 + 2, 0)
+  return texts.reduce((sum, text) => sum + wrapLines(text, 80) * 6.9 + 1.4, 0)
 }
+
+/** The foot without its statements: lending boxes, default date,
+ *  signature, thumb print (measured ~134pt on a rendered ticket). */
+const FOOT_BASE = 150
 
 /**
  * How many of the items go on the front sheet. Always at least one; all of
@@ -312,7 +319,7 @@ export function itemsOnFront(args: {
   noticesEs: ReadonlyArray<string>
 }): number {
   const top = 262 + args.extraPledgorLines * VALUE_LINE // header + pledgor + the goods band
-  const foot = 200 + Math.max(noticesHeight(args.noticesEn), noticesHeight(args.noticesEs))
+  const foot = FOOT_BASE + Math.max(noticesHeight(args.noticesEn), noticesHeight(args.noticesEs))
   const room = PAGE_CONTENT_HEIGHT - top - foot - 10
   let used = 0
   let n = 0
@@ -553,39 +560,33 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
 
       {/* ── The foot of the sheet: lending boxes, statements, signature.
             One unbreakable block pinned to the bottom margin. */}
-      <View style={{ marginTop: 'auto', paddingTop: 6 }} wrap={false}>
+      <View style={{ marginTop: 'auto', paddingTop: 5 }} wrap={false}>
         <View style={s.box}>
-          <Text style={s.band}>{bl(en.truthInLending, es.truthInLending).toUpperCase()}</Text>
+          <Text style={s.footBand}>{bl(en.truthInLending, es.truthInLending).toUpperCase()}</Text>
           <View style={s.row}>
-            <View style={s.tilCell}>
-              <Text style={s.tilHead}>{en.amountFinanced.toUpperCase()}</Text>
-              <Text style={s.tilSub}>{es.amountFinanced} — {bl(en.amountFinancedHelp, es.amountFinancedHelp)}</Text>
-              <Text style={s.tilValue}>{money(data.principal)}</Text>
-            </View>
-            <View style={s.tilCell}>
-              <Text style={s.tilHead}>{en.financeCharge.toUpperCase()}</Text>
-              <Text style={s.tilSub}>{es.financeCharge} — {bl(en.financeChargeHelp, es.financeChargeHelp)}</Text>
-              <Text style={s.tilValue}>{money(data.total_interest_at_term)}</Text>
-            </View>
-            <View style={s.tilCell}>
-              <Text style={s.tilHead}>{en.totalOfPayments.toUpperCase()}</Text>
-              <Text style={s.tilSub}>{es.totalOfPayments} — {bl(en.totalOfPaymentsHelp, es.totalOfPaymentsHelp)}</Text>
-              <Text style={s.tilValue}>{money(data.total_payoff_at_term)}</Text>
-            </View>
-            <View style={s.tilCell}>
-              <Text style={s.tilHead}>{en.apr.toUpperCase()}</Text>
-              <Text style={s.tilSub}>{es.apr} — {bl(en.aprHelp, es.aprHelp)}</Text>
-              <Text style={s.tilValue}>{`${(data.apr * 100).toFixed(2)}%`}</Text>
-            </View>
-            <View style={[s.tilCell, { borderRightWidth: 0 }]}>
-              <Text style={s.tilHead}>{en.maturityDate.toUpperCase()}</Text>
-              <Text style={s.tilSub}>{es.maturityDate}</Text>
-              <Text style={s.tilValue}>{mdy(data.due_date)}</Text>
-            </View>
+            {(
+              [
+                [en.amountFinanced, `${es.amountFinanced} — ${bl(en.amountFinancedHelp, es.amountFinancedHelp)}`, money(data.principal)],
+                [en.financeCharge, `${es.financeCharge} — ${bl(en.financeChargeHelp, es.financeChargeHelp)}`, money(data.total_interest_at_term)],
+                [en.totalOfPayments, `${es.totalOfPayments} — ${bl(en.totalOfPaymentsHelp, es.totalOfPaymentsHelp)}`, money(data.total_payoff_at_term)],
+                [en.apr, `${es.apr} — ${bl(en.aprHelp, es.aprHelp)}`, `${(data.apr * 100).toFixed(2)}%`],
+                [en.maturityDate, es.maturityDate, mdy(data.due_date)],
+              ] as const
+            ).map(([head, sub, value], i, all) => (
+              <View key={i} style={[s.tilCell, i === all.length - 1 ? { borderRightWidth: 0 } : {}]}>
+                <Text style={s.tilHead}>{head.toUpperCase()}</Text>
+                <View style={s.tilBody}>
+                  <Text style={s.tilSub}>{sub}</Text>
+                  <Text style={s.tilValue}>{value}</Text>
+                </View>
+              </View>
+            ))}
           </View>
           <View style={[s.row, { borderTopWidth: 0.5, borderTopColor: LINE }]}>
-            <Text style={{ flex: 1, fontSize: 6, padding: 2.5 }}>{bl(en.seeContract, es.seeContract)}</Text>
-            <Text style={{ flex: 1, fontSize: 6, padding: 2.5, textAlign: 'right' }}>
+            <Text style={{ flex: 1, fontSize: 5.4, lineHeight: 1.15, paddingHorizontal: 2.5, paddingVertical: 1.5 }}>
+              {bl(en.seeContract, es.seeContract)}
+            </Text>
+            <Text style={{ flex: 1, fontSize: 5.4, lineHeight: 1.15, paddingHorizontal: 2.5, paddingVertical: 1.5, textAlign: 'right' }}>
               {bl(en.paymentSchedule, es.paymentSchedule)}
             </Text>
           </View>
@@ -619,16 +620,21 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
           </View>
         ) : null}
 
-        {/* Default date · signature · thumb print */}
-        <View style={[s.row, { marginTop: 4 }]}>
-          <View style={[s.box, { width: 150, padding: 4 }]}>
-            <Text style={{ fontSize: 8, fontWeight: 700 }}>{en.defaultDate}:</Text>
-            <Text style={s.small}>{es.defaultDate}</Text>
-            <Text style={{ fontSize: 10, fontWeight: 700, marginTop: 1 }}>{mdy(data.default_date)}</Text>
-            <Text style={[s.small, { marginTop: 4 }]}>{bl(en.amountAtDefault, es.amountAtDefault)}</Text>
-            <Text style={{ fontSize: 10, fontWeight: 700, fontFamily: 'JetBrains Mono', marginTop: 1 }}>
-              {money(data.amount_at_default)}
-            </Text>
+        {/* Default date · signature · thumb print. The default date and the
+            amount to redeem on it sit side by side. */}
+        <View style={[s.row, { marginTop: 3, alignItems: 'flex-end' }]}>
+          <View style={[s.box, s.row, { width: 236 }]}>
+            <View style={{ width: 92, padding: 3, borderRightWidth: 0.5, borderRightColor: LINE }}>
+              <Text style={{ fontSize: 7, fontWeight: 700 }}>{en.defaultDate}:</Text>
+              <Text style={s.small}>{es.defaultDate}</Text>
+              <Text style={{ fontSize: 10, fontWeight: 700, marginTop: 1 }}>{mdy(data.default_date)}</Text>
+            </View>
+            <View style={{ flex: 1, padding: 3 }}>
+              <Text style={[s.small, { lineHeight: 1.1 }]}>{bl(en.amountAtDefault, es.amountAtDefault)}</Text>
+              <Text style={{ fontSize: 10, fontWeight: 700, fontFamily: 'JetBrains Mono', marginTop: 1 }}>
+                {money(data.amount_at_default)}
+              </Text>
+            </View>
           </View>
           <View style={{ flex: 1, paddingHorizontal: 8, justifyContent: 'flex-end' }}>
             <View style={[s.row, { alignItems: 'flex-end' }]}>
@@ -653,9 +659,8 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
               {bl(en.seeReverse, es.seeReverse)}
             </Text>
           </View>
-          <View style={{ alignItems: 'center' }}>
-            <View style={s.thumb} />
-            <Text style={[s.small, { marginTop: 2, width: 104, textAlign: 'center' }]}>{bl(en.thumbPrint, es.thumbPrint)}</Text>
+          <View style={s.thumb}>
+            <Text style={[s.small, { fontSize: 4.8, textAlign: 'center' }]}>{bl(en.thumbPrint, es.thumbPrint)}</Text>
           </View>
         </View>
       </View>

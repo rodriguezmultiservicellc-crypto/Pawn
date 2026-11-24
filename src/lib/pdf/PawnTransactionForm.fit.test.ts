@@ -40,8 +40,8 @@ describe('itemsOnFront', () => {
   })
 
   it('stops before the item that would push the foot off the sheet', () => {
-    // No statements: 752 - 262 - 200 - 10 = 280 points for items.
-    expect(itemsOnFront({ ...none, itemHeights: [100, 100, 100, 100] })).toBe(2)
+    // No statements: 752 - 262 - 150 - 10 = 330 points for items.
+    expect(itemsOnFront({ ...none, itemHeights: [100, 100, 100, 100] })).toBe(3)
     expect(itemsOnFront({ ...none, itemHeights: [70, 70, 70, 70, 70] })).toBe(4)
   })
 
@@ -57,7 +57,7 @@ describe('itemsOnFront', () => {
   })
 
   it('leaves less room when the address runs to more lines', () => {
-    const heights = [70, 70, 70, 70]
+    const heights = [80, 80, 80, 80]
     expect(itemsOnFront({ ...none, itemHeights: heights })).toBe(4)
     expect(itemsOnFront({ ...none, extraPledgorLines: 2, itemHeights: heights })).toBe(3)
   })
