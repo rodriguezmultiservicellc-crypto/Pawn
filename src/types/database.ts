@@ -6763,6 +6763,141 @@ export type Database = {
           },
         ]
       }
+      tenant_business_profile: {
+        Row: {
+          bank_city: string | null
+          bank_name: string | null
+          bank_routing: string | null
+          bank_state: string | null
+          business_description: string | null
+          created_at: string
+          duns: string | null
+          ein: string | null
+          email: string | null
+          entity_type: string | null
+          fax: string | null
+          form_answers: Json
+          incorporation_number: string | null
+          incorporation_state: string | null
+          legal_name: string | null
+          mailing_address1: string | null
+          mailing_address2: string | null
+          mailing_city: string | null
+          mailing_state: string | null
+          mailing_type: string | null
+          mailing_zip: string | null
+          naics_code: string | null
+          officers: Json
+          phone: string | null
+          phone_ext: string | null
+          physical_address1: string | null
+          physical_address2: string | null
+          physical_city: string | null
+          physical_same: boolean
+          physical_state: string | null
+          physical_type: string | null
+          physical_zip: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          website: string | null
+          year_established: number | null
+        }
+        Insert: {
+          bank_city?: string | null
+          bank_name?: string | null
+          bank_routing?: string | null
+          bank_state?: string | null
+          business_description?: string | null
+          created_at?: string
+          duns?: string | null
+          ein?: string | null
+          email?: string | null
+          entity_type?: string | null
+          fax?: string | null
+          form_answers?: Json
+          incorporation_number?: string | null
+          incorporation_state?: string | null
+          legal_name?: string | null
+          mailing_address1?: string | null
+          mailing_address2?: string | null
+          mailing_city?: string | null
+          mailing_state?: string | null
+          mailing_type?: string | null
+          mailing_zip?: string | null
+          naics_code?: string | null
+          officers?: Json
+          phone?: string | null
+          phone_ext?: string | null
+          physical_address1?: string | null
+          physical_address2?: string | null
+          physical_city?: string | null
+          physical_same?: boolean
+          physical_state?: string | null
+          physical_type?: string | null
+          physical_zip?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+          year_established?: number | null
+        }
+        Update: {
+          bank_city?: string | null
+          bank_name?: string | null
+          bank_routing?: string | null
+          bank_state?: string | null
+          business_description?: string | null
+          created_at?: string
+          duns?: string | null
+          ein?: string | null
+          email?: string | null
+          entity_type?: string | null
+          fax?: string | null
+          form_answers?: Json
+          incorporation_number?: string | null
+          incorporation_state?: string | null
+          legal_name?: string | null
+          mailing_address1?: string | null
+          mailing_address2?: string | null
+          mailing_city?: string | null
+          mailing_state?: string | null
+          mailing_type?: string | null
+          mailing_zip?: string | null
+          naics_code?: string | null
+          officers?: Json
+          phone?: string | null
+          phone_ext?: string | null
+          physical_address1?: string | null
+          physical_address2?: string | null
+          physical_city?: string | null
+          physical_same?: boolean
+          physical_state?: string | null
+          physical_type?: string | null
+          physical_zip?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+          year_established?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_business_profile_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_business_profile_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_counters: {
         Row: {
           counter_name: string

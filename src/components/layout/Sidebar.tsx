@@ -29,6 +29,7 @@ import {
   CurrencyDollar,
   HandCoins,
   Receipt,
+  Bank,
   Wallet,
   ListBullets,
   ListChecks,
@@ -504,6 +505,15 @@ export function Sidebar({
       href: '/reports/police-report',
       label: t.nav.compliance,
       icon: <Shield size={18} weight="regular" />,
+    },
+    // Agency forms filled from the business profile (patches/0110). Owner
+    // only: the profile holds the EIN and bank.
+    {
+      kind: 'item',
+      href: '/government-forms',
+      label: t.nav.governmentForms,
+      icon: <Bank size={18} weight="regular" />,
+      visible: canSeeBilling,
     },
     {
       kind: 'item',

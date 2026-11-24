@@ -34,6 +34,8 @@ const nextConfig: NextConfig = {
     '/api/print/**': PDF_FONT_FILES,
     '/api/appraisals/**': PDF_FONT_FILES,
     '/api/reports/**': PDF_FONT_FILES,
+    // Blank government forms, read with fs by lib/agency-forms/fill-pdf.ts.
+    '/api/agency-forms/**': ['./src/lib/agency-forms/templates/*.pdf'],
   },
   // Forward Vercel build-time git metadata to the client bundle so the
   // VersionFooter component can render commit message, author, branch,
