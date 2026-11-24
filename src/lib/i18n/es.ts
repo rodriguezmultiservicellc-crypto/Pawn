@@ -1448,8 +1448,7 @@ export const es: Dictionary = {
       signatureView: 'Ver firma',
     },
     actions: {
-      recordPayment: 'Registrar pago',
-      extend: 'Extender',
+      recordPayment: 'Pago / Extender',
       redeem: 'Rescatar',
       forfeit: 'No rescatar',
       void: 'Anular',
@@ -1564,8 +1563,20 @@ export const es: Dictionary = {
       },
     },
     payment: {
-      title: 'Registrar pago',
-      amount: 'Monto',
+      title: 'Pago / Extender',
+      moveDueDate: 'Mover la fecha de vencimiento',
+      moveOption: '{days} días — nueva fecha {date} · interés ${cost}',
+      moveNone: 'No moverla — se queda en {date}',
+      moveHelp:
+        'Se cuenta desde la fecha de vencimiento actual ({date}), no desde hoy. La fecha solo se mueve cuando se paga el interés de ese tiempo.',
+      newDueDate: 'Nueva fecha de vencimiento',
+      dueAfter: 'Vencimiento después de este pago',
+      dueWas: '(era {date})',
+      stillPastDue:
+        'El boleto sigue vencido después de este pago. Elige una fecha más lejana para ponerlo al día.',
+      closesLoan:
+        'Esto paga todo lo adeudado. El boleto se cierra como rescatado y la fecha no se mueve.',
+      amount: 'Monto cobrado',
       paymentMethod: 'Método de pago',
       methodCash: 'Efectivo',
       methodCard: 'Tarjeta',
@@ -1583,22 +1594,18 @@ export const es: Dictionary = {
         exceeds_payoff:
           'Eso es más que el saldo de liquidación de ${payoff}. Ingresa ese monto o menos.',
         fees_exceed_amount: 'Los cargos no pueden ser mayores que el monto cobrado.',
+        extension_underpaid:
+          'Mover la fecha hasta ahí requiere ${needed} de interés, sin contar cargos. Cobra ese monto o elige una fecha más cercana.',
+        due_date_not_moved:
+          'El pago se registró, pero la fecha de vencimiento no se movió. Recarga el boleto y revísalo antes de cobrar algo más.',
+        status_not_updated:
+          'El pago se registró, pero el estado del boleto no se actualizó. Recarga el boleto y revísalo.',
         terminal_status: 'Este empeño ya está cerrado.',
         payoff_unavailable:
           'No se pudo leer el saldo del empeño. Recarga la página e inténtalo de nuevo.',
         validation_failed: 'Revisa el monto e inténtalo de nuevo.',
         generic: 'No se pudo registrar el pago. Inténtalo de nuevo.',
       },
-    },
-    extension: {
-      title: 'Extender empeño',
-      newTermDays: 'Nuevo plazo (días)',
-      interestCollectedNow: 'Interés cobrado ahora',
-      paymentMethod: 'Método de pago',
-      newDueDate: 'Nueva fecha de vencimiento',
-      newDueDateHelp: 'Calculada desde hoy + nuevos días de plazo.',
-      submit: 'Extender',
-      submitting: 'Extendiendo…',
     },
     redeem: {
       title: 'Rescatar empeño',

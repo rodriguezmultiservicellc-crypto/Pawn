@@ -60,7 +60,32 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 64 (2026-11-22/23), saved 2026-11-23 18:50.
+  Last session:   Session 65 (2026-11-23, evening). Items 544-548, NO
+                  MIGRATIONS. main == feature/sol-pawn-brief.
+                  ACTIVE FILES (last touched):
+                    src/lib/pawn/math.ts (planLoanPayment, extensionCost)
+                    src/app/(staff)/pawn/[id]/actions.ts, page.tsx
+                    src/components/pawn/RecordPaymentDialog.tsx
+                    src/lib/pawn/customer-history.ts
+                  RESUME POINT: nothing is half-built.
+                  - PAYMENT AND EXTEND ARE ONE BUTTON NOW (547). The due
+                    date moves from the OLD due date, one period per
+                    period of interest paid. Never bring back an extend
+                    that counts from today or moves the date unpaid.
+                  - math.ts WAS added to this session (new functions only;
+                    the accrual itself is untouched) although the note
+                    below said to wait. The charging question is STILL
+                    OPEN and now also decides what a period costs to
+                    extend: ticket 15634's first 30-day move costs $186.00
+                    by the day (31 days) where the old system took $180.00.
+                    When Eddy decides, change payoffBalance AND
+                    extensionCost together.
+                  - STILL ON UTC "TODAY" (found in 546, not fixed): the
+                    dashboard, the portal loan pages and payoff, layaways,
+                    the repair list and board, the buy-hold and layaway
+                    reminder jobs, "printed on" on four PDFs.
+
+  Session 64 (2026-11-22/23), saved 2026-11-23 18:50.
                   Context budget at save: high (my estimate ~80%; two
                   context compactions happened in this session).
                   Items 531-543, THREE MIGRATIONS, ALL APPLIED: 0097,
@@ -557,6 +582,76 @@ SESSION HISTORY LOG
 2026-09-19, sessions 22, 23, 24, 25, 26, 27, 29, 30, 31, 32 archived
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
+
+--- Session 65 (2026-11-23) — Pawned-before fix, pawn list search and shop day, payment and extend merged (branch feature/sol-pawn-brief == main) ---
+
+ 544. PAWNED-BEFORE CHIPS OFFERED A PIECE THE SHOP HOLDS [BUG] (114c368).
+      Eddy's screenshot: Desmond Thornton's 10k box chain was offered as
+      "pawned before" while on open ticket 15634. A piece was offered
+      whenever ANY redeemed ticket carried it.
+      Fix (src/lib/pawn/customer-history.ts): a piece is offered only when
+      its NEWEST ticket was redeemed (open = in the safe, forfeited = the
+      shop's). Same-day tie: the unredeemed ticket is the later one. The
+      action reads the pieces of every open ticket, not only the newest 80.
+
+ 545. PAWN LIST SEARCH STUCK IN THE ADDRESS BAR [BUG] + OVERDUE MARK IN
+      THE NEW-TICKET HISTORY (d8c682f).
+      - A tab or due-date pick kept ?q= after the box was emptied, so the
+        list filtered on a search nobody could see. The box is now what is
+        searched; it follows the address bar on Back / Forward.
+      - History panel: an open ticket past due shows "Overdue N days"
+        (solid red, so it does not read as "Lost") and the summary counts
+        them. Judged on the shop's day.
+      NOT A BUG: "page scrolled sideways" — Eddy's screenshots were cropped.
+
+ 546. PAWN LIST ON THE SHOP'S DAY (902cc31). src/app/(staff)/pawn/page.tsx
+      took "today" in UTC: every evening loans due today showed overdue.
+      Now todayInTimezone(rules.timezone) (rule 18).
+
+ 547. PAYMENT AND EXTEND ARE ONE ACTION. Eddy: "extend should count from
+      the old due date, and I think the record payment and extend should
+      be the same."
+      READ FIRST (read-only query of the imported book, 2024 on): a month
+      of interest paid moved the due date one month from the OLD due date
+      (373 of the one-month moves paid exactly 1.0 months; two paid moved
+      two); money toward the loan alone never moved it (39 of 39).
+      BUILT:
+      - src/lib/pawn/math.ts: planLoanPayment (the one calculation for the
+        server and the dialog preview), extensionCost, periodsToBringCurrent.
+        Moving N periods costs the interest through old due date +
+        (N-1) periods, less interest already paid, in whole cents. Refused
+        if the payment does not cover it. Interest before principal
+        (periods being paid AND anything accrued to today). Paying
+        everything closes the loan and moves no date. Period length =
+        jurisdictions.period_days.
+      - recordPaymentAction takes `periods` (0-12); the new date and the
+        split are never read from the browser. Status goes to 'extended'
+        when the date moves (the print trigger allows due_date only then).
+        term_days is no longer rewritten. extendLoanAction,
+        loanExtensionSchema, ExtendLoanDialog and the pawn.extension
+        wording are gone.
+      - Ticket page: one gold button "Payment / Extend". The dialog opens
+        on the move that brings the ticket current and says so when a
+        choice leaves it past due.
+      - Payment, redeem and forfeit on the ticket now use the shop's day
+        (were UTC), and so does the ticket page — the preview and the
+        server agree.
+      GONE ON PURPOSE — TELL EDDY: an extension with no money. A clerk can
+      no longer push a date out for free.
+      LOOKED AT: ticket 15634 in headless Chrome on the local server,
+      signed in the way scripts/smoke-browser.mjs does; the dialog was
+      opened and its choices changed, NEVER submitted. 30 days = $186.00,
+      90 days (the default, 62 days late) = $546.00 -> 2026-12-21.
+      NOT VERIFIED: a real payment saved through the new action (no test
+      ticket was written to the live book); the receipt after one.
+
+ 548. BARE DATES PRINTED ONE DAY EARLY [BUG]. shortDate('2026-08-22') was
+      midnight UTC shown in local time: 8/21 in Florida. Every DATE column
+      through shortDate was a day early: the new-ticket history, pawn
+      aging, pawn audit, collections, repair summary, 1099. A bare date is
+      now read as that calendar day (src/lib/format/money.ts, with a test).
+
+      tsc, 1,047 tests, lint, build green.
 
 --- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 

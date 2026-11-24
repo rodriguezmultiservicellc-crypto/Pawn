@@ -3,9 +3,10 @@ import {
   inventoryCategorySchema,
   metalTypeSchema,
 } from './inventory'
+import { MAX_EXTENSION_PERIODS } from '@/lib/pawn/math'
 
 /**
- * Pawn-loan Zod schemas — intake, payment, extension, forfeit, void.
+ * Pawn-loan Zod schemas — intake, payment (which may extend), forfeit, void.
  *
  * FormData arrives as strings. Preprocessors normalize empty strings to
  * null and coerce numerics. Money fields use z.coerce.number() but we
@@ -220,12 +221,18 @@ export type LoanCreateInput = z.infer<typeof loanCreateSchema>
 // dropped here. Letting the client choose the split let a payment retire all
 // principal with interest unpaid, which flipped the loan to redeemed with
 // the interest forgiven. Fees are the only part the clerk enters.
+//
+// `periods` is how many periods the payment moves the due date (0 = it
+// stays). The new date is NOT an input either: the server counts it from the
+// loan's current due date and refuses the move unless the payment covers the
+// interest for those periods (lib/pawn/math.planLoanPayment).
 export const loanPaymentSchema = z
   .object({
     loan_id: z.string().uuid(),
     amount: requiredDecimalPositive,
     payment_method: paymentMethodSchema.default('cash'),
     fees_paid: requiredDecimalNonNeg.default(0),
+    periods: z.coerce.number().int().min(0).max(MAX_EXTENSION_PERIODS).default(0),
     notes: optionalTrimmedString,
   })
   .superRefine((v, ctx) => {
@@ -239,18 +246,6 @@ export const loanPaymentSchema = z
   })
 
 export type LoanPaymentInput = z.infer<typeof loanPaymentSchema>
-
-// ── Extension ───────────────────────────────────────────────────────────────
-
-export const loanExtensionSchema = z.object({
-  loan_id: z.string().uuid(),
-  new_term_days: z.coerce.number().int().min(1).max(180),
-  interest_collected_now: requiredDecimalNonNeg.default(0),
-  payment_method: paymentMethodSchema.optional().nullable(),
-  notes: optionalTrimmedString,
-})
-
-export type LoanExtensionInput = z.infer<typeof loanExtensionSchema>
 
 // ── Forfeiture ──────────────────────────────────────────────────────────────
 

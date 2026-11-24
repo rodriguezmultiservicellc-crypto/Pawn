@@ -20,9 +20,12 @@ import {
   allocateLoanPayment,
   appliedPayments,
   dailyRateFromMonthly,
+  extensionCost,
   daysBetween,
   interestAccrued,
   payoffBalance,
+  periodsToBringCurrent,
+  planLoanPayment,
   r4,
   splitPayment,
   toMoney,
@@ -412,5 +415,129 @@ describe('allocateLoanPayment', () => {
       principal_paid: 1000,
       fees_paid: 0,
     })
+  })
+})
+
+describe('planLoanPayment — paying and extending are one act', () => {
+  // $1,000 at 25% a 30-day period: $250 a period. Issued Aug 21, due Sep 20.
+  const loan = {
+    principal: 1000,
+    monthlyRate: 0.25,
+    issueDate: '2026-08-21',
+    dueDate: '2026-09-20',
+    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number }>,
+    periodDays: 30,
+  }
+
+  it('one period of interest moves the due date one period from the OLD due date', () => {
+    // 15 days late: the date still counts from Sep 20, not from today.
+    const p = planLoanPayment({ ...loan, today: '2026-10-05', periods: 1, amount: 250 })
+    expect(p).toMatchObject({
+      ok: true,
+      extension_cost: 250,
+      interest_paid: 250,
+      principal_paid: 0,
+      new_due_date: '2026-10-20',
+      closes: false,
+    })
+  })
+
+  it('two periods cost two periods of interest and move the date two', () => {
+    expect(extensionCost(loan, 2)).toBe(500)
+    const p = planLoanPayment({ ...loan, today: '2026-10-25', periods: 2, amount: 500 })
+    expect(p).toMatchObject({ ok: true, interest_paid: 500, principal_paid: 0, new_due_date: '2026-11-19' })
+  })
+
+  it('refuses to move the date on interest that was not paid', () => {
+    expect(planLoanPayment({ ...loan, today: '2026-09-20', periods: 1, amount: 100 })).toEqual({
+      ok: false,
+      reason: 'extension_underpaid',
+      needed: 250,
+    })
+  })
+
+  it('a customer paying early still pays the whole period, and none of it becomes principal', () => {
+    // Day 25 of 30: only $208.33 has accrued, but the period being paid is $250.
+    const p = planLoanPayment({ ...loan, today: '2026-09-15', periods: 1, amount: 250 })
+    expect(p).toMatchObject({ ok: true, interest_paid: 250, principal_paid: 0, new_due_date: '2026-10-20' })
+  })
+
+  it('money past the interest pays the loan down, and the date still moves', () => {
+    const p = planLoanPayment({ ...loan, today: '2026-09-20', periods: 1, amount: 450 })
+    expect(p).toMatchObject({ ok: true, interest_paid: 250, principal_paid: 200, new_due_date: '2026-10-20', closes: false })
+  })
+
+  it('interest accrued to today is paid before any principal', () => {
+    // 15 days late: $375 accrued. $400 with one period = $375 interest, $25 principal.
+    const p = planLoanPayment({ ...loan, today: '2026-10-05', periods: 1, amount: 400 })
+    expect(p).toMatchObject({ ok: true, interest_paid: 375, principal_paid: 25 })
+  })
+
+  it('with no periods it is a plain payment and the date stays', () => {
+    const p = planLoanPayment({ ...loan, today: '2026-09-20', periods: 0, amount: 300 })
+    expect(p).toMatchObject({ ok: true, periods: 0, extension_cost: 0, interest_paid: 250, principal_paid: 50, new_due_date: null })
+  })
+
+  it('interest already paid counts toward the next move', () => {
+    const paid = { ...loan, events: [{ principal_paid: 0, interest_paid: 100, fees_paid: 0 }] }
+    expect(extensionCost(paid, 1)).toBe(150)
+    expect(planLoanPayment({ ...paid, today: '2026-09-20', periods: 1, amount: 150 })).toMatchObject({
+      ok: true,
+      interest_paid: 150,
+      new_due_date: '2026-10-20',
+    })
+  })
+
+  it('the second move costs one more period, not the first one again', () => {
+    const renewed = { ...loan, dueDate: '2026-10-20', events: [{ principal_paid: 0, interest_paid: 250, fees_paid: 0 }] }
+    expect(extensionCost(renewed, 1)).toBe(250)
+    expect(planLoanPayment({ ...renewed, today: '2026-10-20', periods: 1, amount: 250 })).toMatchObject({
+      ok: true,
+      new_due_date: '2026-11-19',
+    })
+  })
+
+  it('paying everything closes the loan and moves no date', () => {
+    const p = planLoanPayment({ ...loan, today: '2026-09-20', periods: 1, amount: 1250 })
+    expect(p).toMatchObject({ ok: true, interest_paid: 250, principal_paid: 1000, closes: true, new_due_date: null })
+  })
+
+  it('refuses more than is owed, and fees larger than the payment', () => {
+    expect(planLoanPayment({ ...loan, today: '2026-09-20', periods: 1, amount: 1300 })).toEqual({ ok: false, reason: 'exceeds_payoff' })
+    expect(planLoanPayment({ ...loan, today: '2026-09-20', periods: 0, amount: 10, fees: 20 })).toEqual({ ok: false, reason: 'fees_exceed_amount' })
+  })
+
+  it('a fee comes off the top and does not count toward the interest', () => {
+    expect(planLoanPayment({ ...loan, today: '2026-09-20', periods: 1, amount: 250, fees: 5 })).toMatchObject({
+      ok: false,
+      reason: 'extension_underpaid',
+    })
+    expect(planLoanPayment({ ...loan, today: '2026-09-20', periods: 1, amount: 255, fees: 5 })).toMatchObject({
+      ok: true,
+      fees_paid: 5,
+      interest_paid: 250,
+    })
+  })
+
+  it('a cost that is not whole cents is rounded to the cent the clerk collects', () => {
+    // $133.33 at 25% is $33.3325 a period: the clerk collects $33.33.
+    const odd = { ...loan, principal: 133.33 }
+    const cost = extensionCost(odd, 1)
+    expect(cost).toBe(33.33)
+    expect(planLoanPayment({ ...odd, today: '2026-09-20', periods: 1, amount: cost })).toMatchObject({ ok: true, new_due_date: '2026-10-20' })
+  })
+
+  it('the minimum monthly charge sets the cost of a small loan', () => {
+    const small = { ...loan, principal: 10, minMonthlyCharge: 5 }
+    expect(extensionCost(small, 1)).toBe(5)
+  })
+
+  it('says how many periods bring a late loan current', () => {
+    expect(periodsToBringCurrent('2026-09-20', '2026-09-10', 30)).toBe(1)
+    expect(periodsToBringCurrent('2026-09-20', '2026-09-20', 30)).toBe(1)
+    expect(periodsToBringCurrent('2026-09-20', '2026-10-05', 30)).toBe(1)
+    expect(periodsToBringCurrent('2026-09-20', '2026-10-20', 30)).toBe(1)
+    expect(periodsToBringCurrent('2026-09-20', '2026-10-21', 30)).toBe(2)
+    expect(periodsToBringCurrent('2026-09-20', '2026-11-23', 30)).toBe(3)
   })
 })

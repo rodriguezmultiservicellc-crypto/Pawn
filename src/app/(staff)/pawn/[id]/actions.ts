@@ -5,20 +5,18 @@ import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import {
-  loanExtensionSchema,
   loanForfeitSchema,
   loanPaymentSchema,
   loanVoidSchema,
 } from '@/lib/validations/loan'
 import { logAudit } from '@/lib/audit'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { loanForfeitEligibility } from '@/lib/jurisdictions/rules'
+import { loanForfeitEligibility, todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
-  addDaysIso,
-  allocateLoanPayment,
+  RATE_PERIOD_DAYS,
   payoffFromLoan,
+  planLoanPayment,
   splitPayment,
-  todayDateString,
   toMoney,
 } from '@/lib/pawn/math'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -61,8 +59,15 @@ function isTerminalStatus(status: LoanStatus): boolean {
   return status === 'redeemed' || status === 'forfeited' || status === 'voided'
 }
 
-// ── Record payment ──────────────────────────────────────────────────────────
+// ── Payment (which may move the due date) ───────────────────────────────────
 
+/**
+ * Take a payment on a loan. Paying and extending are one act: the clerk says
+ * how many periods the payment moves the due date (0 = it stays) and the
+ * server decides everything else — the interest / principal split and the
+ * new date, counted from the loan's CURRENT due date (planLoanPayment). The
+ * date never moves on interest that was not paid.
+ */
 export async function recordPaymentAction(
   formData: FormData,
 ): Promise<ActionResult> {
@@ -75,6 +80,7 @@ export async function recordPaymentAction(
     amount: formData.get('amount'),
     payment_method: formData.get('payment_method') ?? 'cash',
     fees_paid: formData.get('fees_paid'),
+    periods: formData.get('periods') ?? 0,
     notes: formData.get('notes'),
   })
   if (!parsed.success) {
@@ -96,24 +102,40 @@ export async function recordPaymentAction(
     issue_date: loan.issue_date,
     min_monthly_charge: loan.min_monthly_charge,
   }
-  const today = todayDateString()
+  // The shop's day and the jurisdiction's period — never UTC, never a constant.
+  const rules = await loadTenantRules(supabase, tenantId)
+  const today = todayInTimezone(rules.timezone)
+  const periodDays = rules.jurisdiction?.period_days ?? RATE_PERIOD_DAYS
 
-  // What is owed right now, read by the server. The split is decided here
-  // (interest first) and never taken from the browser — see
-  // allocateLoanPayment for why.
+  // What is owed right now, read by the server. The split and the new due
+  // date are decided here and never taken from the browser — see
+  // planLoanPayment for why.
   const { data: priorEvents, error: priorErr } = await supabase
     .from('loan_events')
     .select('principal_paid, interest_paid, fees_paid')
     .eq('loan_id', loan.id)
   if (priorErr) return { error: 'payoff_unavailable' }
-  const owed = payoffFromLoan(loanForPayoff, priorEvents ?? [], today)
-  const split = allocateLoanPayment({
+  const plan = planLoanPayment({
+    principal: toMoney(loan.principal),
+    monthlyRate: toMoney(loan.interest_rate_monthly),
+    minMonthlyCharge: loan.min_monthly_charge,
+    issueDate: loan.issue_date,
+    dueDate: loan.due_date,
+    events: priorEvents ?? [],
+    periodDays,
+    today,
+    periods: v.periods,
     amount: v.amount,
     fees: v.fees_paid,
-    interestOutstanding: owed.interestOutstanding,
-    principalOutstanding: owed.principalOutstanding,
   })
-  if (!split.ok) return { error: split.reason }
+  if (!plan.ok) {
+    return {
+      error:
+        plan.reason === 'extension_underpaid'
+          ? `extension_underpaid:${(plan.needed ?? 0).toFixed(2)}`
+          : plan.reason,
+    }
+  }
 
   // Insert event.
   const { data: paymentEvent, error: evErr } = await supabase
@@ -123,9 +145,9 @@ export async function recordPaymentAction(
       tenant_id: tenantId,
       event_type: 'payment',
       amount: v.amount,
-      principal_paid: split.principal_paid,
-      interest_paid: split.interest_paid,
-      fees_paid: split.fees_paid,
+      principal_paid: plan.principal_paid,
+      interest_paid: plan.interest_paid,
+      fees_paid: plan.fees_paid,
       payment_method: v.payment_method,
       notes: v.notes,
       performed_by: userId,
@@ -142,6 +164,7 @@ export async function recordPaymentAction(
   const payoff = payoffFromLoan(loanForPayoff, events ?? [], today)
 
   let newStatus: LoanStatus = loan.status as LoanStatus
+  let newDueDate: string | null = null
   if (payoff.payoff <= 0) {
     newStatus = 'redeemed'
     await supabase.from('loan_events').insert({
@@ -155,15 +178,50 @@ export async function recordPaymentAction(
       payment_method: null,
       performed_by: userId,
     })
+  } else if (plan.new_due_date) {
+    // The print-immutability trigger lets due_date change only while the
+    // status is 'extended'.
+    newStatus = 'extended'
+    newDueDate = plan.new_due_date
   } else if (newStatus === 'active') {
     newStatus = 'partial_paid'
   }
 
-  await supabase
+  const { error: upErr } = await supabase
     .from('loans')
-    .update({ status: newStatus, updated_by: userId })
+    .update(
+      newDueDate
+        ? { status: newStatus, due_date: newDueDate, updated_by: userId }
+        : { status: newStatus, updated_by: userId },
+    )
     .eq('id', loan.id)
     .eq('tenant_id', tenantId)
+  // The money is already on the ticket. Say exactly what did not happen.
+  if (upErr) {
+    console.error('[pawn.payment] loan update failed after payment', loan.id, upErr.message)
+    revalidatePath(`/pawn/${loan.id}`)
+    return { error: newDueDate ? 'due_date_not_moved' : 'status_not_updated' }
+  }
+
+  if (newDueDate) {
+    // Written after its payment: the receipt reads the new due date from
+    // the extension that follows a payment.
+    const { error: extErr } = await supabase.from('loan_events').insert({
+      loan_id: loan.id,
+      tenant_id: tenantId,
+      event_type: 'extension',
+      amount: null,
+      principal_paid: 0,
+      interest_paid: 0,
+      fees_paid: 0,
+      payment_method: null,
+      new_due_date: newDueDate,
+      performed_by: userId,
+    })
+    if (extErr) {
+      console.error('[pawn.payment] extension event insert failed', loan.id, extErr.message)
+    }
+  }
 
   await logAudit({
     tenantId,
@@ -172,18 +230,21 @@ export async function recordPaymentAction(
     tableName: 'loans',
     recordId: loan.id,
     changes: {
-      kind: 'payment',
+      kind: newDueDate ? 'payment_extension' : 'payment',
       amount: v.amount,
-      principal_paid: split.principal_paid,
-      interest_paid: split.interest_paid,
-      fees_paid: split.fees_paid,
+      principal_paid: plan.principal_paid,
+      interest_paid: plan.interest_paid,
+      fees_paid: plan.fees_paid,
       payment_method: v.payment_method,
+      periods: newDueDate ? plan.periods : 0,
+      old_due_date: loan.due_date,
+      new_due_date: newDueDate,
       new_status: newStatus,
     },
   })
 
   // ── Loyalty earn on interest paid (gated) ──────────────────────────────
-  if (loan.customer_id && split.interest_paid > 0) {
+  if (loan.customer_id && plan.interest_paid > 0) {
     const admin = createAdminClient()
     const { data: settings } = await admin
       .from('settings')
@@ -198,7 +259,7 @@ export async function recordPaymentAction(
         tenantId,
         customerId: loan.customer_id,
         loanEventId: paymentEvent.id,
-        interestPaid: split.interest_paid,
+        interestPaid: plan.interest_paid,
         rate: Number(settings.loyalty_earn_rate_loan_interest),
       })
       await maybeCreditReferral({
@@ -209,92 +270,6 @@ export async function recordPaymentAction(
       })
     }
   }
-
-  revalidatePath(`/pawn/${loan.id}`)
-  revalidatePath('/pawn')
-  return { ok: true }
-}
-
-// ── Extend ──────────────────────────────────────────────────────────────────
-
-export async function extendLoanAction(
-  formData: FormData,
-): Promise<ActionResult> {
-  const parsed = loanExtensionSchema.safeParse({
-    loan_id: formData.get('loan_id'),
-    new_term_days: formData.get('new_term_days'),
-    interest_collected_now: formData.get('interest_collected_now'),
-    payment_method: formData.get('payment_method'),
-    notes: formData.get('notes'),
-  })
-  if (!parsed.success) return { error: 'validation_failed' }
-  const v = parsed.data
-
-  const { loan, supabase, userId, tenantId } = await resolveLoanScope(v.loan_id)
-  if (isTerminalStatus(loan.status as LoanStatus)) {
-    return { error: 'terminal_status' }
-  }
-
-  const today = todayDateString()
-  const newDueDate = addDaysIso(today, v.new_term_days)
-
-  // Optional interest collection.
-  if (v.interest_collected_now > 0) {
-    await supabase.from('loan_events').insert({
-      loan_id: loan.id,
-      tenant_id: tenantId,
-      event_type: 'payment',
-      amount: v.interest_collected_now,
-      principal_paid: 0,
-      interest_paid: v.interest_collected_now,
-      fees_paid: 0,
-      payment_method: (v.payment_method as PaymentMethod | null) ?? 'cash',
-      performed_by: userId,
-    })
-  }
-
-  // Extension event.
-  await supabase.from('loan_events').insert({
-    loan_id: loan.id,
-    tenant_id: tenantId,
-    event_type: 'extension',
-    amount: null,
-    principal_paid: 0,
-    interest_paid: 0,
-    fees_paid: 0,
-    payment_method: null,
-    new_due_date: newDueDate,
-    notes: v.notes,
-    performed_by: userId,
-  })
-
-  // Update loan terms. The print-immutability trigger allows term_days /
-  // due_date when status transitions to 'extended'.
-  const { error: upErr } = await supabase
-    .from('loans')
-    .update({
-      due_date: newDueDate,
-      term_days: v.new_term_days,
-      status: 'extended' as LoanStatus,
-      updated_by: userId,
-    })
-    .eq('id', loan.id)
-    .eq('tenant_id', tenantId)
-  if (upErr) return { error: upErr.message }
-
-  await logAudit({
-    tenantId,
-    userId,
-    action: 'update',
-    tableName: 'loans',
-    recordId: loan.id,
-    changes: {
-      kind: 'extension',
-      new_due_date: newDueDate,
-      new_term_days: v.new_term_days,
-      interest_collected_now: v.interest_collected_now,
-    },
-  })
 
   revalidatePath(`/pawn/${loan.id}`)
   revalidatePath('/pawn')
@@ -326,6 +301,8 @@ export async function redeemLoanAction(
     .from('loan_events')
     .select('principal_paid, interest_paid, fees_paid')
     .eq('loan_id', loan.id)
+  // Interest is owed through the shop's day, not UTC's.
+  const redeemRules = await loadTenantRules(supabase, tenantId)
   const payoff = payoffFromLoan(
     {
       principal: loan.principal,
@@ -334,7 +311,7 @@ export async function redeemLoanAction(
       min_monthly_charge: loan.min_monthly_charge,
     },
     events ?? [],
-    todayDateString(),
+    todayInTimezone(redeemRules.timezone),
   )
 
   // Apply remaining interest first, then remaining principal.
@@ -496,7 +473,7 @@ export async function forfeitLoanAction(
         list_price: null,
         source: 'pawn_forfeit',
         source_loan_id: loan.id,
-        acquired_at: todayDateString(),
+        acquired_at: todayInTimezone(rules.timezone),
         acquired_cost: item.est_value ?? 0,
         location: 'safe',
         status: 'available',

@@ -7,7 +7,7 @@ import {
   INVENTORY_PHOTOS_BUCKET,
   getSignedUrl,
 } from '@/lib/supabase/storage'
-import { payoffFromLoan, todayDateString } from '@/lib/pawn/math'
+import { RATE_PERIOD_DAYS, payoffFromLoan } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { loanForfeitEligibility, todayInTimezone } from '@/lib/jurisdictions/rules'
 import PawnLoanDetail, {
@@ -144,8 +144,10 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     occurred_at: e.occurred_at,
   }))
 
-  const today = todayDateString()
+  // The shop's day, not UTC's — the same day the payment action uses, so
+  // what the dialog previews is what the server books.
   const rules = await loadTenantRules(ctx.supabase, loan.tenant_id)
+  const today = todayInTimezone(rules.timezone)
   const forfeit = loanForfeitEligibility(rules, loan.due_date)
   // A closed loan stopped accruing the day it closed: figure it as of that
   // day (the shop's), not today — a ticket redeemed years ago must not show
@@ -198,6 +200,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
       events={events}
       payoff={payoff}
       today={today}
+      periodDays={rules.jurisdiction?.period_days ?? RATE_PERIOD_DAYS}
       forfeit={forfeit}
       tagChoices={templateChoices(
         await loadTagTemplates(ctx.supabase, ctx.tenantId),

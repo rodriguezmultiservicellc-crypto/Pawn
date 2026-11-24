@@ -6,7 +6,6 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   CashRegister,
-  CalendarPlus,
   CheckCircle,
   Image as ImageIcon,
   Lock,
@@ -18,7 +17,6 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import { PayoffCalculator } from '@/components/pawn/PayoffCalculator'
 import { RecordPaymentDialog } from '@/components/pawn/RecordPaymentDialog'
-import { ExtendLoanDialog } from '@/components/pawn/ExtendLoanDialog'
 import { ForfeitConfirmDialog } from '@/components/pawn/ForfeitConfirmDialog'
 import { VoidLoanDialog } from '@/components/pawn/VoidLoanDialog'
 import { RedeemConfirmDialog } from '@/components/pawn/RedeemConfirmDialog'
@@ -28,7 +26,6 @@ import PrintTagsMenu from '@/components/labels/PrintTagsMenu'
 import type { TemplateChoice } from '@/lib/labels/templates'
 import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
 import {
-  extendLoanAction,
   forfeitLoanAction,
   printTicketAction,
   recordPaymentAction,
@@ -122,7 +119,7 @@ const STATUS_BADGE: Record<LoanStatus, { bg: string; text: string }> = {
   voided: { bg: 'bg-background border-border', text: 'text-muted' },
 }
 
-type DialogKind = 'payment' | 'extend' | 'redeem' | 'forfeit' | 'void' | null
+type DialogKind = 'payment' | 'redeem' | 'forfeit' | 'void' | null
 
 export default function PawnLoanDetail({
   loan,
@@ -130,6 +127,7 @@ export default function PawnLoanDetail({
   events,
   payoff,
   today,
+  periodDays,
   forfeit,
   tagChoices,
 }: {
@@ -138,6 +136,8 @@ export default function PawnLoanDetail({
   events: LoanEventView[]
   payoff: PayoffResult
   today: string
+  /** Days one payment period moves the due date (the jurisdiction's). */
+  periodDays: number
   forfeit: { eligible: boolean; eligibleOn: string; lastRedemptionDate: string }
   tagChoices: TemplateChoice[]
 }) {
@@ -347,17 +347,19 @@ export default function PawnLoanDetail({
       {dialog === 'payment' ? (
         <RecordPaymentDialog
           loanId={loan.id}
+          loan={{
+            principal: loan.principal,
+            monthlyRate: loan.interest_rate_monthly,
+            minMonthlyCharge: loan.min_monthly_charge,
+            issueDate: loan.issue_date,
+            dueDate: loan.due_date,
+            events,
+            periodDays,
+          }}
+          today={today}
           payoff={payoff.payoff}
-          outstandingInterest={payoff.interestOutstanding}
           onClose={() => setDialog(null)}
           onSubmit={(fd) => actionWithToast(recordPaymentAction(fd))}
-        />
-      ) : null}
-      {dialog === 'extend' ? (
-        <ExtendLoanDialog
-          loanId={loan.id}
-          onClose={() => setDialog(null)}
-          onSubmit={(fd) => actionWithToast(extendLoanAction(fd))}
         />
       ) : null}
       {dialog === 'redeem' ? (
@@ -417,12 +419,6 @@ function ActionRow({
         onClick={() => onAction('payment')}
         disabled={isTerminal}
         primary
-      />
-      <ActionButton
-        label={t.pawn.actions.extend}
-        icon={<CalendarPlus size={14} weight="bold" />}
-        onClick={() => onAction('extend')}
-        disabled={isTerminal}
       />
       <ActionButton
         label={t.pawn.actions.redeem}
@@ -707,7 +703,7 @@ function EventLogPanel({
               ) : null}
               {e.new_due_date ? (
                 <span className="text-foreground">
-                  {t.pawn.extension.newDueDate}:{' '}
+                  {t.pawn.payment.newDueDate}:{' '}
                   <span className="font-mono">{e.new_due_date}</span>
                 </span>
               ) : null}

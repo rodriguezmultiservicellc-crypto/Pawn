@@ -321,6 +321,165 @@ export function allocateLoanPayment(args: {
   }
 }
 
+// ── Payment that may move the due date ─────────────────────────────────────
+
+/** The period the monthly rate is quoted for (see dailyRateFromMonthly). */
+export const RATE_PERIOD_DAYS = 30
+
+/** Most periods one payment may move the due date. */
+export const MAX_EXTENSION_PERIODS = 12
+
+/** Whole cents, the unit money changes hands in. */
+function cents(n: number): number {
+  return Math.round(n * 100 + 1e-7) / 100
+}
+
+type PlanLoan = {
+  principal: number
+  monthlyRate: number
+  minMonthlyCharge?: number | null
+  issueDate: string
+  /** The loan's CURRENT due date — the date a move is counted from. */
+  dueDate: string
+  events: ReadonlyArray<
+    Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>
+  >
+  /** Days in one period (jurisdictions.period_days). */
+  periodDays: number
+}
+
+/**
+ * What it costs, in interest, to move the due date `periods` periods.
+ *
+ * The due date is the day the interest of the period ending there is owed.
+ * Paying that period's interest moves the date one period — from the OLD due
+ * date, never from the day the customer walked in, so coming in late does
+ * not buy free days. Two periods cost the interest through the old due date
+ * plus one more period, and so on.
+ *
+ * Interest already paid counts, so a customer who paid part of it earlier
+ * only owes the rest. Returned in whole cents.
+ */
+export function extensionCost(loan: PlanLoan, periods: number): number {
+  const n = Math.floor(periods)
+  if (!(n > 0)) return 0
+  const paidThrough = addDaysIso(loan.dueDate, (n - 1) * loan.periodDays)
+  const accrued = interestAccrued(
+    r4(loan.principal),
+    loan.monthlyRate,
+    Math.max(0, daysBetween(loan.issueDate, paidThrough)),
+    loan.minMonthlyCharge != null ? toMoney(loan.minMonthlyCharge) : 0,
+  )
+  const { interestApplied } = appliedPayments(loan.events)
+  return cents(Math.max(0, accrued - interestApplied))
+}
+
+/** Fewest periods that leave the loan not past due on `today` (at least 1). */
+export function periodsToBringCurrent(
+  dueDate: string,
+  today: string,
+  periodDays: number,
+): number {
+  const late = daysBetween(dueDate, today)
+  if (late <= 0 || periodDays <= 0) return 1
+  return Math.min(MAX_EXTENSION_PERIODS, Math.ceil(late / periodDays))
+}
+
+export type LoanPaymentPlan =
+  | {
+      ok: true
+      /** Periods the due date moves (0 = it stays). */
+      periods: number
+      /** Interest it takes to move the date that far. */
+      extension_cost: number
+      interest_paid: number
+      principal_paid: number
+      fees_paid: number
+      /** Null when the date does not move (or the payment closes the loan). */
+      new_due_date: string | null
+      /** The payment pays everything owed: the loan is redeemed. */
+      closes: boolean
+    }
+  | {
+      ok: false
+      reason: 'fees_exceed_amount' | 'exceeds_payoff' | 'extension_underpaid'
+      /** For 'extension_underpaid': the interest the move takes. */
+      needed?: number
+    }
+
+/**
+ * Decide how ONE loan payment is booked and whether it moves the due date.
+ * Paying and extending are the same act at the counter, so they are one
+ * calculation: the server action and the dialog's preview both call this,
+ * and the server ignores any split or date the browser sent.
+ *
+ *   amount = fees + interest + principal
+ *
+ * - Fees come off the top as entered.
+ * - `periods` > 0 moves the due date that many periods from the CURRENT due
+ *   date. It is refused unless the payment covers `extensionCost` — no date
+ *   moves on interest that was not paid.
+ * - Interest is paid before principal: the periods being paid for AND
+ *   anything accrued to today. Principal can never be paid down while
+ *   interest is owed (see allocateLoanPayment).
+ * - More than is owed is refused, never silently absorbed.
+ * - A payment that retires the principal closes the loan; the date does not
+ *   move on a closed loan.
+ */
+export function planLoanPayment(
+  args: PlanLoan & {
+    today: string
+    periods: number
+    amount: number
+    fees?: number | null
+  },
+): LoanPaymentPlan {
+  const amount = r4(args.amount)
+  const fees = r4(Math.max(0, toMoney(args.fees ?? 0)))
+  if (fees > amount + 0.0001) return { ok: false, reason: 'fees_exceed_amount' }
+  const toLoan = r4(Math.max(0, amount - fees))
+
+  const periods = Math.min(
+    MAX_EXTENSION_PERIODS,
+    Math.max(0, Math.floor(args.periods) || 0),
+  )
+  const cost = extensionCost(args, periods)
+  if (periods > 0 && toLoan < cost - 0.0001) {
+    return { ok: false, reason: 'extension_underpaid', needed: cost }
+  }
+
+  const now = payoffBalance({
+    principal: args.principal,
+    monthlyRate: args.monthlyRate,
+    issueDate: args.issueDate,
+    today: args.today,
+    events: args.events,
+    minMonthlyCharge: args.minMonthlyCharge ?? null,
+  })
+  const split = splitPayment(toLoan, Math.max(now.interestOutstanding, cost))
+  if (split.principal_paid > now.principalOutstanding + 0.0001) {
+    return { ok: false, reason: 'exceeds_payoff' }
+  }
+  const principalPaid = Math.min(split.principal_paid, now.principalOutstanding)
+  const closes =
+    now.principalOutstanding > 0 &&
+    r4(now.principalOutstanding - principalPaid) <= 0
+
+  return {
+    ok: true,
+    periods,
+    extension_cost: cost,
+    interest_paid: split.interest_paid,
+    principal_paid: principalPaid,
+    fees_paid: fees,
+    new_due_date:
+      periods > 0 && !closes
+        ? addDaysIso(args.dueDate, periods * args.periodDays)
+        : null,
+    closes,
+  }
+}
+
 // ── Convenience: derive payoff from a LoanRow + events ─────────────────────
 
 /**

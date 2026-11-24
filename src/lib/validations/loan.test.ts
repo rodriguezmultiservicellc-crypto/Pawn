@@ -31,7 +31,6 @@ import {
   collateralItemSchema,
   collateralItemsArraySchema,
   loanCreateSchema,
-  loanExtensionSchema,
   loanForfeitSchema,
   loanPaymentSchema,
   loanVoidSchema,
@@ -305,44 +304,25 @@ describe('loanPaymentSchema', () => {
   it('rejects a payment of 0 (must be positive)', () => {
     expect(loanPaymentSchema.safeParse(payment({ amount: 0 })).success).toBe(false)
   })
-})
 
-// ── loanExtensionSchema ────────────────────────────────────────────────
-
-describe('loanExtensionSchema', () => {
-  function ext(over: Record<string, unknown> = {}) {
-    return {
-      loan_id: VALID_UUID,
-      new_term_days: 30,
-      interest_collected_now: 20,
-      ...over,
-    }
-  }
-
-  it('accepts a valid extension', () => {
-    expect(loanExtensionSchema.safeParse(ext()).success).toBe(true)
+  it('a payment moves the due date by whole periods, none unless asked', () => {
+    const none = loanPaymentSchema.safeParse(payment())
+    expect(none.success && none.data.periods).toBe(0)
+    // FormData sends strings.
+    const two = loanPaymentSchema.safeParse(payment({ periods: '2' }))
+    expect(two.success && two.data.periods).toBe(2)
+    expect(loanPaymentSchema.safeParse(payment({ periods: 1.5 })).success).toBe(false)
+    expect(loanPaymentSchema.safeParse(payment({ periods: -1 })).success).toBe(false)
+    expect(loanPaymentSchema.safeParse(payment({ periods: 13 })).success).toBe(false)
   })
 
-  it('rejects new_term_days of 0', () => {
-    expect(loanExtensionSchema.safeParse(ext({ new_term_days: 0 })).success).toBe(
-      false,
-    )
-  })
-
-  it('rejects new_term_days above 180', () => {
-    expect(
-      loanExtensionSchema.safeParse(ext({ new_term_days: 181 })).success,
-    ).toBe(false)
-  })
-
-  it('defaults interest_collected_now to 0', () => {
-    const r = loanExtensionSchema.safeParse({
-      loan_id: VALID_UUID,
-      new_term_days: 30,
-      interest_collected_now: '',
-    })
+  it('drops a new due date sent by the browser — the server counts it', () => {
+    const r = loanPaymentSchema.safeParse(payment({ periods: 1, new_due_date: '2099-01-01', due_date: '2099-01-01' }))
     expect(r.success).toBe(true)
-    if (r.success) expect(r.data.interest_collected_now).toBe(0)
+    if (r.success) {
+      expect('new_due_date' in r.data).toBe(false)
+      expect('due_date' in r.data).toBe(false)
+    }
   })
 })
 

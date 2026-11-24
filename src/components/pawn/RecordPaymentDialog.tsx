@@ -1,32 +1,64 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { CashRegister, X } from '@phosphor-icons/react'
+import { CalendarCheck, CashRegister, X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { allocateLoanPayment } from '@/lib/pawn/math'
+import {
+  addDaysIso,
+  extensionCost,
+  periodsToBringCurrent,
+  planLoanPayment,
+} from '@/lib/pawn/math'
 import type { PaymentMethod } from '@/types/database-aliases'
 
+/** How many periods the dialog offers. The server accepts more. */
+const PERIOD_CHOICES = 6
+
+/** "1,086.00" — the dictionary string carries the "$". */
+const usd = (n: number): string =>
+  n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+type DialogLoan = {
+  principal: number
+  monthlyRate: number
+  minMonthlyCharge: number | null
+  issueDate: string
+  /** The loan's current due date — a move is counted from here. */
+  dueDate: string
+  events: ReadonlyArray<{
+    principal_paid: number
+    interest_paid: number
+    fees_paid: number
+  }>
+  /** Days in one period (the jurisdiction's). */
+  periodDays: number
+}
+
 /**
- * Dialog for recording a payment against a loan.
+ * Dialog for taking a payment on a loan — which is also how a loan is
+ * extended. The clerk picks how far the payment moves the due date (not at
+ * all, one period, two…) and the amount collected; optionally how much of
+ * it is a fee.
  *
- * The clerk enters the amount collected and, optionally, how much of it is
- * a fee. How the rest is applied (interest first, then principal) is shown
- * as a read-only preview — the SERVER decides the real split from the
- * payoff it reads itself (recordPaymentAction → allocateLoanPayment), so
- * there is no way to pay principal down while interest is still owed.
+ * Everything else is a read-only preview of `planLoanPayment`, the same
+ * function the SERVER runs against the payoff it reads itself
+ * (recordPaymentAction): interest first, then principal, and a due date
+ * counted from the OLD due date that only moves when its interest is paid.
  */
 export function RecordPaymentDialog({
   loanId,
+  loan,
+  today,
   payoff,
-  outstandingInterest,
   onClose,
   onSubmit,
 }: {
   loanId: string
-  /** Current full-payoff value for the prefill (cash redemption). */
+  loan: DialogLoan
+  /** The shop's day — the same one the server will use. */
+  today: string
+  /** Current full-payoff value, for the "more than is owed" message. */
   payoff: number
-  /** Current accrued-but-unpaid interest, used by the preview. */
-  outstandingInterest: number
   onClose: () => void
   onSubmit: (
     formData: FormData,
@@ -36,7 +68,31 @@ export function RecordPaymentDialog({
   const tp = t.pawn.payment
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [amountStr, setAmountStr] = useState<string>(payoff.toFixed(2))
+
+  // What each choice costs and where it leaves the due date.
+  const choices = useMemo(
+    () =>
+      Array.from({ length: PERIOD_CHOICES }, (_, i) => {
+        const periods = i + 1
+        return {
+          periods,
+          days: periods * loan.periodDays,
+          cost: extensionCost(loan, periods),
+          due: addDaysIso(loan.dueDate, periods * loan.periodDays),
+        }
+      }),
+    [loan],
+  )
+  // Open on the move that brings the ticket current: one period for a
+  // customer on time, more for one who is late.
+  const startPeriods = Math.min(
+    PERIOD_CHOICES,
+    periodsToBringCurrent(loan.dueDate, today, loan.periodDays),
+  )
+  const [periods, setPeriods] = useState<number>(startPeriods)
+  const [amountStr, setAmountStr] = useState<string>(
+    choices[startPeriods - 1].cost.toFixed(2),
+  )
   const [method, setMethod] = useState<PaymentMethod>('cash')
   const [feesStr, setFeesStr] = useState<string>('')
   const [notes, setNotes] = useState<string>('')
@@ -44,22 +100,27 @@ export function RecordPaymentDialog({
   const amount = parseFloat(amountStr || '0') || 0
   const fees = parseFloat(feesStr || '0') || 0
 
+  function pickPeriods(next: number) {
+    setPeriods(next)
+    // The amount follows the choice: the interest that move takes, plus any
+    // fee already entered. "Do not move it" leaves the amount to the clerk.
+    setAmountStr(next > 0 ? (choices[next - 1].cost + fees).toFixed(2) : '')
+  }
+
   // Preview only — same function the server uses, same inputs the page was
   // rendered with. The server recomputes against live data on submit.
   const preview = useMemo(
-    () =>
-      allocateLoanPayment({
-        amount,
-        fees,
-        interestOutstanding: outstandingInterest,
-        principalOutstanding: Math.max(0, payoff - outstandingInterest),
-      }),
-    [amount, fees, outstandingInterest, payoff],
+    () => planLoanPayment({ ...loan, today, periods, amount, fees }),
+    [loan, today, periods, amount, fees],
   )
 
-  function translateError(code: string): string {
+  function translateError(code: string, needed?: number): string {
     const known = tp.errors as Record<string, string>
-    return (known[code] ?? known.generic).replace('{payoff}', payoff.toFixed(2))
+    // The server sends "extension_underpaid:250.00".
+    const [key, arg] = code.split(':')
+    return (known[key] ?? known.generic)
+      .replace('{payoff}', payoff.toFixed(2))
+      .replace('{needed}', needed != null ? needed.toFixed(2) : (arg ?? ''))
   }
 
   function submit() {
@@ -67,6 +128,7 @@ export function RecordPaymentDialog({
     const fd = new FormData()
     fd.set('loan_id', loanId)
     fd.set('amount', amountStr)
+    fd.set('periods', String(periods))
     fd.set('payment_method', method)
     fd.set('fees_paid', feesStr || '0')
     if (notes) fd.set('notes', notes)
@@ -78,7 +140,12 @@ export function RecordPaymentDialog({
   }
 
   const previewError =
-    amount > 0 && !preview.ok ? translateError(preview.reason) : null
+    amount > 0 && !preview.ok
+      ? translateError(preview.reason, preview.needed)
+      : null
+
+  const INPUT =
+    'block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue'
 
   return (
     <Modal title={tp.title} onClose={onClose}>
@@ -89,6 +156,32 @@ export function RecordPaymentDialog({
       ) : null}
 
       <div className="space-y-4">
+        <label className="block space-y-1">
+          <span className="text-sm font-medium text-foreground">
+            {tp.moveDueDate}
+          </span>
+          <select
+            value={periods}
+            onChange={(e) => pickPeriods(parseInt(e.target.value, 10) || 0)}
+            className={INPUT}
+          >
+            {choices.map((c) => (
+              <option key={c.periods} value={c.periods}>
+                {tp.moveOption
+                  .replace('{days}', String(c.days))
+                  .replace('{date}', c.due)
+                  .replace('{cost}', usd(c.cost))}
+              </option>
+            ))}
+            <option value={0}>
+              {tp.moveNone.replace('{date}', loan.dueDate)}
+            </option>
+          </select>
+          <span className="block text-xs text-muted">
+            {tp.moveHelp.replace('{date}', loan.dueDate)}
+          </span>
+        </label>
+
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
             <span className="text-sm font-medium text-foreground">
@@ -100,7 +193,7 @@ export function RecordPaymentDialog({
               min={0}
               value={amountStr}
               onChange={(e) => setAmountStr(e.target.value)}
-              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+              className={INPUT}
             />
           </label>
           <label className="block space-y-1">
@@ -110,7 +203,7 @@ export function RecordPaymentDialog({
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+              className={INPUT}
             >
               <option value="cash">{tp.methodCash}</option>
               <option value="card">{tp.methodCard}</option>
@@ -148,6 +241,35 @@ export function RecordPaymentDialog({
           ) : null}
         </div>
 
+        {/* What the ticket looks like after this payment. */}
+        {amount > 0 && preview.ok ? (
+          <div className="rounded-md border border-border bg-background/40 p-3 text-sm">
+            {preview.closes ? (
+              <p className="font-medium text-success">{tp.closesLoan}</p>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center gap-2 text-foreground">
+                  <CalendarCheck size={14} weight="bold" />
+                  <span className="font-medium">{tp.dueAfter}:</span>
+                  <span className="font-mono">
+                    {preview.new_due_date ?? loan.dueDate}
+                  </span>
+                  {preview.new_due_date ? (
+                    <span className="text-xs text-muted">
+                      {tp.dueWas.replace('{date}', loan.dueDate)}
+                    </span>
+                  ) : null}
+                </div>
+                {(preview.new_due_date ?? loan.dueDate) < today ? (
+                  <p className="mt-1 text-xs font-semibold text-danger">
+                    {tp.stillPastDue}
+                  </p>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
+
         <label className="block space-y-1">
           <span className="text-sm font-medium text-foreground">
             {t.pawn.new_.notes}
@@ -156,7 +278,7 @@ export function RecordPaymentDialog({
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+            className={INPUT}
           />
         </label>
       </div>

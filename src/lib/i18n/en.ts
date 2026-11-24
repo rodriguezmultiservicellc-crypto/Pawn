@@ -1457,8 +1457,7 @@ export const en = {
       signatureView: 'View signature',
     },
     actions: {
-      recordPayment: 'Record payment',
-      extend: 'Extend',
+      recordPayment: 'Payment / Extend',
       redeem: 'Redeem',
       forfeit: 'Forfeit',
       void: 'Void',
@@ -1573,8 +1572,20 @@ export const en = {
       },
     },
     payment: {
-      title: 'Record payment',
-      amount: 'Amount',
+      title: 'Payment / Extend',
+      moveDueDate: 'Move the due date',
+      moveOption: '{days} days — new due date {date} · interest ${cost}',
+      moveNone: 'Do not move it — stays {date}',
+      moveHelp:
+        'Counted from the current due date ({date}), not from today. The date moves only when the interest for that time is paid.',
+      newDueDate: 'New due date',
+      dueAfter: 'Due date after this payment',
+      dueWas: '(was {date})',
+      stillPastDue:
+        'The ticket is still past due after this payment. Pick a later date to bring it current.',
+      closesLoan:
+        'This pays everything owed. The ticket closes as redeemed and the due date does not move.',
+      amount: 'Amount collected',
       paymentMethod: 'Payment method',
       methodCash: 'Cash',
       methodCard: 'Card',
@@ -1592,22 +1603,18 @@ export const en = {
         exceeds_payoff:
           'That is more than the payoff balance of ${payoff}. Enter the payoff or less.',
         fees_exceed_amount: 'Fees cannot be more than the amount collected.',
+        extension_underpaid:
+          'Moving the due date that far takes ${needed} of interest, not counting fees. Collect that much, or pick a nearer date.',
+        due_date_not_moved:
+          'The payment was recorded, but the due date did not move. Reload the ticket and check it before taking anything else.',
+        status_not_updated:
+          'The payment was recorded, but the ticket status did not update. Reload the ticket and check it.',
         terminal_status: 'This loan is already closed.',
         payoff_unavailable:
           'Could not read the loan balance. Reload the page and try again.',
         validation_failed: 'Check the amount and try again.',
         generic: 'Could not record the payment. Try again.',
       },
-    },
-    extension: {
-      title: 'Extend loan',
-      newTermDays: 'New term (days)',
-      interestCollectedNow: 'Interest collected now',
-      paymentMethod: 'Payment method',
-      newDueDate: 'New due date',
-      newDueDateHelp: 'Calculated from today + new term days.',
-      submit: 'Extend',
-      submitting: 'Extending…',
     },
     redeem: {
       title: 'Redeem loan',
