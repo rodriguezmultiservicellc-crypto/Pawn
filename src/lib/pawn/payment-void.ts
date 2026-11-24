@@ -27,7 +27,7 @@
  * The database checks the reversal row again (trigger in patches/0104).
  */
 
-import { addDaysIso } from '@/lib/pawn/math'
+import { addDaysIso, toMoney } from '@/lib/pawn/math'
 import type { LoanEventType, LoanStatus, PaymentMethod } from '@/types/database-aliases'
 
 type Money = number | string | null
@@ -79,10 +79,7 @@ export type PaymentVoidPlan =
     }
   | { ok: false; reason: VoidRefusal }
 
-const n = (v: Money): number => {
-  const x = typeof v === 'string' ? parseFloat(v) : (v ?? 0)
-  return isFinite(x) ? x : 0
-}
+const n = toMoney
 const neg = (v: Money): number => {
   const x = n(v)
   return x === 0 ? 0 : -x

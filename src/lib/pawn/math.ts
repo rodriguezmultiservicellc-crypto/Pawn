@@ -54,11 +54,6 @@ export function toMoney(v: string | number | null | undefined): number {
 
 // ── Rate / accrual helpers ─────────────────────────────────────────────────
 
-/** Convert monthly rate to daily rate (straight-line, 30-day month). */
-export function dailyRateFromMonthly(monthlyRate: number): number {
-  return r4(monthlyRate / 30)
-}
-
 /** The period the monthly rate is quoted for. */
 export const RATE_PERIOD_DAYS = 30
 
@@ -523,84 +518,6 @@ export function payoffBalance(args: PayoffArgs): PayoffResult {
   }
 }
 
-// ── Payment splitting (interest-first) ─────────────────────────────────────
-
-export type PaymentSplit = {
-  interest_paid: number
-  principal_paid: number
-}
-
-/**
- * Split a customer payment, applying it to OUTSTANDING INTEREST FIRST and
- * the remainder to principal. Caller is responsible for fees (separate).
- *
- * @param amount  - the cash collected from the customer this event.
- * @param accruedInterestOutstanding - interest currently owed.
- */
-export function splitPayment(
-  amount: number,
-  accruedInterestOutstanding: number,
-): PaymentSplit {
-  const a = r4(amount)
-  const owedInterest = r4(Math.max(0, accruedInterestOutstanding))
-  if (a <= 0) return { interest_paid: 0, principal_paid: 0 }
-  if (a <= owedInterest) {
-    return { interest_paid: a, principal_paid: 0 }
-  }
-  return {
-    interest_paid: owedInterest,
-    principal_paid: r4(a - owedInterest),
-  }
-}
-
-// ── Payment allocation (server-authoritative) ──────────────────────────────
-
-export type PaymentAllocation =
-  | {
-      ok: true
-      interest_paid: number
-      principal_paid: number
-      fees_paid: number
-    }
-  | { ok: false; reason: 'fees_exceed_amount' | 'exceeds_payoff' }
-
-/**
- * Decide how a loan payment is booked. This is the ONLY place the
- * interest / principal split is determined — the server action calls it
- * with the payoff it just computed and ignores any split the browser sent.
- *
- *   amount = fees + interest + principal
- *
- * Fees (lost-ticket fee, etc.) come off the top as entered. The rest goes to
- * OUTSTANDING INTEREST FIRST, then principal. Principal can never be paid
- * down while interest is still owed, so a loan cannot reach "principal
- * fully paid" (and flip to redeemed) with interest forgiven. A payment
- * larger than what is owed is refused rather than silently absorbed.
- */
-export function allocateLoanPayment(args: {
-  amount: number
-  fees?: number | null
-  interestOutstanding: number
-  principalOutstanding: number
-}): PaymentAllocation {
-  const amount = r4(args.amount)
-  const fees = r4(Math.max(0, toMoney(args.fees ?? 0)))
-  if (fees > amount + 0.0001) return { ok: false, reason: 'fees_exceed_amount' }
-
-  const toLoan = r4(Math.max(0, amount - fees))
-  const split = splitPayment(toLoan, args.interestOutstanding)
-  const principalOwed = r4(Math.max(0, args.principalOutstanding))
-  if (split.principal_paid > principalOwed + 0.0001) {
-    return { ok: false, reason: 'exceeds_payoff' }
-  }
-  return {
-    ok: true,
-    interest_paid: split.interest_paid,
-    principal_paid: Math.min(split.principal_paid, principalOwed),
-    fees_paid: fees,
-  }
-}
-
 // ── Payment that may move the due date ─────────────────────────────────────
 
 /**
@@ -807,7 +724,7 @@ export type LoanPaymentPlan =
  *   (`extensionCostToDate`); `periods` is then ignored.
  * - Interest is paid before principal: the periods being paid for AND
  *   anything accrued to today. Principal can never be paid down while
- *   interest is owed (see allocateLoanPayment).
+ *   interest is owed.
  * - More than it costs to redeem today is refused, whatever it was meant
  *   for: nobody pays ahead more than the payoff.
  * - A payment of the whole payoff closes the loan; the date does not move

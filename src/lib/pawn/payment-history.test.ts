@@ -67,7 +67,7 @@ describe('buildPaymentHistory — payments taken in Pawn', () => {
     ]
     const h = buildPaymentHistory({ issueDate: '2025-09-24', dueDate: '2026-12-20', termDays: 30, periodDays: 30, isOpen: true, events })
     const last = h.periods[h.periods.length - 1]
-    expect([last.to, last.amount, last.due_moved_to]).toEqual(['2026-11-20', 80, '2026-12-20'])
+    expect([last.to, last.amount]).toEqual(['2026-11-20', 80])
     // Stretches join end to end.
     expect(last.from).toBe(h.periods[0].to)
     expect(h.open).toEqual({ from: '2026-11-20', to: '2026-12-20' })
@@ -84,10 +84,10 @@ describe('buildPaymentHistory — payments taken in Pawn', () => {
     ]
     const h = buildPaymentHistory({ issueDate: '2026-08-21', dueDate: '2026-10-20', termDays: 30, periodDays: 30, isOpen: false, events })
     expect(h.periods).toHaveLength(1)
-    expect(h.periods[0]).toMatchObject({ from: '2026-08-21', to: '2026-09-20', amount: 175, interest: 75, principal: 100 })
+    expect(h.periods[0]).toMatchObject({ from: '2026-08-21', to: '2026-09-20', amount: 175, principal: 100 })
     expect(h.other).toEqual([
-      { at: '2026-09-01T15:00:00.000Z', amount: 50, interest: 0, principal: 50, fees: 0, payoff: false },
-      { at: '2026-10-05T15:00:00.000Z', amount: 187.5, interest: 37.5, principal: 150, fees: 0, payoff: true },
+      { at: '2026-09-01T15:00:00.000Z', amount: 50, principal: 50, payoff: false },
+      { at: '2026-10-05T15:00:00.000Z', amount: 187.5, principal: 150, payoff: true },
     ])
     // A closed ticket has no stretch left to pay.
     expect(h.open).toBeNull()

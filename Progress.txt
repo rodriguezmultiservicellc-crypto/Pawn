@@ -60,78 +60,77 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23, night). Items 544-561, SIX
-                  MIGRATIONS, ALL APPLIED: 0100-0105.
-                  main == feature/sol-pawn-brief.
+  Last session:   Session 65 (2026-11-23), saved 2026-11-23 23:35.
+                  Context budget at save: high (one compaction this session;
+                  my estimate ~85%).
+                  Items 544-562. SIX MIGRATIONS, ALL APPLIED: 0100-0105.
+                  main == feature/sol-pawn-brief. Nothing is half-built.
+                  Last worked on: the pre-save gate — one loader for a
+                  book's loan events, dead helpers out of math.ts.
+
                   ACTIVE FILES (last touched):
-                    src/lib/pawn/math.ts (planLoanPayment, extensionCost)
-                    src/app/(staff)/pawn/[id]/actions.ts, page.tsx
+                    src/lib/pawn/math.ts            the loan math
+                    src/lib/pawn/payment-void.ts    what a void undoes
+                    src/lib/pawn/payment-history.ts payments by period
+                    src/lib/pawn/load-money-events.ts  events of a book
+                    src/lib/jurisdictions/rules.ts  chargeModelOf
+                    src/app/(staff)/pawn/[id]/actions.ts, page.tsx,
+                      content.tsx                   the ticket page
+                    src/app/(staff)/pawn/page.tsx, content.tsx  the list
                     src/components/pawn/RecordPaymentDialog.tsx
-                    src/lib/pawn/customer-history.ts
-                  RESUME POINT: nothing is half-built.
-                  - PAYMENT AND EXTEND ARE ONE BUTTON NOW (547). The due
-                    date moves from the OLD due date, one period per
-                    period of interest paid. Never bring back an extend
-                    that counts from today or moves the date unpaid.
-                  - THE CHARGING QUESTION IS ANSWERED (549). Eddy: "the
-                    full 30-day period like my paper form". Florida's
-                    rule is in jurisdictions.charge_full_periods = 2: two
-                    periods in full, then by the day (CLAUDE.md rule 18).
-                    The "do not change math.ts" note below is over.
-                  - CHARGES ARE ON THE REMAINING BALANCE NOW (552):
-                    § 539.001(11)(e). Every payoff query must select
-                    loan_events.occurred_at (the type check forces it).
-                  - THE NO-REFUND LINE IS BACK ON THE TICKET (553), from
-                    jurisdictions.ticket_notices, not from code.
-                  - PAYMENT / EXTEND TAKES "ANOTHER DATE" (554): the clerk
-                    picks the new due date; the server prices it.
-                  - UNUSED INTEREST PAID AHEAD IS GIVEN BACK (555,
-                    patches/0103): it comes off the payoff and the closing
-                    event books it as NEGATIVE interest_paid. Never sum
-                    interest_paid with a "> 0" filter.
-                  - THE LIST TAKES PAYMENTS (556): Take payment and
-                    Extend / renew open the popup on /pawn; a payment or
-                    a redeem offers the customer receipt at once.
-                  - REAL PAYMENTS WENT THROUGH: Eddy, ticket 15551,
-                    2026-11-23: 10:13 PM $80.00 interest (due 2026-12-20),
-                    10:22 PM $101.00 payoff — the ticket is REDEEMED. Both
-                    booked right. If they were tests: void the $101.00
-                    first, then the $80.00 (558) — ASK EDDY, do not void
-                    them for him.
-                  - ONE PAYMENT CAN BE VOIDED (558, patches/0104): owner /
-                    manager, last payment only, a reversal row
-                    (CLAUDE.md rule 23).
-                  - EACH SHOP PICKS ITS FULL MONTHS (560, patches/0105):
-                    Settings > Compliance. EDDY'S JEWELERS IS NOW 1 — first
-                    month flat, then by the day (I set it, from his words;
-                    it lowered 9 open tickets by $247.79 in all). Ask him
-                    to confirm; "the most the state allows" puts it back.
-                  - "PAYMENTS BY PERIOD" IS ON THE TICKET (559): Eddy's
-                    sketch (Downloads/IMG_3974.HEIC) — one box per stretch
-                    of time with the payment that paid for it, the unpaid
-                    stretch in red, and "Print for customer".
-                  - LOCAL BUILD TRAP: stopping the dev server leaves broken
-                    generated files in .next/dev/types (validator.ts,
-                    routes.d.ts). Delete those two files before tsc /
-                    build. NEVER chain a commit or push after the build
-                    with ";" — check the build's exit code first (a red
-                    local build was pushed once tonight; the code was
-                    fine, the generated file was not).
-                  - STILL NOT EXERCISED FOR REAL: a payment from the list
-                    popup, the receipt offered after a payment, a payoff
-                    that gives interest back, a move to a picked date,
-                    free time, an online payoff after 0103.
-                  - FREE TIME IS BUILT (551): owner / manager only; the
-                    date moves and the interest is forgiven
-                    (loan_events.interest_waived — never income).
-                  - NO REAL PAYMENT OR FREE TIME HAS BEEN SAVED through
-                    the new screens yet (only looked at, plus a rolled-
-                    back database dry run). Ask Eddy how the first real
-                    one went, and reprint its receipt.
-                  - STILL ON UTC "TODAY" (found in 546, not fixed): the
-                    dashboard, the portal loan pages and payoff, layaways,
-                    the repair list and board, the buy-hold and layaway
-                    reminder jobs, "printed on" on four PDFs.
+
+                  RESUME POINT: start by asking Eddy how the new screens
+                  went at the counter (list below). Then the open items in
+                  PENDING. No code is waiting to be finished.
+
+                  HOW A PAWN TICKET IS CHARGED NOW (all in CLAUDE.md rules
+                  18 and 23 — read them before touching math.ts):
+                  - Full periods first, then by the day. The STATE sets the
+                    most (jurisdictions.charge_full_periods, FL = 2); the
+                    SHOP may pick fewer (settings.loan_full_periods, 560).
+                    EDDY'S JEWELERS IS 1: first month flat, then by the
+                    day. I set that from his sentence; he has not confirmed
+                    it. It lowered 9 open tickets by $247.79 in all.
+                  - After a payment toward the loan, later charges are on
+                    the remaining balance (552).
+                  - Interest paid ahead and not used comes off the payoff;
+                    the closing event books it as NEGATIVE interest_paid
+                    (555). Never sum interest_paid with a "> 0" filter.
+                  - Payment and Extend are ONE action (547). The due date
+                    moves from the OLD due date, by periods or to a date
+                    the clerk picks (554); the server prices both.
+                  - Free time: owner / manager; the date moves and the
+                    interest is forgiven (551).
+                  - One payment can be voided: owner / manager, the last
+                    payment only, a reversal row (558).
+                  - Anything that reads loan events to figure a balance
+                    passes LoanMoneyEvent (id, reverses_event_id,
+                    occurred_at required) and, for a whole book, uses
+                    loadLoanMoneyEvents (562).
+
+                  WHAT HAS RUN FOR REAL ON THE LIVE SITE (Eddy, ticket
+                  15551, 2026-11-23): a payment that moved the date
+                  ($80.00), a payoff ($101.00), and BOTH VOIDED at 10:49 PM
+                  — the ticket is open again, due 2026-04-24, owing $181.00.
+                  All four booked right.
+                  NOT YET RUN FOR REAL — ask him: a payment from the list
+                  popup; the receipt offered after a payment; a move to a
+                  picked date; free time; a payoff that gives interest
+                  back; the printed payment history on paper; the "Pawned
+                  before" list on a customer with many pieces; an online
+                  payoff since 0103; anything as a clerk; anything in
+                  Spanish.
+
+                  LOCAL BUILD TRAP: stopping the dev server leaves broken
+                  generated files in .next/dev/types (validator.ts,
+                  routes.d.ts). Delete those two files before tsc / build.
+                  NEVER chain a commit or push after the build with ";" —
+                  check the build's exit code first.
+
+                  STILL ON UTC "TODAY" (found in 546, not fixed): the
+                  dashboard's date, layaways, the repair list and board,
+                  the buy-hold and layaway reminder jobs, "printed on" on
+                  four PDFs.
 
   Session 64 (2026-11-22/23), saved 2026-11-23 18:50.
                   Context budget at save: high (my estimate ~80%; two
@@ -631,7 +630,7 @@ SESSION HISTORY LOG
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
 
---- Session 65 (2026-11-23) — Pawned-before fix, pawn list search and shop day, payment and extend merged (branch feature/sol-pawn-brief == main) ---
+--- Session 65 (2026-11-23) — Pawn loans end to end: payment/extend merged, full-period charge, remaining balance, free time, paid-ahead credit, void a payment, payments by period, shop's own full months (branch feature/sol-pawn-brief == main) ---
 
  544. PAWNED-BEFORE CHIPS OFFERED A PIECE THE SHOP HOLDS [BUG] (114c368).
       Eddy's screenshot: Desmond Thornton's 10k box chain was offered as
@@ -1034,6 +1033,31 @@ Progress_archive.txt — the items from those sessions are there.)
       the live deploy.
 
       tsc, 1,131 tests, lint, build green.
+
+ 562. CHECKPOINT GATE (Session 65 save). Lane: only Pawn files changed;
+      Downloads/IMG_3974.HEIC was READ only (a JPEG copy went to the
+      scratchpad); nothing touched in Luna Azul or Abacus.
+      - Wording: en/es key trees identical (tsc); every key added tonight
+        is used (51 checked by name); pawnedBeforeHelp went with the pills.
+      - ONE LOADER: the pawn list, the dashboard and collections each
+        carried their own copy of "page the loan events of a book and map
+        them" — three copies, edited three times tonight. Now
+        src/lib/pawn/load-money-events.ts loadLoanMoneyEvents.
+      - DEAD CODE OUT of math.ts: allocateLoanPayment + splitPayment
+        (planLoanPayment replaced them in 547; zero callers) and
+        dailyRateFromMonthly (zero callers), with their tests (-13 tests).
+      - payment-void.ts and payment-history.ts use math.toMoney instead of
+        their own copy; the history panel uses formatMoney; three fields
+        nobody read came off the history's types.
+      LOOKED AT after the change (headless Chrome, local): /pawn (15551
+      first, $181.00), /dashboard, /collections ($48,977.76, 69 rows) all
+      load with no console error.
+      FOUND WHILE LOOKING: Eddy voided both 15551 payments on the live site
+      at 10:49 PM ("made by mistake") — the first real void. Rows: -101.00
+      and -80.00 reversals, a "due date put back" row 2026-12-20 ->
+      2026-04-24, status extended. Correct.
+
+      tsc, 1,118 tests, lint, build green.
 
 --- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 
@@ -3722,18 +3746,19 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Get Eddy's answer: does the shop charge pawn interest BY THE DAY (how
-    Pawn figures a payoff today) or BY THE FULL 30-DAY PERIOD (his old
-    system, his paper ticket, and what Florida's text on the reverse
-    describes: full charge inside the first 30 days, daily only on
-    extensions)? It moves real money on the 65 open loans (~$1,870 today)
-    and decides the sentence left off the new ticket. If "by the period":
-    change payoffBalance / interestAccrued in src/lib/pawn/math.ts (and
-    its tests), the payoff card, the ticket's default-date amount, and
-    restore the "no refund of the finance charge" line through
-    jurisdictions.ticket_notices (rule 18), not as a constant.
+    Ask Eddy how the pawn screens went at the counter, and confirm two
+    things I decided from his words:
+    1. Eddy's Jewelers charges the FIRST MONTH FLAT, then by the day
+       (Settings > Compliance; 560). If he meant two full months, "The
+       most the state allows" puts 9 tickets back ($247.79).
+    2. After day 60 the charge runs by the day (the statute); his old
+       system charged whole months there.
+    Then have him try, once each, what has not run for real (RESUME block
+    above lists them) — first a payment from the list popup with its
+    receipt, and the payment history printed on paper.
     Also ask him to look at a printed ticket (Customer copy / reverse /
-    Store copy) and one payment receipt on his real printers.
+    Store copy) on his real printers: it now carries the "no refund of
+    part of the finance charge" line (553).
     Then, in his order of interest:
     - Sales Tax report: ask him to open it and its PDF export once (the
       PDF layout was not looked at);
@@ -3747,7 +3772,7 @@ PENDING — NEXT UP
     - xPawn import follow-ups (item 537): Eddy decides the 3,433 old
       BUYS and the gun log; fix the street of customer xpawn:5718; drop
       the holding schema xpawn_stage (ask first); reconcile inventory
-      against product-export.csv; tell him Pawn charges by the day;
+      against product-export.csv;
     Still open from REVIEW-2026-11-11: pawn redeem / return
     double-submit, accrual dates in UTC outside the reports,
     metal-counter consignment (finding 15), /audit hydration, and the

@@ -17,9 +17,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addDaysIso,
-  allocateLoanPayment,
   appliedPayments,
-  dailyRateFromMonthly,
   extensionCost,
   extensionCostToDate,
   dayInTimezone,
@@ -33,7 +31,6 @@ import {
   planFreeTime,
   planLoanPayment,
   r4,
-  splitPayment,
   toMoney,
   todayDateString,
   type ChargeModel,
@@ -71,13 +68,6 @@ describe('r4 / toMoney', () => {
   it('toMoney handles null/undefined as zero', () => {
     expect(toMoney(null)).toBe(0)
     expect(toMoney(undefined)).toBe(0)
-  })
-})
-
-describe('dailyRateFromMonthly', () => {
-  it('divides by 30', () => {
-    expect(dailyRateFromMonthly(0.1)).toBeCloseTo(0.0033, 4)
-    expect(dailyRateFromMonthly(0)).toBe(0)
   })
 })
 
@@ -313,135 +303,6 @@ describe('payoffBalance', () => {
     })
     expect(r.interestAccrued).toBeCloseTo(1, 4)
     expect(r.payoff).toBeCloseTo(11, 4)
-  })
-})
-
-describe('splitPayment', () => {
-  it('zero amount → zero split', () => {
-    expect(splitPayment(0, 100)).toEqual({
-      interest_paid: 0,
-      principal_paid: 0,
-    })
-    expect(splitPayment(-10, 100)).toEqual({
-      interest_paid: 0,
-      principal_paid: 0,
-    })
-  })
-
-  it('payment ≤ owed interest → all to interest', () => {
-    expect(splitPayment(40, 100)).toEqual({
-      interest_paid: 40,
-      principal_paid: 0,
-    })
-    expect(splitPayment(100, 100)).toEqual({
-      interest_paid: 100,
-      principal_paid: 0,
-    })
-  })
-
-  it('payment > owed interest → remainder to principal', () => {
-    expect(splitPayment(150, 100)).toEqual({
-      interest_paid: 100,
-      principal_paid: 50,
-    })
-  })
-
-  it('zero owed interest → all to principal', () => {
-    expect(splitPayment(150, 0)).toEqual({
-      interest_paid: 0,
-      principal_paid: 150,
-    })
-  })
-
-  it('clamps negative owed interest to 0', () => {
-    expect(splitPayment(50, -10)).toEqual({
-      interest_paid: 0,
-      principal_paid: 50,
-    })
-  })
-})
-
-describe('allocateLoanPayment', () => {
-  // $1,000 loan with $250 interest owed.
-  const owed = { interestOutstanding: 250, principalOutstanding: 1000 }
-
-  it('pays interest before any principal', () => {
-    expect(allocateLoanPayment({ amount: 100, ...owed })).toEqual({
-      ok: true,
-      interest_paid: 100,
-      principal_paid: 0,
-      fees_paid: 0,
-    })
-    expect(allocateLoanPayment({ amount: 400, ...owed })).toEqual({
-      ok: true,
-      interest_paid: 250,
-      principal_paid: 150,
-      fees_paid: 0,
-    })
-  })
-
-  it('a payment equal to principal alone does NOT retire the principal', () => {
-    // The forgiven-interest hole: paying 1000 must leave $250 principal owed.
-    const r = allocateLoanPayment({ amount: 1000, ...owed })
-    expect(r).toEqual({
-      ok: true,
-      interest_paid: 250,
-      principal_paid: 750,
-      fees_paid: 0,
-    })
-  })
-
-  it('full payoff clears both', () => {
-    expect(allocateLoanPayment({ amount: 1250, ...owed })).toEqual({
-      ok: true,
-      interest_paid: 250,
-      principal_paid: 1000,
-      fees_paid: 0,
-    })
-  })
-
-  it('fees come off the top, the rest goes interest-first', () => {
-    expect(allocateLoanPayment({ amount: 300, fees: 20, ...owed })).toEqual({
-      ok: true,
-      interest_paid: 250,
-      principal_paid: 30,
-      fees_paid: 20,
-    })
-    // Payoff plus a fee is still a full payoff.
-    expect(allocateLoanPayment({ amount: 1270, fees: 20, ...owed })).toEqual({
-      ok: true,
-      interest_paid: 250,
-      principal_paid: 1000,
-      fees_paid: 20,
-    })
-  })
-
-  it('refuses more than is owed', () => {
-    expect(allocateLoanPayment({ amount: 1250.01, ...owed })).toEqual({
-      ok: false,
-      reason: 'exceeds_payoff',
-    })
-  })
-
-  it('refuses fees larger than the amount', () => {
-    expect(allocateLoanPayment({ amount: 10, fees: 11, ...owed })).toEqual({
-      ok: false,
-      reason: 'fees_exceed_amount',
-    })
-  })
-
-  it('tolerates sub-cent float drift at exact payoff', () => {
-    const r = allocateLoanPayment({
-      amount: 1008.3333,
-      interestOutstanding: 8.3333,
-      principalOutstanding: 1000,
-    })
-    expect(r).toEqual({
-      ok: true,
-      interest_paid: 8.3333,
-      principal_paid: 1000,
-      fees_paid: 0,
-    })
   })
 })
 

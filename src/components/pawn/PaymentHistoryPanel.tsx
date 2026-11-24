@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { Gift, Printer } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { shortDate } from '@/lib/format/money'
+import { formatMoney as usd, shortDate } from '@/lib/format/money'
 import { printHtmlFromUrl } from '@/lib/pos/print-frame'
 import { dayInTimezone, type ChargeModel } from '@/lib/pawn/math'
 import { buildPaymentHistory } from '@/lib/pawn/payment-history'
@@ -22,9 +22,6 @@ type PanelEvent = {
   reverses_event_id: string | null
   legacy: boolean
 }
-
-const usd = (n: number): string =>
-  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
 
 /**
  * The ticket's payments the way the counter draws them for a customer who

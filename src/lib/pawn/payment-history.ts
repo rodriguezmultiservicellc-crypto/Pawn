@@ -26,7 +26,7 @@ import type { Dictionary } from '@/lib/i18n/en'
 import { reportColors } from '@/lib/tokens'
 import { escapeHtml, receiptPage } from '@/lib/pos/receipt-html'
 import { bi, calendarDate, money } from '@/lib/pos/receipt-thermal'
-import { addDaysIso, dayInTimezone } from '@/lib/pawn/math'
+import { addDaysIso, dayInTimezone, toMoney } from '@/lib/pawn/math'
 import { undoneEventIds } from '@/lib/pawn/payment-void'
 
 type Money = number | string | null
@@ -55,23 +55,17 @@ export type HistoryPeriod = {
   kind: 'paid' | 'free' | 'moved'
   /** When (the instant) it was paid or given. */
   at: string
-  /** Cash taken in that visit, and how it was booked. */
+  /** Cash taken in that visit, and how much of it went toward the loan. */
   amount: number
-  interest: number
   principal: number
-  fees: number
   /** Interest not charged (free time). */
   waived: number
-  /** Where the due date went. */
-  due_moved_to: string
 }
 
 export type OtherPayment = {
   at: string
   amount: number
-  interest: number
   principal: number
-  fees: number
   /** This payment paid the ticket off. */
   payoff: boolean
 }
@@ -86,10 +80,7 @@ export type PaymentHistory = {
   total_paid: number
 }
 
-const n = (v: Money): number => {
-  const x = typeof v === 'string' ? parseFloat(v) : (v ?? 0)
-  return isFinite(x) ? x : 0
-}
+const n = toMoney
 const r2 = (x: number): number => Math.round(x * 100) / 100
 
 export function buildPaymentHistory(args: {
@@ -119,9 +110,7 @@ export function buildPaymentHistory(args: {
     other.push({
       at: e.occurred_at,
       amount: r2(n(e.amount ?? n(e.principal_paid) + n(e.interest_paid) + n(e.fees_paid))),
-      interest: r2(n(e.interest_paid)),
       principal: r2(n(e.principal_paid)),
-      fees: r2(n(e.fees_paid)),
       payoff,
     })
 
@@ -169,11 +158,8 @@ export function buildPaymentHistory(args: {
       kind: free ? 'free' : pay ? 'paid' : 'moved',
       at: pay ? pay.occurred_at : e.occurred_at,
       amount: pay ? r2(n(pay.amount ?? n(pay.principal_paid) + n(pay.interest_paid) + n(pay.fees_paid))) : 0,
-      interest: pay ? r2(n(pay.interest_paid)) : 0,
       principal: pay ? r2(n(pay.principal_paid)) : 0,
-      fees: pay ? r2(n(pay.fees_paid)) : 0,
       waived: r2(n(e.interest_waived)),
-      due_moved_to: e.new_due_date,
     })
     if (!free) pending = null
     paidTo = to

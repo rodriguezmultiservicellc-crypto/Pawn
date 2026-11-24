@@ -216,7 +216,7 @@ export type LoanCreateInput = z.infer<typeof loanCreateSchema>
 // ── Payment ─────────────────────────────────────────────────────────────────
 
 // The interest / principal split is NOT an input. The server computes it
-// (interest first — lib/pawn/math.allocateLoanPayment) from the payoff it
+// (interest first — lib/pawn/math.planLoanPayment) from the payoff it
 // reads itself; a `principal_paid` / `interest_paid` sent by the browser is
 // dropped here. Letting the client choose the split let a payment retire all
 // principal with interest unpaid, which flipped the loan to redeemed with
