@@ -48,6 +48,8 @@ export type InventoryListRow = {
   legacy_code: string | null
   shelf_location: string | null
   tag_printed_at: string | null
+  karat: string | null
+  weight_grams: number | string | null
 }
 
 const STATUS_BADGE: Record<InventoryStatus, { bg: string; text: string }> = {
@@ -64,6 +66,9 @@ const STATUS_BADGE: Record<InventoryStatus, { bg: string; text: string }> = {
 
 export default function InventoryContent({
   items,
+  total,
+  page,
+  pageSize,
   query,
   statusFilter,
   sourceFilter,
@@ -75,6 +80,10 @@ export default function InventoryContent({
   tagChoices,
 }: {
   items: InventoryListRow[]
+  /** Rows matching the filters, all pages. */
+  total: number
+  page: number
+  pageSize: number
   query: string
   statusFilter: InventoryStatus | ''
   sourceFilter: InventorySource | ''
@@ -111,6 +120,8 @@ export default function InventoryContent({
 
   function pushParams(next: Record<string, string | null>) {
     const sp = new URLSearchParams(searchParams.toString())
+    // A new search or filter starts again at page 1.
+    if (!('page' in next)) sp.delete('page')
     for (const [k, v] of Object.entries(next)) {
       if (v == null || v === '') sp.delete(k)
       else sp.set(k, v)
@@ -122,10 +133,11 @@ export default function InventoryContent({
 
   // A scanner types the tag's code and presses Enter: an exact code opens
   // the record (item, pawn ticket, repair ticket); anything else searches.
+  // A code is one word, so a search of several words skips the lookup.
   async function onSearchSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const q = searchInput.trim()
-    if (q) {
+    if (q && !/\s/.test(q)) {
       setLookingUp(true)
       try {
         const hit = await resolveScanAction(q)
@@ -148,6 +160,9 @@ export default function InventoryContent({
     !!conditionFilter ||
     !!coatingFilter ||
     needsTag
+
+  const pageCount = Math.max(1, Math.ceil(total / pageSize))
+  const firstRow = (page - 1) * pageSize + 1
 
   return (
     <div className="space-y-6">
@@ -359,9 +374,12 @@ export default function InventoryContent({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <div
+          className={`overflow-x-auto rounded-xl border border-border bg-card transition-opacity ${pending || lookingUp ? 'opacity-50' : ''}`}
+          aria-busy={pending || lookingUp}
+        >
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-muted">
+            <thead className="whitespace-nowrap border-b border-border text-muted">
               <tr>
                 <th className="w-10 pl-4 pr-1 py-3">
                   <input
@@ -377,7 +395,13 @@ export default function InventoryContent({
                   {t.inventory.skuColumn}
                 </th>
                 <th className="px-4 py-3 font-medium">
+                  {t.inventory.legacyCode}
+                </th>
+                <th className="px-4 py-3 font-medium">
                   {t.inventory.descriptionColumn}
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  {t.inventory.karatWeightColumn}
                 </th>
                 <th className="px-4 py-3 font-medium">
                   {t.inventory.categoryColumn}
@@ -430,7 +454,7 @@ export default function InventoryContent({
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-foreground">
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-foreground">
                       {it.sku}
                       {!it.tag_printed_at && (it.status === 'available' || it.status === 'held') ? (
                         <span className="mt-1 flex w-fit items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 font-sans text-[10px] font-semibold text-warning">
@@ -438,6 +462,9 @@ export default function InventoryContent({
                           {t.tags.needsTag}
                         </span>
                       ) : null}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
+                      {it.legacy_code ?? '—'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2 font-medium text-foreground">
@@ -452,19 +479,16 @@ export default function InventoryContent({
                           </span>
                         ) : null}
                       </div>
-                      {it.brand || it.model || it.serial_number || it.legacy_code || it.shelf_location ? (
+                      {it.brand || it.model || it.serial_number || it.shelf_location ? (
                         <div className="text-xs text-muted">
-                          {[
-                            it.brand,
-                            it.model,
-                            it.serial_number,
-                            it.legacy_code ? `${t.inventory.legacyCode}: ${it.legacy_code}` : null,
-                            it.shelf_location,
-                          ]
+                          {[it.brand, it.model, it.serial_number, it.shelf_location]
                             .filter(Boolean)
                             .join(' · ')}
                         </div>
                       ) : null}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-foreground">
+                      {karatWeight(it) ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-foreground">
                       {categoryLabel(it.category, t)}
@@ -489,8 +513,52 @@ export default function InventoryContent({
           </table>
         </div>
       )}
+
+      {items.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
+          <span className="font-mono text-xs">
+            {t.inventory.showing
+              .replace('{first}', firstRow.toLocaleString('en-US'))
+              .replace('{last}', (firstRow + items.length - 1).toLocaleString('en-US'))
+              .replace('{total}', total.toLocaleString('en-US'))}
+          </span>
+          {pageCount > 1 ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1 || pending}
+                onClick={() => pushParams({ page: page - 1 > 1 ? String(page - 1) : null })}
+                className="rounded-md border border-border bg-card px-3 py-1.5 text-foreground hover:bg-background disabled:opacity-50"
+              >
+                {t.common.previous}
+              </button>
+              <span className="font-mono text-xs">
+                {page} / {pageCount}
+              </span>
+              <button
+                type="button"
+                disabled={page >= pageCount || pending}
+                onClick={() => pushParams({ page: String(page + 1) })}
+                className="rounded-md border border-border bg-card px-3 py-1.5 text-foreground hover:bg-background disabled:opacity-50"
+              >
+                {t.common.next}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
+}
+
+/** "14K · 2.4 g" — whichever of the two the item has. */
+function karatWeight(it: InventoryListRow): string | null {
+  const grams = it.weight_grams == null ? null : Number(it.weight_grams)
+  const parts = [
+    it.karat,
+    grams != null && isFinite(grams) ? `${grams} g` : null,
+  ].filter(Boolean)
+  return parts.length ? parts.join(' · ') : null
 }
 
 function formatMoney(v: number | string): string {

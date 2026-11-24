@@ -193,6 +193,30 @@ export async function getSignedUrl(args: {
 }
 
 /**
+ * Signed URLs for many files of one bucket in ONE request (a list page's
+ * thumbnails). Same rule as getSignedUrl: only for paths the caller has
+ * already been checked against. Returns path → URL; a path that failed is
+ * left out.
+ */
+export async function getSignedUrls(args: {
+  bucket: typeof INVENTORY_PHOTOS_BUCKET
+  paths: string[]
+  ttlSeconds?: number
+}): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  if (args.paths.length === 0) return out
+  const admin = createAdminClient()
+  const { data, error } = await admin.storage
+    .from(args.bucket)
+    .createSignedUrls(args.paths, args.ttlSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS)
+  if (error || !data) return out
+  for (const d of data) {
+    if (d.path && d.signedUrl && !d.error) out.set(d.path, d.signedUrl)
+  }
+  return out
+}
+
+/**
  * Best-effort delete. Used when removing a customer document or item photo.
  * If the storage delete fails, the DB row should still be soft-deleted —
  * a stale object in storage is recoverable; a stale DB row is the harder
