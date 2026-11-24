@@ -43,9 +43,10 @@ export default async function PawnListPage(props: {
 
   const params = await props.searchParams
   const q = (params.q ?? '').trim()
-  // A search with no tab picked looks in every status: someone typing a name
-  // wants that customer's tickets, open or closed. A picked tab narrows it.
-  const statusFilter = (params.status ?? (q ? 'all' : 'active')) as LoanStatus | 'all' | 'dueSoon'
+  // No tab picked = Active, with or without a search (Eddy, 2026-11-24: a
+  // name search starts on the customer's open tickets). The "All" tab
+  // widens it to every status.
+  const statusFilter = (params.status ?? 'active') as LoanStatus | 'all' | 'dueSoon'
   const dueWindow = (params.due ?? 'all') as
     | 'all'
     | 'overdue'
