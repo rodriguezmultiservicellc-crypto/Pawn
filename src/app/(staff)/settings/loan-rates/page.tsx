@@ -37,7 +37,7 @@ export default async function LoanRatesPage() {
       .order('rate_monthly'),
     admin
       .from('settings')
-      .select('min_loan_amount, pawn_ticket_backpage')
+      .select('min_loan_amount, pawn_ticket_backpage, pawn_ticket_print_reverse')
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
   ])
@@ -70,6 +70,7 @@ export default async function LoanRatesPage() {
       rows={items}
       minLoanAmount={minLoanAmount}
       ticketBackpage={ticketBackpage}
+      ticketPrintReverse={settingsRes.data?.pawn_ticket_print_reverse ?? true}
       statutory={{
         jurisdictionName: jurisdiction?.name ?? null,
         rateCap: maxMonthlyRate(jurisdiction, null),

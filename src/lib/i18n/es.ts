@@ -1780,9 +1780,6 @@ export const es: Dictionary = {
         placeholder:
           '[MARCADOR — reemplazar con el lenguaje de divulgación de empeño exigido por la jurisdicción aplicable, revisado por un abogado antes de operar. Los corredores de empeños en Florida deben cumplir con los requisitos de aviso del Cap. 539 F.S.]',
       },
-      footer: {
-        pageOf: 'Página {n} de {total}',
-      },
       backpage: {
         header: 'Términos y Condiciones — Reverso',
       },
@@ -3874,6 +3871,9 @@ export const es: Dictionary = {
     backpageUsingDefault: 'Usando el texto legal de tu jurisdicción.',
     backpageUsingCustom: 'Usando tu texto personalizado.',
     backpageReset: 'Restablecer al texto estándar',
+    paperLabel: 'Papel del boleto',
+    paperBlank: 'Papel en blanco: imprimir el reverso detrás de la copia del cliente y de la copia de la tienda (configure la impresora para imprimir por ambos lados).',
+    paperPreprinted: 'Papel con el reverso ya impreso: no imprimir el reverso.',
   },
 
   compliance: {

@@ -1791,9 +1791,6 @@ export const en = {
         placeholder:
           '[PLACEHOLDER — replace with state-required pawn-loan disclosure language vetted by counsel before going live in any jurisdiction. Florida pawnbrokers must satisfy Ch. 539 F.S. notice requirements.]',
       },
-      footer: {
-        pageOf: 'Page {n} of {total}',
-      },
       backpage: {
         header: 'Terms and Conditions — Reverse Side',
       },
@@ -3872,6 +3869,9 @@ export const en = {
     backpageUsingDefault: "Using your jurisdiction's statutory default text.",
     backpageUsingCustom: 'Using your custom text.',
     backpageReset: 'Reset to default',
+    paperLabel: 'Ticket paper',
+    paperBlank: 'Blank paper: print the back side behind the customer copy and the store copy (set the printer to print on both sides).',
+    paperPreprinted: 'Paper with the back already printed: do not print the back side.',
   },
 
   compliance: {

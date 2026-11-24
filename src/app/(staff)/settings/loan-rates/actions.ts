@@ -242,6 +242,9 @@ const backpageSchema = z.object({
       z.string().min(1).max(20000).nullable().optional(),
     )
     .transform((v) => v ?? null),
+  // patches/0109: 'blank' paper prints the back side behind each copy;
+  // 'preprinted' paper already carries it.
+  ticket_paper: z.enum(['blank', 'preprinted']),
 })
 
 export type SaveBackpageState = {
@@ -268,6 +271,7 @@ export async function saveTicketBackpageAction(
 
   const parsed = backpageSchema.safeParse({
     pawn_ticket_backpage: formData.get('pawn_ticket_backpage'),
+    ticket_paper: formData.get('ticket_paper'),
   })
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {}
@@ -283,6 +287,7 @@ export async function saveTicketBackpageAction(
     .from('settings')
     .update({
       pawn_ticket_backpage: parsed.data.pawn_ticket_backpage,
+      pawn_ticket_print_reverse: parsed.data.ticket_paper === 'blank',
       updated_at: new Date().toISOString(),
     })
     .eq('tenant_id', ctx.tenantId)
@@ -297,6 +302,7 @@ export async function saveTicketBackpageAction(
     changes: {
       kind: 'pawn_ticket_backpage',
       length: parsed.data.pawn_ticket_backpage?.length ?? 0,
+      ticket_paper: parsed.data.ticket_paper,
     },
   })
 

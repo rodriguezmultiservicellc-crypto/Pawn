@@ -107,7 +107,7 @@ export async function renderLoanTicketPdf(args: {
       .maybeSingle(),
     supabase
       .from('settings')
-      .select('pawn_ticket_backpage')
+      .select('pawn_ticket_backpage, pawn_ticket_print_reverse')
       .eq('tenant_id', tenantId)
       .maybeSingle(),
   ])
@@ -119,8 +119,11 @@ export async function renderLoanTicketPdf(args: {
   // (patches/0048), else none.
   const rules = await loadTenantRules(supabase, tenantId)
   const backpageOverride = settingsRes.data?.pawn_ticket_backpage ?? null
-  const backpageText =
-    backpageOverride && backpageOverride.trim()
+  // Paper with the back already printed (patches/0109): no reverse page.
+  const printReverse = settingsRes.data?.pawn_ticket_print_reverse ?? true
+  const backpageText = !printReverse
+    ? ''
+    : backpageOverride && backpageOverride.trim()
       ? backpageOverride
       : rules.jurisdiction?.ticket_backpage ?? ''
 

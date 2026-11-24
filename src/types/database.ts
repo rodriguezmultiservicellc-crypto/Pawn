@@ -6089,6 +6089,7 @@ export type Database = {
           online_ship_enabled: boolean
           orocut_style_names: string[]
           pawn_ticket_backpage: string | null
+          pawn_ticket_print_reverse: boolean
           product_feed_enabled: boolean
           reader_tip_percentages: number[]
           reader_tips_enabled: boolean
@@ -6163,6 +6164,7 @@ export type Database = {
           online_ship_enabled?: boolean
           orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
+          pawn_ticket_print_reverse?: boolean
           product_feed_enabled?: boolean
           reader_tip_percentages?: number[]
           reader_tips_enabled?: boolean
@@ -6237,6 +6239,7 @@ export type Database = {
           online_ship_enabled?: boolean
           orocut_style_names?: string[]
           pawn_ticket_backpage?: string | null
+          pawn_ticket_print_reverse?: boolean
           product_feed_enabled?: boolean
           reader_tip_percentages?: number[]
           reader_tips_enabled?: boolean

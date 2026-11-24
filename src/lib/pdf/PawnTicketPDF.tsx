@@ -270,8 +270,8 @@ function parseBackpageBlocks(text: string): BackpageBlock[] {
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
-  const en = data.i18n.en.pawn.print
   const hasReverse = data.backpage_text.trim() !== ''
+  const reverse = hasReverse ? <ReversePage data={data} /> : null
 
   if (data.spanish_only) {
     return (
@@ -284,20 +284,48 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
 
   return (
     <Document title={`Pawn Ticket ${data.ticket_number}`}>
-      {/* The form itself (PawnTransactionForm.tsx). Customer copy first, with
-          the reverse right behind it — so a duplex printer backs the
-          customer's sheet with the terms — then the store's copy. */}
-      <TransactionFormPage data={data} copy="customer" />
-      {/* Items that did not fit on the front (PawnTransactionForm). With no
-          reverse page it follows the front, so a duplex printer backs the
-          front with it. With a reverse page the reverse must back the
-          front, so the customer's continuation prints last instead. */}
-      {hasReverse ? null : <TransactionFormContinuation data={data} copy="customer" />}
-
-      {/* ── Reverse side: legal disclosure / policy. English-only by
-          operator policy — the ticket is a legal document. Omitted when
-          neither the tenant nor its jurisdiction supplies any text. */}
       {hasReverse ? (
+        <>
+          {/* Blank paper (settings.pawn_ticket_print_reverse, patches/0109):
+              each copy's front is followed by the reverse, so a duplex
+              printer backs BOTH the customer's and the store's sheet with
+              the terms. Items that did not fit on a front come last, so
+              they never take a reverse's place. */}
+          <TransactionFormPage data={data} copy="customer" />
+          {reverse}
+          <TransactionFormPage data={data} copy="store" />
+          {reverse}
+          <TransactionFormContinuation data={data} copy="customer" />
+          <TransactionFormContinuation data={data} copy="store" />
+        </>
+      ) : (
+        <>
+          {/* Paper with the back already printed, or no terms on file: each
+              front, then the items that did not fit on it. */}
+          <TransactionFormPage data={data} copy="customer" />
+          <TransactionFormContinuation data={data} copy="customer" />
+          <TransactionFormPage data={data} copy="store" />
+          <TransactionFormContinuation data={data} copy="store" />
+        </>
+      )}
+
+      {/* The Spanish courtesy translation, last and on its own sheets, stamped
+          across as not legally valid. The reverse terms are not translated. */}
+      {data.spanish_copy ? (
+        <>
+          <TransactionFormPage data={data} copy="courtesy" />
+          <TransactionFormContinuation data={data} copy="courtesy" />
+        </>
+      ) : null}
+    </Document>
+  )
+}
+
+/** The reverse side: the terms, English only — the ticket is a legal
+ *  document. Printed behind each copy's front on blank paper. */
+function ReversePage({ data }: { data: PawnTicketData }) {
+  const en = data.i18n.en.pawn.print
+  return (
       <Page size="LETTER" style={styles.backpagePage} wrap>
         <Text style={styles.backpageHeader}>
           {en.backpage.header}
@@ -320,34 +348,13 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
           )
         })}
 
-        {/* ── Footer */}
+        {/* ── Footer: the ticket it backs. No page number — the same
+            reverse prints behind each copy. */}
         <View style={styles.footer} fixed>
           <Text style={styles.footerTicket}>
             {data.ticket_number}  ·  {data.tenant.dba?.trim() || data.tenant.name}
           </Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              en.footer.pageOf
-                .replace('{n}', String(pageNumber))
-                .replace('{total}', String(totalPages))
-            }
-          />
         </View>
       </Page>
-      ) : null}
-
-      <TransactionFormPage data={data} copy="store" />
-      <TransactionFormContinuation data={data} copy="store" />
-      {hasReverse ? <TransactionFormContinuation data={data} copy="customer" /> : null}
-
-      {/* The Spanish courtesy translation, last and on its own sheets, stamped
-          across as not legally valid. The reverse terms are not translated. */}
-      {data.spanish_copy ? (
-        <>
-          <TransactionFormPage data={data} copy="courtesy" />
-          <TransactionFormContinuation data={data} copy="courtesy" />
-        </>
-      ) : null}
-    </Document>
   )
 }

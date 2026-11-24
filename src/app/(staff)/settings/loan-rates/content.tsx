@@ -48,11 +48,14 @@ export default function LoanRatesContent({
   rows,
   minLoanAmount,
   ticketBackpage,
+  ticketPrintReverse,
   statutory,
 }: {
   rows: LoanRateRow[]
   minLoanAmount: number | null
   ticketBackpage: string | null
+  /** patches/0109: false = the shop's ticket paper already has the back. */
+  ticketPrintReverse: boolean
   statutory: StatutoryRateLimits
 }) {
   const { t } = useI18n()
@@ -109,6 +112,7 @@ export default function LoanRatesContent({
 
       <BackpageCard
         initial={ticketBackpage}
+        printReverse={ticketPrintReverse}
         defaultText={statutory.defaultBackpage}
       />
 
@@ -212,9 +216,11 @@ function PolicyCard({ initial }: { initial: number | null }) {
 
 function BackpageCard({
   initial,
+  printReverse,
   defaultText,
 }: {
   initial: string | null
+  printReverse: boolean
   defaultText: string
 }) {
   const { t } = useI18n()
@@ -235,6 +241,33 @@ function BackpageCard({
       </p>
 
       <form action={formAction} className="mt-3 space-y-3">
+        {/* Blank paper: the back side prints behind the customer copy and
+            the store copy. Pre-printed paper: it is never printed. */}
+        <fieldset className="space-y-1.5 rounded-xl border border-border p-3">
+          <legend className="px-1 text-xs font-semibold text-foreground">
+            {t.settingsLoanRates.paperLabel}
+          </legend>
+          <label className="flex items-start gap-2 text-sm text-foreground">
+            <input
+              type="radio"
+              name="ticket_paper"
+              value="blank"
+              defaultChecked={printReverse}
+              className="mt-1 accent-gold"
+            />
+            <span>{t.settingsLoanRates.paperBlank}</span>
+          </label>
+          <label className="flex items-start gap-2 text-sm text-foreground">
+            <input
+              type="radio"
+              name="ticket_paper"
+              value="preprinted"
+              defaultChecked={!printReverse}
+              className="mt-1 accent-gold"
+            />
+            <span>{t.settingsLoanRates.paperPreprinted}</span>
+          </label>
+        </fieldset>
         <textarea
           name="pawn_ticket_backpage"
           value={value}
