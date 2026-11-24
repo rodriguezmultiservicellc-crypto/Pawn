@@ -60,7 +60,7 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23, night). Items 544-560, SIX
+  Last session:   Session 65 (2026-11-23, night). Items 544-561, SIX
                   MIGRATIONS, ALL APPLIED: 0100-0105.
                   main == feature/sol-pawn-brief.
                   ACTIVE FILES (last touched):
@@ -1015,6 +1015,23 @@ Progress_archive.txt — the items from those sessions are there.)
       payoff $1,106.67; the settings screen shows both choices, "First
       month flat" selected, "In effect now: 1 full month(s)".
       NOT VERIFIED: the setting saved from the screen; Spanish; live deploy.
+
+      tsc, 1,131 tests, lint, build green.
+
+ 561. "PAWNED BEFORE" IS ONE PILL WITH A LIST. Eddy, with a screenshot of
+      New pawn ticket buried under ten gold pills: "i guess it was an error
+      to do them by pill just have 1 pill that opens a popup with a list".
+      - One gold pill beside the category pills, "Pawned before" with the
+        count. It opens PawnedBeforeDialog: each piece with its last
+        ticket, date, times pawned and the last loan amount; a search box
+        past 6 pieces; "Add" turns into "Added" and the list stays open so
+        several pieces can be added; "Done" closes it. Another customer
+        clears the marks.
+      - The list holds 25 pieces now (was 10 pills).
+      LOOKED AT (headless Chrome, local, no ticket issued): one pill with
+      its count, the list, a piece added to the ticket, Done.
+      NOT VERIFIED: a customer with many pieces (the search box); Spanish;
+      the live deploy.
 
       tsc, 1,131 tests, lint, build green.
 

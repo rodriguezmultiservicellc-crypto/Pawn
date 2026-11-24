@@ -18,8 +18,8 @@ import type {
   InventoryCategory,
   MetalType,
 } from '@/types/database-aliases'
-import { formatMoney } from '@/lib/format/money'
 import type { PreviousPawnItem } from '@/lib/pawn/customer-history'
+import { PawnedBeforeDialog } from './PawnedBeforeDialog'
 import CategoryPicker, {
   CategoryBanner,
   type PawnIntakeCategory,
@@ -251,8 +251,8 @@ export const CollateralItemsList = forwardRef<
     onTotalsChange?: (count: number, totalValue: number) => void
     /** Section label shown before the category pills. */
     title: string
-    /** Pieces this customer pawned and picked up before: one chip each,
-     *  and a click writes the piece again with what was lent last time. */
+    /** Pieces this customer pawned and picked up before. ONE pill opens the
+     *  list; adding a piece writes it again with what was lent last time. */
     previousItems?: ReadonlyArray<PreviousPawnItem>
   }
 >(function CollateralItemsList({ categories, onTotalsChange, title, previousItems = [] }, ref) {
@@ -263,6 +263,17 @@ export const CollateralItemsList = forwardRef<
   // Rows whose detail panel the clerk opened with Edit. A row that still
   // lacks a required field stays open regardless (see isRowComplete).
   const [openUids, setOpenUids] = useState<ReadonlySet<string>>(new Set())
+  // The "Pawned before" list, and which of its pieces are on this ticket.
+  const [beforeOpen, setBeforeOpen] = useState(false)
+  const [beforeAdded, setBeforeAdded] = useState<ReadonlySet<string>>(new Set())
+  // Another customer's pieces: nothing from the new list is on the ticket yet.
+  const beforeSig = previousItems.map((p) => p.key).join('|')
+  const [beforeSigSeen, setBeforeSigSeen] = useState(beforeSig)
+  if (beforeSigSeen !== beforeSig) {
+    setBeforeSigSeen(beforeSig)
+    setBeforeAdded(new Set())
+    setBeforeOpen(false)
+  }
 
   function setOpen(uid: string, open: boolean) {
     setOpenUids((prev) => {
@@ -508,32 +519,32 @@ export const CollateralItemsList = forwardRef<
             </button>
           ))
         )}
+        {/* Pieces this customer pawned and picked up before: one pill, a
+            list behind it. */}
+        {previousItems.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setBeforeOpen(true)}
+            className={`inline-flex h-11 items-center gap-2 rounded-full border border-gold/60 bg-gold/10 px-4 text-sm font-semibold text-foreground transition-colors hover:border-gold hover:bg-gold/20 ${FOCUS}`}
+          >
+            <Plus size={14} weight="bold" />
+            {tn.history.pawnedBefore}
+            <span className="rounded-full bg-gold px-2 py-0.5 font-mono text-xs font-bold text-navy">
+              {previousItems.length}
+            </span>
+          </button>
+        ) : null}
       </div>
-
-      {/* Pieces this customer pawned and picked up before. */}
-      {previousItems.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`mr-2 ${LABEL}`}>{tn.history.pawnedBefore}</span>
-          {previousItems.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => addPrevious(p)}
-              title={tn.history.pawnedBeforeHelp
-                .replace('{value}', formatMoney(p.last_value))
-                .replace('{ticket}', p.last_ticket)}
-              className={`inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-4 py-1 text-left text-sm font-semibold text-foreground transition-colors hover:border-gold hover:bg-gold/20 ${FOCUS}`}
-            >
-              <Plus size={14} weight="bold" className="shrink-0" />
-              <span className="truncate">{p.label}</span>
-              {p.last_value > 0 ? (
-                <span className="shrink-0 font-mono text-xs font-normal text-text-secondary">
-                  {formatMoney(p.last_value)}
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </div>
+      {beforeOpen ? (
+        <PawnedBeforeDialog
+          items={previousItems}
+          addedKeys={beforeAdded}
+          onAdd={(p) => {
+            addPrevious(p)
+            setBeforeAdded((prev) => new Set(prev).add(p.key))
+          }}
+          onClose={() => setBeforeOpen(false)}
+        />
       ) : null}
 
       <div

@@ -107,7 +107,8 @@ export type CustomerPawnHistory = {
 }
 
 export const HISTORY_RECENT_MAX = 12
-export const HISTORY_ITEMS_MAX = 10
+/** A list in a popup now, not a row of pills: it can hold more. */
+export const HISTORY_ITEMS_MAX = 25
 
 const num = (v: number | string | null): number | null => {
   if (v == null || v === '') return null
