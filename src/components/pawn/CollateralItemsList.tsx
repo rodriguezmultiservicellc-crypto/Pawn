@@ -9,9 +9,9 @@ import {
   useState,
 } from 'react'
 import Image from 'next/image'
-import { Plus, Camera, Warning } from '@phosphor-icons/react'
+import { Plus, Camera, Warning, X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { FOCUS, INPUT, LABEL } from '@/lib/ui/ledger'
+import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
 import type { WatchModelMatch } from './InlinePawnCalculator'
 import type {
@@ -260,9 +260,15 @@ export const CollateralItemsList = forwardRef<
   // Starts empty: the table shows "Pick a category above…" until a pill,
   // voice intake or a resumed draft adds the first row.
   const [rows, setRows] = useState<Row[]>([])
-  // Rows whose detail panel the clerk opened with Edit. A row that still
-  // lacks a required field stays open regardless (see isRowComplete).
-  const [openUids, setOpenUids] = useState<ReadonlySet<string>>(new Set())
+  // The one item whose popup is open. `adding`: a pill just started it, so
+  // leaving the popup without "Add item" takes the row away again.
+  // `report`: Issue found a required field empty in a closed row — the popup
+  // opens pointing at that field.
+  const [popup, setPopup] = useState<{
+    uid: string
+    adding: boolean
+    report: boolean
+  } | null>(null)
   // The "Pawned before" list, and which of its pieces are on this ticket.
   const [beforeOpen, setBeforeOpen] = useState(false)
   const [beforeAdded, setBeforeAdded] = useState<ReadonlySet<string>>(new Set())
@@ -273,16 +279,6 @@ export const CollateralItemsList = forwardRef<
     setBeforeSigSeen(beforeSig)
     setBeforeAdded(new Set())
     setBeforeOpen(false)
-  }
-
-  function setOpen(uid: string, open: boolean) {
-    setOpenUids((prev) => {
-      if (prev.has(uid) === open) return prev
-      const next = new Set(prev)
-      if (open) next.add(uid)
-      else next.delete(uid)
-      return next
-    })
   }
 
   // Report collateral count + total est_value up to the rail whenever rows
@@ -320,8 +316,9 @@ export const CollateralItemsList = forwardRef<
       .find((c) => c.slug === 'jewelry')
       ?.subcategories.find((s) => s.slug === 'watch')?.slug ?? null
 
-  // A category pill: a category with no sub-categories is picked outright;
-  // one with subs opens the new row on its sub-category step.
+  // A category pill opens the new item's popup: a category with no
+  // sub-categories is picked outright; one with subs starts on its
+  // sub-category step.
   function addFromCategory(c: PawnIntakeCategory) {
     const base = newRow()
     const row: Row =
@@ -333,12 +330,13 @@ export const CollateralItemsList = forwardRef<
           }
         : { ...base, pending_top_slug: c.slug }
     setRows((prev) => [...prev, row])
-    setOpen(row.uid, true)
+    setPopup({ uid: row.uid, adding: true, report: false })
   }
 
-  // A piece pawned before: the row arrives filled in, ready to check and
-  // adjust. Its category must be one this shop still has; otherwise it goes
-  // under the default and the clerk picks.
+  // A piece pawned before: the row arrives filled in and goes straight to
+  // the table (several can be added from the list in one go); Edit opens it.
+  // Its category must be one this shop still has; otherwise it goes under
+  // the default and the clerk picks.
   function addPrevious(p: PreviousPawnItem) {
     const top = categories.find((c) => c.slug === p.pawn_category_slug)
     const sub = top?.subcategories.find((s) => s.slug === p.pawn_subcategory_slug)
@@ -372,12 +370,11 @@ export const CollateralItemsList = forwardRef<
       est_value: p.last_value > 0 ? String(p.last_value) : '0',
     }
     setRows((prev) => [...prev, row])
-    setOpen(row.uid, true)
   }
 
   function removeRow(uid: string) {
     setRows((prev) => prev.filter((r) => r.uid !== uid))
-    setOpen(uid, false)
+    setPopup((prev) => (prev?.uid === uid ? null : prev))
   }
 
   function patchRow(uid: string, patch: Partial<Row>) {
@@ -549,13 +546,16 @@ export const CollateralItemsList = forwardRef<
 
       <div
         className="min-h-[240px] overflow-x-auto rounded-lg border border-border [contain:inline-size]"
-        // A required field in a closed row would block Issue with no
-        // visible message — open that row so the browser can point at it.
+        // A required field in a closed item would block Issue with no
+        // visible message — open that item's popup pointing at the field.
+        // (A popup that is already open is checking its own fields.)
         onInvalidCapture={(e) => {
           const uid = (e.target as HTMLElement)
             .closest('[data-row-uid]')
             ?.getAttribute('data-row-uid')
-          if (uid) setOpen(uid, true)
+          if (uid) {
+            setPopup((prev) => prev ?? { uid, adding: false, report: true })
+          }
         }}
       >
         <table className="w-full min-w-[760px] border-collapse text-sm">
@@ -584,8 +584,15 @@ export const CollateralItemsList = forwardRef<
                 index={idx}
                 row={row}
                 categories={categories}
-                open={openUids.has(row.uid)}
-                onToggle={(v) => setOpen(row.uid, v)}
+                open={popup?.uid === row.uid}
+                adding={popup?.uid === row.uid && popup.adding}
+                reportOnOpen={popup?.uid === row.uid && popup.report}
+                onOpen={() =>
+                  setPopup({ uid: row.uid, adding: false, report: false })
+                }
+                onClose={() =>
+                  setPopup((prev) => (prev?.uid === row.uid ? null : prev))
+                }
                 onChange={(patch) => patchRow(row.uid, patch)}
                 onRemove={() => removeRow(row.uid)}
                 tMetal={(m) =>
@@ -602,7 +609,7 @@ export const CollateralItemsList = forwardRef<
   )
 })
 
-/** Required fields filled in → the row may fold down to its summary line. */
+/** Required fields filled in. A row that is not gets a mark in the table. */
 function isRowComplete(row: Row, categoryStepDone: boolean): boolean {
   if (!categoryStepDone) return false
   if (row.description.trim() === '') return false
@@ -618,12 +625,23 @@ function fmtValue(v: string): string {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
 }
 
+/**
+ * One collateral item: its line in the table, and its fields in a popup.
+ *
+ * The popup is a <dialog> that stays INSIDE the ticket's <form> and is
+ * always mounted, open or not: the fields (and the photo's file input) are
+ * what the form submits, so they can neither move to a portal nor unmount.
+ * showModal() puts it above the page and keeps Tab inside it.
+ */
 function CollateralRow({
   index,
   row,
   categories,
   open,
-  onToggle,
+  adding,
+  reportOnOpen,
+  onOpen,
+  onClose,
   onChange,
   onRemove,
   tMetal,
@@ -631,9 +649,14 @@ function CollateralRow({
   index: number
   row: Row
   categories: PawnIntakeCategory[]
-  /** The clerk opened this row with Edit. */
+  /** This item's popup is the one showing. */
   open: boolean
-  onToggle: (open: boolean) => void
+  /** A pill just started this item: leaving without "Add item" removes it. */
+  adding: boolean
+  /** Opened because Issue found a field wrong here — point at it. */
+  reportOnOpen: boolean
+  onOpen: () => void
+  onClose: () => void
   onChange: (patch: Partial<Row>) => void
   onRemove: () => void
   tMetal: (m: MetalType) => string
@@ -641,7 +664,23 @@ function CollateralRow({
   const { t } = useI18n()
   const tn = t.pawn.new_
   const photoInputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDialogElement>(null)
   const fieldId = useId()
+
+  useEffect(() => {
+    const d = dialogRef.current
+    if (!d) return
+    if (!open) {
+      if (d.open) d.close()
+      return
+    }
+    if (!d.open) d.showModal()
+    if (reportOnOpen) {
+      d.querySelector<HTMLInputElement>('input:invalid, select:invalid')?.reportValidity()
+    } else {
+      d.querySelector<HTMLElement>('[data-first-field], [data-popup-card]')?.focus()
+    }
+  }, [open, reportOnOpen])
 
   // Resolve the picked top + sub once per render. Both null until the
   // operator picks via the inline CategoryPicker.
@@ -673,10 +712,28 @@ function CollateralRow({
     onChange({ photo: file, photoPreview: preview })
   }
 
-  // Panel is shown while the clerk is editing OR while a required field is
-  // still empty — a folded row never hides something Issue would refuse.
   const complete = isRowComplete(row, categoryStepDone)
-  const panelOpen = open || !complete
+
+  // "Add item" / "Done": the browser's own message on the first field that
+  // is wrong, and the popup stays; otherwise it closes.
+  function confirm() {
+    if (!categoryStepDone) return
+    const bad = dialogRef.current?.querySelector<HTMLInputElement>(
+      'input:invalid, select:invalid',
+    )
+    if (bad) {
+      bad.reportValidity()
+      return
+    }
+    onClose()
+  }
+
+  // X / Esc / Cancel: an item that was being added is taken away; one that
+  // was already on the ticket just closes (the fields save as they are typed).
+  function dismiss() {
+    if (adding) onRemove()
+    else onClose()
+  }
 
   const pendingTop = row.pending_top_slug
     ? categories.find((c) => c.slug === row.pending_top_slug) ?? null
@@ -707,6 +764,12 @@ function CollateralRow({
         <td className={`${TD} text-foreground`}>{categoryText}</td>
         <td className={`${TD} text-foreground`}>
           {row.description.trim() || <span className="text-muted">—</span>}
+          {!complete ? (
+            <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-warning">
+              <Warning size={12} weight="bold" />
+              {tn.itemNeedsDetails}
+            </span>
+          ) : null}
         </td>
         <td className={`${TD} font-mono text-foreground`}>{weightSerial}</td>
         <td className={`${TD} text-right font-mono font-semibold text-foreground`}>
@@ -716,12 +779,11 @@ function CollateralRow({
           <div className="inline-flex items-center gap-1">
             <button
               type="button"
-              onClick={() => onToggle(!panelOpen)}
-              disabled={panelOpen && !complete}
-              aria-expanded={panelOpen}
-              className={`inline-flex h-11 items-center rounded-md px-3 text-sm font-semibold text-blue hover:text-blue-2 hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline ${FOCUS}`}
+              onClick={onOpen}
+              aria-haspopup="dialog"
+              className={`inline-flex h-11 items-center rounded-md px-3 text-sm font-semibold text-blue hover:text-blue-2 hover:underline ${FOCUS}`}
             >
-              {panelOpen ? tn.itemDone : tn.itemEdit}
+              {tn.itemEdit}
             </button>
             <button
               type="button"
@@ -733,10 +795,62 @@ function CollateralRow({
               {tn.removeItem}
             </button>
           </div>
-        </td>
-      </tr>
-      <tr hidden={!panelOpen}>
-        <td colSpan={6} className="bg-background/60 px-4 pb-4 pt-3">
+
+          {/* The item's popup. No display class on the <dialog> itself: a
+              closed dialog must stay display:none. It fills the screen as
+              the dimmed overlay; the card sits in the middle of it. */}
+          <dialog
+            ref={dialogRef}
+            aria-labelledby={`${fieldId}-title`}
+            // Esc. A file picker dismissed without a file fires its own
+            // "cancel", which bubbles up to here — that one is not ours.
+            onCancel={(e) => {
+              if (e.target !== e.currentTarget) return
+              e.preventDefault()
+              dismiss()
+            }}
+            // The browser closed it on its own (Esc pressed twice).
+            onClose={() => {
+              if (open) dismiss()
+            }}
+            // Enter in a field means "Add item" / "Done" — never "Issue the
+            // ticket", which is what the form around it would make of it.
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+              const el = e.target as HTMLElement
+              if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT') return
+              e.preventDefault()
+              confirm()
+            }}
+            className="m-0 h-full max-h-none w-full max-w-none overflow-y-auto overscroll-contain bg-navy/40 p-4 text-left text-sm font-normal text-foreground"
+          >
+            <div className="flex min-h-full items-center justify-center">
+              <div
+                // Takes the focus when the popup opens on the category step,
+                // where no field exists yet.
+                tabIndex={-1}
+                data-popup-card
+                className="w-full max-w-5xl rounded-xl border border-border bg-card p-5 shadow-lg outline-none"
+              >
+                <header className="mb-4 flex items-center justify-between gap-3">
+                  <h3
+                    id={`${fieldId}-title`}
+                    className="text-base font-semibold text-foreground"
+                  >
+                    {adding
+                      ? tn.itemAdd
+                      : tn.itemEditTitle.replace('{n}', String(index + 1))}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={dismiss}
+                    aria-label={adding ? t.common.cancel : t.common.close}
+                    className={`inline-flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-background hover:text-foreground ${FOCUS}`}
+                  >
+                    <X size={16} weight="bold" />
+                  </button>
+                </header>
+
       {/* Hidden inputs always present so the form action sees the
           slug pair on submit. Empty strings serialize fine — the
           server-side schema treats empty as null. */}
@@ -841,6 +955,10 @@ function CollateralRow({
               type="text"
               name={`collateral_${index}_description`}
               required
+              // Focused when the popup opens on the fields, and when they
+              // appear after the category is picked inside it.
+              data-first-field
+              autoFocus
               value={row.description}
               onChange={(e) => onChange({ description: e.target.value })}
               placeholder="14k gold rope chain, 22 inches"
@@ -1280,6 +1398,38 @@ function CollateralRow({
         </div>
       </div>
       ) : null}
+
+                <footer className="mt-5 flex flex-wrap items-center justify-between gap-2">
+                  {adding ? (
+                    <span />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={onRemove}
+                      className={`inline-flex h-11 items-center rounded-md px-3 text-sm font-semibold text-danger hover:underline ${FOCUS}`}
+                    >
+                      {tn.removeItem}
+                    </button>
+                  )}
+                  <div className="flex items-center gap-2">
+                    {adding ? (
+                      <button type="button" onClick={dismiss} className={OUTLINE_BTN}>
+                        {t.common.cancel}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={confirm}
+                      disabled={!categoryStepDone}
+                      className={`${PRIMARY_BTN} h-11 text-sm`}
+                    >
+                      {adding ? tn.itemAdd : tn.itemDone}
+                    </button>
+                  </div>
+                </footer>
+              </div>
+            </div>
+          </dialog>
         </td>
       </tr>
     </tbody>
