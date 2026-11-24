@@ -65,6 +65,9 @@ export async function renderLoanTicketPdf(args: {
   supabase: SupabaseClient<Database>
   loanId: string
   tenantId: string
+  /** Add (true) or leave out (false) the Spanish courtesy copy regardless
+   *  of the customer's language. Default: the customer's language decides. */
+  spanishCopy?: boolean
 }): Promise<RenderLoanTicketResult> {
   const { supabase, loanId, tenantId } = args
 
@@ -81,7 +84,7 @@ export async function renderLoanTicketPdf(args: {
          phone, phone_alt,
          id_type, id_number, id_state,
          sex, race, height_inches, weight_lbs, eye_color, hair_color,
-         identifying_marks, place_of_employment
+         identifying_marks, place_of_employment, language
        )`,
     )
     .eq('id', loanId)
@@ -216,6 +219,7 @@ export async function renderLoanTicketPdf(args: {
         hair_color: string | null
         identifying_marks: string | null
         place_of_employment: string | null
+        language: string | null
       } | null
     }
   ).customer
@@ -322,6 +326,8 @@ export async function renderLoanTicketPdf(args: {
     i18n: { en, es },
     backpage_text: backpageText,
     legal_notices: rules.jurisdiction?.ticket_notices ?? [],
+    // A Spanish-speaking customer also gets the stamped courtesy translation.
+    spanish_copy: args.spanishCopy ?? c?.language === 'es',
   }
 
   registerPdfFonts()

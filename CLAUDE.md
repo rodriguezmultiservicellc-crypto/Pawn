@@ -66,6 +66,13 @@ Never kill node processes by image name — always by PID.
 6. **Bilingual rule (EN + ES).** Every customer-facing email, SMS, and
    printable ticket renders in both languages. UI uses i18n. Hardcoded
    strings = bug.
+   **Exception — the pawn ticket (Eddy, 2026-11-24).** The legal pawn
+   ticket (customer copy, reverse, store copy) is ENGLISH ONLY: Fla. Stat.
+   § 539.001(8)(a) requires the form "in English". A Spanish courtesy
+   translation prints after it — automatically when `customers.language =
+   'es'` — stamped across "SIN VALIDEZ LEGAL / NOT LEGALLY VALID"
+   (`copy="courtesy"` in `src/lib/pdf/PawnTransactionForm.tsx`). Never
+   put Spanish back on the legal copies.
 
 7. **Staff approval gate.** AI-generated documents stay `is_client_visible
    = false` until staff approves. Never auto-publish.

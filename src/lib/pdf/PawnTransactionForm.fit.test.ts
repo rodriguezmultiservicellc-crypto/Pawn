@@ -32,7 +32,7 @@ describe('wrapLines', () => {
 })
 
 describe('itemsOnFront', () => {
-  const none = { extraPledgorLines: 0, noticesEn: [], noticesEs: [] }
+  const none = { extraPledgorLines: 0, notices: [] }
 
   it('keeps every item when they fit', () => {
     expect(itemsOnFront({ ...none, itemHeights: [56, 56, 56] })).toBe(3)
@@ -50,8 +50,8 @@ describe('itemsOnFront', () => {
   })
 
   it('leaves less room when the statements are long', () => {
-    const long = Array.from({ length: 4 }, () => 'x '.repeat(200))
-    const few = itemsOnFront({ extraPledgorLines: 0, noticesEn: long, noticesEs: long, itemHeights: [56, 56, 56, 56, 56] })
+    const long = Array.from({ length: 4 }, () => 'x '.repeat(400))
+    const few = itemsOnFront({ extraPledgorLines: 0, notices: long, itemHeights: [56, 56, 56, 56, 56] })
     expect(few).toBeLessThan(itemsOnFront({ ...none, itemHeights: [56, 56, 56, 56, 56] }))
     expect(few).toBeGreaterThanOrEqual(1)
   })

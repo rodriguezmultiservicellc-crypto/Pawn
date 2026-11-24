@@ -402,14 +402,16 @@ export const CollateralItemsList = forwardRef<
     categories.find((c) => c.slug === 'general')?.slug ??
     categories[0]?.slug ??
     null
-  // Default for the watch typeahead: jewelry → watch when those exist
+  // Default for the watch typeahead: jewelry → watches when those exist
   // in the tenant's category list, else fall through to defaultCategorySlug.
+  // The seeded sub-category is 'watches' (patches seed, xPawn import);
+  // 'watch' is accepted for a shop that named its own.
   const watchCategorySlug =
     categories.find((c) => c.slug === 'jewelry')?.slug ?? defaultCategorySlug
   const watchSubcategorySlug =
     categories
       .find((c) => c.slug === 'jewelry')
-      ?.subcategories.find((s) => s.slug === 'watch')?.slug ?? null
+      ?.subcategories.find((s) => s.slug === 'watches' || s.slug === 'watch')?.slug ?? null
 
   // A category pill opens the new item's popup: a category with no
   // sub-categories is picked outright; one with subs starts on its

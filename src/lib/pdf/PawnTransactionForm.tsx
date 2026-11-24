@@ -7,9 +7,14 @@
  * default date, the pledgor's statement, signature and thumb print.
  *
  * Rules
- *   - Every label is bilingual (CLAUDE.md rule 6): "English / Español".
+ *   - One language per sheet. The legal ticket (customer and store copies)
+ *     is English only: Fla. Stat. 539.001(8)(a) — the form "must be typed or
+ *     written indelibly and legibly in English". The Spanish sheet is a
+ *     courtesy translation ('courtesy' copy), stamped across as not legally
+ *     valid (CourtesyStamp).
  *   - No statutory wording lives here. The statements printed above the
- *     signature are the jurisdiction's own notices (rule 18), EN beside ES.
+ *     signature are the jurisdiction's own notices (rule 18), in the sheet's
+ *     language.
  *   - Every figure is handed in by render-loan-ticket (figured with the same
  *     loan math the app charges with). Nothing is computed in this file.
  *   - One sheet per copy ("Customer copy" / "Store copy"). The lending boxes
@@ -20,7 +25,7 @@
 
 import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { reportColors } from '@/lib/tokens'
-import { bi as bl, money } from '@/lib/pos/receipt-thermal'
+import { money } from '@/lib/pos/receipt-thermal'
 import { itemIdentity } from '@/lib/pawn/item-identity'
 import type { PawnTicketCollateral, PawnTicketData } from './PawnTicketPDF'
 
@@ -156,60 +161,59 @@ function Check({ on, label }: { on: boolean; label: string }) {
 function ItemBlock({
   item,
   no,
-  en,
-  es,
+  L,
   kind,
   metal,
   barrelLength,
 }: {
   item: PawnTicketCollateral
   no: number
-  en: FormLabels
-  es: FormLabels
-  /** What the piece is, both languages (a firearm: its kind). */
+  /** The labels, in the sheet's language. */
+  L: FormLabels
+  /** What the piece is (a firearm: its kind). */
   kind: string
-  /** The metal in words, both languages ("Gold / Oro"); '' when none. */
+  /** The metal in words ("Gold"); '' when none. */
   metal: string
-  /** "Barrel length" in both languages. */
+  /** "Barrel length". */
   barrelLength: string
 }) {
   const { serial, brand, model } = itemIdentity(item)
   const genderKey = item.jewelry_gender as keyof FormLabels['genders'] | null
   const gender =
-    genderKey && en.genders[genderKey] ? bl(en.genders[genderKey], es.genders[genderKey]) : ''
+    genderKey && L.genders[genderKey] ? L.genders[genderKey] : ''
   const brandModel = [brand, model].filter(Boolean).join(' ')
   const firearm = Boolean(item.firearm_type || item.firearm_caliber || item.firearm_serial_number)
   return (
     <View wrap={false} style={{ borderBottomWidth: 0.8, borderBottomColor: LINE, flexDirection: 'row' }}>
       <View style={{ width: 24, alignItems: 'center', paddingTop: 2, borderRightWidth: 0.5, borderRightColor: LINE }}>
-        <Text style={s.label}>{en.itemNo}</Text>
+        <Text style={s.label}>{L.itemNo}</Text>
         <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 5 }}>{no}</Text>
       </View>
       <View style={{ flex: 1 }}>
         <View style={s.rowLine}>
-          <Cell label={bl(en.itemType, es.itemType)} value={kind} flex={1.9} />
-          <Cell label={bl(en.description, es.description)} value={item.description} flex={4.6} />
-          <Cell label={bl(en.serialNo, es.serialNo)} value={serial} flex={1.6} mono />
-          <Cell label={`${bl(en.brand, es.brand)} · ${bl(en.model, es.model)}`} value={brandModel} flex={1.7} />
-          <Cell label={bl(en.amount, es.amount)} value={money(item.est_value)} flex={1.2} mono last />
+          <Cell label={L.itemType} value={kind} flex={1.9} />
+          <Cell label={L.description} value={item.description} flex={4.6} />
+          <Cell label={L.serialNo} value={serial} flex={1.6} mono />
+          <Cell label={`${L.brand} · ${L.model}`} value={brandModel} flex={1.7} />
+          <Cell label={L.amount} value={money(item.est_value)} flex={1.2} mono last />
         </View>
         <View style={firearm ? s.rowLine : s.row}>
-          <Cell label={bl(en.metal, es.metal)} value={metal} flex={1.4} />
-          <Cell label={bl(en.karat, es.karat)} value={item.karat ? `${Number(item.karat.toFixed(1))}` : ''} flex={0.9} mono />
-          <Cell label={bl(en.weight, es.weight)} value={item.weight_grams ? `${Number(item.weight_grams.toFixed(2))} g` : ''} flex={1} mono />
-          <Cell label={bl(en.size, es.size)} value={txt(item.jewelry_size) || txt(item.item_size)} flex={0.8} />
-          <Cell label={bl(en.style, es.style)} value={txt(item.jewelry_style)} flex={1.3} />
-          <Cell label={bl(en.gender, es.gender)} value={gender} flex={1.7} />
-          <Cell label={bl(en.color, es.color)} value={txt(item.color)} flex={1.2} />
-          <Cell label={bl(en.stones, es.stones)} value={txt(item.gemstone_description)} flex={2.5} />
-          <Cell label={bl(en.marks, es.marks)} value={txt(item.unique_marks)} flex={1.6} last />
+          <Cell label={L.metal} value={metal} flex={1.4} />
+          <Cell label={L.karat} value={item.karat ? `${Number(item.karat.toFixed(1))}` : ''} flex={0.9} mono />
+          <Cell label={L.weight} value={item.weight_grams ? `${Number(item.weight_grams.toFixed(2))} g` : ''} flex={1} mono />
+          <Cell label={L.size} value={txt(item.jewelry_size) || txt(item.item_size)} flex={0.8} />
+          <Cell label={L.style} value={txt(item.jewelry_style)} flex={1.3} />
+          <Cell label={L.gender} value={gender} flex={1.7} />
+          <Cell label={L.color} value={txt(item.color)} flex={1.2} />
+          <Cell label={L.stones} value={txt(item.gemstone_description)} flex={2.5} />
+          <Cell label={L.marks} value={txt(item.unique_marks)} flex={1.6} last />
         </View>
         {firearm ? (
           <View style={s.row}>
-            <Cell label={bl(en.action, es.action)} value={txt(item.firearm_action_type)} flex={2} />
-            <Cell label={bl(en.caliber, es.caliber)} value={txt(item.firearm_caliber)} flex={1.5} />
-            <Cell label={bl(en.finish, es.finish)} value={txt(item.firearm_finish)} flex={1.5} />
-            <Cell label={bl(en.barrels, es.barrels)} value={txt(item.firearm_number_of_barrels)} flex={1} />
+            <Cell label={L.action} value={txt(item.firearm_action_type)} flex={2} />
+            <Cell label={L.caliber} value={txt(item.firearm_caliber)} flex={1.5} />
+            <Cell label={L.finish} value={txt(item.firearm_finish)} flex={1.5} />
+            <Cell label={L.barrels} value={txt(item.firearm_number_of_barrels)} flex={1} />
             <Cell
               label={barrelLength}
               value={item.firearm_barrel_length_inches ? `${item.firearm_barrel_length_inches}"` : ''}
@@ -299,9 +303,10 @@ export function estimateItemHeight(item: PawnTicketCollateral, kind: string, met
   return row1 + row2 + (firearm ? 34 : 0) + 1.6
 }
 
-/** Height of the statements column(s) at the foot (s.notice: 6pt × 1.12). */
+/** Height of the statements at the foot: one full-width column
+ *  (s.notice: 6pt × 1.12, about 160 characters a line). */
 function noticesHeight(texts: ReadonlyArray<string>): number {
-  return texts.reduce((sum, text) => sum + wrapLines(text, 80) * 6.9 + 1.4, 0)
+  return texts.reduce((sum, text) => sum + wrapLines(text, 160) * 6.9 + 1.4, 0)
 }
 
 /** The foot without its statements: lending boxes, default date,
@@ -316,12 +321,11 @@ export function itemsOnFront(args: {
   itemHeights: ReadonlyArray<number>
   /** Lines the residence and the place of employment take beyond one each. */
   extraPledgorLines: number
-  /** The statements printed at the foot, English and Spanish columns. */
-  noticesEn: ReadonlyArray<string>
-  noticesEs: ReadonlyArray<string>
+  /** The statements printed at the foot, in the sheet's language. */
+  notices: ReadonlyArray<string>
 }): number {
   const top = 262 + args.extraPledgorLines * VALUE_LINE // header + pledgor + the goods band
-  const foot = FOOT_BASE + Math.max(noticesHeight(args.noticesEn), noticesHeight(args.noticesEs))
+  const foot = FOOT_BASE + noticesHeight(args.notices)
   const room = PAGE_CONTENT_HEIGHT - top - foot - 10
   let used = 0
   let n = 0
@@ -333,31 +337,36 @@ export function itemsOnFront(args: {
   return Math.min(args.itemHeights.length, Math.max(1, n))
 }
 
-/** The item words both sheets need, and where the items split. */
-function formParts(data: PawnTicketData) {
-  const en: FormLabels = data.i18n.en.pawn.print.form
-  const es: FormLabels = data.i18n.es.pawn.print.form
-  const ne = data.i18n.en.pawn.new_
-  const ns = data.i18n.es.pawn.new_
-  const ie: InventoryWords = data.i18n.en.inventory
-  const is: InventoryWords = data.i18n.es.inventory
+/** The language a sheet prints in. English is the legal ticket (FL
+ *  539.001(8)(a): "in English"); Spanish is a stamped courtesy copy. */
+export type TicketLang = 'en' | 'es'
 
-  const firearmKind = (v: string | null, d: typeof ne): string | null =>
+/** The statements printed at the foot, in the sheet's language. */
+function noticesOf(data: PawnTicketData, lang: TicketLang): string[] {
+  return data.legal_notices.length > 0
+    ? data.legal_notices.map((n) => n[lang])
+    : [data.i18n[lang].pawn.print.legal.placeholder]
+}
+
+/** The item words both sheets need, and where the items split. */
+function formParts(data: PawnTicketData, lang: TicketLang) {
+  const L: FormLabels = data.i18n[lang].pawn.print.form
+  const nw = data.i18n[lang].pawn.new_
+  const inv: InventoryWords = data.i18n[lang].inventory
+
+  const firearmKind = (v: string | null): string | null =>
     v === 'handgun'
-      ? d.itemFirearmTypeHandgun
+      ? nw.itemFirearmTypeHandgun
       : v === 'rifle'
-        ? d.itemFirearmTypeRifle
+        ? nw.itemFirearmTypeRifle
         : v === 'shotgun'
-          ? d.itemFirearmTypeShotgun
+          ? nw.itemFirearmTypeShotgun
           : v === 'other'
-            ? d.itemFirearmTypeOther
+            ? nw.itemFirearmTypeOther
             : null
   const kindOf = (item: PawnTicketCollateral): string => {
     const key = item.category as keyof FormLabels['categories']
-    return bl(
-      firearmKind(item.firearm_type, ne) ?? en.categories[key] ?? item.category,
-      firearmKind(item.firearm_type, ns) ?? es.categories[key] ?? item.category,
-    )
+    return firearmKind(item.firearm_type) ?? L.categories[key] ?? item.category
   }
   // gold -> metalGold, white_gold -> metalWhiteGold: the inventory's own words.
   const metalWords = (m: string | null): string => {
@@ -366,9 +375,8 @@ function formParts(data: PawnTicketData) {
       .split('_')
       .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
       .join('')}` as keyof InventoryWords
-    const a = ie[key]
-    const b = is[key]
-    return typeof a === 'string' && typeof b === 'string' ? bl(a, b) : m.replace(/_/g, ' ')
+    const word = inv[key]
+    return typeof word === 'string' ? word : m.replace(/_/g, ' ')
   }
 
   const c = data.customer
@@ -382,33 +390,66 @@ function formParts(data: PawnTicketData) {
     ),
     extraPledgorLines:
       wrapLines(residence, pledgorChars) - 1 + (wrapLines(c.place_of_employment ?? '', pledgorChars) - 1),
-    noticesEn:
-      data.legal_notices.length > 0
-        ? data.legal_notices.map((n) => n.en)
-        : [data.i18n.en.pawn.print.legal.placeholder],
-    noticesEs:
-      data.legal_notices.length > 0
-        ? data.legal_notices.map((n) => n.es)
-        : [data.i18n.es.pawn.print.legal.placeholder],
+    notices: noticesOf(data, lang),
   })
   return {
-    en,
-    es,
+    L,
     kindOf,
     metalWords,
     residence,
     frontCount,
-    barrelLength: bl(ne.itemFirearmBarrelLength, ns.itemFirearmBarrelLength),
+    barrelLength: nw.itemFirearmBarrelLength,
   }
 }
 
-/** The copy's name on a sheet: "Customer copy / Copia del cliente". */
-function copyLabel(copy: 'customer' | 'store', en: FormLabels, es: FormLabels): string {
-  return copy === 'store' ? bl(en.storeCopy, es.storeCopy) : bl(en.customerCopy, es.customerCopy)
+/**
+ * Which sheet this is. 'courtesy' is the Spanish translation: same form,
+ * stamped as not legally valid, never signed as the contract.
+ */
+export type TicketCopy = 'customer' | 'store' | 'courtesy'
+
+/** The copy's name on a sheet ("Customer copy"). */
+function copyLabel(copy: TicketCopy, L: FormLabels): string {
+  return copy === 'store' ? L.storeCopy : copy === 'courtesy' ? L.courtesyCopy : L.customerCopy
 }
 
-export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy: 'customer' | 'store' }) {
-  const { en, es, kindOf, metalWords, residence, frontCount, barrelLength } = formParts(data)
+/** The language a copy prints in. */
+const langOf = (copy: TicketCopy): TicketLang => (copy === 'courtesy' ? 'es' : 'en')
+
+/**
+ * Across every courtesy sheet: a large diagonal stamp, in Spanish and in
+ * English so whoever holds the paper can read it, plus a line on top
+ * saying the English ticket is the legal one.
+ */
+function CourtesyStamp({ data }: { data: PawnTicketData }) {
+  const es = data.i18n.es.pawn.print.form
+  const en = data.i18n.en.pawn.print.form
+  return (
+    <>
+      <View
+        fixed
+        style={{ position: 'absolute', top: 300, left: -60, right: -60, alignItems: 'center', transform: 'rotate(-32deg)' }}
+      >
+        <Text style={{ fontSize: 54, fontWeight: 700, color: '#c62828', opacity: 0.22, letterSpacing: 2 }}>
+          {es.notLegalStamp}
+        </Text>
+        <Text style={{ fontSize: 30, fontWeight: 700, color: '#c62828', opacity: 0.22, letterSpacing: 2, marginTop: 4 }}>
+          {en.notLegalStamp}
+        </Text>
+      </View>
+      <Text
+        fixed
+        style={{ position: 'absolute', top: 6, left: 28, right: 28, fontSize: 7, fontWeight: 700, color: '#c62828', textAlign: 'center' }}
+      >
+        {es.courtesyNotice} / {en.courtesyNotice}
+      </Text>
+    </>
+  )
+}
+
+export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy: TicketCopy }) {
+  const lang = langOf(copy)
+  const { L, kindOf, metalWords, residence, frontCount, barrelLength } = formParts(data, lang)
   const frontItems = data.collateral.slice(0, frontCount)
   const total = data.collateral.length
 
@@ -426,10 +467,9 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
       <View style={[s.row, { justifyContent: 'space-between', alignItems: 'flex-start' }]} wrap={false}>
         <View style={{ flex: 1, paddingRight: 8 }}>
           <Text style={s.title}>
-            {[data.jurisdiction_name?.toUpperCase(), en.title.toUpperCase()].filter(Boolean).join(' ')}
+            {[data.jurisdiction_name?.toUpperCase(), L.title.toUpperCase()].filter(Boolean).join(' ')}
           </Text>
-          <Text style={s.small}>{es.title}</Text>
-          <Text style={[s.small, { marginTop: 3 }]}>{bl(en.pawnbroker, es.pawnbroker)}:</Text>
+          <Text style={[s.small, { marginTop: 3 }]}>{L.pawnbroker}:</Text>
           <Text style={s.shop}>{shop}</Text>
           {t.address ? <Text style={s.shopLine}>{t.address}</Text> : null}
           {cityLine ? <Text style={s.shopLine}>{cityLine}</Text> : null}
@@ -440,13 +480,12 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
           <View style={[s.box, { marginTop: 8, paddingHorizontal: 6, paddingVertical: 3, width: 176 }]}>
             <View style={[s.row, { justifyContent: 'space-between', alignItems: 'center' }]}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 7.5 }}>{en.transactionDate}</Text>
-                <Text style={s.small}>{es.transactionDate}</Text>
+                <Text style={{ fontSize: 7.5 }}>{L.transactionDate}</Text>
               </View>
               <Text style={{ fontSize: 9.5, fontWeight: 700 }}>{mdy(data.issue_date)}</Text>
             </View>
             <View style={[s.row, { justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }]}>
-              <Text style={{ fontSize: 7.5, flex: 1 }}>{bl(en.time, es.time)}</Text>
+              <Text style={{ fontSize: 7.5, flex: 1 }}>{L.time}</Text>
               <Text style={{ fontSize: 9.5, fontWeight: 700 }}>{data.transaction_time}</Text>
             </View>
           </View>
@@ -454,23 +493,21 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
         <View style={{ width: 178, alignItems: 'flex-end' }}>
           <View style={[s.row, { alignItems: 'center' }]}>
             <View style={{ marginRight: 6, alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: 8 }}>{en.controlNo}</Text>
-              <Text style={s.small}>{es.controlNo}</Text>
+              <Text style={{ fontSize: 8 }}>{L.controlNo}</Text>
             </View>
             <View style={s.controlBox}>
               <Text style={s.controlNo}>{data.ticket_number}</Text>
             </View>
           </View>
-          <Text style={s.copy}>{copyLabel(copy, en, es)}</Text>
+          <Text style={s.copy}>{copyLabel(copy, L)}</Text>
           {closed ? (
             <Text style={{ fontSize: 8, fontWeight: 700, marginTop: 1 }}>
-              {bl(en.status[closedKey], es.status[closedKey]).toUpperCase()}
+              {L.status[closedKey].toUpperCase()}
             </Text>
           ) : null}
           <View style={[s.row, { marginTop: 5, alignItems: 'center' }]}>
             <View style={{ marginRight: 8, alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: 8 }}>{en.maturityDate}</Text>
-              <Text style={s.small}>{es.maturityDate}</Text>
+              <Text style={{ fontSize: 8 }}>{L.maturityDate}</Text>
             </View>
             <Text style={{ fontSize: 10.5, fontWeight: 700 }}>{mdy(data.due_date)}</Text>
           </View>
@@ -478,60 +515,56 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
       </View>
 
       <View style={[s.row, { justifyContent: 'flex-end', alignItems: 'center', marginTop: 4, marginBottom: 3 }]}>
-        <Text style={{ fontSize: 8 }}>{bl(en.typeOfTransaction, es.typeOfTransaction)}:</Text>
-        <Check on={false} label={bl(en.typePurchase, es.typePurchase)} />
-        <Check on={false} label={bl(en.typeConsignment, es.typeConsignment)} />
-        <Check on label={bl(en.typePawn, es.typePawn)} />
+        <Text style={{ fontSize: 8 }}>{L.typeOfTransaction}:</Text>
+        <Check on={false} label={L.typePurchase} />
+        <Check on={false} label={L.typeConsignment} />
+        <Check on label={L.typePawn} />
       </View>
 
       {/* ── Pledgor / seller */}
       <View style={s.box} wrap={false}>
-        <Text style={s.band}>{bl(en.pledgor, es.pledgor).toUpperCase()}</Text>
+        <Text style={s.band}>{L.pledgor.toUpperCase()}</Text>
         <View style={s.rowLine}>
-          <Cell label={bl(en.lastName, es.lastName)} value={c.last_name} flex={2.2} />
-          <Cell label={bl(en.firstName, es.firstName)} value={c.first_name} flex={2.2} />
-          <Cell label={bl(en.middleName, es.middleName)} value={txt(c.middle_name)} flex={1.6} />
-          <Cell label={bl(en.dob, es.dob)} value={mdy(c.date_of_birth)} flex={1.5} mono />
-          <Cell label={bl(en.sex, es.sex)} value={txt(c.sex)} flex={0.7} />
-          <Cell label={bl(en.race, es.race)} value={txt(c.race)} flex={1.3} last />
+          <Cell label={L.lastName} value={c.last_name} flex={2.2} />
+          <Cell label={L.firstName} value={c.first_name} flex={2.2} />
+          <Cell label={L.middleName} value={txt(c.middle_name)} flex={1.6} />
+          <Cell label={L.dob} value={mdy(c.date_of_birth)} flex={1.5} mono />
+          <Cell label={L.sex} value={txt(c.sex)} flex={0.7} />
+          <Cell label={L.race} value={txt(c.race)} flex={1.3} last />
         </View>
         <View style={s.rowLine}>
-          <Cell label={bl(en.residence, es.residence)} value={residence} flex={6} />
-          <Cell label={bl(en.homePhone, es.homePhone)} value={txt(c.phone)} flex={2} mono last />
+          <Cell label={L.residence} value={residence} flex={6} />
+          <Cell label={L.homePhone} value={txt(c.phone)} flex={2} mono last />
         </View>
         <View style={s.rowLine}>
-          <Cell label={bl(en.employment, es.employment)} value={txt(c.place_of_employment)} flex={6} />
-          <Cell label={bl(en.businessPhone, es.businessPhone)} value={txt(c.phone_alt)} flex={2} mono last />
+          <Cell label={L.employment} value={txt(c.place_of_employment)} flex={6} />
+          <Cell label={L.businessPhone} value={txt(c.phone_alt)} flex={2} mono last />
         </View>
         <View style={s.row}>
-          <Cell label={bl(en.idNumber, es.idNumber)} value={txt(c.id_number)} flex={2.6} mono />
+          <Cell label={L.idNumber} value={txt(c.id_number)} flex={2.6} mono />
           <Cell
-            label={bl(en.idType, es.idType)}
-            value={idKey ? bl(en.idTypes[idKey] ?? idKey, es.idTypes[idKey] ?? idKey) : ''}
+            label={L.idType}
+            value={idKey ? (L.idTypes[idKey] ?? idKey) : ''}
             flex={1.5}
           />
-          <Cell label={bl(en.idState, es.idState)} value={txt(c.id_state)} flex={1} />
-          <Cell label={bl(en.height, es.height)} value={feetInches(c.height_inches)} flex={0.9} mono />
-          <Cell label={bl(en.weightLbs, es.weightLbs)} value={c.weight_lbs ? String(c.weight_lbs) : ''} flex={0.9} mono />
-          <Cell label={bl(en.eyes, es.eyes)} value={txt(c.eye_color)} flex={1} />
-          <Cell label={bl(en.hair, es.hair)} value={txt(c.hair_color)} flex={1} />
-          <Cell label={bl(en.identifyingMarks, es.identifyingMarks)} value={txt(c.identifying_marks)} flex={2.4} last />
+          <Cell label={L.idState} value={txt(c.id_state)} flex={1} />
+          <Cell label={L.height} value={feetInches(c.height_inches)} flex={0.9} mono />
+          <Cell label={L.weightLbs} value={c.weight_lbs ? String(c.weight_lbs) : ''} flex={0.9} mono />
+          <Cell label={L.eyes} value={txt(c.eye_color)} flex={1} />
+          <Cell label={L.hair} value={txt(c.hair_color)} flex={1} />
+          <Cell label={L.identifyingMarks} value={txt(c.identifying_marks)} flex={2.4} last />
         </View>
       </View>
 
       {/* ── Pledged goods */}
       <View style={[s.box, { marginTop: 4, borderBottomWidth: 0 }]}>
-        <Text style={s.band}>{en.securityInterest}</Text>
-        <Text style={{ fontSize: 6, textAlign: 'center', paddingVertical: 1.5, borderBottomWidth: 0.5, borderBottomColor: LINE }}>
-          {es.securityInterest}
-        </Text>
+        <Text style={s.band}>{L.securityInterest}</Text>
         {frontItems.map((item, i) => (
           <ItemBlock
             key={i}
             item={item}
             no={i + 1}
-            en={en}
-            es={es}
+            L={L}
             kind={kindOf(item)}
             metal={metalWords(item.metal_type)}
             barrelLength={barrelLength}
@@ -552,10 +585,7 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
               borderBottomColor: LINE,
             }}
           >
-            {bl(
-              en.itemsContinue.replace('{from}', String(frontCount + 1)).replace('{to}', String(total)),
-              es.itemsContinue.replace('{from}', String(frontCount + 1)).replace('{to}', String(total)),
-            )}
+            {L.itemsContinue.replace('{from}', String(frontCount + 1)).replace('{to}', String(total))}
           </Text>
         ) : null}
       </View>
@@ -564,15 +594,15 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
             One unbreakable block pinned to the bottom margin. */}
       <View style={{ marginTop: 'auto', paddingTop: 5 }} wrap={false}>
         <View style={s.box}>
-          <Text style={s.footBand}>{bl(en.truthInLending, es.truthInLending).toUpperCase()}</Text>
+          <Text style={s.footBand}>{L.truthInLending.toUpperCase()}</Text>
           <View style={s.row}>
             {(
               [
-                [en.amountFinanced, `${es.amountFinanced} — ${bl(en.amountFinancedHelp, es.amountFinancedHelp)}`, money(data.principal)],
-                [en.financeCharge, `${es.financeCharge} — ${bl(en.financeChargeHelp, es.financeChargeHelp)}`, money(data.total_interest_at_term)],
-                [en.totalOfPayments, `${es.totalOfPayments} — ${bl(en.totalOfPaymentsHelp, es.totalOfPaymentsHelp)}`, money(data.total_payoff_at_term)],
-                [en.apr, `${es.apr} — ${bl(en.aprHelp, es.aprHelp)}`, `${(data.apr * 100).toFixed(2)}%`],
-                [en.maturityDate, es.maturityDate, mdy(data.due_date)],
+                [L.amountFinanced, L.amountFinancedHelp, money(data.principal)],
+                [L.financeCharge, L.financeChargeHelp, money(data.total_interest_at_term)],
+                [L.totalOfPayments, L.totalOfPaymentsHelp, money(data.total_payoff_at_term)],
+                [L.apr, L.aprHelp, `${(data.apr * 100).toFixed(2)}%`],
+                [L.maturityDate, '', mdy(data.due_date)],
               ] as const
             ).map(([head, sub, value], i, all) => (
               <View key={i} style={[s.tilCell, i === all.length - 1 ? { borderRightWidth: 0 } : {}]}>
@@ -586,53 +616,40 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
           </View>
           <View style={[s.row, { borderTopWidth: 0.5, borderTopColor: LINE }]}>
             <Text style={{ flex: 1, fontSize: 5.4, lineHeight: 1.15, paddingHorizontal: 2.5, paddingVertical: 1.5 }}>
-              {bl(en.seeContract, es.seeContract)}
+              {L.seeContract}
             </Text>
             <Text style={{ flex: 1, fontSize: 5.4, lineHeight: 1.15, paddingHorizontal: 2.5, paddingVertical: 1.5, textAlign: 'right' }}>
-              {bl(en.paymentSchedule, es.paymentSchedule)}
+              {L.paymentSchedule}
             </Text>
           </View>
         </View>
 
-        {/* The jurisdiction's statements, English beside Spanish. A shop with
-            no jurisdiction on file prints the placeholder instead, so the
-            missing legal text is impossible to overlook. */}
-        {data.legal_notices.length === 0 ? (
-          <View style={[s.row, { marginTop: 4 }]}>
-            <Text style={[s.notice, { flex: 1, paddingRight: 6 }]}>{data.i18n.en.pawn.print.legal.placeholder}</Text>
-            <Text style={[s.notice, { flex: 1, paddingLeft: 6 }]}>{data.i18n.es.pawn.print.legal.placeholder}</Text>
-          </View>
-        ) : null}
-        {data.legal_notices.length > 0 ? (
-          <View style={[s.row, { marginTop: 4 }]}>
-            <View style={{ flex: 1, paddingRight: 6 }}>
-              {data.legal_notices.map((n, i) => (
-                <Text key={i} style={[s.notice, n.bold ? { fontWeight: 700 } : {}]}>
-                  {n.en}
-                </Text>
-              ))}
-            </View>
-            <View style={{ flex: 1, paddingLeft: 6, borderLeftWidth: 0.5, borderLeftColor: LINE }}>
-              {data.legal_notices.map((n, i) => (
-                <Text key={i} style={[s.notice, n.bold ? { fontWeight: 700 } : {}]}>
-                  {n.es}
-                </Text>
-              ))}
-            </View>
-          </View>
-        ) : null}
+        {/* The jurisdiction's statements, in the sheet's language, one
+            full-width column. A shop with no jurisdiction on file prints the
+            placeholder instead, so the missing legal text is impossible to
+            overlook. */}
+        <View style={{ marginTop: 4 }}>
+          {data.legal_notices.length === 0 ? (
+            <Text style={s.notice}>{data.i18n[lang].pawn.print.legal.placeholder}</Text>
+          ) : (
+            data.legal_notices.map((n, i) => (
+              <Text key={i} style={[s.notice, n.bold ? { fontWeight: 700 } : {}]}>
+                {n[lang]}
+              </Text>
+            ))
+          )}
+        </View>
 
         {/* Default date · signature · thumb print. The default date and the
             amount to redeem on it sit side by side. */}
         <View style={[s.row, { marginTop: 3, alignItems: 'flex-end' }]}>
           <View style={[s.box, s.row, { width: 236 }]}>
             <View style={{ width: 92, padding: 3, borderRightWidth: 0.5, borderRightColor: LINE }}>
-              <Text style={{ fontSize: 7, fontWeight: 700 }}>{en.defaultDate}:</Text>
-              <Text style={s.small}>{es.defaultDate}</Text>
+              <Text style={{ fontSize: 7, fontWeight: 700 }}>{L.defaultDate}:</Text>
               <Text style={{ fontSize: 10, fontWeight: 700, marginTop: 1 }}>{mdy(data.default_date)}</Text>
             </View>
             <View style={{ flex: 1, padding: 3 }}>
-              <Text style={[s.small, { lineHeight: 1.1 }]}>{bl(en.amountAtDefault, es.amountAtDefault)}</Text>
+              <Text style={[s.small, { lineHeight: 1.1 }]}>{L.amountAtDefault}</Text>
               <Text style={{ fontSize: 10, fontWeight: 700, fontFamily: 'JetBrains Mono', marginTop: 1 }}>
                 {money(data.amount_at_default)}
               </Text>
@@ -642,7 +659,7 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
             <View style={[s.row, { alignItems: 'flex-end' }]}>
               <View style={{ width: 92, marginRight: 10 }}>
                 <View style={s.sigLine}>
-                  <Text style={s.small}>{bl(en.employee, es.employee)}</Text>
+                  <Text style={s.small}>{L.employee}</Text>
                 </View>
               </View>
               <View style={{ flex: 1 }}>
@@ -653,19 +670,24 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
                   <View style={{ height: 28 }} />
                 )}
                 <View style={s.sigLine}>
-                  <Text style={s.small}>{bl(en.signature, es.signature)}</Text>
+                  <Text style={s.small}>{L.signature}</Text>
                 </View>
               </View>
             </View>
-            <Text style={{ fontSize: 7, fontWeight: 700, textAlign: 'right', marginTop: 3 }}>
-              {bl(en.seeReverse, es.seeReverse)}
-            </Text>
+            {/* The courtesy copy has no reverse: the terms are English only. */}
+            {copy === 'courtesy' ? null : (
+              <Text style={{ fontSize: 7, fontWeight: 700, textAlign: 'right', marginTop: 3 }}>
+                {L.seeReverse}
+              </Text>
+            )}
           </View>
           <View style={s.thumb}>
-            <Text style={[s.small, { fontSize: 4.8, textAlign: 'center' }]}>{bl(en.thumbPrint, es.thumbPrint)}</Text>
+            <Text style={[s.small, { fontSize: 4.8, textAlign: 'center' }]}>{L.thumbPrint}</Text>
           </View>
         </View>
       </View>
+      {/* Drawn last so it lies over the form. */}
+      {copy === 'courtesy' ? <CourtesyStamp data={data} /> : null}
     </Page>
   )
 }
@@ -679,9 +701,9 @@ export function TransactionFormContinuation({
   copy,
 }: {
   data: PawnTicketData
-  copy: 'customer' | 'store'
+  copy: TicketCopy
 }) {
-  const { en, es, kindOf, metalWords, frontCount, barrelLength } = formParts(data)
+  const { L, kindOf, metalWords, frontCount, barrelLength } = formParts(data, langOf(copy))
   const rest = data.collateral.slice(frontCount)
   if (rest.length === 0) return null
   const shop = data.tenant.dba?.trim() || data.tenant.name
@@ -695,49 +717,44 @@ export function TransactionFormContinuation({
       >
         <View style={{ flex: 1, paddingRight: 8 }}>
           <Text style={s.title}>
-            {[data.jurisdiction_name?.toUpperCase(), en.title.toUpperCase()].filter(Boolean).join(' ')}
+            {[data.jurisdiction_name?.toUpperCase(), L.title.toUpperCase()].filter(Boolean).join(' ')}
           </Text>
-          <Text style={s.small}>{es.title}</Text>
           <Text style={s.shop}>{shop}</Text>
           <Text style={{ fontSize: 9, fontWeight: 700, marginTop: 3 }}>
-            {bl(en.continuation, es.continuation)}
+            {L.continuation}
           </Text>
         </View>
         <View style={{ width: 250, alignItems: 'flex-end' }}>
           <View style={[s.row, { alignItems: 'center' }]}>
             <View style={{ marginRight: 6, alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: 8 }}>{en.controlNo}</Text>
-              <Text style={s.small}>{es.controlNo}</Text>
+              <Text style={{ fontSize: 8 }}>{L.controlNo}</Text>
             </View>
             <View style={s.controlBox}>
               <Text style={s.controlNo}>{data.ticket_number}</Text>
             </View>
           </View>
-          <Text style={s.copy}>{copyLabel(copy, en, es)}</Text>
+          <Text style={s.copy}>{copyLabel(copy, L)}</Text>
           <Text style={{ fontSize: 8, marginTop: 2 }}>
-            {bl(en.transactionDate, es.transactionDate)}: {mdy(data.issue_date)}
+            {L.transactionDate}: {mdy(data.issue_date)}
           </Text>
         </View>
       </View>
 
       <View style={[s.box, { borderBottomWidth: 0 }]}>
-        <Text style={s.band}>{en.securityInterest}</Text>
-        <Text style={{ fontSize: 6, textAlign: 'center', paddingVertical: 1.5, borderBottomWidth: 0.5, borderBottomColor: LINE }}>
-          {es.securityInterest}
-        </Text>
+        <Text style={s.band}>{L.securityInterest}</Text>
         {rest.map((item, i) => (
           <ItemBlock
             key={i}
             item={item}
             no={frontCount + i + 1}
-            en={en}
-            es={es}
+            L={L}
             kind={kindOf(item)}
             metal={metalWords(item.metal_type)}
             barrelLength={barrelLength}
           />
         ))}
       </View>
+      {copy === 'courtesy' ? <CourtesyStamp data={data} /> : null}
     </Page>
   )
 }

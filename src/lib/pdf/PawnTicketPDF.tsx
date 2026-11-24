@@ -161,9 +161,12 @@ export type PawnTicketData = {
    *  from settings.pawn_ticket_backpage, falling back to the tenant
    *  jurisdiction's ticket_backpage (patches/0048). Empty = no reverse page. */
   backpage_text: string
-  /** Statutory statements from the tenant's jurisdiction, printed EN + ES in
-   *  the legal block. Empty = generic placeholder (no jurisdiction on file). */
+  /** Statutory statements from the tenant's jurisdiction, printed in the
+   *  sheet's language. Empty = generic placeholder (no jurisdiction on file). */
   legal_notices: ReadonlyArray<TicketNotice>
+  /** Add the Spanish courtesy translation after the legal (English) copies:
+   *  the customer reads Spanish (customers.language = 'es'). */
+  spanish_copy: boolean
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -266,7 +269,6 @@ function parseBackpageBlocks(text: string): BackpageBlock[] {
 
 export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
   const en = data.i18n.en.pawn.print
-  const es = data.i18n.es.pawn.print
   const hasReverse = data.backpage_text.trim() !== ''
 
   return (
@@ -314,11 +316,9 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
           </Text>
           <Text
             render={({ pageNumber, totalPages }) =>
-              `${en.footer.pageOf
+              en.footer.pageOf
                 .replace('{n}', String(pageNumber))
-                .replace('{total}', String(totalPages))} / ${es.footer.pageOf
-                .replace('{n}', String(pageNumber))
-                .replace('{total}', String(totalPages))}`
+                .replace('{total}', String(totalPages))
             }
           />
         </View>
@@ -328,6 +328,15 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
       <TransactionFormPage data={data} copy="store" />
       <TransactionFormContinuation data={data} copy="store" />
       {hasReverse ? <TransactionFormContinuation data={data} copy="customer" /> : null}
+
+      {/* The Spanish courtesy translation, last and on its own sheets, stamped
+          across as not legally valid. The reverse terms are not translated. */}
+      {data.spanish_copy ? (
+        <>
+          <TransactionFormPage data={data} copy="courtesy" />
+          <TransactionFormContinuation data={data} copy="courtesy" />
+        </>
+      ) : null}
     </Document>
   )
 }
