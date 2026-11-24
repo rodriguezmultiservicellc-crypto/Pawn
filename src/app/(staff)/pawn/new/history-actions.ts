@@ -2,6 +2,8 @@
 
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
   buildCustomerPawnHistory,
   outcomeOf,
@@ -33,15 +35,19 @@ export async function loadCustomerPawnHistoryAction(
   // Counts need every ticket. 1,000 is the API's answer size; no customer is
   // near it (the busiest has a few hundred), and counts past it would only
   // be low, never wrong about a piece.
-  const { data: loanRows, error: loanErr } = await supabase
-    .from('loans')
-    .select('id, ticket_number, status, principal, issue_date')
-    .eq('tenant_id', tenantId)
-    .eq('customer_id', customerId)
-    .is('deleted_at', null)
-    .order('issue_date', { ascending: false })
-    .order('id', { ascending: true })
-    .limit(1000)
+  const [{ data: loanRows, error: loanErr }, rules] = await Promise.all([
+    supabase
+      .from('loans')
+      .select('id, ticket_number, status, principal, issue_date, due_date')
+      .eq('tenant_id', tenantId)
+      .eq('customer_id', customerId)
+      .is('deleted_at', null)
+      .order('issue_date', { ascending: false })
+      .order('id', { ascending: true })
+      .limit(1000),
+    // "Overdue" is judged on the shop's day, not UTC's.
+    loadTenantRules(supabase, tenantId),
+  ])
   if (loanErr) return { ok: false }
   const loans = (loanRows ?? []) as HistoryLoanInput[]
 
@@ -68,5 +74,8 @@ export async function loadCustomerPawnHistoryAction(
     items = (itemRows ?? []) as HistoryItemInput[]
   }
 
-  return { ok: true, history: buildCustomerPawnHistory({ loans, items }) }
+  return {
+    ok: true,
+    history: buildCustomerPawnHistory({ loans, items, today: todayInTimezone(rules.timezone) }),
+  }
 }

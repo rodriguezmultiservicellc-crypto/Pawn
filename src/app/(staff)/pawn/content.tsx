@@ -93,13 +93,22 @@ export default function PawnContent({
   const router = useRouter()
   const sp = useSearchParams()
   const [searchInput, setSearchInput] = useState(query)
+  // The address bar changed the search (Back, Forward, a link): show it.
+  const [shownQuery, setShownQuery] = useState(query)
+  if (shownQuery !== query) {
+    setShownQuery(query)
+    setSearchInput(query)
+  }
   const [pending, startTransition] = useTransition()
   const [sortKey, setSortKey] = useState<SortKey>('due')
   const [sortDir, setSortDir] = useState<1 | -1>(1)
 
   function pushParams(next: Record<string, string | null>) {
     const usp = new URLSearchParams(sp.toString())
-    for (const [k, v] of Object.entries(next)) {
+    // The search box is what the clerk sees, so it is what is searched: a
+    // tab or due-date pick with the box emptied must not keep an old search
+    // alive in the address bar.
+    for (const [k, v] of Object.entries({ q: searchInput.trim(), ...next })) {
       if (v == null || v === '') usp.delete(k)
       else usp.set(k, v)
     }

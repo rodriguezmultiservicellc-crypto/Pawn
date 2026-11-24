@@ -10,6 +10,10 @@
  * A voided ticket never happened: it is counted on its own and left out of
  * the totals.
  *
+ * An open ticket is OVERDUE when its due date is before today — the same
+ * rule as the Pawn loans list. `today` is the shop's day (its timezone),
+ * given by the caller.
+ *
  * `previous_items` are the pieces the customer can bring back: a piece is
  * offered only when its NEWEST ticket was redeemed. A piece on an open
  * ticket is in the shop's safe right now, and a forfeited piece is the
@@ -18,12 +22,15 @@
  * (newest value, redeemed tickets counted).
  */
 
+import { daysBetween } from '@/lib/pawn/math'
+
 export type HistoryLoanInput = {
   id: string
   ticket_number: string | null
   status: string
   principal: number | string
   issue_date: string
+  due_date: string
 }
 
 export type HistoryItemInput = {
@@ -75,6 +82,8 @@ export type HistoryTicket = {
   ticket_number: string
   issue_date: string
   outcome: HistoryOutcome
+  /** Days past the due date, for an open ticket; 0 when it is not overdue. */
+  days_overdue: number
   principal: number
   /** Labels of its pieces, in ticket order. */
   items: string[]
@@ -84,6 +93,8 @@ export type CustomerPawnHistory = {
   /** Tickets that happened (voided left out). */
   total: number
   open: number
+  /** Open tickets past their due date (counted in `open` too). */
+  overdue: number
   redeemed: number
   forfeited: number
   voided: number
@@ -142,6 +153,8 @@ function pieceKey(it: HistoryItemInput): string {
 export function buildCustomerPawnHistory(args: {
   loans: ReadonlyArray<HistoryLoanInput>
   items: ReadonlyArray<HistoryItemInput>
+  /** The shop's day, YYYY-MM-DD. */
+  today: string
 }): CustomerPawnHistory {
   // Newest first. Two tickets written the same day: the one that is not
   // redeemed is the later one (a customer picks a piece up and pawns it
@@ -166,6 +179,7 @@ export function buildCustomerPawnHistory(args: {
   const h: CustomerPawnHistory = {
     total: 0,
     open: 0,
+    overdue: 0,
     redeemed: 0,
     forfeited: 0,
     voided: 0,
@@ -181,6 +195,8 @@ export function buildCustomerPawnHistory(args: {
   for (const l of loans) {
     const outcome = outcomeOf(l.status)
     h[outcome] += 1
+    const daysOverdue = outcome === 'open' ? Math.max(0, daysBetween(l.due_date, args.today)) : 0
+    if (daysOverdue > 0) h.overdue += 1
     const items = byLoan.get(l.id) ?? []
     if (h.recent.length < HISTORY_RECENT_MAX) {
       h.recent.push({
@@ -188,6 +204,7 @@ export function buildCustomerPawnHistory(args: {
         ticket_number: l.ticket_number ?? '',
         issue_date: l.issue_date,
         outcome,
+        days_overdue: daysOverdue,
         principal: Number(l.principal),
         items: items.map(pawnItemLabel),
       })

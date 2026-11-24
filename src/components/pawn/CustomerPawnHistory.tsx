@@ -13,6 +13,8 @@ const OUTCOME_TONE: Record<HistoryOutcome, string> = {
   forfeited: 'border-danger/30 bg-danger/5 text-danger',
   voided: 'border-border bg-background text-muted',
 }
+/** Solid, so it does not read as "Lost" (outlined red). */
+const OVERDUE_TONE = 'border-danger bg-danger text-white'
 
 /**
  * What this customer has done with the shop before, at the top of the new
@@ -60,6 +62,7 @@ export function CustomerPawnHistory({
         {stat(h.pickedUp, String(history.redeemed), 'text-success')}
         {stat(h.lost, String(history.forfeited), history.forfeited > 0 ? 'text-danger' : 'text-foreground')}
         {stat(h.open, String(history.open))}
+        {history.overdue > 0 ? stat(h.overdue, String(history.overdue), 'text-danger') : null}
         {history.open > 0 ? stat(h.onLoan, formatMoney(history.open_principal)) : null}
         <div className="ml-auto flex items-center gap-3">
           {history.first_date ? (
@@ -90,9 +93,18 @@ export function CustomerPawnHistory({
                   {r.ticket_number}
                 </Link>
                 <span className="font-mono text-xs text-muted">{shortDate(r.issue_date)}</span>
-                <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${OUTCOME_TONE[r.outcome]}`}>
-                  {h.outcome[r.outcome]}
-                </span>
+                {r.days_overdue > 0 ? (
+                  // Still the customer's to pick up, but past its due date.
+                  <span className={`rounded-full border px-2 py-0.5 text-xs font-bold ${OVERDUE_TONE}`}>
+                    {r.days_overdue === 1
+                      ? h.overdueOneDay
+                      : h.overdueDays.replace('{n}', String(r.days_overdue))}
+                  </span>
+                ) : (
+                  <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${OUTCOME_TONE[r.outcome]}`}>
+                    {h.outcome[r.outcome]}
+                  </span>
+                )}
                 <span className="font-mono text-xs text-foreground">{formatMoney(r.principal)}</span>
                 <span className="min-w-0 flex-1 text-xs text-text-secondary">{r.items.join(' · ') || '—'}</span>
               </li>

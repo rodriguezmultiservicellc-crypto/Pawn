@@ -13,6 +13,7 @@ const loan = (over: Partial<HistoryLoanInput>): HistoryLoanInput => ({
   status: 'redeemed',
   principal: '300.0000',
   issue_date: '2025-01-10',
+  due_date: '2025-02-09',
   ...over,
 })
 
@@ -44,6 +45,10 @@ const item = (over: Partial<HistoryItemInput>): HistoryItemInput => ({
   ...over,
 })
 
+const TODAY = '2026-11-23'
+const build = (a: { loans: HistoryLoanInput[]; items: HistoryItemInput[] }) =>
+  buildCustomerPawnHistory({ ...a, today: TODAY })
+
 describe('pawnItemLabel', () => {
   it('reads karat, the piece and its weight', () => {
     expect(pawnItemLabel({ description: 'Figaro chain', karat: '10.0', weight_grams: '23.6000' })).toBe('10k Figaro chain 23.6g')
@@ -59,7 +64,7 @@ describe('pawnItemLabel', () => {
 
 describe('buildCustomerPawnHistory', () => {
   it('counts picked up, lost and open, and leaves voided out of the total', () => {
-    const h = buildCustomerPawnHistory({
+    const h = build({
       loans: [
         loan({ id: 'a', status: 'redeemed' }),
         loan({ id: 'b', status: 'redeemed' }),
@@ -74,7 +79,7 @@ describe('buildCustomerPawnHistory', () => {
   })
 
   it('offers only pieces that were picked up — never a lost one', () => {
-    const h = buildCustomerPawnHistory({
+    const h = build({
       loans: [loan({ id: 'won', status: 'redeemed' }), loan({ id: 'lost', status: 'forfeited' }), loan({ id: 'here', status: 'active' })],
       items: [
         item({ loan_id: 'won', description: 'Figaro chain' }),
@@ -86,7 +91,7 @@ describe('buildCustomerPawnHistory', () => {
   })
 
   it('the same piece pawned many times is one entry with its newest value', () => {
-    const h = buildCustomerPawnHistory({
+    const h = build({
       loans: [
         loan({ id: 'old', ticket_number: '90', issue_date: '2023-03-01' }),
         loan({ id: 'new', ticket_number: '200', issue_date: '2026-02-01' }),
@@ -105,7 +110,7 @@ describe('buildCustomerPawnHistory', () => {
 
   it('does not offer a piece that is on an open ticket now, even if it was picked up before', () => {
     // Ticket 15466 picked up, then the same chain pawned again on 15634.
-    const h = buildCustomerPawnHistory({
+    const h = build({
       loans: [
         loan({ id: 'before', ticket_number: '15466', status: 'redeemed', issue_date: '2025-05-26' }),
         loan({ id: 'now', ticket_number: '15634', status: 'active', issue_date: '2026-08-21', principal: 1800 }),
@@ -120,7 +125,7 @@ describe('buildCustomerPawnHistory', () => {
   })
 
   it('does not offer a piece that was picked up once and lost later', () => {
-    const h = buildCustomerPawnHistory({
+    const h = build({
       loans: [
         loan({ id: 'won', status: 'redeemed', issue_date: '2013-01-18' }),
         loan({ id: 'lost', status: 'forfeited', issue_date: '2016-01-19' }),
@@ -131,7 +136,7 @@ describe('buildCustomerPawnHistory', () => {
   })
 
   it('offers a piece again once the later ticket is picked up too', () => {
-    const h = buildCustomerPawnHistory({
+    const h = build({
       loans: [
         loan({ id: 'lost', status: 'forfeited', issue_date: '2016-01-19' }),
         loan({ id: 'won', ticket_number: '300', status: 'redeemed', issue_date: '2020-03-02' }),
@@ -147,12 +152,33 @@ describe('buildCustomerPawnHistory', () => {
     const items = [item({ loan_id: 'closed' }), item({ loan_id: 'open' })]
     const closed = loan({ id: 'closed', status: 'redeemed', issue_date: day })
     const open = loan({ id: 'open', status: 'extended', issue_date: day })
-    expect(buildCustomerPawnHistory({ loans: [closed, open], items }).previous_items).toEqual([])
-    expect(buildCustomerPawnHistory({ loans: [open, closed], items }).previous_items).toEqual([])
+    expect(build({ loans: [closed, open], items }).previous_items).toEqual([])
+    expect(build({ loans: [open, closed], items }).previous_items).toEqual([])
+  })
+
+  it('marks an open ticket past its due date as overdue, with the days', () => {
+    const h = build({
+      loans: [
+        loan({ id: 'late', ticket_number: '15634', status: 'active', issue_date: '2026-08-21', due_date: '2026-09-20' }),
+        loan({ id: 'today', ticket_number: '2', status: 'extended', issue_date: '2026-10-24', due_date: TODAY }),
+        loan({ id: 'ok', ticket_number: '3', status: 'partial_paid', issue_date: '2026-11-01', due_date: '2026-12-01' }),
+        loan({ id: 'closed', ticket_number: '4', status: 'redeemed', issue_date: '2025-05-26', due_date: '2025-06-25' }),
+        loan({ id: 'lost', ticket_number: '5', status: 'forfeited', issue_date: '2016-01-19', due_date: '2016-02-18' }),
+      ],
+      items: [],
+    })
+    expect(h).toMatchObject({ open: 3, overdue: 1 })
+    expect(Object.fromEntries(h.recent.map((r) => [r.ticket_number, r.days_overdue]))).toEqual({
+      '15634': 64,
+      '2': 0,
+      '3': 0,
+      '4': 0,
+      '5': 0,
+    })
   })
 
   it('lists recent tickets newest first with their pieces', () => {
-    const h = buildCustomerPawnHistory({
+    const h = build({
       loans: [loan({ id: 'a', ticket_number: '1', issue_date: '2024-01-01' }), loan({ id: 'b', ticket_number: '2', issue_date: '2026-01-01', status: 'forfeited' })],
       items: [item({ loan_id: 'b', position: 1, description: 'Ring', weight_grams: 4 }), item({ loan_id: 'b', position: 0 })],
     })
@@ -163,10 +189,10 @@ describe('buildCustomerPawnHistory', () => {
   it('caps the pieces offered', () => {
     const loans = Array.from({ length: 30 }, (_, i) => loan({ id: `l${i}`, issue_date: `2025-01-${String(i + 1).padStart(2, '0')}` }))
     const items = loans.map((l, i) => item({ loan_id: l.id, description: `Piece ${i}` }))
-    expect(buildCustomerPawnHistory({ loans, items }).previous_items).toHaveLength(HISTORY_ITEMS_MAX)
+    expect(build({ loans, items }).previous_items).toHaveLength(HISTORY_ITEMS_MAX)
   })
 
   it('a customer with no tickets has an empty history', () => {
-    expect(buildCustomerPawnHistory({ loans: [], items: [] })).toMatchObject({ total: 0, first_date: null, recent: [], previous_items: [] })
+    expect(build({ loans: [], items: [] })).toMatchObject({ total: 0, overdue: 0, first_date: null, recent: [], previous_items: [] })
   })
 })
