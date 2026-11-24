@@ -194,18 +194,102 @@ export function paymentReceiptLines(doc: PaymentReceiptDoc, width: number = THER
   return out
 }
 
-export function paymentReceiptHtml(doc: PaymentReceiptDoc, format: ReceiptFormat): string {
-  const en: Labels = doc.i18n.en.pawn.detail.receipt
-  const title = `${en.title} ${doc.ticket_number}`
-  if (format === 'thermal') return thermalReceiptPage(title, paymentReceiptLines(doc, THERMAL_WIDTH))
+/**
+ * One receipt for several tickets paid in one visit (loan_events.
+ * payment_group_id, patches/0112). Each ticket prints what its own receipt
+ * prints — the same receiptRows — under its number, then the visit's total.
+ * The shop, date, customer and method come from the first ticket: one
+ * customer, one method, one moment.
+ */
+export type PaymentGroupReceiptDoc = { tickets: PaymentReceiptDoc[] }
+
+export function paymentGroupTotal(doc: PaymentGroupReceiptDoc): number {
+  return r2(doc.tickets.reduce((s, t) => s + t.amount, 0))
+}
+
+function groupMeta(doc: PaymentGroupReceiptDoc): Array<[string, string]> {
+  const first = doc.tickets[0]
+  const en: Labels = first.i18n.en.pawn.detail.receipt
+  const es: Labels = first.i18n.es.pawn.detail.receipt
+  // The first ticket's meta minus its ticket line; the numbers are listed.
+  const meta = receiptRows(first).meta.slice(1)
+  return [[bi(en.tickets, es.tickets), doc.tickets.map((t) => t.ticket_number || '-').join(', ')], ...meta]
+}
+
+export function paymentGroupReceiptLines(doc: PaymentGroupReceiptDoc, width: number = THERMAL_WIDTH): string[] {
+  const first = doc.tickets[0]
+  const en: Labels = first.i18n.en.pawn.detail.receipt
+  const es: Labels = first.i18n.es.pawn.detail.receipt
+  const W = width
+  const rule = '-'.repeat(W)
+  const heavy = '='.repeat(W)
+  const shop = shopLines(first.tenant)
+  const out: string[] = []
+  out.push(...center(shop.name.toUpperCase(), W))
+  if (shop.address) out.push(...center(shop.address, W))
+  if (shop.city) out.push(...center(shop.city, W))
+  if (shop.phone) out.push(...center(shop.phone, W))
+  out.push(heavy)
+  out.push(...center(bi(en.title, es.title).toUpperCase(), W))
+  for (const [l, v] of groupMeta(doc)) out.push(...row(l, v, W))
+  for (const t of doc.tickets) {
+    const rows = receiptRows(t)
+    out.push(heavy)
+    out.push(...row(rows.meta[0][0].toUpperCase(), t.ticket_number || '-', W))
+    out.push(rule)
+    for (const [l, v] of rows.paid) out.push(...row(l, v, W))
+    out.push(...row(bi(en.ticketTotal, es.ticketTotal), money(t.amount), W))
+    out.push(rule)
+    for (const [l, v] of rows.after) out.push(...row(l, v, W))
+    if (rows.redeemed) out.push(...center(rows.redeemed.toUpperCase(), W))
+  }
+  out.push(heavy)
+  out.push(...row(bi(en.grandTotal, es.grandTotal).toUpperCase(), money(paymentGroupTotal(doc)), W))
+  out.push(heavy)
+  out.push(...wrap(receiptRows(first).keep, W))
+  return out
+}
+
+export function paymentGroupReceiptHtml(doc: PaymentGroupReceiptDoc, format: ReceiptFormat): string {
+  const first = doc.tickets[0]
+  const en: Labels = first.i18n.en.pawn.detail.receipt
+  const es: Labels = first.i18n.es.pawn.detail.receipt
+  const title = `${en.title} ${doc.tickets.map((t) => t.ticket_number).join(', ')}`
+  if (format === 'thermal') return thermalReceiptPage(title, paymentGroupReceiptLines(doc, THERMAL_WIDTH))
 
   const e = escapeHtml
-  const es: Labels = doc.i18n.es.pawn.detail.receipt
-  const rows = receiptRows(doc)
-  const shop = shopLines(doc.tenant)
+  const shop = shopLines(first.tenant)
   const line = ([l, v]: [string, string], cls = '') =>
     `<div class="line ${cls}"><span>${e(l)}</span><span class="num">${e(v)}</span></div>`
-  const css = `
+  const sections = doc.tickets
+    .map((t) => {
+      const rows = receiptRows(t)
+      return `<div class="box">
+<div class="line tk"><span>${e(rows.meta[0][0])}</span><span class="num">${e(t.ticket_number || '-')}</span></div>
+${rows.paid.map((r) => line(r)).join('\n')}
+${line([bi(en.ticketTotal, es.ticketTotal), money(t.amount)], 'sub')}
+${rows.after.map((r) => line(r, 'after')).join('\n')}
+${rows.redeemed ? `<div class="done">${e(rows.redeemed)}</div>` : ''}
+</div>`
+    })
+    .join('\n')
+  const body = `<div class="wrap">
+<h1>${e(shop.name)}</h1>
+<div class="shop">${[shop.address, shop.city, shop.phone].filter(Boolean).map((s) => e(s as string)).join(' · ')}</div>
+<h2>${e(bi(en.title, es.title))}</h2>
+${groupMeta(doc).map((r) => line(r)).join('\n')}
+${sections}
+<div class="grand">${line([bi(en.grandTotal, es.grandTotal), money(paymentGroupTotal(doc))], 'total')}</div>
+<div class="keep">${e(receiptRows(first).keep)}</div>
+</div>`
+  return receiptPage(title, `${LETTER_CSS}
+.tk{font-weight:700;border-bottom:1pt solid ${reportColors.divider};margin-bottom:4pt}
+.sub{font-weight:700}
+.after{font-size:10.5pt;color:${reportColors.muted}}
+.grand{margin-top:14pt}`, body)
+}
+
+const LETTER_CSS = `
 @page{size:letter;margin:0.6in}
 body{font-family:Helvetica,Arial,sans-serif;font-size:12pt;line-height:1.4}
 .wrap{max-width:6.2in;margin:0 auto}
@@ -218,6 +302,19 @@ h2{font-size:13pt;margin:18pt 0 8pt;padding-bottom:4pt;border-bottom:1.5pt solid
 .box{margin-top:14pt;padding:8pt 10pt;border:1pt solid ${reportColors.divider};border-radius:6px}
 .done{margin-top:12pt;text-align:center;font-weight:700;text-transform:uppercase}
 .keep{margin-top:18pt;font-size:10pt;color:${reportColors.muted};text-align:center}`
+
+export function paymentReceiptHtml(doc: PaymentReceiptDoc, format: ReceiptFormat): string {
+  const en: Labels = doc.i18n.en.pawn.detail.receipt
+  const title = `${en.title} ${doc.ticket_number}`
+  if (format === 'thermal') return thermalReceiptPage(title, paymentReceiptLines(doc, THERMAL_WIDTH))
+
+  const e = escapeHtml
+  const es: Labels = doc.i18n.es.pawn.detail.receipt
+  const rows = receiptRows(doc)
+  const shop = shopLines(doc.tenant)
+  const line = ([l, v]: [string, string], cls = '') =>
+    `<div class="line ${cls}"><span>${e(l)}</span><span class="num">${e(v)}</span></div>`
+  const css = LETTER_CSS
   const body = `<div class="wrap">
 <h1>${e(shop.name)}</h1>
 <div class="shop">${[shop.address, shop.city, shop.phone].filter(Boolean).map((s) => e(s as string)).join(' · ')}</div>

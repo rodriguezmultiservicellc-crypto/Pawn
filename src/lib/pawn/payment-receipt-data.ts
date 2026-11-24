@@ -13,7 +13,40 @@ import type { Database } from '@/types/database'
 import { en } from '@/lib/i18n/en'
 import { es } from '@/lib/i18n/es'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { paymentReceiptFacts, type PaymentReceiptDoc, type ReceiptEventInput } from './payment-receipt'
+import {
+  paymentReceiptFacts,
+  type PaymentGroupReceiptDoc,
+  type PaymentReceiptDoc,
+  type ReceiptEventInput,
+} from './payment-receipt'
+
+/**
+ * The receipt of one "Pay together" (loan_events.payment_group_id): each
+ * ticket's own receipt, in ticket-number order. Null when no payment of this
+ * shop carries the id. Same gate as loadPaymentReceipt.
+ */
+export async function loadPaymentGroupReceipt(args: {
+  supabase: SupabaseClient<Database>
+  tenantId: string
+  groupId: string
+}): Promise<{ doc: PaymentGroupReceiptDoc; loanIds: string[] } | null> {
+  const { supabase, tenantId, groupId } = args
+  const { data, error } = await supabase
+    .from('loan_events')
+    .select('id, loan_id')
+    .eq('tenant_id', tenantId)
+    .eq('payment_group_id', groupId)
+    .eq('event_type', 'payment')
+  if (error) throw new Error(`payment_group_failed: ${error.message}`)
+  if (!data || data.length === 0) return null
+  const docs = await Promise.all(
+    data.map((e) => loadPaymentReceipt({ supabase, tenantId, loanId: e.loan_id, eventId: e.id })),
+  )
+  const tickets = docs.filter((d): d is PaymentReceiptDoc => d != null)
+  if (tickets.length === 0) return null
+  tickets.sort((a, b) => a.ticket_number.localeCompare(b.ticket_number, 'en', { numeric: true }))
+  return { doc: { tickets }, loanIds: [...new Set(data.map((e) => e.loan_id))] }
+}
 
 export async function loadPaymentReceipt(args: {
   supabase: SupabaseClient<Database>

@@ -8,6 +8,7 @@ import {
   loanForfeitSchema,
   loanFreeTimeSchema,
   loanPaymentSchema,
+  loanPaymentsSchema,
   loanPaymentVoidSchema,
   loanVoidSchema,
 } from '@/lib/validations/loan'
@@ -105,25 +106,46 @@ export async function recordPaymentAction(
   const v = parsed.data
 
   const { loan, supabase, userId, tenantId } = await resolveLoanScope(v.loan_id)
-  if (isTerminalStatus(loan.status as LoanStatus)) {
-    return { error: 'terminal_status' }
-  }
-
-  const loanForPayoff = {
-    principal: loan.principal,
-    interest_rate_monthly: loan.interest_rate_monthly,
-    issue_date: loan.issue_date,
-    min_monthly_charge: loan.min_monthly_charge,
-  }
   // The shop's day and the jurisdiction's way of charging — never UTC,
   // never a constant.
   const rules = await loadTenantRules(supabase, tenantId)
   const today = todayInTimezone(rules.timezone)
   const charge = chargeModelOf(rules)
 
-  // What is owed right now, read by the server. The split and the new due
-  // date are decided here and never taken from the browser — see
-  // planLoanPayment for why.
+  const planned = await planPayment({ supabase, loan, today, charge, input: v })
+  if ('error' in planned) return { error: planned.error }
+  return commitPayment({ supabase, userId, tenantId, loan, today, charge, input: v, plan: planned.plan, groupId: null })
+}
+
+type LoanScope = Awaited<ReturnType<typeof resolveLoanScope>>
+type ScopedLoan = LoanScope['loan']
+type OkPlan = Extract<ReturnType<typeof planLoanPayment>, { ok: true }>
+/** One ticket's part of a payment, as the server takes it. */
+type PaymentRequest = {
+  amount: number
+  payment_method: PaymentMethod
+  fees_paid: number
+  periods: number
+  new_due_date?: string
+  notes?: string | null
+}
+
+/**
+ * What a payment on this loan does, read by the server against the loan's
+ * live events: the split and the new due date are decided here and never
+ * taken from the browser (planLoanPayment). Writes nothing.
+ */
+async function planPayment(args: {
+  supabase: LoanScope['supabase']
+  loan: ScopedLoan
+  today: string
+  charge: ReturnType<typeof chargeModelOf>
+  input: PaymentRequest
+}): Promise<{ plan: OkPlan } | { error: string }> {
+  const { supabase, loan, today, charge, input: v } = args
+  if (isTerminalStatus(loan.status as LoanStatus)) {
+    return { error: 'terminal_status' }
+  }
   const { data: priorEvents, error: priorErr } = await supabase
     .from('loan_events')
     .select('id, reverses_event_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
@@ -151,6 +173,32 @@ export async function recordPaymentAction(
           : plan.reason,
     }
   }
+  return { plan }
+}
+
+/**
+ * Write a planned payment: the payment event, then what it did to the
+ * ticket (redeemed / due date moved / partly paid), the audit row and the
+ * loyalty earn. `groupId` links the payments of one "Pay together".
+ */
+async function commitPayment(args: {
+  supabase: LoanScope['supabase']
+  userId: string
+  tenantId: string
+  loan: ScopedLoan
+  today: string
+  charge: ReturnType<typeof chargeModelOf>
+  input: PaymentRequest
+  plan: OkPlan
+  groupId: string | null
+}): Promise<ActionResult> {
+  const { supabase, userId, tenantId, loan, today, charge, input: v, plan, groupId } = args
+  const loanForPayoff = {
+    principal: loan.principal,
+    interest_rate_monthly: loan.interest_rate_monthly,
+    issue_date: loan.issue_date,
+    min_monthly_charge: loan.min_monthly_charge,
+  }
 
   // Insert event.
   const { data: paymentEvent, error: evErr } = await supabase
@@ -166,6 +214,7 @@ export async function recordPaymentAction(
       payment_method: v.payment_method,
       notes: v.notes,
       performed_by: userId,
+      payment_group_id: groupId,
     })
     .select('id')
     .single()
@@ -217,7 +266,10 @@ export async function recordPaymentAction(
   if (upErr) {
     console.error('[pawn.payment] loan update failed after payment', loan.id, upErr.message)
     revalidatePath(`/pawn/${loan.id}`)
-    return { error: newDueDate ? 'due_date_not_moved' : 'status_not_updated' }
+    return {
+      error: newDueDate ? 'due_date_not_moved' : 'status_not_updated',
+      eventId: paymentEvent.id,
+    }
   }
 
   if (newDueDate) {
@@ -260,6 +312,7 @@ export async function recordPaymentAction(
       old_due_date: loan.due_date,
       new_due_date: newDueDate,
       new_status: newStatus,
+      ...(groupId ? { payment_group_id: groupId } : {}),
     },
   })
 
@@ -296,7 +349,96 @@ export async function recordPaymentAction(
   return { ok: true, eventId: paymentEvent.id }
 }
 
-// ── Free time (managers only) ───────────────────────────────────────────────
+// ── Pay together: several tickets of one customer in one visit ──────────────
+
+export type PayTogetherResult = {
+  ok?: boolean
+  /** The combined receipt reads the payments by this id. */
+  groupId?: string
+  /** A ticket the server refused, with why — nothing was written. */
+  refused?: { loanId: string; error: string }
+  /** Set when a write failed part way: these tickets WERE paid. */
+  savedLoanIds?: string[]
+  error?: string
+}
+
+/**
+ * Take a payment on several tickets of the same customer at once: one
+ * payment method, one receipt. Each ticket gets its own payment event, split
+ * and due-date move, decided by the same planPayment / commitPayment as a
+ * single payment.
+ *
+ * Every ticket is planned BEFORE anything is written: one ticket that would
+ * be refused (underpaid move, more than its payoff, closed) refuses the
+ * whole visit and nothing is saved. A database failure part way through
+ * cannot be undone from here, so it says exactly which tickets were paid.
+ */
+export async function recordPaymentsAction(input: unknown): Promise<PayTogetherResult> {
+  const parsed = loanPaymentsSchema.safeParse(input)
+  if (!parsed.success) {
+    const feesIssue = parsed.error.issues.some((i) => i.message === 'fees_exceed_amount')
+    return { error: feesIssue ? 'fees_exceed_amount' : 'validation_failed' }
+  }
+  const v = parsed.data
+  const ids = v.payments.map((p) => p.loan_id)
+  if (new Set(ids).size !== ids.length) return { error: 'validation_failed' }
+
+  const scopes: LoanScope[] = []
+  for (const id of ids) scopes.push(await resolveLoanScope(id))
+  const { supabase, userId, tenantId } = scopes[0]
+  // One customer, one shop: the receipt is that customer's.
+  if (scopes.some((s) => s.tenantId !== tenantId || s.loan.customer_id !== scopes[0].loan.customer_id)) {
+    return { error: 'mixed_customers' }
+  }
+
+  const rules = await loadTenantRules(supabase, tenantId)
+  const today = todayInTimezone(rules.timezone)
+  const charge = chargeModelOf(rules)
+
+  const plans: Array<{ scope: LoanScope; req: PaymentRequest; plan: OkPlan }> = []
+  for (let i = 0; i < scopes.length; i++) {
+    const p = v.payments[i]
+    const req: PaymentRequest = {
+      amount: p.amount,
+      payment_method: v.payment_method,
+      fees_paid: p.fees_paid,
+      periods: p.periods,
+      new_due_date: p.new_due_date,
+      notes: v.notes,
+    }
+    const planned = await planPayment({ supabase, loan: scopes[i].loan, today, charge, input: req })
+    if ('error' in planned) return { refused: { loanId: p.loan_id, error: planned.error } }
+    plans.push({ scope: scopes[i], req, plan: planned.plan })
+  }
+
+  const groupId = crypto.randomUUID()
+  const saved: string[] = []
+  for (const { scope, req, plan } of plans) {
+    const res = await commitPayment({
+      supabase,
+      userId,
+      tenantId,
+      loan: scope.loan,
+      today,
+      charge,
+      input: req,
+      plan,
+      groupId,
+    })
+    // The payment event is written first: a later step failing still means
+    // this ticket was paid.
+    if (res.eventId) saved.push(scope.loan.id)
+    if (res.error) {
+      console.error('[pawn.payTogether] stopped part way', scope.loan.id, res.error)
+      return { error: 'partly_saved', savedLoanIds: saved, groupId: saved.length ? groupId : undefined }
+    }
+  }
+
+  revalidatePath('/pawn')
+  return { ok: true, groupId }
+}
+
+// ── Free time (managers only)───────────────────────────────────────────────
 
 /** Who may give a customer free time: the people who answer for the money. */
 const FREE_TIME_ROLES = ['owner', 'manager', 'chain_admin'] as const

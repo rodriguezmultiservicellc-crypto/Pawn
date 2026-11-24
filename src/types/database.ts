@@ -3759,6 +3759,7 @@ export type Database = {
           new_due_date: string | null
           notes: string | null
           occurred_at: string
+          payment_group_id: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           performed_by: string | null
           previous_due_date: string | null
@@ -3779,6 +3780,7 @@ export type Database = {
           new_due_date?: string | null
           notes?: string | null
           occurred_at?: string
+          payment_group_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           performed_by?: string | null
           previous_due_date?: string | null
@@ -3799,6 +3801,7 @@ export type Database = {
           new_due_date?: string | null
           notes?: string | null
           occurred_at?: string
+          payment_group_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           performed_by?: string | null
           previous_due_date?: string | null

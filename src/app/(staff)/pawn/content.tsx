@@ -17,8 +17,10 @@ import { useI18n } from '@/lib/i18n/context'
 import { daysBetween, type ChargeModel, type LoanMoneyEvent } from '@/lib/pawn/math'
 import type { LoanStatus } from '@/types/database-aliases'
 import { RecordPaymentDialog } from '@/components/pawn/RecordPaymentDialog'
+import { PayTogetherDialog } from '@/components/pawn/PayTogetherDialog'
 import { ReceiptFormatDialog } from '@/components/pos/PrintReceiptDialog'
-import { recordPaymentAction } from './[id]/actions'
+import { MAX_PAY_TOGETHER } from '@/lib/validations/loan'
+import { recordPaymentAction, recordPaymentsAction } from './[id]/actions'
 
 export type PawnListRow = {
   id: string
@@ -122,6 +124,27 @@ export default function PawnContent({
     amount: number
     ticket: string
   } | null>(null)
+  // Pay together: open tickets of ONE customer, ticked on the list.
+  const [picked, setPicked] = useState<string[]>([])
+  const [payTogetherOpen, setPayTogetherOpen] = useState(false)
+  const [groupReceipt, setGroupReceipt] = useState<{
+    groupId: string
+    total: number
+    count: number
+  } | null>(null)
+  const pickedRows = picked
+    .map((id) => rows.find((r) => r.id === id))
+    .filter((r): r is PawnListRow => r != null && r.pay != null)
+  const pickedCustomer = pickedRows[0]?.customer_id ?? null
+  function togglePick(r: PawnListRow) {
+    setPicked((ps) =>
+      ps.includes(r.id)
+        ? ps.filter((id) => id !== r.id)
+        : ps.length >= MAX_PAY_TOGETHER
+        ? ps
+        : [...ps, r.id],
+    )
+  }
   const [sortKey, setSortKey] = useState<SortKey>('due')
   const [sortDir, setSortDir] = useState<1 | -1>(1)
 
@@ -336,6 +359,31 @@ export default function PawnContent({
         ) : null}
       </div>
 
+      {pickedRows.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gold bg-gold/10 px-4 py-3">
+          <span className="text-sm font-semibold text-foreground">
+            {pickedRows[0].customer_name} · {pickedRows.map((r) => r.ticket_number).join(', ')}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPicked([])}
+              className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-background"
+            >
+              {t.pawn.payTogether.clear}
+            </button>
+            <button
+              type="button"
+              disabled={pickedRows.length < 2}
+              onClick={() => setPayTogetherOpen(true)}
+              className="inline-flex items-center gap-1 rounded-xl bg-gold px-4 py-2 text-sm font-bold text-navy transition-all hover:-translate-y-0.5 hover:bg-gold-2 hover:shadow-lg disabled:opacity-50 disabled:hover:translate-y-0"
+            >
+              {t.pawn.payTogether.button.replace('{n}', String(pickedRows.length))}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Table */}
       {rows.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
@@ -349,6 +397,7 @@ export default function PawnContent({
           <table className="w-full min-w-[920px] text-left text-sm">
             <thead className="border-b border-border text-[11px] uppercase tracking-wide text-muted">
               <tr>
+                <th className="w-10 py-3 pl-4" />
                 <th className="px-4 py-3 font-bold">{t.pawn.list.ticket}</th>
                 <th className="px-4 py-3 font-bold">{t.pawn.list.customer}</th>
                 <th className="px-4 py-3 font-bold">{t.pawn.list.collateral}</th>
@@ -394,8 +443,26 @@ export default function PawnContent({
                     onClick={() => router.push(`/pawn/${r.id}`)}
                   >
                     <td
-                      className={`border-l-4 ${accent} px-4 py-3 font-mono text-xs font-bold text-navy`}
+                      className={`border-l-4 ${accent} py-3 pl-4`}
+                      onClick={(e) => e.stopPropagation()}
                     >
+                      {r.pay ? (
+                        <input
+                          type="checkbox"
+                          checked={picked.includes(r.id)}
+                          disabled={pickedCustomer != null && pickedCustomer !== r.customer_id}
+                          title={
+                            pickedCustomer != null && pickedCustomer !== r.customer_id
+                              ? t.pawn.payTogether.oneCustomer
+                              : undefined
+                          }
+                          onChange={() => togglePick(r)}
+                          aria-label={t.pawn.payTogether.select.replace('{ticket}', r.ticket_number)}
+                          className="h-4 w-4 cursor-pointer accent-navy disabled:cursor-not-allowed disabled:opacity-30"
+                        />
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs font-bold text-navy">
                       {r.ticket_number}
                     </td>
                     <td className="px-4 py-3">
@@ -535,6 +602,38 @@ export default function PawnContent({
             }
             return res
           }}
+        />
+      ) : null}
+      {payTogetherOpen && pickedRows.length >= 2 ? (
+        <PayTogetherDialog
+          tickets={pickedRows.map((r) => ({
+            id: r.id,
+            ticket_number: r.ticket_number,
+            payoff: r.payoff ?? 0,
+            loan: { ...r.pay!, dueDate: r.due_date, charge },
+          }))}
+          customerName={pickedRows[0].customer_name}
+          today={today}
+          onClose={() => {
+            setPayTogetherOpen(false)
+            router.refresh()
+          }}
+          onSubmit={(input) => recordPaymentsAction(input)}
+          onDone={(groupId, total) => {
+            setGroupReceipt({ groupId, total, count: pickedRows.length })
+            setPayTogetherOpen(false)
+            setPicked([])
+            router.refresh()
+          }}
+        />
+      ) : null}
+      {groupReceipt ? (
+        <ReceiptFormatDialog
+          body={t.pawn.detail.receipt.groupDialogBody
+            .replace('{total}', fmtMoney(groupReceipt.total))
+            .replace('{count}', String(groupReceipt.count))}
+          urlFor={(format) => `/api/print/loan-payments/${groupReceipt.groupId}?format=${format}`}
+          onClose={() => setGroupReceipt(null)}
         />
       ) : null}
       {/* The customer's receipt, offered as soon as the payment is in. */}

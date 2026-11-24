@@ -300,6 +300,45 @@ export const loanPaymentSchema = z
 
 export type LoanPaymentInput = z.infer<typeof loanPaymentSchema>
 
+/** Most tickets one "Pay together" takes. */
+export const MAX_PAY_TOGETHER = 20
+
+// Several tickets of one customer paid in one visit (recordPaymentsAction).
+// Each ticket says what a single payment says; the method and the note are
+// the visit's. The split and new due dates are decided by the server.
+export const loanPaymentsSchema = z.object({
+  payments: z
+    .array(
+      z
+        .object({
+          loan_id: z.string().uuid(),
+          amount: requiredDecimalPositive,
+          fees_paid: requiredDecimalNonNeg.default(0),
+          periods: z.coerce.number().int().min(0).max(MAX_EXTENSION_PERIODS).default(0),
+          new_due_date: z.preprocess(
+            (v) => (v == null || v === '' ? undefined : v),
+            z
+              .string()
+              .regex(/^\d{4}-\d{2}-\d{2}$/)
+              .optional(),
+          ),
+        })
+        .superRefine((v, ctx) => {
+          if (v.fees_paid > v.amount + 0.0001) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['fees_paid'],
+              message: 'fees_exceed_amount',
+            })
+          }
+        }),
+    )
+    .min(2)
+    .max(MAX_PAY_TOGETHER),
+  payment_method: paymentMethodSchema.default('cash'),
+  notes: optionalTrimmedString,
+})
+
 // ── Free time (a manager's gift) ────────────────────────────────────────────
 
 // How long, and in which unit. The new due date and the interest forgiven

@@ -7,19 +7,13 @@ import {
   MAX_EXTENSION_PERIODS,
   addDaysIso,
   daysBetween,
-  extensionCost,
   extensionCostToDate,
-  periodsToBringCurrent,
   planLoanPayment,
   type ChargeModel,
   type LoanMoneyEvent,
 } from '@/lib/pawn/math'
+import { moveChoices } from '@/lib/pawn/payment-choices'
 import type { PaymentMethod } from '@/types/database-aliases'
-
-/** Periods always offered, and how many more past the one that brings a
- *  late ticket current — a customer may pay ahead as far as they like. */
-const MIN_CHOICES = 6
-const CHOICES_PAST_CURRENT = 6
 
 /** "1,086.00" — the dictionary string carries the "$". */
 const usd = (n: number): string =>
@@ -78,29 +72,12 @@ export function RecordPaymentDialog({
   const [error, setError] = useState<string | null>(null)
 
   const periodDays = loan.charge.periodDays
-  // Open on the move that brings the ticket current: one period for a
-  // customer on time, more for one who is late.
-  const startPeriods = periodsToBringCurrent(loan.dueDate, today, periodDays)
-  // What each choice costs and where it leaves the due date. The list always
-  // runs past today, however late the ticket is: a ticket that is a year
-  // behind must still be able to reach a date in the future, and beyond.
-  const choices = useMemo(() => {
-    const count = Math.min(
-      MAX_EXTENSION_PERIODS,
-      Math.max(MIN_CHOICES, startPeriods + CHOICES_PAST_CURRENT),
-    )
-    return Array.from({ length: count }, (_, i) => {
-      const periods = i + 1
-      return {
-        periods,
-        days: periods * periodDays,
-        cost: extensionCost(loan, periods),
-        due: addDaysIso(loan.dueDate, periods * periodDays),
-      }
-      // Nobody pays ahead more than it costs to redeem: those are not
-      // offered (the move that brings the ticket current always is).
-    }).filter((c) => c.periods <= startPeriods || c.cost <= payoff + 0.004)
-  }, [loan, startPeriods, periodDays, payoff])
+  // What each choice costs and where it leaves the due date (moveChoices,
+  // shared with Pay together).
+  const { startPeriods, choices } = useMemo(
+    () => moveChoices(loan, today, payoff),
+    [loan, today, payoff],
+  )
   const [periods, setPeriods] = useState<number>(startPeriods)
   // "Another date": the day the clerk wants the ticket due. Null = the move
   // is one of the listed periods.
@@ -455,10 +432,13 @@ export function Modal({
   title,
   onClose,
   children,
+  wide = false,
 }: {
   title: string
   onClose: () => void
   children: React.ReactNode
+  /** A wider, scrolling dialog (several tickets at once). */
+  wide?: boolean
 }) {
   return (
     <div
@@ -466,7 +446,11 @@ export function Modal({
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-lg">
+      <div
+        className={`w-full rounded-xl border border-border bg-card p-5 shadow-lg ${
+          wide ? 'max-h-[90vh] max-w-3xl overflow-y-auto' : 'max-w-lg'
+        }`}
+      >
         <header className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground">{title}</h3>
           <button

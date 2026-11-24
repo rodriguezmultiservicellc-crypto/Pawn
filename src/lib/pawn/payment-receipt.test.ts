@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { en } from '@/lib/i18n/en'
 import { es } from '@/lib/i18n/es'
 import {
+  paymentGroupReceiptHtml,
+  paymentGroupReceiptLines,
+  paymentGroupTotal,
+  type PaymentGroupReceiptDoc,
   paymentReceiptFacts,
   paymentReceiptHtml,
   paymentReceiptLines,
@@ -135,6 +139,44 @@ describe('paymentReceiptLines', () => {
     expect(text).toMatch(/TOTAL PAID \/ TOTAL PAGADO\s+\$1,650\.00/)
     // No plain "Interest" line for money that was given back.
     expect(text).not.toMatch(/^Interest \/ Inter.s/m)
+  })
+})
+
+describe('paymentGroupReceipt (several tickets, one visit)', () => {
+  const group: PaymentGroupReceiptDoc = {
+    tickets: [
+      { ...doc('p1'), ticket_number: '15634' },
+      { ...doc('p2'), ticket_number: 'PT-015700' },
+      { ...doc('p3'), ticket_number: '15990' },
+    ],
+  }
+
+  it('adds the tickets up to one total', () => {
+    expect(paymentGroupTotal(group)).toBe(2150)
+  })
+
+  it('fits the paper and prints every ticket with its own total, then the visit total', () => {
+    const lines = paymentGroupReceiptLines(group, 40)
+    for (const l of lines) expect(l.length).toBeLessThanOrEqual(40)
+    // Long bilingual labels wrap on 40 columns: read it as one run of words.
+    const text = lines.join('\n').replace(/\s+/g, ' ')
+    for (const n of ['15634', 'PT-015700', '15990']) expect(text).toContain(n)
+    expect(text).toMatch(/Paid on this ticket \/ Pagado en este boleto \$180\.00/)
+    expect(text).toMatch(/Paid on this ticket \/ Pagado en este boleto \$100\.00/)
+    expect(text).toMatch(/Paid on this ticket \/ Pagado en este boleto \$1,870\.00/)
+    expect(text).toMatch(/\$2,150\.00/)
+    expect(text).toContain('10/22/2026')
+    expect(text).toMatch(/REDEEMED/)
+    expect(text).toContain('Ana Diaz')
+  })
+
+  it('escapes what it prints, in both formats', () => {
+    const g = { tickets: group.tickets.map((t) => ({ ...t, customer_name: '<b>Ana</b>' })) }
+    for (const format of ['thermal', 'letter'] as const) {
+      const html = paymentGroupReceiptHtml(g, format)
+      expect(html).toContain('&lt;b&gt;Ana&lt;/b&gt;')
+      expect(html).not.toContain('<b>Ana</b>')
+    }
   })
 })
 
