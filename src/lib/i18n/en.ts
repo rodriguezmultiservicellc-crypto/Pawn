@@ -336,6 +336,33 @@ export const en = {
     },
   },
 
+  // What a customer's record must hold before a pawn or a buy
+  // (FL 539.001(8)(b); src/lib/customers/pledgor-record.ts).
+  pledgorRecord: {
+    incomplete:
+      'This customer’s record is missing what the law requires on the ticket: {fields}. Complete the customer record, then save again.',
+    bannerTitle: 'Customer record incomplete',
+    bannerBody: 'Florida requires these on the ticket before a pawn or buy: {fields}.',
+    completeRecord: 'Complete customer record',
+    fields: {
+      last_name: 'Last name',
+      first_name: 'First name',
+      address: 'Address (street, city, state, ZIP)',
+      phone: 'Home phone',
+      place_of_employment: 'Place of employment',
+      date_of_birth: 'Date of birth',
+      sex: 'Sex',
+      race: 'Race',
+      height_inches: 'Height',
+      weight_lbs: 'Weight',
+      hair_color: 'Hair',
+      eye_color: 'Eyes',
+      id_type: 'ID type',
+      id_number: 'ID number',
+      id_state: 'ID issuing agency / state',
+    },
+  },
+
   customers: {
     title: 'Customers',
     // Field error codes from customerCreateSchema.
@@ -343,6 +370,7 @@ export const en = {
       required: 'Required',
       invalid_phone: 'Enter a phone number: digits only, 7 to 15 of them, like (813) 555-0100.',
       invalid_email: 'Enter a full email address, like name@example.com.',
+      invalid_id_agency: 'Enter the state or office that issued the ID (for example FL), not a date or number.',
     },
     new: 'New customer',
     dashboard: {

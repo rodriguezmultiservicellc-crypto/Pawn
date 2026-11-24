@@ -1,5 +1,6 @@
 'use server'
 
+import { missingPledgorFields, pledgorIncompleteError } from '@/lib/customers/pledgor-record'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
@@ -190,7 +191,7 @@ export async function createBuyOutrightAction(
   const { data: customer } = await supabase
     .from('customers')
     .select(
-      'id, first_name, last_name, middle_name, date_of_birth, phone, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_country, id_expiry, height_inches, weight_lbs, sex, hair_color, eye_color, identifying_marks, place_of_employment, photo_url',
+      'id, first_name, last_name, middle_name, date_of_birth, phone, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_country, id_expiry, height_inches, weight_lbs, sex, race, hair_color, eye_color, identifying_marks, place_of_employment, photo_url',
     )
     .eq('id', v.customer_id)
     .eq('tenant_id', tenantId)
@@ -198,6 +199,10 @@ export async function createBuyOutrightAction(
     .maybeSingle()
 
   if (!customer) return { error: 'customer_not_found', values: echo }
+
+  // FL 539.001(8)(b): the form must carry the seller's full record.
+  const missing = missingPledgorFields(customer)
+  if (missing.length > 0) return { error: pledgorIncompleteError(missing), values: echo }
 
   // Paying the seller in store credit needs the module on. Checked before
   // anything is written — a purchase recorded as "paid in store credit"

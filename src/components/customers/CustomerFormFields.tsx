@@ -279,6 +279,7 @@ export function CustomerFormFields({
             label={t.customers.idIssuingState}
             name="id_state"
             defaultValue={initial.id_state ?? ''}
+            error={fieldError?.('id_state')}
           />
           <Field
             label={t.customers.idIssuingCountry}

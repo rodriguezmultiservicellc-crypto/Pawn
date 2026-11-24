@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isIdAgency } from '@/lib/customers/pledgor-record'
 import { normalizePhone } from '@/lib/customers/phone'
 
 /**
@@ -23,6 +24,11 @@ const optionalTrimmedString = z
     z.string().min(1).max(500).nullable().optional(),
   )
   .transform((v) => v ?? null)
+
+/** The ID's issuing agency: a state or office, never a date or number (FL 539.001(8)(b)5). */
+const idAgency = optionalTrimmedString.refine((v) => v == null || isIdAgency(v), {
+  message: 'invalid_id_agency',
+})
 
 const optionalDate = z
   .preprocess(
@@ -118,7 +124,7 @@ export const customerCreateSchema = z.object({
     )
     .transform((v) => v ?? null),
   id_number: optionalTrimmedString,
-  id_state: optionalTrimmedString,
+  id_state: idAgency,
   id_country: z
     .preprocess(
       (v) => (typeof v === 'string' && v.trim() === '' ? 'US' : v),
@@ -234,7 +240,7 @@ export const customerDocumentUploadSchema = z.object({
     )
     .transform((v) => v ?? null),
   id_number: optionalTrimmedString,
-  id_state: optionalTrimmedString,
+  id_state: idAgency,
   id_expiry: optionalDate,
 })
 

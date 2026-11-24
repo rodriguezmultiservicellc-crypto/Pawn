@@ -41,6 +41,7 @@ import {
 } from '@/lib/metal-counter/math'
 import { ruleErrorText } from '@/lib/jurisdictions/messages'
 import CustomerPicker from '@/components/customers/CustomerPicker'
+import { PledgorRecordBanner } from '@/components/customers/PledgorRecordBanner'
 import {
   createBuyOutrightAction,
   type CreateBuyState,
@@ -165,6 +166,8 @@ export default function BuyForm({
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<ItemRow[]>(() => [blankItem()])
   const [formGen, setFormGen] = useState(0)
+  // The picked seller, for the incomplete-record warning.
+  const [sellerId, setSellerId] = useState<string | null>(state.values?.customer_id ?? null)
 
   // Repopulate scalars on validation echo (item rows are kept intact in
   // local state since they're already client-controlled). Compute-during-
@@ -332,6 +335,7 @@ export default function BuyForm({
                 enableDlScan
                 error={fieldError('customer_id')}
                 initialCustomerId={state.values?.customer_id ?? null}
+                onChange={(c) => setSellerId(c?.id ?? null)}
               />
             </div>
             <Link
@@ -342,6 +346,9 @@ export default function BuyForm({
             </Link>
           </div>
           <p className="mt-2 text-[11px] text-muted">{f.customerHelp}</p>
+          <div className="mt-2">
+            <PledgorRecordBanner customerId={sellerId} />
+          </div>
         </fieldset>
 
         {/* Items */}

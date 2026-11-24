@@ -1,5 +1,6 @@
 'use server'
 
+import { missingPledgorFields, pledgorIncompleteError } from '@/lib/customers/pledgor-record'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
@@ -287,7 +288,7 @@ export async function createLoanAction(
   const { data: customer } = await supabase
     .from('customers')
     .select(
-      'id, first_name, last_name, middle_name, date_of_birth, phone, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_expiry, height_inches, weight_lbs, sex, hair_color, eye_color, identifying_marks, place_of_employment, photo_url',
+      'id, first_name, last_name, middle_name, date_of_birth, phone, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_expiry, height_inches, weight_lbs, sex, race, hair_color, eye_color, identifying_marks, place_of_employment, photo_url',
     )
     .eq('id', v.customer_id)
     .eq('tenant_id', tenantId)
@@ -295,6 +296,10 @@ export async function createLoanAction(
     .maybeSingle()
 
   if (!customer) return { error: 'customer_not_found' }
+
+  // FL 539.001(8)(b): the ticket must carry the pledgor's full record.
+  const missing = missingPledgorFields(customer)
+  if (missing.length > 0) return { error: pledgorIncompleteError(missing) }
 
   // Banned list + OFAC SDN screening (patches/0051). Refuses the intake on
   // a ban, an unreviewed potential match, or a confirmed match.

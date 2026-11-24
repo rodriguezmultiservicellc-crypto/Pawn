@@ -332,6 +332,31 @@ export const es: Dictionary = {
     },
   },
 
+  pledgorRecord: {
+    incomplete:
+      'Al registro de este cliente le falta lo que la ley exige en el boleto: {fields}. Complete el registro del cliente y vuelva a guardar.',
+    bannerTitle: 'Registro del cliente incompleto',
+    bannerBody: 'Florida exige estos datos en el boleto antes de un empeño o una compra: {fields}.',
+    completeRecord: 'Completar registro del cliente',
+    fields: {
+      last_name: 'Apellido',
+      first_name: 'Nombre',
+      address: 'Dirección (calle, ciudad, estado, código postal)',
+      phone: 'Teléfono de casa',
+      place_of_employment: 'Lugar de empleo',
+      date_of_birth: 'Fecha de nacimiento',
+      sex: 'Sexo',
+      race: 'Raza',
+      height_inches: 'Estatura',
+      weight_lbs: 'Peso',
+      hair_color: 'Cabello',
+      eye_color: 'Ojos',
+      id_type: 'Tipo de identificación',
+      id_number: 'Número de identificación',
+      id_state: 'Agencia / estado emisor',
+    },
+  },
+
   customers: {
     title: 'Clientes',
     // Códigos de error de campo de customerCreateSchema.
@@ -339,6 +364,7 @@ export const es: Dictionary = {
       required: 'Obligatorio',
       invalid_phone: 'Ingrese un número de teléfono: solo dígitos, de 7 a 15, como (813) 555-0100.',
       invalid_email: 'Ingrese un correo electrónico completo, como nombre@ejemplo.com.',
+      invalid_id_agency: 'Escriba el estado u oficina que emitió la identificación (por ejemplo FL), no una fecha ni un número.',
     },
     new: 'Nuevo cliente',
     dashboard: {

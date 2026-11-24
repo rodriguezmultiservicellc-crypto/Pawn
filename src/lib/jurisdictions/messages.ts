@@ -1,5 +1,6 @@
 import type { Dictionary } from '@/lib/i18n/en'
 import { parseJurisdictionError } from './rules'
+import { parsePledgorIncomplete } from '@/lib/customers/pledgor-record'
 
 const INTAKE_BLOCK_CODES = [
   'customer_banned',
@@ -17,6 +18,15 @@ const INTAKE_BLOCK_CODES = [
  * keep working.
  */
 export function ruleErrorText(t: Dictionary, raw: string): string {
+  // The customer's record lacks what FL 539.001(8)(b) puts on the ticket.
+  const missing = parsePledgorIncomplete(raw)
+  if (missing) {
+    return t.pledgorRecord.incomplete.replace(
+      '{fields}',
+      missing.map((f) => t.pledgorRecord.fields[f]).join(', '),
+    )
+  }
+
   const block = INTAKE_BLOCK_CODES.find((c) => raw === c)
   if (block) return t.ofac.intakeErrors[block]
 
