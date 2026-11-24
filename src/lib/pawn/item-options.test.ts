@@ -4,6 +4,7 @@ import { es } from '@/lib/i18n/es'
 import {
   GENERAL_COLOR_KEYS,
   JEWELRY_COLOR_KEYS,
+  STONE_TYPE_KEYS,
   choicesFrom,
   matchChoice,
   styleKeysFor,
@@ -45,6 +46,27 @@ describe('the Color and Style choices', () => {
     expect(all).toContain('cuban_link')
     expect(all).toContain('pocket_watch')
     expect(new Set(all).size).toBe(all.length)
+  })
+})
+
+describe('the Stone choices', () => {
+  const stonesEs = choicesFrom(STONE_TYPE_KEYS, en.pawn.new_.stoneTypes, es.pawn.new_.stoneTypes)
+
+  it('have a word in both dictionaries for every key, and no word no list offers', () => {
+    for (const k of STONE_TYPE_KEYS) {
+      expect(en.pawn.new_.stoneTypes[k], k).toBeTruthy()
+      expect(es.pawn.new_.stoneTypes[k], k).toBeTruthy()
+    }
+    const offered = new Set<string>(STONE_TYPE_KEYS)
+    expect(Object.keys(en.pawn.new_.stoneTypes).filter((k) => !offered.has(k))).toEqual([])
+    expect(Object.keys(es.pawn.new_.stoneTypes).filter((k) => !offered.has(k))).toEqual([])
+  })
+
+  it('save the English word, and keep a lab-grown diamond apart from a mined one', () => {
+    expect(matchChoice('rubí', stonesEs)?.value).toBe('Ruby')
+    expect(matchChoice('Diamante de laboratorio', stonesEs)?.value).toBe('Lab-grown diamond')
+    expect(matchChoice('diamond', stonesEs)?.value).toBe('Diamond')
+    expect(matchChoice('3 stones', stonesEs)).toBeNull()
   })
 })
 

@@ -1,8 +1,10 @@
 /**
  * The choices behind the Color and Style dropdowns of the item popup.
  *
+ * Also the Stone dropdown of each stone line.
+ *
  * Only KEYS live here. The words are in the dictionary
- * (pawn.new_.colors / pawn.new_.styles): the clerk reads them in their own
+ * (pawn.new_.colors / styles / stoneTypes): the clerk reads them in their own
  * language, and what is SAVED is always the English word — Fla. Stat.
  * § 539.001(8)(a) wants the form's entries "in English", and the columns
  * (color, jewelry_style) are free text, so an older or imported value
@@ -37,6 +39,32 @@ export const GENERAL_COLOR_KEYS = [
   'pink',
   'purple',
   'multicolor',
+] as const
+
+/** What a stone is (FS 539.001(8)(b)2.g, "gemstone description"). Lab-grown
+ *  and look-alikes have their own line: they lend at a fraction of a mined
+ *  diamond, and the ticket must say which it is. */
+export const STONE_TYPE_KEYS = [
+  'diamond',
+  'lab_diamond',
+  'moissanite',
+  'cubic_zirconia',
+  'ruby',
+  'sapphire',
+  'emerald',
+  'amethyst',
+  'aquamarine',
+  'topaz',
+  'garnet',
+  'opal',
+  'pearl',
+  'peridot',
+  'citrine',
+  'tanzanite',
+  'tourmaline',
+  'onyx',
+  'jade',
+  'turquoise',
 ] as const
 
 const CHAIN_STYLES = [

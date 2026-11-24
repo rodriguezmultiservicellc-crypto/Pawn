@@ -45,6 +45,7 @@ import type { RateMaps } from '@/lib/metal-counter/math'
 import {
   GENERAL_COLOR_KEYS,
   JEWELRY_COLOR_KEYS,
+  STONE_TYPE_KEYS,
   choicesFrom,
   matchChoice,
   styleKeysFor,
@@ -863,6 +864,16 @@ function CollateralRow({
   function styleChoicesFor(r: Row) {
     return choicesFrom(styleKeysFor(r.category), en.pawn.new_.styles, tn.styles)
   }
+  const stoneTypeChoices = choicesFrom(STONE_TYPE_KEYS, en.pawn.new_.stoneTypes, tn.stoneTypes)
+  // The stones as they are saved and described: a stone typed under "Other"
+  // that is one of the listed ones in the screen language ("Rubí") becomes
+  // its English word, like Color and Style.
+  function stonesInEnglish(stones: StoneDraft[]): StoneDraft[] {
+    return stones.map((s) => ({
+      ...s,
+      type: matchChoice(s.type, stoneTypeChoices)?.value ?? s.type,
+    }))
+  }
 
   // The description this row's fields add up to. ALWAYS IN ENGLISH — every
   // word comes from the English dictionary, never from `t` — because FS
@@ -909,7 +920,7 @@ function CollateralRow({
       weightGrams: r.weight_grams,
       size: jewelry ? r.jewelry_size : r.item_size,
       coatingWord: isSolidMetal(r.coating) ? '' : inv.coatings[r.coating],
-      gemstones: gemstoneText(r.stones, r.gemstone_notes),
+      gemstones: gemstoneText(stonesInEnglish(r.stones), r.gemstone_notes),
       gender: r.jewelry_gender,
       style: matchChoice(r.jewelry_style, styleChoicesFor(r))?.value ?? r.jewelry_style,
       jewelryBrand: r.jewelry_brand,
@@ -1551,7 +1562,7 @@ function CollateralRow({
                 <input
                   type="hidden"
                   name={`collateral_${index}_stones`}
-                  value={JSON.stringify(row.stones)}
+                  value={JSON.stringify(stonesInEnglish(row.stones))}
                 />
                 <div
                   className={`hidden gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted md:grid ${STONE_GRID}`}
@@ -1570,7 +1581,7 @@ function CollateralRow({
                       stones: row.stones.map((x, i) => (i === si ? { ...x, ...patch } : x)),
                     })
                   return (
-                    <div key={si} className={`grid grid-cols-2 gap-2 ${STONE_GRID}`}>
+                    <div key={si} className={`grid grid-cols-2 items-start gap-2 ${STONE_GRID}`}>
                       <input
                         type="number"
                         min={0}
@@ -1581,13 +1592,14 @@ function CollateralRow({
                         placeholder={t.pawn.new_.stoneQty}
                         className={INPUT}
                       />
-                      <input
-                        type="text"
+                      <ChoiceOrOther
+                        labelHidden
+                        label={t.pawn.new_.stoneType}
                         value={stone.type}
-                        onChange={(e) => setStone({ type: e.target.value })}
-                        aria-label={t.pawn.new_.stoneType}
-                        placeholder={t.pawn.new_.stoneTypePlaceholder}
-                        className={INPUT}
+                        onChange={(type) => setStone({ type })}
+                        choices={stoneTypeChoices}
+                        otherLabel={t.pawn.new_.itemChoiceOther}
+                        otherPlaceholder={t.pawn.new_.itemChoiceOtherText}
                       />
                       <input
                         type="number"

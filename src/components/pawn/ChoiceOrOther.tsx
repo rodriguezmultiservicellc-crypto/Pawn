@@ -14,6 +14,10 @@ const OTHER = '__other__'
  * something the clerk typed — shows under "Other" exactly as it is. What is
  * submitted (the hidden input) is the choice's saved word when the value
  * matches one, else the value as typed.
+ *
+ * Inside a grid with its own header row (a stone line), pass `labelHidden`
+ * (the label is kept for screen readers and shown as the empty choice) and
+ * no `name`: the caller submits the value itself.
  */
 export function ChoiceOrOther({
   label,
@@ -24,15 +28,17 @@ export function ChoiceOrOther({
   otherLabel,
   otherPlaceholder,
   className,
+  labelHidden = false,
 }: {
   label: string
-  name: string
+  name?: string
   value: string
   onChange: (value: string) => void
   choices: ReadonlyArray<Choice>
   otherLabel: string
   otherPlaceholder: string
   className?: string
+  labelHidden?: boolean
 }) {
   // "Other…" was picked and nothing is typed yet. With something typed that
   // is not on the list, Other shows by itself.
@@ -41,8 +47,16 @@ export function ChoiceOrOther({
   const showOther = otherOpen || (value.trim() !== '' && match == null)
 
   return (
-    <div className={`space-y-1 ${className ?? ''}`}>
-      <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+    // A hidden label is position:absolute, so in a flex column it takes no
+    // gap and the dropdown lines up with the boxes beside it.
+    <div className={`${labelHidden ? 'flex flex-col gap-1' : 'space-y-1'} ${className ?? ''}`}>
+      <span
+        className={
+          labelHidden
+            ? 'sr-only'
+            : 'block text-xs font-semibold uppercase tracking-[0.08em] text-muted'
+        }
+      >
         {label}
       </span>
       <select
@@ -61,7 +75,7 @@ export function ChoiceOrOther({
         }}
         className={INPUT}
       >
-        <option value="">—</option>
+        <option value="">{labelHidden ? label : '—'}</option>
         {choices.map((c) => (
           <option key={c.value} value={c.value}>
             {c.label}
@@ -80,7 +94,9 @@ export function ChoiceOrOther({
           className={INPUT}
         />
       ) : null}
-      <input type="hidden" name={name} value={match ? match.value : value.trim()} />
+      {name ? (
+        <input type="hidden" name={name} value={match ? match.value : value.trim()} />
+      ) : null}
     </div>
   )
 }
