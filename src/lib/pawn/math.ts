@@ -357,6 +357,44 @@ export function appliedPayments(
   }
 }
 
+// ── Interest paid ahead ────────────────────────────────────────────────────
+
+/**
+ * The interest the customer has PAID for time that has not passed yet.
+ *
+ * Fla. Stat. § 539.001(11)(c): "Any unused pawn service charge paid in
+ * advance by the pledgor shall be refunded by the pawnbroker." A customer
+ * who pays two months ahead and redeems after one has paid for a month they
+ * did not use; that money comes off what they owe.
+ *
+ * Only money the customer paid counts — never interest a manager forgave
+ * (free time is a gift, not a payment). Which of the two reached past today
+ * is decided in the order they happened: payments and free time cover the
+ * charge one after the other from the date of the pawn, and the part of a
+ * PAYMENT that lands beyond what has accrued (`accrued`) is paid ahead.
+ */
+export function interestPaidAhead(
+  events: ReadonlyArray<LoanMoneyEvent>,
+  accrued: number,
+): number {
+  const when = (e: LoanMoneyEvent): number => {
+    const t = Date.parse(e.occurred_at)
+    return isFinite(t) ? t : 0
+  }
+  const ordered = [...events].sort((a, b) => when(a) - when(b))
+  let covered = 0
+  let ahead = 0
+  for (const e of ordered) {
+    const paid = toMoney(e.interest_paid)
+    if (paid > 0) {
+      ahead += Math.max(0, covered + paid - Math.max(accrued, covered))
+    }
+    covered += paid + toMoney(e.interest_waived)
+  }
+  // Never more than everything that reaches past today.
+  return r4(Math.max(0, Math.min(ahead, covered - accrued)))
+}
+
 // ── Payoff balance ─────────────────────────────────────────────────────────
 
 export type PayoffArgs = {
@@ -391,7 +429,11 @@ export type PayoffResult = {
   interestWaived: number
   /** Outstanding interest remaining (= max(0, accrued − applied − waived)). */
   interestOutstanding: number
-  /** Total payoff today (principalOutstanding + interestOutstanding). */
+  /** Interest the customer paid for time not passed yet; it comes off the
+   *  payoff (interestPaidAhead). 0 whenever interest is still owed. */
+  interestPaidAhead: number
+  /** Total payoff today: principalOutstanding + interestOutstanding −
+   *  interestPaidAhead, never below 0. */
   payoff: number
 }
 
@@ -402,8 +444,11 @@ export type PayoffResult = {
  *   - The charge accrues from the issue date forward the way the tenant's
  *     ChargeModel says, and a payment toward the loan lowers the balance
  *     the LATER charges are figured on (interestAccruedOnBalance).
- *   - Interest paid is netted against accrued; any negative result is
- *     clamped to 0 (overpayment of interest is treated as fees).
+ *   - Interest paid is netted against accrued. Interest PAID beyond what
+ *     has accrued is time the customer paid for and has not used: it comes
+ *     off the payoff (interestPaidAhead; § 539.001(11)(c)). The event that
+ *     closes the loan books it as NEGATIVE interest, so interest income
+ *     only ever counts what was earned.
  *   - Payoff floor is 0 — once principal is paid down to zero we don't
  *     accrue further interest in this calc (the redemption event freezes
  *     it on the DB side).
@@ -433,7 +478,12 @@ export function payoffBalance(args: PayoffArgs): PayoffResult {
   // closes it out).
   const effectiveInterest = principalOutstanding === 0 ? 0 : interestOutstanding
 
-  const payoff = r4(principalOutstanding + effectiveInterest)
+  // A closed loan has nothing left to credit.
+  const paidAhead =
+    principalOutstanding === 0 ? 0 : interestPaidAhead(args.events, accrued)
+  const payoff = r4(
+    Math.max(0, principalOutstanding + effectiveInterest - paidAhead),
+  )
 
   return {
     principal,
@@ -443,6 +493,7 @@ export function payoffBalance(args: PayoffArgs): PayoffResult {
     interestApplied,
     interestWaived,
     interestOutstanding: effectiveInterest,
+    interestPaidAhead: paidAhead,
     payoff,
   }
 }
@@ -732,9 +783,12 @@ export type LoanPaymentPlan =
  * - Interest is paid before principal: the periods being paid for AND
  *   anything accrued to today. Principal can never be paid down while
  *   interest is owed (see allocateLoanPayment).
- * - More than is owed is refused, never silently absorbed.
- * - A payment that retires the principal closes the loan; the date does not
- *   move on a closed loan.
+ * - More than it costs to redeem today is refused, whatever it was meant
+ *   for: nobody pays ahead more than the payoff.
+ * - A payment of the whole payoff closes the loan; the date does not move
+ *   on a closed loan. If the customer had paid interest ahead, the unused
+ *   part comes off: the closing payment books the principal still owed and
+ *   NEGATIVE interest for it (interest_paid < 0 only ever here).
  * - What goes toward the loan lowers the periods being paid AHEAD in the
  *   same payment: they start after today, so they are figured on the
  *   balance this payment leaves (§ 539.001(11)(e)). The customer is never
@@ -771,9 +825,6 @@ export function planLoanPayment(
     }
   }
   const cost = moveCost(args, moveDays, null)
-  if (moveDays > 0 && toLoan < cost - 0.0001) {
-    return { ok: false, reason: 'extension_underpaid', needed: cost }
-  }
 
   const now = payoffBalance({
     principal: args.principal,
@@ -784,6 +835,34 @@ export function planLoanPayment(
     minMonthlyCharge: args.minMonthlyCharge ?? null,
     charge: args.charge,
   })
+  // The payoff is figured to four places and money changes hands in cents:
+  // the payoff to the cent, either way it rounds, is the payoff.
+  const payoffCents = cents(now.payoff)
+  if (toLoan > Math.max(now.payoff, payoffCents) + 0.0001) {
+    return { ok: false, reason: 'exceeds_payoff' }
+  }
+  if (
+    now.principalOutstanding > 0 &&
+    now.payoff > 0 &&
+    toLoan >= Math.min(now.payoff, payoffCents) - 0.0001
+  ) {
+    // Everything owed: the loan is redeemed. What is paid is the principal
+    // still owed plus the interest owed — or less the interest paid ahead.
+    return {
+      ok: true,
+      periods,
+      move_days: moveDays,
+      extension_cost: cost,
+      interest_paid: r4(toLoan - now.principalOutstanding),
+      principal_paid: now.principalOutstanding,
+      fees_paid: fees,
+      new_due_date: null,
+      closes: true,
+    }
+  }
+  if (moveDays > 0 && toLoan < cost - 0.0001) {
+    return { ok: false, reason: 'extension_underpaid', needed: cost }
+  }
   // The interest this payment must cover when `down` of it goes toward the
   // loan today: everything accrued to today, and the move — whose periods
   // still ahead cost less the more is paid down. It never rises with `down`.
@@ -819,7 +898,8 @@ export function planLoanPayment(
     principalPaid = r4(Math.min(down, owed))
   }
   const interestPaid = r4(toLoan - principalPaid)
-  const closes = owed > 0 && r4(owed - principalPaid) <= 0
+  // Paying the whole payoff was handled above; this payment leaves a balance.
+  const closes = false
 
   return {
     ok: true,

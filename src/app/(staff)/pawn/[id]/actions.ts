@@ -17,7 +17,6 @@ import {
   payoffFromLoan,
   planFreeTime,
   planLoanPayment,
-  splitPayment,
   toMoney,
 } from '@/lib/pawn/math'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -27,7 +26,12 @@ import {
 } from '@/lib/loyalty/events'
 import type { LoanStatus, PaymentMethod } from '@/types/database-aliases'
 
-export type ActionResult = { error?: string; ok?: boolean }
+export type ActionResult = {
+  error?: string
+  ok?: boolean
+  /** The payment just recorded: the screen prints its receipt. */
+  eventId?: string
+}
 
 const STAFF_LOAN_ROLES = [
   'owner',
@@ -172,7 +176,9 @@ export async function recordPaymentAction(
 
   let newStatus: LoanStatus = loan.status as LoanStatus
   let newDueDate: string | null = null
-  if (payoff.payoff <= 0) {
+  // Closed when nothing of the loan is left — not when the payoff is 0: a
+  // customer who paid interest ahead can owe $0 today on an open loan.
+  if (payoff.principalOutstanding <= 0) {
     newStatus = 'redeemed'
     await supabase.from('loan_events').insert({
       loan_id: loan.id,
@@ -282,7 +288,7 @@ export async function recordPaymentAction(
 
   revalidatePath(`/pawn/${loan.id}`)
   revalidatePath('/pawn')
-  return { ok: true }
+  return { ok: true, eventId: paymentEvent.id }
 }
 
 // ── Free time (managers only) ───────────────────────────────────────────────
@@ -438,10 +444,15 @@ export async function redeemLoanAction(
     chargeModelOf(redeemRules),
   )
 
-  // Apply remaining interest first, then remaining principal.
-  const split = splitPayment(payoff.payoff, payoff.interestOutstanding)
+  // The payoff is the principal still owed plus the interest owed — or
+  // LESS the interest the customer paid ahead and did not use, which this
+  // event gives back as negative interest (§ 539.001(11)(c)).
+  const split = {
+    principal_paid: payoff.principalOutstanding,
+    interest_paid: toMoney(payoff.payoff - payoff.principalOutstanding),
+  }
 
-  const { data: payoffEvent } = await supabase
+  const { data: payoffEvent, error: payoffErr } = await supabase
     .from('loan_events')
     .insert({
       loan_id: loan.id,
@@ -456,6 +467,9 @@ export async function redeemLoanAction(
     })
     .select('id')
     .single()
+  // No payment on the ticket, no redemption: never close a loan on money
+  // that was not recorded.
+  if (payoffErr || !payoffEvent) return { error: payoffErr?.message ?? 'insert_failed' }
 
   await supabase.from('loan_events').insert({
     loan_id: loan.id,
@@ -484,6 +498,7 @@ export async function redeemLoanAction(
     changes: {
       kind: 'redemption',
       payoff: payoff.payoff,
+      interest_paid_ahead_credited: payoff.interestPaidAhead,
       payment_method: method,
     },
   })

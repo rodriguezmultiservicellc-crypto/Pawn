@@ -36,7 +36,7 @@ import {
   voidLoanAction,
   type ActionResult,
 } from './actions'
-import type { ChargeModel, PayoffResult } from '@/lib/pawn/math'
+import { daysBetween, type ChargeModel, type PayoffResult } from '@/lib/pawn/math'
 import type {
   InventoryCategory,
   LoanEventType,
@@ -154,6 +154,17 @@ export default function PawnLoanDetail({
   const [printPending, startPrintTransition] = useTransition()
   const [printToast, setPrintToast] = useState<string | null>(null)
   const [showReminder, setShowReminder] = useState(false)
+  // The payment just taken: its customer receipt is offered at once.
+  const [paidReceipt, setPaidReceipt] = useState<{ id: string; amount: number } | null>(null)
+
+  async function thenReceipt(p: Promise<ActionResult>, amount: number): Promise<ActionResult> {
+    const res = await p
+    if (!res.error && res.eventId) setPaidReceipt({ id: res.eventId, amount })
+    return res
+  }
+
+  // How far the due date is: the header says it in the color of its state.
+  const dueIn = daysBetween(today, loan.due_date)
 
   const isTerminal =
     loan.status === 'redeemed' ||
@@ -272,11 +283,40 @@ export default function PawnLoanDetail({
             </div>
             <div className="font-mono text-sm text-foreground">{loan.issue_date}</div>
           </div>
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted">
+          <div
+            className={`rounded-xl border-2 px-4 py-2 ${
+              isTerminal
+                ? 'border-border bg-background'
+                : dueIn < 0
+                  ? 'border-danger bg-danger/5'
+                  : dueIn <= 7
+                    ? 'border-warning bg-warning/5'
+                    : 'border-navy/30 bg-navy/5'
+            }`}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">
               {t.pawn.detail.dueOn}
             </div>
-            <div className="font-mono text-sm text-foreground">{loan.due_date}</div>
+            <div
+              className={`font-mono text-2xl font-bold ${
+                isTerminal ? 'text-muted' : dueIn < 0 ? 'text-danger' : 'text-navy'
+              }`}
+            >
+              {loan.due_date}
+            </div>
+            {!isTerminal ? (
+              <div
+                className={`text-xs font-semibold ${
+                  dueIn < 0 ? 'text-danger' : dueIn <= 7 ? 'text-warning' : 'text-muted'
+                }`}
+              >
+                {dueIn < 0
+                  ? `${t.pawn.detail.daysOverdue}: ${-dueIn}`
+                  : dueIn === 0
+                    ? t.pawn.detail.dueToday
+                    : `${t.pawn.detail.daysToDue}: ${dueIn}`}
+              </div>
+            ) : null}
           </div>
           {!isTerminal ? (
             <div>
@@ -368,7 +408,9 @@ export default function PawnLoanDetail({
           today={today}
           payoff={payoff.payoff}
           onClose={() => setDialog(null)}
-          onSubmit={(fd) => actionWithToast(recordPaymentAction(fd))}
+          onSubmit={(fd) =>
+            thenReceipt(recordPaymentAction(fd), parseFloat(String(fd.get('amount') ?? '0')) || 0)
+          }
         />
       ) : null}
       {dialog === 'freeTime' && canGiveFreeTime ? (
@@ -391,7 +433,16 @@ export default function PawnLoanDetail({
           loanId={loan.id}
           payoff={payoff.payoff}
           onClose={() => setDialog(null)}
-          onSubmit={(fd) => actionWithToast(redeemLoanAction(fd))}
+          onSubmit={(fd) => thenReceipt(redeemLoanAction(fd), payoff.payoff)}
+        />
+      ) : null}
+      {paidReceipt ? (
+        <ReceiptFormatDialog
+          body={t.pawn.detail.receipt.dialogBody
+            .replace('{total}', fmtMoney(paidReceipt.amount))
+            .replace('{number}', loan.ticket_number)}
+          urlFor={(format) => `/api/print/loan/${loan.id}/payment/${paidReceipt.id}?format=${format}`}
+          onClose={() => setPaidReceipt(null)}
         />
       ) : null}
       {dialog === 'forfeit' ? (
@@ -733,6 +784,12 @@ function EventLogPanel({
                 <span className="text-foreground">
                   {t.pawn.payment.interestPaid}:{' '}
                   <span className="font-mono">{fmtMoney(e.interest_paid)}</span>
+                </span>
+              ) : null}
+              {e.interest_paid < 0 ? (
+                <span className="text-foreground">
+                  {t.pawn.detail.interestCredited}:{' '}
+                  <span className="font-mono">{fmtMoney(-e.interest_paid)}</span>
                 </span>
               ) : null}
               {e.fees_paid > 0 ? (

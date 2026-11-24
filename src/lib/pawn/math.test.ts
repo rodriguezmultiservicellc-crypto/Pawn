@@ -26,6 +26,7 @@ import {
   daysBetween,
   interestAccrued,
   interestAccruedOnBalance,
+  interestPaidAhead,
   paydownsOf,
   payoffBalance,
   periodsToBringCurrent,
@@ -252,7 +253,7 @@ describe('payoffBalance', () => {
     expect(r.payoff).toBe(800)
   })
 
-  it('overpayment of interest is clamped to 0 (treated as fees)', () => {
+  it('interest paid beyond what has accrued comes off the payoff', () => {
     const r = payoffBalance({
       charge: DAY,
       principal: 1000,
@@ -263,8 +264,10 @@ describe('payoffBalance', () => {
         { principal_paid: 0, interest_paid: 200, fees_paid: 0, interest_waived: 0, occurred_at: AT },
       ],
     })
+    // $100 accrued, $200 paid: $100 was paid ahead and not used.
     expect(r.interestOutstanding).toBe(0)
-    expect(r.payoff).toBe(1000)
+    expect(r.interestPaidAhead).toBe(100)
+    expect(r.payoff).toBe(900)
   })
 
   it('once principal is fully paid, outstanding interest does not bill', () => {
@@ -1004,5 +1007,108 @@ describe('free time on a loan that was paid down', () => {
     }
     expect(planFreeTime(loan, 30)).toEqual({ days: 30, new_due_date: '2026-12-19', interest_waived: 150 })
     expect(planFreeTime(loan, 10)).toEqual({ days: 10, new_due_date: '2026-11-29', interest_waived: 50 })
+  })
+})
+
+describe('unused interest paid ahead is given back', () => {
+  // § 539.001(11)(c): "Any unused pawn service charge paid in advance by the
+  // pledgor shall be refunded by the pawnbroker."
+  // $1,000 at 25%, pawned Aug 21: $250 a period, $8.3333 a day after day 60.
+  const base = { principal: 1000, monthlyRate: 0.25, issueDate: '2026-08-21', charge: FL }
+  const ev = (over: Partial<{ principal_paid: number; interest_paid: number; interest_waived: number }>, day: string) => ({
+    principal_paid: 0,
+    interest_paid: 0,
+    fees_paid: 0,
+    interest_waived: 0,
+    occurred_at: at(day),
+    ...over,
+  })
+  // Day 60: the two periods owed ($500) and one more month ahead ($250).
+  const paidAhead = [ev({ interest_paid: 750 }, '2026-10-20')]
+
+  it('redeeming ten days into the month paid ahead gives back the other twenty', () => {
+    const r = payoffBalance({ ...base, today: '2026-10-30', events: paidAhead })
+    expect(r.interestAccrued).toBeCloseTo(583.3333, 4)
+    expect(r.interestOutstanding).toBe(0)
+    expect(r.interestPaidAhead).toBeCloseTo(166.6667, 4)
+    expect(r.payoff).toBeCloseTo(833.3333, 4)
+  })
+
+  it('once the time paid for has passed there is nothing to give back', () => {
+    expect(payoffBalance({ ...base, today: '2026-11-19', events: paidAhead })).toMatchObject({
+      interestPaidAhead: 0,
+      interestOutstanding: 0,
+      payoff: 1000,
+    })
+    const later = payoffBalance({ ...base, today: '2026-11-24', events: paidAhead })
+    expect(later.interestPaidAhead).toBe(0)
+    expect(later.interestOutstanding).toBeCloseTo(41.6667, 4)
+  })
+
+  it('a period owed in full is never "paid ahead"', () => {
+    // Paid the first period on day 10: it was owed in full from day 0.
+    const r = payoffBalance({ ...base, today: '2026-09-05', events: [ev({ interest_paid: 250 }, '2026-08-31')] })
+    expect(r.interestPaidAhead).toBe(0)
+    expect(r.payoff).toBe(1000)
+  })
+
+  it('free time is a gift, not money to give back', () => {
+    // $500 paid on day 60, then a free month ($250 forgiven).
+    const events = [ev({ interest_paid: 500 }, '2026-10-20'), ev({ interest_waived: 250 }, '2026-10-21')]
+    const r = payoffBalance({ ...base, today: '2026-10-30', events })
+    expect(r.interestPaidAhead).toBe(0)
+    expect(r.payoff).toBe(1000)
+  })
+
+  it('but a payment made after free time, reaching past today, is the customer\u2019s money', () => {
+    // A free month first ($250 forgiven), then $500 paid on day 60.
+    const events = [ev({ interest_waived: 250 }, '2026-09-20'), ev({ interest_paid: 500 }, '2026-10-20')]
+    expect(interestPaidAhead(events, 583.3333)).toBeCloseTo(166.6667, 4)
+    expect(interestPaidAhead(events, 800)).toBe(0)
+  })
+
+  it('paying the payoff closes the loan and books the unused interest as negative interest', () => {
+    const p = planLoanPayment({ ...base, dueDate: '2026-12-19', events: paidAhead, today: '2026-10-30', periods: 0, amount: 833.33 })
+    expect(p).toMatchObject({ ok: true, closes: true, principal_paid: 1000, new_due_date: null })
+    expect(p.ok && p.interest_paid).toBeCloseTo(-166.67, 4)
+    // The books afterwards: the whole loan back, and only the interest earned.
+    const closing = { ...ev({ principal_paid: 1000, interest_paid: -166.67 }, '2026-10-30') }
+    const after = payoffBalance({ ...base, today: '2026-10-30', events: [...paidAhead, closing] })
+    expect(after.principalOutstanding).toBe(0)
+    expect(after.payoff).toBe(0)
+    expect(after.interestPaidAhead).toBe(0)
+    expect(after.interestApplied).toBeCloseTo(583.33, 4)
+  })
+
+  it('a cent more than the payoff is refused; less leaves the loan open with its credit', () => {
+    const loan = { ...base, dueDate: '2026-12-19', events: paidAhead, today: '2026-10-30', periods: 0 }
+    expect(planLoanPayment({ ...loan, amount: 833.35 })).toEqual({ ok: false, reason: 'exceeds_payoff' })
+    expect(planLoanPayment({ ...loan, amount: 100 })).toMatchObject({
+      ok: true,
+      closes: false,
+      interest_paid: 0,
+      principal_paid: 100,
+    })
+  })
+
+  it('nobody pays ahead more than it costs to redeem', () => {
+    // $300 at 25%, day 30: six periods would be $450; redeeming is $375.
+    const loan = { principal: 300, monthlyRate: 0.25, issueDate: '2026-08-21', dueDate: '2026-09-20', events: [], charge: FL }
+    expect(extensionCost(loan, 6)).toBe(450)
+    expect(planLoanPayment({ ...loan, today: '2026-09-20', periods: 6, amount: 450 })).toEqual({
+      ok: false,
+      reason: 'exceeds_payoff',
+    })
+  })
+
+  it('a payoff that does not land on a cent is paid by the cent either side', () => {
+    // 15634-like: payoff 2,250.3333.
+    const events = [
+      { principal_paid: 100, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-10-31T17:10:00Z' },
+    ]
+    const loan = { principal: 1800, monthlyRate: 0.1, issueDate: '2026-08-22', dueDate: '2026-09-22', events, charge: FL, today: '2026-11-23', periods: 0 }
+    const p = planLoanPayment({ ...loan, amount: 2250.33 })
+    expect(p).toMatchObject({ ok: true, closes: true, principal_paid: 1700, interest_paid: 550.33 })
+    expect(planLoanPayment({ ...loan, amount: 2250.35 })).toEqual({ ok: false, reason: 'exceeds_payoff' })
   })
 })

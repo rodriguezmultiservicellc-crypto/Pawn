@@ -14,8 +14,11 @@ import {
   FileDashed,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { daysBetween } from '@/lib/pawn/math'
+import { daysBetween, type ChargeModel, type LoanMoneyEvent } from '@/lib/pawn/math'
 import type { LoanStatus } from '@/types/database-aliases'
+import { RecordPaymentDialog } from '@/components/pawn/RecordPaymentDialog'
+import { ReceiptFormatDialog } from '@/components/pos/PrintReceiptDialog'
+import { recordPaymentAction } from './[id]/actions'
 
 export type PawnListRow = {
   id: string
@@ -35,6 +38,14 @@ export type PawnListRow = {
   collateral_extra: number
   payoff: number | null
   accrued_interest: number | null
+  /** What Payment / Extend needs to open on the list; null on a closed loan. */
+  pay: {
+    principal: number
+    monthlyRate: number
+    minMonthlyCharge: number | null
+    issueDate: string
+    events: LoanMoneyEvent[]
+  } | null
 }
 
 export type Counts = {
@@ -79,6 +90,7 @@ export default function PawnContent({
   counts,
   stats,
   today,
+  charge,
 }: {
   rows: PawnListRow[]
   query: string
@@ -88,6 +100,8 @@ export default function PawnContent({
   counts: Counts
   stats: PawnStats
   today: string
+  /** How the shop's jurisdiction charges a loan (for the payment popup). */
+  charge: ChargeModel
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -100,6 +114,14 @@ export default function PawnContent({
     setSearchInput(query)
   }
   const [pending, startTransition] = useTransition()
+  // Payment / Extend opens right here; the customer receipt follows it.
+  const [payFor, setPayFor] = useState<PawnListRow | null>(null)
+  const [receiptFor, setReceiptFor] = useState<{
+    loanId: string
+    eventId: string
+    amount: number
+    ticket: string
+  } | null>(null)
   const [sortKey, setSortKey] = useState<SortKey>('due')
   const [sortDir, setSortDir] = useState<1 | -1>(1)
 
@@ -466,13 +488,17 @@ export default function PawnContent({
                         ) : (
                           <button
                             type="button"
-                            onClick={() => router.push(`/pawn/${r.id}`)}
+                            onClick={() => (r.pay ? setPayFor(r) : router.push(`/pawn/${r.id}`))}
                             className="whitespace-nowrap rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-white hover:bg-navy/90"
                           >
                             {t.pawn.list.takePayment}
                           </button>
                         )}
-                        <RowMenu row={r} isTerminal={isTerminal} />
+                        <RowMenu
+                          row={r}
+                          isTerminal={isTerminal}
+                          onPay={r.pay ? () => setPayFor(r) : undefined}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -482,6 +508,47 @@ export default function PawnContent({
           </table>
         </div>
       )}
+
+      {/* Payment / Extend, right on the list. Same dialog and same server
+          action as the ticket page. */}
+      {payFor && payFor.pay ? (
+        <RecordPaymentDialog
+          loanId={payFor.id}
+          ticketLabel={`${payFor.ticket_number} · ${payFor.customer_name}`}
+          loan={{ ...payFor.pay, dueDate: payFor.due_date, charge }}
+          today={today}
+          payoff={payFor.payoff ?? 0}
+          onClose={() => setPayFor(null)}
+          onSubmit={async (fd) => {
+            const paid = payFor
+            const res = await recordPaymentAction(fd)
+            if (!res.error) {
+              if (res.eventId) {
+                setReceiptFor({
+                  loanId: paid.id,
+                  eventId: res.eventId,
+                  amount: parseFloat(String(fd.get('amount') ?? '0')) || 0,
+                  ticket: paid.ticket_number,
+                })
+              }
+              router.refresh()
+            }
+            return res
+          }}
+        />
+      ) : null}
+      {/* The customer's receipt, offered as soon as the payment is in. */}
+      {receiptFor ? (
+        <ReceiptFormatDialog
+          body={t.pawn.detail.receipt.dialogBody
+            .replace('{total}', fmtMoney(receiptFor.amount))
+            .replace('{number}', receiptFor.ticket)}
+          urlFor={(format) =>
+            `/api/print/loan/${receiptFor.loanId}/payment/${receiptFor.eventId}?format=${format}`
+          }
+          onClose={() => setReceiptFor(null)}
+        />
+      ) : null}
     </div>
   )
 }
@@ -555,9 +622,12 @@ function SortHeader({
 function RowMenu({
   row,
   isTerminal,
+  onPay,
 }: {
   row: PawnListRow
   isTerminal: boolean
+  /** Opens Payment / Extend on the list (paying and extending are one act). */
+  onPay?: () => void
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -627,7 +697,11 @@ function RowMenu({
                 <>
                   <MenuItem
                     label={t.pawn.list.extendRenew}
-                    onClick={() => go(`/pawn/${row.id}`)}
+                    onClick={() => {
+                      if (!onPay) return go(`/pawn/${row.id}`)
+                      setOpen(false)
+                      onPay()
+                    }}
                   />
                   <MenuItem
                     label={t.pawn.list.redeem}

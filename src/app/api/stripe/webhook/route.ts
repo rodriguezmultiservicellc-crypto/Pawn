@@ -612,8 +612,17 @@ async function applyLoanPayment(args: {
     // Interest first, then principal, in cents. Anything over the payoff is
     // NOT applied — it comes back as excess to refund.
     const amount = r2(args.amount)
-    const interestPaid = r2(Math.min(amount, payoff.interestOutstanding))
-    const principalPaid = r2(Math.min(r2(amount - interestPaid), payoff.principalOutstanding))
+    const payoffNow = r2(payoff.payoff)
+    // Paying the whole payoff closes the loan: the principal still owed,
+    // and the interest owed — or, when the customer had paid interest ahead,
+    // the unused part given back as negative interest (§ 539.001(11)(c)).
+    const paysOff = payoff.principalOutstanding > 0 && payoffNow > 0 && amount >= payoffNow
+    const principalPaid = paysOff
+      ? r2(payoff.principalOutstanding)
+      : r2(Math.min(r2(amount - r2(Math.min(amount, payoff.interestOutstanding))), payoff.principalOutstanding))
+    const interestPaid = paysOff
+      ? r2(payoffNow - principalPaid)
+      : r2(Math.min(amount, payoff.interestOutstanding))
 
     const params = {
       p_tenant_id: args.tenantId,

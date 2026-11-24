@@ -170,6 +170,16 @@ Never kill node processes by image name — always by PID.
     (`newDueDate`); both are requests the server prices
     (`extensionCost` / `extensionCostToDate`) — the browser never sets a
     due date or a split.
+    **Unused interest paid ahead is given back** (§ 539.001(11)(c),
+    patches/0103). The payoff takes off the interest the customer PAID
+    for time not passed yet (`interestPaidAhead` — never free time,
+    which is a gift). The event that pays the loan off books it as
+    NEGATIVE `interest_paid` against the principal it pays
+    (`loan_events_split_signs` allows a negative only there), so every
+    sum of `interest_paid` is interest earned — never filter it to
+    `> 0` when adding up income. A loan is closed when no principal is
+    left, never when the payoff is 0. No payment may exceed the payoff,
+    paying ahead included.
 
 19. **Other people's money moves through the database, not app code.**
     - **Store credit** (patches/0052-0053). `customers.store_credit_balance`

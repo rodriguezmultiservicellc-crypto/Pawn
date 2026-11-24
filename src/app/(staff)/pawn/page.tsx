@@ -233,6 +233,7 @@ export default async function PawnListPage(props: {
       collateral_extra: 0,
       payoff: null,
       accrued_interest: null,
+      pay: null,
     }
   })
 
@@ -377,6 +378,22 @@ export default async function PawnListPage(props: {
               : m.min_monthly_charge,
         })
         r.payoff = po.payoff
+        // What Payment / Extend needs to open right on the list.
+        r.pay = {
+          principal: po.principal,
+          monthlyRate:
+            typeof m.interest_rate_monthly === 'string'
+              ? parseFloat(m.interest_rate_monthly)
+              : m.interest_rate_monthly,
+          minMonthlyCharge:
+            m.min_monthly_charge == null
+              ? null
+              : typeof m.min_monthly_charge === 'string'
+                ? parseFloat(m.min_monthly_charge)
+                : m.min_monthly_charge,
+          issueDate: m.issue_date,
+          events: eventsByLoan.get(r.id) ?? [],
+        }
         r.accrued_interest = po.interestOutstanding
       }
     }
@@ -450,6 +467,7 @@ export default async function PawnListPage(props: {
       }}
       stats={stats}
       today={today}
+      charge={charge}
     />
   )
 }

@@ -58,7 +58,18 @@ export function PayoffCalculator({
           label={t.pawn.detail.interestOutstanding}
           value={fmt(payoff.interestOutstanding)}
         />
+        {payoff.interestPaidAhead > 0 ? (
+          <Row
+            label={t.pawn.detail.interestPaidAhead}
+            value={`− ${fmt(payoff.interestPaidAhead)}`}
+          />
+        ) : null}
       </dl>
+      {payoff.interestPaidAhead > 0 && !closed ? (
+        <p className="mt-2 text-xs text-muted">
+          {t.pawn.detail.interestPaidAheadNote}
+        </p>
+      ) : null}
       {payoff.principalApplied > 0 && !closed ? (
         <p className="mt-2 text-xs text-muted">
           {t.pawn.detail.remainingBalanceNote}

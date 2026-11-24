@@ -115,6 +115,27 @@ describe('paymentReceiptLines', () => {
     expect(paidOff).toMatch(/REDEEMED/)
     expect(paidOff).not.toMatch(/Principal balance/)
   })
+
+  it('a payoff that gives back unused interest says so, and still fits the paper', () => {
+    // Paid off with $50.00 of interest paid ahead and not used.
+    const closing = [
+      ...events.filter((e) => e.id !== 'p3'),
+      ev({ id: 'p3', amount: 1650, principal_paid: 1700, interest_paid: -50, occurred_at: '2026-11-20T15:00:00.000Z' }),
+      ev({ id: 'r3', event_type: 'redemption', occurred_at: '2026-11-20T15:00:01.000Z' }),
+    ]
+    const d: PaymentReceiptDoc = {
+      ...doc('p1'),
+      ...paymentReceiptFacts({ principal: 1800, events: closing, eventId: 'p3' })!,
+    }
+    const lines = paymentReceiptLines(d, 40)
+    for (const l of lines) expect(l.length).toBeLessThanOrEqual(40)
+    const text = lines.join('\n')
+    expect(text).toMatch(/- \$50\.00/)
+    expect(text).toMatch(/\$1,700\.00/)
+    expect(text).toMatch(/TOTAL PAID \/ TOTAL PAGADO\s+\$1,650\.00/)
+    // No plain "Interest" line for money that was given back.
+    expect(text).not.toMatch(/^Interest \/ Inter.s/m)
+  })
 })
 
 describe('paymentReceiptHtml', () => {

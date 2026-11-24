@@ -59,10 +59,14 @@ export function RecordPaymentDialog({
   loan,
   today,
   payoff,
+  ticketLabel,
   onClose,
   onSubmit,
 }: {
   loanId: string
+  /** "15551 · Avila, Berthy" — shown when the dialog opens away from the
+   *  ticket page, so the clerk sees whose payment this is. */
+  ticketLabel?: string
   loan: DialogLoan
   /** The shop's day — the same one the server will use. */
   today: string
@@ -98,8 +102,10 @@ export function RecordPaymentDialog({
         cost: extensionCost(loan, periods),
         due: addDaysIso(loan.dueDate, periods * periodDays),
       }
-    })
-  }, [loan, startPeriods, periodDays])
+      // Nobody pays ahead more than it costs to redeem: those are not
+      // offered (the move that brings the ticket current always is).
+    }).filter((c) => c.periods <= startPeriods || c.cost <= payoff + 0.004)
+  }, [loan, startPeriods, periodDays, payoff])
   const [periods, setPeriods] = useState<number>(startPeriods)
   // "Another date": the day the clerk wants the ticket due. Null = the move
   // is one of the listed periods.
@@ -200,6 +206,11 @@ export function RecordPaymentDialog({
 
   return (
     <Modal title={tp.title} onClose={onClose}>
+      {ticketLabel ? (
+        <p className="-mt-2 mb-3 font-mono text-sm font-semibold text-navy">
+          {ticketLabel}
+        </p>
+      ) : null}
       {error ? (
         <div className="mb-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
@@ -323,6 +334,11 @@ export function RecordPaymentDialog({
           </div>
           {previewError ? (
             <div className="mt-2 text-xs text-danger">{previewError}</div>
+          ) : null}
+          {preview.ok && preview.interest_paid < 0 ? (
+            <p className="mt-2 text-xs text-foreground">
+              {tp.creditApplied.replace('{credit}', usd(-preview.interest_paid))}
+            </p>
           ) : null}
           {/* Why the interest is not the figure in the list above. */}
           {moveCostNow != null && paidToToday > 0 ? (

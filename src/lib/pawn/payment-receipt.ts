@@ -139,6 +139,8 @@ function receiptRows(doc: PaymentReceiptDoc): {
   const paid: Array<[string, string]> = []
   if (doc.interest_paid > 0) paid.push([bi(en.interest, es.interest), money(doc.interest_paid)])
   if (doc.principal_paid > 0) paid.push([bi(en.principal, es.principal), money(doc.principal_paid)])
+  // Interest paid ahead and not used, given back when the loan is paid off.
+  if (doc.interest_paid < 0) paid.push([bi(en.interestCredited, es.interestCredited), `- ${money(-doc.interest_paid)}`])
   if (doc.fees_paid > 0) paid.push([bi(en.fees, es.fees), money(doc.fees_paid)])
   const after: Array<[string, string]> = [[bi(en.loanAmount, es.loanAmount), money(doc.loan_principal)]]
   if (!doc.redeemed) after.push([bi(en.principalBalance, es.principalBalance), money(doc.principal_balance)])

@@ -1420,6 +1420,11 @@ export const en = {
       principalOutstanding: 'Principal outstanding',
       interestAccrued: 'Interest accrued',
       interestWaived: 'Interest not charged (free time)',
+      dueToday: 'Due today',
+      interestPaidAhead: 'Interest paid ahead, not used',
+      interestPaidAheadNote:
+        'The customer paid interest for time that has not passed. If they redeem today, the unused part comes off what they owe.',
+      interestCredited: 'Interest paid ahead, given back',
       remainingBalanceNote:
         'After each payment toward the loan, interest is figured on what is still owed.',
       interestOutstanding: 'Interest outstanding',
@@ -1432,6 +1437,7 @@ export const en = {
         customer: 'Customer',
         method: 'Paid with',
         interest: 'Interest',
+        interestCredited: 'Unused interest given back',
         principal: 'Principal',
         fees: 'Fees',
         totalPaid: 'Total paid',
@@ -1601,6 +1607,8 @@ export const en = {
       interestPaid: 'Interest paid',
       feesPaid: 'Fees',
       splitTitle: 'How this payment is applied',
+      creditApplied:
+        '${credit} of interest was paid ahead and not used. It comes off what is owed.',
       interestToToday:
         '${move} moves the due date. ${extra} more goes to interest owed as of today. Interest is paid before anything goes toward the loan.',
       paydownLowersMove:

@@ -1411,6 +1411,11 @@ export const es: Dictionary = {
       principalOutstanding: 'Principal pendiente',
       interestAccrued: 'Interés acumulado',
       interestWaived: 'Interés no cobrado (tiempo gratis)',
+      dueToday: 'Vence hoy',
+      interestPaidAhead: 'Interés pagado por adelantado, no usado',
+      interestPaidAheadNote:
+        'El cliente pagó interés por tiempo que todavía no pasa. Si rescata hoy, la parte no usada se descuenta de lo que debe.',
+      interestCredited: 'Interés pagado por adelantado, devuelto',
       remainingBalanceNote:
         'Después de cada abono al préstamo, el interés se calcula sobre lo que todavía se debe.',
       interestOutstanding: 'Interés pendiente',
@@ -1423,6 +1428,7 @@ export const es: Dictionary = {
         customer: 'Cliente',
         method: 'Pagado con',
         interest: 'Interés',
+        interestCredited: 'Interés no usado devuelto',
         principal: 'Principal',
         fees: 'Cargos',
         totalPaid: 'Total pagado',
@@ -1592,6 +1598,8 @@ export const es: Dictionary = {
       interestPaid: 'Interés pagado',
       feesPaid: 'Cargos',
       splitTitle: 'Cómo se aplica este pago',
+      creditApplied:
+        '${credit} de interés se pagaron por adelantado y no se usaron. Se descuentan de lo que se debe.',
       interestToToday:
         '${move} mueve la fecha de vencimiento. Otros ${extra} van al interés que se debe hasta hoy. El interés se paga antes de abonar al préstamo.',
       paydownLowersMove:

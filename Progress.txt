@@ -60,8 +60,8 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23, evening). Items 544-554, THREE
-                  MIGRATIONS, ALL APPLIED: 0100, 0101, 0102.
+  Last session:   Session 65 (2026-11-23, night). Items 544-557, FOUR
+                  MIGRATIONS, ALL APPLIED: 0100, 0101, 0102, 0103.
                   main == feature/sol-pawn-brief.
                   ACTIVE FILES (last touched):
                     src/lib/pawn/math.ts (planLoanPayment, extensionCost)
@@ -85,15 +85,20 @@ OPERATION IN FLIGHT: none
                     jurisdictions.ticket_notices, not from code.
                   - PAYMENT / EXTEND TAKES "ANOTHER DATE" (554): the clerk
                     picks the new due date; the server prices it.
-                  - OPEN, FOUND IN 552, NOT FIXED — ASK EDDY: interest
-                    PAID AHEAD is kept if the customer then redeems early.
-                    § 539.001(11)(c) last sentence: "Any unused pawn
-                    service charge paid in advance by the pledgor shall be
-                    refunded by the pawnbroker." Today the payoff never
-                    goes below the balance owed (interest overpaid is
-                    clamped at 0, math.ts payoffBalance). Only reachable
-                    by paying ahead after day 60 and redeeming before the
-                    paid date.
+                  - UNUSED INTEREST PAID AHEAD IS GIVEN BACK (555,
+                    patches/0103): it comes off the payoff and the closing
+                    event books it as NEGATIVE interest_paid. Never sum
+                    interest_paid with a "> 0" filter.
+                  - THE LIST TAKES PAYMENTS (556): Take payment and
+                    Extend / renew open the popup on /pawn; a payment or
+                    a redeem offers the customer receipt at once.
+                  - A REAL PAYMENT WENT THROUGH: Eddy, ticket 15551,
+                    2026-11-23 10:13 PM, $80.00 interest, due 2026-12-20.
+                    Booked right (payment + extension, status extended).
+                  - STILL NOT EXERCISED FOR REAL: a payment from the list
+                    popup, the receipt offered after a payment, a payoff
+                    that gives interest back, a move to a picked date,
+                    free time, an online payoff after 0103.
                   - FREE TIME IS BUILT (551): owner / manager only; the
                     date moves and the interest is forgiven
                     (loan_events.interest_waived — never income).
@@ -826,6 +831,69 @@ Progress_archive.txt — the items from those sessions are there.)
       dates were not 30-day steps either).
 
       tsc, 1,096 tests, lint, build green.
+
+ 555. UNUSED INTEREST PAID AHEAD COMES OFF THE PAYOFF (patches/0103
+      APPLIED). Eddy: "make the payoff credit it". § 539.001(11)(c): "Any
+      unused pawn service charge paid in advance by the pledgor shall be
+      refunded by the pawnbroker."
+      - math.ts interestPaidAhead: interest the customer PAID that reaches
+        past what has accrued today. Free time never counts (a gift);
+        payments and free time are laid end to end in the order they
+        happened, and only the part of a PAYMENT beyond today is given
+        back. payoff = principal owed + interest owed − that, never < 0.
+      - HOW IT IS BOOKED: the event that pays the loan off carries the
+        principal still owed and NEGATIVE interest_paid; amount = the cash.
+        A compensating entry — every sum of interest_paid (reports, the
+        customer's lifetime interest, the list's "interest earned") is
+        right without knowing about it.
+      - 0103: loan_events_split_signs allows interest_paid < 0 only against
+        principal paid in the same event and never more than it;
+        loan_apply_online_payment accepts it only on the payment that
+        redeems. Dry run (rolled back): interest back with no principal
+        REFUSED, more than the principal REFUSED, a closing accepted;
+        ticket 15634 unchanged afterwards, 0 negative rows in the table.
+      - planLoanPayment: no payment may exceed the payoff (paying ahead
+        included — the list no longer offers moves that cost more than
+        redeeming); paying the payoff TO THE CENT closes the loan (the
+        payoff has four decimals; 2,250.33 against 2,250.3333 used to
+        leave $0.0033 of principal open).
+      - recordPaymentAction closes on "no principal left", not "payoff
+        <= 0". redeemLoanAction stops if its payment row did not save
+        (it used to mark the loan redeemed anyway). Webhook: an online
+        payment of the payoff books the same reversal.
+      - Shown: payoff panel row + note, event log line, receipt line
+        ("Unused interest given back"), a line in the payment popup.
+      MONEY TODAY: 0 of the 65 open tickets have interest paid ahead
+      (ahead.mjs, read-only) — no payoff changed tonight.
+      KNOWN LIMIT: if interest paid ahead were ever more than the loan
+      itself, the payoff stops at $0 and the difference is owed back in
+      cash by hand. The popup cannot create that (it refuses any payment
+      over the payoff); imported data has none.
+
+ 556. THE PAWN LIST TAKES PAYMENTS; THE RECEIPT FOLLOWS EVERY PAYMENT.
+      Eddy: "the action buttons all do the same thing take you to the
+      pawn, make the take payment button here open the popup" and "after
+      the payment is recorded we have to print a customer receipt".
+      - /pawn: Take payment and the menu's Extend / renew open Payment /
+        Extend on the list, titled with the ticket and the customer. Same
+        dialog, same server action. Rows carry what it needs (pay).
+      - recordPaymentAction / redeemLoanAction return the payment's event;
+        the list AND the ticket page then open the receipt dialog (Letter
+        / receipt printer) for it.
+      - Redeem, Mark forfeited and View still go to the ticket.
+
+ 557. THE DUE DATE STANDS OUT ON THE TICKET. Eddy: "lets make the due date
+      more stand out". Boxed, large; red with "Days overdue: N" when past
+      due, amber within 7 days, navy otherwise, grey on a closed ticket.
+
+      LOOKED AT (headless Chrome, local, NOTHING SUBMITTED): 15634 header
+      (red box, 62 days overdue); list popup opens on 15542 with its name,
+      address bar stays on /pawn; the menu's Extend / renew opens it too.
+      NOT VERIFIED: the receipt opening after a real payment (needs a
+      saved payment); a payoff that gives interest back, on a real ticket;
+      a clerk's view; Spanish; the live deploy.
+
+      tsc, 1,106 tests, lint, build green.
 
 --- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 
