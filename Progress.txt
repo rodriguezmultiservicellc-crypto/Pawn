@@ -60,18 +60,26 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 67 (2026-11-24), saved 2026-11-24 ~12:30.
-                  Context budget at save: high (one compaction this session;
-                  my estimate ~80%). START THE NEXT SESSION FRESH.
-                  Items 576-589. TWO MIGRATIONS, BOTH APPLIED TO THE LIVE
-                  DB: 0108 (pawn void -> compliance_log), 0109 (ticket
-                  paper). main == feature/sol-pawn-brief. Nothing is
-                  half-built.
-                  Last worked on: the PRINTED PAWN TICKET (English only +
+  Last session:   Session 67 (2026-11-24), saved TWICE: ~12:30 (items
+                  576-589) and ~14:15 (590-597).
+                  Context budget at the second save: very high (one
+                  compaction; my estimate ~90%). START THE NEXT SESSION FRESH.
+                  FOUR MIGRATIONS, ALL APPLIED TO THE LIVE DB: 0108 (pawn
+                  void -> compliance_log), 0109 (ticket paper), 0110
+                  (tenant_business_profile, owner-only RLS Eddy approved),
+                  0111 (compliance_log reference_number + clerk).
+                  main == feature/sol-pawn-brief. Nothing is half-built.
+                  !! THE SHOP STILL RUNS ON xPAWN. Nothing uploads to
+                  LeadsOnline from Pawn (Eddy: "we are not going to upload
+                  anything yet"). See memory project_xpawn_still_live.
+                  Last worked on: the LeadsOnline upload XML (item 595) —
+                  Pawn's police file is now the exact XML xPawn sends,
+                  modeled on Dropbox\pawn police (182 accepted files; they
+                  hold customer PII — read structure only).
+                  Earlier today: the printed pawn ticket (English only +
                   stamped Spanish courtesy copy, foot layout, reverse side
-                  behind both copies or none) and the counter rules around
-                  it (customer record complete before a pawn / buy; voided
-                  tickets and the police export).
+                  behind both copies or none), customer record complete
+                  before a pawn / buy, Government forms (CBP 5106).
 
                   ACTIVE FILES (last touched):
                     src/lib/pdf/PawnTransactionForm.tsx  the front (one
@@ -87,9 +95,23 @@ OPERATION IN FLIGHT: none
                     src/app/api/cron/leadsonline-export/route.ts
                     src/lib/reports/police-report.ts
                     src/lib/inventory/search.ts
-                    patches/0108, patches/0109
+                    src/lib/agency-forms/* (cbp-5106.ts, fill-pdf.ts,
+                      profile.ts), src/app/(staff)/government-forms/*,
+                      src/app/api/agency-forms/[formId]/route.ts
+                    src/lib/compliance/police-report/formats/
+                      fl-leadsonline-xml.ts (+ test), index.ts (dispatch,
+                      storeFromTenant), void-plan.ts
+                    src/lib/compliance/clerk.ts
+                    patches/0108, 0109, 0110, 0111
 
-                  RESUME POINT: Ask Eddy to print ONE real ticket on his
+                  RESUME POINT (second save): nothing half-built. Next is
+                  whatever Eddy asks; open items for him are in PENDING
+                  IMMEDIATE (fix the test customer's ID agency "01/01/2001"
+                  -> FL; send the pawn license renewal PDF to add as the
+                  second government form; LeadsOnline questions before any
+                  upload). The first-save RESUME POINT below still stands.
+
+                  RESUME POINT (first save): Ask Eddy to print ONE real ticket on his
                   printer, two-sided, after the 9:30 export has run:
                   customer copy, back, store copy, back (blank-paper
                   setting); check the new foot (thumb box beside the
@@ -932,6 +954,91 @@ Progress_archive.txt — the items from those sessions are there.)
       - The ID on PT-015665's customer expired 2026-01-01; the statute
         (2025 text read) does not require an unexpired ID — nothing blocks
         it.
+
+ 590. ITEM 589 WAS WRONG: THE SHOP STILL RUNS ON xPAWN. LeadsOnline's
+      "last successful upload 11/17/2026 by Jennifer Griffin" (read from a
+      HAR Eddy saved, w4.leadsonline.com.har in Downloads — it holds his
+      LeadsOnline login: told him to delete it) is xPawn's upload, not a
+      gap. Eddy: nothing uploads from Pawn yet. Memory notes:
+      project_xpawn_still_live, reference_leadsonline_upload_format.
+
+ 591. CBP FORM 5106 FILLED BY HAND for Eddy's Jewelers Corp. (Downloads\
+      CBP 5106 - Eddys Jewelers Corp (draft).pdf, mupdf scripts in the
+      scratchpad). Superseded by 592-593: that draft has the EIN as
+      "20-5119430" and the phone with dashes, which the boxes (9 / 10
+      characters) do not hold; use the download from Pawn.
+
+ 592. GOVERNMENT FORMS (e70bf3f; patches/0110 APPLIED). Eddy: "a tool to
+      fill this for agencies in the application". There was NO existing
+      "license renewal" tool in Pawn or LunaAzul to copy.
+      - 0110 tenant_business_profile: legal name, EIN, entity, incorporation,
+        addresses (mailing / physical), contact, bank, officers JSONB,
+        form_answers JSONB. RLS: owner only (my_is_owner, includes HQ
+        chain_admin) — policy shown to Eddy, approved ("ok"). Officers'
+        SSNs never stored.
+      - src/lib/agency-forms: profile (starts from the tenant row), CBP 5106
+        mapping (fields matched to boxes by position), fill-pdf (pdf-lib,
+        NEW dependency; drops the XFA layer; refuses a value longer than
+        its box), tests that check every mapped field against the real
+        blank PDF (templates/cbp-5106.pdf, traced into the route bundle by
+        next.config outputFileTracingIncludes '/api/agency-forms/**').
+      - /government-forms (sidebar, owner only), /government-forms/profile,
+        /api/agency-forms/[formId] (owner, audit-logged, never signs/dates).
+      - Eddy's Jewelers profile SAVED (data Eddy gave: EIN 20-5119430,
+        mailing = Eduardo Rodriguez's home 3414 W St Louis St (residence),
+        physical = the store (retail), officer Eduardo Rodriguez, President,
+        CBP answers new / 1-4 a year / importer of record).
+      BUG FOUND IN MY OWN CHECK: the EIN and phone printed cut ("20-511943")
+      — the boxes have max lengths. Now digits only, and an over-long value
+      is refused with the box named.
+      Browser-checked locally; production build green.
+
+ 593. LEADSONLINE STORE NUMBER. tenants.agency_store_id for Eddy's
+      Jewelers = 103110000228401 (the <store_number> of every accepted
+      xPawn file). 83403 (the HAR's StoreId) is only the website account.
+
+ 594. LEADSONLINE FORMAT FOUND: Dropbox\pawn police — 182 XML files xPawn
+      sent (MMDDYYYY.xml and h_0_<store>_<stamp>.xml), 237 tickets, 302
+      items. ticket_type 2 pawn / 1 buy; void Y sent ONCE for a ticket
+      voided before upload (3 cases); identical resends accepted (4).
+
+ 595. POLICE FILE IS THE LEADSONLINE XML (43110bc; patches/0111 APPLIED).
+      The CSV exporter was a guess; replaced.
+      - formats/fl-leadsonline-xml.ts (12 tests; one pins the element order
+        to an accepted file): tabs + CRLF, empty elements as xPawn wrote
+        them, shop-time dates, 5'07" heights, whole-dollar amounts, picture
+        placeholders, item_category 1 jewelry / 0 other, metal text
+        ("Yellow Gold"), stones 1-2, firearm fields; file name
+        h_0_<store>_<YYYYMMDDhhmm>.xml. A file built from the live rows
+        matched xPawn's 11172026.xml element for element (read-only check).
+      - 0111: compliance_log.reference_number (ticket number; a buy's first
+        SKU) + clerk (initials, lib/compliance/clerk.ts), written at intake,
+        copied by the void trigger; 5 old rows backfilled.
+        export_outcome 'reported_void'. Pawn + buy intakes now also keep
+        the customer's race in the snapshot.
+      - VOIDS CHANGED from 586: a ticket voided before its first file goes
+        out once with void Y (not withheld); one voided after goes again
+        with void Y. void-plan.ts rewritten; the Police report panel shows
+        when each void went.
+      - dispatch(): tickets + store + timezone (storeFromTenant). The daily
+        cron and the date-range download both write the XML; nothing
+        uploads. The old CSV builders were removed; flattenComplianceRow
+        stays for the on-screen preview.
+      NOT CONFIRMED with LeadsOnline: non-jewelry category codes, a buy's
+      ticket number (SKU), ID types other than DL.
+
+ 596. FOUND: PT-015666 exists (a second ticket, same test customer); its
+      customer still has id_state "01/01/2001", so the file would carry
+      that as cust_id_state. Not checked whether it was written before the
+      582 gate went live.
+
+ 597. CHECKPOINT GATE (second save). Lane: Pawn only (Dropbox and Downloads
+      were READ; the CBP draft was written to Downloads at Eddy's request).
+      Wording: every new key in en.ts and es.ts and used; removed
+      agencyForms.errors.profile_incomplete (unused). Dead code: the CSV
+      builders (buildLeadsOnlineCsv, leadsOnlineRowsToCsv,
+      flattenLeadsOnline, LEADS_ONLINE_COLUMNS). tsc, lint, 1,266 tests
+      green; production build green at 592.
 
 --- Session 66 (2026-11-23/24) — New pawn ticket item popup against FS 539.001(8): principal follows collateral, popup, description writes itself, metal value, jewelry details (0106), dropdowns, remaining statute fields (0107), continuation sheet, forfeit carries details (branch feature/sol-pawn-brief == main) ---
 
@@ -4335,6 +4442,19 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
+    REMEMBER: the shop still runs on xPawn; nothing uploads from Pawn.
+    Session 67 (second save) open items for Eddy:
+    - Fix the test customer's ID agency ("01/01/2001" -> FL) on the
+      customer record; check whether PT-015666 was written before or after
+      the 582 gate went live (if after, the gate let it through — look).
+    - Send the pawn license renewal PDF -> add it as the second form in
+      src/lib/agency-forms (mapping by position, like cbp-5106.ts).
+    - Before ANY upload from Pawn: confirm with LeadsOnline the non-jewelry
+      category codes, a buy's ticket number (SKU), ID types other than DL;
+      re-run the xPawn import for tickets written after 2026-11-17.
+    - Delete Downloads\w4.leadsonline.com.har (it holds the LeadsOnline
+      login).
+    Then the first-save list:
     Session 67 first: have Eddy print ONE real ticket two-sided on his
     printer (blank-paper setting: customer front, back, store front,
     back) and look at the new foot and the English-only text; press
