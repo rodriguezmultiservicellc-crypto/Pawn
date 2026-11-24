@@ -645,8 +645,9 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
 
             {/* Default date and the amount to redeem on it · signature. */}
             <View style={[s.row, { marginTop: 3, alignItems: 'flex-end' }]}>
-              <View style={[s.box, s.row, { width: 300 }]}>
-                <View style={{ width: 96, padding: 3, borderRightWidth: 0.5, borderRightColor: LINE }}>
+              {/* Narrow, so the signature line gets the width. */}
+              <View style={[s.box, s.row, { width: 184 }]}>
+                <View style={{ width: 88, padding: 3, borderRightWidth: 0.5, borderRightColor: LINE }}>
                   <Text style={{ fontSize: 7, fontWeight: 700 }}>{L.defaultDate}:</Text>
                   <Text style={{ fontSize: 10, fontWeight: 700, marginTop: 1 }}>{mdy(data.default_date)}</Text>
                 </View>
@@ -657,7 +658,7 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
                   </Text>
                 </View>
               </View>
-              <View style={{ flex: 1, paddingLeft: 10 }}>
+              <View style={{ flex: 1, paddingLeft: 14 }}>
                 {data.signatureImage ? (
                   // eslint-disable-next-line jsx-a11y/alt-text
                   <Image src={data.signatureImage} style={{ height: 24, objectFit: 'contain', objectPosition: 'left' }} />
