@@ -630,5 +630,7 @@ export async function createLoanAction(
   }
 
   revalidatePath('/pawn')
-  redirect(`/pawn/${loanId}`)
+  // ?print=1: the ticket page asks to print at once — the customer signs the
+  // printed ticket before leaving the counter.
+  redirect(`/pawn/${loanId}?print=1`)
 }

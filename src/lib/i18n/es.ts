@@ -1639,6 +1639,10 @@ export const es: Dictionary = {
       printTicket: 'Imprimir boleto',
       reprintTicket: 'Reimprimir',
       lockedNotice: 'Boleto impreso — campos clave bloqueados.',
+      // Se abre sola apenas se guarda un boleto nuevo.
+      printNowTitle: 'Boleto guardado',
+      printNowBody: 'El boleto {number} está guardado. Imprímalo ahora para que el cliente lo firme.',
+      printNowLater: 'Más tarde',
     },
     print: {
       form: {

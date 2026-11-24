@@ -20,8 +20,13 @@ import type { LoanEventType, LoanStatus } from '@/types/database-aliases'
 
 type Params = Promise<{ id: string }>
 
-export default async function PawnLoanDetailPage(props: { params: Params }) {
+export default async function PawnLoanDetailPage(props: {
+  params: Params
+  searchParams: Promise<{ print?: string }>
+}) {
   const { id } = await props.params
+  // Arrived straight from issuing the ticket (createLoanAction).
+  const justIssued = (await props.searchParams).print === '1'
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
@@ -242,6 +247,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
           : null
       }
       forfeit={forfeit}
+      justIssued={justIssued}
       tagChoices={templateChoices(
         await loadTagTemplates(ctx.supabase, ctx.tenantId),
         'collateral',

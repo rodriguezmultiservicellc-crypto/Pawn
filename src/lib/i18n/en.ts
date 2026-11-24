@@ -1648,6 +1648,10 @@ export const en = {
       printTicket: 'Print ticket',
       reprintTicket: 'Reprint',
       lockedNotice: 'Ticket printed — core fields locked.',
+      // Opens by itself right after a new ticket is saved.
+      printNowTitle: 'Ticket saved',
+      printNowBody: 'Ticket {number} is saved. Print it now for the customer to sign.',
+      printNowLater: 'Later',
     },
     print: {
       form: {
