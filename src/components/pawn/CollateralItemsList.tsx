@@ -62,12 +62,15 @@ export type CollateralListHandle = {
 }
 
 /**
- * Inline editor for the collateral list on /pawn/new. Each row collects:
+ * The collateral list on /pawn/new: a table with one line per item, and
+ * each item's fields in a popup (see CollateralRow). Each row collects:
  *   pawn_category_slug + pawn_subcategory_slug — the per-item pawn
  *     intake category (top + optional sub) picked from a CategoryPicker
- *     rendered at the top of the row (patches/0040). Until the row's
- *     category is picked, only the picker shows.
- *   description, category, metal_type, karat, weight_grams, est_value, photo
+ *     at the top of the popup (patches/0040). Until the category is
+ *     picked, only the picker shows.
+ *   est_value, color, the category's own fields, unique marks, photo, and
+ *     the description — written from the other fields while the clerk
+ *     leaves it alone (lib/pawn/item-description).
  *
  * Photos are kept as File objects in component state. On submit, the form
  * action serializes them via FormData under names:

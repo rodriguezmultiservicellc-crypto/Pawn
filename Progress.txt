@@ -60,30 +60,68 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 66 (2026-11-23/24), saved 2026-11-24 00:10.
-                  Context budget at save: low (short session; my estimate
-                  ~25%).
-                  Items 563-564. No migration. main == feature/sol-pawn-brief.
+  Last session:   Session 66 (2026-11-23/24), saved twice: 2026-11-24 00:10
+                  (items 563-564) and 2026-11-24 00:40 (items 565-568).
+                  Context budget at the second save: medium (my estimate
+                  ~50%).
+                  No migration. main == feature/sol-pawn-brief.
                   Nothing is half-built.
-                  Last worked on: New pawn ticket — the Principal follows
-                  the collateral value (563, commit 82e423b, live).
+                  Last worked on: the New pawn ticket screen, four changes
+                  Eddy asked for one screenshot at a time — all live:
+                    563  the Principal follows the collateral value
+                    565  the "Pawn loans / New pawn ticket" row is gone
+                    566  an item's details open in a POPUP
+                    567  the popup's fields are in filling order and the
+                         DESCRIPTION WRITES ITSELF from them
 
                   ACTIVE FILES (last touched):
+                    src/components/pawn/CollateralItemsList.tsx  the item
+                      table + the popup (CollateralRow)
+                    src/lib/pawn/item-description.ts (+ .test.ts)  the
+                      written description
+                    src/lib/pawn/principal-follow.ts (+ .test.ts)
                     src/app/(staff)/pawn/new/form.tsx   the New ticket form
-                    src/lib/pawn/principal-follow.ts    the three small rules
-                    src/lib/pawn/principal-follow.test.ts
-                    src/components/pawn/CollateralItemsList.tsx  (READ only —
-                      it reports count + total up through onTotalsChange)
+                    src/lib/i18n/en.ts, es.ts           pawn.new_ keys
 
-                  RESUME POINT: ask Eddy whether the Principal on New pawn
-                  ticket moves the way he meant (563): each item's value is
-                  ADDED, and an amount he typed is kept as his difference,
-                  so an item added afterwards goes on top of it (100 typed,
-                  then a $26 item = 126.00). If he wants the typed amount to
-                  stay put instead, that is one change in onCollateralTotals
-                  in form.tsx. NOT LOOKED AT in a browser, local or live —
-                  tests, tsc, lint and build only. Then the Session 65
+                  RESUME POINT: ask Eddy how the New pawn ticket screen
+                  feels at the counter now, and confirm what I decided from
+                  short sentences (items 563, 566, 567 list them): a typed
+                  principal is kept and later items add on top; Unique
+                  marks sits between Gemstones and Description and is NOT
+                  in the description; a description he typed himself is
+                  never overwritten; "Pawned before" pieces go straight to
+                  the table instead of opening. Then the Session 65
                   questions below; all of them still stand.
+
+                  HOW THE ITEM POPUP WORKS (read before touching
+                  CollateralItemsList.tsx):
+                  - It is a native <dialog> opened with showModal(), one
+                    per row, ALWAYS MOUNTED and INSIDE the ticket <form>:
+                    its inputs (and the photo's file input) are what the
+                    form submits. Never move it to a portal, never render
+                    it only while open, never put a display class (flex /
+                    block / grid) on the <dialog> itself — a closed dialog
+                    must stay display:none.
+                  - The file input's "cancel" event bubbles to the dialog's
+                    onCancel; the handler ignores any target but the dialog.
+                  - Enter in a field = "Add item" / "Done". Before 566 it
+                    could submit the whole ticket.
+                  - Every field change goes through CollateralRow's
+                    onChange wrapper, which is what keeps the description
+                    following the fields (descriptionAfterChange).
+
+                  LOOKED AT (headless Chrome through playwright-core, LOCAL
+                  dev server, signed in the way scripts/smoke-browser.mjs
+                  does; no ticket issued, no draft saved): 59 checks, all
+                  passed, no console error — the popup end to end, the
+                  principal sums, the field order, the description for
+                  jewelry / ring size / electronics / firearms / general.
+                  NOT VERIFIED: the live deploy; Spanish on screen (the
+                  Spanish word order is covered by unit tests only); the
+                  photo upload inside the popup; the tools fields; voice
+                  intake and a resumed draft with the popup; a real ticket
+                  issued from the new screen; a phone-size screen beyond
+                  "the card fits".
 
   Session 65 (2026-11-23), saved 2026-11-23 23:35.
                   Context budget at save: high (one compaction this session;
@@ -655,7 +693,7 @@ SESSION HISTORY LOG
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
 
---- Session 66 (2026-11-23/24) — New pawn ticket: the Principal follows the collateral value (branch feature/sol-pawn-brief == main) ---
+--- Session 66 (2026-11-23/24) — New pawn ticket: principal follows the collateral, item popup, fields in filling order, description writes itself (branch feature/sol-pawn-brief == main) ---
 
  563. NEW PAWN TICKET: THE PRINCIPAL FOLLOWS THE COLLATERAL (82e423b).
       Eddy (screenshot of /pawn/new, 100 typed on a $26.00 item): "add the
@@ -702,6 +740,108 @@ Progress_archive.txt — the items from those sessions are there.)
         have a private one-line number -> cents; moneyTextToCents reads
         TEXT from a field. One-liners, left alone.
       Nothing to fix; no rebuild needed after 563's green build.
+
+ 565. NEW PAWN TICKET: THE "PAWN LOANS / NEW PAWN TICKET" ROW REMOVED
+      (79c4179). Eddy circled it: "remove the section circled".
+      src/app/(staff)/pawn/new/form.tsx: the <nav> is gone; the page keeps
+      an sr-only <h1> (tn.title) so it still has a heading. The way back to
+      Pawn loans is the sidebar. pawn.new_.breadcrumb (used nowhere else)
+      came out of en.ts and es.ts. POS New sale has the same kind of row
+      (pos.sale.breadcrumb) — not asked, left alone.
+
+ 566. NEW PAWN TICKET: AN ITEM'S DETAILS OPEN IN A POPUP (d3d5510).
+      Eddy (screenshot of the inline panel): "when adding an item make
+      this section into a popup".
+      src/components/pawn/CollateralItemsList.tsx:
+      - openUids (a Set, several panels open at once) became ONE popup:
+        { uid, adding, report }. A category pill adds the row and opens it
+        with adding = true; Edit opens it with adding = false.
+      - CollateralRow renders its fields in a native <dialog> placed in the
+        Actions cell (the hidden second <tr> is gone). Why native and in
+        place: see "HOW THE ITEM POPUP WORKS" in the RESUME block.
+      - "Add item" / "Done" run the browser's own check on the first wrong
+        field and stay open; Cancel / X / Esc on an item being ADDED
+        removes the row; on an item being edited they just close. Remove
+        is in the popup's footer too.
+      - Enter in a field confirms the item instead of submitting the form.
+      - The row used to stay open while a required field was empty. Now it
+        closes, shows "Needs details" in the table, and onInvalidCapture
+        (fired when Issue is pressed) opens its popup pointing at the
+        field (report = true -> reportValidity after showModal).
+      - "Pawned before" pieces (addPrevious) no longer open on arrival:
+        several are added from one list, and a popup over that list would
+        be in the way. MY DECISION, told to Eddy.
+      New keys (en + es): pawn.new_.itemAdd, itemEditTitle,
+      itemNeedsDetails.
+      LOOKED AT locally in headless Chrome, 32 checks: pill -> popup,
+      :modal, focus, empty description refused, Enter, Cancel, Esc (adding
+      and editing), Edit, Done, Remove, FormData still carries a closed
+      popup's fields, the "Needs details" path through
+      form.checkValidity(), a 420px-wide screen. The same run exercised
+      563: principal 26.00 -> 126.00 -> back after Cancel -> 130.00 after
+      an edit -> 30.00 after Remove.
+
+      tsc, 1,129 tests, lint, build green.
+
+ 567. ITEM POPUP: FIELDS IN FILLING ORDER, THE DESCRIPTION WRITES ITSELF
+      (f8985a4). Eddy numbered the fields 1-9 on a screenshot: "i put
+      numbers in the order of the fields and as the fields get filled it
+      generates the description".
+      - ORDER (DOM order = Tab order), CollateralItemsList.tsx: Est. value,
+        Color, [jewelry: Metal, Karat, Weight, Size / Length, Coating,
+        Gemstones | the other categories' own fields], Unique marks,
+        Description. Est. value takes the focus and selects its starting
+        0. Size / Length went from 1 column to 2 to fill its row.
+      - src/lib/pawn/item-description.ts (new, pure, 18 tests):
+        generateItemDescription — jewelry "14K yellow gold chain, 5.2 g,
+        22 in, 3 round diamonds" (head in the language's word order, then
+        weight, size, coating when not solid, stones, i.e. the field
+        order); firearms "Glock 19 Gen 5, 9mm handgun, blued";
+        electronics / tools "Apple iPhone 13 Pro, black"; '' for a
+        category with no fields of its own, and '' while nothing but the
+        category is known.
+        descriptionAfterChange — the description follows only while it is
+        empty or still exactly what was written before the change; the
+        clerk's own words are kept; clearing it hands it back.
+      - The words come from the dictionary: t.inventory.cat* for the item
+        (from row.category; the sub-category's label when that is 'other'),
+        tMetal, t.inventory.coatings, the firearm type options, and three
+        new keys (en + es): pawn.new_.itemDescriptionHint,
+        itemDescJewelryOrder ('{karat} {color} {metal} {item}' /
+        '{item} {metal} {color} {karat}'), itemDescRingSize.
+      DECISIONS (mine — he gave the order and one sentence):
+      - Unique marks had no number: between Gemstones and Description, and
+        NOT part of the description (it has its own column).
+      - Est. value is not in the description. A ring's bare-number size
+        reads "size 7". Metal none / other writes no metal word.
+      - Lower case except the first letter, "14K", and all-capitals words
+        (PVD); what the clerk typed for stones and size is left as typed.
+      - General items are still described by hand, and show no hint.
+      - A written description is in the CLERK'S screen language. It is
+        stored as text; nothing translates it later.
+      LOOKED AT locally in headless Chrome, 27 checks: the order, Tab
+      through 1-9 with the description growing at each step, coating on
+      and off, Change category (chain -> bracelet), a typed description
+      kept, a cleared one written again, ring size, electronics, firearm,
+      general, an edit after the item was added.
+
+      tsc, 1,147 tests, lint, build green.
+
+ 568. CHECKPOINT GATE (second Session 66 save). Lane: only Pawn files
+      changed; the browser checks were scratch scripts outside the repo.
+      - Wording: the six new keys are in en.ts and es.ts and each is used;
+        breadcrumb is gone from both and from the code. No new literal
+        text on screen ("K" and " g" in a written description are units).
+      - Dead code: none left by 565-567 (setOpen / openUids fully
+        replaced; every import used).
+      - Stale comment fixed: the header of CollateralItemsList.tsx still
+        said "inline editor"; it now describes the table + popup.
+      - Duplicates: describeRow's item-word map repeats part of the
+        category-label map in buy/new/form.tsx. Ten label lines, a
+        deliberate subset (jewelry nouns only), other surface — left.
+      FOUND, NOT FIXED (older than this session, moved but not added):
+      14 placeholders in the item popup are English literals — see KNOWN
+      ISSUES.
 
 --- Session 65 (2026-11-23) — Pawn loans end to end: payment/extend merged, full-period charge, remaining balance, free time, paid-ahead credit, void a payment, payments by period, shop's own full months (branch feature/sol-pawn-brief == main) ---
 
@@ -3819,11 +3959,18 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Ask Eddy whether the Principal on New pawn ticket moves the way he
-    meant (563, live since 2026-11-24, never looked at in a browser): each
-    item's value is added; an amount he typed is kept as his difference,
-    so a later item goes on top of it. Have him try: two items, a typed
-    amount then a third item, an item removed, a resumed draft.
+    Ask Eddy how the New pawn ticket screen feels at the counter after
+    Session 66 (563, 565-567, all live since 2026-11-24, checked only on
+    the local server) and confirm what I decided for him:
+    - Principal: each item's value is added; an amount he typed is kept
+      as his difference, so a later item goes on top of it.
+    - Item popup: Cancel / X / Esc while ADDING throws the item away;
+      "Pawned before" pieces go straight to the table.
+    - Description: Unique marks is not in it; Est. value is not in it; his
+      own wording is never overwritten; General items are typed by hand.
+    Have him try what was not checked: one real ticket issued from the new
+    screen, a photo taken inside the popup, a tool, voice intake, a
+    resumed draft, the screen in Spanish, a phone.
     Then ask how the pawn screens went at the counter, and confirm two
     things I decided from his words:
     1. Eddy's Jewelers charges the FIRST MONTH FLAT, then by the day
@@ -3948,6 +4095,12 @@ PENDING — NEXT UP
         leave it, since compliance_log is write-once by design.
 
   KNOWN ISSUES TO REVISIT:
+    - New pawn ticket item popup: 14 placeholders in
+      src/components/pawn/CollateralItemsList.tsx are English literals
+      ("14k gold rope chain, 22 inches", "Yellow / Black / Two-tone",
+      "Engraving, hallmark, scratch pattern", "Semi-auto", …). Rule 6
+      debt, older than Session 66; seen in item 568. The brand examples
+      (Glock, Apple, DeWalt) need no translation; the others do.
     - /billing shows the subscription status and cycle as raw English
       enum text, and the settings sub-pages other than Import and
       Communications hardcode "Back to settings" (common.backToSettings
