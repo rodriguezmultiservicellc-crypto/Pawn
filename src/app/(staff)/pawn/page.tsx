@@ -3,8 +3,9 @@ import { getCtx } from '@/lib/supabase/ctx'
 import PawnContent, { type PawnListRow, type PawnStats } from './content'
 import type { LoanStatus } from '@/types/database-aliases'
 import { customerSearchFilters } from '@/lib/customers/search'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
-  todayDateString,
   addDaysIso,
   daysBetween,
   appliedPayments,
@@ -51,7 +52,10 @@ export default async function PawnListPage(props: {
     | 'dueSoon14'
   const customerFilter = (params.customer ?? '').trim()
 
-  const today = todayDateString()
+  // The shop's day, not UTC's: in the evening UTC is already tomorrow, and a
+  // loan due today would be listed as overdue hours early.
+  const rules = await loadTenantRules(ctx.supabase, ctx.tenantId)
+  const today = todayInTimezone(rules.timezone)
   const in7 = addDaysIso(today, 7)
   const in14 = addDaysIso(today, 14)
 
