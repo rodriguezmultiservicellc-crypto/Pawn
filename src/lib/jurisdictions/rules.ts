@@ -7,6 +7,7 @@
  */
 
 import type { Json } from '@/types/database'
+import { RATE_PERIOD_DAYS, type ChargeModel } from '@/lib/pawn/math'
 
 export type RateTier = { up_to: number | null; rate: number }
 
@@ -21,6 +22,8 @@ export type Jurisdiction = {
   rate_cap_monthly: number | null
   rate_tiers: RateTier[] | null
   period_days: number
+  /** Periods from the pawn date charged in full; 0 = by the day. */
+  charge_full_periods: number
   min_charge_cap: number | null
   min_term_days: number | null
   max_term_days: number | null
@@ -89,6 +92,7 @@ type JurisdictionRow = {
   rate_cap_monthly: number | string | null
   rate_tiers: Json | null
   period_days: number
+  charge_full_periods: number
   min_charge_cap: number | string | null
   min_term_days: number | null
   max_term_days: number | null
@@ -115,6 +119,7 @@ export function toJurisdiction(row: JurisdictionRow): Jurisdiction {
     rate_cap_monthly: numOrNull(row.rate_cap_monthly),
     rate_tiers: parseRateTiers(row.rate_tiers),
     period_days: row.period_days,
+    charge_full_periods: row.charge_full_periods,
     min_charge_cap: numOrNull(row.min_charge_cap),
     min_term_days: row.min_term_days,
     max_term_days: row.max_term_days,
@@ -131,6 +136,19 @@ export function toJurisdiction(row: JurisdictionRow): Jurisdiction {
 }
 
 // ── Rule math ──────────────────────────────────────────────────────────────
+
+/**
+ * How this tenant's pawn service charge accrues — full periods first, then
+ * by the day — for lib/pawn/math. A tenant with no jurisdiction on file is
+ * charged by the day from the first day (nothing says otherwise).
+ */
+export function chargeModelOf(rules: Pick<EffectiveRules, 'jurisdiction'>): ChargeModel {
+  const j = rules.jurisdiction
+  return {
+    fullPeriods: j?.charge_full_periods ?? 0,
+    periodDays: j?.period_days ?? RATE_PERIOD_DAYS,
+  }
+}
 
 /**
  * Statutory cap (fraction per period) for a principal. Tiered caps are

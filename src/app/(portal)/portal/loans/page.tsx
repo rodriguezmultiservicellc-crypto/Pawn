@@ -1,10 +1,8 @@
 import { resolvePortalCustomer } from '@/lib/portal/customer'
 import { createAdminClient } from '@/lib/supabase/admin'
-import {
-  daysBetween,
-  payoffFromLoan,
-  todayDateString,
-} from '@/lib/pawn/math'
+import { daysBetween, payoffFromLoan } from '@/lib/pawn/math'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { chargeModelOf, todayInTimezone } from '@/lib/jurisdictions/rules'
 import type {
   LoanEventRow,
   LoanRow,
@@ -30,7 +28,11 @@ export const dynamic = 'force-dynamic'
 export default async function PortalLoansPage() {
   const { tenantId, customerId } = await resolvePortalCustomer()
   const admin = createAdminClient()
-  const today = todayDateString()
+  // The shop's day and the shop's way of charging — the same ones the
+  // counter and the card-payment webhook use, so every screen shows one payoff.
+  const rules = await loadTenantRules(admin, tenantId)
+  const today = todayInTimezone(rules.timezone)
+  const charge = chargeModelOf(rules)
 
   const { data: loanRows } = await admin
     .from('loans')
@@ -72,6 +74,7 @@ export default async function PortalLoansPage() {
       },
       events,
       today,
+      charge,
     )
 
     const collateral = (l.collateral ?? [])

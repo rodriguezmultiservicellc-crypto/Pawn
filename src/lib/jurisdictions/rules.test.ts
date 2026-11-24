@@ -21,6 +21,7 @@ const FL: Jurisdiction = {
   rate_cap_monthly: 0.25,
   rate_tiers: null,
   period_days: 30,
+  charge_full_periods: 2,
   min_charge_cap: 5,
   min_term_days: 30,
   max_term_days: 30,

@@ -8,6 +8,8 @@ import { todayDateString, daysBetween, payoffBalance } from '@/lib/pawn/math'
 import { loadDisplayPct, loadMetalsStrip } from '@/lib/spot-prices/strip'
 import { COUNT_RESOLVE_ROLES } from '@/lib/counts/types'
 import { loadPledgeAlert } from '@/lib/counts/server'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { chargeModelOf } from '@/lib/jurisdictions/rules'
 
 
 export default async function DashboardPage() {
@@ -246,8 +248,10 @@ export default async function DashboardPage() {
       }
     }
 
+    const charge = chargeModelOf(await loadTenantRules(ctx.supabase, ctx.tenantId))
     const withPayoff = book.map((l) => {
       const po = payoffBalance({
+        charge,
         principal:
           typeof l.principal === 'string' ? parseFloat(l.principal) : l.principal,
         monthlyRate:

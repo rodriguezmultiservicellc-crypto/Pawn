@@ -8,8 +8,14 @@
  * result through `.toFixed(4)` (or rely on Postgres to coerce numeric).
  *
  * Convention: rates are decimal fractions, not percentages.
- *   monthlyRate = 0.10 means 10%/month.
- *   dailyRate   = monthlyRate / 30 (straight-line accrual, FL-friendly).
+ *   monthlyRate = 0.10 means 10% of the amount financed per PERIOD.
+ *
+ * How the charge builds up over time is the tenant's ChargeModel (from its
+ * jurisdiction, never a constant here): the first `fullPeriods` periods are
+ * owed in full the moment each starts, and after them the charge runs by the
+ * day at 1/periodDays of a period's charge. Florida is 2 full periods of 30
+ * days (§ 539.001(11)(c)). Every payoff surface passes the model — it is a
+ * required argument so none can fall back to another rule by accident.
  *
  * Date math is done at UTC midnight to avoid timezone drift between server
  * and client. All issue_date / due_date columns are DATE (no time portion);
@@ -47,29 +53,65 @@ export function dailyRateFromMonthly(monthlyRate: number): number {
   return r4(monthlyRate / 30)
 }
 
+/** The period the monthly rate is quoted for. */
+export const RATE_PERIOD_DAYS = 30
+
 /**
- * Straight-line accrual: principal × monthlyRate / 30 × daysElapsed.
+ * How a pawn service charge accrues. Comes from the tenant's jurisdiction
+ * (`chargeModelOf` in lib/jurisdictions/rules) — never built from constants.
+ */
+export type ChargeModel = {
+  /**
+   * Periods, counted from the date of the pawn, charged in full once the
+   * period starts. 0 = by the day from the first day.
+   */
+  fullPeriods: number
+  /** Days in one period. */
+  periodDays: number
+}
+
+/** By the day from the first day: a tenant with no jurisdiction on file. */
+export const CHARGE_BY_THE_DAY: ChargeModel = {
+  fullPeriods: 0,
+  periodDays: RATE_PERIOD_DAYS,
+}
+
+/**
+ * The service charge accrued `daysElapsed` days after the date of the pawn.
  *
- * Optional `minMonthlyCharge` floors the daily accrual at
- * `minMonthlyCharge / 30`, so a 30-day redemption pays at least the
- * monthly minimum and a 15-day redemption pays half. Floor applies
- * regardless of monthlyRate — a $0 rate with $20 min still accrues
- * $20/mo (defensive; the form won't allow rate=0 today, but the math
- * shouldn't silently drop the minimum if it ever does).
+ * One period's charge is principal × monthlyRate, never less than
+ * `minMonthlyCharge` (the per-period minimum; it applies whatever the rate —
+ * a $0 rate with a $5 minimum still charges $5 a period).
+ *
+ * With `fullPeriods` = 2 and 30-day periods (Florida):
+ *   day 0-30   one period's charge — redeeming early refunds nothing
+ *   day 31-60  two periods' charge
+ *   day 61+    two periods' charge + 1/30 of a period's charge per day
+ * With `fullPeriods` = 0 it is 1/periodDays of a period's charge per day
+ * from the first day, and nothing on the day of the pawn.
+ *
+ * Before the date of the pawn, and on a loan with no principal, it is 0.
  */
 export function interestAccrued(
   principal: number,
   monthlyRate: number,
   daysElapsed: number,
-  minMonthlyCharge: number = 0,
+  minMonthlyCharge: number,
+  charge: ChargeModel,
 ): number {
-  if (daysElapsed <= 0 || principal <= 0) return 0
-  const percentageDaily =
-    monthlyRate > 0 ? (principal * monthlyRate) / 30 : 0
-  const minDaily = minMonthlyCharge > 0 ? minMonthlyCharge / 30 : 0
-  const daily = Math.max(percentageDaily, minDaily)
-  if (daily <= 0) return 0
-  return r4(daily * daysElapsed)
+  if (daysElapsed < 0 || principal <= 0) return 0
+  const periodCharge = Math.max(
+    monthlyRate > 0 ? principal * monthlyRate : 0,
+    minMonthlyCharge > 0 ? minMonthlyCharge : 0,
+  )
+  if (periodCharge <= 0) return 0
+  const periodDays = charge.periodDays > 0 ? charge.periodDays : RATE_PERIOD_DAYS
+  const fullPeriods = Math.max(0, Math.floor(charge.fullPeriods))
+  // A period is owed from its first day: day 0 is already inside period 1.
+  const started = Math.floor(Math.max(0, daysElapsed - 1) / periodDays) + 1
+  const inFull = Math.min(started, fullPeriods)
+  const byTheDay = Math.max(0, daysElapsed - fullPeriods * periodDays)
+  return r4(periodCharge * inFull + (periodCharge / periodDays) * byTheDay)
 }
 
 // ── Date helpers ───────────────────────────────────────────────────────────
@@ -172,6 +214,8 @@ export type PayoffArgs = {
   >
   /** Optional snapshot of the rate's min_monthly_charge floor. */
   minMonthlyCharge?: number | null
+  /** How the charge accrues (the tenant's jurisdiction). */
+  charge: ChargeModel
 }
 
 export type PayoffResult = {
@@ -195,12 +239,12 @@ export type PayoffResult = {
  * Compute the payoff balance for a loan as of `today`.
  *
  * Convention:
- *   - Interest accrues straight-line on the ORIGINAL principal from the
- *     issue date forward. Partial principal payments do NOT reduce the
- *     accrual base mid-stream — that simplification matches how most pawn
- *     shops bill (and how FL-style fixed-fee tickets are written). When we
- *     ship per-extension rate changes, this helper will need a `from` /
- *     `to` segment array.
+ *   - The charge accrues on the ORIGINAL principal from the issue date
+ *     forward, the way the tenant's ChargeModel says (interestAccrued).
+ *     Partial principal payments do NOT reduce the accrual base — a known
+ *     simplification: Florida (§ 539.001(11)(e)) figures later charges on
+ *     the remaining balance. Fixing it needs each principal payment's date
+ *     here (a segment array), which no caller passes yet.
  *   - Interest paid is netted against accrued; any negative result is
  *     clamped to 0 (overpayment of interest is treated as fees).
  *   - Payoff floor is 0 — once principal is paid down to zero we don't
@@ -210,15 +254,16 @@ export type PayoffResult = {
 export function payoffBalance(args: PayoffArgs): PayoffResult {
   const principal = r4(args.principal)
   const today = args.today ?? todayDateString()
-  const days = Math.max(0, daysBetween(args.issueDate, today))
 
   const minCharge =
     args.minMonthlyCharge != null ? toMoney(args.minMonthlyCharge) : 0
+  // Not clamped at 0: before the date of the pawn nothing has accrued.
   const accrued = interestAccrued(
     principal,
     args.monthlyRate,
-    days,
+    daysBetween(args.issueDate, today),
     minCharge,
+    args.charge,
   )
 
   const { principalApplied, interestApplied } = appliedPayments(args.events)
@@ -323,11 +368,11 @@ export function allocateLoanPayment(args: {
 
 // ── Payment that may move the due date ─────────────────────────────────────
 
-/** The period the monthly rate is quoted for (see dailyRateFromMonthly). */
-export const RATE_PERIOD_DAYS = 30
-
-/** Most periods one payment may move the due date. */
-export const MAX_EXTENSION_PERIODS = 12
+/**
+ * Most periods one payment may move the due date. A sanity bound, not a
+ * rule: a ticket a year late has to be able to reach a date in the future.
+ */
+export const MAX_EXTENSION_PERIODS = 120
 
 /** Whole cents, the unit money changes hands in. */
 function cents(n: number): number {
@@ -344,8 +389,8 @@ type PlanLoan = {
   events: ReadonlyArray<
     Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>
   >
-  /** Days in one period (jurisdictions.period_days). */
-  periodDays: number
+  /** How the charge accrues; its periodDays is one move of the due date. */
+  charge: ChargeModel
 }
 
 /**
@@ -359,16 +404,32 @@ type PlanLoan = {
  *
  * Interest already paid counts, so a customer who paid part of it earlier
  * only owes the rest. Returned in whole cents.
+ *
+ * A due date is the END of a period. Where periods are charged in full, a
+ * due date that falls a few days past a period's end — a ticket from the old
+ * system due a calendar month (31 days) out, or one a manager moved a few
+ * days — still closes THAT period, not the next: paying one period's charge
+ * moves it. (The payoff is untouched: redeeming on day 31 costs what the
+ * jurisdiction says day 31 costs.)
  */
 export function extensionCost(loan: PlanLoan, periods: number): number {
   const n = Math.floor(periods)
   if (!(n > 0)) return 0
-  const paidThrough = addDaysIso(loan.dueDate, (n - 1) * loan.periodDays)
+  const periodDays = loan.charge.periodDays > 0 ? loan.charge.periodDays : RATE_PERIOD_DAYS
+  const paidThrough = addDaysIso(loan.dueDate, (n - 1) * periodDays)
+  let days = daysBetween(loan.issueDate, paidThrough)
+  const fullDays = Math.max(0, Math.floor(loan.charge.fullPeriods)) * periodDays
+  if (days > 0 && days < fullDays) {
+    // Inside the full periods: the period this date closes, counted to the
+    // nearest period end.
+    days = Math.max(1, Math.round(days / periodDays)) * periodDays
+  }
   const accrued = interestAccrued(
     r4(loan.principal),
     loan.monthlyRate,
-    Math.max(0, daysBetween(loan.issueDate, paidThrough)),
+    days,
     loan.minMonthlyCharge != null ? toMoney(loan.minMonthlyCharge) : 0,
+    loan.charge,
   )
   const { interestApplied } = appliedPayments(loan.events)
   return cents(Math.max(0, accrued - interestApplied))
@@ -455,6 +516,7 @@ export function planLoanPayment(
     today: args.today,
     events: args.events,
     minMonthlyCharge: args.minMonthlyCharge ?? null,
+    charge: args.charge,
   })
   const split = splitPayment(toLoan, Math.max(now.interestOutstanding, cost))
   if (split.principal_paid > now.principalOutstanding + 0.0001) {
@@ -474,7 +536,7 @@ export function planLoanPayment(
     fees_paid: fees,
     new_due_date:
       periods > 0 && !closes
-        ? addDaysIso(args.dueDate, periods * args.periodDays)
+        ? addDaysIso(args.dueDate, periods * args.charge.periodDays)
         : null,
     closes,
   }
@@ -497,7 +559,8 @@ export function payoffFromLoan(
   events: ReadonlyArray<
     Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>
   >,
-  today?: string | Date,
+  today: string | Date | undefined,
+  charge: ChargeModel,
 ): PayoffResult {
   return payoffBalance({
     principal: toMoney(loan.principal),
@@ -506,6 +569,7 @@ export function payoffFromLoan(
     today,
     events,
     minMonthlyCharge: loan.min_monthly_charge ?? null,
+    charge,
   })
 }
 

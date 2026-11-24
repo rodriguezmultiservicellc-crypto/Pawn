@@ -7,9 +7,9 @@ import {
   INVENTORY_PHOTOS_BUCKET,
   getSignedUrl,
 } from '@/lib/supabase/storage'
-import { RATE_PERIOD_DAYS, payoffFromLoan } from '@/lib/pawn/math'
+import { payoffFromLoan } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { loanForfeitEligibility, todayInTimezone } from '@/lib/jurisdictions/rules'
+import { chargeModelOf, loanForfeitEligibility, todayInTimezone } from '@/lib/jurisdictions/rules'
 import PawnLoanDetail, {
   type LoanCollateralView,
   type LoanEventView,
@@ -166,6 +166,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     },
     events,
     payoffAsOf,
+    chargeModelOf(rules),
   )
 
   const c = (loan as unknown as { customer: { id: string; first_name: string; last_name: string; phone: string | null; email: string | null } | null }).customer
@@ -200,7 +201,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
       events={events}
       payoff={payoff}
       today={today}
-      periodDays={rules.jurisdiction?.period_days ?? RATE_PERIOD_DAYS}
+      charge={chargeModelOf(rules)}
       forfeit={forfeit}
       tagChoices={templateChoices(
         await loadTagTemplates(ctx.supabase, ctx.tenantId),

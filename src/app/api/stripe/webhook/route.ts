@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { payoffFromLoan } from '@/lib/pawn/math'
 import { r2 } from '@/lib/pos/cart'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { todayInTimezone } from '@/lib/jurisdictions/rules'
+import { chargeModelOf, todayInTimezone } from '@/lib/jurisdictions/rules'
 import { afterSaleCompleted, layawayAddPayment } from '@/lib/pos/money'
 import { releaseOrder, sendOrderMessage } from '@/lib/store/orders'
 import type { Database } from '@/types/database'
@@ -571,8 +571,9 @@ async function applyLoanPayment(args: {
   stripePaymentIntentId: string | null
 }): Promise<void> {
   const admin = createAdminClient()
-  const { timezone } = await loadTenantRules(admin, args.tenantId)
-  const today = todayInTimezone(timezone)
+  const rules = await loadTenantRules(admin, args.tenantId)
+  const today = todayInTimezone(rules.timezone)
+  const charge = chargeModelOf(rules)
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     const { data: loanData, error: loanErr } = await admin
@@ -604,6 +605,7 @@ async function applyLoanPayment(args: {
       },
       events,
       today,
+      charge,
     )
     const principalPaidBefore = r2(events.reduce((acc, e) => acc + Number(e.principal_paid ?? 0), 0))
 

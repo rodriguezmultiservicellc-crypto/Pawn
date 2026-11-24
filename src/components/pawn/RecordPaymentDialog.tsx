@@ -4,15 +4,19 @@ import { useMemo, useState, useTransition } from 'react'
 import { CalendarCheck, CashRegister, X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import {
+  MAX_EXTENSION_PERIODS,
   addDaysIso,
   extensionCost,
   periodsToBringCurrent,
   planLoanPayment,
+  type ChargeModel,
 } from '@/lib/pawn/math'
 import type { PaymentMethod } from '@/types/database-aliases'
 
-/** How many periods the dialog offers. The server accepts more. */
-const PERIOD_CHOICES = 6
+/** Periods always offered, and how many more past the one that brings a
+ *  late ticket current — a customer may pay ahead as far as they like. */
+const MIN_CHOICES = 6
+const CHOICES_PAST_CURRENT = 6
 
 /** "1,086.00" — the dictionary string carries the "$". */
 const usd = (n: number): string =>
@@ -30,8 +34,8 @@ type DialogLoan = {
     interest_paid: number
     fees_paid: number
   }>
-  /** Days in one period (the jurisdiction's). */
-  periodDays: number
+  /** How the shop's jurisdiction charges; its period is one move of the date. */
+  charge: ChargeModel
 }
 
 /**
@@ -69,26 +73,28 @@ export function RecordPaymentDialog({
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  // What each choice costs and where it leaves the due date.
-  const choices = useMemo(
-    () =>
-      Array.from({ length: PERIOD_CHOICES }, (_, i) => {
-        const periods = i + 1
-        return {
-          periods,
-          days: periods * loan.periodDays,
-          cost: extensionCost(loan, periods),
-          due: addDaysIso(loan.dueDate, periods * loan.periodDays),
-        }
-      }),
-    [loan],
-  )
+  const periodDays = loan.charge.periodDays
   // Open on the move that brings the ticket current: one period for a
   // customer on time, more for one who is late.
-  const startPeriods = Math.min(
-    PERIOD_CHOICES,
-    periodsToBringCurrent(loan.dueDate, today, loan.periodDays),
-  )
+  const startPeriods = periodsToBringCurrent(loan.dueDate, today, periodDays)
+  // What each choice costs and where it leaves the due date. The list always
+  // runs past today, however late the ticket is: a ticket that is a year
+  // behind must still be able to reach a date in the future, and beyond.
+  const choices = useMemo(() => {
+    const count = Math.min(
+      MAX_EXTENSION_PERIODS,
+      Math.max(MIN_CHOICES, startPeriods + CHOICES_PAST_CURRENT),
+    )
+    return Array.from({ length: count }, (_, i) => {
+      const periods = i + 1
+      return {
+        periods,
+        days: periods * periodDays,
+        cost: extensionCost(loan, periods),
+        due: addDaysIso(loan.dueDate, periods * periodDays),
+      }
+    })
+  }, [loan, startPeriods, periodDays])
   const [periods, setPeriods] = useState<number>(startPeriods)
   const [amountStr, setAmountStr] = useState<string>(
     choices[startPeriods - 1].cost.toFixed(2),

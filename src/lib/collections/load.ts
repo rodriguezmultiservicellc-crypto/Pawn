@@ -2,7 +2,7 @@ import 'server-only'
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import { payoffFromLoan, toMoney } from '@/lib/pawn/math'
+import { payoffFromLoan, toMoney, type ChargeModel } from '@/lib/pawn/math'
 import {
   bucketFor,
   daysBetweenIso,
@@ -61,9 +61,11 @@ export async function loadCollections(args: {
   client: Client
   tenantId: string
   today: string
+  /** How the shop's jurisdiction charges a loan (chargeModelOf(rules)). */
+  charge: ChargeModel
   config?: AgingConfig
 }): Promise<CollectionsData> {
-  const { client, tenantId, today } = args
+  const { client, tenantId, today, charge } = args
   const config = args.config ?? (await loadAgingConfig(client, tenantId))
   const lookbackIso = new Date(Date.now() - COLLECTIONS_LOOKBACK_DAYS * 86_400_000).toISOString()
 
@@ -160,6 +162,7 @@ export async function loadCollections(args: {
         },
         byLoan.get(l.id) ?? [],
         today,
+        charge,
       )
       const daysLate = Math.max(0, daysBetweenIso(l.due_date, today))
       rows.push({

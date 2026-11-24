@@ -4,7 +4,7 @@ import PawnContent, { type PawnListRow, type PawnStats } from './content'
 import type { LoanStatus } from '@/types/database-aliases'
 import { customerSearchFilters } from '@/lib/customers/search'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { todayInTimezone } from '@/lib/jurisdictions/rules'
+import { chargeModelOf, todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
   addDaysIso,
   daysBetween,
@@ -56,6 +56,7 @@ export default async function PawnListPage(props: {
   // loan due today would be listed as overdue hours early.
   const rules = await loadTenantRules(ctx.supabase, ctx.tenantId)
   const today = todayInTimezone(rules.timezone)
+  const charge = chargeModelOf(rules)
   const in7 = addDaysIso(today, 7)
   const in14 = addDaysIso(today, 14)
 
@@ -353,6 +354,7 @@ export default async function PawnListPage(props: {
               : m.interest_rate_monthly,
           issueDate: m.issue_date,
           today,
+          charge,
           events: eventsByLoan.get(r.id) ?? [],
           minMonthlyCharge:
             m.min_monthly_charge == null
@@ -382,6 +384,7 @@ export default async function PawnListPage(props: {
           : l.interest_rate_monthly,
       issueDate: l.issue_date,
       today,
+      charge,
       events: eventsByLoan.get(l.id) ?? [],
       minMonthlyCharge:
         l.min_monthly_charge == null

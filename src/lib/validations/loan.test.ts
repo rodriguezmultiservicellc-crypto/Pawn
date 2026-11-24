@@ -313,7 +313,9 @@ describe('loanPaymentSchema', () => {
     expect(two.success && two.data.periods).toBe(2)
     expect(loanPaymentSchema.safeParse(payment({ periods: 1.5 })).success).toBe(false)
     expect(loanPaymentSchema.safeParse(payment({ periods: -1 })).success).toBe(false)
-    expect(loanPaymentSchema.safeParse(payment({ periods: 13 })).success).toBe(false)
+    // A very late ticket needs many periods to reach a future date.
+    expect(loanPaymentSchema.safeParse(payment({ periods: 40 })).success).toBe(true)
+    expect(loanPaymentSchema.safeParse(payment({ periods: 121 })).success).toBe(false)
   })
 
   it('drops a new due date sent by the browser — the server counts it', () => {

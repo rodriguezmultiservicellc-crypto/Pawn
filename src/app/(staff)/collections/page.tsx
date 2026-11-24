@@ -3,7 +3,7 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { todayInTimezone } from '@/lib/jurisdictions/rules'
+import { chargeModelOf, todayInTimezone } from '@/lib/jurisdictions/rules'
 import { loadCollections } from '@/lib/collections/load'
 import CollectionsContent from './content'
 
@@ -28,7 +28,12 @@ export default async function CollectionsPage() {
 
   const rules = await loadTenantRules(createAdminClient(), ctx.tenantId)
   const today = todayInTimezone(rules.timezone)
-  const data = await loadCollections({ client: supabase, tenantId: ctx.tenantId, today })
+  const data = await loadCollections({
+    client: supabase,
+    tenantId: ctx.tenantId,
+    today,
+    charge: chargeModelOf(rules),
+  })
 
   return <CollectionsContent data={data} today={today} />
 }

@@ -2,10 +2,9 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolvePortalCustomer } from '@/lib/portal/customer'
-import {
-  payoffFromLoan,
-  todayDateString,
-} from '@/lib/pawn/math'
+import { payoffFromLoan } from '@/lib/pawn/math'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { chargeModelOf, todayInTimezone } from '@/lib/jurisdictions/rules'
 import { createCheckoutSession } from '@/lib/stripe/payment-link'
 import { logAudit } from '@/lib/audit'
 import { insertStripeLink } from '@/lib/portal/stripe-payment-links'
@@ -79,6 +78,9 @@ export async function createLoanPayoffSession(args: {
   }
 
   const events = loan.events ?? []
+  // The amount charged here must be the amount the webhook will book: same
+  // day (the shop's, not UTC's) and same way of charging.
+  const rules = await loadTenantRules(admin, portal.tenantId)
   const payoff = payoffFromLoan(
     {
       principal: loan.principal,
@@ -87,7 +89,8 @@ export async function createLoanPayoffSession(args: {
       min_monthly_charge: loan.min_monthly_charge,
     },
     events,
-    todayDateString(),
+    todayInTimezone(rules.timezone),
+    chargeModelOf(rules),
   )
 
   if (payoff.payoff <= 0) return { ok: false, error: 'closed' }

@@ -11,9 +11,8 @@ import {
 } from '@/lib/validations/loan'
 import { logAudit } from '@/lib/audit'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { loanForfeitEligibility, todayInTimezone } from '@/lib/jurisdictions/rules'
+import { chargeModelOf, loanForfeitEligibility, todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
-  RATE_PERIOD_DAYS,
   payoffFromLoan,
   planLoanPayment,
   splitPayment,
@@ -102,10 +101,11 @@ export async function recordPaymentAction(
     issue_date: loan.issue_date,
     min_monthly_charge: loan.min_monthly_charge,
   }
-  // The shop's day and the jurisdiction's period — never UTC, never a constant.
+  // The shop's day and the jurisdiction's way of charging — never UTC,
+  // never a constant.
   const rules = await loadTenantRules(supabase, tenantId)
   const today = todayInTimezone(rules.timezone)
-  const periodDays = rules.jurisdiction?.period_days ?? RATE_PERIOD_DAYS
+  const charge = chargeModelOf(rules)
 
   // What is owed right now, read by the server. The split and the new due
   // date are decided here and never taken from the browser — see
@@ -122,7 +122,7 @@ export async function recordPaymentAction(
     issueDate: loan.issue_date,
     dueDate: loan.due_date,
     events: priorEvents ?? [],
-    periodDays,
+    charge,
     today,
     periods: v.periods,
     amount: v.amount,
@@ -161,7 +161,7 @@ export async function recordPaymentAction(
     .from('loan_events')
     .select('principal_paid, interest_paid, fees_paid')
     .eq('loan_id', loan.id)
-  const payoff = payoffFromLoan(loanForPayoff, events ?? [], today)
+  const payoff = payoffFromLoan(loanForPayoff, events ?? [], today, charge)
 
   let newStatus: LoanStatus = loan.status as LoanStatus
   let newDueDate: string | null = null
@@ -312,6 +312,7 @@ export async function redeemLoanAction(
     },
     events ?? [],
     todayInTimezone(redeemRules.timezone),
+    chargeModelOf(redeemRules),
   )
 
   // Apply remaining interest first, then remaining principal.

@@ -19,7 +19,7 @@ import {
   type AutomationConfig,
 } from './automations'
 import { addDaysIso, payoffFromLoan } from '@/lib/pawn/math'
-import { loanForfeitEligibility, type EffectiveRules } from '@/lib/jurisdictions/rules'
+import { chargeModelOf, loanForfeitEligibility, type EffectiveRules } from '@/lib/jurisdictions/rules'
 import { buildUnsubscribeUrl, ensureUnsubscribeToken } from '@/lib/email/campaigns'
 
 type Admin = SupabaseClient<Database>
@@ -191,6 +191,7 @@ export async function runLoanAutomations(args: {
               occurred_at: e.occurred_at,
             })),
             today,
+            chargeModelOf(rules),
           )
           payoffAmount = formatUsd(payoff.payoff)
         }

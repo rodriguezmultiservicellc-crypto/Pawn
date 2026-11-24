@@ -146,6 +146,13 @@ Never kill node processes by image name — always by PID.
     Date rules use the shop's `tenants.timezone`, not UTC. Only add a
     jurisdiction row after verifying the current statute
     (`verified_on` + `verified_source`).
+    **How the charge accrues is one of those limits** (patches/0100):
+    `jurisdictions.charge_full_periods` periods are owed in full from
+    the day each starts, then the charge runs by the day (FL = 2,
+    § 539.001(11)(c)). Every payoff takes the tenant's `ChargeModel`
+    (`chargeModelOf(rules)`) as a REQUIRED argument of
+    `payoffBalance` / `payoffFromLoan` / `interestAccrued` — never
+    default it, never build one from constants.
 
 19. **Other people's money moves through the database, not app code.**
     - **Store credit** (patches/0052-0053). `customers.store_credit_balance`

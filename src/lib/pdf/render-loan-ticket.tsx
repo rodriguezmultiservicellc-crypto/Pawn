@@ -37,7 +37,7 @@ import {
 } from '@/lib/pawn/math'
 import { registerPdfFonts } from './fonts'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
-import { loanForfeitEligibility } from '@/lib/jurisdictions/rules'
+import { chargeModelOf, loanForfeitEligibility } from '@/lib/jurisdictions/rules'
 import PawnTicketPDF, {
   type PawnTicketCollateral,
   type PawnTicketCustomer,
@@ -249,11 +249,13 @@ export async function renderLoanTicketPdf(args: {
   const monthlyRate = toMoney(loan.interest_rate_monthly)
   const minMonthlyCharge =
     loan.min_monthly_charge == null ? 0 : toMoney(loan.min_monthly_charge)
+  const charge = chargeModelOf(rules)
   const termInterest = interestAccrued(
     principal,
     monthlyRate,
     loan.term_days,
     minMonthlyCharge,
+    charge,
   )
   const totalPayoffAtTerm = r4(principal + termInterest)
 
@@ -278,6 +280,7 @@ export async function renderLoanTicketPdf(args: {
     today: defaultDate,
     events: paidEvents ?? [],
     minMonthlyCharge,
+    charge,
   }).payoff
   const apr = principal > 0 && loan.term_days > 0 ? r4((termInterest / principal) * (365 / loan.term_days)) : 0
   const transactionTime = new Date(loan.created_at).toLocaleTimeString('en-US', {

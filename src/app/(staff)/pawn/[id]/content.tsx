@@ -33,7 +33,7 @@ import {
   voidLoanAction,
   type ActionResult,
 } from './actions'
-import type { PayoffResult } from '@/lib/pawn/math'
+import type { ChargeModel, PayoffResult } from '@/lib/pawn/math'
 import type {
   InventoryCategory,
   LoanEventType,
@@ -127,7 +127,7 @@ export default function PawnLoanDetail({
   events,
   payoff,
   today,
-  periodDays,
+  charge,
   forfeit,
   tagChoices,
 }: {
@@ -136,8 +136,8 @@ export default function PawnLoanDetail({
   events: LoanEventView[]
   payoff: PayoffResult
   today: string
-  /** Days one payment period moves the due date (the jurisdiction's). */
-  periodDays: number
+  /** How the shop's jurisdiction charges; its period is one move of the due date. */
+  charge: ChargeModel
   forfeit: { eligible: boolean; eligibleOn: string; lastRedemptionDate: string }
   tagChoices: TemplateChoice[]
 }) {
@@ -354,7 +354,7 @@ export default function PawnLoanDetail({
             issueDate: loan.issue_date,
             dueDate: loan.due_date,
             events,
-            periodDays,
+            charge,
           }}
           today={today}
           payoff={payoff.payoff}

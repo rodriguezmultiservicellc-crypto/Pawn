@@ -3,11 +3,9 @@ import { resolvePortalCustomer } from '@/lib/portal/customer'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripeLinkStatusBySessionId } from '@/lib/portal/stripe-payment-links'
 import { isTenantStripeConnected } from '@/lib/stripe/payment-link'
-import {
-  daysBetween,
-  payoffFromLoan,
-  todayDateString,
-} from '@/lib/pawn/math'
+import { daysBetween, payoffFromLoan } from '@/lib/pawn/math'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { chargeModelOf, todayInTimezone } from '@/lib/jurisdictions/rules'
 import LoanDetail, {
   type PortalLoanDetailView,
   type PortalLoanEventView,
@@ -80,7 +78,9 @@ export default async function PortalLoanDetailPage(props: {
   if (loan.tenant_id !== tenantId) redirect('/portal/loans')
   if (loan.customer_id !== customerId) redirect('/portal/loans')
 
-  const today = todayDateString()
+  // The shop's day and way of charging, as at the counter and in the webhook.
+  const rules = await loadTenantRules(admin, tenantId)
+  const today = todayInTimezone(rules.timezone)
   const events = (loan.events ?? []).map((e) => ({
     id: e.id,
     event_type: e.event_type as LoanEventType,
@@ -102,6 +102,7 @@ export default async function PortalLoanDetailPage(props: {
     },
     events,
     today,
+    chargeModelOf(rules),
   )
   const daysToDue = daysBetween(today, loan.due_date)
 

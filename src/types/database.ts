@@ -2954,6 +2954,7 @@ export type Database = {
       jurisdictions: {
         Row: {
           buy_hold_days: number
+          charge_full_periods: number
           code: string
           country: string
           created_at: string
@@ -2986,6 +2987,7 @@ export type Database = {
         }
         Insert: {
           buy_hold_days?: number
+          charge_full_periods?: number
           code: string
           country: string
           created_at?: string
@@ -3018,6 +3020,7 @@ export type Database = {
         }
         Update: {
           buy_hold_days?: number
+          charge_full_periods?: number
           code?: string
           country?: string
           created_at?: string

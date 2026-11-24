@@ -60,8 +60,8 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23, evening). Items 544-548, NO
-                  MIGRATIONS. main == feature/sol-pawn-brief.
+  Last session:   Session 65 (2026-11-23, evening). Items 544-550, ONE
+                  MIGRATION, APPLIED: 0100. main == feature/sol-pawn-brief.
                   ACTIVE FILES (last touched):
                     src/lib/pawn/math.ts (planLoanPayment, extensionCost)
                     src/app/(staff)/pawn/[id]/actions.ts, page.tsx
@@ -72,14 +72,17 @@ OPERATION IN FLIGHT: none
                     date moves from the OLD due date, one period per
                     period of interest paid. Never bring back an extend
                     that counts from today or moves the date unpaid.
-                  - math.ts WAS added to this session (new functions only;
-                    the accrual itself is untouched) although the note
-                    below said to wait. The charging question is STILL
-                    OPEN and now also decides what a period costs to
-                    extend: ticket 15634's first 30-day move costs $186.00
-                    by the day (31 days) where the old system took $180.00.
-                    When Eddy decides, change payoffBalance AND
-                    extensionCost together.
+                  - THE CHARGING QUESTION IS ANSWERED (549). Eddy: "the
+                    full 30-day period like my paper form". Florida's
+                    rule is in jurisdictions.charge_full_periods = 2: two
+                    periods in full, then by the day (CLAUDE.md rule 18).
+                    The "do not change math.ts" note below is over.
+                  - OPEN, FOUND IN 549, NOT FIXED: after a payment toward
+                    the loan, Pawn still charges on the ORIGINAL amount.
+                    § 539.001(11)(e) says later charges are figured on
+                    the remaining balance (10 open tickets have paydowns).
+                  - OPEN: "the manager can give free months or days"
+                    (Eddy, same message) — not built yet in this save.
                   - STILL ON UTC "TODAY" (found in 546, not fixed): the
                     dashboard, the portal loan pages and payoff, layaways,
                     the repair list and board, the buy-hold and layaway
@@ -652,6 +655,50 @@ Progress_archive.txt — the items from those sessions are there.)
       now read as that calendar day (src/lib/format/money.ts, with a test).
 
       tsc, 1,047 tests, lint, build green.
+
+ 549. THE CHARGE IS BY THE FULL PERIOD NOW (patches/0100 APPLIED). Eddy:
+      "the full 30-day period like my paper form".
+      THE LAW, READ FIRST (2026 Florida Statutes, leg.state.fl.us,
+      § 539.001(11)(c)): redeemed within 30 days of the pawn = one period's
+      charge; more than 30 days = twice; more than 60 days = it goes on
+      from day 60 BY THE DAY at 1/30 of the period charge. So "full
+      period" is the first TWO periods; a full third month on day 61 would
+      be over the limit and (11)(e) makes an overcharged pawn voidable.
+      Eddy's old system charged whole months after day 60 too — TOLD HIM.
+      BUILT:
+      - jurisdictions.charge_full_periods (0 = by the day; US-FL = 2).
+        No loan row touched (rule 22). No policy touched.
+      - math.ts: ChargeModel { fullPeriods, periodDays }; interestAccrued,
+        payoffBalance and payoffFromLoan take it as a REQUIRED argument, so
+        the type check forced all 14 payoff surfaces to pass it: ticket
+        page + actions, pawn list, dashboard, collections, reminders, the
+        card-payment webhook, the printed ticket, and the customer portal
+        (3 places). chargeModelOf(rules) in lib/jurisdictions/rules.ts.
+      - After day 60 the two ways give the same number, so only tickets
+        younger than 60 days changed: 15664 ($300, 6 days) now $330.00
+        (was $306.00) = the old system.
+      - The portal now uses the shop's day too (was UTC) — it has to match
+        the webhook, which books the payment on the shop's day.
+      - A due date a few days past a period end (old tickets due a
+        calendar month out, 31 days) still closes THAT period when
+        extending: 15634's first 30-day move is $180.00, like the old
+        system. The payoff itself is untouched.
+      LOOKED AT (headless Chrome, local server, nothing submitted): 15664
+      payoff $330.00; 15656 ($250, 32 days) payoff $300.00, $25.00 to move
+      30 days; 15634 $180.00 / $546.00.
+      NOT DONE — TELL EDDY: the printed ticket still leaves out his paper
+      form's line "If you pay off your loan early you will not be entitled
+      to a refund of part of the finance charge" (item 542 dropped it
+      because it was untrue by the day; it is true now). A default date
+      rolled past day 60 by a weekend prints two periods + a day or two.
+
+ 550. PAYMENT / EXTEND COULD NOT REACH THE FUTURE ON A VERY LATE TICKET
+      [BUG]. Eddy, ticket 15551 (due 2026-04-24, 213 days late): the list
+      stopped at 180 days. The dialog now always offers 6 periods past the
+      one that brings the ticket current (15551: opens on 240 days ->
+      2026-12-20, $80.00; runs to 420 days). MAX_EXTENSION_PERIODS 12 -> 120.
+
+      tsc, 1,062 tests, lint, build green.
 
 --- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 

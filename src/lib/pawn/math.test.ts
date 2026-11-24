@@ -16,6 +16,7 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  CHARGE_BY_THE_DAY,
   addDaysIso,
   allocateLoanPayment,
   appliedPayments,
@@ -30,7 +31,13 @@ import {
   splitPayment,
   toMoney,
   todayDateString,
+  type ChargeModel,
 } from './math'
+
+/** A tenant with no jurisdiction: by the day from the first day. */
+const DAY = CHARGE_BY_THE_DAY
+/** Florida, § 539.001(11)(c): two full 30-day periods, then by the day. */
+const FL: ChargeModel = { fullPeriods: 2, periodDays: 30 }
 
 describe('r4 / toMoney', () => {
   it('rounds to 4 decimal places half-away-from-zero', () => {
@@ -66,18 +73,18 @@ describe('dailyRateFromMonthly', () => {
 
 describe('interestAccrued', () => {
   it('zero principal or zero days → zero', () => {
-    expect(interestAccrued(0, 0.1, 30)).toBe(0)
-    expect(interestAccrued(100, 0.1, 0)).toBe(0)
-    expect(interestAccrued(100, 0.1, -5)).toBe(0)
+    expect(interestAccrued(0, 0.1, 30, 0, DAY)).toBe(0)
+    expect(interestAccrued(100, 0.1, 0, 0, DAY)).toBe(0)
+    expect(interestAccrued(100, 0.1, -5, 0, DAY)).toBe(0)
   })
 
   it('classic case: $1000 @ 10%/mo for 30 days → $100', () => {
-    expect(interestAccrued(1000, 0.1, 30)).toBeCloseTo(100, 4)
+    expect(interestAccrued(1000, 0.1, 30, 0, DAY)).toBeCloseTo(100, 4)
   })
 
   it('partial month pro-rates straight-line', () => {
     // $1000 @ 10%/mo for 15 days → $50.
-    expect(interestAccrued(1000, 0.1, 15)).toBeCloseTo(50, 4)
+    expect(interestAccrued(1000, 0.1, 15, 0, DAY)).toBeCloseTo(50, 4)
   })
 
   describe('min_monthly_charge floor (Session 12)', () => {
@@ -86,25 +93,25 @@ describe('interestAccrued', () => {
       //   percentageDaily = 0.0333…
       //   minDaily        = 20/30 = 0.6667
       //   30 days → $20, 15 days → $10, 1 day → $0.6667.
-      expect(interestAccrued(10, 0.1, 30, 20)).toBeCloseTo(20, 4)
-      expect(interestAccrued(10, 0.1, 15, 20)).toBeCloseTo(10, 4)
-      expect(interestAccrued(10, 0.1, 1, 20)).toBeCloseTo(0.6667, 4)
+      expect(interestAccrued(10, 0.1, 30, 20, DAY)).toBeCloseTo(20, 4)
+      expect(interestAccrued(10, 0.1, 15, 20, DAY)).toBeCloseTo(10, 4)
+      expect(interestAccrued(10, 0.1, 1, 20, DAY)).toBeCloseTo(0.6667, 4)
     })
 
     it('does NOT lower interest above the floor', () => {
       // $1000 @ 10%/mo with $20 min: percentage interest dominates.
-      expect(interestAccrued(1000, 0.1, 30, 20)).toBeCloseTo(100, 4)
+      expect(interestAccrued(1000, 0.1, 30, 20, DAY)).toBeCloseTo(100, 4)
     })
 
     it('handles a zero rate with a min set (defensive)', () => {
       // Hypothetical: rate=0 + min=$15 → 30 days → $15.
-      expect(interestAccrued(100, 0, 30, 15)).toBeCloseTo(15, 4)
-      expect(interestAccrued(100, 0, 0, 15)).toBe(0)
+      expect(interestAccrued(100, 0, 30, 15, DAY)).toBeCloseTo(15, 4)
+      expect(interestAccrued(100, 0, 0, 15, DAY)).toBe(0)
     })
 
     it('treats min<=0 as no floor', () => {
-      expect(interestAccrued(1000, 0.1, 30, 0)).toBeCloseTo(100, 4)
-      expect(interestAccrued(1000, 0.1, 30, -5)).toBeCloseTo(100, 4)
+      expect(interestAccrued(1000, 0.1, 30, 0, DAY)).toBeCloseTo(100, 4)
+      expect(interestAccrued(1000, 0.1, 30, -5, DAY)).toBeCloseTo(100, 4)
     })
   })
 })
@@ -177,6 +184,7 @@ describe('appliedPayments', () => {
 describe('payoffBalance', () => {
   it('zero days elapsed → payoff = principal', () => {
     const r = payoffBalance({
+      charge: DAY,
       principal: 1000,
       monthlyRate: 0.1,
       issueDate: '2026-04-29',
@@ -189,6 +197,7 @@ describe('payoffBalance', () => {
 
   it('classic 30-day payoff: $1000 + $100 interest', () => {
     const r = payoffBalance({
+      charge: DAY,
       principal: 1000,
       monthlyRate: 0.1,
       issueDate: '2026-03-30',
@@ -201,6 +210,7 @@ describe('payoffBalance', () => {
 
   it('netting: prior $50 interest payment reduces outstanding interest', () => {
     const r = payoffBalance({
+      charge: DAY,
       principal: 1000,
       monthlyRate: 0.1,
       issueDate: '2026-03-30',
@@ -216,6 +226,7 @@ describe('payoffBalance', () => {
 
   it('partial principal payment reduces principalOutstanding', () => {
     const r = payoffBalance({
+      charge: DAY,
       principal: 1000,
       monthlyRate: 0.1,
       issueDate: '2026-03-30',
@@ -234,6 +245,7 @@ describe('payoffBalance', () => {
 
   it('overpayment of interest is clamped to 0 (treated as fees)', () => {
     const r = payoffBalance({
+      charge: DAY,
       principal: 1000,
       monthlyRate: 0.1,
       issueDate: '2026-03-30',
@@ -248,6 +260,7 @@ describe('payoffBalance', () => {
 
   it('once principal is fully paid, outstanding interest does not bill', () => {
     const r = payoffBalance({
+      charge: DAY,
       principal: 1000,
       monthlyRate: 0.1,
       issueDate: '2026-03-30',
@@ -263,6 +276,7 @@ describe('payoffBalance', () => {
   it('min_monthly_charge floor flows through payoff', () => {
     // $10 @ 10%/mo with $20 min, 30 days → $20 interest → $30 payoff.
     const r = payoffBalance({
+      charge: DAY,
       principal: 10,
       monthlyRate: 0.1,
       issueDate: '2026-03-30',
@@ -277,6 +291,7 @@ describe('payoffBalance', () => {
   it('min_monthly_charge null is treated as no floor', () => {
     // Same shape but min=null → percentage rate dominates ($1).
     const r = payoffBalance({
+      charge: DAY,
       principal: 10,
       monthlyRate: 0.1,
       issueDate: '2026-03-30',
@@ -426,7 +441,7 @@ describe('planLoanPayment — paying and extending are one act', () => {
     issueDate: '2026-08-21',
     dueDate: '2026-09-20',
     events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number }>,
-    periodDays: 30,
+    charge: FL,
   }
 
   it('one period of interest moves the due date one period from the OLD due date', () => {
@@ -457,7 +472,7 @@ describe('planLoanPayment — paying and extending are one act', () => {
   })
 
   it('a customer paying early still pays the whole period, and none of it becomes principal', () => {
-    // Day 25 of 30: only $208.33 has accrued, but the period being paid is $250.
+    // Day 25 of 30: the period is owed in full from its first day.
     const p = planLoanPayment({ ...loan, today: '2026-09-15', periods: 1, amount: 250 })
     expect(p).toMatchObject({ ok: true, interest_paid: 250, principal_paid: 0, new_due_date: '2026-10-20' })
   })
@@ -468,9 +483,10 @@ describe('planLoanPayment — paying and extending are one act', () => {
   })
 
   it('interest accrued to today is paid before any principal', () => {
-    // 15 days late: $375 accrued. $400 with one period = $375 interest, $25 principal.
-    const p = planLoanPayment({ ...loan, today: '2026-10-05', periods: 1, amount: 400 })
-    expect(p).toMatchObject({ ok: true, interest_paid: 375, principal_paid: 25 })
+    // 15 days late is inside the second period: $500 accrued. $600 with one
+    // period = $500 interest, $100 principal.
+    const p = planLoanPayment({ ...loan, today: '2026-10-05', periods: 1, amount: 600 })
+    expect(p).toMatchObject({ ok: true, interest_paid: 500, principal_paid: 100 })
   })
 
   it('with no periods it is a plain payment and the date stays', () => {
@@ -532,6 +548,20 @@ describe('planLoanPayment — paying and extending are one act', () => {
     expect(extensionCost(small, 1)).toBe(5)
   })
 
+  it('a third period, past day 60, costs a period by the day — the same $250', () => {
+    expect(extensionCost(loan, 3)).toBe(750)
+  })
+
+  it('charged by the day, a customer paying five days early prepays those days', () => {
+    const byDay = { ...loan, charge: DAY }
+    expect(extensionCost(byDay, 1)).toBe(250)
+    expect(planLoanPayment({ ...byDay, today: '2026-09-15', periods: 1, amount: 250 })).toMatchObject({
+      ok: true,
+      interest_paid: 250,
+      principal_paid: 0,
+    })
+  })
+
   it('says how many periods bring a late loan current', () => {
     expect(periodsToBringCurrent('2026-09-20', '2026-09-10', 30)).toBe(1)
     expect(periodsToBringCurrent('2026-09-20', '2026-09-20', 30)).toBe(1)
@@ -539,5 +569,103 @@ describe('planLoanPayment — paying and extending are one act', () => {
     expect(periodsToBringCurrent('2026-09-20', '2026-10-20', 30)).toBe(1)
     expect(periodsToBringCurrent('2026-09-20', '2026-10-21', 30)).toBe(2)
     expect(periodsToBringCurrent('2026-09-20', '2026-11-23', 30)).toBe(3)
+    // A ticket two years late still reaches a date in the future.
+    expect(periodsToBringCurrent('2024-11-23', '2026-11-23', 30)).toBe(25)
+  })
+})
+
+describe('interestAccrued — full periods first (Florida, § 539.001(11)(c))', () => {
+  it('one full period is owed from the day of the pawn through day 30', () => {
+    // Ticket 15664: $300 at 10%, six days old. The old system and the paper
+    // form say $330.00 to redeem; by the day it was $306.00.
+    expect(interestAccrued(300, 0.1, 6, 0, FL)).toBe(30)
+    expect(interestAccrued(300, 0.1, 0, 0, FL)).toBe(30)
+    expect(interestAccrued(300, 0.1, 30, 0, FL)).toBe(30)
+  })
+
+  it('more than 30 days after the pawn: twice the period charge', () => {
+    expect(interestAccrued(300, 0.1, 31, 0, FL)).toBe(60)
+    expect(interestAccrued(300, 0.1, 60, 0, FL)).toBe(60)
+    // The paper form's default-date figure: $400 at 10%, day 60 = $480.00.
+    expect(400 + interestAccrued(400, 0.1, 60, 0, FL)).toBe(480)
+  })
+
+  it('after day 60 it accrues by the day at one-thirtieth of the period charge', () => {
+    expect(interestAccrued(300, 0.1, 61, 0, FL)).toBe(61)
+    expect(interestAccrued(300, 0.1, 90, 0, FL)).toBe(90)
+    // Ticket 15634: $1,800 at 10%, 93 days = 2 x $180 + 33 x $6.
+    expect(interestAccrued(1800, 0.1, 93, 0, FL)).toBe(558)
+  })
+
+  it('is never less than by the day, and exactly by the day from day 60 on', () => {
+    for (let d = 0; d <= 200; d++) {
+      const full = interestAccrued(1000, 0.25, d, 0, FL)
+      const byDay = interestAccrued(1000, 0.25, d, 0, DAY)
+      if (d >= 60) expect(full, `day ${d}`).toBeCloseTo(byDay, 4)
+      else expect(full, `day ${d}`).toBeGreaterThanOrEqual(byDay)
+    }
+  })
+
+  it('the $5 minimum is a charge per period, in full', () => {
+    expect(interestAccrued(10, 0.25, 3, 5, FL)).toBe(5)
+    expect(interestAccrued(10, 0.25, 31, 5, FL)).toBe(10)
+    expect(interestAccrued(10, 0.25, 75, 5, FL)).toBe(12.5)
+  })
+
+  it('nothing before the day of the pawn, nothing on a loan with no principal', () => {
+    expect(interestAccrued(300, 0.1, -1, 0, FL)).toBe(0)
+    expect(interestAccrued(0, 0.1, 10, 5, FL)).toBe(0)
+  })
+
+  it('payoffBalance uses the model it is given', () => {
+    const args = { principal: 300, monthlyRate: 0.1, issueDate: '2026-11-17', today: '2026-11-23', events: [] }
+    expect(payoffBalance({ ...args, charge: FL }).payoff).toBe(330)
+    expect(payoffBalance({ ...args, charge: DAY }).payoff).toBe(306)
+  })
+})
+
+describe('extensionCost — a due date a few days past a period end', () => {
+  // Ticket 15634 from the old system: $1,800 at 10%, issued Aug 22, due
+  // Sep 22 — a calendar month, 31 days. The old system took $180.00 a month.
+  const old = {
+    principal: 1800,
+    monthlyRate: 0.1,
+    issueDate: '2026-08-22',
+    dueDate: '2026-09-22',
+    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number }>,
+    charge: FL,
+  }
+
+  it('one period moves a 31-day ticket for one period of interest, not two', () => {
+    expect(extensionCost(old, 1)).toBe(180)
+  })
+
+  it('further out it is the interest through that date', () => {
+    // Through day 61: two full periods + one day.
+    expect(extensionCost(old, 2)).toBe(366)
+    expect(extensionCost(old, 3)).toBe(546)
+  })
+
+  it('a 28-day February ticket still owes its whole first period', () => {
+    expect(extensionCost({ ...old, issueDate: '2026-02-01', dueDate: '2026-03-01' }, 1)).toBe(180)
+  })
+
+  it('a due date deep inside the next period closes that period', () => {
+    // Due on day 50: the second period is most of the way through.
+    expect(extensionCost({ ...old, dueDate: '2026-10-11' }, 1)).toBe(360)
+  })
+
+  it('redeeming on day 31 still costs what day 31 costs', () => {
+    expect(
+      payoffBalance({ principal: 1800, monthlyRate: 0.1, issueDate: '2026-08-22', today: '2026-09-22', events: [], charge: FL })
+        .interestOutstanding,
+    ).toBe(360)
+  })
+
+  it('a ticket on the regular 30-day due date is unchanged', () => {
+    const regular = { ...old, dueDate: '2026-09-21' }
+    expect(extensionCost(regular, 1)).toBe(180)
+    expect(extensionCost(regular, 2)).toBe(360)
+    expect(extensionCost(regular, 3)).toBe(540)
   })
 })
