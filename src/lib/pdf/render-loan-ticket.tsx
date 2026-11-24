@@ -68,6 +68,9 @@ export async function renderLoanTicketPdf(args: {
   /** Add (true) or leave out (false) the Spanish courtesy copy regardless
    *  of the customer's language. Default: the customer's language decides. */
   spanishCopy?: boolean
+  /** 'spanish' = only the stamped Spanish courtesy translation. Default:
+   *  the full ticket. */
+  copies?: 'ticket' | 'spanish'
 }): Promise<RenderLoanTicketResult> {
   const { supabase, loanId, tenantId } = args
 
@@ -328,6 +331,7 @@ export async function renderLoanTicketPdf(args: {
     legal_notices: rules.jurisdiction?.ticket_notices ?? [],
     // A Spanish-speaking customer also gets the stamped courtesy translation.
     spanish_copy: args.spanishCopy ?? c?.language === 'es',
+    spanish_only: args.copies === 'spanish',
   }
 
   registerPdfFonts()

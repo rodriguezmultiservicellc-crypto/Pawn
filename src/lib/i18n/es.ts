@@ -1667,6 +1667,7 @@ export const es: Dictionary = {
       void: 'Anular',
       printTicket: 'Imprimir boleto',
       reprintTicket: 'Reimprimir',
+      printSpanishCopy: 'Copia en español',
       lockedNotice: 'Boleto impreso — campos clave bloqueados.',
       // Se abre sola apenas se guarda un boleto nuevo.
       printNowTitle: 'Boleto guardado',
@@ -1771,7 +1772,6 @@ export const es: Dictionary = {
         paymentSchedule: 'Plan de pagos: el total de pagos vence en la fecha de vencimiento indicada.',
         defaultDate: 'Fecha de incumplimiento del empeño',
         amountAtDefault: 'Monto requerido para rescatar los bienes en la fecha de incumplimiento',
-        employee: 'Iniciales o número del empleado',
         signature: 'Firma del pignorante / vendedor',
         seeReverse: 'AVISO: Vea el reverso',
         thumbPrint: 'Huella del pulgar derecho',

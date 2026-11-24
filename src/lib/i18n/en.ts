@@ -1678,6 +1678,7 @@ export const en = {
       void: 'Void',
       printTicket: 'Print ticket',
       reprintTicket: 'Reprint',
+      printSpanishCopy: 'Spanish copy',
       lockedNotice: 'Ticket printed — core fields locked.',
       // Opens by itself right after a new ticket is saved.
       printNowTitle: 'Ticket saved',
@@ -1782,7 +1783,6 @@ export const en = {
         paymentSchedule: 'Payment schedule: the total of payments is due on the maturity date above.',
         defaultDate: 'Pawn default date',
         amountAtDefault: 'Amount required to redeem the pledged property on the pawn default date',
-        employee: 'Employee initials or number',
         signature: 'Pledgor / seller signature',
         seeReverse: 'NOTICE: See reverse side',
         thumbPrint: 'Right thumb print',

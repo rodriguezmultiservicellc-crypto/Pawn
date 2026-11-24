@@ -167,6 +167,8 @@ export type PawnTicketData = {
   /** Add the Spanish courtesy translation after the legal (English) copies:
    *  the customer reads Spanish (customers.language = 'es'). */
   spanish_copy: boolean
+  /** Print ONLY the Spanish courtesy translation ("Spanish copy" button). */
+  spanish_only: boolean
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -270,6 +272,15 @@ function parseBackpageBlocks(text: string): BackpageBlock[] {
 export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
   const en = data.i18n.en.pawn.print
   const hasReverse = data.backpage_text.trim() !== ''
+
+  if (data.spanish_only) {
+    return (
+      <Document title={`Pawn Ticket ${data.ticket_number} — Spanish courtesy copy`}>
+        <TransactionFormPage data={data} copy="courtesy" />
+        <TransactionFormContinuation data={data} copy="courtesy" />
+      </Document>
+    )
+  }
 
   return (
     <Document title={`Pawn Ticket ${data.ticket_number}`}>

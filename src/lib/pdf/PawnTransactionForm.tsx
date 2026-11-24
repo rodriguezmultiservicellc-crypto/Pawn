@@ -66,7 +66,8 @@ const s = StyleSheet.create({
   // statements + signature
   notice: { fontSize: 6, lineHeight: 1.12, marginBottom: 1.2 },
   sigLine: { borderTopWidth: 0.8, borderTopColor: LINE, marginTop: 2, paddingTop: 1.5 },
-  thumb: { width: 100, height: 52, borderWidth: 0.8, borderColor: LINE, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 1.5 },
+  // Beside the statements and as tall as them (the row stretches it).
+  thumb: { width: 108, minHeight: 80, borderWidth: 0.8, borderColor: LINE, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 1.5 },
 })
 
 type FormLabels = PawnTicketData['i18n']['en']['pawn']['print']['form']
@@ -303,15 +304,16 @@ export function estimateItemHeight(item: PawnTicketCollateral, kind: string, met
   return row1 + row2 + (firearm ? 34 : 0) + 1.6
 }
 
-/** Height of the statements at the foot: one full-width column
- *  (s.notice: 6pt × 1.12, about 160 characters a line). */
+/** Height of the statements at the foot: one column beside the thumb print
+ *  box (s.notice: 6pt × 1.12, about 128 characters a line). */
 function noticesHeight(texts: ReadonlyArray<string>): number {
-  return texts.reduce((sum, text) => sum + wrapLines(text, 160) * 6.9 + 1.4, 0)
+  return texts.reduce((sum, text) => sum + wrapLines(text, 128) * 6.9 + 1.4, 0)
 }
 
-/** The foot without its statements: lending boxes, default date,
- *  signature, thumb print (measured ~134pt on a rendered ticket). */
-const FOOT_BASE = 150
+/** The foot without its statements: lending boxes, then the default date
+ *  and signature row under the statements; the thumb print box sits beside
+ *  them and adds no height (measured ~100pt on a rendered ticket). */
+const FOOT_BASE = 120
 
 /**
  * How many of the items go on the front sheet. Always at least one; all of
@@ -624,62 +626,55 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
           </View>
         </View>
 
-        {/* The jurisdiction's statements, in the sheet's language, one
-            full-width column. A shop with no jurisdiction on file prints the
-            placeholder instead, so the missing legal text is impossible to
-            overlook. */}
-        <View style={{ marginTop: 4 }}>
-          {data.legal_notices.length === 0 ? (
-            <Text style={s.notice}>{data.i18n[lang].pawn.print.legal.placeholder}</Text>
-          ) : (
-            data.legal_notices.map((n, i) => (
-              <Text key={i} style={[s.notice, n.bold ? { fontWeight: 700 } : {}]}>
-                {n[lang]}
-              </Text>
-            ))
-          )}
-        </View>
+        {/* Statements, then default date and signature, on the left; the
+            thumb print box on the right, as tall as all of them. */}
+        <View style={[s.row, { marginTop: 4 }]}>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            {/* The jurisdiction's statements, in the sheet's language. A shop
+                with no jurisdiction on file prints the placeholder instead,
+                so the missing legal text is impossible to overlook. */}
+            {data.legal_notices.length === 0 ? (
+              <Text style={s.notice}>{data.i18n[lang].pawn.print.legal.placeholder}</Text>
+            ) : (
+              data.legal_notices.map((n, i) => (
+                <Text key={i} style={[s.notice, n.bold ? { fontWeight: 700 } : {}]}>
+                  {n[lang]}
+                </Text>
+              ))
+            )}
 
-        {/* Default date · signature · thumb print. The default date and the
-            amount to redeem on it sit side by side. */}
-        <View style={[s.row, { marginTop: 3, alignItems: 'flex-end' }]}>
-          <View style={[s.box, s.row, { width: 236 }]}>
-            <View style={{ width: 92, padding: 3, borderRightWidth: 0.5, borderRightColor: LINE }}>
-              <Text style={{ fontSize: 7, fontWeight: 700 }}>{L.defaultDate}:</Text>
-              <Text style={{ fontSize: 10, fontWeight: 700, marginTop: 1 }}>{mdy(data.default_date)}</Text>
-            </View>
-            <View style={{ flex: 1, padding: 3 }}>
-              <Text style={[s.small, { lineHeight: 1.1 }]}>{L.amountAtDefault}</Text>
-              <Text style={{ fontSize: 10, fontWeight: 700, fontFamily: 'JetBrains Mono', marginTop: 1 }}>
-                {money(data.amount_at_default)}
-              </Text>
-            </View>
-          </View>
-          <View style={{ flex: 1, paddingHorizontal: 8, justifyContent: 'flex-end' }}>
-            <View style={[s.row, { alignItems: 'flex-end' }]}>
-              <View style={{ width: 92, marginRight: 10 }}>
-                <View style={s.sigLine}>
-                  <Text style={s.small}>{L.employee}</Text>
+            {/* Default date and the amount to redeem on it · signature. */}
+            <View style={[s.row, { marginTop: 3, alignItems: 'flex-end' }]}>
+              <View style={[s.box, s.row, { width: 300 }]}>
+                <View style={{ width: 96, padding: 3, borderRightWidth: 0.5, borderRightColor: LINE }}>
+                  <Text style={{ fontSize: 7, fontWeight: 700 }}>{L.defaultDate}:</Text>
+                  <Text style={{ fontSize: 10, fontWeight: 700, marginTop: 1 }}>{mdy(data.default_date)}</Text>
+                </View>
+                <View style={{ flex: 1, padding: 3 }}>
+                  <Text style={[s.small, { lineHeight: 1.1 }]}>{L.amountAtDefault}</Text>
+                  <Text style={{ fontSize: 10, fontWeight: 700, fontFamily: 'JetBrains Mono', marginTop: 1 }}>
+                    {money(data.amount_at_default)}
+                  </Text>
                 </View>
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, paddingLeft: 10 }}>
                 {data.signatureImage ? (
                   // eslint-disable-next-line jsx-a11y/alt-text
-                  <Image src={data.signatureImage} style={{ height: 28, objectFit: 'contain', objectPosition: 'left' }} />
+                  <Image src={data.signatureImage} style={{ height: 24, objectFit: 'contain', objectPosition: 'left' }} />
                 ) : (
-                  <View style={{ height: 28 }} />
+                  <View style={{ height: 24 }} />
                 )}
                 <View style={s.sigLine}>
                   <Text style={s.small}>{L.signature}</Text>
                 </View>
+                {/* The courtesy copy has no reverse: the terms are English only. */}
+                {copy === 'courtesy' ? null : (
+                  <Text style={{ fontSize: 7, fontWeight: 700, textAlign: 'right', marginTop: 2 }}>
+                    {L.seeReverse}
+                  </Text>
+                )}
               </View>
             </View>
-            {/* The courtesy copy has no reverse: the terms are English only. */}
-            {copy === 'courtesy' ? null : (
-              <Text style={{ fontSize: 7, fontWeight: 700, textAlign: 'right', marginTop: 3 }}>
-                {L.seeReverse}
-              </Text>
-            )}
           </View>
           <View style={s.thumb}>
             <Text style={[s.small, { fontSize: 4.8, textAlign: 'center' }]}>{L.thumbPrint}</Text>

@@ -31,10 +31,12 @@ const STAFF_LOAN_ROLES = [
 ] as const
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id: loanId } = await ctx.params
+  // ?copy=spanish → only the stamped Spanish courtesy translation.
+  const spanishOnly = new URL(req.url).searchParams.get('copy') === 'spanish'
   if (!loanId) {
     return new Response('missing_loan_id', { status: 400 })
   }
@@ -68,6 +70,7 @@ export async function GET(
       supabase,
       loanId: loan.id,
       tenantId: loan.tenant_id,
+      copies: spanishOnly ? 'spanish' : 'ticket',
     })
   } catch (err) {
     console.error('[api.print.loan] render failed', err)
@@ -83,10 +86,13 @@ export async function GET(
     action: 'update',
     tableName: 'loans',
     recordId: loan.id,
-    changes: { kind: 'print_render', ticket_number: pdf.ticketNumber },
+    changes: {
+      kind: spanishOnly ? 'print_render_spanish_copy' : 'print_render',
+      ticket_number: pdf.ticketNumber,
+    },
   })
 
-  const filename = `pawn-ticket-${pdf.ticketNumber || loan.id}.pdf`
+  const filename = `pawn-ticket-${pdf.ticketNumber || loan.id}${spanishOnly ? '-spanish-copy' : ''}.pdf`
   // Copy the Buffer into a freshly-allocated ArrayBuffer so the Blob
   // constructor sees a plain ArrayBuffer (TS otherwise widens
   // Buffer.buffer to ArrayBuffer | SharedArrayBuffer).

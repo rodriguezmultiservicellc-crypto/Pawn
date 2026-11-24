@@ -12,6 +12,7 @@ import {
   Lock,
   LockOpen,
   Printer,
+  Translate,
   Prohibit,
   Warning,
 } from '@phosphor-icons/react'
@@ -628,7 +629,16 @@ function ActionRow({
         disabled={isTerminal}
         tone="error"
       />
-      <div className="ml-auto">
+      <div className="ml-auto flex flex-wrap gap-2">
+        {/* The stamped Spanish courtesy translation alone. It is not the
+            legal ticket, so opening it never locks the ticket. */}
+        <ActionButton
+          label={t.pawn.actions.printSpanishCopy}
+          icon={<Translate size={14} weight="bold" />}
+          onClick={() =>
+            window.open(`/api/print/loan/${loanId}?copy=spanish`, '_blank', 'noopener,noreferrer')
+          }
+        />
         <ActionButton
           label={
             isPrinted
