@@ -2,6 +2,7 @@
 
 import {
   useActionState,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -16,6 +17,11 @@ import StalePriceBanner, {
 } from '@/components/inventory/StalePriceBanner'
 import type { SpotFreshness } from '@/lib/spot-prices/staleness'
 import { addDaysIso } from '@/lib/pawn/math'
+import {
+  moneyTextToCents,
+  principalAfterCollateralChange,
+  principalFieldText,
+} from '@/lib/pawn/principal-follow'
 import {
   exceedsCap,
   maxMonthlyRate,
@@ -147,11 +153,47 @@ export default function NewPawnLoanForm({
   const [principal, setPrincipal] = useState<string>(
     initialDraft?.payload.principal ?? '',
   )
+  // The principal follows the collateral (lib/pawn/principal-follow): the
+  // same amount in whole cents, moved by every change in the collateral
+  // total. Kept beside the field's text so a half-typed amount stays as
+  // typed, and so an amount the clerk typed carries on to the next item.
+  const principalCentsRef = useRef(
+    moneyTextToCents(initialDraft?.payload.principal ?? ''),
+  )
+  const collateralCentsRef = useRef(0)
+  // Set when rows are about to arrive with a principal that already counts
+  // them (a resumed draft, an amount spoken to voice intake): the next
+  // change in the collateral total is noted, not added.
+  const principalSettledRef = useRef(false)
+
+  function typePrincipal(text: string) {
+    setPrincipal(text)
+    principalCentsRef.current = moneyTextToCents(text)
+  }
 
   // Live collateral totals reported up from the editor → drives the
-  // summary bar's collateral value + LTV state.
+  // summary bar's collateral value + LTV state, and the principal.
   const [collateralCount, setCollateralCount] = useState(0)
   const [collateralValue, setCollateralValue] = useState(0)
+  const onCollateralTotals = useCallback((count: number, total: number) => {
+    setCollateralCount(count)
+    setCollateralValue(total)
+    const cents = Math.round(total * 100)
+    const delta = cents - collateralCentsRef.current
+    collateralCentsRef.current = cents
+    if (delta !== 0 && principalSettledRef.current) {
+      principalSettledRef.current = false
+      return
+    }
+    const next = principalAfterCollateralChange(
+      principalCentsRef.current,
+      delta,
+      count,
+    )
+    if (next === principalCentsRef.current) return
+    principalCentsRef.current = next
+    setPrincipal(principalFieldText(next))
+  }, [])
 
   const defaultRateId = rates.find((r) => r.isDefault)?.id ?? rates[0]?.id ?? ''
   const draftRateId = initialDraft?.payload.rate_id
@@ -212,6 +254,12 @@ export default function NewPawnLoanForm({
   useEffect(() => {
     if (draftAppliedRef.current || !initialDraft) return
     draftAppliedRef.current = true
+    // The draft's principal was saved with these rows already counted in it.
+    principalSettledRef.current =
+      principalCentsRef.current > 0 &&
+      initialDraft.payload.collateral.some(
+        (row) => moneyTextToCents(row.est_value ?? '') > 0,
+      )
     for (const row of initialDraft.payload.collateral) {
       collateralRef.current?.addExtractedRow({
         description: row.description ?? '',
@@ -246,7 +294,13 @@ export default function NewPawnLoanForm({
         label: data.customer.label,
       })
     }
-    if (data.principal != null) setPrincipal(data.principal.toString())
+    if (data.principal != null) {
+      typePrincipal(data.principal.toString())
+      // The amount spoken is the loan: the item's value is not added on top.
+      if (data.collateral && moneyTextToCents(data.collateral.est_value) > 0) {
+        principalSettledRef.current = true
+      }
+    }
     if (data.collateral) collateralRef.current?.addExtractedRow(data.collateral)
   }
 
@@ -390,10 +444,7 @@ export default function NewPawnLoanForm({
           categories={categories}
           title={`2 · ${tn.sectionAddCollateral}`}
           previousItems={customerHistory?.history?.previous_items ?? []}
-          onTotalsChange={(count, total) => {
-            setCollateralCount(count)
-            setCollateralValue(total)
-          }}
+          onTotalsChange={onCollateralTotals}
         />
       </section>
 
@@ -462,7 +513,7 @@ export default function NewPawnLoanForm({
                   required
                   placeholder="0.00"
                   value={principal}
-                  onChange={(e) => setPrincipal(e.target.value)}
+                  onChange={(e) => typePrincipal(e.target.value)}
                   className={`block h-11 w-full rounded-md border-2 border-blue bg-card pl-7 pr-3 font-mono text-lg font-semibold tabular-nums text-foreground outline-none ${FOCUS}`}
                 />
               </div>
