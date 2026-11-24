@@ -268,7 +268,7 @@ export async function renderLoanTicketPdf(args: {
   // what was already paid.
   const { data: paidEvents, error: paidErr } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+    .select('id, reverses_event_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
     .eq('loan_id', loanId)
     .eq('tenant_id', tenantId)
     .limit(1000)

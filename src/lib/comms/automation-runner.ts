@@ -172,7 +172,7 @@ export async function runLoanAutomations(args: {
         if (payoffAmount == null) {
           const { data: events } = await admin
             .from('loan_events')
-            .select('event_type, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+            .select('id, reverses_event_id, event_type, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
             .eq('loan_id', loan.id)
             .order('occurred_at', { ascending: true })
           const payoff = payoffFromLoan(
@@ -184,6 +184,8 @@ export async function runLoanAutomations(args: {
                 loan.min_monthly_charge == null ? null : Number(loan.min_monthly_charge),
             },
             (events ?? []).map((e) => ({
+              id: e.id,
+              reverses_event_id: e.reverses_event_id,
               event_type: e.event_type as LoanEventType,
               principal_paid: Number(e.principal_paid ?? 0),
               interest_paid: Number(e.interest_paid ?? 0),

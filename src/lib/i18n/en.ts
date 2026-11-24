@@ -1676,6 +1676,38 @@ export const en = {
       submit: 'Forfeit',
       submitting: 'Forfeiting…',
     },
+    voidPayment: {
+      title: 'Void this payment',
+      button: 'Void payment',
+      eventLabel: 'Payment voided',
+      voidedChip: 'Voided',
+      dueDatePutBack: 'Due date put back',
+      body: 'The payment of {amount} taken {date} will be voided.',
+      keeps: 'Nothing is erased: the payment stays in the log, marked voided, with your name and reason.',
+      dueDateBack: 'The due date goes back to {date}.',
+      reopens: 'This payment paid the ticket off. The ticket will be open again.',
+      cash: 'Give the customer the money back, or take it out of the drawer count — this does not move cash.',
+      reason: 'Reason',
+      reasonHelp: 'Required. Minimum 10 characters.',
+      submit: 'Void payment',
+      submitting: 'Voiding…',
+      errors: {
+        validation_failed: 'Pick the payment and give a reason of at least 10 characters.',
+        not_found: 'That payment is not on this ticket.',
+        not_a_payment: 'Only a payment can be voided.',
+        already_voided: 'That payment was already voided.',
+        imported: 'This payment came from the old system and cannot be voided here.',
+        online: 'This payment was made online. Refund the card in Stripe instead.',
+        not_latest: 'Only the last payment on a ticket can be voided. Void the newer one first.',
+        free_time_after: 'Free time was given after this payment, so it can no longer be voided.',
+        loan_closed: 'This ticket is closed. Its payments can no longer be voided.',
+        void_due_date_not_restored:
+          'The payment was voided, but the due date did not go back. Reload the ticket and check it.',
+        void_status_not_restored:
+          'The payment was voided, but the ticket status did not update. Reload the ticket and check it.',
+        void_failed: 'Could not void the payment. Only an owner or manager can do this.',
+      },
+    },
     voidLoan: {
       title: 'Void loan',
       bodyWarning:

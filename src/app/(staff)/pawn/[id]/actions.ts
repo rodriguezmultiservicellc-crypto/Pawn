@@ -8,6 +8,7 @@ import {
   loanForfeitSchema,
   loanFreeTimeSchema,
   loanPaymentSchema,
+  loanPaymentVoidSchema,
   loanVoidSchema,
 } from '@/lib/validations/loan'
 import { logAudit } from '@/lib/audit'
@@ -21,9 +22,11 @@ import {
 } from '@/lib/pawn/math'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
+  recordEarnClawback,
   recordEarnLoanInterest,
   maybeCreditReferral,
 } from '@/lib/loyalty/events'
+import { planPaymentVoid } from '@/lib/pawn/payment-void'
 import type { LoanStatus, PaymentMethod } from '@/types/database-aliases'
 
 export type ActionResult = {
@@ -53,7 +56,7 @@ async function resolveLoanScope(
   const { data: loan } = await ctx.supabase
     .from('loans')
     .select(
-      'id, tenant_id, customer_id, principal, interest_rate_monthly, min_monthly_charge, issue_date, due_date, status, is_printed',
+      'id, tenant_id, customer_id, principal, interest_rate_monthly, min_monthly_charge, issue_date, due_date, term_days, status, is_printed',
     )
     .eq('id', loanId)
     .is('deleted_at', null)
@@ -122,7 +125,7 @@ export async function recordPaymentAction(
   // planLoanPayment for why.
   const { data: priorEvents, error: priorErr } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+    .select('id, reverses_event_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
     .eq('loan_id', loan.id)
   if (priorErr) return { error: 'payoff_unavailable' }
   const plan = planLoanPayment({
@@ -170,7 +173,7 @@ export async function recordPaymentAction(
   // Recompute payoff to decide next status.
   const { data: events } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+    .select('id, reverses_event_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
     .eq('loan_id', loan.id)
   const payoff = payoffFromLoan(loanForPayoff, events ?? [], today, charge)
 
@@ -229,6 +232,7 @@ export async function recordPaymentAction(
       fees_paid: 0,
       payment_method: null,
       new_due_date: newDueDate,
+      previous_due_date: loan.due_date,
       performed_by: userId,
     })
     if (extErr) {
@@ -332,7 +336,7 @@ export async function giveFreeTimeAction(
   // balance still owed.
   const { data: paidEvents, error: paidErr } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+    .select('id, reverses_event_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
     .eq('loan_id', loan.id)
     .eq('tenant_id', tenantId)
   if (paidErr) return { error: paidErr.message }
@@ -362,6 +366,7 @@ export async function giveFreeTimeAction(
     interest_waived: plan.interest_waived,
     payment_method: null,
     new_due_date: plan.new_due_date,
+    previous_due_date: loan.due_date,
     notes: v.notes,
     performed_by: userId,
   })
@@ -405,6 +410,194 @@ export async function giveFreeTimeAction(
   return { ok: true }
 }
 
+// ── Void ONE payment ────────────────────────────────────────────────────────
+
+/** The database's refusals (trigger in patches/0104), as the screen's codes. */
+const VOID_DB_ERRORS: ReadonlyArray<[string, string]> = [
+  ['payment_void_imported', 'imported'],
+  ['payment_void_online', 'online'],
+  ['payment_void_not_exact', 'void_failed'],
+  ['payment_void_other_loan', 'not_found'],
+  ['payment_void_not_found', 'not_found'],
+  ['payment_void_not_a_payment', 'not_a_payment'],
+  ['payment_void_of_a_void', 'not_a_payment'],
+  ['uq_loan_events_reverses', 'already_voided'],
+]
+
+/**
+ * A manager voids ONE payment — the last one on the ticket. Nothing is
+ * edited or deleted: a reversal row is written beside it (the same money,
+ * negative), and for what the customer owes both are then ignored. The due
+ * date goes back if that payment moved it, and a ticket that payment paid
+ * off is open again.
+ *
+ * Owner / manager only, like free time: undoing a payment after the cash is
+ * in the drawer is not a clerk's call. What it undoes is decided by
+ * planPaymentVoid; the browser only says which payment and why.
+ */
+export async function voidPaymentAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = loanPaymentVoidSchema.safeParse({
+    loan_id: formData.get('loan_id'),
+    event_id: formData.get('event_id'),
+    reason: formData.get('reason'),
+  })
+  if (!parsed.success) return { error: 'validation_failed' }
+  const v = parsed.data
+
+  const { loan, supabase, userId, tenantId } = await resolveLoanScope(
+    v.loan_id,
+    FREE_TIME_ROLES,
+  )
+
+  const { data: events, error: evErr } = await supabase
+    .from('loan_events')
+    .select(
+      'id, event_type, occurred_at, amount, principal_paid, interest_paid, fees_paid, interest_waived, payment_method, new_due_date, previous_due_date, reverses_event_id, legacy_ref, stripe_session_id',
+    )
+    .eq('loan_id', loan.id)
+    .eq('tenant_id', tenantId)
+  if (evErr) return { error: 'void_failed' }
+
+  const plan = planPaymentVoid({
+    loan: {
+      status: loan.status as LoanStatus,
+      due_date: loan.due_date,
+      issue_date: loan.issue_date,
+      term_days: loan.term_days,
+    },
+    events: events ?? [],
+    eventId: v.event_id,
+  })
+  if (!plan.ok) return { error: plan.reason }
+
+  // 1. The reversal. From here on the payment no longer counts.
+  const { data: reversal, error: revErr } = await supabase
+    .from('loan_events')
+    .insert({
+      loan_id: loan.id,
+      tenant_id: tenantId,
+      event_type: 'payment',
+      amount: plan.reversal.amount,
+      principal_paid: plan.reversal.principal_paid,
+      interest_paid: plan.reversal.interest_paid,
+      fees_paid: plan.reversal.fees_paid,
+      payment_method: plan.reversal.payment_method,
+      reverses_event_id: v.event_id,
+      notes: v.reason,
+      performed_by: userId,
+    })
+    .select('id')
+    .single()
+  if (revErr || !reversal) {
+    const hit = VOID_DB_ERRORS.find(([needle]) => revErr?.message?.includes(needle))
+    console.error('[pawn.voidPayment] reversal refused', loan.id, revErr?.message)
+    return { error: hit ? hit[1] : 'void_failed' }
+  }
+
+  // 2. The due date and the status that payment had set. The money is
+  // already right; say exactly what did not go back if a step fails.
+  let stepFailed: 'void_due_date_not_restored' | 'void_status_not_restored' | null = null
+  if (plan.restoreDueDate) {
+    // The print-immutability trigger lets due_date change only while the
+    // status is 'extended'.
+    const { error: dueErr } = await supabase
+      .from('loans')
+      .update({ status: 'extended' as LoanStatus, due_date: plan.restoreDueDate, updated_by: userId })
+      .eq('id', loan.id)
+      .eq('tenant_id', tenantId)
+    if (dueErr) {
+      console.error('[pawn.voidPayment] due date not restored', loan.id, dueErr.message)
+      stepFailed = 'void_due_date_not_restored'
+    } else {
+      const { error: backErr } = await supabase.from('loan_events').insert({
+        loan_id: loan.id,
+        tenant_id: tenantId,
+        event_type: 'extension',
+        amount: null,
+        principal_paid: 0,
+        interest_paid: 0,
+        fees_paid: 0,
+        payment_method: null,
+        new_due_date: plan.restoreDueDate,
+        previous_due_date: loan.due_date,
+        performed_by: userId,
+      })
+      if (backErr) {
+        console.error('[pawn.voidPayment] due-date row insert failed', loan.id, backErr.message)
+      }
+    }
+  }
+  const statusNow = plan.restoreDueDate && !stepFailed ? 'extended' : (loan.status as LoanStatus)
+  if (!stepFailed && plan.newStatus !== statusNow) {
+    const { error: stErr } = await supabase
+      .from('loans')
+      .update({ status: plan.newStatus as LoanStatus, updated_by: userId })
+      .eq('id', loan.id)
+      .eq('tenant_id', tenantId)
+    if (stErr) {
+      console.error('[pawn.voidPayment] status not restored', loan.id, stErr.message)
+      stepFailed = 'void_status_not_restored'
+    }
+  }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'update',
+    tableName: 'loans',
+    recordId: loan.id,
+    changes: {
+      kind: 'payment_void',
+      voided_event_id: v.event_id,
+      reversal_event_id: reversal.id,
+      amount: -plan.reversal.amount,
+      principal_paid: -plan.reversal.principal_paid,
+      interest_paid: -plan.reversal.interest_paid,
+      fees_paid: -plan.reversal.fees_paid,
+      reason: v.reason,
+      old_due_date: loan.due_date,
+      restored_due_date: plan.restoreDueDate,
+      reopened: plan.reopens,
+      old_status: loan.status,
+      new_status: stepFailed ? loan.status : plan.newStatus,
+      incomplete: stepFailed,
+    },
+  })
+
+  // Loyalty points earned on that payment's interest come back (gated: only
+  // if any were written for it).
+  if (loan.customer_id) {
+    const admin = createAdminClient()
+    const { data: earned } = await admin
+      .from('loyalty_events')
+      .select('points_delta')
+      .eq('tenant_id', tenantId)
+      .eq('customer_id', loan.customer_id)
+      .eq('source_kind', 'loan_event')
+      .eq('source_id', v.event_id)
+      .eq('kind', 'earn_loan_interest')
+      .maybeSingle()
+    const points = Number(earned?.points_delta ?? 0)
+    if (points > 0) {
+      await recordEarnClawback({
+        admin,
+        tenantId,
+        customerId: loan.customer_id,
+        sourceKind: 'loan_event',
+        sourceId: v.event_id,
+        pointsToClaw: points,
+        reason: 'loan_payment_voided',
+      })
+    }
+  }
+
+  revalidatePath(`/pawn/${loan.id}`)
+  revalidatePath('/pawn')
+  return stepFailed ? { error: stepFailed } : { ok: true }
+}
+
 // ── Redeem (full payoff) ────────────────────────────────────────────────────
 
 export async function redeemLoanAction(
@@ -428,7 +621,7 @@ export async function redeemLoanAction(
 
   const { data: events } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+    .select('id, reverses_event_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
     .eq('loan_id', loan.id)
   // Interest is owed through the shop's day, not UTC's.
   const redeemRules = await loadTenantRules(supabase, tenantId)

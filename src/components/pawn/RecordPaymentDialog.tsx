@@ -12,6 +12,7 @@ import {
   periodsToBringCurrent,
   planLoanPayment,
   type ChargeModel,
+  type LoanMoneyEvent,
 } from '@/lib/pawn/math'
 import type { PaymentMethod } from '@/types/database-aliases'
 
@@ -31,14 +32,8 @@ type DialogLoan = {
   issueDate: string
   /** The loan's current due date — a move is counted from here. */
   dueDate: string
-  events: ReadonlyArray<{
-    principal_paid: number
-    interest_paid: number
-    fees_paid: number
-    interest_waived: number
-    /** When it was taken: a payment toward the loan lowers later charges. */
-    occurred_at: string
-  }>
+  /** The ticket's events, as the payoff reads them (dates and voids too). */
+  events: ReadonlyArray<LoanMoneyEvent>
   /** How the shop's jurisdiction charges; its period is one move of the date. */
   charge: ChargeModel
 }

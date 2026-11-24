@@ -286,6 +286,18 @@ export const loanVoidSchema = z.object({
 
 export type LoanVoidInput = z.infer<typeof loanVoidSchema>
 
+// ── Void ONE payment ────────────────────────────────────────────────────────
+
+// Which payment, and why. What comes back with it (the due date, an open
+// ticket) is worked out by the server (lib/pawn/payment-void).
+export const loanPaymentVoidSchema = z.object({
+  loan_id: z.string().uuid(),
+  event_id: z.string().uuid(),
+  reason: z.string().trim().min(10, 'too_short').max(2000),
+})
+
+export type LoanPaymentVoidInput = z.infer<typeof loanPaymentVoidSchema>
+
 // ── File constraints (signature + collateral photos) ────────────────────────
 
 export const ALLOWED_LOAN_PHOTO_MIME_TYPES = [

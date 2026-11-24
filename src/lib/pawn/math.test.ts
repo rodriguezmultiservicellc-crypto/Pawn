@@ -165,8 +165,8 @@ describe('date helpers', () => {
 describe('appliedPayments', () => {
   it('sums splits across events', () => {
     const out = appliedPayments([
-      { principal_paid: 50, interest_paid: 10, fees_paid: 0, interest_waived: 0, occurred_at: AT },
-      { principal_paid: 25, interest_paid: 5, fees_paid: 1, interest_waived: 0, occurred_at: AT },
+      { id: 'e', reverses_event_id: null, principal_paid: 50, interest_paid: 10, fees_paid: 0, interest_waived: 0, occurred_at: AT },
+      { id: 'e', reverses_event_id: null, principal_paid: 25, interest_paid: 5, fees_paid: 1, interest_waived: 0, occurred_at: AT },
     ])
     expect(out.principalApplied).toBe(75)
     expect(out.interestApplied).toBe(15)
@@ -177,7 +177,7 @@ describe('appliedPayments', () => {
     const out = appliedPayments([
       // @ts-expect-error — runtime allows string from DB; Pick<LoanEventRow>
       // narrows to the generated type which uses string for NUMERIC.
-      { principal_paid: '50.0000', interest_paid: '10.0000', fees_paid: '0', interest_waived: 0, occurred_at: AT },
+      { id: 'e', reverses_event_id: null, principal_paid: '50.0000', interest_paid: '10.0000', fees_paid: '0', interest_waived: 0, occurred_at: AT },
     ])
     expect(out.principalApplied).toBe(50)
     expect(out.interestApplied).toBe(10)
@@ -226,7 +226,7 @@ describe('payoffBalance', () => {
       issueDate: '2026-03-30',
       today: '2026-04-29',
       events: [
-        { principal_paid: 0, interest_paid: 50, fees_paid: 0, interest_waived: 0, occurred_at: AT },
+        { id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 50, fees_paid: 0, interest_waived: 0, occurred_at: AT },
       ],
     })
     expect(r.interestApplied).toBe(50)
@@ -242,7 +242,7 @@ describe('payoffBalance', () => {
       issueDate: '2026-03-30',
       today: '2026-04-29',
       events: [
-        { principal_paid: 200, interest_paid: 100, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-04-29') },
+        { id: 'e', reverses_event_id: null, principal_paid: 200, interest_paid: 100, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-04-29') },
       ],
     })
     expect(r.principalApplied).toBe(200)
@@ -261,7 +261,7 @@ describe('payoffBalance', () => {
       issueDate: '2026-03-30',
       today: '2026-04-29',
       events: [
-        { principal_paid: 0, interest_paid: 200, fees_paid: 0, interest_waived: 0, occurred_at: AT },
+        { id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 200, fees_paid: 0, interest_waived: 0, occurred_at: AT },
       ],
     })
     // $100 accrued, $200 paid: $100 was paid ahead and not used.
@@ -278,7 +278,7 @@ describe('payoffBalance', () => {
       issueDate: '2026-03-30',
       today: '2026-04-29',
       events: [
-        { principal_paid: 1000, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: AT },
+        { id: 'e', reverses_event_id: null, principal_paid: 1000, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: AT },
       ],
     })
     expect(r.principalOutstanding).toBe(0)
@@ -452,7 +452,7 @@ describe('planLoanPayment — paying and extending are one act', () => {
     monthlyRate: 0.25,
     issueDate: '2026-08-21',
     dueDate: '2026-09-20',
-    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>,
+    events: [] as Array<{ id: string; reverses_event_id: string | null; principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>,
     charge: FL,
   }
 
@@ -507,7 +507,7 @@ describe('planLoanPayment — paying and extending are one act', () => {
   })
 
   it('interest already paid counts toward the next move', () => {
-    const paid = { ...loan, events: [{ principal_paid: 0, interest_paid: 100, fees_paid: 0, interest_waived: 0, occurred_at: AT }] }
+    const paid = { ...loan, events: [{ id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 100, fees_paid: 0, interest_waived: 0, occurred_at: AT }] }
     expect(extensionCost(paid, 1)).toBe(150)
     expect(planLoanPayment({ ...paid, today: '2026-09-20', periods: 1, amount: 150 })).toMatchObject({
       ok: true,
@@ -517,7 +517,7 @@ describe('planLoanPayment — paying and extending are one act', () => {
   })
 
   it('the second move costs one more period, not the first one again', () => {
-    const renewed = { ...loan, dueDate: '2026-10-20', events: [{ principal_paid: 0, interest_paid: 250, fees_paid: 0, interest_waived: 0, occurred_at: AT }] }
+    const renewed = { ...loan, dueDate: '2026-10-20', events: [{ id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 250, fees_paid: 0, interest_waived: 0, occurred_at: AT }] }
     expect(extensionCost(renewed, 1)).toBe(250)
     expect(planLoanPayment({ ...renewed, today: '2026-10-20', periods: 1, amount: 250 })).toMatchObject({
       ok: true,
@@ -644,7 +644,7 @@ describe('extensionCost — a due date a few days past a period end', () => {
     monthlyRate: 0.1,
     issueDate: '2026-08-22',
     dueDate: '2026-09-22',
-    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>,
+    events: [] as Array<{ id: string; reverses_event_id: string | null; principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>,
     charge: FL,
   }
 
@@ -689,7 +689,7 @@ describe('free time — a manager forgives the interest and moves the date', () 
     monthlyRate: 0.25,
     issueDate: '2026-08-21',
     dueDate: '2026-09-20',
-    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>,
+    events: [] as Array<{ id: string; reverses_event_id: string | null; principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>,
     charge: FL,
   }
 
@@ -716,8 +716,8 @@ describe('free time — a manager forgives the interest and moves the date', () 
   it('forgiven interest comes off what is owed — and is not interest collected', () => {
     // Day 60: two periods accrued ($500). One was paid, one was forgiven.
     const events = [
-      { principal_paid: 0, interest_paid: 250, fees_paid: 0, interest_waived: 0, occurred_at: AT },
-      { principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 250, occurred_at: AT },
+      { id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 250, fees_paid: 0, interest_waived: 0, occurred_at: AT },
+      { id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 250, occurred_at: AT },
     ]
     const r = payoffBalance({ principal: 1000, monthlyRate: 0.25, issueDate: '2026-08-21', today: '2026-10-20', events, charge: FL })
     expect(r.interestAccrued).toBe(500)
@@ -733,7 +733,7 @@ describe('free time — a manager forgives the interest and moves the date', () 
     const given = {
       ...loan,
       dueDate: '2026-10-20',
-      events: [{ principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 250, occurred_at: AT }],
+      events: [{ id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 250, occurred_at: AT }],
     }
     expect(extensionCost(given, 1)).toBe(250)
     expect(planLoanPayment({ ...given, today: '2026-10-20', periods: 1, amount: 250 })).toMatchObject({
@@ -746,7 +746,7 @@ describe('free time — a manager forgives the interest and moves the date', () 
 
   it('a customer given free time who then redeems pays only what was not forgiven', () => {
     // Day 45, one free month given: $500 accrued, $250 forgiven.
-    const events = [{ principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 250, occurred_at: AT }]
+    const events = [{ id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 250, occurred_at: AT }]
     const r = payoffBalance({ principal: 1000, monthlyRate: 0.25, issueDate: '2026-08-21', today: '2026-10-05', events, charge: FL })
     expect(r.payoff).toBe(1250)
   })
@@ -814,9 +814,9 @@ describe('the day a payment counts on is the shop\u2019s day', () => {
 
   it('paydownsOf reads only payments toward the loan, in days after the pawn', () => {
     const events = [
-      { principal_paid: 0, interest_paid: 75, fees_paid: 0, interest_waived: 0, occurred_at: '2026-09-20T15:00:00Z' },
-      { principal_paid: 100, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-09-21T01:30:00Z' },
-      { principal_paid: 50, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-08-25T15:00:00Z' },
+      { id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 75, fees_paid: 0, interest_waived: 0, occurred_at: '2026-09-20T15:00:00Z' },
+      { id: 'e', reverses_event_id: null, principal_paid: 100, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-09-21T01:30:00Z' },
+      { id: 'e', reverses_event_id: null, principal_paid: 50, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-08-25T15:00:00Z' },
     ]
     expect(paydownsOf(events, '2026-08-21', 'America/New_York')).toEqual([
       { day: 4, amount: 50 },
@@ -828,8 +828,8 @@ describe('the day a payment counts on is the shop\u2019s day', () => {
 describe('payoff on the remaining balance', () => {
   it('ticket 15634: $1,800 at 10%, $100 paid toward it on day 70', () => {
     const events = [
-      { principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-08-22T15:00:00Z' },
-      { principal_paid: 100, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-10-31T17:10:00Z' },
+      { id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-08-22T15:00:00Z' },
+      { id: 'e', reverses_event_id: null, principal_paid: 100, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-10-31T17:10:00Z' },
     ]
     const r = payoffBalance({ principal: 1800, monthlyRate: 0.1, issueDate: '2026-08-22', today: '2026-11-23', events, charge: FL })
     // 180 + 180, ten days at $6.00, then 23 days at $5.6667 on $1,700.
@@ -839,7 +839,7 @@ describe('payoff on the remaining balance', () => {
 
   it('what is owed for a past day does not change when the customer pays later', () => {
     const before = { principal: 300, monthlyRate: 0.25, issueDate: '2026-08-21', today: '2026-10-05', charge: FL }
-    const paid = [{ principal_paid: 100, interest_paid: 150, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-05') }]
+    const paid = [{ id: 'e', reverses_event_id: null, principal_paid: 100, interest_paid: 150, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-05') }]
     expect(payoffBalance({ ...before, events: [] }).interestAccrued).toBe(150)
     expect(payoffBalance({ ...before, events: paid }).interestAccrued).toBe(150)
   })
@@ -852,7 +852,7 @@ describe('a payment that pays ahead AND pays the loan down', () => {
     monthlyRate: 0.25,
     issueDate: '2026-08-21',
     dueDate: '2026-09-20',
-    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>,
+    events: [] as Array<{ id: string; reverses_event_id: string | null; principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>,
     charge: FL,
   }
 
@@ -880,7 +880,7 @@ describe('a payment that pays ahead AND pays the loan down', () => {
       closes: false,
     })
     // And that is what the loan then says was owed through the paid date.
-    const after = [{ principal_paid: 100, interest_paid: 125, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-09-20') }]
+    const after = [{ id: 'e', reverses_event_id: null, principal_paid: 100, interest_paid: 125, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-09-20') }]
     const r = payoffBalance({ principal: 300, monthlyRate: 0.25, issueDate: '2026-08-21', today: '2026-10-20', events: after, charge: FL })
     expect(r.interestAccrued).toBe(125)
     expect(r.interestOutstanding).toBe(0)
@@ -915,7 +915,7 @@ describe('a payment that pays ahead AND pays the loan down', () => {
       ...loan,
       principal: 1000,
       dueDate: '2026-11-19',
-      events: [{ principal_paid: 0, interest_paid: 500, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-20') }],
+      events: [{ id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 500, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-20') }],
     }
     // On day 90, two periods is $250 owed + 30 days ahead. With $700:
     // P + 250 + 25% of (1000 - P) = 700  ->  P = 266.67.
@@ -930,7 +930,7 @@ describe('a payment that pays ahead AND pays the loan down', () => {
       ...loan,
       principal: 1000,
       dueDate: '2026-11-19',
-      events: [{ principal_paid: 0, interest_paid: 500, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-20') }],
+      events: [{ id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 500, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-20') }],
     }
     const p = planLoanPayment({ ...late, today: '2026-11-22', periods: 1, amount: 300 })
     expect(p).toMatchObject({ ok: true, extension_cost: 250, interest_paid: 275, principal_paid: 25 })
@@ -944,7 +944,7 @@ describe('moving the due date to a day the clerk picks', () => {
     monthlyRate: 0.25,
     issueDate: '2026-08-21',
     dueDate: '2026-11-19',
-    events: [{ principal_paid: 0, interest_paid: 500, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-20') }],
+    events: [{ id: 'e', reverses_event_id: null, principal_paid: 0, interest_paid: 500, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-20') }],
     charge: FL,
   }
 
@@ -1002,7 +1002,7 @@ describe('free time on a loan that was paid down', () => {
       principal: 1000,
       monthlyRate: 0.25,
       dueDate: '2026-11-19',
-      events: [{ principal_paid: 400, interest_paid: 500, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-20') }],
+      events: [{ id: 'e', reverses_event_id: null, principal_paid: 400, interest_paid: 500, fees_paid: 0, interest_waived: 0, occurred_at: at('2026-10-20') }],
       charge: FL,
     }
     expect(planFreeTime(loan, 30)).toEqual({ days: 30, new_due_date: '2026-12-19', interest_waived: 150 })
@@ -1015,7 +1015,9 @@ describe('unused interest paid ahead is given back', () => {
   // pledgor shall be refunded by the pawnbroker."
   // $1,000 at 25%, pawned Aug 21: $250 a period, $8.3333 a day after day 60.
   const base = { principal: 1000, monthlyRate: 0.25, issueDate: '2026-08-21', charge: FL }
-  const ev = (over: Partial<{ principal_paid: number; interest_paid: number; interest_waived: number }>, day: string) => ({
+  const ev = (over: Partial<{ id: string; reverses_event_id: string | null; principal_paid: number; interest_paid: number; interest_waived: number }>, day: string) => ({
+    id: 'e',
+    reverses_event_id: null,
     principal_paid: 0,
     interest_paid: 0,
     fees_paid: 0,
@@ -1072,7 +1074,7 @@ describe('unused interest paid ahead is given back', () => {
     expect(p).toMatchObject({ ok: true, closes: true, principal_paid: 1000, new_due_date: null })
     expect(p.ok && p.interest_paid).toBeCloseTo(-166.67, 4)
     // The books afterwards: the whole loan back, and only the interest earned.
-    const closing = { ...ev({ principal_paid: 1000, interest_paid: -166.67 }, '2026-10-30') }
+    const closing = { ...ev({ id: 'e', reverses_event_id: null, principal_paid: 1000, interest_paid: -166.67 }, '2026-10-30') }
     const after = payoffBalance({ ...base, today: '2026-10-30', events: [...paidAhead, closing] })
     expect(after.principalOutstanding).toBe(0)
     expect(after.payoff).toBe(0)
@@ -1104,7 +1106,7 @@ describe('unused interest paid ahead is given back', () => {
   it('a payoff that does not land on a cent is paid by the cent either side', () => {
     // 15634-like: payoff 2,250.3333.
     const events = [
-      { principal_paid: 100, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-10-31T17:10:00Z' },
+      { id: 'e', reverses_event_id: null, principal_paid: 100, interest_paid: 0, fees_paid: 0, interest_waived: 0, occurred_at: '2026-10-31T17:10:00Z' },
     ]
     const loan = { principal: 1800, monthlyRate: 0.1, issueDate: '2026-08-22', dueDate: '2026-09-22', events, charge: FL, today: '2026-11-23', periods: 0 }
     const p = planLoanPayment({ ...loan, amount: 2250.33 })

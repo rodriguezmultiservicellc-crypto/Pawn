@@ -281,6 +281,8 @@ export default async function PawnListPage(props: {
   )
 
   type EventLite = {
+    id: string
+    reverses_event_id: string | null
     principal_paid: number
     interest_paid: number
     fees_paid: number
@@ -292,6 +294,8 @@ export default async function PawnListPage(props: {
   // overstate what that customer owes.
   for (const ids of chunks(eventLoanIds)) {
     const evRows = await allRows<{
+      id: string
+      reverses_event_id: string | null
       loan_id: string
       principal_paid: number | string | null
       interest_paid: number | string | null
@@ -301,13 +305,15 @@ export default async function PawnListPage(props: {
     }>('loan_events', (from, to) =>
       ctx.supabase
         .from('loan_events')
-        .select('id, loan_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+        .select('id, reverses_event_id, loan_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
         .in('loan_id', ids)
         .order('id')
         .range(from, to),
     )
     for (const e of evRows) {
       const lite: EventLite = {
+        id: e.id,
+        reverses_event_id: e.reverses_event_id,
         principal_paid: Number(e.principal_paid ?? 0),
         interest_paid: Number(e.interest_paid ?? 0),
         fees_paid: Number(e.fees_paid ?? 0),

@@ -21,6 +21,7 @@ import { RecordPaymentDialog } from '@/components/pawn/RecordPaymentDialog'
 import { FreeTimeDialog } from '@/components/pawn/FreeTimeDialog'
 import { ForfeitConfirmDialog } from '@/components/pawn/ForfeitConfirmDialog'
 import { VoidLoanDialog } from '@/components/pawn/VoidLoanDialog'
+import { VoidPaymentDialog } from '@/components/pawn/VoidPaymentDialog'
 import { RedeemConfirmDialog } from '@/components/pawn/RedeemConfirmDialog'
 import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
 import { ReceiptFormatDialog } from '@/components/pos/PrintReceiptDialog'
@@ -34,6 +35,7 @@ import {
   recordPaymentAction,
   redeemLoanAction,
   voidLoanAction,
+  voidPaymentAction,
   type ActionResult,
 } from './actions'
 import { daysBetween, type ChargeModel, type PayoffResult } from '@/lib/pawn/math'
@@ -102,6 +104,10 @@ export type LoanCollateralView = {
 
 export type LoanEventView = {
   id: string
+  /** Set on the entry that VOIDS a payment: the payment it undoes. */
+  reverses_event_id: string | null
+  /** On an event that moves the due date: the date it moved from. */
+  previous_due_date: string | null
   event_type: LoanEventType
   amount: number | null
   principal_paid: number
@@ -134,6 +140,7 @@ export default function PawnLoanDetail({
   today,
   charge,
   canGiveFreeTime,
+  voidablePayment,
   forfeit,
   tagChoices,
 }: {
@@ -146,6 +153,9 @@ export default function PawnLoanDetail({
   charge: ChargeModel
   /** Owner / manager: may give free time (the server checks again). */
   canGiveFreeTime: boolean
+  /** The payment a manager may void now (the last one), and what comes back
+   *  with it. Null for clerks and when there is none. */
+  voidablePayment: { eventId: string; restoreDueDate: string | null; reopens: boolean } | null
   forfeit: { eligible: boolean; eligibleOn: string; lastRedemptionDate: string }
   tagChoices: TemplateChoice[]
 }) {
@@ -156,6 +166,8 @@ export default function PawnLoanDetail({
   const [showReminder, setShowReminder] = useState(false)
   // The payment just taken: its customer receipt is offered at once.
   const [paidReceipt, setPaidReceipt] = useState<{ id: string; amount: number } | null>(null)
+  // The payment a manager is about to void.
+  const [voidFor, setVoidFor] = useState<LoanEventView | null>(null)
 
   async function thenReceipt(p: Promise<ActionResult>, amount: number): Promise<ActionResult> {
     const res = await p
@@ -391,7 +403,13 @@ export default function PawnLoanDetail({
         </div>
       </div>
 
-      <EventLogPanel events={events} loanId={loan.id} ticketNumber={loan.ticket_number} />
+      <EventLogPanel
+        events={events}
+        loanId={loan.id}
+        ticketNumber={loan.ticket_number}
+        voidableId={voidablePayment?.eventId ?? null}
+        onVoid={setVoidFor}
+      />
 
       {dialog === 'payment' ? (
         <RecordPaymentDialog
@@ -434,6 +452,18 @@ export default function PawnLoanDetail({
           payoff={payoff.payoff}
           onClose={() => setDialog(null)}
           onSubmit={(fd) => thenReceipt(redeemLoanAction(fd), payoff.payoff)}
+        />
+      ) : null}
+      {voidFor && voidablePayment && voidFor.id === voidablePayment.eventId ? (
+        <VoidPaymentDialog
+          loanId={loan.id}
+          eventId={voidFor.id}
+          amountLabel={fmtMoney(voidFor.amount ?? 0)}
+          paidAtLabel={new Date(voidFor.occurred_at).toLocaleString()}
+          restoreDueDate={voidablePayment.restoreDueDate}
+          reopens={voidablePayment.reopens}
+          onClose={() => setVoidFor(null)}
+          onSubmit={(fd) => actionWithToast(voidPaymentAction(fd))}
         />
       ) : null}
       {paidReceipt ? (
@@ -704,16 +734,48 @@ function CollateralPanel({
   )
 }
 
+/**
+ * Which rows of the log no longer stand: a voided payment, and the rows it
+ * brought with it (its move of the due date, its redemption) — everything
+ * between it and the next payment row.
+ */
+function undoneEventIds(events: LoanEventView[]): Set<string> {
+  const voided = new Set<string>()
+  for (const e of events) if (e.reverses_event_id) voided.add(e.reverses_event_id)
+  const undone = new Set<string>(voided)
+  if (voided.size === 0) return undone
+  const ordered = [...events].sort((a, b) => Date.parse(a.occurred_at) - Date.parse(b.occurred_at))
+  let behindVoided = false
+  for (const e of ordered) {
+    if (e.event_type === 'payment') {
+      behindVoided = voided.has(e.id)
+      continue
+    }
+    const followUp =
+      (e.event_type === 'extension' && e.interest_waived === 0 && !e.previous_due_date) ||
+      (e.event_type === 'extension' && e.interest_waived === 0 && e.previous_due_date != null && e.new_due_date != null && e.new_due_date > e.previous_due_date) ||
+      e.event_type === 'redemption'
+    if (behindVoided && followUp) undone.add(e.id)
+  }
+  return undone
+}
+
 function EventLogPanel({
   events,
   loanId,
   ticketNumber,
+  voidableId,
+  onVoid,
 }: {
   events: LoanEventView[]
   loanId: string
   ticketNumber: string
+  /** The payment a manager may void now; null hides the button. */
+  voidableId: string | null
+  onVoid: (e: LoanEventView) => void
 }) {
   const { t } = useI18n()
+  const undone = undoneEventIds(events)
   // The payment whose receipt is being printed (again).
   const [receiptFor, setReceiptFor] = useState<LoanEventView | null>(null)
   if (events.length === 0) {
@@ -734,11 +796,37 @@ function EventLogPanel({
         </h2>
       </header>
       <ul className="divide-y divide-border">
-        {events.map((e) => (
+        {events.map((e) => {
+          // A row that voids a payment, a row that no longer stands, and the
+          // row that put the due date back.
+          const isReversal = e.reverses_event_id != null
+          const isUndone = undone.has(e.id)
+          const putBack =
+            e.event_type === 'extension' &&
+            e.previous_due_date != null &&
+            e.new_due_date != null &&
+            e.new_due_date < e.previous_due_date
+          return (
           <li key={e.id} className="px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <EventTypeBadge type={e.event_type} />
+                {isReversal ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-danger/30 bg-danger/5 px-2 py-0.5 text-xs font-semibold text-danger">
+                    <Prohibit size={12} weight="bold" />
+                    {t.pawn.voidPayment.eventLabel}
+                  </span>
+                ) : putBack ? (
+                  <span className="inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold text-foreground">
+                    {t.pawn.voidPayment.dueDatePutBack}
+                  </span>
+                ) : (
+                  <EventTypeBadge type={e.event_type} />
+                )}
+                {isUndone ? (
+                  <span className="inline-flex items-center rounded-full border border-danger/30 bg-danger/5 px-2 py-0.5 text-xs font-semibold text-danger">
+                    {t.pawn.voidPayment.voidedChip}
+                  </span>
+                ) : null}
                 {e.interest_waived > 0 ? (
                   <span className="inline-flex items-center gap-1 rounded-full border border-gold/50 bg-gold/10 px-2 py-0.5 text-xs font-semibold text-foreground">
                     <Gift size={12} weight="bold" />
@@ -752,7 +840,17 @@ function EventLogPanel({
                 ) : null}
               </div>
               <div className="flex items-center gap-3">
-                {e.event_type === 'payment' ? (
+                {e.id === voidableId ? (
+                  <button
+                    type="button"
+                    onClick={() => onVoid(e)}
+                    className="inline-flex items-center gap-1 rounded-md border border-danger/40 bg-card px-2 py-1 text-xs font-semibold text-danger hover:bg-danger/5"
+                  >
+                    <Prohibit size={14} weight="bold" />
+                    {t.pawn.voidPayment.button}
+                  </button>
+                ) : null}
+                {e.event_type === 'payment' && !isReversal && !isUndone ? (
                   <button
                     type="button"
                     onClick={() => setReceiptFor(e)}
@@ -767,7 +865,7 @@ function EventLogPanel({
                 </div>
               </div>
             </div>
-            <div className="mt-1 grid grid-cols-3 gap-3 text-xs">
+            <div className={`mt-1 grid grid-cols-3 gap-3 text-xs ${isUndone ? 'line-through opacity-60' : ''}`}>
               {e.amount != null ? (
                 <span className="text-foreground">
                   {t.pawn.payment.amount}:{' '}
@@ -815,7 +913,8 @@ function EventLogPanel({
               <div className="mt-1 text-xs text-muted">{e.notes}</div>
             ) : null}
           </li>
-        ))}
+          )
+        })}
       </ul>
       {receiptFor ? (
         <ReceiptFormatDialog

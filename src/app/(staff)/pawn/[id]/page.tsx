@@ -9,6 +9,7 @@ import {
 } from '@/lib/supabase/storage'
 import { payoffFromLoan } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { planPaymentVoid, voidablePaymentId } from '@/lib/pawn/payment-void'
 import { chargeModelOf, loanForfeitEligibility, todayInTimezone } from '@/lib/jurisdictions/rules'
 import PawnLoanDetail, {
   type LoanCollateralView,
@@ -71,7 +72,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     ctx.supabase
       .from('loan_events')
       .select(
-        'id, event_type, amount, principal_paid, interest_paid, fees_paid, interest_waived, payment_method, new_due_date, notes, occurred_at',
+        'id, reverses_event_id, event_type, amount, principal_paid, interest_paid, fees_paid, interest_waived, payment_method, new_due_date, previous_due_date, notes, occurred_at, legacy_ref, stripe_session_id',
       )
       .eq('loan_id', id)
       .order('occurred_at', { ascending: false }),
@@ -133,6 +134,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
 
   const events: LoanEventView[] = (eventRows ?? []).map((e) => ({
     id: e.id,
+    reverses_event_id: e.reverses_event_id,
     event_type: e.event_type as LoanEventType,
     amount: e.amount == null ? null : Number(e.amount),
     principal_paid: Number(e.principal_paid ?? 0),
@@ -141,6 +143,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     interest_waived: Number(e.interest_waived ?? 0),
     payment_method: e.payment_method,
     new_due_date: e.new_due_date,
+    previous_due_date: e.previous_due_date,
     notes: e.notes,
     occurred_at: e.occurred_at,
   }))
@@ -195,6 +198,22 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     created_at: loan.created_at,
   }
 
+  // Owner / manager: free time, and voiding the last payment.
+  const isManager =
+    ctx.tenantRole === 'owner' ||
+    ctx.tenantRole === 'manager' ||
+    ctx.tenantRole === 'chain_admin'
+  const voidLoan = {
+    status: loan.status as LoanStatus,
+    due_date: loan.due_date,
+    issue_date: loan.issue_date,
+    term_days: loan.term_days,
+  }
+  const voidId = isManager ? voidablePaymentId({ loan: voidLoan, events: eventRows ?? [] }) : null
+  const voidPlan = voidId
+    ? planPaymentVoid({ loan: voidLoan, events: eventRows ?? [], eventId: voidId })
+    : null
+
   return (
     <PawnLoanDetail
       loan={view}
@@ -203,10 +222,11 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
       payoff={payoff}
       today={today}
       charge={chargeModelOf(rules)}
-      canGiveFreeTime={
-        ctx.tenantRole === 'owner' ||
-        ctx.tenantRole === 'manager' ||
-        ctx.tenantRole === 'chain_admin'
+      canGiveFreeTime={isManager}
+      voidablePayment={
+        voidId && voidPlan?.ok
+          ? { eventId: voidId, restoreDueDate: voidPlan.restoreDueDate, reopens: voidPlan.reopens }
+          : null
       }
       forfeit={forfeit}
       tagChoices={templateChoices(

@@ -60,8 +60,8 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23, night). Items 544-557, FOUR
-                  MIGRATIONS, ALL APPLIED: 0100, 0101, 0102, 0103.
+  Last session:   Session 65 (2026-11-23, night). Items 544-558, FIVE
+                  MIGRATIONS, ALL APPLIED: 0100, 0101, 0102, 0103, 0104.
                   main == feature/sol-pawn-brief.
                   ACTIVE FILES (last touched):
                     src/lib/pawn/math.ts (planLoanPayment, extensionCost)
@@ -92,9 +92,20 @@ OPERATION IN FLIGHT: none
                   - THE LIST TAKES PAYMENTS (556): Take payment and
                     Extend / renew open the popup on /pawn; a payment or
                     a redeem offers the customer receipt at once.
-                  - A REAL PAYMENT WENT THROUGH: Eddy, ticket 15551,
-                    2026-11-23 10:13 PM, $80.00 interest, due 2026-12-20.
-                    Booked right (payment + extension, status extended).
+                  - REAL PAYMENTS WENT THROUGH: Eddy, ticket 15551,
+                    2026-11-23: 10:13 PM $80.00 interest (due 2026-12-20),
+                    10:22 PM $101.00 payoff — the ticket is REDEEMED. Both
+                    booked right. If they were tests: void the $101.00
+                    first, then the $80.00 (558) — ASK EDDY, do not void
+                    them for him.
+                  - ONE PAYMENT CAN BE VOIDED (558, patches/0104): owner /
+                    manager, last payment only, a reversal row
+                    (CLAUDE.md rule 23).
+                  - NEXT, ASKED AND NOT BUILT YET: the payment history the
+                    way Eddy draws it for a customer who says "I already
+                    paid" (Downloads/IMG_3974.HEIC: pawn date, then each
+                    due date in a row, and under each period the payment
+                    that covered it — date and amount).
                   - STILL NOT EXERCISED FOR REAL: a payment from the list
                     popup, the receipt offered after a payment, a payoff
                     that gives interest back, a move to a picked date,
@@ -894,6 +905,42 @@ Progress_archive.txt — the items from those sessions are there.)
       a clerk's view; Spanish; the live deploy.
 
       tsc, 1,106 tests, lint, build green.
+
+ 558. VOID ONE PAYMENT (patches/0104 APPLIED). Eddy: "how about if i have
+      to void a payment". Until now only the whole ticket could be voided.
+      - A reversal row, never an edit: loan_events.reverses_event_id points
+        at the payment; the row carries its money negated. A trigger
+        refuses anything else (not exact, another ticket, an imported
+        payment, an online one, a second void, changing the link later).
+        loan_events_split_signs allows negatives on a reversal.
+      - For what is OWED both rows are ignored (math.ts liveEvents;
+        LoanMoneyEvent requires id + reverses_event_id, so the type check
+        made every payoff query read them). Reports by date read the raw
+        rows: +80 the day taken, -80 the day voided.
+      - payment-void.ts planPaymentVoid (pure, 11 tests): only the LAST
+        standing payment; the due date goes back (previous_due_date, a new
+        column written by every move from now on; older rows use the move
+        before); a ticket the payment paid off is OPEN again; refuses
+        imported, online, free time given after, forfeited / voided ticket.
+      - voidPaymentAction: owner / manager / chain_admin, reason of 10+
+        characters; reversal row, then the date (+ a "Due date put back"
+        row), then the status; audit kind payment_void; loyalty points
+        earned on it are clawed back if any.
+      - Ticket page: "Void payment" on the one payment that can be voided
+        (managers only); voided rows are struck through with a "Voided"
+        chip and lose Print receipt; the reversal shows "Payment voided".
+        The customer portal leaves voided payments out.
+      - It moves NO cash and refunds NO card — the dialog says so.
+      VERIFIED: database dry run on ticket 15551, rolled back — six wrong
+      entries refused, the $101.00 payoff and then the $80.00 payment
+      voided, ticket back to due 2026-04-24 / extended, sums 0; the live
+      ticket checked unchanged. Browser (local, NOTHING VOIDED): one Void
+      payment button, on the $101.00; the dialog says the ticket will be
+      open again; a 4-letter reason is refused.
+      NOT VERIFIED: a real void saved from the screen; a clerk's view;
+      Spanish; the live deploy.
+
+      tsc, 1,117 tests, lint, build green.
 
 --- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 

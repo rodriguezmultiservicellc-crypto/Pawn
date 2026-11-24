@@ -138,6 +138,8 @@ export async function loadCollections(args: {
     // Every event of those loans, paged (rule 22): a payment left out would
     // overstate what that customer owes.
     type EventRow = {
+      id: string
+      reverses_event_id: string | null
       loan_id: string
       principal_paid: number | string | null
       interest_paid: number | string | null
@@ -151,7 +153,7 @@ export async function loadCollections(args: {
         ...(await allRows<EventRow>('loan_events', (from, to) =>
           client
             .from('loan_events')
-            .select('id, loan_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+            .select('id, reverses_event_id, loan_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
             .eq('tenant_id', tenantId)
             .in('loan_id', ids)
             .order('id')
@@ -159,10 +161,12 @@ export async function loadCollections(args: {
         )),
       )
     }
-    const byLoan = new Map<string, Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>>()
+    const byLoan = new Map<string, Array<{ id: string; reverses_event_id: string | null; principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>>()
     for (const e of events) {
       const list = byLoan.get(e.loan_id) ?? []
       list.push({
+        id: e.id,
+        reverses_event_id: e.reverses_event_id,
         principal_paid: Number(e.principal_paid ?? 0),
         interest_paid: Number(e.interest_paid ?? 0),
         fees_paid: Number(e.fees_paid ?? 0),

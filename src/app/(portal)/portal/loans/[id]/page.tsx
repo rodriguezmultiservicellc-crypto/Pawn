@@ -3,7 +3,7 @@ import { resolvePortalCustomer } from '@/lib/portal/customer'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripeLinkStatusBySessionId } from '@/lib/portal/stripe-payment-links'
 import { isTenantStripeConnected } from '@/lib/stripe/payment-link'
-import { daysBetween, payoffFromLoan } from '@/lib/pawn/math'
+import { daysBetween, liveEvents, payoffFromLoan } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { chargeModelOf, todayInTimezone } from '@/lib/jurisdictions/rules'
 import LoanDetail, {
@@ -42,7 +42,7 @@ export default async function PortalLoanDetailPage(props: {
        interest_rate_monthly, min_monthly_charge, term_days, issue_date,
        due_date, status, created_at, deleted_at,
        collateral:loan_collateral_items(id, description, position, deleted_at),
-       events:loan_events(id, event_type, amount, principal_paid,
+       events:loan_events(id, reverses_event_id, event_type, amount, principal_paid,
          interest_paid, fees_paid, interest_waived, payment_method,
          occurred_at, notes)`,
     )
@@ -62,6 +62,7 @@ export default async function PortalLoanDetailPage(props: {
       Pick<
         LoanEventRow,
         | 'id'
+        | 'reverses_event_id'
         | 'event_type'
         | 'amount'
         | 'principal_paid'
@@ -83,8 +84,11 @@ export default async function PortalLoanDetailPage(props: {
   // The shop's day and way of charging, as at the counter and in the webhook.
   const rules = await loadTenantRules(admin, tenantId)
   const today = todayInTimezone(rules.timezone)
-  const events = (loan.events ?? []).map((e) => ({
+  // A payment staff voided, and the entry that voids it, are a correction
+  // of the shop's — the customer's history shows what stands.
+  const events = liveEvents(loan.events ?? []).map((e) => ({
     id: e.id,
+    reverses_event_id: e.reverses_event_id,
     event_type: e.event_type as LoanEventType,
     amount: e.amount == null ? null : Number(e.amount),
     principal_paid: Number(e.principal_paid ?? 0),

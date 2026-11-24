@@ -187,10 +187,10 @@ export async function recordEarnClawback(args: {
   admin: AdminClient
   tenantId: string
   customerId: string
-  sourceKind: 'sale' | 'return'
+  sourceKind: 'sale' | 'return' | 'loan_event'
   sourceId: string
   pointsToClaw: number
-  reason: 'sale_voided' | 'sale_returned'
+  reason: 'sale_voided' | 'sale_returned' | 'loan_payment_voided'
 }): Promise<void> {
   // Read current balance so we can clamp.
   const { data: customer } = await args.admin

@@ -311,6 +311,25 @@ Never kill node processes by image name — always by PID.
       or loan events must page (`allRows` in `src/lib/reports/all-rows.ts`)
       or count with `head: true`; a plain select stops at 1,000 silently.
 
+23. **One payment on a pawn ticket is voided by a reversal row, never by an
+    edit** (patches/0104). `loan_events.reverses_event_id` is set on the row
+    that voids a payment; it carries that payment's money negated, and a
+    trigger refuses anything but an exact reversal of a Pawn-made, counter
+    payment of the same loan, once. Both rows stay in the log on their own
+    days (reports by date add the raw rows). For what is OWED both are
+    ignored: `liveEvents()` in `src/lib/pawn/math.ts`, which is why
+    `LoanMoneyEvent` requires `id` and `reverses_event_id` — anything new
+    that reads loan events to figure a balance goes through it.
+    - What a void undoes is decided in `src/lib/pawn/payment-void.ts`
+      (`planPaymentVoid`): only the LAST standing payment; the due date goes
+      back (`previous_due_date` on the move, else the move before it); a
+      ticket that payment paid off is open again. Never imported payments
+      (rule 22), never online ones (refund in Stripe), never after free
+      time was given on top of it.
+    - Owner / manager only (`voidPaymentAction`), with a reason. It moves
+      no cash and refunds no card.
+    - Every event that moves the due date writes `previous_due_date`.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

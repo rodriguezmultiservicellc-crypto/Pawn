@@ -3713,7 +3713,9 @@ export type Database = {
           occurred_at: string
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           performed_by: string | null
+          previous_due_date: string | null
           principal_paid: number
+          reverses_event_id: string | null
           stripe_session_id: string | null
           tenant_id: string
         }
@@ -3731,7 +3733,9 @@ export type Database = {
           occurred_at?: string
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           performed_by?: string | null
+          previous_due_date?: string | null
           principal_paid?: number
+          reverses_event_id?: string | null
           stripe_session_id?: string | null
           tenant_id: string
         }
@@ -3749,7 +3753,9 @@ export type Database = {
           occurred_at?: string
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           performed_by?: string | null
+          previous_due_date?: string | null
           principal_paid?: number
+          reverses_event_id?: string | null
           stripe_session_id?: string | null
           tenant_id?: string
         }
@@ -3759,6 +3765,13 @@ export type Database = {
             columns: ["loan_id"]
             isOneToOne: false
             referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_events_reverses_event_id_fkey"
+            columns: ["reverses_event_id"]
+            isOneToOne: false
+            referencedRelation: "loan_events"
             referencedColumns: ["id"]
           },
           {

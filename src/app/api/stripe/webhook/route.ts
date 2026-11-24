@@ -581,7 +581,7 @@ async function applyLoanPayment(args: {
       .select(
         `id, tenant_id, principal, interest_rate_monthly, min_monthly_charge,
          issue_date, status,
-         events:loan_events(principal_paid, interest_paid, fees_paid, interest_waived, occurred_at)`,
+         events:loan_events(id, reverses_event_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at)`,
       )
       .eq('id', args.loanId)
       .eq('tenant_id', args.tenantId)
@@ -592,7 +592,7 @@ async function applyLoanPayment(args: {
     }
 
     type LoanWithEvents = LoanRow & {
-      events?: Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid' | 'interest_waived' | 'occurred_at'>[] | null
+      events?: Pick<LoanEventRow, 'id' | 'reverses_event_id' | 'principal_paid' | 'interest_paid' | 'fees_paid' | 'interest_waived' | 'occurred_at'>[] | null
     }
     const loan = loanData as unknown as LoanWithEvents
     const events = loan.events ?? []

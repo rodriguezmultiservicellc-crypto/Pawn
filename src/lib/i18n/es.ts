@@ -1667,6 +1667,38 @@ export const es: Dictionary = {
       submit: 'No rescatar',
       submitting: 'Procesando…',
     },
+    voidPayment: {
+      title: 'Anular este pago',
+      button: 'Anular pago',
+      eventLabel: 'Pago anulado',
+      voidedChip: 'Anulado',
+      dueDatePutBack: 'Fecha de vencimiento restablecida',
+      body: 'Se anulará el pago de {amount} recibido el {date}.',
+      keeps: 'No se borra nada: el pago queda en el registro, marcado como anulado, con tu nombre y el motivo.',
+      dueDateBack: 'La fecha de vencimiento vuelve al {date}.',
+      reopens: 'Este pago liquidó el boleto. El boleto quedará abierto otra vez.',
+      cash: 'Devuelve el dinero al cliente, o réstalo del conteo de la caja: esto no mueve efectivo.',
+      reason: 'Motivo',
+      reasonHelp: 'Obligatorio. Mínimo 10 caracteres.',
+      submit: 'Anular pago',
+      submitting: 'Anulando…',
+      errors: {
+        validation_failed: 'Elige el pago y escribe un motivo de al menos 10 caracteres.',
+        not_found: 'Ese pago no está en este boleto.',
+        not_a_payment: 'Solo se puede anular un pago.',
+        already_voided: 'Ese pago ya fue anulado.',
+        imported: 'Este pago viene del sistema anterior y no se puede anular aquí.',
+        online: 'Este pago se hizo en línea. Reembolsa la tarjeta en Stripe.',
+        not_latest: 'Solo se puede anular el último pago de un boleto. Anula primero el más reciente.',
+        free_time_after: 'Se dio tiempo gratis después de este pago, así que ya no se puede anular.',
+        loan_closed: 'Este boleto está cerrado. Sus pagos ya no se pueden anular.',
+        void_due_date_not_restored:
+          'El pago se anuló, pero la fecha de vencimiento no volvió. Recarga el boleto y revísalo.',
+        void_status_not_restored:
+          'El pago se anuló, pero el estado del boleto no se actualizó. Recarga el boleto y revísalo.',
+        void_failed: 'No se pudo anular el pago. Solo un dueño o gerente puede hacerlo.',
+      },
+    },
     voidLoan: {
       title: 'Anular empeño',
       bodyWarning:

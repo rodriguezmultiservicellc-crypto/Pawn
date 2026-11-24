@@ -286,15 +286,40 @@ export function addDaysIso(date: string, days: number): string {
  * of its query would charge a customer interest a manager forgave, and one
  * that leaves out the second would keep charging on money the customer
  * already paid back. The type check stops both at build time.
+ *
+ * `id` and `reverses_event_id` are required for the same reason: a voided
+ * payment stays in the log beside the entry that voids it (patches/0104),
+ * and a payoff must leave BOTH out (liveEvents). A query without them would
+ * count a voided payment's date and money as if it had happened.
  */
 export type LoanMoneyEvent = Pick<
   LoanEventRow,
+  | 'id'
+  | 'reverses_event_id'
   | 'principal_paid'
   | 'interest_paid'
   | 'fees_paid'
   | 'interest_waived'
   | 'occurred_at'
 >
+
+/**
+ * The events that count toward what is owed. A voided payment and the entry
+ * that voids it are both left out: for the payoff, it never happened — not
+ * its money, and not the day it was taken on. (Reports by date read the raw
+ * rows instead: the payment on its day, the void on its own.)
+ */
+export function liveEvents<T extends Pick<LoanEventRow, 'id' | 'reverses_event_id'>>(
+  events: ReadonlyArray<T>,
+): ReadonlyArray<T> {
+  let voided: Set<string> | null = null
+  for (const e of events) {
+    if (e.reverses_event_id) (voided ??= new Set()).add(e.reverses_event_id)
+  }
+  if (!voided) return events
+  const gone = voided
+  return events.filter((e) => !e.reverses_event_id && !gone.has(e.id))
+}
 
 /**
  * The payments toward the loan among its events, each on the shop's day it
@@ -306,7 +331,7 @@ export function paydownsOf(
   timezone: string,
 ): Paydown[] {
   const out: Paydown[] = []
-  for (const e of events) {
+  for (const e of liveEvents(events)) {
     const amount = toMoney(e.principal_paid)
     if (amount <= 0) continue
     out.push({
@@ -329,8 +354,8 @@ export type AppliedTotals = {
 }
 
 /**
- * Sum principal_paid / interest_paid / fees_paid across the events of a
- * single loan. Only events that actually carry split values contribute
+ * Sum principal_paid / interest_paid / fees_paid across the LIVE events of
+ * a single loan (a voided payment and its void are left out). Only events that actually carry split values contribute
  * (i.e. we ignore the 'issued' / 'extension' (no cash) / 'forfeiture' /
  * 'void' rows whose splits are all zero anyway).
  */
@@ -343,7 +368,7 @@ export function appliedPayments(
   let interestApplied = 0
   let interestWaived = 0
   let feesApplied = 0
-  for (const e of events) {
+  for (const e of liveEvents(events)) {
     principalApplied += toMoney(e.principal_paid)
     interestApplied += toMoney(e.interest_paid)
     interestWaived += toMoney(e.interest_waived)
@@ -381,7 +406,7 @@ export function interestPaidAhead(
     const t = Date.parse(e.occurred_at)
     return isFinite(t) ? t : 0
   }
-  const ordered = [...events].sort((a, b) => when(a) - when(b))
+  const ordered = [...liveEvents(events)].sort((a, b) => when(a) - when(b))
   let covered = 0
   let ahead = 0
   for (const e of ordered) {
