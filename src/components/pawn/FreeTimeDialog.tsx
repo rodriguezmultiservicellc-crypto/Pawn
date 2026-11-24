@@ -3,7 +3,12 @@
 import { useMemo, useState, useTransition } from 'react'
 import { CalendarCheck, Gift } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { MAX_FREE_DAYS, planFreeTime, type ChargeModel } from '@/lib/pawn/math'
+import {
+  MAX_FREE_DAYS,
+  planFreeTime,
+  type ChargeModel,
+  type LoanMoneyEvent,
+} from '@/lib/pawn/math'
 import { Modal, Footer } from './RecordPaymentDialog'
 
 /**
@@ -27,6 +32,8 @@ export function FreeTimeDialog({
     monthlyRate: number
     minMonthlyCharge: number | null
     dueDate: string
+    /** The loan's events: free time forgives the charge on what is still owed. */
+    events: ReadonlyArray<LoanMoneyEvent>
     charge: ChargeModel
   }
   onClose: () => void

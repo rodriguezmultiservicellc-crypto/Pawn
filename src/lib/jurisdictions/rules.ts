@@ -141,12 +141,18 @@ export function toJurisdiction(row: JurisdictionRow): Jurisdiction {
  * How this tenant's pawn service charge accrues — full periods first, then
  * by the day — for lib/pawn/math. A tenant with no jurisdiction on file is
  * charged by the day from the first day (nothing says otherwise).
+ *
+ * It carries the shop's timezone: a payment toward the loan lowers the
+ * charges that start after the shop's day it was taken on.
  */
-export function chargeModelOf(rules: Pick<EffectiveRules, 'jurisdiction'>): ChargeModel {
+export function chargeModelOf(
+  rules: Pick<EffectiveRules, 'jurisdiction' | 'timezone'>,
+): ChargeModel {
   const j = rules.jurisdiction
   return {
     fullPeriods: j?.charge_full_periods ?? 0,
     periodDays: j?.period_days ?? RATE_PERIOD_DAYS,
+    timezone: rules.timezone,
   }
 }
 

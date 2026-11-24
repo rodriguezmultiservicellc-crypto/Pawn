@@ -10,6 +10,7 @@ import { COUNT_RESOLVE_ROLES } from '@/lib/counts/types'
 import { loadPledgeAlert } from '@/lib/counts/server'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { chargeModelOf } from '@/lib/jurisdictions/rules'
+import { allRows, chunks } from '@/lib/reports/all-rows'
 
 
 export default async function DashboardPage() {
@@ -225,25 +226,34 @@ export default async function DashboardPage() {
       interest_paid: number
       fees_paid: number
       interest_waived: number
+      occurred_at: string
     }
     const eventsByLoan = new Map<string, EventLite[]>()
-    if (bookIds.length) {
-      const { data: evRows } = await ctx.supabase
-        .from('loan_events')
-        .select('loan_id, principal_paid, interest_paid, fees_paid, interest_waived')
-        .in('loan_id', bookIds)
-      for (const e of (evRows ?? []) as unknown as {
+    // Every event of the book, paged (rule 22): a payment left out would
+    // overstate what that customer owes.
+    for (const ids of chunks(bookIds)) {
+      const evRows = await allRows<{
         loan_id: string
         principal_paid: number | string | null
         interest_paid: number | string | null
         fees_paid: number | string | null
         interest_waived: number | string | null
-      }[]) {
+        occurred_at: string
+      }>('loan_events', (from, to) =>
+        ctx.supabase
+          .from('loan_events')
+          .select('id, loan_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+          .in('loan_id', ids)
+          .order('id')
+          .range(from, to),
+      )
+      for (const e of evRows) {
         const lite: EventLite = {
           principal_paid: Number(e.principal_paid ?? 0),
           interest_paid: Number(e.interest_paid ?? 0),
           fees_paid: Number(e.fees_paid ?? 0),
           interest_waived: Number(e.interest_waived ?? 0),
+          occurred_at: e.occurred_at,
         }
         const arr = eventsByLoan.get(e.loan_id)
         if (arr) arr.push(lite)

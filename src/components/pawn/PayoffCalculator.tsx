@@ -59,6 +59,11 @@ export function PayoffCalculator({
           value={fmt(payoff.interestOutstanding)}
         />
       </dl>
+      {payoff.principalApplied > 0 && !closed ? (
+        <p className="mt-2 text-xs text-muted">
+          {t.pawn.detail.remainingBalanceNote}
+        </p>
+      ) : null}
 
       <div className="mt-4 flex items-center justify-between rounded-lg border border-navy/20 bg-navy/5 px-3 py-2">
         <span className="text-sm font-semibold text-foreground">

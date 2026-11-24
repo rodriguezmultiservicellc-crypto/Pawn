@@ -60,8 +60,8 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23, evening). Items 544-551, TWO
-                  MIGRATIONS, BOTH APPLIED: 0100, 0101.
+  Last session:   Session 65 (2026-11-23, evening). Items 544-554, THREE
+                  MIGRATIONS, ALL APPLIED: 0100, 0101, 0102.
                   main == feature/sol-pawn-brief.
                   ACTIVE FILES (last touched):
                     src/lib/pawn/math.ts (planLoanPayment, extensionCost)
@@ -78,10 +78,22 @@ OPERATION IN FLIGHT: none
                     rule is in jurisdictions.charge_full_periods = 2: two
                     periods in full, then by the day (CLAUDE.md rule 18).
                     The "do not change math.ts" note below is over.
-                  - OPEN, FOUND IN 549, NOT FIXED: after a payment toward
-                    the loan, Pawn still charges on the ORIGINAL amount.
-                    § 539.001(11)(e) says later charges are figured on
-                    the remaining balance (10 open tickets have paydowns).
+                  - CHARGES ARE ON THE REMAINING BALANCE NOW (552):
+                    § 539.001(11)(e). Every payoff query must select
+                    loan_events.occurred_at (the type check forces it).
+                  - THE NO-REFUND LINE IS BACK ON THE TICKET (553), from
+                    jurisdictions.ticket_notices, not from code.
+                  - PAYMENT / EXTEND TAKES "ANOTHER DATE" (554): the clerk
+                    picks the new due date; the server prices it.
+                  - OPEN, FOUND IN 552, NOT FIXED — ASK EDDY: interest
+                    PAID AHEAD is kept if the customer then redeems early.
+                    § 539.001(11)(c) last sentence: "Any unused pawn
+                    service charge paid in advance by the pledgor shall be
+                    refunded by the pawnbroker." Today the payoff never
+                    goes below the balance owed (interest overpaid is
+                    clamped at 0, math.ts payoffBalance). Only reachable
+                    by paying ahead after day 60 and redeeming before the
+                    paid date.
                   - FREE TIME IS BUILT (551): owner / manager only; the
                     date moves and the interest is forgiven
                     (loan_events.interest_waived — never income).
@@ -737,6 +749,83 @@ Progress_archive.txt — the items from those sessions are there.)
       clerk's view (signed in as the owner only); the Spanish screens.
 
       tsc, 1,072 tests, lint, build green.
+
+ 552. CHARGE ON THE REMAINING BALANCE AFTER A PAYMENT TOWARD THE LOAN.
+      Eddy: "Do the first 2 of the three that weren't done". Statute read
+      again for the exact words (leg.state.fl.us, The 2026 Florida
+      Statutes), § 539.001(11)(e): "In the event a pledgor makes a partial
+      payment on a pawn that reduces the amount financed, any additional
+      pawn service charges shall be calculated on the remaining balance of
+      the original amount financed."
+      - math.ts interestAccruedOnBalance: a charge already owed when the
+        payment was taken does not change. A period charged in full is
+        figured on the balance left by payments made BEFORE its first day
+        (paid on day 30 -> period 2 is lower; paid on day 31 -> it was
+        already owed). A day charged by the day is figured on the balance
+        left by payments made before that day. interestAccrued (5 args)
+        is now only "a loan nobody paid down" — the ticket's disclosure.
+      - LoanMoneyEvent REQUIRES occurred_at; ChargeModel carries the shop's
+        timezone (a 9pm payment counts on the shop's day). The type check
+        found the 12 queries; all read the date now.
+      - planLoanPayment: a payment that pays AHEAD and pays the loan DOWN
+        figures the time paid ahead on the balance it leaves, to the cent
+        ($300 at 25%, day 30, two periods, $225 -> $125 interest + $100
+        loan, not $150 + $75). Otherwise the shop would collect interest
+        in advance on money handed over in the same payment.
+      - planFreeTime forgives the charge on what is still owed.
+      - Payoff panel says so when a ticket was paid down.
+      - RULE 22, while there: the pawn list, the dashboard and collections
+        loaded loan events in ONE request (stops at 1,000 silently; 363
+        today). They page now (allRows + chunks) and fail loudly.
+      MONEY (compare.mjs, read-only, 2026-11-23): the 10 open tickets with
+      paydowns owe $121.35 LESS in all. 15455 -15.00, 15520 -22.30,
+      15547 -22.30, 15557 -22.30, 15588 -8.78, 15596 -12.96, 15618 -0.70,
+      15622 -9.33, 15634 -7.67 (2,258.00 -> 2,250.33), 15648 0.00. The
+      other 55 open tickets are unchanged.
+
+ 553. THE NO-REFUND LINE IS BACK ON THE PRINTED TICKET (patches/0102
+      APPLIED). "If you pay off your loan early you will not be entitled
+      to a refund of part of the finance charge." + Spanish, first in
+      US-FL ticket_notices, so it prints right under the lending boxes.
+      True since 549 (full period inside the first 30 days).
+      - It is Eddy's paper form's sentence. It is NOT a § 539.001(8)
+        required statement (checked: (8) says nothing about refunds).
+      - NOT CONFIRMED: that it is the federal Truth in Lending model
+        wording (the CFPB / eCFR pages would not give the H-2 text).
+      - The row's verified_source now lists (11)(a)-(c) and (11)(e).
+      - The live site prints it already: the text comes from the database.
+
+ 554. PAYMENT / EXTEND: "ANOTHER DATE" + WHY THE INTEREST IS NOT THE LISTED
+      FIGURE. Eddy, mid-session, on ticket 15551: "on top it says its 180
+      but its realy 181?" and "how about if i want t bring it up to a
+      certain date?"
+      - The list says what the MOVE costs (interest to one period before
+        the new due date: $80.00 through 11/20). Interest owed as of today
+        is paid before the loan ($81.00 on 11/23). The dialog now says it:
+        "$80.00 moves the due date. $1.00 more goes to interest owed as of
+        today. Interest is paid before anything goes toward the loan."
+      - "Another date…" in the list: a date box; the server prices it
+        (extensionCostToDate — every day the date moves is a day of
+        interest; inside the two full periods a short move still costs the
+        whole period). It opens on a period from today, which is "paid up
+        to today": 15551 -> 12/23/2026, $81.00.
+      - loanPaymentSchema.new_due_date is a REQUEST (YYYY-MM-DD); the
+        server refuses a date not after the due date or more than 120
+        periods out (bad_due_date) and one the payment does not cover.
+        Audit rows carry move_days.
+      LOOKED AT (headless Chrome, local server, NOTHING SUBMITTED):
+      15634 payoff panel $2,250.33 with the note; +$10 over the listed
+      $539.00 shows the sentence; Another date 12/23 = $550.33; due + 10
+      days = $180.00 and "still past due"; a date before the due date is
+      refused and Save is off. 15551: $90 -> 81.00 / 9.00 with the
+      sentence. Ticket PDF: still one sheet per copy (3 pages), the new
+      line EN + ES under the lending boxes.
+      NOT VERIFIED: a real payment saved (to a period or to a date) and
+      its receipt; a clerk's view; the Spanish screens; the live deploy.
+      The database path of a date move is the one dry-run in 551 (those
+      dates were not 30-day steps either).
+
+      tsc, 1,096 tests, lint, build green.
 
 --- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 

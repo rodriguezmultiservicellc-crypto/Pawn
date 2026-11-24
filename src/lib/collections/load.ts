@@ -3,6 +3,7 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { payoffFromLoan, toMoney, type ChargeModel } from '@/lib/pawn/math'
+import { allRows, chunks } from '@/lib/reports/all-rows'
 import {
   bucketFor,
   daysBetweenIso,
@@ -134,22 +135,39 @@ export async function loadCollections(args: {
     customer: CustomerLite
   }>
   if (loans.length > 0) {
-    const { data: events } = await client
-      .from('loan_events')
-      .select('loan_id, principal_paid, interest_paid, fees_paid, interest_waived')
-      .eq('tenant_id', tenantId)
-      .in(
-        'loan_id',
-        loans.map((l) => l.id),
+    // Every event of those loans, paged (rule 22): a payment left out would
+    // overstate what that customer owes.
+    type EventRow = {
+      loan_id: string
+      principal_paid: number | string | null
+      interest_paid: number | string | null
+      fees_paid: number | string | null
+      interest_waived: number | string | null
+      occurred_at: string
+    }
+    const events: EventRow[] = []
+    for (const ids of chunks(loans.map((l) => l.id))) {
+      events.push(
+        ...(await allRows<EventRow>('loan_events', (from, to) =>
+          client
+            .from('loan_events')
+            .select('id, loan_id, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+            .eq('tenant_id', tenantId)
+            .in('loan_id', ids)
+            .order('id')
+            .range(from, to),
+        )),
       )
-    const byLoan = new Map<string, Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number }>>()
-    for (const e of events ?? []) {
+    }
+    const byLoan = new Map<string, Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number; occurred_at: string }>>()
+    for (const e of events) {
       const list = byLoan.get(e.loan_id) ?? []
       list.push({
         principal_paid: Number(e.principal_paid ?? 0),
         interest_paid: Number(e.interest_paid ?? 0),
         fees_paid: Number(e.fees_paid ?? 0),
         interest_waived: Number(e.interest_waived ?? 0),
+        occurred_at: e.occurred_at,
       })
       byLoan.set(e.loan_id, list)
     }

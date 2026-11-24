@@ -319,13 +319,18 @@ describe('loanPaymentSchema', () => {
     expect(loanPaymentSchema.safeParse(payment({ periods: 121 })).success).toBe(false)
   })
 
-  it('drops a new due date sent by the browser — the server counts it', () => {
-    const r = loanPaymentSchema.safeParse(payment({ periods: 1, new_due_date: '2099-01-01', due_date: '2099-01-01' }))
+  it('takes the day the clerk wants the ticket due — a request the server prices', () => {
+    const r = loanPaymentSchema.safeParse(payment({ new_due_date: '2026-12-24', due_date: '2099-01-01' }))
     expect(r.success).toBe(true)
     if (r.success) {
-      expect('new_due_date' in r.data).toBe(false)
+      expect(r.data.new_due_date).toBe('2026-12-24')
+      // The loan's due date itself is never an input.
       expect('due_date' in r.data).toBe(false)
     }
+    // Left blank, there is no date: the move is the periods asked for.
+    const blank = loanPaymentSchema.safeParse(payment({ periods: 1, new_due_date: '' }))
+    expect(blank.success && blank.data.new_due_date).toBeUndefined()
+    expect(loanPaymentSchema.safeParse(payment({ new_due_date: '12/24/2026' })).success).toBe(false)
   })
 })
 

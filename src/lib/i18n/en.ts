@@ -1420,6 +1420,8 @@ export const en = {
       principalOutstanding: 'Principal outstanding',
       interestAccrued: 'Interest accrued',
       interestWaived: 'Interest not charged (free time)',
+      remainingBalanceNote:
+        'After each payment toward the loan, interest is figured on what is still owed.',
       interestOutstanding: 'Interest outstanding',
       totalDue: 'Total payoff today',
       totalAtClose: 'Balance when closed',
@@ -1578,6 +1580,8 @@ export const en = {
       moveDueDate: 'Move the due date',
       moveOption: '{days} days — new due date {date} · interest ${cost}',
       moveNone: 'Do not move it — stays {date}',
+      moveToDate: 'Another date…',
+      moveToDateCost: '{days} days · interest ${cost}',
       moveHelp:
         'Counted from the current due date ({date}), not from today. The date moves only when the interest for that time is paid.',
       newDueDate: 'New due date',
@@ -1597,6 +1601,10 @@ export const en = {
       interestPaid: 'Interest paid',
       feesPaid: 'Fees',
       splitTitle: 'How this payment is applied',
+      interestToToday:
+        '${move} moves the due date. ${extra} more goes to interest owed as of today. Interest is paid before anything goes toward the loan.',
+      paydownLowersMove:
+        'Because ${principal} goes toward the loan, the time paid ahead costs ${cost}, not ${was}.',
       splitTooltip:
         'Fees come off first, then interest owed, then principal. The system sets the split.',
       submit: 'Record payment',
@@ -1607,6 +1615,8 @@ export const en = {
         fees_exceed_amount: 'Fees cannot be more than the amount collected.',
         extension_underpaid:
           'Moving the due date that far takes ${needed} of interest, not counting fees. Collect that much, or pick a nearer date.',
+        bad_due_date:
+          'Pick a date after the current due date ({date}), and not more than ten years out.',
         due_date_not_moved:
           'The payment was recorded, but the due date did not move. Reload the ticket and check it before taking anything else.',
         status_not_updated:

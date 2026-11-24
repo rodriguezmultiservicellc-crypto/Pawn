@@ -1411,6 +1411,8 @@ export const es: Dictionary = {
       principalOutstanding: 'Principal pendiente',
       interestAccrued: 'Interés acumulado',
       interestWaived: 'Interés no cobrado (tiempo gratis)',
+      remainingBalanceNote:
+        'Después de cada abono al préstamo, el interés se calcula sobre lo que todavía se debe.',
       interestOutstanding: 'Interés pendiente',
       totalDue: 'Total a pagar hoy',
       totalAtClose: 'Saldo al cerrar',
@@ -1569,6 +1571,8 @@ export const es: Dictionary = {
       moveDueDate: 'Mover la fecha de vencimiento',
       moveOption: '{days} días — nueva fecha {date} · interés ${cost}',
       moveNone: 'No moverla — se queda en {date}',
+      moveToDate: 'Otra fecha…',
+      moveToDateCost: '{days} días · interés ${cost}',
       moveHelp:
         'Se cuenta desde la fecha de vencimiento actual ({date}), no desde hoy. La fecha solo se mueve cuando se paga el interés de ese tiempo.',
       newDueDate: 'Nueva fecha de vencimiento',
@@ -1588,6 +1592,10 @@ export const es: Dictionary = {
       interestPaid: 'Interés pagado',
       feesPaid: 'Cargos',
       splitTitle: 'Cómo se aplica este pago',
+      interestToToday:
+        '${move} mueve la fecha de vencimiento. Otros ${extra} van al interés que se debe hasta hoy. El interés se paga antes de abonar al préstamo.',
+      paydownLowersMove:
+        'Como ${principal} se abonan al préstamo, el tiempo pagado por adelantado cuesta ${cost}, no ${was}.',
       splitTooltip:
         'Primero los cargos, luego el interés adeudado y después el principal. El sistema define la división.',
       submit: 'Registrar pago',
@@ -1598,6 +1606,8 @@ export const es: Dictionary = {
         fees_exceed_amount: 'Los cargos no pueden ser mayores que el monto cobrado.',
         extension_underpaid:
           'Mover la fecha hasta ahí requiere ${needed} de interés, sin contar cargos. Cobra ese monto o elige una fecha más cercana.',
+        bad_due_date:
+          'Elige una fecha posterior al vencimiento actual ({date}), y a no más de diez años.',
         due_date_not_moved:
           'El pago se registró, pero la fecha de vencimiento no se movió. Recarga el boleto y revísalo antes de cobrar algo más.',
         status_not_updated:

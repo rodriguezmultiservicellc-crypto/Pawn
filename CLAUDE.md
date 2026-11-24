@@ -153,6 +153,23 @@ Never kill node processes by image name — always by PID.
     (`chargeModelOf(rules)`) as a REQUIRED argument of
     `payoffBalance` / `payoffFromLoan` / `interestAccrued` — never
     default it, never build one from constants.
+    **A payment toward the loan lowers the LATER charges**
+    (§ 539.001(11)(e): "calculated on the remaining balance of the
+    original amount financed"). A charge already owed when the payment
+    was taken does not change: a period charged in full is figured on
+    the balance left by payments made BEFORE its first day, a day
+    charged by the day on the balance left by payments made before that
+    day (`interestAccruedOnBalance`). That is why `LoanMoneyEvent`
+    REQUIRES `occurred_at` and the `ChargeModel` carries the shop's
+    timezone: every query that feeds a payoff must select the event's
+    date, and the day it counts on is the shop's. A payment that pays
+    ahead AND pays the loan down figures the time paid ahead on the
+    balance it leaves (`planLoanPayment`) — never collect interest in
+    advance on money the customer is handing over.
+    The due date moves by whole periods or to a date the clerk picks
+    (`newDueDate`); both are requests the server prices
+    (`extensionCost` / `extensionCostToDate`) — the browser never sets a
+    due date or a split.
 
 19. **Other people's money moves through the database, not app code.**
     - **Store credit** (patches/0052-0053). `customers.store_credit_balance`

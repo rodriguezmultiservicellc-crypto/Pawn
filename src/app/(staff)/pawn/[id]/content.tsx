@@ -379,6 +379,7 @@ export default function PawnLoanDetail({
             monthlyRate: loan.interest_rate_monthly,
             minMonthlyCharge: loan.min_monthly_charge,
             dueDate: loan.due_date,
+            events,
             charge,
           }}
           onClose={() => setDialog(null)}

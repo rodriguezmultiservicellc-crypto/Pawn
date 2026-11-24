@@ -41,7 +41,7 @@ export default async function PortalLoansPage() {
        min_monthly_charge, term_days, issue_date, due_date, status,
        created_at,
        collateral:loan_collateral_items(description, position),
-       events:loan_events(principal_paid, interest_paid, fees_paid, interest_waived)`,
+       events:loan_events(principal_paid, interest_paid, fees_paid, interest_waived, occurred_at)`,
     )
     .eq('tenant_id', tenantId)
     .eq('customer_id', customerId)
@@ -54,7 +54,7 @@ export default async function PortalLoansPage() {
   > & { description: string | null; position: number | null }
   type EventLite = Pick<
     LoanEventRow,
-    'principal_paid' | 'interest_paid' | 'fees_paid' | 'interest_waived'
+    'principal_paid' | 'interest_paid' | 'fees_paid' | 'interest_waived' | 'occurred_at'
   >
   type LoanWithJoins = LoanRow & {
     collateral?: CollateralLite[] | null

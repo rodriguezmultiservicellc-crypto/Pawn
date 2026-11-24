@@ -6,7 +6,9 @@ import { useI18n } from '@/lib/i18n/context'
 import {
   MAX_EXTENSION_PERIODS,
   addDaysIso,
+  daysBetween,
   extensionCost,
+  extensionCostToDate,
   periodsToBringCurrent,
   planLoanPayment,
   type ChargeModel,
@@ -34,6 +36,8 @@ type DialogLoan = {
     interest_paid: number
     fees_paid: number
     interest_waived: number
+    /** When it was taken: a payment toward the loan lowers later charges. */
+    occurred_at: string
   }>
   /** How the shop's jurisdiction charges; its period is one move of the date. */
   charge: ChargeModel
@@ -97,6 +101,13 @@ export function RecordPaymentDialog({
     })
   }, [loan, startPeriods, periodDays])
   const [periods, setPeriods] = useState<number>(startPeriods)
+  // "Another date": the day the clerk wants the ticket due. Null = the move
+  // is one of the listed periods.
+  const [toDate, setToDate] = useState<string | null>(null)
+  const minDate = addDaysIso(loan.dueDate, 1)
+  const maxDate = addDaysIso(loan.dueDate, MAX_EXTENSION_PERIODS * periodDays)
+  const dateOk = toDate != null && toDate >= minDate && toDate <= maxDate
+  const dateCost = dateOk ? extensionCostToDate(loan, toDate) : null
   const [amountStr, setAmountStr] = useState<string>(
     choices[startPeriods - 1].cost.toFixed(2),
   )
@@ -107,7 +118,15 @@ export function RecordPaymentDialog({
   const amount = parseFloat(amountStr || '0') || 0
   const fees = parseFloat(feesStr || '0') || 0
 
+  function pickDate(date: string) {
+    setToDate(date)
+    // The amount follows the date, like it follows a listed choice.
+    const ok = date >= minDate && date <= maxDate
+    setAmountStr(ok ? (extensionCostToDate(loan, date) + fees).toFixed(2) : '')
+  }
+
   function pickPeriods(next: number) {
+    setToDate(null)
     setPeriods(next)
     // The amount follows the choice: the interest that move takes, plus any
     // fee already entered. "Do not move it" leaves the amount to the clerk.
@@ -117,8 +136,16 @@ export function RecordPaymentDialog({
   // Preview only — same function the server uses, same inputs the page was
   // rendered with. The server recomputes against live data on submit.
   const preview = useMemo(
-    () => planLoanPayment({ ...loan, today, periods, amount, fees }),
-    [loan, today, periods, amount, fees],
+    () =>
+      planLoanPayment({
+        ...loan,
+        today,
+        periods: toDate != null ? 0 : periods,
+        newDueDate: toDate,
+        amount,
+        fees,
+      }),
+    [loan, today, periods, toDate, amount, fees],
   )
 
   function translateError(code: string, needed?: number): string {
@@ -127,6 +154,7 @@ export function RecordPaymentDialog({
     const [key, arg] = code.split(':')
     return (known[key] ?? known.generic)
       .replace('{payoff}', payoff.toFixed(2))
+      .replace('{date}', loan.dueDate)
       .replace('{needed}', needed != null ? needed.toFixed(2) : (arg ?? ''))
   }
 
@@ -135,7 +163,8 @@ export function RecordPaymentDialog({
     const fd = new FormData()
     fd.set('loan_id', loanId)
     fd.set('amount', amountStr)
-    fd.set('periods', String(periods))
+    fd.set('periods', toDate != null ? '0' : String(periods))
+    if (toDate) fd.set('new_due_date', toDate)
     fd.set('payment_method', method)
     fd.set('fees_paid', feesStr || '0')
     if (notes) fd.set('notes', notes)
@@ -146,8 +175,23 @@ export function RecordPaymentDialog({
     })
   }
 
+  // The list says what the move costs. The interest actually taken can be
+  // more (interest owed as of today is paid before the loan) or the move can
+  // cost less (part of the payment goes toward the loan first) — say which.
+  const listedCost =
+    toDate != null ? (dateCost ?? 0) : periods > 0 ? choices[periods - 1].cost : 0
+  const moveCostNow =
+    amount > 0 && preview.ok && preview.move_days > 0 ? preview.extension_cost : null
+  const moveLowered = moveCostNow != null && listedCost - moveCostNow > 0.004
+  const paidToToday =
+    preview.ok && moveCostNow != null && !moveLowered
+      ? Math.round((preview.interest_paid - moveCostNow) * 100) / 100
+      : 0
+
   const previewError =
-    amount > 0 && !preview.ok
+    !preview.ok && preview.reason === 'bad_due_date'
+      ? translateError(preview.reason)
+      : amount > 0 && !preview.ok
       ? translateError(preview.reason, preview.needed)
       : null
 
@@ -168,8 +212,21 @@ export function RecordPaymentDialog({
             {tp.moveDueDate}
           </span>
           <select
-            value={periods}
-            onChange={(e) => pickPeriods(parseInt(e.target.value, 10) || 0)}
+            value={toDate != null ? 'date' : String(periods)}
+            onChange={(e) => {
+              if (e.target.value !== 'date') {
+                pickPeriods(parseInt(e.target.value, 10) || 0)
+                return
+              }
+              // Start on a period from today — "bring it up to date" — or a
+              // period past the due date when that is later.
+              const fromToday = addDaysIso(today, periodDays)
+              pickDate(
+                fromToday > loan.dueDate
+                  ? fromToday
+                  : addDaysIso(loan.dueDate, periodDays),
+              )
+            }}
             className={INPUT}
           >
             {choices.map((c) => (
@@ -180,10 +237,31 @@ export function RecordPaymentDialog({
                   .replace('{cost}', usd(c.cost))}
               </option>
             ))}
+            <option value="date">{tp.moveToDate}</option>
             <option value={0}>
               {tp.moveNone.replace('{date}', loan.dueDate)}
             </option>
           </select>
+          {toDate != null ? (
+            <span className="flex flex-wrap items-center gap-3 pt-1">
+              <input
+                type="date"
+                aria-label={tp.newDueDate}
+                value={toDate}
+                min={minDate}
+                max={maxDate}
+                onChange={(e) => pickDate(e.target.value)}
+                className={`${INPUT} max-w-[14rem]`}
+              />
+              {dateOk && dateCost != null ? (
+                <span className="text-sm text-foreground">
+                  {tp.moveToDateCost
+                    .replace('{days}', String(daysBetween(loan.dueDate, toDate)))
+                    .replace('{cost}', usd(dateCost))}
+                </span>
+              ) : null}
+            </span>
+          ) : null}
           <span className="block text-xs text-muted">
             {tp.moveHelp.replace('{date}', loan.dueDate)}
           </span>
@@ -245,6 +323,22 @@ export function RecordPaymentDialog({
           </div>
           {previewError ? (
             <div className="mt-2 text-xs text-danger">{previewError}</div>
+          ) : null}
+          {/* Why the interest is not the figure in the list above. */}
+          {moveCostNow != null && paidToToday > 0 ? (
+            <p className="mt-2 text-xs text-foreground">
+              {tp.interestToToday
+                .replace('{move}', usd(moveCostNow))
+                .replace('{extra}', usd(paidToToday))}
+            </p>
+          ) : null}
+          {moveCostNow != null && moveLowered ? (
+            <p className="mt-2 text-xs text-foreground">
+              {tp.paydownLowersMove
+                .replace('{principal}', usd(preview.ok ? preview.principal_paid : 0))
+                .replace('{cost}', usd(moveCostNow))
+                .replace('{was}', usd(listedCost))}
+            </p>
           ) : null}
         </div>
 

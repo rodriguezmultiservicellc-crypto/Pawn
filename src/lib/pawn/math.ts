@@ -17,6 +17,12 @@
  * days (§ 539.001(11)(c)). Every payoff surface passes the model — it is a
  * required argument so none can fall back to another rule by accident.
  *
+ * A payment toward the loan lowers what LATER charges are figured on
+ * (§ 539.001(11)(e): "any additional pawn service charges shall be
+ * calculated on the remaining balance of the original amount financed").
+ * Charges already owed when the payment was made do not change. That is why
+ * every loan event handed to a payoff carries its date (LoanMoneyEvent).
+ *
  * Date math is done at UTC midnight to avoid timezone drift between server
  * and client. All issue_date / due_date columns are DATE (no time portion);
  * we treat them as UTC midnight at the day boundary.
@@ -68,18 +74,35 @@ export type ChargeModel = {
   fullPeriods: number
   /** Days in one period. */
   periodDays: number
+  /**
+   * The shop's IANA timezone: the calendar a payment's day is read on. A
+   * payment toward the loan taken at 9pm counts on the shop's day, not on
+   * UTC's next one.
+   */
+  timezone: string
 }
 
-/** By the day from the first day: a tenant with no jurisdiction on file. */
-export const CHARGE_BY_THE_DAY: ChargeModel = {
-  fullPeriods: 0,
-  periodDays: RATE_PERIOD_DAYS,
+/** A payment toward the loan, `day` days after the date of the pawn. */
+export type Paydown = { day: number; amount: number }
+
+/** One period's charge on a balance: the rate, never less than the minimum. */
+function periodChargeOn(
+  balance: number,
+  monthlyRate: number,
+  minMonthlyCharge: number,
+): number {
+  if (balance <= 0) return 0
+  return Math.max(
+    monthlyRate > 0 ? balance * monthlyRate : 0,
+    minMonthlyCharge > 0 ? minMonthlyCharge : 0,
+  )
 }
 
 /**
- * The service charge accrued `daysElapsed` days after the date of the pawn.
+ * The service charge accrued `daysElapsed` days after the date of the pawn,
+ * on a loan the customer may have paid down along the way.
  *
- * One period's charge is principal × monthlyRate, never less than
+ * One period's charge is balance × monthlyRate, never less than
  * `minMonthlyCharge` (the per-period minimum; it applies whatever the rate —
  * a $0 rate with a $5 minimum still charges $5 a period).
  *
@@ -90,7 +113,69 @@ export const CHARGE_BY_THE_DAY: ChargeModel = {
  * With `fullPeriods` = 0 it is 1/periodDays of a period's charge per day
  * from the first day, and nothing on the day of the pawn.
  *
+ * The balance each charge is figured on is what was still owed when that
+ * charge started:
+ *   - a period charged in full is owed from its first day, so it is figured
+ *     on the balance left by the payments made BEFORE that day (a payment on
+ *     day 30 lowers the second period; one on day 31 does not — the second
+ *     period was already owed);
+ *   - a day charged by the day is figured on the balance left by the
+ *     payments made before that day (the day of a payment is charged on the
+ *     balance the customer walked in with).
+ *
  * Before the date of the pawn, and on a loan with no principal, it is 0.
+ */
+export function interestAccruedOnBalance(
+  principal: number,
+  monthlyRate: number,
+  daysElapsed: number,
+  minMonthlyCharge: number,
+  charge: ChargeModel,
+  paydowns: ReadonlyArray<Paydown>,
+): number {
+  if (daysElapsed < 0 || principal <= 0) return 0
+  const periodDays = charge.periodDays > 0 ? charge.periodDays : RATE_PERIOD_DAYS
+  const fullPeriods = Math.max(0, Math.floor(charge.fullPeriods))
+  // What is still owed once the payments made on or before `day` are in.
+  const balanceAfter = (day: number): number => {
+    let balance = principal
+    for (const p of paydowns) if (p.day <= day) balance -= p.amount
+    return Math.max(0, balance)
+  }
+  const on = (balance: number) =>
+    periodChargeOn(balance, monthlyRate, minMonthlyCharge)
+
+  let total = 0
+  // A period is owed from its first day: day 0 is already inside period 1.
+  const started = Math.floor(Math.max(0, daysElapsed - 1) / periodDays) + 1
+  const inFull = Math.min(started, fullPeriods)
+  for (let k = 1; k <= inFull; k++) {
+    // Period 1 is owed at the counter, before any payment can exist.
+    total += on(k === 1 ? principal : balanceAfter((k - 1) * periodDays))
+  }
+  // After the full periods, by the day: days (from, daysElapsed], cut at
+  // every payment toward the loan.
+  let from = fullPeriods * periodDays
+  if (daysElapsed > from) {
+    const first = from
+    const cuts = paydowns
+      .map((p) => p.day)
+      .filter((d) => d > first && d < daysElapsed)
+      .sort((a, b) => a - b)
+    for (const cut of cuts) {
+      if (cut === from) continue
+      total += (on(balanceAfter(from)) / periodDays) * (cut - from)
+      from = cut
+    }
+    total += (on(balanceAfter(from)) / periodDays) * (daysElapsed - from)
+  }
+  return r4(total)
+}
+
+/**
+ * The service charge accrued on a loan nobody has paid down — the figure a
+ * ticket discloses the day it is written. A payoff never calls this: it
+ * goes through payoffBalance, which reads the payments.
  */
 export function interestAccrued(
   principal: number,
@@ -99,19 +184,14 @@ export function interestAccrued(
   minMonthlyCharge: number,
   charge: ChargeModel,
 ): number {
-  if (daysElapsed < 0 || principal <= 0) return 0
-  const periodCharge = Math.max(
-    monthlyRate > 0 ? principal * monthlyRate : 0,
-    minMonthlyCharge > 0 ? minMonthlyCharge : 0,
+  return interestAccruedOnBalance(
+    principal,
+    monthlyRate,
+    daysElapsed,
+    minMonthlyCharge,
+    charge,
+    [],
   )
-  if (periodCharge <= 0) return 0
-  const periodDays = charge.periodDays > 0 ? charge.periodDays : RATE_PERIOD_DAYS
-  const fullPeriods = Math.max(0, Math.floor(charge.fullPeriods))
-  // A period is owed from its first day: day 0 is already inside period 1.
-  const started = Math.floor(Math.max(0, daysElapsed - 1) / periodDays) + 1
-  const inFull = Math.min(started, fullPeriods)
-  const byTheDay = Math.max(0, daysElapsed - fullPeriods * periodDays)
-  return r4(periodCharge * inFull + (periodCharge / periodDays) * byTheDay)
 }
 
 // ── Date helpers ───────────────────────────────────────────────────────────
@@ -156,6 +236,38 @@ export function todayDateString(): string {
   return `${y}-${m}-${d}`
 }
 
+const dayFormatters = new Map<string, Intl.DateTimeFormat>()
+
+/**
+ * The calendar day ('YYYY-MM-DD') an instant falls on in an IANA timezone.
+ * A bare 'YYYY-MM-DD' is already a day and comes back as is.
+ */
+export function dayInTimezone(instant: string | Date, timezone: string): string {
+  if (typeof instant === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(instant)) {
+    return instant
+  }
+  const at = typeof instant === 'string' ? new Date(instant) : instant
+  if (!isFinite(at.getTime())) {
+    return typeof instant === 'string' ? instant.slice(0, 10) : ''
+  }
+  try {
+    let f = dayFormatters.get(timezone)
+    if (!f) {
+      // en-CA formats as YYYY-MM-DD.
+      f = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+      dayFormatters.set(timezone, f)
+    }
+    return f.format(at)
+  } catch {
+    return at.toISOString().slice(0, 10)
+  }
+}
+
 /** Add `days` to a 'YYYY-MM-DD' string and return the same shape. */
 export function addDaysIso(date: string, days: number): string {
   const ms = toUtcMidnight(date) + days * 86400000
@@ -169,15 +281,44 @@ export function addDaysIso(date: string, days: number): string {
 // ── Event aggregation ──────────────────────────────────────────────────────
 
 /**
- * The money columns of a loan event that a payoff reads. `interest_waived`
- * is REQUIRED on purpose: a screen that leaves it out of its query would
- * charge a customer interest a manager forgave, and the type check stops
- * that at build time.
+ * The columns of a loan event that a payoff reads. `interest_waived` and
+ * `occurred_at` are REQUIRED on purpose: a screen that leaves the first out
+ * of its query would charge a customer interest a manager forgave, and one
+ * that leaves out the second would keep charging on money the customer
+ * already paid back. The type check stops both at build time.
  */
 export type LoanMoneyEvent = Pick<
   LoanEventRow,
-  'principal_paid' | 'interest_paid' | 'fees_paid' | 'interest_waived'
+  | 'principal_paid'
+  | 'interest_paid'
+  | 'fees_paid'
+  | 'interest_waived'
+  | 'occurred_at'
 >
+
+/**
+ * The payments toward the loan among its events, each on the shop's day it
+ * was taken, as days after the date of the pawn.
+ */
+export function paydownsOf(
+  events: ReadonlyArray<LoanMoneyEvent>,
+  issueDate: string | Date,
+  timezone: string,
+): Paydown[] {
+  const out: Paydown[] = []
+  for (const e of events) {
+    const amount = toMoney(e.principal_paid)
+    if (amount <= 0) continue
+    out.push({
+      day: Math.max(
+        0,
+        daysBetween(issueDate, dayInTimezone(e.occurred_at, timezone)),
+      ),
+      amount,
+    })
+  }
+  return out.sort((a, b) => a.day - b.day)
+}
 
 export type AppliedTotals = {
   principalApplied: number
@@ -241,7 +382,8 @@ export type PayoffResult = {
   principalApplied: number
   /** Outstanding principal remaining (= principal − principalApplied). */
   principalOutstanding: number
-  /** Interest accrued from issueDate to `today` on the original principal. */
+  /** Charge accrued from issueDate to `today`, each part of it on the
+   *  balance that was still owed when it started. */
   interestAccrued: number
   /** Interest already collected via prior payments. */
   interestApplied: number
@@ -257,12 +399,9 @@ export type PayoffResult = {
  * Compute the payoff balance for a loan as of `today`.
  *
  * Convention:
- *   - The charge accrues on the ORIGINAL principal from the issue date
- *     forward, the way the tenant's ChargeModel says (interestAccrued).
- *     Partial principal payments do NOT reduce the accrual base — a known
- *     simplification: Florida (§ 539.001(11)(e)) figures later charges on
- *     the remaining balance. Fixing it needs each principal payment's date
- *     here (a segment array), which no caller passes yet.
+ *   - The charge accrues from the issue date forward the way the tenant's
+ *     ChargeModel says, and a payment toward the loan lowers the balance
+ *     the LATER charges are figured on (interestAccruedOnBalance).
  *   - Interest paid is netted against accrued; any negative result is
  *     clamped to 0 (overpayment of interest is treated as fees).
  *   - Payoff floor is 0 — once principal is paid down to zero we don't
@@ -276,12 +415,13 @@ export function payoffBalance(args: PayoffArgs): PayoffResult {
   const minCharge =
     args.minMonthlyCharge != null ? toMoney(args.minMonthlyCharge) : 0
   // Not clamped at 0: before the date of the pawn nothing has accrued.
-  const accrued = interestAccrued(
+  const accrued = interestAccruedOnBalance(
     principal,
     args.monthlyRate,
     daysBetween(args.issueDate, today),
     minCharge,
     args.charge,
+    paydownsOf(args.events, args.issueDate, args.charge.timezone),
   )
 
   const { principalApplied, interestApplied, interestWaived } = appliedPayments(args.events)
@@ -430,12 +570,48 @@ type PlanLoan = {
  * days — still closes THAT period, not the next: paying one period's charge
  * moves it. (The payoff is untouched: redeeming on day 31 costs what the
  * jurisdiction says day 31 costs.)
+ *
+ * Periods still ahead are figured on the balance the loan has NOW. A payment
+ * that also pays the loan down is planned by planLoanPayment, which figures
+ * them on what that payment leaves.
  */
 export function extensionCost(loan: PlanLoan, periods: number): number {
   const n = Math.floor(periods)
   if (!(n > 0)) return 0
-  const periodDays = loan.charge.periodDays > 0 ? loan.charge.periodDays : RATE_PERIOD_DAYS
-  const paidThrough = addDaysIso(loan.dueDate, (n - 1) * periodDays)
+  return moveCost(loan, n * periodDaysOf(loan.charge), null)
+}
+
+/**
+ * What it costs, in interest, to move the due date to `newDueDate` — any
+ * later day, not only a whole number of periods.
+ *
+ * Same rule as extensionCost, counted in days: a due date is paid up to one
+ * period before it, so every day the date moves is a day of interest paid.
+ * Moving it a full period costs the period ending at the old due date;
+ * moving it ten days costs the first ten days of that period.
+ */
+export function extensionCostToDate(loan: PlanLoan, newDueDate: string): number {
+  return moveCost(loan, daysBetween(loan.dueDate, newDueDate), null)
+}
+
+function periodDaysOf(charge: ChargeModel): number {
+  return charge.periodDays > 0 ? charge.periodDays : RATE_PERIOD_DAYS
+}
+
+/**
+ * The interest it takes to move the due date `moveDays` days, as if
+ * `paydown` were also paid toward the loan (on its `day`): what starts after
+ * it costs less.
+ */
+function moveCost(
+  loan: PlanLoan,
+  moveDays: number,
+  paydown: Paydown | null,
+): number {
+  const move = Math.floor(moveDays)
+  if (!(move > 0)) return 0
+  const periodDays = periodDaysOf(loan.charge)
+  const paidThrough = addDaysIso(loan.dueDate, move - periodDays)
   let days = daysBetween(loan.issueDate, paidThrough)
   const fullDays = Math.max(0, Math.floor(loan.charge.fullPeriods)) * periodDays
   if (days > 0 && days < fullDays) {
@@ -443,12 +619,15 @@ export function extensionCost(loan: PlanLoan, periods: number): number {
     // nearest period end.
     days = Math.max(1, Math.round(days / periodDays)) * periodDays
   }
-  const accrued = interestAccrued(
+  const paydowns = paydownsOf(loan.events, loan.issueDate, loan.charge.timezone)
+  if (paydown && paydown.amount > 0) paydowns.push(paydown)
+  const accrued = interestAccruedOnBalance(
     r4(loan.principal),
     loan.monthlyRate,
     days,
     loan.minMonthlyCharge != null ? toMoney(loan.minMonthlyCharge) : 0,
     loan.charge,
+    paydowns,
   )
   const { interestApplied, interestWaived } = appliedPayments(loan.events)
   return cents(Math.max(0, accrued - interestApplied - interestWaived))
@@ -465,23 +644,29 @@ export const MAX_FREE_DAYS = 366
  * forgiven. One day is worth 1/periodDays of a period's charge, so a free
  * period forgives exactly one period's charge. In whole cents.
  *
+ * The charge is the one on what the customer still owes: a loan that was
+ * paid down is charged on the remaining balance, so that is all there is to
+ * forgive.
+ *
  * The forgiven amount is a credit against the accrued charge
  * (loan_events.interest_waived), never a payment: nothing is collected and
  * nothing counts as income.
  */
 export function planFreeTime(
-  loan: Pick<PlanLoan, 'principal' | 'monthlyRate' | 'minMonthlyCharge' | 'dueDate' | 'charge'>,
+  loan: Pick<
+    PlanLoan,
+    'principal' | 'monthlyRate' | 'minMonthlyCharge' | 'dueDate' | 'charge' | 'events'
+  >,
   days: number,
 ): { days: number; new_due_date: string; interest_waived: number } | null {
   const n = Math.floor(days)
   if (!(n > 0) || n > MAX_FREE_DAYS) return null
   const periodDays = loan.charge.periodDays > 0 ? loan.charge.periodDays : RATE_PERIOD_DAYS
-  const principal = r4(loan.principal)
+  const balance = r4(
+    Math.max(0, r4(loan.principal) - appliedPayments(loan.events).principalApplied),
+  )
   const minCharge = loan.minMonthlyCharge != null ? toMoney(loan.minMonthlyCharge) : 0
-  const periodCharge =
-    principal > 0
-      ? Math.max(loan.monthlyRate > 0 ? principal * loan.monthlyRate : 0, minCharge > 0 ? minCharge : 0)
-      : 0
+  const periodCharge = periodChargeOn(balance, loan.monthlyRate, minCharge)
   return {
     days: n,
     new_due_date: addDaysIso(loan.dueDate, n),
@@ -503,8 +688,10 @@ export function periodsToBringCurrent(
 export type LoanPaymentPlan =
   | {
       ok: true
-      /** Periods the due date moves (0 = it stays). */
+      /** Periods the due date moves (0 = it stays, or it moves to a date). */
       periods: number
+      /** Days the due date moves, whichever way it was asked for. */
+      move_days: number
       /** Interest it takes to move the date that far. */
       extension_cost: number
       interest_paid: number
@@ -517,7 +704,12 @@ export type LoanPaymentPlan =
     }
   | {
       ok: false
-      reason: 'fees_exceed_amount' | 'exceeds_payoff' | 'extension_underpaid'
+      reason:
+        | 'fees_exceed_amount'
+        | 'exceeds_payoff'
+        | 'extension_underpaid'
+        /** The date asked for is not after the current due date, or too far. */
+        | 'bad_due_date'
       /** For 'extension_underpaid': the interest the move takes. */
       needed?: number
     }
@@ -534,17 +726,26 @@ export type LoanPaymentPlan =
  * - `periods` > 0 moves the due date that many periods from the CURRENT due
  *   date. It is refused unless the payment covers `extensionCost` — no date
  *   moves on interest that was not paid.
+ * - `newDueDate`, when given, is the date the clerk wants instead: any day
+ *   after the current due date. Same rule, counted in days
+ *   (`extensionCostToDate`); `periods` is then ignored.
  * - Interest is paid before principal: the periods being paid for AND
  *   anything accrued to today. Principal can never be paid down while
  *   interest is owed (see allocateLoanPayment).
  * - More than is owed is refused, never silently absorbed.
  * - A payment that retires the principal closes the loan; the date does not
  *   move on a closed loan.
+ * - What goes toward the loan lowers the periods being paid AHEAD in the
+ *   same payment: they start after today, so they are figured on the
+ *   balance this payment leaves (§ 539.001(11)(e)). The customer is never
+ *   charged in advance on money they are handing over right now.
  */
 export function planLoanPayment(
   args: PlanLoan & {
     today: string
     periods: number
+    /** Move the due date to this day instead of by whole periods. */
+    newDueDate?: string | null
     amount: number
     fees?: number | null
   },
@@ -554,12 +755,23 @@ export function planLoanPayment(
   if (fees > amount + 0.0001) return { ok: false, reason: 'fees_exceed_amount' }
   const toLoan = r4(Math.max(0, amount - fees))
 
-  const periods = Math.min(
-    MAX_EXTENSION_PERIODS,
-    Math.max(0, Math.floor(args.periods) || 0),
-  )
-  const cost = extensionCost(args, periods)
-  if (periods > 0 && toLoan < cost - 0.0001) {
+  const periodDays = periodDaysOf(args.charge)
+  const toDate = args.newDueDate ?? null
+  const periods = toDate
+    ? 0
+    : Math.min(MAX_EXTENSION_PERIODS, Math.max(0, Math.floor(args.periods) || 0))
+  let moveDays = periods * periodDays
+  if (toDate != null) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
+      return { ok: false, reason: 'bad_due_date' }
+    }
+    moveDays = daysBetween(args.dueDate, toDate)
+    if (!(moveDays > 0) || moveDays > MAX_EXTENSION_PERIODS * periodDays) {
+      return { ok: false, reason: 'bad_due_date' }
+    }
+  }
+  const cost = moveCost(args, moveDays, null)
+  if (moveDays > 0 && toLoan < cost - 0.0001) {
     return { ok: false, reason: 'extension_underpaid', needed: cost }
   }
 
@@ -572,26 +784,53 @@ export function planLoanPayment(
     minMonthlyCharge: args.minMonthlyCharge ?? null,
     charge: args.charge,
   })
-  const split = splitPayment(toLoan, Math.max(now.interestOutstanding, cost))
-  if (split.principal_paid > now.principalOutstanding + 0.0001) {
-    return { ok: false, reason: 'exceeds_payoff' }
+  // The interest this payment must cover when `down` of it goes toward the
+  // loan today: everything accrued to today, and the move — whose periods
+  // still ahead cost less the more is paid down. It never rises with `down`.
+  const todayDay = Math.max(0, daysBetween(args.issueDate, args.today))
+  const moveCostAfter = (down: number): number =>
+    down > 0 ? moveCost(args, moveDays, { day: todayDay, amount: down }) : cost
+  const interestDue = (down: number): number =>
+    Math.max(now.interestOutstanding, moveCostAfter(down))
+
+  const owed = now.principalOutstanding
+  const due0 = interestDue(0)
+  let principalPaid = 0
+  if (toLoan > due0) {
+    // More than the interest: the rest goes toward the loan.
+    if (owed + interestDue(owed) < toLoan - 0.0001) {
+      return { ok: false, reason: 'exceeds_payoff' }
+    }
+    let down = r4(toLoan - due0)
+    if (interestDue(down) < due0) {
+      // Paying down lowers the periods paid ahead, which frees more of the
+      // payment for the loan. Find the split where the interest paid is the
+      // interest due, to the cent.
+      let lo = Math.floor(down * 100) / 100
+      let hi = owed
+      while (hi - lo > 0.0101) {
+        const mid = Math.round(((lo + hi) / 2) * 100) / 100
+        if (mid <= lo || mid >= hi) break
+        if (mid + interestDue(mid) <= toLoan + 0.00005) lo = mid
+        else hi = mid
+      }
+      down = hi + interestDue(hi) <= toLoan + 0.00005 ? hi : lo
+    }
+    principalPaid = r4(Math.min(down, owed))
   }
-  const principalPaid = Math.min(split.principal_paid, now.principalOutstanding)
-  const closes =
-    now.principalOutstanding > 0 &&
-    r4(now.principalOutstanding - principalPaid) <= 0
+  const interestPaid = r4(toLoan - principalPaid)
+  const closes = owed > 0 && r4(owed - principalPaid) <= 0
 
   return {
     ok: true,
     periods,
-    extension_cost: cost,
-    interest_paid: split.interest_paid,
+    move_days: moveDays,
+    extension_cost: moveCostAfter(principalPaid),
+    interest_paid: interestPaid,
     principal_paid: principalPaid,
     fees_paid: fees,
     new_due_date:
-      periods > 0 && !closes
-        ? addDaysIso(args.dueDate, periods * args.charge.periodDays)
-        : null,
+      moveDays > 0 && !closes ? addDaysIso(args.dueDate, moveDays) : null,
     closes,
   }
 }

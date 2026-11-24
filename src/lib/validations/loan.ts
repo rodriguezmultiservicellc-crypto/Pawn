@@ -223,9 +223,10 @@ export type LoanCreateInput = z.infer<typeof loanCreateSchema>
 // the interest forgiven. Fees are the only part the clerk enters.
 //
 // `periods` is how many periods the payment moves the due date (0 = it
-// stays). The new date is NOT an input either: the server counts it from the
-// loan's current due date and refuses the move unless the payment covers the
-// interest for those periods (lib/pawn/math.planLoanPayment).
+// stays). `new_due_date` is the other way to ask: the day the clerk wants the
+// ticket due. Either one is only a REQUEST: the server counts the move from
+// the loan's current due date, works out the interest it takes, and refuses
+// it unless the payment covers that (lib/pawn/math.planLoanPayment).
 export const loanPaymentSchema = z
   .object({
     loan_id: z.string().uuid(),
@@ -233,6 +234,13 @@ export const loanPaymentSchema = z
     payment_method: paymentMethodSchema.default('cash'),
     fees_paid: requiredDecimalNonNeg.default(0),
     periods: z.coerce.number().int().min(0).max(MAX_EXTENSION_PERIODS).default(0),
+    new_due_date: z.preprocess(
+      (v) => (v == null || v === '' ? undefined : v),
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+    ),
     notes: optionalTrimmedString,
   })
   .superRefine((v, ctx) => {

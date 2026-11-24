@@ -85,6 +85,7 @@ export async function recordPaymentAction(
     payment_method: formData.get('payment_method') ?? 'cash',
     fees_paid: formData.get('fees_paid'),
     periods: formData.get('periods') ?? 0,
+    new_due_date: formData.get('new_due_date') ?? undefined,
     notes: formData.get('notes'),
   })
   if (!parsed.success) {
@@ -117,7 +118,7 @@ export async function recordPaymentAction(
   // planLoanPayment for why.
   const { data: priorEvents, error: priorErr } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid, interest_waived')
+    .select('principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
     .eq('loan_id', loan.id)
   if (priorErr) return { error: 'payoff_unavailable' }
   const plan = planLoanPayment({
@@ -130,6 +131,7 @@ export async function recordPaymentAction(
     charge,
     today,
     periods: v.periods,
+    newDueDate: v.new_due_date ?? null,
     amount: v.amount,
     fees: v.fees_paid,
   })
@@ -164,7 +166,7 @@ export async function recordPaymentAction(
   // Recompute payoff to decide next status.
   const { data: events } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid, interest_waived')
+    .select('principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
     .eq('loan_id', loan.id)
   const payoff = payoffFromLoan(loanForPayoff, events ?? [], today, charge)
 
@@ -242,6 +244,8 @@ export async function recordPaymentAction(
       fees_paid: plan.fees_paid,
       payment_method: v.payment_method,
       periods: newDueDate ? plan.periods : 0,
+      // A date the clerk picked shows as 0 periods and its days.
+      move_days: newDueDate ? plan.move_days : 0,
       old_due_date: loan.due_date,
       new_due_date: newDueDate,
       new_status: newStatus,
@@ -318,12 +322,21 @@ export async function giveFreeTimeAction(
   const rules = await loadTenantRules(supabase, tenantId)
   const charge = chargeModelOf(rules)
   const days = v.unit === 'periods' ? v.quantity * charge.periodDays : v.quantity
+  // What was paid toward the loan: the charge forgiven is the one on the
+  // balance still owed.
+  const { data: paidEvents, error: paidErr } = await supabase
+    .from('loan_events')
+    .select('principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
+    .eq('loan_id', loan.id)
+    .eq('tenant_id', tenantId)
+  if (paidErr) return { error: paidErr.message }
   const plan = planFreeTime(
     {
       principal: toMoney(loan.principal),
       monthlyRate: toMoney(loan.interest_rate_monthly),
       minMonthlyCharge: loan.min_monthly_charge,
       dueDate: loan.due_date,
+      events: paidEvents ?? [],
       charge,
     },
     days,
@@ -409,7 +422,7 @@ export async function redeemLoanAction(
 
   const { data: events } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid, interest_waived')
+    .select('principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
     .eq('loan_id', loan.id)
   // Interest is owed through the shop's day, not UTC's.
   const redeemRules = await loadTenantRules(supabase, tenantId)
