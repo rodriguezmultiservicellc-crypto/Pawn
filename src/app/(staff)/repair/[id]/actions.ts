@@ -403,6 +403,8 @@ export async function collectDepositAction(
     tenant_id: tenantId,
     event_type: 'note',
     amount: v.deposit_amount,
+    // Money taken: the drawer close reads it by this (patches/0113).
+    payment_method: v.payment_method,
     notes: `Deposit collected (${v.payment_method})${v.notes ? ` — ${v.notes}` : ''}`,
     performed_by: userId,
   })
@@ -744,6 +746,8 @@ export async function recordPickupAction(
     event_type: 'pickup',
     new_status: 'picked_up',
     amount: v.paid_amount,
+    // Money taken at pickup, if any: the drawer close reads it by this.
+    payment_method: v.paid_amount ? v.payment_method : null,
     notes: `${v.pickup_by_name}${v.notes ? ` — ${v.notes}` : ''}`,
     performed_by: userId,
   })

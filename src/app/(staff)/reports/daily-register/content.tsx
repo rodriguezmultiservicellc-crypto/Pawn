@@ -55,6 +55,25 @@ export default function DailyRegisterContent({
       mono: true,
       render: (r) => formatMoney(r.cash_refunds),
     },
+    ...(
+      [
+        ['pawnPayments', c.pawnPayments, 'pawn_payments'],
+        ['pawnLoans', c.pawnLoans, 'pawn_loans'],
+        ['pawnLoanVoids', c.pawnLoanVoids, 'pawn_loan_voids'],
+        ['repairPayments', c.repairPayments, 'repair_payments'],
+        ['buys', c.buys, 'buys'],
+        ['consignmentPayouts', c.consignmentPayouts, 'consignment_payouts'],
+        ['cashNet', c.cashNet, 'cash_net'],
+      ] as const
+    ).map(
+      ([key, header, field]): ReportColumn<DailyRegisterRow> => ({
+        key,
+        header,
+        align: 'right',
+        mono: true,
+        render: (r) => formatMoney(r[field]),
+      }),
+    ),
     {
       key: 'cardSales',
       header: c.cardSales,
@@ -95,6 +114,9 @@ export default function DailyRegisterContent({
   const totalsTiles = [
     { label: tt.openingCash, value: formatMoney(totals.opening_cash ?? 0) },
     { label: tt.cashSales, value: formatMoney(totals.cash_sales ?? 0) },
+    { label: tt.pawnPayments, value: formatMoney(totals.pawn_payments ?? 0) },
+    { label: tt.pawnLoans, value: formatMoney(totals.pawn_loans ?? 0) },
+    { label: tt.cashNet, value: formatMoney(totals.cash_net ?? 0) },
     { label: tt.cardSales, value: formatMoney(totals.card_sales ?? 0) },
     {
       label: tt.onlineSales,

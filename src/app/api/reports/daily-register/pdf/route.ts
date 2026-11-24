@@ -15,17 +15,22 @@ const money = (n: number | null | undefined): string =>
     : n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
 
 const COLUMNS: ReadonlyArray<ReportPdfColumn<DailyRegisterRow>> = [
-  { header: 'OPENED', width: '14%', cell: (r) => r.opened_at.slice(0, 16).replace('T', ' ') },
-  { header: 'CLOSED', width: '14%', cell: (r) => (r.closed_at ?? '').slice(0, 16).replace('T', ' ') },
-  { header: 'STATUS', width: '8%', cell: (r) => r.status },
-  { header: 'OPEN $', width: '8%', align: 'right', mono: true, cell: (r) => money(r.opening_cash) },
-  { header: 'CASH+', width: '8%', align: 'right', mono: true, cell: (r) => money(r.cash_sales) },
-  { header: 'CASH−', width: '8%', align: 'right', mono: true, cell: (r) => money(r.cash_refunds) },
-  { header: 'CARD+', width: '8%', align: 'right', mono: true, cell: (r) => money(r.card_sales) },
-  { header: 'CARD−', width: '8%', align: 'right', mono: true, cell: (r) => money(r.card_refunds) },
-  { header: 'EXP $', width: '8%', align: 'right', mono: true, cell: (r) => money(r.expected_cash) },
-  { header: 'CNT $', width: '8%', align: 'right', mono: true, cell: (r) => money(r.closing_cash_counted) },
-  { header: 'VAR', width: '8%', align: 'right', mono: true, cell: (r) => money(r.cash_variance) },
+  // Cash by kind (loadDrawerCash), folded to fit the page: PAWN+ is pawn
+  // payments and voided loans handed back; OTHER is repair payments less
+  // buys and consignor payouts. The CSV has every line on its own.
+  { header: 'OPENED', width: '10%', cell: (r) => r.opened_at.slice(0, 16).replace('T', ' ') },
+  { header: 'CLOSED', width: '10%', cell: (r) => (r.closed_at ?? '').slice(0, 16).replace('T', ' ') },
+  { header: 'OPEN $', width: '7%', align: 'right', mono: true, cell: (r) => money(r.opening_cash) },
+  { header: 'SALES+', width: '7%', align: 'right', mono: true, cell: (r) => money(r.cash_sales) },
+  { header: 'REFUND−', width: '7%', align: 'right', mono: true, cell: (r) => money(r.cash_refunds) },
+  { header: 'PAWN+', width: '7%', align: 'right', mono: true, cell: (r) => money(r.pawn_payments + r.pawn_loan_voids) },
+  { header: 'LOANS−', width: '7%', align: 'right', mono: true, cell: (r) => money(r.pawn_loans) },
+  { header: 'OTHER', width: '7%', align: 'right', mono: true, cell: (r) => money(r.repair_payments - r.buys - r.consignment_payouts) },
+  { header: 'NET', width: '7%', align: 'right', mono: true, cell: (r) => money(r.cash_net) },
+  { header: 'CARD+', width: '7%', align: 'right', mono: true, cell: (r) => money(r.card_sales) },
+  { header: 'EXP $', width: '7%', align: 'right', mono: true, cell: (r) => money(r.expected_cash) },
+  { header: 'CNT $', width: '7%', align: 'right', mono: true, cell: (r) => money(r.closing_cash_counted) },
+  { header: 'VAR', width: '6%', align: 'right', mono: true, cell: (r) => money(r.cash_variance) },
 ]
 
 export async function GET(req: Request) {
@@ -58,6 +63,9 @@ export async function GET(req: Request) {
     totals: [
       { label: 'OPENING CASH', value: money(result.totals?.opening_cash ?? 0) },
       { label: 'CASH SALES', value: money(result.totals?.cash_sales ?? 0) },
+      { label: 'PAWN PAYMENTS', value: money(result.totals?.pawn_payments ?? 0) },
+      { label: 'LOANS OUT', value: money(result.totals?.pawn_loans ?? 0) },
+      { label: 'NET CASH', value: money(result.totals?.cash_net ?? 0) },
       { label: 'CARD SALES', value: money(result.totals?.card_sales ?? 0) },
       { label: 'SESSIONS', value: String(result.rows.length) },
     ],

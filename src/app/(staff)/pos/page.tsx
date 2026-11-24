@@ -6,7 +6,7 @@ import PosHomeContent, {
 } from './content'
 import type { SaleKind, SaleStatus } from '@/types/database-aliases'
 import { r4, toMoney } from '@/lib/pos/cart'
-import { expectedCash } from '@/lib/pos/register'
+import { expectedDrawerCash, loadDrawerCash } from '@/lib/pos/drawer-cash'
 
 export default async function PosHomePage() {
   const ctx = await getCtx()
@@ -45,50 +45,32 @@ export default async function PosHomePage() {
     .order('created_at', { ascending: false })
     .limit(25)
 
-  // Aggregate cash + card sale_payments since session opened.
-  let cashSales = 0
-  let cardSales = 0
-  let cashRefunds = 0
+  // The open drawer: every cash movement of the shop since it opened (the
+  // same loadDrawerCash the close uses), and card sales beside it.
   let openSessionView: PosHomeOpenSession | null = null
   if (session) {
     const openedAt = session.opened_at
-    const [{ data: pays }, { data: returns }] = await Promise.all([
+    const [cash, { data: cardPays }] = await Promise.all([
+      loadDrawerCash({ supabase: ctx.supabase, tenantId: ctx.tenantId, from: openedAt, to: null }),
       ctx.supabase
         .from('sale_payments')
-        .select('amount, payment_method')
+        .select('amount')
         .eq('tenant_id', ctx.tenantId)
+        .eq('payment_method', 'card')
         .gte('occurred_at', openedAt)
         .is('deleted_at', null),
-      ctx.supabase
-        .from('returns')
-        .select('total, refund_method')
-        .eq('tenant_id', ctx.tenantId)
-        .gte('created_at', openedAt)
-        .is('deleted_at', null),
     ])
-    for (const p of pays ?? []) {
-      const amt = toMoney(p.amount)
-      if (p.payment_method === 'cash') cashSales = r4(cashSales + amt)
-      else if (p.payment_method === 'card') cardSales = r4(cardSales + amt)
-    }
-    for (const r of returns ?? []) {
-      if (r.refund_method === 'cash') cashRefunds = r4(cashRefunds + toMoney(r.total))
-    }
+    let cardSales = 0
+    for (const p of cardPays ?? []) cardSales = r4(cardSales + toMoney(p.amount))
 
-    const expected = expectedCash({
-      opening_cash: session.opening_cash,
-      cash_payments: cashSales,
-      cash_refunds: cashRefunds,
-    })
     openSessionView = {
       id: session.id,
       opened_at: session.opened_at,
       opened_by: session.opened_by,
       opening_cash: toMoney(session.opening_cash),
-      cash_sales: cashSales,
       card_sales: cardSales,
-      cash_refunds: cashRefunds,
-      expected_cash: expected,
+      cash,
+      expected_cash: expectedDrawerCash(session.opening_cash, cash),
       notes: session.notes,
     }
   }

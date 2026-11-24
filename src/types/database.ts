@@ -460,6 +460,74 @@ export type Database = {
           },
         ]
       }
+      buy_payouts: {
+        Row: {
+          amount: number
+          compliance_log_id: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          paid_at: string
+          paid_by: string | null
+          payout_method: Database["public"]["Enums"]["payment_method"]
+          reference_number: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          compliance_log_id?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          paid_at?: string
+          paid_by?: string | null
+          payout_method: Database["public"]["Enums"]["payment_method"]
+          reference_number?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          compliance_log_id?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          paid_at?: string
+          paid_by?: string | null
+          payout_method?: Database["public"]["Enums"]["payment_method"]
+          reference_number?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buy_payouts_compliance_log_id_fkey"
+            columns: ["compliance_log_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_payouts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_payouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_payouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comm_automation_sends: {
         Row: {
           automation_key: string
@@ -5006,6 +5074,7 @@ export type Database = {
           new_status: Database["public"]["Enums"]["repair_status"] | null
           notes: string | null
           occurred_at: string
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
           performed_by: string | null
           tenant_id: string
           ticket_id: string
@@ -5017,6 +5086,7 @@ export type Database = {
           new_status?: Database["public"]["Enums"]["repair_status"] | null
           notes?: string | null
           occurred_at?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
           performed_by?: string | null
           tenant_id: string
           ticket_id: string
@@ -5028,6 +5098,7 @@ export type Database = {
           new_status?: Database["public"]["Enums"]["repair_status"] | null
           notes?: string | null
           occurred_at?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
           performed_by?: string | null
           tenant_id?: string
           ticket_id?: string

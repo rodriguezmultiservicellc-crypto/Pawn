@@ -1,16 +1,19 @@
 /**
  * Daily register report — one row per register session in the date range.
  *
- * Source: register_sessions + sales/sale_payments (for derived totals).
- * We aggregate sale_payments per session so the variance and card-batch
- * fields tie out even when the operator didn't fill in expected_cash on
- * close.
+ * Cash: every cash movement while the drawer was open, from loadDrawerCash —
+ * the SAME function the register close uses for "expected cash", so the
+ * report and the close always agree (POS, pawn payments and loans, repair
+ * payments, buys, consignor payouts). One drawer is open at a time, so a
+ * drawer's cash is the shop's cash between its open and its close.
+ * Card: sale_payments of the sales rung on that session.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { reportBounds } from './range'
 import type { Database } from '@/types/database'
 import type { ReportRange, ReportResult } from './types'
+import { drawerCashNet, loadDrawerCash } from '@/lib/pos/drawer-cash'
 
 export type DailyRegisterRow = {
   session_id: string
@@ -19,8 +22,18 @@ export type DailyRegisterRow = {
   opened_at: string
   closed_at: string | null
   opening_cash: number
+  /** Cash in at the POS: sales, layaway payments, metal sales. */
   cash_sales: number
+  /** Cash out at the POS: refunds, voided sales, layaway cancellations. */
   cash_refunds: number
+  pawn_payments: number
+  pawn_loans: number
+  pawn_loan_voids: number
+  repair_payments: number
+  buys: number
+  consignment_payouts: number
+  /** Cash in less cash out while the drawer was open. */
+  cash_net: number
   card_sales: number
   card_refunds: number
   expected_cash: number | null
@@ -56,62 +69,42 @@ export async function getDailyRegister(args: {
 
   const sessionIds = (sessions ?? []).map((s) => s.id)
 
-  // Aggregate cash/card per session via two parallel queries against
-  // sale_payments (joined by sales.register_session_id). We do it client-
-  // side because PostgREST doesn't expose group-by; volumes are bounded.
-  const [{ data: cashPayments }, { data: cardPayments }] = await Promise.all([
+  // Card per session: the sale_payments of the sales rung on it. PostgREST
+  // has no group-by, so it is added up here; volumes are bounded.
+  const { data: sessionSales, error: cardErr } =
     sessionIds.length > 0
-      ? supabase
+      ? await supabase
           .from('sales')
-          .select(
-            'register_session_id, sale_payments(amount, payment_method)',
-          )
+          .select('register_session_id, sale_payments(amount, payment_method)')
           .in('register_session_id', sessionIds)
           .is('deleted_at', null)
-      : Promise.resolve({ data: [] as Array<unknown> }),
-    Promise.resolve({ data: null }),
-  ])
-  void cardPayments
+      : { data: [], error: null }
+  if (cardErr) throw new Error(`daily_register_card_failed: ${cardErr.message}`)
 
-  type SaleRow = {
-    register_session_id: string | null
-    sale_payments: Array<{ amount: number | string; payment_method: string }> | null
-  }
-
-  const aggBySession = new Map<
-    string,
-    { cashSales: number; cashRefunds: number; cardSales: number; cardRefunds: number }
-  >()
-  for (const s of (cashPayments as unknown as SaleRow[]) ?? []) {
+  const cardBySession = new Map<string, { cardSales: number; cardRefunds: number }>()
+  for (const s of sessionSales ?? []) {
     const sid = s.register_session_id
     if (!sid) continue
-    const acc = aggBySession.get(sid) ?? {
-      cashSales: 0,
-      cashRefunds: 0,
-      cardSales: 0,
-      cardRefunds: 0,
-    }
+    const acc = cardBySession.get(sid) ?? { cardSales: 0, cardRefunds: 0 }
     for (const p of s.sale_payments ?? []) {
       const amt = Number(p.amount)
-      if (!isFinite(amt)) continue
-      if (p.payment_method === 'cash') {
-        if (amt >= 0) acc.cashSales += amt
-        else acc.cashRefunds += -amt
-      } else if (p.payment_method === 'card') {
-        if (amt >= 0) acc.cardSales += amt
-        else acc.cardRefunds += -amt
-      }
+      if (!isFinite(amt) || p.payment_method !== 'card') continue
+      if (amt >= 0) acc.cardSales += amt
+      else acc.cardRefunds += -amt
     }
-    aggBySession.set(sid, acc)
+    cardBySession.set(sid, acc)
   }
 
-  const rows: DailyRegisterRow[] = (sessions ?? []).map((s) => {
-    const a = aggBySession.get(s.id) ?? {
-      cashSales: 0,
-      cashRefunds: 0,
-      cardSales: 0,
-      cardRefunds: 0,
-    }
+  // Cash per session: the drawer's own window, by the close's function.
+  const cashBySession = await Promise.all(
+    (sessions ?? []).map((s) =>
+      loadDrawerCash({ supabase, tenantId: s.tenant_id, from: s.opened_at, to: s.closed_at }),
+    ),
+  )
+
+  const rows: DailyRegisterRow[] = (sessions ?? []).map((s, i) => {
+    const a = cardBySession.get(s.id) ?? { cardSales: 0, cardRefunds: 0 }
+    const cash = cashBySession[i]
     return {
       session_id: s.id,
       tenant_id: s.tenant_id,
@@ -119,8 +112,15 @@ export async function getDailyRegister(args: {
       opened_at: s.opened_at,
       closed_at: s.closed_at,
       opening_cash: Number(s.opening_cash),
-      cash_sales: a.cashSales,
-      cash_refunds: a.cashRefunds,
+      cash_sales: cash.posSales,
+      cash_refunds: cash.posRefunds,
+      pawn_payments: cash.pawnPayments,
+      pawn_loans: cash.pawnLoans,
+      pawn_loan_voids: cash.pawnLoanVoids,
+      repair_payments: cash.repairPayments,
+      buys: cash.buys,
+      consignment_payouts: cash.consignment,
+      cash_net: drawerCashNet(cash),
       card_sales: a.cardSales,
       card_refunds: a.cardRefunds,
       expected_cash: s.expected_cash == null ? null : Number(s.expected_cash),
@@ -137,6 +137,9 @@ export async function getDailyRegister(args: {
     (acc, r) => {
       acc.cash_sales += r.cash_sales
       acc.cash_refunds += r.cash_refunds
+      acc.pawn_payments += r.pawn_payments
+      acc.pawn_loans += r.pawn_loans
+      acc.cash_net += r.cash_net
       acc.card_sales += r.card_sales
       acc.card_refunds += r.card_refunds
       acc.opening_cash += r.opening_cash
@@ -145,6 +148,9 @@ export async function getDailyRegister(args: {
     {
       cash_sales: 0,
       cash_refunds: 0,
+      pawn_payments: 0,
+      pawn_loans: 0,
+      cash_net: 0,
       card_sales: 0,
       card_refunds: 0,
       opening_cash: 0,

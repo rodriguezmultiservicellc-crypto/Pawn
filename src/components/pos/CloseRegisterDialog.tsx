@@ -43,7 +43,7 @@ export function CloseRegisterDialog({
     if (notes) fd.set('notes', notes)
     startTransition(async () => {
       const res = await onSubmit(fd)
-      if (res.error) setError(res.error)
+      if (res.error) setError(res.error === 'drawer_cash_failed' ? t.pos.drawerCash.failed : res.error)
       else onClose()
     })
   }

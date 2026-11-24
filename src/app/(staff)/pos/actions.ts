@@ -9,8 +9,8 @@ import {
   openRegisterSchema,
 } from '@/lib/validations/pos'
 import { logAudit } from '@/lib/audit'
-import { expectedCash, cashVariance } from '@/lib/pos/register'
-import { r4, toMoney } from '@/lib/pos/cart'
+import { cashVariance } from '@/lib/pos/register'
+import { expectedDrawerCash, loadDrawerCash, type DrawerCashLines } from '@/lib/pos/drawer-cash'
 
 /**
  * Register-session actions (open / close). Sale + return + layaway actions
@@ -113,69 +113,25 @@ export async function closeRegisterAction(
   // Look up session and confirm it's open + scoped to the active tenant.
   const { data: session } = await supabase
     .from('register_sessions')
-    .select('id, tenant_id, opening_cash, status, notes')
+    .select('id, tenant_id, opening_cash, opened_at, status, notes')
     .eq('id', v.session_id)
     .maybeSingle()
   if (!session) return { error: 'session_not_found' }
   if (session.tenant_id !== ctx.tenantId) return { error: 'not_authorized' }
   if (session.status !== 'open') return { error: 'session_not_open' }
 
-  // Aggregate cash sale_payments + layaway_payments + cash refunds during
-  // this session window. The session opened at register_sessions.opened_at;
-  // we conservatively use the row's created_at as the session boundary.
-  const { data: openedRow } = await supabase
-    .from('register_sessions')
-    .select('opened_at')
-    .eq('id', session.id)
-    .maybeSingle()
-  const openedAt = openedRow?.opened_at ?? new Date(0).toISOString()
+  // Every cash movement of the shop since the drawer opened — POS, pawn,
+  // repairs, buys, payouts (one drawer at a time; loadDrawerCash). The
+  // same function feeds the open-drawer card and the Daily register report.
   const closedAt = new Date().toISOString()
-
-  // Sale payments (cash) since session opened.
-  const { data: salePayments } = await supabase
-    .from('sale_payments')
-    .select('amount, payment_method')
-    .eq('tenant_id', ctx.tenantId)
-    .eq('payment_method', 'cash')
-    .gte('occurred_at', openedAt)
-    .is('deleted_at', null)
-
-  // Layaway payments (cash) since session opened. Negative amounts (refunds)
-  // are subtracted naturally.
-  const { data: layawayPayments } = await supabase
-    .from('layaway_payments')
-    .select('amount, payment_method')
-    .eq('tenant_id', ctx.tenantId)
-    .eq('payment_method', 'cash')
-    .gte('occurred_at', openedAt)
-    .is('deleted_at', null)
-
-  // Cash refunds = returns with refund_method='cash' since session opened.
-  const { data: cashReturns } = await supabase
-    .from('returns')
-    .select('total, refund_method')
-    .eq('tenant_id', ctx.tenantId)
-    .eq('refund_method', 'cash')
-    .gte('created_at', openedAt)
-    .is('deleted_at', null)
-
-  let cashSales = 0
-  for (const p of salePayments ?? []) {
-    cashSales = r4(cashSales + toMoney(p.amount))
+  let cash: DrawerCashLines
+  try {
+    cash = await loadDrawerCash({ supabase, tenantId: ctx.tenantId, from: session.opened_at, to: closedAt })
+  } catch (err) {
+    console.error('[pos.closeRegister] drawer cash failed', err)
+    return { error: 'drawer_cash_failed' }
   }
-  for (const p of layawayPayments ?? []) {
-    cashSales = r4(cashSales + toMoney(p.amount))
-  }
-  let cashRefunds = 0
-  for (const r of cashReturns ?? []) {
-    cashRefunds = r4(cashRefunds + toMoney(r.total))
-  }
-
-  const expected = expectedCash({
-    opening_cash: session.opening_cash,
-    cash_payments: cashSales,
-    cash_refunds: cashRefunds,
-  })
+  const expected = expectedDrawerCash(session.opening_cash, cash)
   const variance = cashVariance({
     counted: v.closing_cash_counted,
     expected,
@@ -208,8 +164,7 @@ export async function closeRegisterAction(
       expected,
       variance,
       card_batch_total: v.card_batch_total,
-      cash_sales: cashSales,
-      cash_refunds: cashRefunds,
+      cash,
     },
   })
 

@@ -433,7 +433,7 @@ export async function createBuyOutrightAction(
   })) as unknown as ComplianceInsertChanges
 
   const firstItemId = inserted[0].id
-  const { error: complianceErr } = await supabase.from('compliance_log').insert({
+  const { data: complianceRow, error: complianceErr } = await supabase.from('compliance_log').insert({
     tenant_id: tenantId,
     source_table: 'inventory_items',
     source_id: firstItemId,
@@ -445,8 +445,8 @@ export async function createBuyOutrightAction(
     // has no ticket number: its first item's SKU names it.
     reference_number: inserted[0].sku,
     clerk: await loadClerkInitials(supabase, userId),
-  })
-  if (complianceErr) {
+  }).select('id').single()
+  if (complianceErr || !complianceRow) {
     // A purchase that can't reach the police-report ledger must not stand.
     // Withdraw the just-inserted items (soft delete) and surface the error
     // before the operator pays out.
@@ -486,6 +486,28 @@ export async function createBuyOutrightAction(
       return { error: 'store_credit_issue_failed', values: echo }
     }
     revalidatePath(`/customers/${v.customer_id}`)
+  }
+
+  // What the seller was paid, one row per tender (patches/0113): the drawer
+  // close counts the cash ones. Store credit is a tender too (it never
+  // touches the drawer). Service client after the role check above — staff
+  // can only read this table. The buy stands either way (its compliance row
+  // is written); a failure here is logged loudly, not hidden.
+  const { error: payoutErr } = await createAdminClient()
+    .from('buy_payouts')
+    .insert(
+      tenderSplit.tenders.map((tn) => ({
+        tenant_id: tenantId,
+        customer_id: v.customer_id,
+        compliance_log_id: complianceRow.id,
+        reference_number: inserted[0].sku,
+        payout_method: tn.method,
+        amount: tn.amount,
+        paid_by: userId,
+      })),
+    )
+  if (payoutErr) {
+    console.error('[buy.create] buy_payouts insert failed — drawer will not count this payout', payoutErr)
   }
 
   await logAudit({

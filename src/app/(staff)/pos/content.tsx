@@ -15,6 +15,8 @@ import {
 } from '@/components/pos/Badges'
 import { OpenRegisterDialog } from '@/components/pos/OpenRegisterDialog'
 import { CloseRegisterDialog } from '@/components/pos/CloseRegisterDialog'
+import { DrawerCashBreakdown } from '@/components/pos/DrawerCashBreakdown'
+import type { DrawerCashLines } from '@/lib/pos/drawer-cash'
 import { closeRegisterAction, openRegisterAction } from './actions'
 import type { SaleKind, SaleStatus } from '@/types/database-aliases'
 
@@ -23,9 +25,9 @@ export type PosHomeOpenSession = {
   opened_at: string
   opened_by: string | null
   opening_cash: number
-  cash_sales: number
   card_sales: number
-  cash_refunds: number
+  /** Every cash movement since the drawer opened (loadDrawerCash). */
+  cash: DrawerCashLines
   expected_cash: number
   notes: string | null
 }
@@ -137,7 +139,7 @@ function SessionPanel({ session }: { session: PosHomeOpenSession }) {
         </h2>
         <RegisterStatusBadge status="open" />
       </header>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat
           label={t.pos.register.openedAt}
           value={new Date(session.opened_at).toLocaleString()}
@@ -145,10 +147,6 @@ function SessionPanel({ session }: { session: PosHomeOpenSession }) {
         <Stat
           label={t.pos.register.openingCash}
           value={fmtMoney(session.opening_cash)}
-        />
-        <Stat
-          label={t.pos.register.todayCash}
-          value={fmtMoney(session.cash_sales)}
         />
         <Stat
           label={t.pos.register.todayCard}
@@ -159,11 +157,9 @@ function SessionPanel({ session }: { session: PosHomeOpenSession }) {
           value={fmtMoney(session.expected_cash)}
         />
       </div>
-      {session.cash_refunds > 0 ? (
-        <p className="mt-2 text-xs text-muted">
-          {t.pos.register.cashRefunds}: {fmtMoney(session.cash_refunds)}
-        </p>
-      ) : null}
+      <div className="mt-4 max-w-xl">
+        <DrawerCashBreakdown cash={session.cash} />
+      </div>
     </section>
   )
 }
