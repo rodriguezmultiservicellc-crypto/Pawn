@@ -1968,7 +1968,7 @@ export const en = {
       paydownLowersMove:
         'Because ${principal} goes toward the loan, the time paid ahead costs ${cost}, not ${was}.',
       splitTooltip:
-        'Fees come off first, then interest owed, then principal. The system sets the split.',
+        'Interest owed comes off first, then principal. The system sets the split.',
       submit: 'Record payment',
       submitting: 'Recording…',
       errors: {

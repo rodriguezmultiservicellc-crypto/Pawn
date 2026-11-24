@@ -1955,7 +1955,7 @@ export const es: Dictionary = {
       paydownLowersMove:
         'Como ${principal} se abonan al préstamo, el tiempo pagado por adelantado cuesta ${cost}, no ${was}.',
       splitTooltip:
-        'Primero los cargos, luego el interés adeudado y después el principal. El sistema define la división.',
+        'Primero el interés adeudado y después el principal. El sistema define la división.',
       submit: 'Registrar pago',
       submitting: 'Registrando…',
       errors: {

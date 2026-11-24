@@ -90,25 +90,26 @@ export function RecordPaymentDialog({
     choices[startPeriods - 1].cost.toFixed(2),
   )
   const [method, setMethod] = useState<PaymentMethod>('cash')
-  const [feesStr, setFeesStr] = useState<string>('')
   const [notes, setNotes] = useState<string>('')
 
   const amount = parseFloat(amountStr || '0') || 0
-  const fees = parseFloat(feesStr || '0') || 0
+  // No fee field (Eddy, 2026-11-24: off until which fees Florida allows is
+  // settled). The server still takes fees_paid; it is sent as 0.
+  const fees = 0
 
   function pickDate(date: string) {
     setToDate(date)
     // The amount follows the date, like it follows a listed choice.
     const ok = date >= minDate && date <= maxDate
-    setAmountStr(ok ? (extensionCostToDate(loan, date) + fees).toFixed(2) : '')
+    setAmountStr(ok ? extensionCostToDate(loan, date).toFixed(2) : '')
   }
 
   function pickPeriods(next: number) {
     setToDate(null)
     setPeriods(next)
-    // The amount follows the choice: the interest that move takes, plus any
-    // fee already entered. "Do not move it" leaves the amount to the clerk.
-    setAmountStr(next > 0 ? (choices[next - 1].cost + fees).toFixed(2) : '')
+    // The amount follows the choice: the interest that move takes. "Do not
+    // move it" leaves the amount to the clerk.
+    setAmountStr(next > 0 ? choices[next - 1].cost.toFixed(2) : '')
   }
 
   // Preview only — same function the server uses, same inputs the page was
@@ -123,7 +124,7 @@ export function RecordPaymentDialog({
         amount,
         fees,
       }),
-    [loan, today, periods, toDate, amount, fees],
+    [loan, today, periods, toDate, amount],
   )
 
   function translateError(code: string, needed?: number): string {
@@ -144,7 +145,7 @@ export function RecordPaymentDialog({
     fd.set('periods', toDate != null ? '0' : String(periods))
     if (toDate) fd.set('new_due_date', toDate)
     fd.set('payment_method', method)
-    fd.set('fees_paid', feesStr || '0')
+    fd.set('fees_paid', '0')
     if (notes) fd.set('notes', notes)
     startTransition(async () => {
       const res = await onSubmit(fd)
@@ -286,22 +287,14 @@ export function RecordPaymentDialog({
             {tp.splitTitle}
           </div>
           <p className="mb-2 text-xs text-muted">{tp.splitTooltip}</p>
-          <div className="grid grid-cols-3 gap-2">
-            <SplitField
-              label={tp.feesPaid}
-              value={feesStr}
-              onChange={setFeesStr}
-              placeholder="0.00"
-            />
+          <div className="grid grid-cols-2 gap-2">
             <SplitField
               label={tp.interestPaid}
               value={preview.ok ? preview.interest_paid.toFixed(2) : '—'}
-              readOnly
             />
             <SplitField
               label={tp.principalPaid}
               value={preview.ok ? preview.principal_paid.toFixed(2) : '—'}
-              readOnly
             />
           </div>
           {previewError ? (
@@ -394,35 +387,16 @@ export function RecordPaymentDialog({
   )
 }
 
-function SplitField({
-  label,
-  value,
-  onChange,
-  readOnly,
-  placeholder,
-}: {
-  label: string
-  value: string
-  onChange?: (v: string) => void
-  readOnly?: boolean
-  placeholder?: string
-}) {
+/** A figure of the split, shown read-only: the server decides it. */
+function SplitField({ label, value }: { label: string; value: string }) {
   return (
     <label className="block space-y-1">
       <span className="text-xs font-medium text-foreground">{label}</span>
       <input
-        type={readOnly ? 'text' : 'number'}
-        step="0.01"
-        min={0}
+        type="text"
         value={value}
-        readOnly={readOnly}
-        placeholder={placeholder}
-        onChange={(e) => onChange?.(e.target.value)}
-        className={`block w-full rounded-md border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue/10 ${
-          readOnly
-            ? 'border-border bg-background/60 text-muted'
-            : 'border-border focus:border-blue'
-        }`}
+
+        className="block w-full rounded-md border border-border bg-background/60 px-3 py-1.5 text-sm text-muted focus:outline-none focus:ring-2 focus:ring-blue/10"
       />
     </label>
   )

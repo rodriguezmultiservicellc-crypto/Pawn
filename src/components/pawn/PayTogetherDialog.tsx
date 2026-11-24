@@ -45,7 +45,6 @@ type Row = {
   choice: Choice
   /** The day picked when choice = 'date'. */
   date: string | null
-  feesStr: string
   /** Extra toward the loan, on top of the interest. */
   principalStr: string
   amountStr: string
@@ -54,8 +53,10 @@ type Row = {
 /**
  * Several tickets of one customer paid in one visit. Each ticket offers what
  * the single payment dialog offers: how far the payment moves the due date
- * (periods, another date, none, or pay it off), fees, money toward the loan,
- * and the amount. The amount follows the other three and can still be typed.
+ * (periods, another date, none, or pay it off), money toward the loan, and
+ * the amount. The amount follows the other two and can still be typed.
+ * No fee field (Eddy, 2026-11-24: off until which fees Florida allows is
+ * settled); the server still takes fees_paid, which is sent as 0.
  * The split and the new date shown are a preview of planLoanPayment — the
  * server plans every ticket again before it writes any
  * (recordPaymentsAction).
@@ -119,21 +120,20 @@ export function PayTogetherDialog({
   /** The amount that row's choices add up to ('' when nothing is asked). */
   function amountOf(i: number, r: Row): string {
     const tk = tickets[i]
-    const fees = num(r.feesStr)
-    if (r.choice === 'payoff') return (tk.payoff + fees).toFixed(2)
+    if (r.choice === 'payoff') return tk.payoff.toFixed(2)
     const toPrincipal = num(r.principalStr)
     const cost = moveCost(i, r)
-    if (toPrincipal <= 0) return cost > 0 ? (cost + fees).toFixed(2) : ''
+    if (toPrincipal <= 0) return cost > 0 ? cost.toFixed(2) : ''
     const a = amountForPrincipal({
       ...tk.loan,
       today,
       periods: periodsOf(r.choice),
       newDueDate: r.choice === 'date' ? r.date : null,
-      fees,
+      fees: 0,
       toPrincipal,
       startAt: cost,
     })
-    return a != null ? a.toFixed(2) : (cost + fees + toPrincipal).toFixed(2)
+    return a != null ? a.toFixed(2) : (cost + toPrincipal).toFixed(2)
   }
 
   // Each ticket opens on the move that brings it current, like the single
@@ -141,7 +141,7 @@ export function PayTogetherDialog({
   const [rows, setRows] = useState<Row[]>(() =>
     menus.map((m) => {
       const c = m.choices[m.startPeriods - 1]
-      return { choice: `p${c.periods}`, date: null, feesStr: '', principalStr: '', amountStr: c.cost.toFixed(2) }
+      return { choice: `p${c.periods}`, date: null, principalStr: '', amountStr: c.cost.toFixed(2) }
     }),
   )
 
@@ -174,7 +174,7 @@ export function PayTogetherDialog({
       periods: periodsOf(r.choice),
       newDueDate: r.choice === 'date' ? r.date : null,
       amount: num(r.amountStr),
-      fees: num(r.feesStr),
+      fees: 0,
     }),
   )
   const amounts = rows.map((r) => num(r.amountStr))
@@ -197,7 +197,7 @@ export function PayTogetherDialog({
         payments: rows.map((r, i) => ({
           loan_id: tickets[i].id,
           amount: r.amountStr,
-          fees_paid: r.feesStr || '0',
+          fees_paid: '0',
           periods: periodsOf(r.choice),
           ...(r.choice === 'date' && r.date ? { new_due_date: r.date } : {}),
         })),
@@ -299,19 +299,7 @@ export function PayTogetherDialog({
                 </span>
               ) : null}
 
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                <label className="block space-y-1">
-                  <span className={LABEL}>{tp.feesPaid}</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    placeholder="0.00"
-                    value={r.feesStr}
-                    onChange={(e) => update(i, { feesStr: e.target.value })}
-                    className={`${INPUT} font-mono`}
-                  />
-                </label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="block space-y-1">
                   <span className={LABEL}>{tt.towardPrincipal}</span>
                   <input
@@ -352,7 +340,6 @@ export function PayTogetherDialog({
                         {tt.split
                           .replace('{interest}', `$${usd(p.interest_paid)}`)
                           .replace('{principal}', `$${usd(p.principal_paid)}`)}
-                        {p.fees_paid > 0 ? ` · ${tp.feesPaid} $${usd(p.fees_paid)}` : ''}
                         {' · '}
                         {tp.dueAfter}: <span className="font-mono">{p.new_due_date ?? due}</span>
                         {(p.new_due_date ?? due) < today ? (
