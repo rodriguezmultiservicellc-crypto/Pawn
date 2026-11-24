@@ -21,8 +21,7 @@ import { escapeHtml, receiptPage, thermalReceiptPage } from '@/lib/pos/receipt-h
 import type { ReceiptFormat } from '@/lib/pos/receipt-format'
 import { THERMAL_WIDTH, bi, calendarDate, center, money, paymentLabel, row, shopDateTime, wrap } from '@/lib/pos/receipt-thermal'
 
-/** An extension / redemption this soon after a payment belongs to it. */
-const FOLLOW_UP_MS = 120_000
+import { FOLLOW_UP_MS } from './event-log'
 
 export type ReceiptEventInput = {
   id: string

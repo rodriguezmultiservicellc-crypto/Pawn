@@ -1987,6 +1987,7 @@ export const es: Dictionary = {
       payoffLabel: 'Liquidación {amount}',
       dueLabel: 'Vence {date}',
       payOff: 'Liquidar — {amount}',
+      towardPrincipal: 'Abono al principal',
       split: 'Interés {interest} · principal {principal}',
       total: 'Total a cobrar',
       submit: 'Cobrar {amount}',

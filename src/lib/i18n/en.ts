@@ -2000,6 +2000,7 @@ export const en = {
       payoffLabel: 'Payoff {amount}',
       dueLabel: 'Due {date}',
       payOff: 'Pay off — {amount}',
+      towardPrincipal: 'Toward principal',
       split: 'Interest {interest} · principal {principal}',
       total: 'Total to collect',
       submit: 'Take {amount}',

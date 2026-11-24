@@ -43,6 +43,7 @@ import {
 } from './actions'
 import { daysBetween, type ChargeModel, type PayoffResult } from '@/lib/pawn/math'
 import { undoneEventIds } from '@/lib/pawn/payment-void'
+import { mergePaymentMoves } from '@/lib/pawn/event-log'
 import { PaymentHistoryPanel } from '@/components/pawn/PaymentHistoryPanel'
 import type {
   InventoryCategory,
@@ -867,7 +868,7 @@ function EventLogPanel({
         </h2>
       </header>
       <ul className="divide-y divide-border">
-        {events.map((e) => {
+        {mergePaymentMoves(events).map((e) => {
           // A row that voids a payment, a row that no longer stands, and the
           // row that put the due date back.
           const isReversal = e.reverses_event_id != null
@@ -893,6 +894,8 @@ function EventLogPanel({
                 ) : (
                   <EventTypeBadge type={e.event_type} />
                 )}
+                {/* The due-date move this payment made, folded into its row. */}
+                {e.moved_to ? <EventTypeBadge type="extension" /> : null}
                 {isUndone ? (
                   <span className="inline-flex items-center rounded-full border border-danger/30 bg-danger/5 px-2 py-0.5 text-xs font-semibold text-danger">
                     {t.pawn.voidPayment.voidedChip}
@@ -973,15 +976,18 @@ function EventLogPanel({
                   <span className="font-mono">{fmtMoney(e.interest_waived)}</span>
                 </span>
               ) : null}
-              {e.new_due_date ? (
+              {e.new_due_date ?? e.moved_to ? (
                 <span className="text-foreground">
                   {t.pawn.payment.newDueDate}:{' '}
-                  <span className="font-mono">{e.new_due_date}</span>
+                  <span className="font-mono">{e.new_due_date ?? e.moved_to}</span>
                 </span>
               ) : null}
             </div>
             {e.notes ? (
               <div className="mt-1 text-xs text-muted">{e.notes}</div>
+            ) : null}
+            {e.move_notes ? (
+              <div className="mt-1 text-xs text-muted">{e.move_notes}</div>
             ) : null}
           </li>
           )
