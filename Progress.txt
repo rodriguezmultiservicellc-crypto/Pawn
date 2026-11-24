@@ -60,7 +60,32 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23), saved 2026-11-23 23:35.
+  Last session:   Session 66 (2026-11-23/24), saved 2026-11-24 00:10.
+                  Context budget at save: low (short session; my estimate
+                  ~25%).
+                  Items 563-564. No migration. main == feature/sol-pawn-brief.
+                  Nothing is half-built.
+                  Last worked on: New pawn ticket — the Principal follows
+                  the collateral value (563, commit 82e423b, live).
+
+                  ACTIVE FILES (last touched):
+                    src/app/(staff)/pawn/new/form.tsx   the New ticket form
+                    src/lib/pawn/principal-follow.ts    the three small rules
+                    src/lib/pawn/principal-follow.test.ts
+                    src/components/pawn/CollateralItemsList.tsx  (READ only —
+                      it reports count + total up through onTotalsChange)
+
+                  RESUME POINT: ask Eddy whether the Principal on New pawn
+                  ticket moves the way he meant (563): each item's value is
+                  ADDED, and an amount he typed is kept as his difference,
+                  so an item added afterwards goes on top of it (100 typed,
+                  then a $26 item = 126.00). If he wants the typed amount to
+                  stay put instead, that is one change in onCollateralTotals
+                  in form.tsx. NOT LOOKED AT in a browser, local or live —
+                  tests, tsc, lint and build only. Then the Session 65
+                  questions below; all of them still stand.
+
+  Session 65 (2026-11-23), saved 2026-11-23 23:35.
                   Context budget at save: high (one compaction this session;
                   my estimate ~85%).
                   Items 544-562. SIX MIGRATIONS, ALL APPLIED: 0100-0105.
@@ -629,6 +654,54 @@ SESSION HISTORY LOG
 2026-09-19, sessions 22, 23, 24, 25, 26, 27, 29, 30, 31, 32 archived
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
+
+--- Session 66 (2026-11-23/24) — New pawn ticket: the Principal follows the collateral value (branch feature/sol-pawn-brief == main) ---
+
+ 563. NEW PAWN TICKET: THE PRINCIPAL FOLLOWS THE COLLATERAL (82e423b).
+      Eddy (screenshot of /pawn/new, 100 typed on a $26.00 item): "add the
+      collateral value to the principal after each item is inserted".
+      Before: Principal and Collateral value were two separate numbers; the
+      clerk typed the principal every time.
+      Now every change in what the collateral adds up to — an item added,
+      its value typed or corrected, an item removed — moves the Principal
+      by the same amount.
+      - src/lib/pawn/principal-follow.ts (new, pure, whole cents):
+        moneyTextToCents, principalAfterCollateralChange,
+        principalFieldText. 11 tests in principal-follow.test.ts.
+      - src/app/(staff)/pawn/new/form.tsx: onCollateralTotals (a stable
+        useCallback, replaces the inline onTotalsChange arrow) takes the
+        difference from the last total and adds it; typePrincipal keeps
+        the field's text and its cents side by side (principalCentsRef),
+        so a half-typed amount stays as typed.
+      DECISIONS (mine, from his one sentence — he has not confirmed them):
+      - An amount the clerk typed is kept as HIS DIFFERENCE from the value,
+        so the next item adds on top: lend 20 on a $26 item, add a $50
+        item -> 70.00. The other reading (a typed amount stops following)
+        would break "after each item".
+      - The cents may sit below zero while a value is retyped (20 lent on
+        26, value cleared, 30 typed -> 24.00, not 30.00); the field shows
+        empty meanwhile. With no items left it goes back to zero.
+      - A RESUMED DRAFT and an amount SPOKEN to voice intake keep their
+        principal: principalSettledRef makes the next change in the total
+        noted, not added. It is consumed only by a change that is not zero
+        (React StrictMode reports 0 twice on mount). A draft saved with an
+        empty principal fills from its rows.
+      HAZARD told to Eddy: a principal typed BEFORE the items gets each
+      item added to it.
+      NOT VERIFIED: the screen itself, anywhere. No browser, local or live.
+      Not touched: /buy/new, the server (createLoanAction still reads the
+      submitted principal and checks it as before).
+
+      tsc, 1,129 tests, lint, build green.
+
+ 564. CHECKPOINT GATE (Session 66 save). Lane: only Pawn files changed.
+      - Wording: no user-facing string added, no dictionary key added.
+      - Dead code: the three exports of principal-follow.ts are all used by
+        form.tsx; nothing left behind in the form (the inline arrow is gone).
+      - Duplicates: math.ts, card-refund.ts and both sales-tax files each
+        have a private one-line number -> cents; moneyTextToCents reads
+        TEXT from a field. One-liners, left alone.
+      Nothing to fix; no rebuild needed after 563's green build.
 
 --- Session 65 (2026-11-23) — Pawn loans end to end: payment/extend merged, full-period charge, remaining balance, free time, paid-ahead credit, void a payment, payments by period, shop's own full months (branch feature/sol-pawn-brief == main) ---
 
@@ -3746,7 +3819,12 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Ask Eddy how the pawn screens went at the counter, and confirm two
+    Ask Eddy whether the Principal on New pawn ticket moves the way he
+    meant (563, live since 2026-11-24, never looked at in a browser): each
+    item's value is added; an amount he typed is kept as his difference,
+    so a later item goes on top of it. Have him try: two items, a typed
+    amount then a third item, an item removed, a resumed draft.
+    Then ask how the pawn screens went at the counter, and confirm two
     things I decided from his words:
     1. Eddy's Jewelers charges the FIRST MONTH FLAT, then by the day
        (Settings > Compliance; 560). If he meant two full months, "The
