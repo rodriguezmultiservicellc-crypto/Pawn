@@ -1337,6 +1337,16 @@ export const es: Dictionary = {
       // Orden de las palabras de una descripción de joyería; conserva los cuatro tokens.
       itemDescJewelryOrder: '{item} {metal} {color} {karat}',
       itemDescRingSize: 'talla {v}',
+      // Joyería: peso × spot según los quilates × el porcentaje que paga la tienda.
+      itemMetalValue: 'Valor del metal',
+      itemMetalValueFormula: '{grams} g × {rate}/g · {pct}% del spot',
+      itemMetalValueUse: 'Usar',
+      itemMetalValueWhy: {
+        incomplete: 'Completa metal, quilates y peso.',
+        not_precious: 'Este metal no tiene precio spot.',
+        coated: 'No es sólido: sin valor de metal.',
+        no_price: 'No hay precio spot cargado para este metal.',
+      },
       signatureUpload: 'Subir boleto firmado',
       interest: 'Interés',
       principal: 'Principal',

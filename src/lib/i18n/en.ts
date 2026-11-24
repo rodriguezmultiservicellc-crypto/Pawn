@@ -1334,6 +1334,16 @@ export const en = {
       // Word order of a generated jewelry description; keep the four tokens.
       itemDescJewelryOrder: '{karat} {color} {metal} {item}',
       itemDescRingSize: 'size {v}',
+      // Jewelry: weight × spot at the karat × the shop's pay percent.
+      itemMetalValue: 'Metal value',
+      itemMetalValueFormula: '{grams} g × {rate}/g · {pct}% of spot',
+      itemMetalValueUse: 'Use',
+      itemMetalValueWhy: {
+        incomplete: 'Fill in metal, karat and weight.',
+        not_precious: 'This metal has no spot price.',
+        coated: 'Not solid — no metal value.',
+        no_price: 'No spot price loaded for this metal.',
+      },
       signatureUpload: 'Upload signed ticket',
       interest: 'Interest',
       principal: 'Principal',

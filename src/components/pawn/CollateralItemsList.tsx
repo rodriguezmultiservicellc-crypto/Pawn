@@ -24,6 +24,13 @@ import {
   generateItemDescription,
   type ItemDescriptionKind,
 } from '@/lib/pawn/item-description'
+import {
+  estValueAfterChange,
+  itemMetalValue,
+  metalValueText,
+  type ItemMetalValue,
+} from '@/lib/pawn/item-metal-value'
+import type { RateMaps } from '@/lib/metal-counter/math'
 import { PawnedBeforeDialog } from './PawnedBeforeDialog'
 import CategoryPicker, {
   CategoryBanner,
@@ -254,6 +261,9 @@ export const CollateralItemsList = forwardRef<
   CollateralListHandle,
   {
     categories: PawnIntakeCategory[]
+    /** Spot per gram + the shop's pay percent per karat — a jewelry
+     *  item's metal value, and its Est. value by default. */
+    metalRates: RateMaps
     /** Reports running { item count, summed est_value } up to the parent
      *  so the loan-summary rail can show collateral value + LTV live. */
     onTotalsChange?: (count: number, totalValue: number) => void
@@ -263,7 +273,10 @@ export const CollateralItemsList = forwardRef<
      *  list; adding a piece writes it again with what was lent last time. */
     previousItems?: ReadonlyArray<PreviousPawnItem>
   }
->(function CollateralItemsList({ categories, onTotalsChange, title, previousItems = [] }, ref) {
+>(function CollateralItemsList(
+  { categories, metalRates, onTotalsChange, title, previousItems = [] },
+  ref,
+) {
   const { t } = useI18n()
   // Starts empty: the table shows "Pick a category above…" until a pill,
   // voice intake or a resumed draft adds the first row.
@@ -592,6 +605,7 @@ export const CollateralItemsList = forwardRef<
                 index={idx}
                 row={row}
                 categories={categories}
+                metalRates={metalRates}
                 open={popup?.uid === row.uid}
                 adding={popup?.uid === row.uid && popup.adding}
                 reportOnOpen={popup?.uid === row.uid && popup.report}
@@ -655,6 +669,7 @@ function CollateralRow({
   index,
   row,
   categories,
+  metalRates,
   open,
   adding,
   reportOnOpen,
@@ -667,6 +682,7 @@ function CollateralRow({
   index: number
   row: Row
   categories: PawnIntakeCategory[]
+  metalRates: RateMaps
   /** This item's popup is the one showing. */
   open: boolean
   /** A pill just started this item: leaving without "Add item" removes it. */
@@ -772,20 +788,44 @@ function CollateralRow({
     )
   }
 
-  // Every field change goes through here: the description follows the
-  // fields until the clerk writes their own.
-  function onChange(patch: Partial<Row>) {
-    if ('description' in patch) {
-      onRowChange(patch)
-      return
-    }
-    const description = descriptionAfterChange(
-      row.description,
-      describeRow(row),
-      describeRow({ ...row, ...patch }),
-    )
-    onRowChange(description === row.description ? patch : { ...patch, description })
+  // What this row's metal is worth: weight × spot at its karat × the shop's
+  // pay percent. Jewelry only — the metal fields exist nowhere else.
+  function metalValueOf(r: Row): ItemMetalValue {
+    if (r.pawn_category_slug !== 'jewelry') return { status: 'incomplete' }
+    return itemMetalValue(metalRates, {
+      metal: r.metal_type,
+      karat: r.karat,
+      weightGrams: r.weight_grams,
+      coating: r.coating,
+    })
   }
+
+  // Every field change goes through here. Two fields follow the others
+  // until the clerk writes their own: the Est. value (the metal value) and
+  // the description.
+  function onChange(patch: Partial<Row>) {
+    const after = { ...row, ...patch }
+    const follow: Partial<Row> = {}
+    if (!('est_value' in patch)) {
+      const estValue = estValueAfterChange(
+        row.est_value,
+        metalValueText(metalValueOf(row)),
+        metalValueText(metalValueOf(after)),
+      )
+      if (estValue !== row.est_value) follow.est_value = estValue
+    }
+    if (!('description' in patch)) {
+      const description = descriptionAfterChange(
+        row.description,
+        describeRow(row),
+        describeRow(after),
+      )
+      if (description !== row.description) follow.description = description
+    }
+    onRowChange({ ...patch, ...follow })
+  }
+  const metalValue = metalValueOf(row)
+  const metalValueAsText = metalValueText(metalValue)
   const writesItsOwnDescription =
     descriptionKind(row.pawn_category_slug) !== 'other'
 
@@ -1058,6 +1098,50 @@ function CollateralRow({
             />
           </label>
 
+          {/* Jewelry: what the metal is worth, beside the value it fills in.
+              The Est. value takes it by default (estValueAfterChange); once
+              the clerk types their own, "Use" puts it back. */}
+          {selectedCategory?.slug === 'jewelry' ? (
+            <div className="md:col-span-2 space-y-1">
+              <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                {t.pawn.new_.itemMetalValue}
+              </span>
+              <div
+                aria-live="polite"
+                className="flex min-h-11 items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-1.5"
+              >
+                {metalValue.status === 'ok' ? (
+                  <>
+                    <div className="min-w-0">
+                      <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                        {fmtValue(String(metalValue.value))}
+                      </div>
+                      <div className="text-xs text-muted">
+                        {t.pawn.new_.itemMetalValueFormula
+                          .replace('{grams}', String(metalValue.grams))
+                          .replace('{rate}', fmtValue(String(metalValue.perGram)))
+                          .replace('{pct}', String(metalValue.percent))}
+                      </div>
+                    </div>
+                    {row.est_value !== metalValueAsText ? (
+                      <button
+                        type="button"
+                        onClick={() => onChange({ est_value: metalValueAsText })}
+                        className={`inline-flex h-9 shrink-0 items-center rounded-md px-2 text-sm font-semibold text-blue hover:text-blue-2 hover:underline ${FOCUS}`}
+                      >
+                        {t.pawn.new_.itemMetalValueUse}
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="text-xs text-muted">
+                    {t.pawn.new_.itemMetalValueWhy[metalValue.status]}
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : null}
+
           {/* Inventory category — derived from pawn_subcategory_slug
               by inventoryCategoryFromSlug(). Hidden input so the
               server-side schema (which requires the field) still
@@ -1175,17 +1259,7 @@ function CollateralRow({
                   ))}
                 </select>
               </label>
-              {!isSolidMetal(row.coating) ? (
-                <p
-                  role="status"
-                  className="md:col-span-6 inline-flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground"
-                >
-                  <Warning size={14} weight="bold" className="mt-0.5 shrink-0 text-warning" />
-                  <span>{t.pawn.new_.itemCoatingWarning}</span>
-                </p>
-              ) : null}
-
-              <label className="md:col-span-6 block space-y-1">
+              <label className="md:col-span-4 block space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemGemstones}
                 </span>
@@ -1200,6 +1274,15 @@ function CollateralRow({
                   className={INPUT}
                 />
               </label>
+              {!isSolidMetal(row.coating) ? (
+                <p
+                  role="status"
+                  className="md:col-span-6 inline-flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground"
+                >
+                  <Warning size={14} weight="bold" className="mt-0.5 shrink-0 text-warning" />
+                  <span>{t.pawn.new_.itemCoatingWarning}</span>
+                </p>
+              ) : null}
             </>
           ) : null}
 

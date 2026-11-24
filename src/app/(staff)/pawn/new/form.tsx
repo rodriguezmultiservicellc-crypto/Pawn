@@ -16,6 +16,7 @@ import StalePriceBanner, {
   StaleSpotConfirm,
 } from '@/components/inventory/StalePriceBanner'
 import type { SpotFreshness } from '@/lib/spot-prices/staleness'
+import type { RateMaps } from '@/lib/metal-counter/math'
 import { addDaysIso } from '@/lib/pawn/math'
 import {
   moneyTextToCents,
@@ -108,6 +109,7 @@ export default function NewPawnLoanForm({
   categories,
   initialDraft,
   spotFreshness,
+  metalRates,
   canConfirmStale,
 }: {
   rates: LoanRateOption[]
@@ -117,6 +119,8 @@ export default function NewPawnLoanForm({
   initialDraft: DraftInitial | null
   /** 24h stale-price rule — drives the red banner + manager confirm. */
   spotFreshness: SpotFreshness
+  /** Spot per gram + the shop's pay percent, for an item's metal value. */
+  metalRates: RateMaps
   /** owner / manager / chain_admin may confirm issuing at a stale price. */
   canConfirmStale: boolean
 }) {
@@ -434,6 +438,7 @@ export default function NewPawnLoanForm({
         <CollateralItemsList
           ref={collateralRef}
           categories={categories}
+          metalRates={metalRates}
           title={`2 · ${tn.sectionAddCollateral}`}
           previousItems={customerHistory?.history?.previous_items ?? []}
           onTotalsChange={onCollateralTotals}
