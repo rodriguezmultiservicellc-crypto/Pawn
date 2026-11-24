@@ -60,8 +60,8 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23, night). Items 544-559, FIVE
-                  MIGRATIONS, ALL APPLIED: 0100, 0101, 0102, 0103, 0104.
+  Last session:   Session 65 (2026-11-23, night). Items 544-560, SIX
+                  MIGRATIONS, ALL APPLIED: 0100-0105.
                   main == feature/sol-pawn-brief.
                   ACTIVE FILES (last touched):
                     src/lib/pawn/math.ts (planLoanPayment, extensionCost)
@@ -101,6 +101,11 @@ OPERATION IN FLIGHT: none
                   - ONE PAYMENT CAN BE VOIDED (558, patches/0104): owner /
                     manager, last payment only, a reversal row
                     (CLAUDE.md rule 23).
+                  - EACH SHOP PICKS ITS FULL MONTHS (560, patches/0105):
+                    Settings > Compliance. EDDY'S JEWELERS IS NOW 1 — first
+                    month flat, then by the day (I set it, from his words;
+                    it lowered 9 open tickets by $247.79 in all). Ask him
+                    to confirm; "the most the state allows" puts it back.
                   - "PAYMENTS BY PERIOD" IS ON THE TICKET (559): Eddy's
                     sketch (Downloads/IMG_3974.HEIC) — one box per stretch
                     of time with the payment that paid for it, the unpaid
@@ -982,6 +987,36 @@ Progress_archive.txt — the items from those sessions are there.)
       shows that.
 
       tsc, 1,126 tests, lint, build green.
+
+ 560. EACH SHOP CHOOSES AFTER WHAT MONTH THE CHARGE IS PRORATED
+      (patches/0105 APPLIED). Eddy: "we have to let the company choose
+      after what month the payument can be prorated like it is now in
+      eddys jewelers the first month is a flat 1 month fee".
+      - settings.loan_full_periods (NULL = the state's number). The law's
+        number (jurisdictions.charge_full_periods, FL = 2) is a ceiling.
+      - rules.ts shopFullPeriods -> EffectiveRules.chargeFullPeriods ->
+        chargeModelOf: never above the state's number whatever is stored;
+        never below 1 where the state allows one (the ticket's "no refund
+        of part of the finance charge" line must stay true). 5 tests.
+      - Settings > Compliance (owner): "Pawn charge: full months before it
+        is prorated" — "The most the state allows: 2 full months" or "First
+        month flat, then by the day"; the action refuses more than the
+        state's number; "In effect now" says what is charged.
+      - EDDY'S JEWELERS SET TO 1 by a direct update (one row, by tenant id,
+        with an audit_log row saying so) — I read his sentence as his
+        shop's rule. Not confirmed by him afterwards.
+      MONEY (one-vs-two.mjs, read-only, 2026-11-23): 9 open tickets, all 31
+      to 60 days old except a 7-cent one, owe $247.79 LESS in all: 15657
+      -93.33 (1,200.00 -> 1,106.67), 15653 -54.00, 15647 -40.00, 15656
+      -23.33, 15654 -18.00, 15649 -9.00, 15648 -7.72, 15652 -2.33, 15618
+      -0.07. Tickets under 31 days or over 60 are unchanged. The amount on
+      the pawn default date (day 60) is the same either way.
+      LOOKED AT (headless Chrome, local, nothing saved): ticket 15657
+      payoff $1,106.67; the settings screen shows both choices, "First
+      month flat" selected, "In effect now: 1 full month(s)".
+      NOT VERIFIED: the setting saved from the screen; Spanish; live deploy.
+
+      tsc, 1,131 tests, lint, build green.
 
 --- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 

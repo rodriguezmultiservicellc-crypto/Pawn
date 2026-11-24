@@ -153,6 +153,15 @@ Never kill node processes by image name — always by PID.
     (`chargeModelOf(rules)`) as a REQUIRED argument of
     `payoffBalance` / `payoffFromLoan` / `interestAccrued` — never
     default it, never build one from constants.
+    **The shop may charge fewer full periods than its state allows**
+    (patches/0105): `settings.loan_full_periods` (NULL = the state's
+    number). The number every payoff uses is
+    `EffectiveRules.chargeFullPeriods` — `shopFullPeriods()`: never above
+    `jurisdictions.charge_full_periods`, and never below 1 where the state
+    allows one (the ticket prints "no refund of part of the finance
+    charge"). Read it through `chargeModelOf(rules)`; never read
+    `jurisdiction.charge_full_periods` to figure a charge. Eddy's
+    Jewelers is 1: the first month flat, then by the day.
     **A payment toward the loan lowers the LATER charges**
     (§ 539.001(11)(e): "calculated on the remaining balance of the
     original amount financed"). A charge already owed when the payment

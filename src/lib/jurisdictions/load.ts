@@ -25,7 +25,7 @@ export async function loadTenantRules(
       .maybeSingle(),
     supabase
       .from('settings')
-      .select('grace_period_days, buy_hold_period_days, abandoned_repair_days')
+      .select('grace_period_days, buy_hold_period_days, abandoned_repair_days, loan_full_periods')
       .eq('tenant_id', tenantId)
       .maybeSingle(),
   ])
@@ -46,5 +46,6 @@ export async function loadTenantRules(
     graceSetting: settings?.grace_period_days ?? null,
     buyHoldSetting: settings?.buy_hold_period_days ?? null,
     repairAbandonSetting: settings?.abandoned_repair_days ?? null,
+    fullPeriodsSetting: settings?.loan_full_periods ?? null,
   })
 }

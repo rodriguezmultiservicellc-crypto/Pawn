@@ -27,6 +27,13 @@ const schema = z.object({
     .transform((v) => v ?? null),
   timezone: z.enum(SHOP_TIMEZONES),
   grace_period_days: optionalDays,
+  // Blank = as many full periods as the state allows.
+  loan_full_periods: z
+    .preprocess(
+      (v) => (v == null || (typeof v === 'string' && v.trim() === '') ? null : v),
+      z.coerce.number().int().min(1).max(24).nullable(),
+    )
+    .transform((v) => v ?? null),
   buy_hold_period_days: z.coerce.number().int().min(0).max(365),
   abandoned_repair_days: z.coerce.number().int().min(1).max(3650),
   ofac_screening_enabled: z.boolean(),
@@ -59,6 +66,7 @@ export async function saveComplianceSettingsAction(
     jurisdiction_code: formData.get('jurisdiction_code'),
     timezone: formData.get('timezone'),
     grace_period_days: formData.get('grace_period_days'),
+    loan_full_periods: formData.get('loan_full_periods'),
     buy_hold_period_days: formData.get('buy_hold_period_days'),
     abandoned_repair_days: formData.get('abandoned_repair_days'),
     ofac_screening_enabled: formData.get('ofac_screening_enabled') === 'on',
@@ -97,7 +105,14 @@ export async function saveComplianceSettingsAction(
     ) {
       fieldErrors.abandoned_repair_days = `below_statute:${j.repair_abandon_days}`
     }
+    // A shop may charge fewer full periods than its state allows, never more.
+    if (v.loan_full_periods != null && v.loan_full_periods > j.charge_full_periods) {
+      fieldErrors.loan_full_periods = `above_statute:${j.charge_full_periods}`
+    }
     if (Object.keys(fieldErrors).length > 0) return { fieldErrors }
+  } else if (v.loan_full_periods != null) {
+    // No state on file: the charge runs by the day; there is nothing to pick.
+    return { fieldErrors: { loan_full_periods: 'above_statute:0' } }
   }
 
   const { error: tErr } = await admin
@@ -110,6 +125,7 @@ export async function saveComplianceSettingsAction(
     .from('settings')
     .update({
       grace_period_days: v.grace_period_days,
+      loan_full_periods: v.loan_full_periods,
       buy_hold_period_days: v.buy_hold_period_days,
       abandoned_repair_days: v.abandoned_repair_days,
       ofac_screening_enabled: v.ofac_screening_enabled,
@@ -128,6 +144,7 @@ export async function saveComplianceSettingsAction(
       jurisdiction_code: v.jurisdiction_code,
       timezone: v.timezone,
       grace_period_days: v.grace_period_days,
+      loan_full_periods: v.loan_full_periods,
       buy_hold_period_days: v.buy_hold_period_days,
       abandoned_repair_days: v.abandoned_repair_days,
       ofac_screening_enabled: v.ofac_screening_enabled,
@@ -137,6 +154,9 @@ export async function saveComplianceSettingsAction(
   revalidatePath('/settings/compliance')
   revalidatePath('/settings')
   revalidatePath('/pawn/new')
+  // What every open ticket owes is figured with the shop's charge model.
+  revalidatePath('/pawn', 'layout')
+  revalidatePath('/dashboard')
   revalidatePath('/buy/new')
   return { ok: true }
 }

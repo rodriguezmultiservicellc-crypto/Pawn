@@ -5266,6 +5266,16 @@ export const en = {
       timezone: 'Shop timezone',
       timezoneHelp: 'Due dates, holds, and forfeiture are counted on this calendar.',
       graceDays: 'Grace period after maturity (days)',
+      fullPeriods: 'Pawn charge: full months before it is prorated',
+      fullPeriodsHelp:
+        'A full month ({days} days) is charged whole from its first day: redeeming on day 5 or day 30 costs the same. After the months chosen here, the charge runs by the day. Your state sets the most you may charge in full; you may choose fewer. Changing this changes what every open ticket owes right away.',
+      fullPeriodsMax: 'The most the state allows: {n} full months, then by the day',
+      fullPeriodsOne: 'First month flat, then by the day',
+      fullPeriodsN: 'First {n} months flat, then by the day',
+      fullPeriodsByDay: 'By the day from the first day (nothing to choose)',
+      fullPeriodsAbove: 'Your state allows at most {n} full months.',
+      fullPeriodsNow: 'In effect now: {n} full month(s), then by the day.',
+      fullPeriodsNowByDay: 'In effect now: the charge runs by the day from the first day.',
       buyHoldDays: 'Buy-outright hold (days)',
       repairAbandonDays: 'Repair abandonment period (days)',
       effectiveNow:

@@ -47,6 +47,12 @@ export type EffectiveRules = {
   repairAbandonDays: number
   /** Null = no statutory retention on file. */
   retentionYears: number | null
+  /**
+   * Periods from the pawn date THIS shop charges in full before the charge
+   * runs by the day: its own choice (settings.loan_full_periods), never more
+   * than its jurisdiction allows.
+   */
+  chargeFullPeriods: number
 }
 
 export const DEFAULT_TIMEZONE = 'America/New_York'
@@ -142,15 +148,19 @@ export function toJurisdiction(row: JurisdictionRow): Jurisdiction {
  * by the day — for lib/pawn/math. A tenant with no jurisdiction on file is
  * charged by the day from the first day (nothing says otherwise).
  *
+ * The number of full periods is the SHOP's (effectiveRules: its own setting,
+ * capped by what the jurisdiction allows) — a shop may prorate sooner than
+ * its state makes it.
+ *
  * It carries the shop's timezone: a payment toward the loan lowers the
  * charges that start after the shop's day it was taken on.
  */
 export function chargeModelOf(
-  rules: Pick<EffectiveRules, 'jurisdiction' | 'timezone'>,
+  rules: Pick<EffectiveRules, 'jurisdiction' | 'timezone' | 'chargeFullPeriods'>,
 ): ChargeModel {
   const j = rules.jurisdiction
   return {
-    fullPeriods: j?.charge_full_periods ?? 0,
+    fullPeriods: rules.chargeFullPeriods,
     periodDays: j?.period_days ?? RATE_PERIOD_DAYS,
     timezone: rules.timezone,
   }
@@ -275,12 +285,33 @@ export function dayStartInTimezone(date: string, timezone: string): string {
   }
 }
 
+/**
+ * How many periods a shop charges in full: what it chose, kept inside what
+ * its jurisdiction allows.
+ *   - never MORE than the jurisdiction's number (that would overcharge);
+ *   - where the jurisdiction allows at least one, never fewer than one: the
+ *     ticket tells the customer that paying off early refunds none of the
+ *     finance charge, and the first period is that charge;
+ *   - no choice on file = the jurisdiction's number.
+ */
+export function shopFullPeriods(
+  j: Pick<Jurisdiction, 'charge_full_periods'> | null,
+  setting: number | null,
+): number {
+  const max = Math.max(0, Math.floor(j?.charge_full_periods ?? 0))
+  if (max === 0) return 0
+  if (setting == null || !isFinite(setting)) return max
+  return Math.min(max, Math.max(1, Math.floor(setting)))
+}
+
 export function effectiveRules(args: {
   jurisdiction: Jurisdiction | null
   timezone: string | null
   graceSetting: number | null
   buyHoldSetting: number | null
   repairAbandonSetting: number | null
+  /** settings.loan_full_periods; null = as many as the jurisdiction allows. */
+  fullPeriodsSetting: number | null
 }): EffectiveRules {
   const j = args.jurisdiction
   return {
@@ -293,6 +324,7 @@ export function effectiveRules(args: {
       j?.repair_abandon_days ?? 0,
     ),
     retentionYears: j?.record_retention_years ?? null,
+    chargeFullPeriods: shopFullPeriods(j, args.fullPeriodsSetting),
   }
 }
 

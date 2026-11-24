@@ -15,6 +15,8 @@ type Current = {
   jurisdictionCode: string | null
   timezone: string
   gracePeriodDays: number | null
+  /** The shop's own choice; null = as many as the state allows. */
+  loanFullPeriods: number | null
   buyHoldPeriodDays: number
   abandonedRepairDays: number
   ofacEnabled: boolean
@@ -31,6 +33,8 @@ type Effective = {
   buyHoldDays: number
   repairAbandonDays: number
   retentionYears: number | null
+  /** Periods this shop charges in full right now. */
+  chargeFullPeriods: number
 }
 
 const inputCls =
@@ -62,7 +66,9 @@ export default function ComplianceSettingsContent({
     const raw = state.fieldErrors?.[k]
     if (!raw) return null
     const m = /^below_statute:(\d+)$/.exec(raw)
-    return m ? tj.belowStatute.replace('{days}', m[1]) : t.common.error
+    if (m) return tj.belowStatute.replace('{days}', m[1])
+    const over = /^above_statute:(\d+)$/.exec(raw)
+    return over ? tj.fullPeriodsAbove.replace('{n}', over[1]) : t.common.error
   }
 
   const days = (n: number | null | undefined) =>
@@ -171,6 +177,42 @@ export default function ComplianceSettingsContent({
           />
         </div>
 
+        {/* How long the pawn charge is a flat, full period before it runs
+            by the day. The state sets the most; the shop may pick fewer. */}
+        <label className="block space-y-1">
+          <span className="text-sm font-semibold text-foreground">{tj.fullPeriods}</span>
+          <select
+            key={code}
+            name="loan_full_periods"
+            defaultValue={
+              current.loanFullPeriods != null && selected && current.loanFullPeriods <= selected.charge_full_periods
+                ? String(current.loanFullPeriods)
+                : ''
+            }
+            disabled={!canEdit || !selected || selected.charge_full_periods < 1}
+            className={`${inputCls} md:max-w-xl ${fieldError('loan_full_periods') ? 'border-danger/60' : ''}`}
+          >
+            <option value="">
+              {!selected || selected.charge_full_periods < 1
+                ? tj.fullPeriodsByDay
+                : tj.fullPeriodsMax.replace('{n}', String(selected.charge_full_periods))}
+            </option>
+            {selected
+              ? Array.from({ length: Math.max(0, selected.charge_full_periods - 1) }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {(n === 1 ? tj.fullPeriodsOne : tj.fullPeriodsN).replace('{n}', String(n))}
+                  </option>
+                ))
+              : null}
+          </select>
+          <span className="block text-xs text-muted">
+            {tj.fullPeriodsHelp.replace('{days}', String(selected?.period_days ?? 30))}
+          </span>
+          {fieldError('loan_full_periods') ? (
+            <span className="block text-xs text-danger">{fieldError('loan_full_periods')}</span>
+          ) : null}
+        </label>
+
         <div className="rounded-xl border border-border bg-background p-3">
           <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <input
@@ -197,6 +239,12 @@ export default function ComplianceSettingsContent({
             .replace('{grace}', days(effective.graceDays))
             .replace('{hold}', days(effective.buyHoldDays))
             .replace('{abandon}', days(effective.repairAbandonDays))}
+        </p>
+        <p className="text-xs text-muted">
+          {(effective.chargeFullPeriods < 1 ? tj.fullPeriodsNowByDay : tj.fullPeriodsNow).replace(
+            '{n}',
+            String(effective.chargeFullPeriods),
+          )}
         </p>
 
         {canEdit ? (

@@ -5266,6 +5266,16 @@ export const es: Dictionary = {
       timezone: 'Zona horaria de la tienda',
       timezoneHelp: 'Los vencimientos, retenciones y pérdidas se cuentan según este calendario.',
       graceDays: 'Período de gracia tras el vencimiento (días)',
+      fullPeriods: 'Cargo de empeño: meses completos antes de prorratear',
+      fullPeriodsHelp:
+        'Un mes completo ({days} días) se cobra entero desde su primer día: rescatar el día 5 o el día 30 cuesta lo mismo. Después de los meses elegidos aquí, el cargo corre por día. Tu estado fija el máximo que puedes cobrar completo; puedes elegir menos. Cambiar esto cambia de inmediato lo que debe cada boleto abierto.',
+      fullPeriodsMax: 'El máximo que permite el estado: {n} meses completos, luego por día',
+      fullPeriodsOne: 'Primer mes fijo, luego por día',
+      fullPeriodsN: 'Primeros {n} meses fijos, luego por día',
+      fullPeriodsByDay: 'Por día desde el primer día (no hay nada que elegir)',
+      fullPeriodsAbove: 'Tu estado permite como máximo {n} meses completos.',
+      fullPeriodsNow: 'Vigente ahora: {n} mes(es) completo(s), luego por día.',
+      fullPeriodsNowByDay: 'Vigente ahora: el cargo corre por día desde el primer día.',
       buyHoldDays: 'Retención de compras directas (días)',
       repairAbandonDays: 'Plazo de abandono de reparaciones (días)',
       effectiveNow:

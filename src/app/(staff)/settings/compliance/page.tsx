@@ -35,7 +35,7 @@ export default async function ComplianceSettingsPage() {
     admin
       .from('settings')
       .select(
-        'grace_period_days, buy_hold_period_days, abandoned_repair_days, ofac_screening_enabled',
+        'grace_period_days, buy_hold_period_days, abandoned_repair_days, ofac_screening_enabled, loan_full_periods',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -55,6 +55,7 @@ export default async function ComplianceSettingsPage() {
         jurisdictionCode: tenantRes.data?.jurisdiction_code ?? null,
         timezone: tenantRes.data?.timezone ?? rules.timezone,
         gracePeriodDays: settingsRes.data?.grace_period_days ?? null,
+        loanFullPeriods: settingsRes.data?.loan_full_periods ?? null,
         buyHoldPeriodDays: settingsRes.data?.buy_hold_period_days ?? 30,
         abandonedRepairDays: settingsRes.data?.abandoned_repair_days ?? 90,
         ofacEnabled: settingsRes.data?.ofac_screening_enabled ?? true,
@@ -73,6 +74,7 @@ export default async function ComplianceSettingsPage() {
         buyHoldDays: rules.buyHoldDays,
         repairAbandonDays: rules.repairAbandonDays,
         retentionYears: rules.retentionYears,
+        chargeFullPeriods: rules.chargeFullPeriods,
       }}
     />
   )

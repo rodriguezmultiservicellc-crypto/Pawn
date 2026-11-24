@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   dayStartInTimezone,
   effectiveRules,
+  chargeModelOf,
+  shopFullPeriods,
   exceedsCap,
   forfeitEligibleDate,
   loanForfeitEligibility,
@@ -101,6 +103,7 @@ describe('effectiveRules', () => {
       graceSetting: 10,
       buyHoldSetting: 45,
       repairAbandonSetting: 90,
+      fullPeriodsSetting: null,
     })
     expect(r.graceDays).toBe(30)
     expect(r.buyHoldDays).toBe(45)
@@ -116,6 +119,7 @@ describe('effectiveRules', () => {
       graceSetting: null,
       buyHoldSetting: 15,
       repairAbandonSetting: null,
+      fullPeriodsSetting: null,
     })
     expect(r.graceDays).toBe(0)
     expect(r.buyHoldDays).toBe(15)
@@ -130,6 +134,7 @@ describe('loanForfeitEligibility', () => {
     graceSetting: null,
     buyHoldSetting: null,
     repairAbandonSetting: null,
+    fullPeriodsSetting: null,
   })
   it('is not eligible on the last redemption day', () => {
     const r = loanForfeitEligibility(rules, '2026-09-07', '2026-10-07')
@@ -200,5 +205,40 @@ describe('parseJurisdictionError', () => {
       value: '',
     })
     expect(parseJurisdictionError('duplicate key')).toBeNull()
+  })
+})
+
+describe('how many periods a shop charges in full', () => {
+  const two = { ...FL, charge_full_periods: 2 }
+  const byDay = { ...FL, charge_full_periods: 0 }
+
+  it('with no choice on file it is what the jurisdiction allows', () => {
+    expect(shopFullPeriods(two, null)).toBe(2)
+    expect(shopFullPeriods(byDay, null)).toBe(0)
+    expect(shopFullPeriods(null, null)).toBe(0)
+  })
+
+  it('a shop may prorate sooner — the first month flat, then by the day', () => {
+    expect(shopFullPeriods(two, 1)).toBe(1)
+  })
+
+  it('never more than the jurisdiction allows, whatever was saved', () => {
+    expect(shopFullPeriods(two, 5)).toBe(2)
+    expect(shopFullPeriods(byDay, 3)).toBe(0)
+    expect(shopFullPeriods(null, 3)).toBe(0)
+  })
+
+  it('where a full period is allowed the first one stays full (the ticket says no refund)', () => {
+    expect(shopFullPeriods(two, 0)).toBe(1)
+  })
+
+  it('reaches the charge model every payoff uses', () => {
+    const args = { jurisdiction: two, timezone: null, graceSetting: null, buyHoldSetting: null, repairAbandonSetting: null }
+    expect(chargeModelOf(effectiveRules({ ...args, fullPeriodsSetting: 1 }))).toEqual({
+      fullPeriods: 1,
+      periodDays: 30,
+      timezone: 'America/New_York',
+    })
+    expect(chargeModelOf(effectiveRules({ ...args, fullPeriodsSetting: null })).fullPeriods).toBe(2)
   })
 })

@@ -6032,6 +6032,7 @@ export type Database = {
           google_reviews_min_star_floor: number
           grace_period_days: number | null
           inventory_target_margin_pct: number
+          loan_full_periods: number | null
           loyalty_earn_rate_loan_interest: number
           loyalty_earn_rate_retail: number
           loyalty_enabled: boolean
@@ -6105,6 +6106,7 @@ export type Database = {
           google_reviews_min_star_floor?: number
           grace_period_days?: number | null
           inventory_target_margin_pct?: number
+          loan_full_periods?: number | null
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
           loyalty_enabled?: boolean
@@ -6178,6 +6180,7 @@ export type Database = {
           google_reviews_min_star_floor?: number
           grace_period_days?: number | null
           inventory_target_margin_pct?: number
+          loan_full_periods?: number | null
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
           loyalty_enabled?: boolean
