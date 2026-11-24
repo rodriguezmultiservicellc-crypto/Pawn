@@ -4759,3 +4759,2295 @@ human reference only.
      history re-pawn panel, in-place Buy-outright merge.
      tsc + eslint clean, npm run build clean, 413 tests.
 
+--- Archived 2026-11-24 (sessions 53-63) ---
+
+--- Session 63 (2026-11-22) — Layaway terms, sales tax by district + per-item cap, card reader tips, customer popup + validation (branch feature/sol-pawn-brief == main) ---
+
+ 520. LOYALTY SETTINGS PAGE TRANSLATED (7e22e6e).
+      src/app/(staff)/settings/loyalty/content.tsx reads every string
+      from a new loyalty.settings block (EN + ES). actions.ts returns
+      error CODES ('validation_failed' | 'save_failed') instead of the
+      raw database message, so the error line is translated too; the
+      Save button shows "Saving…".
+
+ 521. SETTINGS FORMS RESET AFTER A SAVE [BUG] (4a3a441).
+      Root cause: React resets a <form action={fn}> when the action
+      finishes, but component state stays. On Loyalty, Store credit and
+      Consignment the "turn on" checkbox is held in state, so after a
+      save it SHOWED unticked while the page still treated it as on — a
+      second Save would have switched the module off.
+      Fix: new src/lib/ui/submit-keeping-values.ts (onSubmit +
+      startTransition, no reset), used by the three forms. Browser-
+      checked on Loyalty and Store credit with a rejected save;
+      Consignment has the same line but was not submitted (every value
+      it accepts would have saved).
+
+ 522. LAYAWAY TERMS (633f2a5, patches/0093 APPLIED).
+      Eddy: most shops write every layaway on the same terms.
+      - Table layaway_terms (name, schedule_kind, down_payment_pct,
+        first_payment_days, term_days, cancellation_fee_pct, is_default,
+        is_active, position). One default per shop (unique index). RLS
+        approved by Eddy: staff read, owner + manager write.
+      - src/lib/pos/layaway-terms.ts: schema (percent typed, fraction
+        stored), applyLayawayTerm(term, total, today) → dates counted
+        from the shop's today (todayInTimezone), minimum down payment.
+      - Settings → Layaway terms: add / edit / reorder / default / remove.
+        The first plan added becomes the default.
+      - src/components/pos/LayawayScheduleDialog.tsx: a Terms list
+        (default picked), a read-only summary, the down payment pre-
+        filled at the plan's share (more is allowed, less is refused),
+        and "Custom" = the original fields. No plans = the old dialog.
+      - layaways and layaway_create() are unchanged: the dialog sends
+        the same fields. The audit log records which terms were used
+        (layaway_term_id → name).
+
+ 523. QUICK "NEW CUSTOMER" POPUP COULD NOT SAVE ANYONE [BUG] (c33555e).
+      Found while wiring it into the sale form. Root cause:
+      createCustomerFromForm passed formData.get() straight to the
+      schema; the popup has no country / id_country / comm_preference /
+      language field, so those arrived as NULL, and zod's .default()
+      only fills UNDEFINED. Every save was refused, with no message,
+      because the popup shows errors only under fields it has. Affected
+      the pawn, repair and quote forms too.
+      Fix: src/lib/customers/create.ts sends a missing field as
+      undefined. The popup also keeps what was typed after a refused
+      save (submitKeepingValues). Browser-checked on the sale form only.
+
+ 524. SALES TAX BY DISTRICT + CUSTOMER "+" ON THE SALE FORM (1fc3e09,
+      patches/0094 APPLIED).
+      - Table tax_rates (name, level state|county|city|district|other,
+        rate numeric(6,4), is_active). RLS approved by Eddy with
+        MANAGERS able to edit: staff read, owner + manager write.
+      - Trigger trg_tax_rates_sync_total (SECURITY DEFINER — managers
+        cannot write settings) keeps settings.default_tax_rate = sum of
+        the active rows; refuses a stack over 100%. Nothing else writes
+        that column now (CLAUDE.md rule 20).
+      - Settings → Sales tax; hub card shows the total. A rate finer
+        than two decimals of a percent is refused, not rounded.
+      - New sale / layaway: the Tax field starts at the shop's total and
+        shows what it is made of; the clerk can still change it.
+      - Online store settings show the rate and link to Sales tax
+        (toSettingsPatch and tax_rate_pct removed).
+      - Cart.tsx: "+" beside the customer search opens
+        QuickCustomerModal; the new customer goes onto the sale.
+      - The Open layaway button states the amount it will collect.
+
+ 525. LAYAWAY L-000002: "TYPED 150, CHARGED 50" — NOT REPRODUCED.
+      Audit log + rows show the server stored exactly what the browser
+      sent (down_payment 50). 12 ways of changing the box to 150 on the
+      LIVE site (request captured and aborted) all sent 150. Eddy said
+      to ignore it. L-000002 was not touched (paid $50, balance $150).
+      The button label from 524 is the safeguard.
+
+ 526. CUSTOMER PHONE + EMAIL VALIDATED (46740a9).
+      Eddy's screenshot: phone "dfdd", email "fds". Phone was
+      optionalTrimmedString — anything saved. New
+      src/lib/customers/phone.ts normalizePhone(): digits + the usual
+      separators, 7-15 digits; 10 digits (or 11 starting with 1) is
+      stored as "(813) 555-0100", the shape all 8,005 existing phone
+      values already have (checked read-only: none would fail the
+      rule). Error codes 'invalid_phone' / 'invalid_email' translated by
+      src/lib/customers/field-errors.ts on the popup and the full new /
+      edit forms (they used to show the raw validator text).
+
+ 527. RECEIPT BALANCE LARGE (ccd8d03).
+      balanceOwed() in src/lib/pos/receipt-thermal.ts: what is still
+      owed, printed ONCE under "Paid" — heavy box at 24pt on the letter
+      receipt (2x the Total), a box on the PDF, capitals between "="
+      rules on thermal. It was a small field inside the layaway terms.
+
+ 528. LAYAWAY LIST "DUE SOON" STUCK ON EVERY TAB [BUG] (ccd8d03).
+      Eddy: "when i click active again it doesnt bring up the active".
+      Root cause: every status chip built its link with the current due
+      window, and the Due soon chip had no off state, so after one click
+      "Active" still filtered to due-soon until the page was reopened.
+      Fix in src/app/(staff)/pos/layaways/content.tsx: Due soon is its
+      own view; any status tab leaves it; clicking it again turns it
+      off. Assumed this was the page he meant.
+
+ 529. PER-ITEM TAX CAP, ANY STATE (09a0640, patches/0095 APPLIED).
+      Eddy: "add a cap but not just for florida".
+      - tax_rates.item_cap: "only the first $X of each item", per unit.
+        NULL = the whole price. No state's figure is in the code.
+      - sales_tax_quote(tenant, qty[], net[]): ONE function computes a
+        sale's tax. Tax is rounded ONCE on the whole sale; the split by
+        tax line and by sale line is reconciled to the cent (leftover
+        cent to the largest).
+      - sale_create / layaway_create gain p_tax_mode (default 'flat', so
+        old callers are unchanged): 'shop' = the shop's tax lines, caps
+        included, cart discount spread over the lines first; 'flat' =
+        the rate the clerk typed. online_order_reserve uses the same
+        function. Bodies were generated from the LIVE definitions.
+      - New: sales.tax_breakdown (tax per tax line) and
+        sale_items.tax_amount (tax per line). Returns refund the line's
+        own tax when present (src/lib/pos/returns.ts).
+      - src/lib/pos/sales-tax.ts quoteSaleTax / computeCartTotals: the
+        same arithmetic in whole cents (BigInt for the discount split);
+        tests are pinned to the numbers the database produced, plus 400
+        random carts proving "no cap" equals the old formula.
+      - Verified: rolled-back dry run (sale, layaway, online order), unit
+        tests, sale screen in a browser ($10,000 item → $10,675.00, not
+        $10,750.00). See RESUME POINT (a) for what was not.
+
+ 530. CARD READER TIPS, CREDITED TO THE EMPLOYEE (a43607a,
+      patches/0096 APPLIED). Eddy: like Luna Azul, with a switch, and
+      the tip saved to the proper user.
+      - Read Luna Azul's version READ-ONLY for reference (a switch +
+        skip_tipping; it does not credit an employee). No file there was
+        touched.
+      - settings.reader_tips_enabled / reader_tip_percentages /
+        stripe_terminal_tip_config_id; sale_payments.tip_amount /
+        tip_user_id; sale_card_payment_set_tip() is the only writer and
+        records a tip once (CLAUDE.md rule 21).
+      - processPaymentIntentOnReader({ askForTip }): off → skip_tipping
+        (as before); on → the reader offers the shop's choices, kept in
+        a Stripe Terminal Configuration by ensureReaderTipChoices().
+      - [BUG avoided] the webhook refused any card tender whose charged
+        amount differed from the tender; a tipped charge would never
+        have settled there. It now expects tender + the tip Stripe
+        reports.
+      - Tip on the sale page, the paid-sale banner, all three receipts;
+        Reports → Tips (per employee + each tip).
+      - Stripe facts were read from Stripe's docs on 2026-11-22:
+        process_config[skip_tipping], tipping[usd][percentages][n] on
+        /terminal/configurations, configuration_overrides on the
+        Location, amount_details.tip.amount on the PaymentIntent.
+
+--- Session 62 (2026-11-22) — Self-hosted fonts, sidebar groups open / close, System tools group, /settings translated (branch feature/sol-pawn-brief == main) ---
+
+ 514. FONTS SELF-HOSTED (9866c4b). src/app/layout.tsx: next/font/google
+      → next/font/local. One latin variable-weight woff2 per family in
+      src/app/fonts/ (dm-sans, playfair-display, jetbrains-mono), each
+      with its OFL license beside it; files taken from the
+      @fontsource-variable 5.3.0 packages (same Google Fonts releases),
+      copied into the repo, NOT added as dependencies. CSS variable
+      names are unchanged (--font-dm-sans / --font-playfair /
+      --font-jetbrains-mono), so globals.css and every component are
+      untouched. Weight ranges: DM Sans 100-1000, Playfair 400-900,
+      JetBrains Mono 100-800. Playfair uses the Times New Roman
+      fallback metrics; the mono face has adjustFontFallback off.
+      WHY: the build-time download from Google failed two Vercel
+      builds. Verified in a browser: three font requests, all to the
+      app, none to fonts.googleapis / fonts.gstatic. CLAUDE.md font
+      line updated to match.
+
+ 515. SIDEBAR GROUPS OPEN AND CLOSE (9866c4b).
+      src/components/layout/Sidebar.tsx. Inventory, POS, Pawns and
+      Repair fold their sub-items. Inventory / POS keep their link and
+      get a caret button at the right; the Pawns / Repair headings are
+      one button. NavItem gained `group`; the row without `child` is
+      the group's own row. Closed groups live in localStorage
+      `pawn.sidebar.groups.closed` (comma-joined ids), read through
+      useSyncExternalStore with a '' server snapshot — so the server
+      HTML and the first client render match and there is no hydration
+      mismatch (checked: reload with every group closed, zero console
+      errors). All groups start open. A closed group whose page is
+      current lights its own row gold. The icon rail ignores group
+      state and shows every icon (it has no heading to reopen from).
+      New buttons use focus-visible rings so a mouse click leaves no
+      gold box. New keys: common.collapseGroup / expandGroup.
+
+ 516. COMMUNICATIONS MOVED UNDER SETTINGS (9866c4b). Sidebar entry
+      removed; /settings already had the Communications card (first
+      one). The Communications page got a "Back to settings" link.
+      nav.communications deleted; imports.backToSettings moved to
+      common.backToSettings (the import page reads it from there now).
+      On /settings/communications the sidebar lights Settings.
+
+ 517. /SETTINGS HUB TRANSLATED EN + ES (86338c4).
+      src/app/(staff)/settings/content.tsx — every card title,
+      description, status pill and detail line reads from the new
+      `settingsHub` namespace (70 keys, identical trees in en.ts and
+      es.ts). Subscription status / billing cycle and the tenant-type
+      badge are mapped from their enum values, raw value as fallback.
+      "Configure {name}" is split around {name} so the shop name stays
+      bold. Two wording changes on purpose: the Spanish loan-rate and
+      pawn-category cards say "Nuevo empeño" where English still shows
+      `/pawn/new`, and the read-only Tenant info note (non-owners) now
+      says only the owner can edit instead of naming /settings/general.
+      Verified in a browser in both languages (language toggle clicked
+      with the profile-language POST stubbed, so Eddy's saved language
+      was not changed): 18 cards each side, no English left in Spanish.
+
+ 518. "SYSTEM TOOLS" SIDEBAR GROUP (86338c4). New heading (Toolbox
+      icon, group id `tools`) over Sell metal, Spot prices, Appraisals,
+      Bench tools, in that order, at the top of the reporting section;
+      eBay listings and Reports follow as normal rows. Opens / closes
+      like Pawns and Repair. Group headings now WRAP instead of
+      truncating: the Spanish label "Herramientas del sistema" does not
+      fit on one line at w-52. New key nav.systemTools.
+
+ 519. LOYALTY MOVED UNDER SETTINGS. Sidebar entry removed (Store credit
+      and Billing stay). The /settings hub had NO Loyalty card, so one
+      was added: owner / chain_admin only (same gate as the page and
+      the old sidebar entry), status from settings.loyalty_enabled
+      (page.tsx now selects it; SettingsHubView.loyalty), text in
+      settingsHub.loyalty. The Loyalty page got the "Back to settings"
+      link. nav.loyalty deleted. Verified in a browser: card in EN +
+      ES, card → page → back link → /settings, Settings lit in the
+      sidebar on the Loyalty page.
+
+--- Session 61 (2026-11-21) — Lightspeed inventory import, Size / Length on inventory, RAM crash diagnosis (branch feature/sol-pawn-brief == main) ---
+
+ 495. "IT CRASHED AGAIN" — OUT OF RAM, NOT A CODE CRASH. Windows logs:
+      15:06 dwm.exe died 0xc00001ad (out of memory; parsecd + Security
+      app crashed with it), 15:09 Resource-Exhaustion low virtual memory,
+      15:14 restart from the Start menu (event 1074, no Kernel-Power 41,
+      no bugcheck). Same warning 2026-11-20 with Chrome at 11.6 GB.
+      Box has 11.9 GB; ~0.4 GB free right after reboot with no dev
+      server. ROOT CAUSE: too many resident apps + next dev allowed a
+      4 GB heap. FIX: dev-watchdog.mjs default DEV_HEAP_MB 4096 → 2048
+      (the 25-min cycle keeps the Turbopack leak under it).
+
+ 496. LIGHTSPEED X-SERIES INVENTORY IMPORT (27dd63d, patches/0089 APPLIED,
+      no RLS change). Work written just before the freeze (last file
+      15:01); resumed, verified, shipped.
+      - inventory_items.import_source + import_ref, CHECK both-or-
+        neither, UNIQUE (tenant_id, import_source, import_ref) WHERE
+        import_ref IS NOT NULL — covers soft-deleted rows so a deleted
+        piece is never resurrected by a re-import.
+      - lib/imports/lightspeed.ts (pure): one inventory row PER UNIT on
+        hand for the chosen outlet (ref '<product id>#<n>'), capped at
+        500/row; skips no-stock, services (track_inventory=0, repair/
+        credit/gift card), inactive, already-imported. Each product is
+        validated through inventoryItemCreateSchema — an import can
+        never write what a clerk couldn't. Lightspeed SKU → legacy_code;
+        grams from weight(G)/variant/name/description; metal/karat/
+        coating guessed from name/tags.
+      - POST /api/imports/inventory (route handler, not a server action
+        — server-action bodies cap ~1 MB): preview | commit, 25 MB max,
+        500-row batches, audit row, revalidates /inventory + catalog.
+      - /inventory/import page (preview stats, samples, warnings) +
+        "Import items" button on /inventory for import roles.
+      - lib/imports/access.ts resolveImportRole(): owner/manager/
+        chain_admin (+ chain_admin at parent HQ) — the customers import
+        route + /settings/import now use it (the duplicated resolver
+        there was removed).
+      - lib/labels/resolve.ts: a scan falls back to legacy_code BEFORE
+        sku_number, so old Lightspeed tags open the right piece (sellable
+        one first when several share the code).
+
+ 497. INVENTORY SIZE / LENGTH (222c4c7, patches/0090 APPLIED, no RLS
+      change). inventory_items.jewelry_size TEXT NULL, same shape as
+      loan_collateral_items.jewelry_size (0042): free text, never
+      normalized. On the new/edit item form next to Condition (EN
+      "Size / Length", ES "Talla / Largo"). Forfeiture now copies the
+      collateral's jewelry_size into the inventory row. Lightspeed
+      import fills it from a variant option named size / length /
+      talla / largo / tamaño / medida (findSize, 2 tests).
+
+ 498. ITEM FORM NUMBERS min=0. Eddy's screenshot showed Wholesale price
+      -0.03. Never saved (Zod nonnegative + DB CHECK from 0067 reject
+      it) — the number input just had no min, so wheel / arrow keys
+      could go below zero. Field in InventoryFormFields now sets min=0
+      on every type=number input (all are prices or weights).
+      Gate: tsc + eslint clean, 51 tests pass, i18n keys present in
+      both locales and all referenced; both deploys READY on Vercel.
+
+ 499. IMPORT STAMP IN NOTES (Eddy: "add in the notes date added and from
+      where and that its an import"). Every Lightspeed-imported item's
+      notes now START with "Imported from Lightspeed, outlet <outlet>,
+      file <name> on <YYYY-MM-DD>." (importStamp in lib/imports/
+      lightspeed.ts; date = shop-timezone today, the same value as
+      acquired_at), then the Lightspeed description on the next line,
+      clipped to 500. notes is staff-only (excluded from
+      public_catalog_items, 0072). English, same as the forfeit stamp —
+      it is record text, not UI. 11 import tests pass.
+
+ 500. BACKFILL: IMPORT STAMP ON THE 3,263 ALREADY-IMPORTED ITEMS (live
+      data op, Eddy: "update the current items imported"). The only
+      import so far: tenant 1abc8070…, 2026-11-21 21:12 UTC, outlet
+      Eddys_Jewelers_Corp, file product-export.csv, 3,263 units (from
+      its audit_log row). One UPDATE in one transaction (via
+      scripts/apply-migration.mjs, SQL kept in the session scratchpad,
+      not a patch — tenant-specific data): notes = stamp + '\n' +
+      existing notes, left(…, 500); date = created_at in
+      tenants.timezone; skipped rows already starting 'Imported from'.
+      Audit row kind='import_stamp_backfill', updated=3263, user = the
+      importer. VERIFIED: 3,263 stamped, 0 double-stamped, 0 non-
+      imported rows touched; no inventory_items trigger fires on notes.
+
+ 501. ITEM DETAIL — "IMPORTED FROM … ON …" BADGE. /inventory/[id] shows
+      an info badge next to the title when import_source is set:
+      EN "Imported from Lightspeed on 2026-11-21", ES "Importado de
+      Lightspeed el 2026-11-21". Date = created_at in the shop timezone
+      computed SERVER-side (todayInTimezone + loadTenantRules) and passed
+      as a string, so no SSR/browser timezone hydration mismatch.
+      Source names map in IMPORT_SOURCE_NAMES (brand, not translated).
+
+ 502. ITEM MELT PANEL — FULL MELT AND PAY PRICE SEPARATELY. The panel
+      showed spot × weight × PAY RATE labelled "Melt value", i.e. what
+      the shop would pay, not the metal's worth. Now: "Full melt (100%)"
+      = spot/g × grams (full_value, computed in page.tsx resolveMelt) +
+      "You pay" = the pay-rate value with "Pay rate N%" under it. Key
+      payRateMultiplier removed (orphan); estimatedMelt relabelled.
+      Pay rates live on /inventory/spot-prices (one per metal + purity).
+
+ 503. GOLD "FINE .999" REMOVED — 24K IS THE ONE TOP GOLD BUCKET (Eddy:
+      remove one of 24k / fine). purityFromItem already mapped karat 24
+      to pure_24k, so 24k stays. The enum value 'fine' CANNOT be dropped
+      — silver uses it (fine vs sterling). Changes: refresh.ts
+      PURITY_MAP no longer writes gold/fine spot rows; PURITIES_BY_METAL
+      gold, the spot-prices page COMBOS and bench COUNTER_COMBOS_CLIENT
+      drop it; new isValidPurityForMetal() (purity.ts) now guards the
+      pay-rate + sell-rate save actions and metalSaleLineSchema, so
+      gold+fine is refused server-side. Data: 0 sale_items ever used
+      gold/fine. Left in the DB, inert: 913 historical gold/fine
+      spot_prices rows and the gold/fine override row (pay 90%) — 24K's
+      own override is 80%, unchanged. Full suite 845 tests pass.
+
+ 504. GOLD 24K PAY RATE → 90% (Eddy). spot_price_overrides gold/pure_24k
+      for Eddy's Jewelers 0.8000 → 0.9 by direct UPDATE (same row the
+      Spot prices page upserts), audit row spot_price_override_change
+      with previous=0.8000. Live servers cache overrides up to 5 min.
+      ALSO VERIFIED (Eddy's screenshot): re-previewing the SAME
+      product-export.csv → 5,507 rows, 0 pieces to create, 3,263
+      already imported, 3,228 no stock, 29 service — import_ref
+      idempotency holds in production. (Card "Products with stock"
+      shows 0 on a re-run because it counts products with NEW pieces;
+      label could say "Products to add" — cosmetic, not changed.)
+
+ 505. [BUG] CUSTOMER SEARCH FAILED ON FULL NAMES. "eddy rodriguez" on
+      /customers returned nothing. ROOT CAUSE: the whole phrase was
+      ilike'd against EACH column on its own (first_name ~ '%eddy
+      rodriguez%' OR last_name ~ …), so a first + last name never
+      matched. Same bug in the customer picker (lib/customers/
+      picker-search.ts, used by pawn / POS / buy). FIX: new pure
+      lib/customers/search.ts customerSearchFilters() → one .or() per
+      word, chained (PostgREST ANDs them); commas / parens dropped,
+      %/_ escaped, max 6 words; both call sites use it. 4 tests. Live
+      check: "freddy rodriguez" → 1, "eddy rodriguez" → 3.
+      NOTE: Eddy has TWO customer rows "Rodriguez, Eddy" with the same
+      ID ending 2130 (one from the 2026-07-28 xPawn import, one created
+      2026-04-28 with the RMS email) — a duplicate. Not merged; asked
+      Eddy (merging touches loans / ID scans / compliance rows).
+
+ 506. CUSTOMER MERGE TOOL (patches/0091 APPLIED; no existing RLS policy
+      changed). Modeled on Luna Azul's merge_customers(). /customers/merge
+      (owner / manager / chain_admin — lib/customers/merge.ts): Keep +
+      Duplicate pickers with swap, preview (both records side by side,
+      per-table record counts, warnings: different ID numbers / both
+      have portal logins / ban carries over), "what the merge does",
+      optional reason, two-step confirm → lands on the kept customer
+      with a "Duplicate merged" banner. "Possible duplicates" list below
+      (lib/customers/duplicates.ts, 7 tests): same ID number, or same
+      name + phone / email / DOB, strongest signal wins, oldest record
+      suggested as keep. Found 53 groups at Eddy's Jewelers — most look
+      like the xPawn import loading a person twice (same ID with and
+      without dashes). Links: "Merge duplicates" on /customers, "Merge a
+      duplicate into this customer" on the detail page; a merged-away
+      id redirects to the survivor (follows up to 5 hops).
+      DB (merge_customers(tenant, winner, loser, actor, notes), SECURITY
+      DEFINER, EXECUTE revoked from anon/authenticated — service_role
+      only, tenant re-checked inside): locks both rows, sets
+      loser.merged_into_id + deleted_at FIRST, fills the winner's blanks
+      (ID block and address move as units, never mixed; ban carries
+      over; tags unioned; portal login / referral code / legacy_ref move
+      if the winner has none), phones / email / address that found no
+      slot + the loser's notes go into the winner's notes, repoints 17
+      tables + referrals, moves store credit and loyalty points as
+      'merge_out' / 'merge_in' ledger pairs (new kinds; sign CHECK
+      updated), writes customer_merges (loser snapshot + winner before
+      + counts; RLS on, no policies) and audit_log 'customer_merge'.
+      LOCKED RECORDS: the 7 lock guards (printed loans, locked sales /
+      repairs, printed appraisals, accepted quotes, message_log,
+      ofac_screenings) now allow customer_id to change ONLY when
+      customer_merge_repoint(old,new) — old was merged INTO new. Every
+      other frozen field stays frozen; compliance_log untouched.
+      VERIFIED: dry run on the real Eddy pair inside a forced-rollback
+      transaction (39 rows moved incl. 3 printed loans + 3 locked sales;
+      a plain customer_id change on a printed loan still refused before
+      AND after the merge); browser check of the preview + confirm step
+      (no console errors; did NOT merge); smoke 3/3 clean (added
+      /customers/merge to smoke-browser.mjs). Also: one LoyaltyEventKind
+      alias replaces 4 hand-copied unions; LoyaltyPanel kind labels now
+      come from i18n (were hardcoded English).
+      The Eddy duplicate is STILL NOT MERGED — Eddy picks which record
+      to keep, in the UI.
+
+ 507. [BUG] LOYALTY LEDGER HAD DRIFTED FROM 0028 (patches/0092 APPLIED;
+      no RLS change). Live DB had: no balance trigger (points logged but
+      never reaching customers.loyalty_points_balance), no append-only
+      trigger, no referral same-tenant trigger; kind CHECK missing
+      'redeem_undo' / 'earn_clawback' (lib/loyalty inserts both → would
+      fail); idempotency index had lost its kind filter (a 2nd redeem /
+      repeat undo on a sale would fail). 0092 restores all of it per
+      0028 (+ merge_in/out kinds); the block trigger lets FK cascades
+      through (trigger depth > 1). Nothing to backfill: 0 events, all
+      balances 0, no tenant has loyalty_enabled. Verified in a rolled-
+      back transaction: earn 120 / redeem 50 + 20 / undo 20 / clawback
+      10 → balance 60; UPDATE on the ledger blocked; duplicate earn on
+      the same sale refused. Cross-tenant referral guard NOT exercised
+      (only one tenant exists). loyalty_events stays RLS-on with no
+      policies — every read/write is the admin client after a guard.
+
+ 508. [UI] PRINT TAGS MENU OPENED OFF-SCREEN on /inventory (anchored
+      right-0, so a toolbar button at the left spilled under the
+      sidebar). PrintTagsMenu now picks the side on open: left-aligned
+      when there is room to the right, else right-aligned. Browser-
+      checked at 1015px: menu 348-654px, main content starts 221px.
+
+ 509. [UI] SIDEBAR: Inventory now has indented sub-items New item
+      (/inventory/new, all staff), Import (/inventory/import, owner /
+      manager / chain_admin — same as resolveImportRole) and Counts
+      (moved under it, same COUNT_ROLES). NavItem.child = indented,
+      16px icon; collapsed sidebar shows them as plain icons. Only the
+      most specific item highlights. nav.newItem / nav.importInventory
+      EN+ES. Browser-checked on /inventory/import.
+      Then (Eddy): Spot prices + eBay listings moved out of the Inventory
+      group to lead the records group, directly above Appraisals.
+
+ 510. SIDEBAR POS GROUP + SALE HISTORY PAGE. POS now links the /pos hub
+      with children New sale (/pos/sales/new), Layaway list
+      (/pos/layaways) and Sale history (/pos/sales); Consignors moved
+      under Inventory as a child (still gated on consignment_enabled).
+      NEW /pos/sales — there was no sales list (the hub shows the last
+      25, and the customer page's /pos/sales?customer= link was a 404).
+      GET-form filters in the URL: sale #, status, type, from / to (the
+      shop's calendar day via dayStartInTimezone, rule 18), customer
+      chip; 50 per page with exact count; has_retail gate; RLS client +
+      tenant filter. Hub "Today's sales" links to it. Smoke: added two
+      routes; sale routes 5/5 clean on a COLD server. NOTE: a warm dev
+      server 404'd every /pos/sales/* child after the new page.tsx
+      appeared — stale .next route cache, gone after deleting .next.
+
+ 511. LAYAWAY RECEIPT + PRINT POPUP. Layaways had no receipt. The
+      layaway's sale receipt (/api/print/sale/[saleId]/receipt, Letter +
+      Thermal) now carries the layaway: loadSaleReceiptData adds
+      `layaway` (number, schedule, first/final due, cancellation fee,
+      balance) when sale_kind='layaway'; header becomes "Layaway Receipt
+      / Recibo de apartado" + L-number (sale # kept small); a "Layaway
+      terms" block prints both languages incl. the refund policy (paid
+      minus fee — matches cancelLayawayAction; "refunded in full" at 0%).
+      Shared layawayTerms() feeds both formats; calendar dates print
+      without a timezone shift. PrintReceiptDialog takes layawayNumber.
+      Popup opens: right after creating a layaway (redirect now
+      /pos/layaways/[id]?print=1, param dropped on close) and after each
+      layaway payment; "Print receipt" button always on the layaway page.
+      5 new receipt tests (18 total). Browser-checked L-000001: dialog,
+      Letter page, Thermal text (40 cols). Also: Transfers is now a child
+      of Inventory in the sidebar.
+      Then (Eddy): the layaway receipt has the customer sign. Under the
+      terms: "I have read and understand the layaway terms … and I agree
+      to them" in EN + ES, then a Customer signature / Firma del cliente
+      line and a Date / Fecha line (Letter: side by side, kept on one
+      page; Thermal: full-width rule). Layaway receipts only — a plain
+      sale has no signature block (tested). Paper signature; no digital
+      capture.
+
+ 512. [UI] SIDEBAR: Online orders moved below Custom quotes. "Pawns" is
+      now a group HEADING (NavItem.heading — not a link, never active,
+      hidden when the sidebar is collapsed) over New pawn (/pawn/new),
+      Pawns (/pawn), Buy outright (/buy/new, active for /buy/*) and Loan
+      calculator. Sell metal stays top-level below the group. nav.pawn
+      (now unused) replaced by nav.pawns / nav.newPawn, EN + ES.
+      Then: "Repair" heading over New repair (/repair/new), Repairs
+      (/repair) and Custom quotes; Sell metal moved to lead the records
+      group, directly above Spot prices. nav.newRepair / nav.repairs.
+
+ 513. [UI] SIDEBAR: ONLINE ORDERS UNDER POS (aac09f7, 2026-11-22). Now the
+      last POS child after Sale history (child, 16px icon, same gate
+      has_retail && canSeeCounts). /pos/online-orders is a longer root
+      than /pos, so it alone lights up on its pages. tsc + lint clean;
+      not browser-checked.
+
+--- Session 60 (2026-11-21) — Dashboard metals, POS card payments end to end (machine + Stripe reader), sale_create fix, refunds (branch feature/sol-pawn-brief == main) ---
+
+ 480. DASHBOARD LIVE METALS — TROY OUNCE + DISPLAY PERCENT (patches/0083
+     APPLIED, no policy change). The strip now shows price_per_troy_oz
+     ("/oz t"), not per gram. settings.dashboard_spot_display_pct
+     (numeric(6,4), fraction, default 1, CHECK 0 < x <= 2) scales the
+     shown price; the widget shows "@ 90% of spot" when it is not 100%.
+     Edited on Spot prices → "Dashboard display percent" (owner /
+     chain_admin; saveDashboardDisplayPctAction, user client, audited).
+     DISPLAY ONLY — buy / sell / melt still use spot_price_overrides.
+     Verified in the browser: 90% → gold $3,185.10/oz t (= 90% of
+     $3,539), no console errors, reset to 100% after.
+
+ 481. DASHBOARD — METALS RIGHT RAIL + CALCULATOR POPUP. 100% spot shown
+     small under the adjusted price. On xl screens the dashboard is a
+     main column + an 18rem sticky right rail holding Live metals
+     (tiles stacked); below xl the widget stays on top. Clicking a metal
+     opens components/dashboard/MetalCalculator.tsx (portal to body —
+     the sticky rail trapped a fixed overlay under the cards): metal
+     tabs, pure spot per oz t, % of market (starts at the shop display
+     percent, not saved), unit oz t / g / dwt, a weight per purity row,
+     value per row + total. Pure math in lib/spot-prices/calculator.ts
+     (+5 tests). The feed stores purity rows (platinum_950 = 0.95 ×
+     spot), so the page passes pureOz = stored ÷ PURITY_MAP multiplier
+     (PURITY_MAP now exported from refresh.ts). 24K row = .999.
+     Verified in the browser: 1 oz t 14K + 2 oz t 18K at 90% = $6,635.63,
+     grams switch recalculates, Esc closes.
+     SEEN, NOT FIXED: phone width still overflows (the known top-bar
+     issue) and the sidebar logs a hydration mismatch at phone width.
+
+ 482. LIVE METALS AUTO-REFRESH. The dashboard used to show the price from
+     page load until a reload. Now: lib/spot-prices/strip.ts holds
+     loadMetalsStrip + loadDisplayPct (moved out of dashboard/page.tsx,
+     unchanged) and MetalStripItem / MetalsStripData. GET /api/spot/strip
+     (requireStaff, user client for the tenant's display percent, no-store)
+     returns the same data. components/dashboard/useLiveMetals.ts polls it
+     every 2 min while the tab is visible, stops when hidden, and reads at
+     once when the tab comes back; a failed read keeps the last numbers.
+     Reads saved prices only — never calls the provider (the cron does:
+     every 15 min weekdays 8:00-4:45 ET, hourly otherwise). lookup.ts
+     still caches 5 min in-process, so worst case ≈ refresh + 5 + 2 min.
+     Verified in the browser: display percent changed in a second tab,
+     dashboard tab updated 90% → 80% ($3,185.10 → $2,831.20) without a
+     reload; signed-out request → 401; percent restored to 90.
+
+ 483. [CRITICAL] EVERY COUNTER SALE AND LAYAWAY FAILED SINCE 0076
+     (2026-11-13) — FIXED (patches/0084 APPLIED, no policy change).
+     Eddy: Charge (cash and card) → "Something went wrong. Please retry."
+     Production log: "[pos.money] sale_create DELETE requires a WHERE
+     clause". ROOT CAUSE: Supabase loads pg_safeupdate for API
+     (PostgREST) requests; it refuses DELETE / UPDATE with no WHERE even
+     on a temp table. sale_create cleared AND priced its temp line table
+     that way (two statements). The 0076 dry run passed because the
+     Management API SQL session (scripts/apply-migration.mjs) does NOT
+     load safeupdate — a dry run there cannot catch this class of bug.
+     0084 = the live function body with those two statements given
+     WHERE true, nothing else. Proven through the API (service-role rpc,
+     same piece twice): before → "DELETE requires a WHERE clause", after
+     → duplicate_item (the intended refusal, rolled back, no sale).
+     Scanned all 119 live public functions: no other UPDATE/DELETE
+     without WHERE. A full Charge was NOT run (it would write a real
+     sale) — Eddy retries at the counter.
+     ALSO: createSaleAction returned 'validation_failed' / 'not_authorized'
+     but the keys are validationFailed / notAuthorized, so those showed the
+     generic message too. Renamed.
+     LESSON: test any new SQL function through supabase-js .rpc(), not
+     only through apply-migration.mjs.
+
+ 484. OUT OF STOCK — "ADD ANYWAY" FOR OWNER / CHAIN ADMIN / MANAGER
+     (OUT_OF_STOCK_ADD_ROLES in lib/pos/quick-sale.ts). In the "already in
+     cart, none in stock" popup, and on a product quick sale button with
+     zero stock (now tappable for those roles, asks first: "Out of
+     stock"), "Add anyway" adds unlinkedLine(): a custom line with the
+     item's name and price, NOT linked to inventory (each inventory row is
+     one piece; sale_create refuses a piece twice). Price: the scanned
+     item's list price, or the button's last unit / saved reference price
+     (product buttons now carry price). Clerks see the old OK-only popup.
+     No server change: any clerk can already type a custom line.
+     Verified in the browser as owner: double scan → Add anyway → 2 lines,
+     $400 total; zero-stock button enabled and asks; no console errors.
+
+ 485. CHARGE WITH CASH COMPLETES THE SALE; STAY ON NEW SALE. The Cash/Card
+     choice used to be UI-only (Charge made an open sale and redirected).
+     createSaleAction now takes the tender: cash → sale_add_payment +
+     sale_complete + afterSaleCompleted in the same request, then the form
+     remounts an empty cart (key) with a "Sale S-… completed" banner +
+     View sale / receipt link and router.refresh() (sold units leave the
+     picker). A refused step leaves the sale OPEN and redirects to its page.
+     Proven in production: S-000003 $10 completed with a $10 cash payment.
+
+ 486. EXTERNAL CARD (card run on the shop's own machine) — patches/0085
+     APPLIED, no policy change. sale_payments + card_entry
+     ('reader'|'external'), card_last4, card_brand, card_auth_code, with
+     CHECKs (4 digits; visa/mastercard/amex/discover/other; code A-Z0-9 ≤12;
+     details only on card rows; external needs last4). New
+     sale_add_external_card_payment() — same row lock / cents / balance rule
+     (pending cards included) as sale_add_payment, records the tender as
+     SETTLED (succeeded, counted). service_role only (anon → permission
+     denied, checked through the API). sale_add_payment unchanged.
+     App: lib/pos/card.ts (schema, cleaners — last-4 keeps the LAST four so
+     a pasted masked number works — cardSummary; 6 tests);
+     components/pos/CardSlipFields + CardChargeDialog. Charge with Card now
+     asks for the slip, then saves + pays + completes and stays on New sale
+     (slip checked BEFORE the sale is written). Sale page Add payment gains
+     "Card (card machine)"; the reader option is labelled "Card (Stripe
+     reader)". Payment rows show brand •••• last4 · Auth; receipt prints it
+     bilingual. Also fixed: AddPaymentDialog showed raw error codes; three
+     'validation_failed' codes on the sale page → validationFailed.
+     Verified: 0085 dry run (bad last4 refused, $200 paid, sale completes,
+     brand/auth normalized, rolled back); both dialogs driven in the browser
+     WITHOUT submitting (no live payment written). A real external-card
+     sale has NOT been run.
+
+ 487. STRIPE TERMINAL READER AT THE COUNTER (server-driven, Luna Azul
+     pattern on Pawn's Connect account) — patches/0086 APPLIED, no policy
+     change. settings + stripe_terminal_location_id / _reader_id /
+     _reader_label (one reader per shop — Pawn runs one open register per
+     shop; settings RLS owner-write unchanged). sale_add_payment: only
+     change, card rows get card_entry='reader'. New service_role functions
+     sale_card_payment_failed (pending → failed, frees the balance) and
+     sale_card_payment_set_details (brand + last4 from Stripe). Dry run:
+     fail once/again, freed balance re-used, settle, details normalized,
+     bad reader id refused; anon refused through the API.
+     Code: lib/stripe/terminal.ts + location/register/get/delete reader,
+     process_payment_intent, cancel_action, retrieve PI (expand
+     latest_charge), simulate tap (test key only). lib/pos/reader.ts (pure:
+     readerChargeState, mapStripeBrand, pairReaderSchema; 11 tests).
+     lib/pos/reader-server.ts pollReaderCharge (approved → the SAME
+     idempotent settle the webhook uses → details → sale_complete →
+     afterSaleCompleted). New sale: sale-core.ts (shared counter context +
+     cart parse + sale_create — actions.ts refactored onto it);
+     reader-actions.ts start / status / retry / cancel / simulate. Start
+     checks reader + Connect account BEFORE writing a sale. Cancel leaves
+     the sale OPEN (void keeps its own role gate). CardChargeDialog: Card
+     reader | Card machine; polls every 1.5 s, 120 s timeout → Keep waiting
+     / Cancel; closing after the charge started CANCELS it; approved →
+     empty cart + banner. Sale page: "Card (Stripe reader)" now goes to the
+     paired reader (no typed reader id; old stub banner + its strings
+     removed); pending reader rows get Check reader / Cancel card charge.
+     /settings/card-reader (owner/chain_admin pair/replace/remove; manager
+     views; live online/offline) + Settings hub card + smoke route.
+     Audit actions card_present_failed, terminal_reader_pair/_remove.
+     VERIFIED without Stripe: settings page + hub + New sale + sale page
+     smoke clean; no-Stripe notice + pairing disabled; Card = machine only;
+     sale-page reader option → "No card reader is paired", 0 rows written;
+     production build green; 816 tests.
+     NOT VERIFIED — needs Stripe (item 454): pairing, a reader charge,
+     decline, cancel, simulate tap. TEST PLAN once STRIPE_SECRET_KEY is a
+     sk_test_ key and the shop is connected: Settings → Card reader → code
+     simulated-wpe → New sale → Card → Card reader → Send → "Simulate card
+     tap" → expect completed sale, payment 'reader' succeeded with brand +
+     last4. Also try Cancel mid-charge (sale stays open, row failed).
+
+ 488. STRIPE KEY SET — RMS ACCOUNT, LIVE (Eddy's call, rule 17 exception,
+     double-confirmed after the lane + live-mode warnings). Copied
+     Luna Azul's STRIPE_SECRET_KEY (== its STRIPE_PLATFORM_SECRET_KEY,
+     sk_live) READ-ONLY from LunaAzul Web Sass/src/.env.local into Pawn
+     .env.local and Vercel Production (sensitive), never printed; nothing
+     in the Luna Azul folder changed. Production redeployed. Read-only
+     Stripe check: acct_1RH52CGLqS4QmOl6 "Rodriguez Multi Service LLC", US,
+     charges_enabled, Connect platform (0 connected accounts), Terminal
+     available. CLAUDE.md rule 17 carries the exception note.
+     NOT DONE: Pawn's own webhook endpoint + STRIPE_WEBHOOK_SECRET; the
+     shop's Connect onboarding; pairing a reader. Simulate-tap does not
+     work on a live key — the first real reader charge is the test.
+     Seen, not touched: Luna Azul's NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is
+     a TEST key while its secret key is LIVE (Luna Azul's to check).
+
+ 489. STRIPE CHARGE MODE PER SHOP — patches/0087 APPLIED, no policy
+     change. Connect onboarding failed in production: "You can only create
+     new accounts if you've signed up for Connect" — the RMS account is NOT
+     a Connect platform (item 488's "Connect platform: yes" was WRONG:
+     GET /v1/accounts succeeds without Connect). Eddy wants one test on the
+     RMS account, then the company's own credentials.
+     settings.stripe_charge_mode: connect (default) | own_key (shop's own
+     secret key, Vault kind stripe_own_secret_key) | platform (RMS account
+     directly). Trigger settings_guard_stripe_platform_mode refuses moving
+     INTO 'platform' unless auth.jwt() role = service_role (the app writes
+     it only after requireSuperAdmin) — dry run: owner→platform refused,
+     owner→own_key ok, service→platform ok, leaving platform ok.
+     lib/stripe/terminal.ts: getStripeAccountId → stripeTarget() (mode,
+     accountId | apiKey) used by EVERY terminal call (PI, cancel, refund,
+     location, reader, process, retrieve, simulate); stripeFetch takes
+     apiKey; tenantStripeReady / tenantStripeTestMode (per shop key) /
+     stripeAccountInfo / verifyStripeKey. Card reader page: Stripe account
+     section (current account name + id + LIVE/TEST; radio modes; own key
+     checked with Stripe before saving; RMS option superadmin-only);
+     changing account clears the reader + location. setChargeModeAction
+     audited (stripe_charge_mode_change). payment-link.ts (online store /
+     pay links) is STILL Connect-only.
+     Eddy's shop set to 'platform' on his request (service role + audit
+     row). Page verified: "Charging on: Rodriguez Multi Service LLC
+     (acct_1RH52CGLqS4QmOl6) LIVE". 816 tests, lint, build green.
+     NEXT (Eddy): pair the physical reader (Settings → Card reader, code
+     from the reader), then New sale → Card → Card reader with his own card.
+
+ 490. INTEGRATIONS + LUNA AZUL'S RMS READER IN PAWN.
+     - Integrations: Connect start maps Stripe's "signed up for Connect"
+       refusal to flag connect_not_enabled (clear EN/ES banner); the
+       Stripe card shows the shop's charge mode and links to Card reader
+       when the shop is not on Connect (af61233).
+     - The RMS PLATFORM account (acct_1RH52…) has NO readers. Read-only
+       look at Luna Azul: one reader, "Main Terminal" WisePOS E
+       tmr_GRw2qghwAC56m4, on the RMS SHOP's own Stripe account
+       acct_1Q0xJ9Hwkn4Ub4Te (Luna Azul tenant_secrets.stripe_secret_key of
+       "Rodriguez Multi Service", sk_live, a DIFFERENT key).
+     - On Eddy's double confirmation: that key copied READ-ONLY into Pawn
+       Vault (stripe_own_secret_key, read back identical), shop mode →
+       own_key, reader linked with its location tml_FupJNQSSyqGuF1; two
+       audit rows. CLAUDE.md rule 17 has the second exception note.
+     - New: "Readers on this Stripe account" + Use this reader
+       (adoptReaderAction, listTerminalReaders) to reuse a reader already
+       registered on the account — no pairing code.
+     - FIX before shipping: saving own_key again with a blank key would
+       have cleared the paired reader (changed = own_key always true). Now
+       the reader is cleared only when the Stripe ACCOUNT changes (other
+       mode, or a new key on a different account); the save button is off
+       when nothing changed.
+     Verified: Card reader page "Charging on: Rodriguez Multi Service LLC
+     (acct_1Q0xJ9Hwkn4Ub4Te) LIVE", Main Terminal paired (offline at the
+     time); Card reader + POS new sale smoke clean; 816 tests.
+     NEXT (Eddy): power the WisePOS E on (Wi-Fi), New sale → Card → Card
+     reader → Send, tap his own card. The reader is SHARED with Luna Azul:
+     one charge at a time.
+
+ 491. FIRST REAL READER CHARGE — WORKS END TO END (2026-11-21 17:17).
+     S-000007 $5.00 completed: sale_payments card/reader/succeeded, Visa
+     0379, pi_3UeHupHwkn4Ub4Te19gbnd0A succeeded + captured on
+     acct_1Q0xJ9Hwkn4Ub4Te (Main Terminal). Audit: sale_create →
+     sale_payment_add → card_present_succeeded → sale_complete (27 s).
+     Also live: S-000006 $5 external card (Visa 8898) completed. NOT
+     refunded (Eddy's own card). Leftover: S-000005 $10 OPEN, no payment
+     (16:32) — Eddy to void or finish.
+
+ 492. CARD REFUNDS NEVER FAIL SILENTLY + VOID REASON ON THE SALE.
+     Before: void and return refunded Stripe best effort — a refused refund
+     was only console.error'd and the sale still showed voided / returned.
+     Now (lib/pos/card-refund.ts pure planner + 5 tests;
+     card-refund-server.ts loadRefundableCharges + runCardRefunds):
+     - remaining per charge = Stripe amount - amount_refunded (partial
+       returns count); newest charge first; idempotency key per
+       void/return + payment + cents, so a retry never double-refunds.
+     - VOID refunds FIRST; any failure: sale NOT voided, error
+       cardRefundFailed with Stripe's message, audit card_refund_failed;
+       pressing Void again retries only what is left. Charges already at
+       zero are marked refunded.
+     - RETURN with method card refunds BEFORE writing the return (id made
+       up front = idempotency key). Fails: nothing recorded. Stripe covers
+       less than the return: cardRefundShort (says how much it can).
+       Card-machine-only sale: recorded as a manual refund
+       (card_refund_manual in audit). Fails part-way: return recorded with
+       refunded_total = what Stripe refunded + cardRefundPartial warning.
+     - Void popup + return form say card-machine payments are refunded on
+       the machine. Void popup now TRANSLATES errors (showed raw codes).
+     patches/0088 APPLIED (no policy change): sales.void_reason /
+     voided_at / voided_by, write-once trigger, backfilled from audit_log
+     (S-000007). Sale page red banner: Voided by WHO, time, reason.
+     ClientTime moved to components/ClientTime.tsx (shared with the laser
+     panel) so the stamp never causes a hydration mismatch.
+     Eddy voided S-000007 on the OLD code: Stripe refund succeeded (row
+     shows Refunded). The new refund paths are NOT yet exercised live.
+
+ 493. RMS CREDENTIALS REMOVED (Eddy: "done with the rms credentials").
+     - Shop: Vault stripe_own_secret_key cleared (set_tenant_secret ''),
+       reads back none; stripe_charge_mode → connect; reader unlinked
+       (Main Terminal stays registered on Stripe for Luna Azul). 2 audit
+       rows.
+     - Platform: STRIPE_SECRET_KEY removed from Vercel Production (env ls
+       shows none) and from Pawn .env.local. Production redeployed.
+     - Result: no Stripe in Pawn again. Card = card machine; reader and
+       online checkout unavailable until the pawn company's own key.
+       Voiding a reader-card sale now refuses with cardRefundFailed
+       (Stripe unreachable) instead of voiding without a refund.
+     - FIX: Remove reader / replacing a reader used to DELETE the reader on
+       Stripe — wrong once readers can be shared. Now unlink-only;
+       deleteTerminalReader removed; confirm text says so.
+     - CLAUDE.md: both rule-17 exception notes replaced by a dated history
+       note; rule 17 back in full force.
+     NEXT: when the pawn company's Stripe key arrives — Settings → Card
+     reader → The shop's own Stripe key, then pair or link its reader.
+
+
+ 494. CHECKPOINT GATE (Session 60). Lane: only Pawn files changed; Luna
+     Azul was READ (env + DB + Stripe) on Eddy's double confirmations, two
+     keys copied then removed — nothing written there; its two issues are
+     in OPEN ISSUES / the handoff. i18n: EN/ES identical, no orphans
+     (scanned pos.card, cardReader; errAuthCode + old pos.terminal stub
+     strings removed). Dead code: deleteTerminalReader, old stub banner,
+     duplicate test-key check, local fmtUsd removed. Duplicates:
+     ClientTime shared; sale-core.ts shared by Charge + reader. tsc, lint,
+     821 tests, production build green.
+
+--- Session 59 (2026-11-13..21) — PLAN Phase 4 product feeds, POS "Ledger" new sale, quick sale buttons (branch feature/sol-pawn-brief == main) ---
+
+ 476. PHASE 4 — PRODUCT FEEDS (26a3ca8, patches/0080 APPLIED, no
+     policy change). settings.product_feed_enabled (off). Views:
+     public_catalog_items gains condition; public_store_settings gains
+     feed_enabled (flag AND public catalog AND has_retail);
+     public_sold_items (sold in 90 days, or available but reserved).
+     src/lib/store/feed.ts (pure: googleCondition, googleCategory,
+     feedTitle 150 chars, feedEligible = photo + price > 0,
+     buildFeedXml RSS 2.0 g: namespace, FEED_MAX_ITEMS 5000) +
+     feed-data.ts loadFeedItems. GET /s/<slug>/feeds/products.xml (404
+     unless enabled, revalidate 3600). Stable image route
+     /s/<slug>/img/<photoId> (photo must be in the tenant's public
+     catalog; streams bytes, public max-age 3600) replaces
+     catalog/[sku]/image. A sold or reserved item page now renders
+     SoldItemContent (noindex) with 4 similar items instead of a 404.
+     Shared CatalogItemCard. Settings → Online store → FeedCard (URL +
+     counts). Verified: feed fetched + XML parsed with the flag on for
+     eddys (restored after), image route 200/404, sold view dry-run.
+     NOT done: submitting the feed to Google Merchant / Meta.
+
+ 477. POS NEW SALE — "LEDGER" LAYOUT + QUICK SALE BUTTONS (871762d,
+     patches/0081 APPLIED; its two RLS policies shown to Eddy and
+     approved: quick_sale_buttons_staff_read, _manager_write; anon
+     revoked). Cart.tsx restyled to Eddy's pasted Ledger spec in the
+     LOCKED Luna Azul tokens (gold action, blue focus, JetBrains Mono
+     numbers): 52px search + gold Add, Custom line, Clear; ledger table
+     #/SKU/Item/Qty/Unit/Amount; 4-zone checkout bar (Total due 40px,
+     Charge, Save as layaway). Totals logic unchanged. Quick sale row
+     (empty until someone adds buttons; "Edit buttons" for
+     owner/chain_admin/manager). /settings/quick-sale CRUD (max 24,
+     reorder, soft delete, audited). lib/pos/quick-sale.ts (pure) +
+     quick-sale-server.ts loader. Hub card in Settings.
+     The pasted spec was cut off at "RULES - Do not change calculation
+     logic for…" — Eddy was asked for the rest; nothing in the math
+     was changed.
+     FIX: dev 404s on /pos/sales/* + build "Declaration or statement
+     expected" — .next/dev/types/routes.d.ts half-written by a dev
+     server killed mid-write; restarting dev regenerated it.
+     FIX: table widened the page on a phone → [contain:inline-size].
+
+ 478. QUICK SALE FROM INVENTORY + "ALREADY IN CART" POPUP (e810103,
+     patches/0082 APPLIED, no policy change). quick_sale_buttons gains
+     inventory_item_id (SET NULL), match_description (CHECK =
+     lower(btrim())) and match_category, both-or-neither. Eddy chose
+     "next unit of a product": a tap adds the OLDEST available,
+     unreserved unit with the same description + category as a normal
+     inventory line (sold like a scan, at that unit's own price). Pill
+     shows next price + "N left", disabled at none. Settings form: From
+     inventory | Fixed price. The inline "Already in cart" text is now a
+     Yes/No popup on every add path (scan/search → next unit of the
+     same product, or OK when none is left; plain button → qty+1;
+     product button → next unit). Verified in the browser: double scan
+     of INV-000001 popup + settings render. 792 tests, lint, build.
+     NOT driven: a real product-button tap (no button in live data).
+
+ 479. CHECKPOINT GATE. No orphan i18n keys among the new quickSale /
+     pos.sale keys (each grepped to a reference); EN + ES identical;
+     earlier orphans (pos.sale enterHint/itemOne/itemMany/eachSuffix/
+     addItem, pos.cart.empty) removed in 871762d. Rotation: sessions
+     33-42 moved to Progress_archive.txt.
+
+--- Session 58 (2026-11-13) — PLAN-2026-11-13: item tags, count sessions, sale money in the DB, online store (branch feature/sol-pawn-brief == main) ---
+
+ 467. COMPETITOR RESEARCH + PLAN (06407c3). Wrote
+     PLAN-2026-11-13-tags-rfid-storefront.md for items 1-7 except 6:
+     barcode tags, counts + RFID, online store, product feeds, wish
+     list, PIN + commissions. Eddy approved the four recommendations:
+     tax only in-state, per-shop online card limit (default $2,500),
+     commission on the sale total, layaway commission on completion.
+     Build order 1, 2a, 0, 3, 4, 2b (when hardware arrives), 5, 7.
+
+ 468. SIDEBAR — POS OPENS A NEW SALE (bc2c312). POS links straight to
+     /pos/sales/new, sits first in the modules group and stays
+     highlighted anywhere under /pos (new optional activePrefix on nav
+     items).
+
+ 469. PHASE 1 — ITEM TAGS WITH BARCODE (874e6fe, patches/0074 APPLIED,
+     two RLS policies approved: staff read, owner write on
+     label_templates). Price tags, pawn collateral labels and repair
+     envelope labels as PDF (any printer) or ZPL (Zebra) from ONE
+     layout. lib/labels: Code 128 B/C encoder checked against
+     JsBarcode's table, bars snapped to whole printer dots, scan parser,
+     cost code. GET /api/print/tags (ids / loan / ticket, pdf|zpl,
+     test=1 skips the tag_printed_at stamp; audited tag_print). Print
+     buttons on item, pawn ticket, repair ticket; inventory list row
+     selection + bulk print + "Needs tag" filter; scan-to-open in the
+     search box; POS scan bar reads number-only tags and asks the server
+     for items outside the 500 loaded. Settings → Tags & labels.
+
+ 470. PHASE 2a — COUNT SESSIONS (63e4b5a, patches/0075 APPLIED, four
+     staff-read RLS policies approved). Case count, vault audit and
+     transfer scan check share one engine: count_start / count_add_reads
+     (outcomes expected / repeat / unexpected / unknown) /
+     count_findings / count_close / count_cancel /
+     count_resolve_exception — all SECURITY DEFINER, service_role only.
+     Exceptions: missing, missing_pledge (needs a note to close — a
+     pledge is not the shop's property), unexpected, held_in_sales,
+     left_during_count. Scan page queues reads and retries offline,
+     beeps per outcome. Reports → Counts (CSV + PDF). Dashboard pledge
+     alert. Shared categoryLabel / locationLabel in
+     lib/inventory/labels.ts. dayStartInTimezone() in
+     lib/jurisdictions/rules.ts.
+     FIX while building: count_close first used a temp table — rewritten
+     to total from the inserted exceptions.
+
+ 471. PHASE 0 — SALE MONEY IN THE DATABASE (b2aac9e, patches/0076
+     APPLIED, no RLS change). Closes REVIEW-2026-11-11 items 10, 11, 12,
+     13, 16.
+     - 13 [BUG]: sale_create / sale_add_payment / sale_complete /
+       layaway_create / layaway_add_payment row-lock the pieces and the
+       sale, so two clerks cannot sell one piece and a payment cannot
+       exceed the balance (payment_exceeds_balance). A pending card
+       still reserves its amount. sale_complete is idempotent.
+     - 12 [BUG]: an online layaway payoff now completes its sale (items
+       sold, layaway completed) instead of leaving it open.
+     - 11 [BUG]: loan_apply_online_payment refuses a closed loan
+       (loan_closed) and a loan that changed under it (loan_changed;
+       the webhook retries 3x). Excess is logged as
+       stripe_payment_needs_refund — there is no refund UI.
+     - 16: every charged amount is cents (ROUND(x,2) in SQL, r2() in
+       lib/pos/cart.ts, half away from zero).
+     - 10: report days are the SHOP's day. lib/reports/range.ts (pure:
+       buildRange, reportBounds, reportToday) + shop-range.ts; all nine
+       report pages, form-1099 and the PDF "printed on" use the shop's
+       timezone.
+     - stripe_session_id on loan_events + layaway_payments with unique
+       partial indexes = webhook idempotency.
+     - lib/pos/money.ts: RPC wrappers, posErrorKey → t.pos.errors, and
+       afterSaleCompleted (ends eBay listings, loyalty earn, referral) —
+       every counter sale now ends the eBay listing too.
+
+ 472. PHASE 3 PART 1 — ONLINE ORDERS (633375d, patches/0077 + 0078
+     APPLIED; 0078's two staff-read policies approved). sales.channel
+     (counter/online), inventory_items.reserved_order_id, store settings
+     columns, online_orders (WO-######, public_token) +
+     online_order_items. public_catalog_items now hides reserved pieces;
+     new view public_store_settings. Functions: online_order_reserve
+     (checkout on, ≤10 items, banned contact, ≤2 pending per email, row
+     locks, consignment floor, tax on pickup / in-state ship only, free-
+     ship threshold, total ≤ online_order_max), attach_session, release,
+     sweep (5-min grace), online_order_paid (amount check, re-checks
+     pieces, matches or creates the customer, sale with no register +
+     shipping line, sale_complete → applied / duplicate /
+     amount_mismatch / needs_refund), online_order_advance. Stripe
+     Checkout with expires_at ≥ 30 min; webhook handleOnlineOrderSession
+     for completed + expired; cron release-online-orders */10. Public
+     cart (localStorage, max 10), checkout, order status page, policies
+     page. Bilingual confirmation / ready / shipped templates.
+     DESIGN: stripe_payment_links can't hold a guest (customer_id NOT
+     NULL), so the online_orders row is the trusted record.
+
+ 473. PHASE 3 PART 2 — STAFF QUEUE + SETTINGS (bf00aae). POS → Online
+     orders queue and detail: picking → ready (customer notified) →
+     handover (name + ID checked + signature photo to
+     customer-documents/<tenant>/online-orders/<order>/) or ship
+     (carrier + tracking, customer notified) → completed. Settings →
+     Online store (owner edits, manager views). Dashboard banner for
+     paid + needs_refund. Daily register tile "Online store (not in
+     drawer)".
+
+ 474. PHASE 3 PART 3 — CUSTOM DOMAINS, SEO, BRANDING (b4be295,
+     patches/0079 APPLIED, no policy change). tenants.custom_domain +
+     token + verified_at, view public_custom_domains. TXT record
+     _solpawn.<domain>; proxy.ts rewrites a verified domain to
+     /s/<slug>. Per-shop sitemap, JSON-LD Product + canonical on item
+     pages, stable OG image route (302 to a fresh signed URL). Tagline +
+     accent band on the landing page — the accent is ONLY a thin band so
+     the locked design system holds. Hero image NOT built.
+     FIX: JSON-LD '<' escape had come out as a literal '<'.
+
+ 475. CHECKPOINT GATE. Lint clean on every file changed this session;
+     no new hardcoded strings; one orphan i18n key removed
+     (templatesTitle, tags settings page, EN + ES); tsc clean.
+
+--- Session 57 (2026-11-09) — Laser nameplate orders: Sol Pawn → orocut.com → OroCut (branch feature/sol-pawn-brief) ---
+
+ 455. LASER ORDERS — SCHEMA (patches/0070, APPLIED). Enum
+     laser_order_status (new / received / cut / done / rejected /
+     cancelled). Table laser_orders: one row per order SENT (created only
+     once orocut.com answered with an order_id) — tenant_id,
+     repair_ticket_id (RESTRICT), external_id = ticket_number,
+     orocut_order_id (UNIQUE — the webhook resolves the tenant from it),
+     the payload as sent (text, text2, style, quantity, metal,
+     thickness_mm, chain_length_in, height_mm, customer_name, due_at,
+     notes, picture_url), what came back (reject_reason, cut_details
+     JSONB, cut_count, status_history JSONB [{status, at, via, by,
+     reason}], remote_updated_at, last_synced_at, last_sync_error),
+     sent_by/sent_at/finished_at, soft-delete. Partial unique index: ONE
+     open order per ticket. Trigger: the payload as sent is immutable
+     and a final status never moves. RLS mirrors repair_tickets.
+     settings.orocut_style_names TEXT[] (the shop's OroCut style names,
+     typed by hand). The order token + webhook secret are vault kinds
+     orocut_order_token / orocut_webhook_secret — never a column.
+     DESIGN: the order hangs off the REPAIR TICKET, not the custom quote
+     — the quote is terminal once converted; the ticket is the thing
+     being made (number, due date, customer).
+
+ 456. LIB src/lib/orocut. status.ts (statuses, open set). merge.ts
+     (PURE): mergeRemoteStatus(row, remote, via) — a remote observation
+     counts only when NEWER than remote_updated_at (webhook retries and
+     stale polls change nothing), same status again is a no-op except
+     `cut` which bumps cut_count, rejected keeps the reason, final
+     stamps finished_at; 10 tests. signature.ts: X-OroCut-Signature
+     sha256=<hex|base64 HMAC> constant-time; 3 tests. client.ts
+     (server-only): createOrder (409 → conflict + existing order_id),
+     getOrder (tolerant parser incl. history), cancelOrder (409 →
+     refused + current status), probeToken (GET ?external_id=… — 401 vs
+     404 tells a bad token from a good one); base URL OROCUT_API_BASE
+     (platform env, mock/staging) or https://orocut.com; 15 s timeout;
+     the token never logs. sync.ts: applyRemoteStatus (merge + update +
+     audit laser_order_status/cancel + a "Laser: …" note on the ticket
+     timeline) and syncLaserOrder (GET + apply; errors land in
+     last_sync_error, never thrown).
+
+ 457. SEND TO LASER — UI + ACTIONS + ROUTES. LaserOrderPanel on the ticket
+     (under the tracking link): hidden unless the token is in the vault
+     (owners see a one-line "Connect OroCut" hint); Send to laser opens
+     an inline form (name, second line, style from the shop's list or
+     free text, qty, metal, thickness, letter height, chain length,
+     customer + due prefilled from the ticket, notes, https picture
+     link); an open order shows status badge, external id, cut count +
+     last cut size/minutes, history, Check status, Cancel order; earlier
+     orders fold under <details>; the panel re-polls every 60 s while
+     an order is open and the tab is visible. laser-actions.ts
+     (async-only 'use server'): sendToLaserAction (zod → STAFF repair
+     roles → ticket not closed → no open order → token → POST →
+     insert; 409 with an unknown order_id is ADOPTED then synced;
+     callback_url only when the webhook secret is saved AND APP_URL is
+     https), cancelLaserOrderAction (POST /cancel; 409 → sync + error
+     cancel_refused with the real status), refreshLaserOrderAction.
+     /api/webhooks/orocut: resolve row by order_id → tenant's webhook
+     secret → verify → merge; unknown order 404 (orocut.com retries),
+     bad signature 401. /api/cron/sync-laser-orders (*/5, CRON_SECRET):
+     open orders not checked in 4 min, 100 per run, one token lookup per
+     tenant. /settings/integrations/orocut (owner/chain_admin): order
+     token + webhook secret (write-only, format-checked, clear checkbox),
+     style names one per line (dedup, ≤100, ≤80 chars), webhook URL
+     shown, Test token. Integrations index card (open orders + style
+     count). Audit: laser_order_send / _cancel / _status,
+     orocut_settings. i18n repair.laser.* + orocut.* EN+ES.
+
+ 458. LIVE API CHECK. Eddy said the orders API is live (Tocoloro
+     session); the two handoff .md files are not on this disk, so the
+     contract was read from Para Cuba Solutions src/lib/licensing/
+     {orders,orders-api}.ts (read-only, other lane). Differences from
+     the spec that changed the build: (1) webhooks are signed with a
+     SEPARATE whsec_+48hex secret issued beside the token, not the token
+     → second vault kind + settings field; without it we send no
+     callback_url and rely on polling. (2) token is ord_+40hex → regex
+     field check. (3) envelope {ok, …}; 409 duplicate_external_id
+     carries order_id + status; cancel 409 invalid_transition carries
+     status; GET returns orderJson + history [{status, by, reason,
+     details, at}] — all already parsed. (4) create body is .strict():
+     we send only known keys and omit empties. (5) callback host must
+     be https, non-private, with a dot — Vercel prod URL qualifies.
+
+ 459. VERIFIED. tsc --noEmit, eslint, vitest 669/669 (34 files, +14),
+     next build. Headless drive (scratchpad drive-laser.mjs + orocut-
+     mock.mjs, dev on :3060 with OROCUT_API_BASE=http://localhost:4100,
+     live Supabase): token format rejected → save → Connected → Test
+     token OK → ticket RT-000002 Send to laser → row inserted (status
+     new) → mock pushed `received` with a VALID signature → 200 +
+     panel "At the laser" → forged signature → 401 → mock moved to
+     `cut` with details → Check status → "Cut" + "31.2×8 mm" → Cancel →
+     mock sees cancelled, Send button back → 4 timeline notes, 5 audit
+     rows. Test rows, notes, token and styles cleaned up afterwards
+     (audit rows stay — never deletable). Also applied patches/0069 (S56
+     left it unapplied with database.ts hand-edited; db:types for 0070
+     erased those edits, and the correct fix is the migration, not more
+     hand edits — additive columns, inert until Stripe is configured).
+     LESSON (drive scripts): CSS `uppercase` reaches innerText — match
+     badges in CAPS; and never clean up before the action's own insert
+     has been observed (run 1 deleted rows the insert had not written
+     yet, leaving a stale open order for run 2).
+
+ 460. NOT VERIFIED / WHAT EDDY DOES. Nothing has touched the real
+     orocut.com. To go live: (1) orocut.com/account → "Sol Pawn
+     connection" → create an order token; copy the ord_… token AND the
+     whsec_… webhook secret (both shown once). (2) Sol Pawn → Settings →
+     Integrations → OroCut: paste both, type the OroCut style names one
+     per line, Save, Test token → "accepted". (3) Open a nameplate
+     repair ticket → Send to laser → fill the name/style → within ~15 s
+     the Orders button lights up in OroCut on the laser PC and the
+     panel reads "At the laser". (4) Operator Make → Insert → Send on
+     the laser → panel reads "Cut" with size/minutes; Done → "Done".
+     Production needs this branch on main: Stripe Connect (S56) is on
+     the same branch and waits on item 454 + "go"; if the laser work
+     should go live first, cherry-pick the S57 commit onto main (it
+     touches settings/integrations/{page,content} that S56 also
+     changed — expect a small conflict there).
+
+ 461. FIRST REAL ORDER + TWO PRODUCTION FIXES (2026-11-09/10). Eddy had
+     already saved the orocut.com token + webhook secret + style "NP-1"
+     in production. On "create sample order and send it to the laser
+     printer": created ticket RT-000003 (Nameplate: SAMPLE, customer
+     Rodriguez, Eddy — rows like the quote→ticket conversion writes,
+     scratchpad sample-laser-order-prod.mjs), then drove PRODUCTION:
+     Test token → "accepted the token"; Send to laser (SAMPLE, NP-1,
+     14k yellow gold, 18in) → SENT → orocut order c748d97b… → 6 s later
+     "At the laser" (OroCut machine "Main" pulled it). The order is
+     still open there on purpose — Eddy's sample.
+     FOUND: (a) React #418 on the ticket page. The panel's
+     shortDateTime stamps were one source (SSR UTC vs browser local);
+     fixed with ClientTime (renders only after mount, via a
+     useSyncExternalStore mounted flag). Re-checked after deploy: #418
+     STILL fires — TimelinePanel / TimerPanel / the "Opened" date on
+     the same page have had the identical bug since they were written;
+     it only shows in production because dev and browser share a
+     timezone (see OPEN ISSUES). The whole-app fix is still the
+     tenant-timezone formatter. (b) NEXT_PUBLIC_APP_URL in Vercel
+     Production was http://localhost:3060 (tracking links sent to
+     customers said localhost; and orocutCallbackUrl() sends no
+     callback_url without https, so RT-000003's status came by POLL,
+     not webhook). Set Production to https://pawn-three.vercel.app via
+     `vercel env add … production --force`; build-time var, so it takes
+     effect from the next deploy. The webhook path has therefore NOT
+     yet been exercised against the real orocut.com — the next order
+     sent after this deploy will carry callback_url; check its
+     status_history for via "webhook". → Confirmed, item 463.
+
+ 462. NAMEPLATE ITEM-TYPE CHIP (2026-11-10, commit 6dd07a3, on main +
+     deployed). Walking Eddy through a manual order exposed that the
+     repair intake form had no "Nameplate" item type — the sample
+     script had written item_type='nameplate' straight to the DB.
+     Added to ITEM_TYPES in src/lib/repair/line-items.ts (between
+     Pendant and Chain), to repair.new_.itemTypes in en.ts / es.ts
+     ("Placa de nombre"), and to line-items.test.ts. No migration:
+     repair_ticket_line_items.item_type is free text (validator
+     z.string max 40). The chip's English label is what lands in the
+     stored title ("Nameplate · 14k · 18\"").
+
+ 463. WEBHOOK PATH CONFIRMED AGAINST THE REAL OROCUT.COM (2026-11-10).
+     Eddy created RT-000004 by hand (Nameplate, Custom, "Eddy model
+     np-2") and sent it: text "Eddy", style NP-1, 14K → orocut order
+     79b5d776… at 17:01:13 UTC → "received" at 17:01:24 UTC with
+     status_history via "webhook" (signature verified, applyRemoteStatus
+     ran). That is the first order sent after the APP_URL fix, so it
+     carried callback_url. Both status paths now proven live: webhook
+     (RT-000004) and poll (RT-000003). Both orders left open at the
+     laser PC on purpose. Told Eddy how to add more styles: Settings →
+     Integrations → OroCut → Styles, one name per line (only NP-1 is
+     saved); the cut design itself lives in OroCut on the laser PC.
+
+ 464. NEW REPAIR TICKET — "SIMPLE" VIEW (2026-11-10). Eddy's spec: a
+     second view next to the existing one ("Classic"), both opening the
+     exact same ticket, switch top-right, remembered per browser, no
+     data lost on switch, no new routes / schema.
+     HOW: form.tsx stays the single owner of all state and renders the
+     hidden inputs for BOTH views (li_<n>_*, promised_date, assigned_to,
+     notes_internal, stone_<n>_* when a stone-setting/custom item exists,
+     the intake_files input). Classic's visible promised-date / technician
+     / notes controls became controlled + unnamed; StoneRowEditor inputs
+     lost their names (values flow through the hidden set). The customer
+     is held as the full PickerCustomerResult so whichever picker instance
+     mounts gets initialCustomer. View choice = useSyncExternalStore over
+     localStorage 'pawn.repair.newView' (server snapshot 'classic') — no
+     mount effect, no hydration mismatch (proved at 1366 + 390px).
+     "Nothing preselected" in Simple = LineItem.service_touched flag:
+     Classic still starts at 'repair' as before; Simple shows no service
+     until clicked and will not open the ticket until every built item
+     has one (bottom-bar hint t.repair.new_.simple.pickService). The
+     stored service_type is never blank.
+     NEW: src/app/(staff)/repair/new/simple-view.tsx (3 cards + fixed
+     bottom bar measured against <main> via ResizeObserver so it never
+     covers the sidebar); src/lib/repair/simple-intake.ts (+7 tests:
+     local-date ready-by chips, metal labels, size-field rule, decimal
+     sanitizer, "14k Ring · Sizing" heading); i18n new_.view* +
+     new_.simple.* in en/es.
+     PROVED (scratchpad drive-simple-view.mjs, local): 30/33 checks, the
+     3 "fails" were my regexes vs CSS-uppercased labels; a ticket opened
+     from Simple and one from Classic with the same inputs produced
+     IDENTICAL repair_tickets + repair_ticket_line_items rows (both
+     soft-deleted afterwards: 4fbd8df4…, 0188b25c…; ticket numbers
+     consumed). Watch → no size box; Ring → "Ring size (optional)";
+     balance = estimate − deposit live; Classic ↔ Simple keeps customer,
+     chips, notes, date, labor/deposit; view remembered on reload.
+     SPEC vs CODE (told Eddy): (a) estimate/labor/materials/deposit are
+     DISPLAY-ONLY in Classic (never submitted; the official quote is set
+     post-intake) — Simple mirrors that, so "save estimate as labor" is
+     not stored anywhere; (b) photos are per TICKET (repair_ticket_photos
+     kind 'intake'), not per item — no "Add photo" in the item header,
+     Simple has no photo button at all (Classic's selection survives the
+     switch); (c) the stored line title stays the Classic composer
+     ("Ring · 14k · 3.2g · 7"); Simple's card HEADER shows the spec's
+     "14k Ring · Sizing" as display only; (d) Nameplate chip (item 462)
+     included in Simple's "What is it?" and treated as a Length item;
+     (e) Classic's stones sub-editor has no Simple counterpart — stones
+     entered in Classic survive and submit; (f) PRE-EXISTING: the staff
+     <header> does not wrap at 390px (shell is 732px wide), and the
+     sidebar's phone auto-collapse logs a hydration warning on every
+     page at phone width — both outside this task, Simple itself wraps
+     with zero overflow in a 271px column.
+
+ 465. WHOLE-APP REVIEW, READ-ONLY (2026-11-11) → REVIEW-2026-11-11.md
+     at the repo root (53 findings, each marked Verified / Reported /
+     Unverified, with a suggested order). Eddy asked "go through the
+     code and the ui and give recommendations"; NOTHING WAS FIXED.
+     Four slice reviewers (security+tenancy, money+integrity, UI code,
+     performance+architecture) + the 2026-11-04 smoke screenshots; the
+     lead re-read every "do first" item in the code. Confirmed LIVE:
+     (a) `vercel env ls production` shows NO Stripe variables, so
+     /api/stripe/webhook skips its signature check in production and a
+     forged checkout.session.completed can redeem a loan from metadata;
+     (b) the public anon key reads the published tenant's full row and
+     inventory cost_basis/notes (policies in patches 0026/0027 grant
+     whole rows) — customers, loans, sales, settings return 0 rows.
+     The seven "do first" items: team-invite magic link for existing
+     accounts (account takeover), unsigned Stripe webhook, anon column
+     exposure (RLS — needs Eddy's explicit OK per rule 1), returns on
+     unpaid sales + refunds ignoring discount/tax, live TEST-ONLY
+     card-succeeded action, browser-supplied principal/interest split
+     redeeming with interest forgiven, ID-scan delete with no retention
+     gate. Also worth knowing: the first run of this review died when
+     the machine hit 0.3 GB free RAM (Notion alone held 4 GB) — do not
+     run the dev server + headless Chrome + parallel agents together
+     on this box.
+
+ 466. THE SEVEN "DO FIRST" FIXES (2026-11-12, commit 8d8c1dd, on main +
+     deployed; migrations 0071, 0072, 0073 ALL APPLIED). Eddy: "all 7".
+     (1) INVITE TAKEOVER. A magic link is a login. Team invite now looks
+         the email up exactly (auth_user_id_by_email, 0071): an existing
+         account is added to the shop and NO link is minted (delivered:
+         'existing'); only a brand-new account gets an invite link. The
+         'invite → fall back to magiclink' pattern is gone from team AND
+         lib/portal/invite.ts. Portal "generate sign-in link" mints for
+         the CLAIMED account (auth_user_id → getUserById email), never
+         for the editable customers.email. Policy in one pure function,
+         lib/auth/account-link-policy.ts portalLinkHandoff(): staff or
+         superadmin → refuse; portal client of another shop → email
+         only, never shown at the counter; otherwise operator may hold
+         it. New error codes email_is_staff_account / staff_account /
+         existing_account_email_only / email_only_failed (translated).
+     (2) STRIPE WEBHOOK. webhookSecretOrNull() → no secret = 503
+         'webhook_not_configured' in every environment (no dev
+         no-verify mode). authorizeLinkEvent(): our stripe_payment_links
+         row must exist AND event.account must be the link tenant's
+         connected account; metadata never routes money. Portal loan /
+         layaway actions return stripe_failed instead of a Checkout URL
+         when the link insert fails. >>> STRIPE_WEBHOOK_SECRET MUST BE
+         SET IN VERCEL or the webhook answers 503 to Stripe — add to
+         item 454's setup steps. <<<
+     (3) ANON COLUMN EXPOSURE (RLS, approved). 0072: views
+         public_tenants / public_catalog_items / _photos / _stones
+         (security definer semantics on purpose, SELECT-only grants).
+         tenant-resolver.ts reads the views (narrowCatalogRow /
+         narrowPhotoRow because view columns type as nullable). 0073
+         dropped tenants_public_landing_select and the three
+         *_public_catalog_select policies. Done in two steps around the
+         deploy — no downtime; the drop was rehearsed in a rolled-back
+         transaction first. To make a column public now: add it to the
+         VIEW in a migration.
+     (4) RETURNS. isReturnableSaleStatus (completed | partial_returned
+         only). computeReturnRefund (lib/pos/returns.ts, 13 tests):
+         line_total share − cart-discount share + tax share, capped at
+         min(total, paid) − returned; a return that takes everything
+         left refunds exactly the remainder; returns.tax_amount is now
+         real. ReturnPicker previews with the same function. New codes
+         saleNotReturnable / nothingToRefund.
+     (5) CARD TENDERS. addPaymentAction no longer adds a card tender to
+         paid_total. sale_card_payment_succeeded() (0071; FOR UPDATE,
+         idempotent, leaves paid_total alone if the sale is no longer
+         open) via lib/pos/card-settle.ts — called by the webhook on
+         payment_intent.succeeded (account + amount checked) and by
+         confirmCardPaymentAction (owner/manager/chain_admin; replaces
+         the TEST-ONLY markCardPaymentSucceededAction). Clerks see
+         "Not counted yet"; managers see "Confirm card approved".
+     (6) LOAN PAYMENT SPLIT. allocateLoanPayment (math.ts): fees off the
+         top, then interest, then principal; overpayment refused.
+         loanPaymentSchema dropped principal_paid / interest_paid.
+         RecordPaymentDialog: no manual split, fees is the only extra
+         input, errors translated (pawn.payment.errors.*).
+     (7) ID SCANS. deleteCustomerDocumentAction: owner/manager/
+         chain_admin, decideDocumentDelete (last document of its kind
+         is held while a loan is open or a pawn/buy is in the retention
+         window; a replaced scan can go), soft-delete only — the file
+         in the bucket is never removed. Button hidden for other roles.
+     VERIFIED: tsc + eslint clean, 715 tests (was 557+; new: returns
+     13, webhook-guard 8, account-link-policy 6, retention 6,
+     allocateLoanPayment 7, loan schema). 0071 functions exercised in a
+     rolled-back transaction (settle once / repeat ignored / closed
+     sale / cash refused / lookup exact). LIVE: anon probe → base
+     tables 0 rows, views public columns only, writes refused; public
+     pages /s/eddys(+catalog,+item) identical before and after;
+     unsigned + bad-signature webhook → 503 (was 200); nine touched
+     staff pages render in production (headless Chrome).
+     NOT VERIFIED: no click-through of the changed FLOWS (submit a
+     return, record a payment, delete a document, invite, confirm a
+     card). They write real records in the live tenant and this box
+     had 0.5 GB free — no local server. First real use of each is the
+     end-to-end test; audit_log shows return_create / doc_delete /
+     card_present_succeeded / user_tenants create with
+     existing_account.
+     CHECKPOINT GATE (2026-11-13): resolveCustomerTenant() takes an
+     optional role list, so the document delete reuses it instead of a
+     second copy of the customer lookup. No behaviour change.
+     LEFT ALONE, same neighbourhood (review items still open): layaway
+     card payments and card down payments still count as paid when
+     recorded (no PaymentIntent on that path); the webhook still
+     applies a payment to a loan that was closed in the meantime
+     (#11); unchecked child inserts in the return action (#14);
+     payment_intent.payment_failed is not handled.
+
+--- Session 56 (2026-11-04/05) — Stripe Connect per-tenant Express onboarding (branch feature/sol-pawn-brief, dispatched by the Manager session) ---
+
+ 449. STRIPE CONNECT — WHY AND WHICH ACCOUNT TYPE. Settings → Integrations
+     linked to /api/stripe/connect/start but only webhook/ and saas/*
+     existed under api/stripe/; lib/stripe/terminal.ts and
+     payment-link.ts both throw tenant_stripe_not_connected when
+     tenant_billing_settings.stripe_account_id is null, and nothing ever
+     wrote it. CLAUDE.md says "same OAuth flow as Abacus" (Standard
+     accounts, STRIPE_CONNECT_CLIENT_ID) but the ask was Account Links +
+     "Open Stripe dashboard", and login links exist ONLY for Express
+     accounts — so: EXPRESS. Terminal and Checkout already act on the
+     connected account via the platform STRIPE_SECRET_KEY + Stripe-
+     Account header, which is exactly how Express works, so neither
+     surface changed. No OAuth client id, no per-tenant access/refresh
+     tokens (0034 already dropped those columns), no per-account webhook
+     provisioning (Abacus did that; here ONE platform Connect webhook
+     receives every tenant's events). No `stripe` npm package — same
+     REST-over-fetch style as the three existing lib/stripe modules.
+
+ 450. ROUTES. All three are GET route handlers (runtime nodejs, force-
+     dynamic) behind lib/stripe/connect-guard.ts: getCtx() → /login when
+     signed out, /no-tenant without an active tenant, ?stripe=forbidden
+     unless tenantRole is owner | chain_admin (the same OWNER_ROLES the
+     Integrations card uses), ?stripe=misconfigured without
+     NEXT_PUBLIC_APP_URL. STRIPE_SECRET_KEY missing → misconfigured too.
+     - /api/stripe/connect/start: loadTenantBilling → reuse
+       stripe_account_id or POST /accounts (type=express, country US,
+       card_payments + transfers requested, business_profile.name = dba
+       ?? name, email, metadata.tenant_id) with Idempotency-Key
+       pawn_connect_account_<tenantId> so a double click or a failed
+       save-then-retry cannot mint two accounts; upsert the id on
+       tenant_billing_settings; audit stripe_connect_account_create;
+       POST /account_links (type=account_onboarding, return_url =
+       /api/stripe/connect/callback, refresh_url = /api/stripe/connect/
+       start) and 302 to Stripe.
+     - /api/stripe/connect/callback: the return_url carries NO proof of
+       completion, so GET /accounts/{id} and write the truth: syncAccount
+       Status() → stripe_charges_enabled / stripe_payouts_enabled /
+       stripe_details_submitted / stripe_status_synced_at,
+       billing_enabled = charges_enabled (payment-link.ts's
+       isTenantStripeConnected and the POS gate read it), and
+       stripe_connected_at stamped ONCE the first time the account is
+       fully connected (never moved, never cleared). Audit stripe_connect
+       _status_sync with requirements.currently_due + disabled_reason so
+       /audit shows WHY an account is stuck. Redirect ?stripe=connected
+       or ?stripe=incomplete.
+     - /api/stripe/connect/dashboard: POST /accounts/{id}/login_links and
+       302; not_connected → back to settings; incomplete → into /start.
+     Error paths each log with a [stripe-connect/<route>] prefix and
+     redirect ?stripe=stripe_error (Stripe refused) or save_failed (DB).
+     Links on the card are plain <a>, not <Link> — a client-side
+     navigation into a route handler that 302s off-site would try to
+     fetch an RSC payload from stripe.com.
+
+ 451. WEBHOOK account.updated. /api/stripe/webhook (the Connect endpoint,
+     STRIPE_WEBHOOK_SECRET) now routes account.updated by
+     stripe_account_id → syncAccountStatus; audits only when one of the
+     three flags actually changed (status_before/after + requirements);
+     unknown accounts (the platform's own, stale test accounts) are
+     logged and ignored. This is what flips a shop to Connected hours
+     later when Stripe finishes bank verification, and what turns
+     billing_enabled OFF if Stripe disables charges. The endpoint must
+     be registered in the Dashboard as "Listen to events on Connected
+     accounts" or account.updated never arrives (item 454).
+
+ 452. SETTINGS → INTEGRATIONS + i18n. page.tsx derives status with
+     deriveConnectStatus() (connected = details_submitted AND
+     charges_enabled; payouts pending does not block taking cards),
+     reads ?stripe= through an allowlist, and passes only the account
+     id's LAST 4 to the client. content.tsx: pill Not connected /
+     Onboarding incomplete (new warning-tone 'incomplete' pill) /
+     Connected; rows account •••• last4, connected date, charges,
+     payouts, terminal location, last checked; one action per state
+     (Connect with Stripe / Continue onboarding / Open Stripe dashboard),
+     owner-only otherwise; a banner for every ?stripe= flag. The hub
+     (/settings) "connected" flag uses the same derivation instead of
+     stripe_connected_at. New dictionary section stripeConnect.* in BOTH
+     en.ts and es.ts (es is typed Dictionary, so tsc IS the parity gate
+     — there is no .githooks/pre-push in this repo despite the en.ts
+     header comment). The rest of the integrations page stays hardcoded
+     English (pre-existing Rule 6 debt, out of scope).
+
+ 453. MIGRATION 0069 (NOT APPLIED) + PURE MODULE + GATE FIX.
+     patches/0069-stripe-connect-status.sql: three NOT NULL DEFAULT FALSE
+     booleans + stripe_status_synced_at + a UNIQUE partial index on
+     stripe_account_id (one account ↔ one tenant; the webhook routes by
+     it). src/types/database.ts hand-edited for the four columns (item
+     245 precedent) — `npm run db:types` after applying must produce the
+     same shape. lib/stripe/connect-status.ts is pure (deriveConnect
+     Status, accountIdSuffix, normalizeAppUrl, buildAccountLinkUrls,
+     buildSettingsRedirect, flagForStatus, billingPatchFromAccount) with
+     17 vitest cases. Pre-save gate: stripeFetch/encodeForm/
+     stripeSecretKey existed as three private copies in terminal.ts,
+     payment-link.ts and saas.ts and this work was about to add a
+     fourth — consolidated into src/lib/stripe/http.ts (GET/POST/DELETE,
+     optional Stripe-Account + Idempotency-Key, null/undefined body
+     values skipped — a superset of all three, byte-identical requests
+     for existing callers). Dead view field detailsSubmitted removed.
+
+ 454. VERIFIED / NOT VERIFIED / WHAT EDDY DOES. Verified: tsc --noEmit,
+     eslint, vitest 655/655 (32 files), next build green with the three
+     connect routes in the manifest — twice (before and after the gate
+     fix). NOT verified: anything against Stripe or the live DB; nobody
+     logged in; 0069 unapplied. Smoke (TEST MODE FIRST):
+       1. node scripts/apply-migration.mjs patches/0069-stripe-connect-
+          status.sql, then npm run db:types.
+       2. Stripe Dashboard (the RMS platform account that owns
+          STRIPE_SECRET_KEY) → Settings → Connect: complete the platform
+          profile / onboarding if not done; account type Express;
+          branding (name, icon, color — shown on the hosted onboarding
+          page). Read the Express responsibilities (platform covers
+          negative balances) before live mode.
+       3. Developers → Webhooks → Add endpoint → https://<prod domain>/
+          api/stripe/webhook → "Listen to: Events on Connected accounts"
+          → account.updated, checkout.session.completed,
+          payment_intent.succeeded → copy its signing secret.
+       4. Vercel env (Production + Preview): STRIPE_SECRET_KEY (sk_test_
+          first), STRIPE_WEBHOOK_SECRET = the secret from step 3 (the
+          CONNECT endpoint's, not a platform-account endpoint's),
+          NEXT_PUBLIC_APP_URL = https://<prod domain> with no trailing
+          slash — the Phase 0 punch list still has it open and the
+          Account Link return/refresh URLs are built from it.
+       5. As an owner: Settings → Integrations → Connect with Stripe →
+          fill the hosted form with Stripe's test values (phone
+          000-000-0000, SSN 000000000, routing 110000000 / account
+          000123456789) → return → card reads Connected, charges enabled
+          → Open Stripe dashboard. Check tenant_billing_settings for the
+          tenant and audit_log for stripe_connect_account_create +
+          stripe_connect_status_sync.
+       6. Local alternative: NEXT_PUBLIC_APP_URL=http://localhost:3060
+          works in test mode; forward Connect events with
+          `stripe listen --forward-connect-to localhost:3060/api/stripe/
+          webhook` and put ITS whsec in .env.local.
+     Then merge feature/sol-pawn-brief → main on Eddy's "go".
+
+--- Session 55 (2026-11-03/04) — Brief Phase 0 (spot prices) + Phase 1 (tracking link) + Phase 2 (custom quoter) + Phase 3 (metal counter) + Phase 4 (smaller items) ---
+
+ PHASE 4 (items 441-446) — "smaller items, one summary each".
+
+ 441. 4.1 BENCH CALCULATORS — /tools (sidebar "Bench tools", any staff
+     role). Six pure calculators in lib/bench/{ring-size,weight,alloy}.ts
+     with a "How this is calculated" note under each and 16 unit tests:
+     ring size (US/CA/MX — Mexico uses the US scale, verified; EU = ISO
+     8653 circumference; Japan approx. 13.0 mm + 1/3 mm per size, SAID to
+     be approximate in the UI; inside mm), weight units (g/dwt/ozt/
+     avoirdupois oz, exact constants), alloy down (W·(Kh/Kt − 1)), raise
+     karat (W·(Kt − Kl)/(24 − Kt), 24K refused), mix lots (Σwk/Σw), and a
+     melt/payout quick calc off today's spot × pay rate (+ sell price when
+     a sell rate is set) reusing lib/metal-counter/math. The ONLY write:
+     per-user "recent calculations" (patches/0066 bench_calculations,
+     own-rows RLS, hard delete allowed — scratch paper, not a ledger).
+     lib/bench/combos.ts is the client-safe twin of COUNTER_COMBOS.
+
+ 442. 4.2 INVENTORY FIELDS (patches/0067, APPLIED). inventory_items +=
+     condition (new/used/restored/vintage/antique), coating (none /
+     gold_plated / gold_filled / vermeil / pvd, NOT NULL default none),
+     finish (free text + datalist suggestions), shelf_location,
+     legacy_code (indexed, searchable), wholesale_price. All on the item
+     form (InventoryFormFields), the list (condition + coating filters,
+     coated badge, legacy/shelf in the subtitle, legacy_code in search),
+     create/update actions and the detail page. loan_collateral_items +=
+     coating so the pawn ticket records it.
+
+ 443. 4.2 COATING EXCLUDES FROM MELT — the rule with teeth. lib/spot-
+     prices/purity.ts isSolidMetal(coating); gated at every melt site:
+     inventory detail resolveMelt (panel replaced by the warning), buy
+     outright (rateForRow → no rate, no auto payout, amber line; action
+     skips the melt snapshot; stale gate ignores coated items), pawn
+     intake (CollateralItemsList coating select + warning; intake-form
+     reads it; stale gate; suggested-loan tryComputeMelt pushes
+     'coated_not_solid_metal' and returns null). Legacy rows (NULL) count
+     as solid.
+
+ 444. 4.2 AUTO SKU + SUGGEST PRICE. inventory_items_assign_sku() now
+     builds <CAT>-<METAL>-<seq> (RNG-AU-000123, ELC-000124 when the metal
+     is none/other/NULL) from the SAME per-tenant counter, so old INV-
+     SKUs keep their numbers; an app-provided SKU still wins. Verified
+     with a rolled-back insert. "Suggest price" on the item form = cost ÷
+     (1 − margin) via the quoter's priceFromCost; the margin is
+     settings.inventory_target_margin_pct (default 50%), editable on
+     Settings → Tenant info ("Inventory pricing"). lib/inventory/
+     pricing.ts loads it.
+
+ 445. 4.3 COLLECTIONS — /collections (owner/manager/chain_admin/
+     pawn_clerk). Rows from three sources: pawn loans (balance = payoff
+     TODAY via the existing payoffFromLoan — interest math untouched;
+     late = days past due_date), active layaways (late = days since the
+     first installment NOT covered by payments — lib/collections/aging
+     derives the installment dates from schedule_kind + first/final due;
+     'custom'/undated layaways are judged on the final date), repair
+     tickets ready/picked_up with balance_due > 0 (late from
+     promised_date or picked_up_at). Buckets On time / Slightly late /
+     Very late / Urgent with the edges in settings.collections_slight_
+     days / _very_days (patches/0068, APPLIED; DB CHECK very > slight;
+     editable on Settings → Tenant info). KPIs: total owed, % overdue,
+     average days to collect (days past due at payment, redemptions +
+     completed layaways, 90-day lookback), % promised payments kept
+     (layaway installments due so far that are covered), top 5 customers.
+     Row actions: tel: link, SendReminderDialog (existing manualSendAction,
+     kinds per source), "Record payment" → the existing detail page. 10
+     unit tests on the pure math. Definitions are spelled out in the
+     page footnote because the brief left them open.
+
+ 446. 4.4 DASHBOARD + VERIFICATION. Live metals strip (gold 24k / silver
+     .999 / platinum / palladium per gram, % vs the oldest point in the
+     last 24h, "Updated <time>", the whole strip RED with "STALE" when
+     the feed is older than 24h — ties to Phase 0's rule). "Today" card
+     in the money row: repairs promised today, pickups ready, loans due
+     today (links go to the dueSoon7 filters — the list pages have no
+     "today" window). Low-stock card SKIPPED on purpose: inventory_items
+     has no quantity / reorder fields (brief said skip if not). Phase 4
+     verified: tsc, lint, 638 tests, production build, browser smoke
+     43/45 cold — the 2 are the known consignment gate and a /audit
+     hydration flake (relative "Ns ago" text when the newest audit row is
+     seconds old; pre-existing, see OPEN ISSUES).
+
+ 447. PRODUCTION BUG — /tools "Keep this" → "This page couldn't load"
+     (Eddy, 2026-11-04). Root cause: tools/actions.ts ('use server')
+     exported the CALCULATORS const beside the two actions. Next 16
+     allows ONLY async-function exports from a 'use server' module and
+     throws "A "use server" file can only export async functions, found
+     object" when an action is invoked — the GET renders fine, so the
+     route smoke (navigation only) never caught it; the POST was the
+     first evaluation of the actions loader. Fix (3ba0aa1): CALCULATORS
+     + CalculatorKind moved to src/lib/bench/calculators.ts. Swept every
+     other 'use server' file — none exports a non-async value (type
+     exports are fine, they erase). Reproduced + verified with a
+     headless click script (scratchpad repro-keep.mjs: smoke-style
+     login, open /tools, click Keep this): before = POST /tools 500 +
+     error page, after = "Saved to your recent calculations." The one
+     row the repro wrote was deleted afterwards. RULE: a 'use server'
+     file exports async functions only — constants and enums go in lib/.
+     LESSON: the browser smoke only navigates; every new server action
+     needs at least one real invocation before it ships.
+
+ 448. PRODUCTION BUG — Buy outright submit → "This page couldn't load"
+     (found by driving every Phase 3/4 action in production after item
+     447, scratchpad drive-actions-prod.mjs). buy/new/actions.ts ended
+     with `export type { BuyItemInput }` (there since dd33b78,
+     2026-04-28). Turbopack's 'use server' transform keeps that
+     re-export as a runtime reference → "ReferenceError: BuyItemInput is
+     not defined" at module evaluation of the actions loader → every
+     createBuyOutrightAction call 500s. Nothing imported the re-export.
+     Fix: removed the re-export + the unused type import. Verified
+     locally: empty submit now returns "Please fix the highlighted
+     fields below." instead of the 500. Swept every 'use server' file —
+     no other `export {`/`export type {`/`export *`. RULE (with 447): a
+     'use server' file contains async functions and `export type Foo =`
+     declarations ONLY — no consts, no re-exports of any kind.
+     Driven in production, same session, all OK: settings/general save
+     ("Saved."), spot sell-rate save ("Save ✓"), inventory create +
+     update (validation path), sell metal (validation path), buy
+     outright (after this fix). A real metal sale / mixed-tender buy
+     with money still needs Eddy's hands.
+
+ PHASE 3 (items 432-440) — two-way metal counter, buy AND sell.
+
+ 432. PHASE 3 DESIGN DECISION: a metal SALE is a `sales` row. Brief says
+     a sell must hit the audit log and the reports but never the police
+     report. The register close and the sales summary already read
+     sales / sale_items / sale_payments, so a scrap or bullion sale is
+     persisted as sale_kind='metal' (0064), status completed + locked at
+     insert (money changed hands at the counter), with ONE sale_items row
+     per metal line and ONE sale_payments row per tender. No
+     compliance_log write anywhere on that path. Alternative (a separate
+     metal_sales table) would have needed its own register + report
+     plumbing and a second void/return story. The receipt lives at
+     /buy/sell/[id] (not under /pos) so a pawn-only shop without the
+     retail module still sees what it sold; "Open in POS" appears when
+     has_retail.
+
+ 433. MIGRATIONS 0064 + 0065 (APPLIED 2026-11-04). 0064 (own file, same
+     enum-before-use split as 0052/0060): payment_method += 'transfer',
+     sale_kind += 'metal'. 0065: spot_price_overrides.sell_multiplier
+     NUMERIC(6,4) NULL (0..5) — the SELL rate as a sibling column, not a
+     second meaning of `multiplier`; sale_items gets metal_type, purity,
+     weight_grams, spot_per_gram, rate_multiplier (NULL on retail lines);
+     sales.counterparty_name TEXT for a refiner who is not a customer.
+     Verified by SELECT; db:types regenerated.
+
+ 434. PURE LIBS. lib/spot-prices/purity.ts — purityFromItem /
+     meltMetalFromItem moved out of melt.ts (which imports the admin
+     client) so client forms stop carrying their own copies; melt.ts
+     re-exports. lib/metal-counter/math.ts — resolveRate(maps, metal,
+     purity, 'pay'|'sell') (sell unset → multiplier 1 + configured=false),
+     dollarsFromGrams / gramsFromDollars, totalsByPurity (gold first,
+     highest purity first), splitTenders ('mixed' → cash + transfer rows
+     that must sum to the cent; zero parts dropped because
+     sale_payments.amount > 0). 30 new tests (612 total).
+     lib/metal-counter/rates.ts (server) builds the plain RateMaps the
+     forms hold: spot + pay + sell per `${metal}::${purity}`.
+
+ 435. BUY OUTRIGHT — TWO-WAY ENTRY. Each item has an "Enter by: Weight |
+     Amount" toggle. Weight mode = today's behaviour (grams → payout at
+     the pay rate; a hand-typed payout is a negotiation and sticks until
+     the grams are retyped). Amount mode = the brief's "customer wants
+     $300 for this 14K — how many grams?": dollars → grams, weight box
+     read-only. Derivation runs in the change handlers (derive()), not in
+     a render-time sync, so no eslint-disable. Rate line under each item
+     shows "$X/g = spot $Y/g × pay rate Z%". Totals: melt, grams, payout
+     + a per-(metal, purity) breakdown (MetalTotalsTable). Payout
+     methods: cash, transfer, MIXED (cash + transfer with live
+     "still to split" hint), check, card, other, store credit. The buy
+     has no tender ledger, so the split is validated server-side and
+     recorded on the audit row (`tenders`, `total_grams`). The whole
+     form is now i18n'd (it was hardcoded English; buy.form.*).
+
+ 436. SELL METAL — /buy/sell (page, form, actions, persist). Gated
+     has_pawn OR has_retail; roles owner/manager/pawn_clerk/chain_admin.
+     Lines: metal (4 spot metals) + purity (buckets per metal) + grams ⇄
+     price at the SELL rate with the same Weight|Amount toggle;
+     description auto-fills "Gold 14k scrap" until edited; "Add from
+     inventory" pulls an available precious-metal item onto a line
+     (metal/karat/weight prefilled) and the sale flips it to 'sold'.
+     Unset sell rate → amber "pricing at spot (100%) — set one on Spot
+     prices" (never silent). Buyer = customer picker and/or free-text
+     refiner name (one required). Tax rate % (default 0, with the
+     refiner-exempt note). Tenders: cash, transfer, mixed, check (card
+     left out: Terminal isn't wired and a "completed" sale with a
+     pending card would lie). Attaches the open register session when
+     there is one and SAYS which case applies. Stale-spot gate applies.
+     persist.ts: sale → lines (spot_per_gram + rate_multiplier frozen
+     from the live feed at submit) → payments → inventory flip; any
+     failed step soft-deletes the sale. Audit 'metal_sale_create'.
+     DB smoke (rolled back): sale S-xxx kind=metal, 1 line, cash 400 +
+     transfer 230, locked=true, and the lock trigger refused a total
+     change.
+
+ 437. SELL RATES ON /inventory/spot-prices. Each (metal, purity) card
+     in "Pay and sell rates" now has two forms — Pay rate % and Sell
+     rate % (blank = not set, Clear button). Separate upserts carry
+     only their own column so saving one never resets the other. Cards
+     show "You sell $X/g · Sell rate 105%" beside "You pay". Audit
+     'spot_price_sell_rate_change'.
+
+ 438. ENUM WIDENING FOLLOW-THROUGH. database-aliases: PaymentMethod +
+     'transfer' (DirectPaymentMethod excludes it — the POS add-payment
+     dialog does not list it yet), SaleKind + 'metal',
+     SpotPriceOverrideRow.sell_multiplier. POS home / sale detail /
+     receipt PDF label 'transfer' (EN "Bank transfer" / ES
+     "Transferencia"); pos.ts paymentMethodSchema deliberately
+     unchanged. Sidebar: "Sell metal" entry (has_pawn || has_retail);
+     Buy ⇄ Sell tabs (MetalCounterTabs) on both counters.
+
+ 439. BUY RECEIPT (/buy/[id]) i18n'd while in the folder — it was the
+     last hardcoded-English surface on the counter (buy.buyReceipt.*).
+
+ 440. VERIFICATION. tsc clean, lint clean, 612 tests, production build
+     green, browser smoke 40/41 on a COLD dev server (the 1 is the known
+     /consignors/new consignment gate — needs --gates). Smoke routes
+     added: 'P3 sell metal', 'P3 metal sale receipt' (picks a
+     sale_kind='metal' row when one exists). NOT automation-driven: the
+     sell form submission end-to-end and the buy form's mixed tender —
+     both validated at the DB level and by the unit tests only. Eddy
+     should ring up one real scrap sale.
+
+ 421. PHASE 2 SCOPE + MONEY MODEL (brief). A quote builder for custom
+     work: The piece → The price → The payment. Decision that shapes
+     everything: every price block is a LINE with a COST (what the shop
+     pays out — metal at spot, a wax print, a stone's cost basis,
+     outsourced labor) and a PRICE (what the customer pays); the quote
+     margin is (Σprice − Σcost)/Σprice and "you keep" is Σprice − Σcost.
+     A target margin fills price = cost/(1−m) for every cost-bearing
+     line staff did not type by hand (typing LOCKS a line; pure-price
+     lines like bench labor or an engraving fee count fully toward
+     "keep"). Because pure-price lines add to price but not cost, the
+     quote margin lands at or above the target — but a locked low price
+     can drag it under the manager's MINIMUM, and both the footer and
+     the server say so (saving is refused). Fractions everywhere (0.5 =
+     50%), matching the settings columns and DB CHECKs.
+     lib/custom-quotes/math.ts + 17 tests (lineTotals, quoteTotals,
+     priceFromCost clamped at 95%, applyTargetMargin, depositSplit,
+     laborPrice, expiryDate, metalLabel).
+
+ 422. MIGRATIONS (APPLIED). 0062 adds message_kind 'custom_quote_link'
+     alone (enum-value-in-own-transaction rule). 0063: enums
+     custom_quote_status (draft/sent/accepted/declined/expired/
+     converted/voided), custom_piece_category (ring…nameplate, grillz,
+     other), custom_quote_line_kind (metal/wax/labor/stone/setting/
+     extra); settings columns custom_quote_default_margin_pct 0.50,
+     _min_margin_pct 0.30, _default_deposit_pct 0.50, _expiry_days 14,
+     _labor_rate 75, _show_cost_breakdown FALSE; custom_quotes
+     (CQ-000001 via next_tenant_counter 'custom_quote', public_token
+     from repair_public_token(), frozen spot summary columns, deposit /
+     balance, expires_on, repair_ticket_id) + custom_quote_lines (qty,
+     unit_cost, unit_price, totals, price_locked, details jsonb,
+     inventory_item_id). FREEZE: trg_custom_quotes_lock refuses any
+     change to the piece or money columns once status leaves draft/sent
+     (status, timestamps, ticket link, token, notes still move — "void
+     and requote", same spirit as rules 2/14); lines follow the parent.
+     RLS mirrors repair_tickets. RPC custom_quote_public(token) →
+     customer-safe jsonb, NEVER a cost, lines only when the breakdown
+     setting is on (label/qty/price). Templates for the new kind seeded
+     per tenant + tenant trigger. DB SMOKE in one rolled-back
+     transaction (results carried out via RAISE): CQ-000001 assigned,
+     32-char token, public doc keys contain no cost/notes, update of
+     price_total on an accepted quote → custom_quote_locked, line
+     insert/delete on it → locked, status→converted still allowed.
+
+ 423. PURE / HOOK LIBS. lib/custom-quotes/metals.ts (QUOTE_METALS +
+     karats, spotKey), links.ts (quoteUrl → /q/<token>),
+     public-quote.ts (allowlist shaper + forbidden-key test incl.
+     unit_cost/cost_total/margin_pct/notes/customer), weight-source.ts
+     — the brief's "hook for later": a WeightSource interface
+     ({id, label, available, fetchWeightGrams}) with manual (available)
+     and laser_nameplate (declared, unavailable) entries, the form's
+     "Weight from" selector reads WEIGHT_SOURCES, details.weight_source
+     is stored per metal line, and a TODO(laser-nameplate) block spells
+     out the transport / inputs / output / availability contract.
+     Nothing else in the quoter changes when it lands.
+
+ 424. SERVER ACTIONS (src/app/(staff)/repair/quotes/actions.ts).
+     saveQuoteAction: JSON payload → zod (lib/validations/custom-quote)
+     → the browser's money is NOT trusted: metal lines get unit_cost
+     re-fetched from live spot per gram (lib/custom-quotes/spot.ts —
+     raw spot via getLatestSpotPrice, deliberately NOT the tenant's
+     pay-rate multiplier, which is a BUYING rate) and frozen into
+     details + the header's spot_price_per_gram/spot_priced_at; target
+     margin re-applied to unlocked lines; totals recomputed; min margin
+     checked twice (target and resulting); deposit split; expires_on
+     defaults to today + settings days; customer + picked stones
+     verified in-tenant; lines replaced wholesale on edit (a quote is
+     one document); frozen quotes return 'locked'. quoteStatusAction:
+     send / accept (refused when expired) / decline / void / duplicate
+     (new DRAFT copying lines — metal re-prices on next save) / CONVERT:
+     accepted only, once; repair ticket born service_type 'custom' at
+     awaiting_approval with quote_set_at + quote_approved_at stamped
+     (so the Phase 1 stage lands on "Design approved"), one line item
+     (karat + grams from the metal line), stone lines → ticket stones
+     (shop-supplied, inventory link kept), cost-bearing lines → parts
+     rows (COGS), reference photo row reuses the same storage path,
+     intake/quote_set/approved events, deposit expectation written as
+     an event note — the deposit itself is collected through the
+     ticket's EXISTING Collect-deposit flow (brief: "through the
+     existing POS payment flow"), so one tender path records it. Quote
+     flips to converted with repair_ticket_id; redirect to the ticket.
+     quoteLinkAction: regenerate / revoke / send (custom_quote_link SMS
+     via dispatchMessage, forced channel sms; a draft becomes 'sent').
+     Audit on every mutation (13 new AuditAction values); tokens never
+     logged.
+
+ 425. STAFF UI. components/custom-quotes/QuoteForm.tsx — three tabbed
+     steps; CustomerPicker + QuickCustomerModal; category / description /
+     size / one reference photo (HEIC ok via prepareUpload); blocks
+     Metal (metal + karat + grams + Weight-from, live "Spot today
+     $X/g", frozen-on-save note), Wax, Labor (hours × rate from
+     settings or flat, optional outside cost), Stones (from inventory
+     loose_stone items with cost_basis, or by hand; setting per stone →
+     a 'setting' line), Extras (engraving/rush/packaging/shipping/other
+     + optional cost); per-line Cost → Price with a lock toggle; target
+     margin input with the minimum shown and a red refusal; Payment:
+     deposit % → deposit due now + balance at pickup, method, valid
+     until, internal notes. The sticky navy footer: "Total $X — you keep
+     $Y — margin Z%" (margin red under the min) + Save. Edit mode
+     rebuilds the blocks from saved lines (setting lines fold back into
+     their stone row). /repair/quotes list (open/all/status filters),
+     /repair/quotes/[id] detail (summary with cost/keep/margin — staff
+     only —, lines table, status actions, Quote PDF, customer link
+     panel with copy/open/SMS/new/revoke, photo), [id]/edit (frozen →
+     redirect to detail). Settings → Custom quotes (whole-number % in
+     the form, fractions in the DB; min may not exceed default). Sidebar
+     "Custom quotes" under Repair; settings hub card.
+
+ 426. PUBLIC /q/<token> (src/app/(public)/q/[token]). Same shape as /t:
+     token-only input, anon SSR client → SECURITY DEFINER RPC →
+     allowlist shaper → generic bilingual server-component 404 →
+     1h-signed photo → noindex → opens in the customer's language.
+     Shows quote number, piece, total, deposit to start, balance at
+     pickup, valid-until, the "Metal priced at $X/g on <date>" note,
+     status banners (expired / accepted / in production / declined),
+     price lines only when the breakdown is enabled, store phone + site.
+     Verified on the dev server with a temporary draft quote: 200 with
+     the right numbers and ZERO occurrences of the costs, the margin or
+     the internal note; 404 for an unknown token. '/q' added to the
+     proxy PUBLIC_PATHS.
+
+ 427. PDFs. lib/pdf/shared.ts (one style sheet + money/join helpers for
+     new customer-facing documents). CustomQuotePDF +
+     render-custom-quote + /api/print/quote/[id] (staff-gated like
+     /api/print/buy; audit custom_quote_print): bilingual header,
+     prepared-for, piece, price lines only when enabled, total /
+     deposit / balance, frozen-metal note, validity terms, acceptance
+     signature. AND — Eddy reported mid-phase "no print ticket button"
+     on https://pawn-three.vercel.app/repair/<id>: there was NO repair
+     ticket PDF anywhere (only buy / loan / sale print routes existed;
+     CLAUDE.md listed RepairTicketPDF as a target). Built
+     RepairTicketPDF + render-repair-ticket + /api/print/repair/[id]
+     (audit repair_ticket_print) + a "Print ticket" button on the ticket
+     header: customer, items received, stones, quote / deposit / paid /
+     balance, the public tracking URL, the abandonment notice using the
+     JURISDICTION's repair_abandon_days (never a constant), liability
+     notice, signature lines; staff notes are not on it.
+
+ 428. GOTCHA — JETBRAINS MONO LIGATURES CRASH FONTKIT. The repair PDF
+     500'd ("RangeError: Offset is outside the bounds of the DataView"
+     in DataView.getInt16 inside renderToBuffer) while the quote PDF
+     rendered fine. A throwaway probe bisected it to the tracking URL
+     rendered in JetBrains Mono: the mono WOFF ships programming
+     ligatures ("//", "://"), and fontkit's GSUB pass over them throws.
+     Plain words, digits, colons, slashes alone all render; "//" does
+     not. URLs now render in Inter; lib/pdf/shared.ts documents the
+     rule (mono for numerals only). The probe script was deleted after
+     use.
+
+ 429. GOTCHA — `npm run build` FAILED WITH "next/font/google queries have
+     exactly one entry" (8 Turbopack errors) when run CONCURRENTLY with
+     `npm run lint` + vitest. Not item 400's npm-install case; the same
+     build passed unchanged when run alone right after. Treat a
+     font-import-map build error as "something else was compiling" and
+     retry alone before deleting .next.
+
+ 430. BROWSER SMOKE EXTENDED. scripts/smoke-browser.mjs gained
+     /inventory/spot-prices, /repair/board, /settings/repair-stages,
+     /repair/quotes, /repair/quotes/new, /repair/quotes/[id] + /edit,
+     /settings/custom-quotes and the two PDF routes (Chrome renders
+     them; the harness sees status + console). Cold dev server: 36/36
+     clean except /consignors/new → /consignors, which is the
+     consignment module gate (run with --gates), not a regression. The
+     quote detail / edit / PDF routes ran against a temporary draft
+     quote inserted by SQL and hard-deleted afterwards (a draft quote is
+     pre-sale data, not a posted financial record).
+
+ 431. [CRITICAL] EVERY PDF ROUTE WAS BROKEN IN PRODUCTION — fonts not
+     traced. Eddy printed the first real quote on pawn-three.vercel.app
+     and got "render failed"; the same quote rendered 200 locally through
+     the authenticated harness, so it was environment, not code.
+     lib/pdf/fonts.ts reads the @fontsource woff files from node_modules
+     with fs.readFileSync at RUNTIME (deliberately — Turbopack cannot
+     bundle them as imports), so Next's file tracer never saw them and
+     the serverless bundle shipped without them: the route's .nft.json
+     had 0 fontsource entries. That means buy / loan / sale / appraisal /
+     all seven report PDFs had ALSO been 500ing on Vercel the whole time
+     (nobody printed one in prod, or nobody reported it). Fix:
+     next.config.ts outputFileTracingIncludes for /api/print/**,
+     /api/appraisals/**, /api/reports/** → the four woff files (route-
+     glob keys per Next 16 docs, values relative to the project root).
+     Verified after build: 8 fontsource entries in each PDF route trace.
+     Lesson: anything read with fs at runtime from node_modules needs a
+     tracing include, and "works locally, render failed in prod" for a
+     PDF is this until proven otherwise.
+
+ PHASE 1 (items 411-420 below).
+
+ 411. PHASE 1 SCOPE (brief): a public, read-only link per repair ticket
+     that staff text or WhatsApp to the customer so "is my piece ready?"
+     stops being a phone call. Shows store name/logo, ticket number, the
+     piece, a reference photo, promised date, a progress bar of NAMED
+     STAGES (configurable per service type), quoted / paid / balance and
+     the store phone — never the customer's identity, address, other
+     tickets or internal notes. Everything below is on main.
+
+ 412. PUBLIC PAGE /t/<token> (src/app/(public)/t/[token]/). The token is
+     the ONLY input (rule 8: the tenant comes from the token). page.tsx
+     validates the shape (32 hex), calls the SECURITY DEFINER RPC
+     repair_public_ticket(p_token) through the ANON SSR client (granted
+     to anon; no table policy opened), then lib/repair/public-ticket.ts
+     shapePublicTicket() REBUILDS the document key-by-key from an
+     allowlist so a future "helpful" column in the RPC cannot leak;
+     public-ticket.test.ts feeds a deliberately leaky document and
+     asserts the forbidden keys (customer_id, customer_*, first/last
+     name, email, address, notes_internal, description, assigned_to,
+     pickup_signature_path, public_token, …) and the customer's actual
+     values are absent. The reference photo (kind reference, else
+     intake; never the pickup signature) leaves the RPC as a storage
+     PATH and is signed for 1h with the service role (rule 12). The RPC
+     returns NULL — one generic not-found — for unknown / revoked token,
+     deleted or voided ticket, inactive tenant. robots noindex. Opens in
+     the CUSTOMER's language (customers.language is the one customer
+     field that crosses) with the EN|ES toggle. Verified against the
+     built app: 200 + full content for RT-000001's token, HTML free of
+     the customer's name/phone/email/ids; 404 for an unknown and a
+     malformed token; Spanish via Accept-Language.
+
+ 413. STAGES — patches/0061 repair_stages (tenant_id, service_type,
+     sort_order, name_en, name_es, percent 0-100, maps_to_statuses
+     repair_status[], is_active; UNIQUE(tenant, type, sort_order); RLS
+     staff read / owner-chain_admin-manager write, mirroring
+     tenant_loan_rates). seed_default_repair_stages(tenant, type?,
+     reset?) loads the brief's defaults — Repair/Sizing etc.: Received →
+     Diagnosed/Quoted → Approved → In progress → Quality check → Ready
+     for pickup → Picked up; Custom: Design → Design approved → Wax/3D
+     print → Casting → Metal work → Stone setting → Finishing → Quality
+     check → Ready for pickup → Delivered — for every existing tenant
+     and, via trg_tenant_after_insert_seed_repair_tracking, every new
+     one. repair_tickets gained public_token (nullable = revoked),
+     public_token_created_at, public_stage_id (FK, ON DELETE SET NULL),
+     public_stage_updated_at. STAGE ↔ STATUS IS THE DATABASE'S JOB: the
+     BEFORE INSERT OR UPDATE OF status trigger
+     repair_tickets_sync_public_stage moves the pointer to the stage
+     whose maps_to_statuses contains the new status — first match going
+     forward, last match going back — UNLESS the current stage already
+     covers that status, so a custom piece sitting at "Casting" is not
+     yanked back to "Wax" by a timer-driven in_progress re-entry. That
+     one trigger covers the 20+ detail actions and the board drag
+     without any of them knowing. Hand-advanced sub-stages move via
+     setPublicStageAction ('next' or a stage id) — one tap on the board
+     card footer (StageQuickRow, rendered OUTSIDE the draggable <button>
+     because a button cannot nest a button) and on the ticket's
+     TrackingPanel (Next stage + a picker). Backfill gave the existing
+     ticket a token and a stage (UPDATE … SET status = status fires an
+     UPDATE OF status trigger even when unchanged).
+
+ 414. STAFF UI (components/repair/TrackingPanel.tsx on /repair/[id]):
+     the link (selectable), Copy (clipboard), Open, Send by SMS, New
+     link (confirm; old one dies immediately), Revoke (confirm; page →
+     not-found until regenerated); the stage name + % bar + Next stage +
+     picker; link to Settings → Repair stages. All actions in
+     src/app/(staff)/repair/stage-actions.ts (shared with the board),
+     any pawn/repair staff role; every one writes audit_log
+     (repair_tracking_link_send / _regenerate / _revoke,
+     repair_stage_set — the token itself is never logged) and a
+     repair_ticket_events 'note' row so the timeline shows it.
+
+ 415. SEND BY SMS — new message_kind 'repair_tracking_link' (patches/
+     0060, its own apply because Postgres cannot use a new enum value in
+     the transaction that adds it — same split as 0049/0050, 0052/0053).
+     0061's seed_repair_tracking_templates() seeds EN/ES SMS + email
+     (WhatsApp disabled until a Content SID exists) for every tenant and
+     new tenants; registered in messageKindSchema, the comms settings
+     KIND_ORDER, SendReminderDialog and i18n kindLabels/Descriptions.
+     sendTrackingLinkAction goes through dispatchMessage with
+     channelOverride 'sms' (the button says SMS; a WhatsApp-preferring
+     customer still gets a text), so tenant Twilio creds, customer
+     language, message_log and the STOP footer all come from
+     /settings/communications as the brief required. Dispatcher failure
+     reasons (no_destination, opted_out_preference, template_missing,
+     template_disabled, provider_failed) are translated in
+     t.repair.tracking.errors.
+
+ 416. {{tracking_link}} IN THE READY TEXTS. 0061 appends " Track it
+     here: {{tracking_link}}" / " Siga su reparación: {{tracking_link}}"
+     to every repair_ready and repair_pickup_reminder template body that
+     lacks it (operator edits otherwise preserved; verified 6/6 rows).
+     The repair-ready-reminders cron now passes tracking_link ('' when
+     revoked). NOTE this cron — like every cron — had NEVER fired in
+     production until CRON_SECRET was set this session (item 402).
+
+ 417. AUTO-TEXT WHEN READY (optional setting) — settings.
+     repair_ready_auto_notify (default FALSE). lib/repair/notify.ts
+     notifyRepairReadyIfEnabled() runs after markCompleteAction,
+     approveQaAction and the board move to 'ready': sends repair_ready
+     (with tracking_link) immediately, skips if a repair_ready row
+     already exists in message_log for the ticket, never throws (a
+     comms hiccup must not undo a status change). The daily cron stays
+     the catch-up and already skips tickets that got the ready text.
+     Toggle lives on /settings/repair-stages.
+
+ 418. /settings/repair-stages (owner / chain_admin / manager; has_repair
+     gate; hub card on /settings when the repair module is on). Tabs per
+     service type; rows: EN name, ES name, %, auto-advance statuses
+     (chips; 'voided' deliberately not mappable — a voided ticket's page
+     is a not-found), active, reorder, remove, add; Save; Reset to
+     defaults (confirm → seed_default_repair_stages(…, reset=TRUE)).
+     saveRepairStagesAction renumbers in TWO passes (park survivors on
+     negative sort_order, then final (i+1)*10) because the UNIQUE
+     (tenant, type, sort_order) index would bounce a swap mid-way;
+     deletes removed rows (ticket pointers go NULL via the FK) and
+     re-points those tickets to the first active stage mapping their
+     status — the same rule the trigger applies when a ticket has no
+     usable stage. Audit: repair_stages_update / _reset /
+     repair_notify_setting.
+
+ 419. PURE HELPERS + TESTS: lib/repair/stages.ts (nextStage, stageIndex,
+     progressPercent clamp, stageName, isValidPublicToken, trackingUrl —
+     /t/<token>, never a ticket number or customer id in the URL) with
+     stages.test.ts; public-ticket.test.ts (item 412). Suite: 576 tests.
+     serviceTypeLabel() extracted from ServiceTypeBadge and shared by
+     the badge, the stages editor and the public page (pre-save gate:
+     duplicate logic consolidated); detectLanguageFromHeaders() moved
+     from the (public) layout into lib/i18n/server.ts for the same
+     reason.
+
+ 420. GOTCHA — 'use client' not-found.tsx UNDER A DYNAMIC SEGMENT. The
+     first /t/[token]/not-found.tsx was a client component (useI18n for
+     the bilingual copy). In the PRODUCTION build, notFound() from the
+     page rendered Next's DEFAULT "404: This page could not be found"
+     instead — no error in the server log, tsc/lint/build all green —
+     while the sibling /s/[slug]/not-found.tsx (a server component)
+     worked. Rewritten as a server component that reads Accept-Language
+     via detectLanguageFromHeaders() + getDictionary(); custom 404 then
+     rendered in EN and ES. Next's bundled docs (not-found.md) note that
+     client hooks in not-found need client-side data fetching — treat
+     not-found.tsx as server-only in this repo.
+
+ PHASE 0 (items 401-410 below).
+
+
+
+ 401. CAMERA / MICROPHONE ERRORS CLASSIFIED (commit 3407dd1, 2026-09-24,
+     shipped between checkpoints and not logged until now). Eddy hit
+     "Could not access camera. Check browser permissions.
+     (NotReadableError)" — the one getUserMedia error that is NOT about
+     permissions (device busy in another app). src/lib/media/errors.ts
+     classifies the DOMException into denied / inUse / notFound /
+     constraints / insecure / unknown with matching EN+ES advice; the
+     mic path previously swallowed the error in `catch {}` and always
+     said "denied". 18 tests pin NotReadableError → inUse.
+
+ 402. [CRITICAL] SPOT PRICES FROZEN SINCE 2026-04-30 — ROOT CAUSE. Brief
+     item 0.1. Every melt value and buy payout had been computed from
+     24K = $148.52/g for six months while the market was ~$126/g (shop
+     overpaying ~18%). Two independent failures, found by read-only
+     diagnosis before touching code:
+       (a) Stooq's quote endpoint (`stooq.com/q/l/?s=xauusd&f=sd2t2c&h&
+           e=csv`) returns HTTP 404 for EVERY symbol and host variant,
+           and its /q/d/l/ history endpoint now sits behind a JavaScript
+           proof-of-work challenge. Eight manual "Refresh now" attempts
+           failed with "No quotes returned from Stooq" (last
+           2026-07-01); the failure was only visible as a one-line echo
+           under the button and as audit rows nobody looks at.
+       (b) The cron NEVER ran once: zero spot_price_refresh audit rows
+           with tenant_id NULL in the whole table. CRON_SECRET was not
+           set in Vercel Production, so /api/cron/refresh-spot-prices
+           returned 401 before any logging — the same unset secret
+           Progress.txt had carried as IMMEDIATE for several sessions.
+     Verified live providers the same day: gold-api.com (free, no key,
+     spot XAU/XAG/XPT/XPD), Yahoo v8 chart futures GC=F/SI=F/PL=F/PA=F
+     (contango caveat), Yahoo XAUUSD=X delisted, goldprice.org 403,
+     metals.dev / goldapi.io need keys.
+
+ 403. PROVIDER FALLBACK CHAIN (src/lib/spot-prices/sources/). A
+     SpotSource interface ({id, label, fetch({fetchedAt})} that NEVER
+     throws) with three implementations: gold-api.ts (primary, spot),
+     yahoo-futures.ts (fallback, futures — documented why it is not
+     primary), stooq.ts (last resort, documented as 404 since 2026-11).
+     http.ts is the one shared fetch (8s timeout, no-store, UA, string
+     errors). index.ts `fetchSpotQuotesWithFallback(sources)` walks the
+     chain: first provider returning ALL FOUR metals wins; otherwise
+     gaps fill metal-by-metal from whichever provider had that metal
+     first, so one flaky symbol cannot freeze the feed. Each SpotQuote
+     carries its provider → spot_prices.source is now per-row truth
+     ('gold-api' | 'yahoo-futures' | 'stooq'). 10 unit tests on the
+     chain + parsers (sources accept an injected list; no network in
+     tests).
+
+ 404. FETCH LOG (patches/0058, APPLIED). New platform-wide table
+     spot_price_fetches: trigger ('cron'|'manual'), triggered_by,
+     tenant_id (attribution only), started/finished, ok, source, quotes,
+     attempted, inserted, error, attempts JSONB (one entry per provider
+     tried: source, ok, quotes, ms, error). RLS enabled; ONE policy,
+     spot_price_fetches_read_all FOR SELECT USING (auth.uid() IS NOT
+     NULL) — an exact mirror of spot_prices_read_all (0013); no write
+     policy, service role only. refresh.ts writes a row on EVERY run,
+     success or failure, in a non-fatal `finish()` (a logging failure
+     can never break a refresh). Spot Prices page gained a "Refresh
+     history" table (last 20) showing the provider trail, e.g.
+     "stooq ✗ (gold: HTTP 404 …) 812ms → yahoo-futures ✓ 320ms".
+
+ 405. refresh.ts REWRITTEN around the chain. refreshSpotPrices({trigger,
+     userId?, tenantId?}) → RefreshSummary {ok, source, quotes,
+     attempted, inserted, attempts, error?, fetchLogId}. Partial
+     coverage (<4 metals) is ok:true with an explanatory error string.
+     Cron route mirrors the summary into audit_log (record_id =
+     fetchLogId) and now logs LOUDLY when CRON_SECRET is unset instead of
+     silently 401ing. scripts/refresh-spot-prices.ts is a CLI for the
+     same path (`npx tsx --env-file=.env.local scripts/refresh-spot-
+     prices.ts`). Verified: real run → gold-api, 4 quotes, 10/10 rows,
+     24K $126.0920/g ($3,921.90/oz), 18K $94.5690/g; then the built app
+     on :3061 with a test CRON_SECRET → no header 401, wrong secret 401,
+     right secret 200 + another real refresh + fetch-log row.
+
+ 406. STALE-PRICE GUARD (24h). src/lib/spot-prices/staleness.ts is pure
+     (SPOT_STALE_AFTER_HOURS=24, assessSpotFreshness, newestFetchedAt;
+     no price at all = stale; 6 tests). lookup.getSpotFreshness() reads
+     the newest fetched_at (cached, fail-CLOSED on read error).
+     components/inventory/StalePriceBanner.tsx renders a red danger
+     banner on Spot Prices, Buy Outright, New Pawn Ticket and the Loan
+     Calculator; StaleSpotConfirm renders the manager checkbox
+     (name=stale_spot_ack). stale-gate.ts is the server half:
+     checkStaleSpotGate({formData, tenantRole, involvesMetal}) — holds
+     the submission only when prices are stale AND the items price
+     precious metal (meltMetalFromItem != null; a loan on a laptop
+     passes), requires role ∈ owner/manager/chain_admin AND the ack
+     field, returns translated codes stale_spot_price_confirm_required /
+     stale_spot_price_manager_required (wired into ruleErrorText via
+     t.spotPrices.errors). Buy form blocks submit client-side (it knows
+     per-row metal); pawn form shows the confirm and lets the server
+     decide (it only gets collateral counts). Both audit rows record
+     stale_spot_ack {confirmed_by, spot_fetched_at, spot_age_hours}.
+     No PIN system exists, so "manager confirms" = a manager-role
+     session ticks the box; a clerk is told to get a manager to refresh.
+
+ 407. 18K "×0.6000" EXPLAINED AND FIXED (brief 0.2). Not a purity bug:
+     18K spot was exactly 0.75 × 24K (correct). The badge was tenant
+     1abc8070's PAY-RATE OVERRIDE on gold/18k = 0.6000, set by Eddy on
+     2026-04-28 (the only override in the table). The card showed the
+     RAW spot ($111.39) beside a badge that read like a correction, while
+     melt math quietly paid 60%. Cards and the headline now show "You
+     pay $X/g" (spot × rate) first with "Spot $Y/g" underneath, and the
+     badge reads "Pay rate 60%". Melt math unchanged. Whether 60% on 18K
+     is INTENDED is Eddy's call — flagged, not changed.
+
+ 408. DEVELOPER TEXT ON /pawn/new (brief 0.3). "Default rate seeded by
+     migration 0021. Edit at /settings/loan-rates." was
+     tenant_loan_rates.description on the seeded default row, rendered
+     under the rate picker. patches/0059 (APPLIED) nulls that exact
+     string; the form falls back to the translated manageRatesHint. No
+     provisioning code reuses the text. The "24.96% — 111" option is row
+     dd6ec17f (rate 0.2496, label "111", created by Eddy 2026-05-05,
+     active, not default) — used by exactly ONE loan (status redeemed,
+     2026-05-07), zero drafts. NOT deleted per the brief ("show it to me
+     first"); deactivating (is_active=false) would hide it from the
+     picker and leave that loan untouched since loans copy the rate
+     value. Repo-wide sweep for other dev text: /admin/market-data
+     subtitle says "See patches/0036 for the warehouse design"
+     (superadmin-only, left for now); i18n `templatesEmpty: 'No templates
+     seeded yet…'` (mild); DB scan of message_templates, intake
+     categories, comm_automations, settings, jurisdictions: clean.
+
+ 409. SPOT PRICES PAGE RULE-6 DEBT CLEARED while in the file: "hidden",
+     "(click to show)", "Show all", "Show/Hide this card", "override",
+     "24h price trend" were hardcoded English — all now i18n (EN+ES).
+     refreshOk reworded from "Inserted N of M new rows" to "Prices
+     updated from {source} — N new rows"; noPrices no longer says "cron
+     tick". Pre-existing hardcoded English on /buy/new and
+     /pawn/calculator headers was NOT touched (out of Phase 0 scope —
+     backlog).
+
+ 410. PROCESS: the brief said "leave changes on a branch, don't deploy";
+     Eddy overrode mid-session ("you can deploy to production"), so
+     0058/0059 were applied to the live DB and the work merged to main.
+     Branch feature/sol-pawn-brief kept for Phases 1-4. CRON_SECRET
+     finally SET in Vercel Production: the Vercel MCP connector returned
+     404/403 for env operations on this project, so it went through the
+     logged-in `vercel` CLI after `vercel link --yes --project pawn`
+     (.vercel/ is gitignored). The push of this checkpoint is the first
+     deployment that carries it.
+
+--- Session 54 (2026-09-23) — ID scan in the customer header + HEIC uploads fixed end to end ---
+
+ 393. ID SCAN IN THE CUSTOMER HEADER
+     (src/app/(staff)/customers/[id]/content.tsx, IdScanBlock). Eddy asked
+     for the ID to be visible immediately, marking the empty band right of
+     the customer name. Built as a THUMBNAIL that opens the full scan in a
+     new tab, NOT a banner filling the band: DESIGN-lunaazul.md says ID
+     scans are "never rendered at hero scale, never shown in any browse
+     surface". A customer's own detail page is the record itself rather
+     than a browse surface, so a small gated tile is consistent; a
+     full-bleed driver's license on a shop-floor monitor is not. Reuses
+     the 1h signed URL the Documents section already builds (rule 12) —
+     no new plumbing, bucket stays private. Renders an explicit "No ID on
+     file" tile rather than blank space, because for a pawn a missing ID
+     is the thing staff most need to notice.
+
+ 394. [BUG] HEIC UPLOADS REJECTED EVERYWHERE — THE ALLOWLIST WAS NEVER THE
+     PROBLEM. 'image/heic' was already in all seven ALLOWED_*_MIME_TYPES
+     lists. The bug was that every check read the BROWSER-DECLARED type:
+         ALLOWED_DOCUMENT_MIME_TYPES.includes(file.type)
+     ROOT CAUSE: file.type comes from the OPERATING SYSTEM's type
+     registry, not from the file. Windows has no registered MIME for HEIC
+     unless the HEIF Image Extensions are installed, so Chrome hands the
+     server file.type === '' for a valid IMG_1234.HEIC straight off an
+     iPhone. Empty string is not in the allowlist -> mime_not_allowed,
+     while the format sat in the allowlist the whole time. Some sources
+     report 'image/heif' instead, which also missed.
+     FIX: src/lib/uploads/mime.ts resolveUploadMime() — believe file.type
+     when recognised, else fall back to the filename extension, and
+     normalise aliases (image/heif, image/jpg, *-sequence). The resolved
+     value is also what gets STORED, so files uploaded with a blank type
+     no longer land in the bucket labelled Content-Type ''.
+     Applied at ALL 11 call sites, not just the customer ID scan Eddy hit:
+     the identical check was silently rejecting iPhone photos on pawn
+     collateral, buy outright, repair intake, repair pickup signatures,
+     appraisals and inventory.
+     Still an allowlist gate — callers reject anything not on their list,
+     and neither an extension nor a declared type proves file contents.
+     Private buckets + signed URLs remain what actually contains a
+     mislabelled upload.
+
+ 395. [BUG] THE FILE PICKER WAS HIDING .heic BEFORE IT COULD BE CHOSEN.
+     accept="" listed MIME types only, and on Windows the picker maps
+     those through the same registry, so .heic files were greyed out.
+     Added explicit extensions across all 10 upload forms.
+
+ 396. HEIC CONVERTED TO JPEG AT UPLOAD (src/lib/uploads/convert.ts).
+     After 394 the file uploaded but STILL could not be seen — Chrome,
+     Edge and Firefox refuse to paint HEIC (only Safari renders it), so
+     an iPhone ID scan was a file staff could download and never view,
+     which defeats item 393 entirely. prepareUpload() transcodes HEIC to
+     JPEG via heic-convert (pure JS, no native binaries, runs on Vercel)
+     BEFORE the bytes reach storage. Measured on the real 449KB scan
+     already in the bucket: 429ms, 144MB peak RSS, 509KB out at quality
+     0.85, 2557x1601 preserved.
+     Converting on the way IN, not on every view: it happens once per
+     file, and the stored bytes and the recorded mime_type stay honest
+     about each other, so every downstream reader (header tile, documents
+     list, ticket PDFs, portal) just sees a JPEG.
+     DELIBERATE FAILURE MODE: on any conversion error the ORIGINAL file is
+     stored rather than throwing. Losing a pawn's ID scan because a
+     decoder tripped is worse than storing a file the browser cannot
+     inline — the record still exists for compliance, the download still
+     works, and mime_type still describes the real bytes. Files over 20MB
+     skip conversion rather than risk the function's memory. byte_size now
+     records the STORED length, not the input length.
+
+ 397. isBrowserRenderableImage() — HEIC passes startsWith('image/') but no
+     mainstream browser paints it, so item 393's tile would have rendered
+     a broken image on the shop's own machines. Lives in mime.ts (not
+     convert.ts) precisely so a CLIENT component can ask the question
+     without dragging the Node-only decoder into the bundle.
+
+ 398. BACKFILLED THE ONE HEIC ALREADY IN THE BUCKET. Non-destructive:
+     wrote the .jpg, repointed customer_documents.storage_path +
+     mime_type + byte_size, LEFT the original .heic object in place.
+     Verified in a real browser — img.naturalWidth is 2557, i.e. Chrome
+     genuinely decoded it; rendered 185x117 in the header tile, zero
+     console errors.
+
+ 399. PRE-SAVE GATE — SEVEN COPIES OF pickExt CONSOLIDATED. Six upload
+     actions plus lib/supabase/storage.ts each carried a private
+     pickExt/pickExtension with identical filename-first logic, differing
+     only in which types the fallback covered (appraisals omitted pdf;
+     only storage.ts knew gif). Now one extensionForUpload() in
+     lib/uploads/mime.ts with the SUPERSET map, so the only behaviour
+     change is that a file with no usable extension and a pdf/gif type
+     gets 'pdf'/'gif' instead of 'bin'. Pinned by tests so a future edit
+     cannot quietly change storage paths. 538 tests, green build.
+
+ 400. GOTCHA WORTH REMEMBERING: npm install MID-SESSION desynced
+     Turbopack's dev module graph and every route started 500ing on
+     `[next]/internal/font/google/dm_sans_*.module.css — Can't resolve
+     '@vercel/turbopack-next/internal/font/google/font'`. It looked like
+     the app had been broken by the upload refactor; it had not. The
+     production build was green throughout, which is the fastest way to
+     tell the two apart. Cure: stop the dev server BY PID, delete .next,
+     restart. First cold run after an install may still show it on a
+     route or two before settling.
+
+--- Session 53 (2026-09-22) — Customer physical-description dropdowns + race wired end to end ---
+
+ 387. DESCRIPTION FIELDS ARE DROPDOWNS NOW (sex / hair_color / eye_color /
+     race). FL Stat. § 539.001 requires a physical description of the
+     pledgor, but these were free-text boxes, so the same person could be
+     'Brown', 'brown' or 'BROWN' depending on who wrote the ticket — and
+     the police-report export would inherit the mess. Converted on ALL
+     THREE customer surfaces, not just the two Eddy named:
+       - /customers/new          (add)
+       - /customers/[id]         (edit)
+       - QuickCustomerModal      (inline add during pawn intake — same
+                                  free-text fields, would have stayed
+                                  inconsistent)
+     The first two share src/components/customers/CustomerFormFields.tsx,
+     so one change covered both.
+
+ 388. race WAS DEAD WEIGHT — NOW WIRED END TO END (closes old backlog 8).
+     The column has existed since patch 0047 and the xPawn import fills
+     it, but it was in NO read query, NO form, NO validator and NEITHER
+     write path — so imported values were invisible and unreachable from
+     the UI. Added to: the [id]/page.tsx select list (without this the
+     dropdown would load blank and blank the column on save), the shared
+     form type + EMPTY, both echo-rebuild paths, customerSchema,
+     lib/customers/create.ts and customers/[id]/actions.ts.
+
+ 389. THE OPTION VALUES ARE THE DATA'S OWN VOCABULARY — the real decision
+     here. Audited all 5,218 customers BEFORE choosing. They already
+     carry a vocabulary from xPawn: Title-case English words ('Black',
+     'Red Or Auburn', 'Hispanic'), NOT NCIC three-letter codes
+     (BLK/BRO/HAZ). So src/lib/customers/physical-description.ts
+     reproduces that vocabulary verbatim, casing included, and the
+     dropdowns select data that is already there. Choosing NCIC codes
+     would have split the column into two vocabularies and forced every
+     future reader — starting with the LeadsOnline exporter, which does
+     not read these fields yet — to understand both forever.
+     Observed distribution: sex M 2944 / F 2262 / 'm' 1; hair 16 distinct
+     (Black 2023, Brown 1921, Grey 441, Blonde 405, Bald 194 …); eyes 9
+     distinct; race 8 distinct (Hispanic 3691, White 857, Black 616 …).
+
+ 390. OFF-LIST VALUES ARE PRESERVED — the correctness property that makes
+     this safe. descriptionOptions() appends any stored value that is not
+     a canonical option as its own option and preselects it, so editing
+     an unrelated field (a phone number) can NEVER silently blank a field
+     the statute requires the shop to hold. race also stays free text in
+     Zod for the same reason — a strict enum would reject an unrelated
+     edit on any legacy row.
+     Verified in a real browser against the record that actually has the
+     problem (Eddy's own: sex 'm', hair_color 'BLACK'): the edit form
+     renders 6 and 17 options instead of 5 and 16, both preselected, and
+     all four fields round-trip their stored value. The add form shows
+     the clean lists (5 / 16 / 11 / 9 including the blank).
+
+ 391. PRE-SAVE GATE FINDINGS, fixed in the same checkpoint.
+     (a) DUPLICATE LOGIC: the four <select> blocks in QuickCustomerModal
+         repeated the same options-map. Extracted a local
+         DescriptionSelect component. Behaviour-preserving, and verified
+         by driving the modal in a real browser (it only mounts on click,
+         so the route-level smoke never reaches it) — 5/16/11/9 options,
+         zero console errors.
+     (b) i18n BLIND SPOT: descriptionOptions falls back to the raw value
+         when a label is missing, so a half-translated locale renders
+         'Pacific Islander' in Spanish instead of failing — invisible to
+         tsc AND to a screenshot. Added tests asserting every option key
+         has a non-blank label in EVERY locale and that no dictionary
+         carries a label for an option that no longer exists.
+     523 tests total (26 new). tsc + lint clean.
+
+ 392. patches/0057-normalize-customer-description-values.sql WRITTEN BUT
+     NOT APPLIED — awaiting Eddy's go-ahead, because it UPDATEs customer
+     records the statute requires the shop to hold. It normalizes the 3
+     casing-variant rows ('m' -> 'M', 'BLACK'/'black' -> 'Black').
+     Nothing is broken without it: those rows display and save correctly
+     via the preserve-off-list rule; the patch only stops 'BLACK' sitting
+     next to 'Black' in the menu like two different colors.
+     DELIBERATELY EXCLUDED: hair 'Auburn' (36 rows) vs 'Red Or Auburn'
+     (87 rows). Both are offered as separate options. Merging them is a
+     judgement call about what the shop means, not a casing fix.
