@@ -4022,21 +4022,23 @@ export const es: Dictionary = {
       fl_leadsonline: 'Florida — LeadsOnline',
     },
     formatDraftWarning:
-      'BORRADOR DE FORMATO — confirma con la agencia antes de enviar en producción.',
+      'Hecho en el formato que xPawn envía a LeadsOnline, con el número de tienda de LeadsOnline. Pawn no sube nada: confirme con LeadsOnline antes de que el primer archivo salga de Pawn.',
     voidedAfterReport: {
       title: 'Anulados después de reportarse',
-      body: 'Estos boletos salieron en un reporte policial y se anularon después. Corrija cada uno con LeadsOnline. Los boletos anulados antes de la exportación diaria quedan fuera del archivo por sí solos.',
+      body: 'Estos boletos salieron en un archivo policial y se anularon después. El próximo archivo diario envía cada uno otra vez marcado como anulado, como lo hacía xPawn. Un boleto anulado antes de su primer archivo sale una sola vez, ya marcado como anulado.',
       ticket: 'Boleto',
       reportedOn: 'Reportado',
       voidedOn: 'Anulado',
       reportedFile: 'Archivo en que salió',
+      voidSent: 'Anulación enviada',
+      voidPending: 'En el próximo archivo',
     },
     preview: {
       title: 'Vista previa (primeras 50 filas)',
       rowCount:
         '{rows} fila(s) de cumplimiento en el rango. Los artículos se expanden a {flattened} fila(s) CSV.',
     },
-    downloadCsv: 'Descargar CSV',
+    downloadCsv: 'Descargar archivo (XML)',
     eventTypes: {
       pawn_intake: 'Empeño',
       buy_outright: 'Compra directa',

@@ -89,6 +89,7 @@ export default function PoliceReportContent({
                 <th className="py-1 pr-3 font-medium">{t.compliance.voidedAfterReport.ticket}</th>
                 <th className="py-1 pr-3 font-medium">{t.compliance.voidedAfterReport.reportedOn}</th>
                 <th className="py-1 pr-3 font-medium">{t.compliance.voidedAfterReport.voidedOn}</th>
+                <th className="py-1 pr-3 font-medium">{t.compliance.voidedAfterReport.voidSent}</th>
                 <th className="py-1 font-medium" />
               </tr>
             </thead>
@@ -102,6 +103,9 @@ export default function PoliceReportContent({
                   </td>
                   <td className="py-1.5 pr-3 font-mono">{v.reported_at ? v.reported_at.slice(0, 10) : '—'}</td>
                   <td className="py-1.5 pr-3 font-mono">{v.voided_at.slice(0, 10)}</td>
+                  <td className="py-1.5 pr-3 font-mono">
+                    {v.resent_at ? v.resent_at.slice(0, 10) : t.compliance.voidedAfterReport.voidPending}
+                  </td>
                   <td className="py-1.5 text-right">
                     {v.reported_batch_id ? (
                       <a

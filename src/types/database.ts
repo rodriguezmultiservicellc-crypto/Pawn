@@ -643,6 +643,7 @@ export type Database = {
       compliance_log: {
         Row: {
           amount: number | null
+          clerk: string | null
           created_at: string
           customer_snapshot: Json
           event_type: string
@@ -655,12 +656,14 @@ export type Database = {
           id: string
           items_snapshot: Json
           occurred_at: string
+          reference_number: string | null
           source_id: string
           source_table: string
           tenant_id: string
         }
         Insert: {
           amount?: number | null
+          clerk?: string | null
           created_at?: string
           customer_snapshot: Json
           event_type: string
@@ -673,12 +676,14 @@ export type Database = {
           id?: string
           items_snapshot: Json
           occurred_at?: string
+          reference_number?: string | null
           source_id: string
           source_table: string
           tenant_id: string
         }
         Update: {
           amount?: number | null
+          clerk?: string | null
           created_at?: string
           customer_snapshot?: Json
           event_type?: string
@@ -691,6 +696,7 @@ export type Database = {
           id?: string
           items_snapshot?: Json
           occurred_at?: string
+          reference_number?: string | null
           source_id?: string
           source_table?: string
           tenant_id?: string

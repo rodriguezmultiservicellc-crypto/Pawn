@@ -4022,20 +4022,22 @@ export const en = {
       fl_leadsonline: 'Florida — LeadsOnline',
     },
     formatDraftWarning:
-      'FORMAT DRAFT — confirm with the agency before submitting in production.',
+      'Built in the format xPawn sends LeadsOnline, with the shop’s LeadsOnline store number. Pawn uploads nothing: confirm with LeadsOnline before the first file goes from Pawn.',
     voidedAfterReport: {
       title: 'Voided after they were reported',
-      body: 'These tickets went out in a police report and were voided afterwards. Correct each one with LeadsOnline. Tickets voided before the daily export are left out of the file on their own.',
+      body: 'These tickets went out in a police file and were voided afterwards. The next daily file sends each one again marked void, as xPawn did. A ticket voided before its first file goes out once, already marked void.',
       ticket: 'Ticket',
       reportedOn: 'Reported',
       voidedOn: 'Voided',
       reportedFile: 'File it went out in',
+      voidSent: 'Void sent',
+      voidPending: 'In the next file',
     },
     preview: {
       title: 'Preview (first 50 flattened rows)',
       rowCount: '{rows} compliance row(s) in range. Items expand to {flattened} CSV row(s).',
     },
-    downloadCsv: 'Download CSV',
+    downloadCsv: 'Download file (XML)',
     eventTypes: {
       pawn_intake: 'Pawn intake',
       buy_outright: 'Buy outright',

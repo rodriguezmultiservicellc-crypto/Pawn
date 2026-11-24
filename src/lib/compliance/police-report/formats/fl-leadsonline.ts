@@ -1,35 +1,12 @@
 /**
- * Florida LeadsOnline police-report exporter.
- *
- * ===========================================================================
- * FORMAT DRAFT — confirm with FL LeadsOnline before go-live.
- * ===========================================================================
- *
- * The CSV column set below is best-effort. LeadsOnline publishes a tenant-
- * specific upload spec (their docs say each agency may set their own
- * required columns), and the exact field names vary by jurisdiction.
- * Eddy: before submitting a real file in production, request the agency's
- * "LeadsOnline Required Field List" PDF from the responsible police
- * department, then reconcile the columns here against it.
- *
- * One row per ITEM. Multi-item transactions emit one row per item with
- * customer + transaction columns repeated. Transactions are read from the
- * compliance_log table only — never derived from loans/sales (Rule 15).
- *
- * Column reference (v0 draft):
- *   store_id, transaction_date, transaction_type (PAWN|BUY|SALE_RECEIVED),
- *   customer_first_name, customer_middle_name, customer_last_name,
- *   customer_dob (YYYY-MM-DD), customer_address, customer_city,
- *   customer_state, customer_zip, customer_phone,
- *   customer_id_type (DL|PASSPORT|STATE_ID|MILITARY),
- *   customer_id_number, customer_id_state,
- *   item_description, item_serial, item_brand, item_model, item_make,
- *   item_quantity, item_unit_amount, item_total_amount.
+ * The police report as a table, one row per ITEM — what the Police report
+ * screen previews. The FILE LeadsOnline takes is XML, built by
+ * fl-leadsonline-xml.ts in the format xPawn sent; this module only lists the
+ * same compliance_log rows (rule 15) for staff to read.
  */
 
 import { itemIdentity } from '@/lib/pawn/item-identity'
 import type { ComplianceLogRow } from '@/types/database-aliases'
-import { rowsToCsv, type CsvColumn } from '@/lib/reports/http'
 
 export type LeadsOnlineRow = {
   store_id: string
@@ -59,33 +36,6 @@ export type LeadsOnlineRow = {
   item_unit_amount: string
   item_total_amount: string
 }
-
-const COLUMNS: ReadonlyArray<CsvColumn<LeadsOnlineRow>> = [
-  { header: 'store_id', value: 'store_id' },
-  { header: 'transaction_date', value: 'transaction_date' },
-  { header: 'transaction_type', value: 'transaction_type' },
-  { header: 'customer_first_name', value: 'customer_first_name' },
-  { header: 'customer_middle_name', value: 'customer_middle_name' },
-  { header: 'customer_last_name', value: 'customer_last_name' },
-  { header: 'customer_dob', value: 'customer_dob' },
-  { header: 'customer_address', value: 'customer_address' },
-  { header: 'customer_city', value: 'customer_city' },
-  { header: 'customer_state', value: 'customer_state' },
-  { header: 'customer_zip', value: 'customer_zip' },
-  { header: 'customer_phone', value: 'customer_phone' },
-  { header: 'customer_id_type', value: 'customer_id_type' },
-  { header: 'customer_id_number', value: 'customer_id_number' },
-  { header: 'customer_id_state', value: 'customer_id_state' },
-  { header: 'item_description', value: 'item_description' },
-  { header: 'item_serial', value: 'item_serial' },
-  { header: 'item_brand', value: 'item_brand' },
-  { header: 'item_model', value: 'item_model' },
-  { header: 'item_make', value: 'item_make' },
-  { header: 'item_ncic_code', value: 'item_ncic_code' },
-  { header: 'item_quantity', value: 'item_quantity' },
-  { header: 'item_unit_amount', value: 'item_unit_amount' },
-  { header: 'item_total_amount', value: 'item_total_amount' },
-]
 
 /** Map our internal id_type to the upload spec's set. */
 function mapIdType(s: unknown): LeadsOnlineRow['customer_id_type'] {
@@ -228,28 +178,3 @@ export function flattenComplianceRow(
     }
   })
 }
-
-/** Flatten a batch of compliance_log rows into LeadsOnline item rows. */
-export function flattenLeadsOnline(
-  rows: ReadonlyArray<ComplianceLogRow>,
-  opts: { tenantStoreId: string; ncicBySlug?: Record<string, string> },
-): LeadsOnlineRow[] {
-  return rows.flatMap((r) => flattenComplianceRow(r, opts))
-}
-
-/** Serialize already-flattened LeadsOnline rows to CSV. */
-export function leadsOnlineRowsToCsv(
-  flatRows: ReadonlyArray<LeadsOnlineRow>,
-): string {
-  return rowsToCsv(flatRows, COLUMNS)
-}
-
-/** Build the full CSV payload for a batch of compliance_log rows. */
-export function buildLeadsOnlineCsv(
-  rows: ReadonlyArray<ComplianceLogRow>,
-  opts: { tenantStoreId: string; ncicBySlug?: Record<string, string> },
-): string {
-  return leadsOnlineRowsToCsv(flattenLeadsOnline(rows, opts))
-}
-
-export const LEADS_ONLINE_COLUMNS = COLUMNS

@@ -1,5 +1,6 @@
 'use server'
 
+import { loadClerkInitials } from '@/lib/compliance/clerk'
 import { missingPledgorFields, pledgorIncompleteError } from '@/lib/customers/pledgor-record'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -407,6 +408,7 @@ export async function createBuyOutrightAction(
     height_inches: customer.height_inches,
     weight_lbs: customer.weight_lbs,
     sex: customer.sex,
+    race: customer.race,
     hair_color: customer.hair_color,
     eye_color: customer.eye_color,
     identifying_marks: customer.identifying_marks,
@@ -439,6 +441,10 @@ export async function createBuyOutrightAction(
     customer_snapshot: customerSnapshot,
     items_snapshot: itemsSnapshot,
     amount: totalPayout,
+    // The police upload's <ticket_number> and <clerk> (patches/0111). A buy
+    // has no ticket number: its first item's SKU names it.
+    reference_number: inserted[0].sku,
+    clerk: await loadClerkInitials(supabase, userId),
   })
   if (complianceErr) {
     // A purchase that can't reach the police-report ledger must not stand.

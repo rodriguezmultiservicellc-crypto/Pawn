@@ -25,7 +25,7 @@ export async function getPoliceReportRows(args: {
   tenantIds: ReadonlyArray<string>
   range: ReportRange
   eventTypes?: ReadonlyArray<string>
-}): Promise<ReportResult<ComplianceLogRow>> {
+}): Promise<ReportResult<ComplianceLogRow> & { voidRowBySource: Record<string, string> }> {
   const { supabase, tenantIds, range } = args
   // The shop's day, not UTC's (REVIEW-2026-11-11 finding 10).
   const { fromIso, toExclusiveIso } = reportBounds(range)
@@ -42,30 +42,22 @@ export async function getPoliceReportRows(args: {
 
   if (error) throw new Error(`police_report_query_failed: ${error.message}`)
 
-  // A ticket voided before it was reported is never reported (patches/0108):
-  // drop its intake when it was withheld, or is still waiting for the export
-  // with its void already in the log.
-  const all = (data ?? []) as ComplianceLogRow[]
-  const intakeIds = all.filter((r) => r.event_type === 'pawn_intake').map((r) => r.source_id)
-  let voidedIds = new Set<string>()
+  // Voided tickets stay in the report and go out with <void>Y</void>, as
+  // xPawn sent them (patches/0108, 0111). voidRowBySource: ticket -> its
+  // pawn_void row.
+  const rows = (data ?? []) as ComplianceLogRow[]
+  const intakeIds = rows.filter((r) => r.event_type === 'pawn_intake').map((r) => r.source_id)
+  const voidRowBySource: Record<string, string> = {}
   if (intakeIds.length > 0) {
     const { data: voids, error: vErr } = await supabase
       .from('compliance_log')
-      .select('source_id')
+      .select('id, source_id')
       .in('tenant_id', tenantIds as string[])
       .eq('event_type', 'pawn_void')
       .in('source_id', intakeIds)
     if (vErr) throw new Error(`police_report_query_failed: ${vErr.message}`)
-    voidedIds = new Set((voids ?? []).map((v) => v.source_id))
+    for (const v of voids ?? []) voidRowBySource[v.source_id] = v.id
   }
-  const rows = all.filter(
-    (r) =>
-      !(
-        r.event_type === 'pawn_intake' &&
-        voidedIds.has(r.source_id) &&
-        (r.export_outcome === 'withheld_void' || r.exported_at == null)
-      ),
-  )
 
   const totals = rows.reduce(
     (acc, r) => {
@@ -83,23 +75,42 @@ export async function getPoliceReportRows(args: {
     } as Record<string, number>,
   )
 
-  return { rows, totals, tenantIds: [...tenantIds] }
+  return { rows, totals, tenantIds: [...tenantIds], voidRowBySource }
 }
 
-/** A ticket reported to the agency and voided afterwards: the shop must
- *  correct it with the agency (patches/0108). */
+/** The intake rows of some tickets (a void reported after its ticket is sent
+ *  again from the ticket's own row — its date and data). */
+export async function getIntakeRows(args: {
+  supabase: SupabaseClient<Database>
+  tenantId: string
+  sourceIds: ReadonlyArray<string>
+}): Promise<ComplianceLogRow[]> {
+  if (args.sourceIds.length === 0) return []
+  const { data, error } = await args.supabase
+    .from('compliance_log')
+    .select('*')
+    .eq('tenant_id', args.tenantId)
+    .eq('event_type', 'pawn_intake')
+    .in('source_id', args.sourceIds as string[])
+  if (error) throw new Error(`intake_rows_query_failed: ${error.message}`)
+  return (data ?? []) as ComplianceLogRow[]
+}
+
+/** A ticket reported to the agency and voided afterwards (patches/0108).
+ *  The next file sends it again with <void>Y</void>; resent_at says when. */
 export type VoidedAfterReport = {
   loan_id: string
   ticket_number: string
   voided_at: string
   reported_at: string | null
   reported_batch_id: string | null
+  /** When a file carried the void; null = the next daily file will. */
+  resent_at: string | null
 }
 
 /**
  * Tickets voided after they were reported, newest first, from the last
- * `days` days. Read from compliance_log (rule 15); the ticket number is
- * looked up only to name the ticket on screen.
+ * `days` days. Read from compliance_log only (rule 15).
  */
 export async function getVoidedAfterReport(args: {
   supabase: SupabaseClient<Database>
@@ -109,7 +120,7 @@ export async function getVoidedAfterReport(args: {
   const since = new Date(Date.now() - (args.days ?? 90) * 86_400_000).toISOString()
   const { data: voids, error } = await args.supabase
     .from('compliance_log')
-    .select('source_id, occurred_at')
+    .select('source_id, occurred_at, reference_number, exported_at, export_outcome')
     .in('tenant_id', args.tenantIds as string[])
     .eq('event_type', 'pawn_void')
     .gte('occurred_at', since)
@@ -117,27 +128,27 @@ export async function getVoidedAfterReport(args: {
   if (error) throw new Error(`voided_after_report_query_failed: ${error.message}`)
   if (!voids || voids.length === 0) return []
 
-  const loanIds = voids.map((v) => v.source_id)
-  const [{ data: intakes }, { data: loans }] = await Promise.all([
-    args.supabase
-      .from('compliance_log')
-      .select('source_id, exported_at, exported_batch_id, export_outcome')
-      .in('tenant_id', args.tenantIds as string[])
-      .eq('event_type', 'pawn_intake')
-      .in('source_id', loanIds),
-    args.supabase.from('loans').select('id, ticket_number').in('id', loanIds),
-  ])
+  const { data: intakes } = await args.supabase
+    .from('compliance_log')
+    .select('source_id, exported_at, exported_batch_id, export_outcome')
+    .in('tenant_id', args.tenantIds as string[])
+    .eq('event_type', 'pawn_intake')
+    .in('source_id', voids.map((v) => v.source_id))
   return voids.flatMap((v) => {
     const intake = (intakes ?? []).find((i) => i.source_id === v.source_id)
-    // Only a ticket that actually went out needs a correction.
-    if (!intake?.exported_at || intake.export_outcome === 'withheld_void') return []
+    // Only a ticket that went out BEFORE its void: one voided first went
+    // out once, already voided (reported_void / withheld_void).
+    if (!intake?.exported_at || intake.export_outcome === 'withheld_void' || intake.export_outcome === 'reported_void') {
+      return []
+    }
     return [
       {
         loan_id: v.source_id,
-        ticket_number: (loans ?? []).find((l) => l.id === v.source_id)?.ticket_number ?? '',
+        ticket_number: v.reference_number ?? '',
         voided_at: v.occurred_at,
         reported_at: intake.exported_at,
         reported_batch_id: intake.exported_batch_id,
+        resent_at: v.export_outcome === 'void_notice' ? v.exported_at : null,
       },
     ]
   })

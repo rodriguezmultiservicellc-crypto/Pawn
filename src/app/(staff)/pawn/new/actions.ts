@@ -1,5 +1,6 @@
 'use server'
 
+import { loadClerkInitials } from '@/lib/compliance/clerk'
 import { missingPledgorFields, pledgorIncompleteError } from '@/lib/customers/pledgor-record'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -525,6 +526,7 @@ export async function createLoanAction(
     height_inches: customer.height_inches,
     weight_lbs: customer.weight_lbs,
     sex: customer.sex,
+    race: customer.race,
     hair_color: customer.hair_color,
     eye_color: customer.eye_color,
     identifying_marks: customer.identifying_marks,
@@ -586,6 +588,9 @@ export async function createLoanAction(
     customer_snapshot: customerSnapshot,
     items_snapshot: itemsSnapshot,
     amount: v.principal,
+    // The police upload's <ticket_number> and <clerk> (patches/0111).
+    reference_number: loanRow.ticket_number,
+    clerk: await loadClerkInitials(supabase, userId),
   })
 
   await logAudit({

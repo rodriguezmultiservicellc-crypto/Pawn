@@ -1,9 +1,10 @@
 /**
  * GET /api/reports/police-report/csv
  *
- * Streams the per-jurisdiction police-report CSV for the active tenant +
- * date range. Reads from compliance_log only (Rule 15) via the format
- * dispatcher.
+ * The police-report FILE for the active tenant + date range: the LeadsOnline
+ * upload XML (the format xPawn sent), voided tickets in it with
+ * <void>Y</void>. Reads from compliance_log only (Rule 15) via the format
+ * dispatcher. The path keeps its old name (csv); nothing here uploads.
  *
  * Audit-logs the export run (action='export', table='compliance_log').
  *
@@ -11,7 +12,7 @@
  *   from         ISO date (YYYY-MM-DD) — inclusive
  *   to           ISO date (YYYY-MM-DD) — inclusive
  *   format       optional override; otherwise tenants.police_report_format
- *   storeId      optional override; otherwise tenant.id (UUID fallback)
+ *   storeId      optional override; otherwise tenants.agency_store_id
  *
  * Marks the exported batch on each compliance_log row by setting
  * exported_at / exported_format / exported_batch_id. The on-table trigger
@@ -24,8 +25,8 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { resolveReportScope } from '@/lib/reports/tenant-scope'
 import { getPoliceReportRows } from '@/lib/reports/police-report'
 import { buildNcicBySlug } from '@/lib/compliance/ncic'
-import { dispatch } from '@/lib/compliance/police-report'
-import { csvResponse, parseRange } from '@/lib/reports/http'
+import { dispatch, storeFromTenant } from '@/lib/compliance/police-report'
+import { parseRange } from '@/lib/reports/http'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { logAudit } from '@/lib/audit'
 import type { PoliceReportFormat } from '@/types/database-aliases'
@@ -45,13 +46,14 @@ export async function GET(req: Request) {
   if (!ctx.tenantId) return new Response('no_tenant', { status: 403 })
 
   const url = new URL(req.url)
-  const range = parseRange(url.searchParams, (await loadTenantRules(ctx.supabase, ctx.tenantId)).timezone)
+  const timeZone = (await loadTenantRules(ctx.supabase, ctx.tenantId)).timezone
+  const range = parseRange(url.searchParams, timeZone)
 
   // Format selection: explicit query param > tenant default.
   const queryFormat = url.searchParams.get('format')
   const { data: tenantRow } = await ctx.supabase
     .from('tenants')
-    .select('police_report_format')
+    .select('id, name, dba, address, city, state, zip, phone, agency_store_id, police_report_format')
     .eq('id', ctx.tenantId)
     .maybeSingle()
   const candidate =
@@ -66,7 +68,6 @@ export async function GET(req: Request) {
     tenantId: ctx.tenantId,
   })
 
-  const tenantStoreId = url.searchParams.get('storeId') ?? scope.storeId
 
   const result = await getPoliceReportRows({
     supabase: ctx.supabase,
@@ -79,10 +80,20 @@ export async function GET(req: Request) {
     tenantIds: scope.tenantIds,
   })
 
+  if (!tenantRow) return new Response('no_tenant', { status: 403 })
+  const store = storeFromTenant(tenantRow)
+  const storeOverride = url.searchParams.get('storeId')
+  if (storeOverride) store.storeNumber = storeOverride
+
+  // Intakes are the tickets; a ticket with a void row goes out voided.
+  const intakes = result.rows.filter((r) => r.event_type === 'pawn_intake' || r.event_type === 'buy_outright')
+  const voided = (r: { source_id: string }) => r.source_id in result.voidRowBySource
   const exportResult = dispatch({
     format,
-    rows: result.rows,
-    tenantStoreId,
+    tickets: intakes.map((row) => ({ row, voided: voided(row) })),
+    store,
+    timeZone,
+    at: new Date(),
     ncicBySlug,
   })
 
@@ -91,16 +102,18 @@ export async function GET(req: Request) {
   // (only snapshot fields are blocked from UPDATE).
   const batchId = randomUUID()
   const exportedAt = new Date().toISOString()
-  if (result.rows.length > 0) {
-    const ids = result.rows.map((r) => r.id)
+  const stamps: Array<[ids: string[], outcome: 'reported' | 'reported_void']> = [
+    [intakes.filter((r) => !voided(r)).map((r) => r.id), 'reported'],
+    [
+      intakes.filter(voided).flatMap((r) => [r.id, result.voidRowBySource[r.source_id]]),
+      'reported_void',
+    ],
+  ]
+  for (const [ids, outcome] of stamps) {
+    if (ids.length === 0) continue
     const { error: updateErr } = await ctx.supabase
       .from('compliance_log')
-      .update({
-        exported_at: exportedAt,
-        exported_format: format,
-        exported_batch_id: batchId,
-        export_outcome: 'reported',
-      })
+      .update({ exported_at: exportedAt, exported_format: format, exported_batch_id: batchId, export_outcome: outcome })
       .in('id', ids)
     if (updateErr) {
       // Don't block the download — flag in audit instead.
@@ -119,13 +132,20 @@ export async function GET(req: Request) {
       format,
       from: range.from,
       to: range.to,
-      row_count: result.rows.length,
-      flattened_csv_rows: exportResult.rowCount,
+      tickets: exportResult.transactionCount,
+      items: exportResult.rowCount,
       tenant_ids: scope.tenantIds,
       batch_id: batchId,
       exported_at: exportedAt,
     },
   })
 
-  return csvResponse(exportResult.filename, exportResult.body)
+  return new Response(exportResult.body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${exportResult.filename}"`,
+      'Cache-Control': 'private, no-store',
+    },
+  })
 }
