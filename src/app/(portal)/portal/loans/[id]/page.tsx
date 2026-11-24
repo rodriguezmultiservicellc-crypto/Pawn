@@ -43,7 +43,8 @@ export default async function PortalLoanDetailPage(props: {
        due_date, status, created_at, deleted_at,
        collateral:loan_collateral_items(id, description, position, deleted_at),
        events:loan_events(id, event_type, amount, principal_paid,
-         interest_paid, fees_paid, payment_method, occurred_at, notes)`,
+         interest_paid, fees_paid, interest_waived, payment_method,
+         occurred_at, notes)`,
     )
     .eq('id', id)
     .maybeSingle()
@@ -66,6 +67,7 @@ export default async function PortalLoanDetailPage(props: {
         | 'principal_paid'
         | 'interest_paid'
         | 'fees_paid'
+        | 'interest_waived'
         | 'payment_method'
         | 'occurred_at'
         | 'notes'
@@ -88,6 +90,7 @@ export default async function PortalLoanDetailPage(props: {
     principal_paid: Number(e.principal_paid ?? 0),
     interest_paid: Number(e.interest_paid ?? 0),
     fees_paid: Number(e.fees_paid ?? 0),
+    interest_waived: Number(e.interest_waived ?? 0),
     payment_method: e.payment_method,
     occurred_at: e.occurred_at,
     notes: e.notes,

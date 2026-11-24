@@ -172,7 +172,7 @@ export async function runLoanAutomations(args: {
         if (payoffAmount == null) {
           const { data: events } = await admin
             .from('loan_events')
-            .select('event_type, principal_paid, interest_paid, fees_paid, occurred_at')
+            .select('event_type, principal_paid, interest_paid, fees_paid, interest_waived, occurred_at')
             .eq('loan_id', loan.id)
             .order('occurred_at', { ascending: true })
           const payoff = payoffFromLoan(
@@ -188,6 +188,7 @@ export async function runLoanAutomations(args: {
               principal_paid: Number(e.principal_paid ?? 0),
               interest_paid: Number(e.interest_paid ?? 0),
               fees_paid: Number(e.fees_paid ?? 0),
+              interest_waived: Number(e.interest_waived ?? 0),
               occurred_at: e.occurred_at,
             })),
             today,

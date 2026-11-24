@@ -33,6 +33,7 @@ type DialogLoan = {
     principal_paid: number
     interest_paid: number
     fees_paid: number
+    interest_waived: number
   }>
   /** How the shop's jurisdiction charges; its period is one move of the date. */
   charge: ChargeModel

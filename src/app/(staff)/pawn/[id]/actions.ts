@@ -6,6 +6,7 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import {
   loanForfeitSchema,
+  loanFreeTimeSchema,
   loanPaymentSchema,
   loanVoidSchema,
 } from '@/lib/validations/loan'
@@ -14,6 +15,7 @@ import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { chargeModelOf, loanForfeitEligibility, todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
   payoffFromLoan,
+  planFreeTime,
   planLoanPayment,
   splitPayment,
   toMoney,
@@ -38,7 +40,10 @@ const STAFF_LOAN_ROLES = [
  * Look up a loan and the tenant scope, then verify staff role at that tenant.
  * Mirrors the customer/inventory pattern in Phase 1.
  */
-async function resolveLoanScope(loanId: string) {
+async function resolveLoanScope(
+  loanId: string,
+  roles: ReadonlyArray<(typeof STAFF_LOAN_ROLES)[number]> = STAFF_LOAN_ROLES,
+) {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   const { data: loan } = await ctx.supabase
@@ -50,7 +55,7 @@ async function resolveLoanScope(loanId: string) {
     .is('deleted_at', null)
     .maybeSingle()
   if (!loan) redirect('/pawn')
-  const { supabase, userId } = await requireRoleInTenant(loan.tenant_id, STAFF_LOAN_ROLES)
+  const { supabase, userId } = await requireRoleInTenant(loan.tenant_id, roles)
   return { loan, supabase, userId, tenantId: loan.tenant_id }
 }
 
@@ -112,7 +117,7 @@ export async function recordPaymentAction(
   // planLoanPayment for why.
   const { data: priorEvents, error: priorErr } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid')
+    .select('principal_paid, interest_paid, fees_paid, interest_waived')
     .eq('loan_id', loan.id)
   if (priorErr) return { error: 'payoff_unavailable' }
   const plan = planLoanPayment({
@@ -159,7 +164,7 @@ export async function recordPaymentAction(
   // Recompute payoff to decide next status.
   const { data: events } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid')
+    .select('principal_paid, interest_paid, fees_paid, interest_waived')
     .eq('loan_id', loan.id)
   const payoff = payoffFromLoan(loanForPayoff, events ?? [], today, charge)
 
@@ -276,6 +281,111 @@ export async function recordPaymentAction(
   return { ok: true }
 }
 
+// ── Free time (managers only) ───────────────────────────────────────────────
+
+/** Who may give a customer free time: the people who answer for the money. */
+const FREE_TIME_ROLES = ['owner', 'manager', 'chain_admin'] as const
+
+/**
+ * A manager gives a customer free time on a ticket: the due date moves, from
+ * the loan's CURRENT due date, and the interest for those days is forgiven
+ * (loan_events.interest_waived — a credit, never income). No money is taken.
+ *
+ * A clerk cannot do this: the role is checked here, whatever the page shows.
+ * The days and the forgiven amount are worked out by the server
+ * (planFreeTime); the browser only says how long.
+ */
+export async function giveFreeTimeAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = loanFreeTimeSchema.safeParse({
+    loan_id: formData.get('loan_id'),
+    quantity: formData.get('quantity'),
+    unit: formData.get('unit'),
+    notes: formData.get('notes'),
+  })
+  if (!parsed.success) return { error: 'validation_failed' }
+  const v = parsed.data
+
+  const { loan, supabase, userId, tenantId } = await resolveLoanScope(
+    v.loan_id,
+    FREE_TIME_ROLES,
+  )
+  if (isTerminalStatus(loan.status as LoanStatus)) {
+    return { error: 'terminal_status' }
+  }
+
+  const rules = await loadTenantRules(supabase, tenantId)
+  const charge = chargeModelOf(rules)
+  const days = v.unit === 'periods' ? v.quantity * charge.periodDays : v.quantity
+  const plan = planFreeTime(
+    {
+      principal: toMoney(loan.principal),
+      monthlyRate: toMoney(loan.interest_rate_monthly),
+      minMonthlyCharge: loan.min_monthly_charge,
+      dueDate: loan.due_date,
+      charge,
+    },
+    days,
+  )
+  if (!plan) return { error: 'too_long' }
+
+  // The gift first, then the date: if the second step failed, the customer
+  // would still not be charged for time a manager gave them.
+  const { error: evErr } = await supabase.from('loan_events').insert({
+    loan_id: loan.id,
+    tenant_id: tenantId,
+    event_type: 'extension',
+    amount: null,
+    principal_paid: 0,
+    interest_paid: 0,
+    fees_paid: 0,
+    interest_waived: plan.interest_waived,
+    payment_method: null,
+    new_due_date: plan.new_due_date,
+    notes: v.notes,
+    performed_by: userId,
+  })
+  if (evErr) return { error: evErr.message }
+
+  // The print-immutability trigger lets due_date change only while the
+  // status is 'extended'.
+  const { error: upErr } = await supabase
+    .from('loans')
+    .update({
+      due_date: plan.new_due_date,
+      status: 'extended' as LoanStatus,
+      updated_by: userId,
+    })
+    .eq('id', loan.id)
+    .eq('tenant_id', tenantId)
+  if (upErr) {
+    console.error('[pawn.freeTime] loan update failed after the waiver', loan.id, upErr.message)
+    revalidatePath(`/pawn/${loan.id}`)
+    return { error: 'due_date_not_moved' }
+  }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'update',
+    tableName: 'loans',
+    recordId: loan.id,
+    changes: {
+      kind: 'free_time',
+      days: plan.days,
+      interest_waived: plan.interest_waived,
+      old_due_date: loan.due_date,
+      new_due_date: plan.new_due_date,
+      notes: v.notes ?? null,
+    },
+  })
+
+  revalidatePath(`/pawn/${loan.id}`)
+  revalidatePath('/pawn')
+  return { ok: true }
+}
+
 // ── Redeem (full payoff) ────────────────────────────────────────────────────
 
 export async function redeemLoanAction(
@@ -299,7 +409,7 @@ export async function redeemLoanAction(
 
   const { data: events } = await supabase
     .from('loan_events')
-    .select('principal_paid, interest_paid, fees_paid')
+    .select('principal_paid, interest_paid, fees_paid, interest_waived')
     .eq('loan_id', loan.id)
   // Interest is owed through the shop's day, not UTC's.
   const redeemRules = await loadTenantRules(supabase, tenantId)

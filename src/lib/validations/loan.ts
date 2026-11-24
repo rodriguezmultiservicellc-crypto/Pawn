@@ -3,7 +3,7 @@ import {
   inventoryCategorySchema,
   metalTypeSchema,
 } from './inventory'
-import { MAX_EXTENSION_PERIODS } from '@/lib/pawn/math'
+import { MAX_EXTENSION_PERIODS, MAX_FREE_DAYS } from '@/lib/pawn/math'
 
 /**
  * Pawn-loan Zod schemas — intake, payment (which may extend), forfeit, void.
@@ -246,6 +246,19 @@ export const loanPaymentSchema = z
   })
 
 export type LoanPaymentInput = z.infer<typeof loanPaymentSchema>
+
+// ── Free time (a manager's gift) ────────────────────────────────────────────
+
+// How long, and in which unit. The new due date and the interest forgiven
+// are NOT inputs: the server works them out (lib/pawn/math.planFreeTime).
+export const loanFreeTimeSchema = z.object({
+  loan_id: z.string().uuid(),
+  quantity: z.coerce.number().int().min(1).max(MAX_FREE_DAYS),
+  unit: z.enum(['days', 'periods']),
+  notes: optionalTrimmedString,
+})
+
+export type LoanFreeTimeInput = z.infer<typeof loanFreeTimeSchema>
 
 // ── Forfeiture ──────────────────────────────────────────────────────────────
 

@@ -168,9 +168,22 @@ export function addDaysIso(date: string, days: number): string {
 
 // ── Event aggregation ──────────────────────────────────────────────────────
 
+/**
+ * The money columns of a loan event that a payoff reads. `interest_waived`
+ * is REQUIRED on purpose: a screen that leaves it out of its query would
+ * charge a customer interest a manager forgave, and the type check stops
+ * that at build time.
+ */
+export type LoanMoneyEvent = Pick<
+  LoanEventRow,
+  'principal_paid' | 'interest_paid' | 'fees_paid' | 'interest_waived'
+>
+
 export type AppliedTotals = {
   principalApplied: number
   interestApplied: number
+  /** Interest forgiven (a manager's free time). Not income. */
+  interestWaived: number
   feesApplied: number
 }
 
@@ -182,20 +195,23 @@ export type AppliedTotals = {
  */
 export function appliedPayments(
   events: ReadonlyArray<
-    Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>
+    LoanMoneyEvent
   >,
 ): AppliedTotals {
   let principalApplied = 0
   let interestApplied = 0
+  let interestWaived = 0
   let feesApplied = 0
   for (const e of events) {
     principalApplied += toMoney(e.principal_paid)
     interestApplied += toMoney(e.interest_paid)
+    interestWaived += toMoney(e.interest_waived)
     feesApplied += toMoney(e.fees_paid)
   }
   return {
     principalApplied: r4(principalApplied),
     interestApplied: r4(interestApplied),
+    interestWaived: r4(interestWaived),
     feesApplied: r4(feesApplied),
   }
 }
@@ -210,7 +226,7 @@ export type PayoffArgs = {
   /** Date to compute the payoff for. Defaults to today (UTC). */
   today?: string | Date
   events: ReadonlyArray<
-    Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>
+    LoanMoneyEvent
   >
   /** Optional snapshot of the rate's min_monthly_charge floor. */
   minMonthlyCharge?: number | null
@@ -229,7 +245,9 @@ export type PayoffResult = {
   interestAccrued: number
   /** Interest already collected via prior payments. */
   interestApplied: number
-  /** Outstanding interest remaining (= max(0, accrued − applied)). */
+  /** Interest forgiven by a manager's free time. */
+  interestWaived: number
+  /** Outstanding interest remaining (= max(0, accrued − applied − waived)). */
   interestOutstanding: number
   /** Total payoff today (principalOutstanding + interestOutstanding). */
   payoff: number
@@ -266,9 +284,9 @@ export function payoffBalance(args: PayoffArgs): PayoffResult {
     args.charge,
   )
 
-  const { principalApplied, interestApplied } = appliedPayments(args.events)
+  const { principalApplied, interestApplied, interestWaived } = appliedPayments(args.events)
   const principalOutstanding = r4(Math.max(0, principal - principalApplied))
-  const interestOutstanding = r4(Math.max(0, accrued - interestApplied))
+  const interestOutstanding = r4(Math.max(0, accrued - interestApplied - interestWaived))
 
   // If principal is fully paid off, no further outstanding interest matters
   // for payoff purposes (redemption already happened or the next payment
@@ -283,6 +301,7 @@ export function payoffBalance(args: PayoffArgs): PayoffResult {
     principalOutstanding,
     interestAccrued: accrued,
     interestApplied,
+    interestWaived,
     interestOutstanding: effectiveInterest,
     payoff,
   }
@@ -387,7 +406,7 @@ type PlanLoan = {
   /** The loan's CURRENT due date — the date a move is counted from. */
   dueDate: string
   events: ReadonlyArray<
-    Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>
+    LoanMoneyEvent
   >
   /** How the charge accrues; its periodDays is one move of the due date. */
   charge: ChargeModel
@@ -431,8 +450,43 @@ export function extensionCost(loan: PlanLoan, periods: number): number {
     loan.minMonthlyCharge != null ? toMoney(loan.minMonthlyCharge) : 0,
     loan.charge,
   )
-  const { interestApplied } = appliedPayments(loan.events)
-  return cents(Math.max(0, accrued - interestApplied))
+  const { interestApplied, interestWaived } = appliedPayments(loan.events)
+  return cents(Math.max(0, accrued - interestApplied - interestWaived))
+}
+
+// ── Free time (a manager's gift) ───────────────────────────────────────────
+
+/** Most days one gift of free time may cover. A sanity bound, not a rule. */
+export const MAX_FREE_DAYS = 366
+
+/**
+ * A manager gives a customer `days` of free time: the due date moves that
+ * many days — from the CURRENT due date — and the charge for those days is
+ * forgiven. One day is worth 1/periodDays of a period's charge, so a free
+ * period forgives exactly one period's charge. In whole cents.
+ *
+ * The forgiven amount is a credit against the accrued charge
+ * (loan_events.interest_waived), never a payment: nothing is collected and
+ * nothing counts as income.
+ */
+export function planFreeTime(
+  loan: Pick<PlanLoan, 'principal' | 'monthlyRate' | 'minMonthlyCharge' | 'dueDate' | 'charge'>,
+  days: number,
+): { days: number; new_due_date: string; interest_waived: number } | null {
+  const n = Math.floor(days)
+  if (!(n > 0) || n > MAX_FREE_DAYS) return null
+  const periodDays = loan.charge.periodDays > 0 ? loan.charge.periodDays : RATE_PERIOD_DAYS
+  const principal = r4(loan.principal)
+  const minCharge = loan.minMonthlyCharge != null ? toMoney(loan.minMonthlyCharge) : 0
+  const periodCharge =
+    principal > 0
+      ? Math.max(loan.monthlyRate > 0 ? principal * loan.monthlyRate : 0, minCharge > 0 ? minCharge : 0)
+      : 0
+  return {
+    days: n,
+    new_due_date: addDaysIso(loan.dueDate, n),
+    interest_waived: cents((periodCharge / periodDays) * n),
+  }
 }
 
 /** Fewest periods that leave the loan not past due on `today` (at least 1). */
@@ -557,7 +611,7 @@ export function payoffFromLoan(
     | 'min_monthly_charge'
   >,
   events: ReadonlyArray<
-    Pick<LoanEventRow, 'principal_paid' | 'interest_paid' | 'fees_paid'>
+    LoanMoneyEvent
   >,
   today: string | Date | undefined,
   charge: ChargeModel,

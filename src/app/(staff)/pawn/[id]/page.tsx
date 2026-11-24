@@ -71,7 +71,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     ctx.supabase
       .from('loan_events')
       .select(
-        'id, event_type, amount, principal_paid, interest_paid, fees_paid, payment_method, new_due_date, notes, occurred_at',
+        'id, event_type, amount, principal_paid, interest_paid, fees_paid, interest_waived, payment_method, new_due_date, notes, occurred_at',
       )
       .eq('loan_id', id)
       .order('occurred_at', { ascending: false }),
@@ -138,6 +138,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     principal_paid: Number(e.principal_paid ?? 0),
     interest_paid: Number(e.interest_paid ?? 0),
     fees_paid: Number(e.fees_paid ?? 0),
+    interest_waived: Number(e.interest_waived ?? 0),
     payment_method: e.payment_method,
     new_due_date: e.new_due_date,
     notes: e.notes,
@@ -202,6 +203,11 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
       payoff={payoff}
       today={today}
       charge={chargeModelOf(rules)}
+      canGiveFreeTime={
+        ctx.tenantRole === 'owner' ||
+        ctx.tenantRole === 'manager' ||
+        ctx.tenantRole === 'chain_admin'
+      }
       forfeit={forfeit}
       tagChoices={templateChoices(
         await loadTagTemplates(ctx.supabase, ctx.tenantId),

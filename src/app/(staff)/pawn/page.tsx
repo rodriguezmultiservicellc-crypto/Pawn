@@ -282,23 +282,26 @@ export default async function PawnListPage(props: {
     principal_paid: number
     interest_paid: number
     fees_paid: number
+    interest_waived: number
   }
   const eventsByLoan = new Map<string, EventLite[]>()
   if (eventLoanIds.length) {
     const { data: evRows } = await ctx.supabase
       .from('loan_events')
-      .select('loan_id, principal_paid, interest_paid, fees_paid')
+      .select('loan_id, principal_paid, interest_paid, fees_paid, interest_waived')
       .in('loan_id', eventLoanIds)
     for (const e of (evRows ?? []) as unknown as {
       loan_id: string
       principal_paid: number | string | null
       interest_paid: number | string | null
       fees_paid: number | string | null
+      interest_waived: number | string | null
     }[]) {
       const lite: EventLite = {
         principal_paid: Number(e.principal_paid ?? 0),
         interest_paid: Number(e.interest_paid ?? 0),
         fees_paid: Number(e.fees_paid ?? 0),
+        interest_waived: Number(e.interest_waived ?? 0),
       }
       const arr = eventsByLoan.get(e.loan_id)
       if (arr) arr.push(lite)

@@ -136,19 +136,20 @@ export async function loadCollections(args: {
   if (loans.length > 0) {
     const { data: events } = await client
       .from('loan_events')
-      .select('loan_id, principal_paid, interest_paid, fees_paid')
+      .select('loan_id, principal_paid, interest_paid, fees_paid, interest_waived')
       .eq('tenant_id', tenantId)
       .in(
         'loan_id',
         loans.map((l) => l.id),
       )
-    const byLoan = new Map<string, Array<{ principal_paid: number; interest_paid: number; fees_paid: number }>>()
+    const byLoan = new Map<string, Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number }>>()
     for (const e of events ?? []) {
       const list = byLoan.get(e.loan_id) ?? []
       list.push({
         principal_paid: Number(e.principal_paid ?? 0),
         interest_paid: Number(e.interest_paid ?? 0),
         fees_paid: Number(e.fees_paid ?? 0),
+        interest_waived: Number(e.interest_waived ?? 0),
       })
       byLoan.set(e.loan_id, list)
     }

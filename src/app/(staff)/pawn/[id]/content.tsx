@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   CashRegister,
   CheckCircle,
+  Gift,
   Image as ImageIcon,
   Lock,
   LockOpen,
@@ -17,6 +18,7 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import { PayoffCalculator } from '@/components/pawn/PayoffCalculator'
 import { RecordPaymentDialog } from '@/components/pawn/RecordPaymentDialog'
+import { FreeTimeDialog } from '@/components/pawn/FreeTimeDialog'
 import { ForfeitConfirmDialog } from '@/components/pawn/ForfeitConfirmDialog'
 import { VoidLoanDialog } from '@/components/pawn/VoidLoanDialog'
 import { RedeemConfirmDialog } from '@/components/pawn/RedeemConfirmDialog'
@@ -27,6 +29,7 @@ import type { TemplateChoice } from '@/lib/labels/templates'
 import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
 import {
   forfeitLoanAction,
+  giveFreeTimeAction,
   printTicketAction,
   recordPaymentAction,
   redeemLoanAction,
@@ -104,6 +107,8 @@ export type LoanEventView = {
   principal_paid: number
   interest_paid: number
   fees_paid: number
+  /** Interest forgiven by this event (a manager's free time). */
+  interest_waived: number
   payment_method: PaymentMethod | null
   new_due_date: string | null
   notes: string | null
@@ -119,7 +124,7 @@ const STATUS_BADGE: Record<LoanStatus, { bg: string; text: string }> = {
   voided: { bg: 'bg-background border-border', text: 'text-muted' },
 }
 
-type DialogKind = 'payment' | 'redeem' | 'forfeit' | 'void' | null
+type DialogKind = 'payment' | 'freeTime' | 'redeem' | 'forfeit' | 'void' | null
 
 export default function PawnLoanDetail({
   loan,
@@ -128,6 +133,7 @@ export default function PawnLoanDetail({
   payoff,
   today,
   charge,
+  canGiveFreeTime,
   forfeit,
   tagChoices,
 }: {
@@ -138,6 +144,8 @@ export default function PawnLoanDetail({
   today: string
   /** How the shop's jurisdiction charges; its period is one move of the due date. */
   charge: ChargeModel
+  /** Owner / manager: may give free time (the server checks again). */
+  canGiveFreeTime: boolean
   forfeit: { eligible: boolean; eligibleOn: string; lastRedemptionDate: string }
   tagChoices: TemplateChoice[]
 }) {
@@ -291,6 +299,7 @@ export default function PawnLoanDetail({
         loanId={loan.id}
         isTerminal={isTerminal}
         canForfeit={forfeit.eligible}
+        canGiveFreeTime={canGiveFreeTime}
         onAction={(k) => setDialog(k)}
         onPrint={onPrint}
         printPending={printPending}
@@ -362,6 +371,20 @@ export default function PawnLoanDetail({
           onSubmit={(fd) => actionWithToast(recordPaymentAction(fd))}
         />
       ) : null}
+      {dialog === 'freeTime' && canGiveFreeTime ? (
+        <FreeTimeDialog
+          loanId={loan.id}
+          loan={{
+            principal: loan.principal,
+            monthlyRate: loan.interest_rate_monthly,
+            minMonthlyCharge: loan.min_monthly_charge,
+            dueDate: loan.due_date,
+            charge,
+          }}
+          onClose={() => setDialog(null)}
+          onSubmit={(fd) => actionWithToast(giveFreeTimeAction(fd))}
+        />
+      ) : null}
       {dialog === 'redeem' ? (
         <RedeemConfirmDialog
           loanId={loan.id}
@@ -397,6 +420,7 @@ function ActionRow({
   loanId,
   isTerminal,
   canForfeit,
+  canGiveFreeTime,
   onAction,
   onPrint,
   printPending,
@@ -405,6 +429,7 @@ function ActionRow({
   loanId: string
   isTerminal: boolean
   canForfeit: boolean
+  canGiveFreeTime: boolean
   onAction: (k: NonNullable<DialogKind>) => void
   onPrint: () => void
   printPending: boolean
@@ -420,6 +445,14 @@ function ActionRow({
         disabled={isTerminal}
         primary
       />
+      {canGiveFreeTime ? (
+        <ActionButton
+          label={t.pawn.actions.freeTime}
+          icon={<Gift size={14} weight="bold" />}
+          onClick={() => onAction('freeTime')}
+          disabled={isTerminal}
+        />
+      ) : null}
       <ActionButton
         label={t.pawn.actions.redeem}
         icon={<CheckCircle size={14} weight="bold" />}
@@ -654,6 +687,12 @@ function EventLogPanel({
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <EventTypeBadge type={e.event_type} />
+                {e.interest_waived > 0 ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-gold/50 bg-gold/10 px-2 py-0.5 text-xs font-semibold text-foreground">
+                    <Gift size={12} weight="bold" />
+                    {t.pawn.freeTime.eventLabel}
+                  </span>
+                ) : null}
                 {e.payment_method ? (
                   <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground">
                     {e.payment_method}
@@ -699,6 +738,12 @@ function EventLogPanel({
                 <span className="text-foreground">
                   {t.pawn.payment.feesPaid}:{' '}
                   <span className="font-mono">{fmtMoney(e.fees_paid)}</span>
+                </span>
+              ) : null}
+              {e.interest_waived > 0 ? (
+                <span className="text-foreground">
+                  {t.pawn.freeTime.waived}:{' '}
+                  <span className="font-mono">{fmtMoney(e.interest_waived)}</span>
                 </span>
               ) : null}
               {e.new_due_date ? (

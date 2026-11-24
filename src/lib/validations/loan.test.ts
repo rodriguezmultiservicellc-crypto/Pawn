@@ -32,6 +32,7 @@ import {
   collateralItemsArraySchema,
   loanCreateSchema,
   loanForfeitSchema,
+  loanFreeTimeSchema,
   loanPaymentSchema,
   loanVoidSchema,
 } from './loan'
@@ -324,6 +325,34 @@ describe('loanPaymentSchema', () => {
     if (r.success) {
       expect('new_due_date' in r.data).toBe(false)
       expect('due_date' in r.data).toBe(false)
+    }
+  })
+})
+
+// ── loanFreeTimeSchema (a manager's gift) ──────────────────────────────
+
+describe('loanFreeTimeSchema', () => {
+  const free = (over: Record<string, unknown> = {}) => ({ loan_id: VALID_UUID, quantity: '1', unit: 'periods', ...over })
+
+  it('accepts a whole number of days or months', () => {
+    const r = loanFreeTimeSchema.safeParse(free())
+    expect(r.success && r.data.quantity).toBe(1)
+    expect(loanFreeTimeSchema.safeParse(free({ quantity: 10, unit: 'days' })).success).toBe(true)
+  })
+
+  it('refuses zero, a fraction, an unknown unit and more than a year of days', () => {
+    expect(loanFreeTimeSchema.safeParse(free({ quantity: 0 })).success).toBe(false)
+    expect(loanFreeTimeSchema.safeParse(free({ quantity: 1.5 })).success).toBe(false)
+    expect(loanFreeTimeSchema.safeParse(free({ unit: 'years' })).success).toBe(false)
+    expect(loanFreeTimeSchema.safeParse(free({ quantity: 367, unit: 'days' })).success).toBe(false)
+  })
+
+  it('drops a due date or a forgiven amount sent by the browser', () => {
+    const r = loanFreeTimeSchema.safeParse(free({ new_due_date: '2099-01-01', interest_waived: 9999 }))
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect('new_due_date' in r.data).toBe(false)
+      expect('interest_waived' in r.data).toBe(false)
     }
   })
 })

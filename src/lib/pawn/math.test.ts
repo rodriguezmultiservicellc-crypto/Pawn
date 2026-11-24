@@ -26,6 +26,7 @@ import {
   interestAccrued,
   payoffBalance,
   periodsToBringCurrent,
+  planFreeTime,
   planLoanPayment,
   r4,
   splitPayment,
@@ -155,8 +156,8 @@ describe('date helpers', () => {
 describe('appliedPayments', () => {
   it('sums splits across events', () => {
     const out = appliedPayments([
-      { principal_paid: 50, interest_paid: 10, fees_paid: 0 },
-      { principal_paid: 25, interest_paid: 5, fees_paid: 1 },
+      { principal_paid: 50, interest_paid: 10, fees_paid: 0, interest_waived: 0 },
+      { principal_paid: 25, interest_paid: 5, fees_paid: 1, interest_waived: 0 },
     ])
     expect(out.principalApplied).toBe(75)
     expect(out.interestApplied).toBe(15)
@@ -167,7 +168,7 @@ describe('appliedPayments', () => {
     const out = appliedPayments([
       // @ts-expect-error — runtime allows string from DB; Pick<LoanEventRow>
       // narrows to the generated type which uses string for NUMERIC.
-      { principal_paid: '50.0000', interest_paid: '10.0000', fees_paid: '0' },
+      { principal_paid: '50.0000', interest_paid: '10.0000', fees_paid: '0', interest_waived: 0 },
     ])
     expect(out.principalApplied).toBe(50)
     expect(out.interestApplied).toBe(10)
@@ -216,7 +217,7 @@ describe('payoffBalance', () => {
       issueDate: '2026-03-30',
       today: '2026-04-29',
       events: [
-        { principal_paid: 0, interest_paid: 50, fees_paid: 0 },
+        { principal_paid: 0, interest_paid: 50, fees_paid: 0, interest_waived: 0 },
       ],
     })
     expect(r.interestApplied).toBe(50)
@@ -232,7 +233,7 @@ describe('payoffBalance', () => {
       issueDate: '2026-03-30',
       today: '2026-04-29',
       events: [
-        { principal_paid: 200, interest_paid: 100, fees_paid: 0 },
+        { principal_paid: 200, interest_paid: 100, fees_paid: 0, interest_waived: 0 },
       ],
     })
     expect(r.principalApplied).toBe(200)
@@ -251,7 +252,7 @@ describe('payoffBalance', () => {
       issueDate: '2026-03-30',
       today: '2026-04-29',
       events: [
-        { principal_paid: 0, interest_paid: 200, fees_paid: 0 },
+        { principal_paid: 0, interest_paid: 200, fees_paid: 0, interest_waived: 0 },
       ],
     })
     expect(r.interestOutstanding).toBe(0)
@@ -266,7 +267,7 @@ describe('payoffBalance', () => {
       issueDate: '2026-03-30',
       today: '2026-04-29',
       events: [
-        { principal_paid: 1000, interest_paid: 0, fees_paid: 0 },
+        { principal_paid: 1000, interest_paid: 0, fees_paid: 0, interest_waived: 0 },
       ],
     })
     expect(r.principalOutstanding).toBe(0)
@@ -440,7 +441,7 @@ describe('planLoanPayment — paying and extending are one act', () => {
     monthlyRate: 0.25,
     issueDate: '2026-08-21',
     dueDate: '2026-09-20',
-    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number }>,
+    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number }>,
     charge: FL,
   }
 
@@ -495,7 +496,7 @@ describe('planLoanPayment — paying and extending are one act', () => {
   })
 
   it('interest already paid counts toward the next move', () => {
-    const paid = { ...loan, events: [{ principal_paid: 0, interest_paid: 100, fees_paid: 0 }] }
+    const paid = { ...loan, events: [{ principal_paid: 0, interest_paid: 100, fees_paid: 0, interest_waived: 0 }] }
     expect(extensionCost(paid, 1)).toBe(150)
     expect(planLoanPayment({ ...paid, today: '2026-09-20', periods: 1, amount: 150 })).toMatchObject({
       ok: true,
@@ -505,7 +506,7 @@ describe('planLoanPayment — paying and extending are one act', () => {
   })
 
   it('the second move costs one more period, not the first one again', () => {
-    const renewed = { ...loan, dueDate: '2026-10-20', events: [{ principal_paid: 0, interest_paid: 250, fees_paid: 0 }] }
+    const renewed = { ...loan, dueDate: '2026-10-20', events: [{ principal_paid: 0, interest_paid: 250, fees_paid: 0, interest_waived: 0 }] }
     expect(extensionCost(renewed, 1)).toBe(250)
     expect(planLoanPayment({ ...renewed, today: '2026-10-20', periods: 1, amount: 250 })).toMatchObject({
       ok: true,
@@ -632,7 +633,7 @@ describe('extensionCost — a due date a few days past a period end', () => {
     monthlyRate: 0.1,
     issueDate: '2026-08-22',
     dueDate: '2026-09-22',
-    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number }>,
+    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number }>,
     charge: FL,
   }
 
@@ -667,5 +668,75 @@ describe('extensionCost — a due date a few days past a period end', () => {
     expect(extensionCost(regular, 1)).toBe(180)
     expect(extensionCost(regular, 2)).toBe(360)
     expect(extensionCost(regular, 3)).toBe(540)
+  })
+})
+
+describe('free time — a manager forgives the interest and moves the date', () => {
+  // $1,000 at 25% a 30-day period: $250 a period, $8.33 a day.
+  const loan = {
+    principal: 1000,
+    monthlyRate: 0.25,
+    issueDate: '2026-08-21',
+    dueDate: '2026-09-20',
+    events: [] as Array<{ principal_paid: number; interest_paid: number; fees_paid: number; interest_waived: number }>,
+    charge: FL,
+  }
+
+  it('a free month moves the date one period and forgives one period\u2019s charge', () => {
+    expect(planFreeTime(loan, 30)).toEqual({ days: 30, new_due_date: '2026-10-20', interest_waived: 250 })
+  })
+
+  it('free days forgive one-thirtieth of the period charge each, from the current due date', () => {
+    expect(planFreeTime(loan, 5)).toEqual({ days: 5, new_due_date: '2026-09-25', interest_waived: 41.67 })
+    expect(planFreeTime(loan, 1)).toEqual({ days: 1, new_due_date: '2026-09-21', interest_waived: 8.33 })
+  })
+
+  it('the minimum charge is what a small loan\u2019s free month is worth', () => {
+    expect(planFreeTime({ ...loan, principal: 10, minMonthlyCharge: 5 }, 30)?.interest_waived).toBe(5)
+  })
+
+  it('refuses nothing, a fraction of a day, and more than a year', () => {
+    expect(planFreeTime(loan, 0)).toBeNull()
+    expect(planFreeTime(loan, -3)).toBeNull()
+    expect(planFreeTime(loan, 367)).toBeNull()
+    expect(planFreeTime(loan, 366)).not.toBeNull()
+  })
+
+  it('forgiven interest comes off what is owed — and is not interest collected', () => {
+    // Day 60: two periods accrued ($500). One was paid, one was forgiven.
+    const events = [
+      { principal_paid: 0, interest_paid: 250, fees_paid: 0, interest_waived: 0 },
+      { principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 250 },
+    ]
+    const r = payoffBalance({ principal: 1000, monthlyRate: 0.25, issueDate: '2026-08-21', today: '2026-10-20', events, charge: FL })
+    expect(r.interestAccrued).toBe(500)
+    expect(r.interestApplied).toBe(250)
+    expect(r.interestWaived).toBe(250)
+    expect(r.interestOutstanding).toBe(0)
+    expect(r.payoff).toBe(1000)
+    expect(appliedPayments(events)).toMatchObject({ interestApplied: 250, interestWaived: 250 })
+  })
+
+  it('after a free month, the next month costs one month — not two', () => {
+    // Free month given at the first due date: due moves to Oct 20, $250 forgiven.
+    const given = {
+      ...loan,
+      dueDate: '2026-10-20',
+      events: [{ principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 250 }],
+    }
+    expect(extensionCost(given, 1)).toBe(250)
+    expect(planLoanPayment({ ...given, today: '2026-10-20', periods: 1, amount: 250 })).toMatchObject({
+      ok: true,
+      interest_paid: 250,
+      principal_paid: 0,
+      new_due_date: '2026-11-19',
+    })
+  })
+
+  it('a customer given free time who then redeems pays only what was not forgiven', () => {
+    // Day 45, one free month given: $500 accrued, $250 forgiven.
+    const events = [{ principal_paid: 0, interest_paid: 0, fees_paid: 0, interest_waived: 250 }]
+    const r = payoffBalance({ principal: 1000, monthlyRate: 0.25, issueDate: '2026-08-21', today: '2026-10-05', events, charge: FL })
+    expect(r.payoff).toBe(1250)
   })
 })

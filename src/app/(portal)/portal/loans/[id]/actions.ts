@@ -47,7 +47,7 @@ export async function createLoanPayoffSession(args: {
       `id, tenant_id, customer_id, ticket_number, principal,
        interest_rate_monthly, min_monthly_charge, issue_date, status,
        deleted_at,
-       events:loan_events(principal_paid, interest_paid, fees_paid)`,
+       events:loan_events(principal_paid, interest_paid, fees_paid, interest_waived)`,
     )
     .eq('id', args.loanId)
     .maybeSingle()
@@ -59,7 +59,7 @@ export async function createLoanPayoffSession(args: {
   type LoanWithEvents = LoanRow & {
     events?: Pick<
       LoanEventRow,
-      'principal_paid' | 'interest_paid' | 'fees_paid'
+      'principal_paid' | 'interest_paid' | 'fees_paid' | 'interest_waived'
     >[] | null
   }
   const loan = loanLookup.data as unknown as LoanWithEvents

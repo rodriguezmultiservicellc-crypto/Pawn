@@ -48,6 +48,12 @@ export function PayoffCalculator({
           label={t.pawn.detail.interestAccrued}
           value={fmt(payoff.interestAccrued)}
         />
+        {payoff.interestWaived > 0 ? (
+          <Row
+            label={t.pawn.detail.interestWaived}
+            value={`− ${fmt(payoff.interestWaived)}`}
+          />
+        ) : null}
         <Row
           label={t.pawn.detail.interestOutstanding}
           value={fmt(payoff.interestOutstanding)}

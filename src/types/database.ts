@@ -3705,6 +3705,7 @@ export type Database = {
           fees_paid: number
           id: string
           interest_paid: number
+          interest_waived: number
           legacy_ref: string | null
           loan_id: string
           new_due_date: string | null
@@ -3722,6 +3723,7 @@ export type Database = {
           fees_paid?: number
           id?: string
           interest_paid?: number
+          interest_waived?: number
           legacy_ref?: string | null
           loan_id: string
           new_due_date?: string | null
@@ -3739,6 +3741,7 @@ export type Database = {
           fees_paid?: number
           id?: string
           interest_paid?: number
+          interest_waived?: number
           legacy_ref?: string | null
           loan_id?: string
           new_due_date?: string | null

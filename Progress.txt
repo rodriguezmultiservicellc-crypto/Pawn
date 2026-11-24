@@ -60,8 +60,9 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23, evening). Items 544-550, ONE
-                  MIGRATION, APPLIED: 0100. main == feature/sol-pawn-brief.
+  Last session:   Session 65 (2026-11-23, evening). Items 544-551, TWO
+                  MIGRATIONS, BOTH APPLIED: 0100, 0101.
+                  main == feature/sol-pawn-brief.
                   ACTIVE FILES (last touched):
                     src/lib/pawn/math.ts (planLoanPayment, extensionCost)
                     src/app/(staff)/pawn/[id]/actions.ts, page.tsx
@@ -81,8 +82,13 @@ OPERATION IN FLIGHT: none
                     the loan, Pawn still charges on the ORIGINAL amount.
                     § 539.001(11)(e) says later charges are figured on
                     the remaining balance (10 open tickets have paydowns).
-                  - OPEN: "the manager can give free months or days"
-                    (Eddy, same message) — not built yet in this save.
+                  - FREE TIME IS BUILT (551): owner / manager only; the
+                    date moves and the interest is forgiven
+                    (loan_events.interest_waived — never income).
+                  - NO REAL PAYMENT OR FREE TIME HAS BEEN SAVED through
+                    the new screens yet (only looked at, plus a rolled-
+                    back database dry run). Ask Eddy how the first real
+                    one went, and reprint its receipt.
                   - STILL ON UTC "TODAY" (found in 546, not fixed): the
                     dashboard, the portal loan pages and payoff, layaways,
                     the repair list and board, the buy-hold and layaway
@@ -699,6 +705,38 @@ Progress_archive.txt — the items from those sessions are there.)
       2026-12-20, $80.00; runs to 420 days). MAX_EXTENSION_PERIODS 12 -> 120.
 
       tsc, 1,062 tests, lint, build green.
+
+ 551. FREE TIME — A MANAGER GIVES MONTHS OR DAYS (patches/0101 APPLIED).
+      Eddy: "the manager can give free months or days"; asked what happens
+      to the interest: "Not charged".
+      - loan_events.interest_waived (numeric(18,4), default 0): interest
+        forgiven by that event. Its own column, NOT interest_paid, so every
+        income report stays true. Constant default: no row rewritten, no
+        trigger fired, imported events untouched (rule 22). No policy touched.
+      - math.ts: LoanMoneyEvent (the money columns a payoff reads) makes
+        interest_waived REQUIRED, so the type check forced all 12 event
+        queries to read it; interest outstanding = accrued − paid − waived.
+        planFreeTime: N days from the CURRENT due date, forgiving
+        N/period_days of a period's charge (a free month = one period's
+        charge), whole cents, at most 366 days at a time.
+      - giveFreeTimeAction: owner / manager / chain_admin ONLY, checked on
+        the server; writes an 'extension' event with interest_waived +
+        new_due_date, then the date (status 'extended'), then the audit row
+        (kind free_time, days, amount, both dates, reason).
+      - Ticket page: "Free time" button (hidden from clerks), the dialog,
+        a "Free time" chip + "Interest not charged" on the event, and an
+        "Interest not charged (free time)" row in the payoff panel.
+      VERIFIED: database dry run on ticket 15634 (a printed, imported
+      ticket), ending in RAISE so it rolled back — a free month, then a
+      payment that moves the date: every trigger accepted both; afterwards
+      the ticket was unchanged (due 2026-09-22, partial_paid, same
+      updated_at, 2 events, 0 waived in the whole table). Dialog looked at
+      in headless Chrome, not submitted: 1 month -> 2026-10-22, $180.00;
+      10 days -> 2026-10-02, $60.00; 400 days refused.
+      NOT VERIFIED: a real free-time or payment saved from the screen; a
+      clerk's view (signed in as the owner only); the Spanish screens.
+
+      tsc, 1,072 tests, lint, build green.
 
 --- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 
