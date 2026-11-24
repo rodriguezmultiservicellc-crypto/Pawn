@@ -7,11 +7,11 @@ import {
 } from './item-description'
 
 const EN: ItemDescriptionWords = {
-  jewelryOrder: '{karat} {color} {metal} {item}',
+  jewelryOrder: '{karat} {color} {metal} {gender} {style} {item}',
   ringSize: 'size {v}',
 }
 const ES: ItemDescriptionWords = {
-  jewelryOrder: '{item} {metal} {color} {karat}',
+  jewelryOrder: '{item} {style} {gender} {metal} {color} {karat}',
   ringSize: 'talla {v}',
 }
 
@@ -26,6 +26,10 @@ const blank: ItemDescriptionInput = {
   size: '',
   coatingWord: '',
   gemstones: '',
+  genderWord: '',
+  style: '',
+  jewelryBrand: '',
+  jewelryModel: '',
   firearmMake: '',
   firearmModel: '',
   firearmCaliber: '',
@@ -123,6 +127,56 @@ describe('jewelry', () => {
     expect(gen({ itemWord: 'Anillo', isRing: true, metalWord: 'Oro', size: '7' }, ES)).toBe(
       'Anillo oro, talla 7',
     )
+  })
+})
+
+describe('jewelry: gender, style, brand', () => {
+  it('puts the gender and the style before the item', () => {
+    expect(
+      gen({
+        itemWord: 'Chain',
+        color: 'Yellow',
+        metalWord: 'Gold',
+        karat: '14',
+        genderWord: "men's",
+        style: 'Cuban Link',
+        weightGrams: '22',
+      }),
+    ).toBe("14K yellow gold men's cuban link chain, 22 g")
+  })
+
+  it('writes with the gender or the style alone', () => {
+    expect(gen({ itemWord: 'Ring', genderWord: "women's" })).toBe("Women's ring")
+    expect(gen({ itemWord: 'Ring', style: 'Solitaire' })).toBe('Solitaire ring')
+  })
+
+  it('leads with the brand and model of a watch, as typed', () => {
+    expect(
+      gen({
+        itemWord: 'Watch',
+        jewelryBrand: 'Rolex',
+        jewelryModel: 'Submariner 16610',
+        metalWord: 'Stainless steel',
+        genderWord: "men's",
+      }),
+    ).toBe("Rolex Submariner 16610, stainless steel men's watch")
+    expect(gen({ itemWord: 'Watch', jewelryBrand: 'Gucci' })).toBe('Gucci, watch')
+  })
+
+  it('reads in Spanish order', () => {
+    expect(
+      gen(
+        {
+          itemWord: 'Cadena',
+          color: 'Amarillo',
+          metalWord: 'Oro',
+          karat: '14',
+          genderWord: 'de hombre',
+          style: 'Cubana',
+        },
+        ES,
+      ),
+    ).toBe('Cadena cubana de hombre oro amarillo 14K')
   })
 })
 

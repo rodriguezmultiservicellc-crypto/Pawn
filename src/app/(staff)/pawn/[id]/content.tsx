@@ -86,6 +86,12 @@ export type LoanCollateralView = {
   jewelry_size: string | null
   color: string | null
   gemstone_description: string | null
+  // Jewelry details (patches/0106).
+  jewelry_gender: string | null
+  jewelry_style: string | null
+  jewelry_brand: string | null
+  jewelry_model: string | null
+  jewelry_serial: string | null
   unique_marks: string | null
   firearm_make: string | null
   firearm_model: string | null
@@ -658,6 +664,16 @@ function CollateralPanel({
     }
     push(tn.itemColor, c.color)
     push(tn.itemJewelrySize, c.jewelry_size)
+    push(
+      tn.itemGender,
+      c.jewelry_gender && c.jewelry_gender in tn.itemGenders
+        ? tn.itemGenders[c.jewelry_gender as keyof typeof tn.itemGenders]
+        : null,
+    )
+    push(tn.itemStyle, c.jewelry_style)
+    push(tn.itemJewelryBrand, c.jewelry_brand)
+    push(tn.itemJewelryModel, c.jewelry_model)
+    push(tn.itemJewelrySerial, c.jewelry_serial)
     push(tn.itemGemstones, c.gemstone_description)
     push(tn.itemFirearmMake, c.firearm_make)
     push(tn.itemFirearmModel, c.firearm_model)

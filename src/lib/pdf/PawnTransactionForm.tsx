@@ -167,9 +167,15 @@ function ItemBlock({
   /** "Barrel length" in both languages. */
   barrelLength: string
 }) {
-  const serial = txt(item.firearm_serial_number) || txt(item.electronic_serial)
-  const brand = txt(item.firearm_make) || txt(item.electronic_brand) || txt(item.tool_brand)
-  const model = txt(item.firearm_model) || txt(item.electronic_model) || txt(item.tool_model)
+  const serial =
+    txt(item.firearm_serial_number) || txt(item.electronic_serial) || txt(item.jewelry_serial)
+  const brand =
+    txt(item.firearm_make) || txt(item.electronic_brand) || txt(item.tool_brand) || txt(item.jewelry_brand)
+  const model =
+    txt(item.firearm_model) || txt(item.electronic_model) || txt(item.tool_model) || txt(item.jewelry_model)
+  const genderKey = item.jewelry_gender as keyof FormLabels['genders'] | null
+  const gender =
+    genderKey && en.genders[genderKey] ? bl(en.genders[genderKey], es.genders[genderKey]) : ''
   const brandModel = [brand, model].filter(Boolean).join(' ')
   const firearm = Boolean(item.firearm_type || item.firearm_caliber || item.firearm_serial_number)
   return (
@@ -187,13 +193,15 @@ function ItemBlock({
           <Cell label={bl(en.amount, es.amount)} value={money(item.est_value)} flex={1.2} mono last />
         </View>
         <View style={firearm ? s.rowLine : s.row}>
-          <Cell label={bl(en.metal, es.metal)} value={metal} flex={1.6} />
+          <Cell label={bl(en.metal, es.metal)} value={metal} flex={1.4} />
           <Cell label={bl(en.karat, es.karat)} value={item.karat ? `${Number(item.karat.toFixed(1))}` : ''} flex={0.9} mono />
           <Cell label={bl(en.weight, es.weight)} value={item.weight_grams ? `${Number(item.weight_grams.toFixed(2))} g` : ''} flex={1} mono />
-          <Cell label={bl(en.size, es.size)} value={txt(item.jewelry_size)} flex={1.1} />
-          <Cell label={bl(en.color, es.color)} value={txt(item.color)} flex={1.5} />
-          <Cell label={bl(en.stones, es.stones)} value={txt(item.gemstone_description)} flex={2.8} />
-          <Cell label={bl(en.marks, es.marks)} value={txt(item.unique_marks)} flex={2.1} last />
+          <Cell label={bl(en.size, es.size)} value={txt(item.jewelry_size)} flex={0.8} />
+          <Cell label={bl(en.style, es.style)} value={txt(item.jewelry_style)} flex={1.3} />
+          <Cell label={bl(en.gender, es.gender)} value={gender} flex={1.7} />
+          <Cell label={bl(en.color, es.color)} value={txt(item.color)} flex={1.2} />
+          <Cell label={bl(en.stones, es.stones)} value={txt(item.gemstone_description)} flex={2.5} />
+          <Cell label={bl(en.marks, es.marks)} value={txt(item.unique_marks)} flex={1.6} last />
         </View>
         {firearm ? (
           <View style={s.row}>

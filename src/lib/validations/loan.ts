@@ -4,6 +4,8 @@ import {
   metalTypeSchema,
 } from './inventory'
 import { MAX_EXTENSION_PERIODS, MAX_FREE_DAYS } from '@/lib/pawn/math'
+import { JEWELRY_GENDERS } from '@/lib/pawn/item-description'
+import { MAX_STONES, normalizeStones } from '@/lib/pawn/stones'
 
 /**
  * Pawn-loan Zod schemas — intake, payment (which may extend), forfeit, void.
@@ -125,8 +127,43 @@ export const collateralItemSchema = z.object({
   // Color (e), gemstone description (g), unique marks (i). All free
   // text + nullable. Form gates which categories show which fields.
   color: optionalTrimmedString,
+  // What the ticket prints and the police report reads. For a ticket
+  // written in Pawn, createLoanAction composes it from `stones` +
+  // `gemstone_notes` (lib/pawn/stones gemstoneText); a value sent here is
+  // only the fallback for a browser tab still open on the older form.
   gemstone_description: optionalTrimmedString,
   unique_marks: optionalTrimmedString,
+  // ── Jewelry details (patches/0106) ────────────────────────────────
+  // Gender + style are the shop's own (xPawn had them); brand / model /
+  // serial are FS 539.001(8)(b)2.a-c for a watch or a signed piece.
+  jewelry_gender: z
+    .preprocess(
+      (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+      z.enum(JEWELRY_GENDERS).nullable().optional(),
+    )
+    .transform((v) => v ?? null),
+  jewelry_style: optionalTrimmedString,
+  jewelry_brand: optionalTrimmedString,
+  jewelry_model: optionalTrimmedString,
+  jewelry_serial: optionalTrimmedString,
+  // FS 539.001(8)(b)2.g in boxes. Arrives as the popup's JSON string;
+  // normalizeStones never throws and drops anything that is not a stone.
+  stones: z.preprocess(
+    normalizeStones,
+    z
+      .array(
+        z.object({
+          qty: z.number().int().positive().max(9999).nullable(),
+          type: z.string().max(60),
+          carat: z.number().positive().max(99999).nullable(),
+          color: z.string().max(40),
+          cut: z.string().max(40),
+          clarity: z.string().max(40),
+        }),
+      )
+      .max(MAX_STONES),
+  ),
+  gemstone_notes: optionalTrimmedString,
   est_value: requiredDecimalNonNeg.default(0),
   // Either a Storage path (after upload) or null. The /pawn/new flow first
   // uploads the file, then includes the resulting path in this schema.

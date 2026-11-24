@@ -1332,8 +1332,33 @@ export const en = {
       itemDescriptionHint:
         'Written from the fields above as you fill them. You can change it.',
       // Word order of a generated jewelry description; keep the four tokens.
-      itemDescJewelryOrder: '{karat} {color} {metal} {item}',
+      itemDescJewelryOrder: '{karat} {color} {metal} {gender} {style} {item}',
       itemDescRingSize: 'size {v}',
+      // Jewelry details (patches/0106).
+      itemWeight: 'Weight',
+      itemWeightUnit: 'Weight unit',
+      itemGender: 'Gender',
+      itemGenders: { men: "Men's", women: "Women's", unisex: 'Unisex', child: "Child's" },
+      // The same, as it reads inside a written description.
+      itemGenderWords: { men: "men's", women: "women's", unisex: 'unisex', child: "child's" },
+      itemStyle: 'Style',
+      itemStylePlaceholder: 'Cuban link, Figaro, Rope, Band, Solitaire…',
+      itemJewelryBrand: 'Brand',
+      itemJewelryModel: 'Model / ref.',
+      itemJewelrySerial: 'Serial no.',
+      itemStones: 'Stones',
+      stoneQty: 'Qty',
+      stoneType: 'Stone',
+      stoneTypePlaceholder: 'Diamond, ruby, CZ…',
+      stoneCarat: 'Carats (total)',
+      stoneColor: 'Color',
+      stoneColorPlaceholder: 'White',
+      stoneCut: 'Cut / shape',
+      stoneCutPlaceholder: 'Round',
+      stoneClarity: 'Clarity',
+      stoneAdd: 'Add stone',
+      stoneRemove: 'Remove stone',
+      itemGemstoneNotes: 'Other stones / notes (prong-set, one missing…)',
       // Jewelry: weight × spot at the karat × the shop's pay percent.
       itemMetalValue: 'Metal value',
       itemMetalValueFormula: '{grams} g × {rate}/g · {pct}% of spot',
@@ -1367,7 +1392,6 @@ export const en = {
       itemCategory: 'Category',
       itemMetalType: 'Metal',
       itemKarat: 'Karat',
-      itemWeightGrams: 'Weight (g)',
       itemCoating: 'Coating',
       itemCoatingWarning:
         'Not solid gold — this item has no melt value and the suggested loan ignores its metal. Lend on the estimate only.',
@@ -1590,6 +1614,9 @@ export const en = {
         size: 'Size',
         color: 'Color',
         stones: 'Stones',
+        style: 'Style',
+        gender: 'Gender',
+        genders: { men: 'Men', women: 'Women', unisex: 'Unisex', child: 'Child' },
         categories: {
           ring: 'Ring',
           necklace: 'Necklace',

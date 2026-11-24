@@ -13,6 +13,7 @@ import { Plus, Camera, Warning, X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
+import { GRAMS_PER } from '@/lib/bench/weight'
 import type { WatchModelMatch } from './InlinePawnCalculator'
 import type {
   InventoryCategory,
@@ -20,10 +21,19 @@ import type {
 } from '@/types/database-aliases'
 import type { PreviousPawnItem } from '@/lib/pawn/customer-history'
 import {
+  JEWELRY_GENDERS,
   descriptionAfterChange,
   generateItemDescription,
   type ItemDescriptionKind,
+  type JewelryGender,
 } from '@/lib/pawn/item-description'
+import {
+  MAX_STONES,
+  blankStone,
+  gemstoneText,
+  stonesToDrafts,
+  type StoneDraft,
+} from '@/lib/pawn/stones'
 import {
   estValueAfterChange,
   itemMetalValue,
@@ -186,8 +196,23 @@ type Row = {
   /** Free-text size (rings) or length (chains/bracelets). Jewelry-only.
    *  patches/0042. */
   jewelry_size: string
-  /** FS 539.001(8)(b)(2)(g) — gemstone description, jewelry-only. */
-  gemstone_description: string
+  /** UI only: the unit the clerk types the weight in. weight_grams is
+   *  always what is kept and submitted. */
+  weight_unit: 'g' | 'dwt'
+  /** UI only: the number as typed while the unit is dwt. */
+  weight_dwt: string
+  /** Who the piece is made for (patches/0106). Jewelry-only. */
+  jewelry_gender: JewelryGender | ''
+  /** Cuban link, Solitaire, Band… free text (patches/0106). */
+  jewelry_style: string
+  /** FS 539.001(8)(b)2.a-c for a watch or a signed piece (patches/0106). */
+  jewelry_brand: string
+  jewelry_model: string
+  jewelry_serial: string
+  /** FS 539.001(8)(b)2.g in boxes — one line per kind of stone. */
+  stones: StoneDraft[]
+  /** Whatever about the stones does not fit the boxes. */
+  gemstone_notes: string
   // Common FS 539.001 fields (patches/0043) — visible across all
   // categories.
   /** FS 539.001(8)(b)(2)(e) — apparent color. */
@@ -233,7 +258,15 @@ function newRow(): Row {
     weight_grams: '',
     coating: 'none',
     jewelry_size: '',
-    gemstone_description: '',
+    weight_unit: 'g',
+    weight_dwt: '',
+    jewelry_gender: '',
+    jewelry_style: '',
+    jewelry_brand: '',
+    jewelry_model: '',
+    jewelry_serial: '',
+    stones: [blankStone()],
+    gemstone_notes: '',
     color: '',
     unique_marks: '',
     firearm_make: '',
@@ -341,7 +374,7 @@ export const CollateralItemsList = forwardRef<
   // sub-categories is picked outright; one with subs starts on its
   // sub-category step.
   function addFromCategory(c: PawnIntakeCategory) {
-    const base = newRow()
+    const base: Row = { ...newRow(), weight_unit: rememberedWeightUnit() }
     const row: Row =
       c.subcategories.length === 0
         ? {
@@ -365,6 +398,7 @@ export const CollateralItemsList = forwardRef<
       p.firearm_type === 'handgun' || p.firearm_type === 'rifle' || p.firearm_type === 'shotgun' || p.firearm_type === 'other'
         ? p.firearm_type
         : ''
+    const previousStones = stonesToDrafts(p.stones)
     const row: Row = {
       ...newRow(),
       pawn_category_slug: top?.slug ?? defaultCategorySlug,
@@ -376,7 +410,20 @@ export const CollateralItemsList = forwardRef<
       weight_grams: p.weight_grams != null ? String(p.weight_grams) : '',
       jewelry_size: p.jewelry_size ?? '',
       color: p.color ?? '',
-      gemstone_description: p.gemstone_description ?? '',
+      jewelry_gender: (JEWELRY_GENDERS as ReadonlyArray<string>).includes(p.jewelry_gender ?? '')
+        ? (p.jewelry_gender as JewelryGender)
+        : '',
+      jewelry_style: p.jewelry_style ?? '',
+      jewelry_brand: p.jewelry_brand ?? '',
+      jewelry_model: p.jewelry_model ?? '',
+      jewelry_serial: p.jewelry_serial ?? '',
+      // A ticket from before the stones had boxes has only the one line:
+      // it goes in the notes, where the clerk can read and keep it.
+      stones: previousStones.length > 0 ? previousStones : [blankStone()],
+      gemstone_notes:
+        previousStones.length > 0
+          ? p.gemstone_notes ?? ''
+          : p.gemstone_notes ?? p.gemstone_description ?? '',
       unique_marks: p.unique_marks ?? '',
       firearm_make: p.firearm_make ?? '',
       firearm_model: p.firearm_model ?? '',
@@ -445,7 +492,12 @@ export const CollateralItemsList = forwardRef<
       r.weight_grams === '' &&
       r.coating === 'none' &&
       r.jewelry_size === '' &&
-      r.gemstone_description === '' &&
+      r.jewelry_gender === '' &&
+      r.jewelry_style === '' &&
+      r.jewelry_brand === '' &&
+      r.jewelry_model === '' &&
+      r.jewelry_serial === '' &&
+      gemstoneText(r.stones, r.gemstone_notes) === '' &&
       r.color === '' &&
       r.unique_marks === '' &&
       r.firearm_make === '' &&
@@ -631,6 +683,36 @@ export const CollateralItemsList = forwardRef<
   )
 })
 
+/** One stone line on a wide screen: qty · stone · carats · color · cut · clarity · remove. */
+const STONE_GRID =
+  'md:grid-cols-[4.5rem_minmax(0,2fr)_6rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_2.75rem]'
+
+const WEIGHT_UNIT_KEY = 'pawn.intake.weightUnit'
+
+/** The unit this counter weighed in last time — a dwt shop stays in dwt. */
+function rememberedWeightUnit(): 'g' | 'dwt' {
+  try {
+    return window.localStorage.getItem(WEIGHT_UNIT_KEY) === 'dwt' ? 'dwt' : 'g'
+  } catch {
+    return 'g'
+  }
+}
+
+function rememberWeightUnit(unit: 'g' | 'dwt') {
+  try {
+    window.localStorage.setItem(WEIGHT_UNIT_KEY, unit)
+  } catch {
+    // Private mode / storage off: the unit simply is not remembered.
+  }
+}
+
+/** Pennyweight as typed → grams as kept (2 dp, like the scale reads). */
+function gramsFromDwt(dwt: string): string {
+  const n = parseFloat(dwt)
+  if (!Number.isFinite(n) || n <= 0) return ''
+  return String(Math.round(n * GRAMS_PER.dwt * 100) / 100)
+}
+
 /** Which fields a category has to write a description from. */
 function descriptionKind(topSlug: string | null): ItemDescriptionKind {
   return topSlug === 'jewelry' ||
@@ -773,7 +855,11 @@ function CollateralRow({
         weightGrams: r.weight_grams,
         size: r.jewelry_size,
         coatingWord: isSolidMetal(r.coating) ? '' : inv.coatings[r.coating],
-        gemstones: r.gemstone_description,
+        gemstones: gemstoneText(r.stones, r.gemstone_notes),
+        genderWord: r.jewelry_gender ? tn.itemGenderWords[r.jewelry_gender] : '',
+        style: r.jewelry_style,
+        jewelryBrand: r.jewelry_brand,
+        jewelryModel: r.jewelry_model,
         firearmMake: r.firearm_make,
         firearmModel: r.firearm_model,
         firearmCaliber: r.firearm_caliber,
@@ -1211,22 +1297,69 @@ function CollateralRow({
                 />
               </label>
 
-              <label className="md:col-span-1 block space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                  {t.pawn.new_.itemWeightGrams}
-                </span>
+              {/* Weight in grams or pennyweight. Grams is what is kept,
+                  printed and priced; dwt is only how it was typed. */}
+              <div className="md:col-span-2 space-y-1">
+                <label
+                  htmlFor={`${fieldId}-weight`}
+                  className="block text-xs font-semibold uppercase tracking-[0.08em] text-muted"
+                >
+                  {t.pawn.new_.itemWeight}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id={`${fieldId}-weight`}
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={row.weight_unit === 'dwt' ? row.weight_dwt : row.weight_grams}
+                    onChange={(e) =>
+                      onChange(
+                        row.weight_unit === 'dwt'
+                          ? { weight_dwt: e.target.value, weight_grams: gramsFromDwt(e.target.value) }
+                          : { weight_grams: e.target.value },
+                      )
+                    }
+                    className={INPUT}
+                  />
+                  <div className="w-24 shrink-0">
+                    <select
+                      aria-label={t.pawn.new_.itemWeightUnit}
+                      value={row.weight_unit}
+                      // The number stays as typed; the unit says what it
+                      // means ("5" weighed in dwt, typed before the unit).
+                      onChange={(e) => {
+                        const unit = e.target.value === 'dwt' ? 'dwt' : 'g'
+                        if (unit === row.weight_unit) return
+                        rememberWeightUnit(unit)
+                        onChange(
+                          unit === 'dwt'
+                            ? {
+                                weight_unit: 'dwt',
+                                weight_dwt: row.weight_grams,
+                                weight_grams: gramsFromDwt(row.weight_grams),
+                              }
+                            : { weight_unit: 'g', weight_grams: row.weight_dwt },
+                        )
+                      }}
+                      className={INPUT}
+                    >
+                      <option value="g">g</option>
+                      <option value="dwt">dwt</option>
+                    </select>
+                  </div>
+                </div>
                 <input
-                  type="number"
-                  step="0.01"
-                  min={0}
+                  type="hidden"
                   name={`collateral_${index}_weight_grams`}
                   value={row.weight_grams}
-                  onChange={(e) => onChange({ weight_grams: e.target.value })}
-                  className={INPUT}
                 />
-              </label>
+                {row.weight_unit === 'dwt' && row.weight_grams !== '' ? (
+                  <span className="block font-mono text-xs text-muted">= {row.weight_grams} g</span>
+                ) : null}
+              </div>
 
-              <label className="md:col-span-2 block space-y-1">
+              <label className="md:col-span-1 block space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemJewelrySize}
                 </span>
@@ -1259,18 +1392,37 @@ function CollateralRow({
                   ))}
                 </select>
               </label>
-              <label className="md:col-span-4 block space-y-1">
+              <label className="md:col-span-2 block space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                  {t.pawn.new_.itemGemstones}
+                  {t.pawn.new_.itemGender}
+                </span>
+                <select
+                  name={`collateral_${index}_jewelry_gender`}
+                  value={row.jewelry_gender}
+                  onChange={(e) =>
+                    onChange({ jewelry_gender: e.target.value as JewelryGender | '' })
+                  }
+                  className={INPUT}
+                >
+                  <option value="">—</option>
+                  {JEWELRY_GENDERS.map((g) => (
+                    <option key={g} value={g}>
+                      {t.pawn.new_.itemGenders[g]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemStyle}
                 </span>
                 <input
                   type="text"
-                  name={`collateral_${index}_gemstone_description`}
-                  value={row.gemstone_description}
-                  onChange={(e) =>
-                    onChange({ gemstone_description: e.target.value })
-                  }
-                  placeholder="3 round diamonds ~0.25ct each, prong-set"
+                  name={`collateral_${index}_jewelry_style`}
+                  value={row.jewelry_style}
+                  onChange={(e) => onChange({ jewelry_style: e.target.value })}
+                  placeholder={t.pawn.new_.itemStylePlaceholder}
                   className={INPUT}
                 />
               </label>
@@ -1283,6 +1435,173 @@ function CollateralRow({
                   <span>{t.pawn.new_.itemCoatingWarning}</span>
                 </p>
               ) : null}
+
+              {/* FS 539.001(8)(b)2.a-c — a watch or a signed piece. */}
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemJewelryBrand}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_jewelry_brand`}
+                  value={row.jewelry_brand}
+                  onChange={(e) => onChange({ jewelry_brand: e.target.value })}
+                  placeholder="Rolex / Gucci"
+                  className={INPUT}
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemJewelryModel}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_jewelry_model`}
+                  value={row.jewelry_model}
+                  onChange={(e) => onChange({ jewelry_model: e.target.value })}
+                  placeholder="Submariner 16610"
+                  className={INPUT}
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemJewelrySerial}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_jewelry_serial`}
+                  value={row.jewelry_serial}
+                  onChange={(e) => onChange({ jewelry_serial: e.target.value })}
+                  className={INPUT}
+                />
+              </label>
+
+              {/* FS 539.001(8)(b)2.g — the stones, one line per kind, with
+                  how many. Submitted as one JSON field; the server writes
+                  the printed line from it (lib/pawn/stones). */}
+              <fieldset className="md:col-span-6 space-y-2">
+                <legend className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemStones}
+                </legend>
+                <input
+                  type="hidden"
+                  name={`collateral_${index}_stones`}
+                  value={JSON.stringify(row.stones)}
+                />
+                <div
+                  className={`hidden gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted md:grid ${STONE_GRID}`}
+                >
+                  <span>{t.pawn.new_.stoneQty}</span>
+                  <span>{t.pawn.new_.stoneType}</span>
+                  <span>{t.pawn.new_.stoneCarat}</span>
+                  <span>{t.pawn.new_.stoneColor}</span>
+                  <span>{t.pawn.new_.stoneCut}</span>
+                  <span>{t.pawn.new_.stoneClarity}</span>
+                  <span />
+                </div>
+                {row.stones.map((stone, si) => {
+                  const setStone = (patch: Partial<StoneDraft>) =>
+                    onChange({
+                      stones: row.stones.map((x, i) => (i === si ? { ...x, ...patch } : x)),
+                    })
+                  return (
+                    <div key={si} className={`grid grid-cols-2 gap-2 ${STONE_GRID}`}>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={stone.qty}
+                        onChange={(e) => setStone({ qty: e.target.value })}
+                        aria-label={t.pawn.new_.stoneQty}
+                        placeholder={t.pawn.new_.stoneQty}
+                        className={INPUT}
+                      />
+                      <input
+                        type="text"
+                        value={stone.type}
+                        onChange={(e) => setStone({ type: e.target.value })}
+                        aria-label={t.pawn.new_.stoneType}
+                        placeholder={t.pawn.new_.stoneTypePlaceholder}
+                        className={INPUT}
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={stone.carat}
+                        onChange={(e) => setStone({ carat: e.target.value })}
+                        aria-label={t.pawn.new_.stoneCarat}
+                        placeholder="0.75"
+                        className={INPUT}
+                      />
+                      <input
+                        type="text"
+                        value={stone.color}
+                        onChange={(e) => setStone({ color: e.target.value })}
+                        aria-label={t.pawn.new_.stoneColor}
+                        placeholder={t.pawn.new_.stoneColorPlaceholder}
+                        className={INPUT}
+                      />
+                      <input
+                        type="text"
+                        value={stone.cut}
+                        onChange={(e) => setStone({ cut: e.target.value })}
+                        aria-label={t.pawn.new_.stoneCut}
+                        placeholder={t.pawn.new_.stoneCutPlaceholder}
+                        className={INPUT}
+                      />
+                      <input
+                        type="text"
+                        value={stone.clarity}
+                        onChange={(e) => setStone({ clarity: e.target.value })}
+                        aria-label={t.pawn.new_.stoneClarity}
+                        placeholder="VS1"
+                        className={INPUT}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onChange({
+                            stones:
+                              row.stones.length > 1
+                                ? row.stones.filter((_, i) => i !== si)
+                                : [blankStone()],
+                          })
+                        }
+                        aria-label={`${t.pawn.new_.stoneRemove} ${si + 1}`}
+                        className={`inline-flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-background hover:text-danger ${FOCUS}`}
+                      >
+                        <X size={14} weight="bold" />
+                      </button>
+                    </div>
+                  )
+                })}
+                <div className="flex flex-wrap items-center gap-2">
+                  {row.stones.length < MAX_STONES ? (
+                    <button
+                      type="button"
+                      onClick={() => onChange({ stones: [...row.stones, blankStone()] })}
+                      className={`inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2 text-sm font-semibold text-blue hover:text-blue-2 hover:underline ${FOCUS}`}
+                    >
+                      <Plus size={14} weight="bold" />
+                      {t.pawn.new_.stoneAdd}
+                    </button>
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <input
+                      type="text"
+                      name={`collateral_${index}_gemstone_notes`}
+                      value={row.gemstone_notes}
+                      onChange={(e) => onChange({ gemstone_notes: e.target.value })}
+                      aria-label={t.pawn.new_.itemGemstoneNotes}
+                      placeholder={t.pawn.new_.itemGemstoneNotes}
+                      className={INPUT}
+                    />
+                  </div>
+                </div>
+              </fieldset>
             </>
           ) : null}
 

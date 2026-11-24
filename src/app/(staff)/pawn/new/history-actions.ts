@@ -63,6 +63,7 @@ export async function loadCustomerPawnHistoryAction(
       .select(
         `loan_id, position, description, category, metal_type, karat, weight_grams, est_value,
          jewelry_size, color, gemstone_description, unique_marks, pawn_category_slug, pawn_subcategory_slug,
+         jewelry_gender, jewelry_style, jewelry_brand, jewelry_model, jewelry_serial, stones, gemstone_notes,
          firearm_make, firearm_model, firearm_caliber, firearm_serial_number, firearm_type,
          electronic_brand, electronic_model, electronic_serial, tool_brand, tool_model`,
       )

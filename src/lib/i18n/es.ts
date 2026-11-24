@@ -1335,8 +1335,33 @@ export const es: Dictionary = {
       itemDescriptionHint:
         'Se escribe sola con los campos de arriba. Puedes cambiarla.',
       // Orden de las palabras de una descripción de joyería; conserva los cuatro tokens.
-      itemDescJewelryOrder: '{item} {metal} {color} {karat}',
+      itemDescJewelryOrder: '{item} {style} {gender} {metal} {color} {karat}',
       itemDescRingSize: 'talla {v}',
+      // Detalles de joyería (patches/0106).
+      itemWeight: 'Peso',
+      itemWeightUnit: 'Unidad de peso',
+      itemGender: 'Género',
+      itemGenders: { men: 'Hombre', women: 'Mujer', unisex: 'Unisex', child: 'Niño' },
+      // Lo mismo, como se lee dentro de una descripción escrita.
+      itemGenderWords: { men: 'de hombre', women: 'de mujer', unisex: 'unisex', child: 'de niño' },
+      itemStyle: 'Estilo',
+      itemStylePlaceholder: 'Cubana, Fígaro, Soga, Argolla, Solitario…',
+      itemJewelryBrand: 'Marca',
+      itemJewelryModel: 'Modelo / ref.',
+      itemJewelrySerial: 'No. de serie',
+      itemStones: 'Piedras',
+      stoneQty: 'Cant.',
+      stoneType: 'Piedra',
+      stoneTypePlaceholder: 'Diamante, rubí, zirconia…',
+      stoneCarat: 'Quilates (total)',
+      stoneColor: 'Color',
+      stoneColorPlaceholder: 'Blanco',
+      stoneCut: 'Corte / forma',
+      stoneCutPlaceholder: 'Redondo',
+      stoneClarity: 'Claridad',
+      stoneAdd: 'Agregar piedra',
+      stoneRemove: 'Quitar piedra',
+      itemGemstoneNotes: 'Otras piedras / notas (con garras, falta una…)',
       // Joyería: peso × spot según los quilates × el porcentaje que paga la tienda.
       itemMetalValue: 'Valor del metal',
       itemMetalValueFormula: '{grams} g × {rate}/g · {pct}% del spot',
@@ -1370,7 +1395,6 @@ export const es: Dictionary = {
       itemCategory: 'Categoría',
       itemMetalType: 'Metal',
       itemKarat: 'Quilates',
-      itemWeightGrams: 'Peso (g)',
       itemCoating: 'Recubrimiento',
       itemCoatingWarning:
         'No es oro sólido — este artículo no tiene valor de fundición y el préstamo sugerido ignora su metal. Presta solo sobre el estimado.',
@@ -1581,6 +1605,9 @@ export const es: Dictionary = {
         size: 'Talla',
         color: 'Color',
         stones: 'Piedras',
+        style: 'Estilo',
+        gender: 'Género',
+        genders: { men: 'Hombre', women: 'Mujer', unisex: 'Unisex', child: 'Niño' },
         categories: {
           ring: 'Anillo',
           necklace: 'Collar',

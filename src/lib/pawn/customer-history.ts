@@ -45,6 +45,14 @@ export type HistoryItemInput = {
   jewelry_size: string | null
   color: string | null
   gemstone_description: string | null
+  // Jewelry details (patches/0106). `stones` is the stored JSON array.
+  jewelry_gender: string | null
+  jewelry_style: string | null
+  jewelry_brand: string | null
+  jewelry_model: string | null
+  jewelry_serial: string | null
+  stones: unknown
+  gemstone_notes: string | null
   unique_marks: string | null
   pawn_category_slug: string | null
   pawn_subcategory_slug: string | null
@@ -147,7 +155,7 @@ function pieceKey(it: HistoryItemInput): string {
     it.description.trim().toLowerCase().replace(/\s+/g, ' '),
     num(it.karat) ?? '',
     w == null ? '' : w.toFixed(1),
-    (it.firearm_serial_number ?? it.electronic_serial ?? '').trim().toLowerCase(),
+    (it.firearm_serial_number ?? it.electronic_serial ?? it.jewelry_serial ?? '').trim().toLowerCase(),
   ].join('|')
 }
 

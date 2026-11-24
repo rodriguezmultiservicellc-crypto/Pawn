@@ -17,10 +17,15 @@ export type ItemDescriptionKind =
   | 'tools'
   | 'other'
 
+/** Who a piece of jewelry is made for (patches/0106). */
+export const JEWELRY_GENDERS = ['men', 'women', 'unisex', 'child'] as const
+export type JewelryGender = (typeof JEWELRY_GENDERS)[number]
+
 export type ItemDescriptionWords = {
   /** Word order of a jewelry piece, with the tokens {karat} {color}
-   *  {metal} {item}. English: "{karat} {color} {metal} {item}";
-   *  Spanish: "{item} {metal} {color} {karat}". */
+   *  {metal} {gender} {style} {item}. English:
+   *  "{karat} {color} {metal} {gender} {style} {item}"; Spanish:
+   *  "{item} {style} {gender} {metal} {color} {karat}". */
   jewelryOrder: string
   /** A ring's size typed as a bare number: "size {v}". */
   ringSize: string
@@ -40,7 +45,15 @@ export type ItemDescriptionInput = {
   size: string
   /** "Gold plated"… ; '' when the piece is solid. */
   coatingWord: string
+  /** The stones as one line (lib/pawn/stones gemstoneText). */
   gemstones: string
+  /** "men's" / "de hombre"… as it reads inside a sentence; '' when not picked. */
+  genderWord: string
+  /** "Cuban link", "Solitaire"… as typed. */
+  style: string
+  /** A watch's or signed piece's brand and model, as typed. */
+  jewelryBrand: string
+  jewelryModel: string
   firearmMake: string
   firearmModel: string
   firearmCaliber: string
@@ -95,9 +108,20 @@ function jewelry(i: ItemDescriptionInput, words: ItemDescriptionWords): string {
   // Same order as the fields on the screen: weight, size, coating, stones.
   const details = [weightText(i.weightGrams), size, lower(i.coatingWord), clean(i.gemstones)]
 
+  const gender = clean(i.genderWord)
+  const style = lower(i.style)
+  // Brand and model lead, as typed: "Rolex Submariner 16610, …".
+  const brand = clean(`${i.jewelryBrand} ${i.jewelryModel}`)
+
   // The item word alone ("Chain") says nothing the category does not.
   const anything =
-    karat !== '' || color !== '' || metal !== '' || details.some((d) => d !== '')
+    karat !== '' ||
+    color !== '' ||
+    metal !== '' ||
+    gender !== '' ||
+    style !== '' ||
+    brand !== '' ||
+    details.some((d) => d !== '')
   if (!anything) return ''
 
   const head = clean(
@@ -105,9 +129,11 @@ function jewelry(i: ItemDescriptionInput, words: ItemDescriptionWords): string {
       .replace('{karat}', karat)
       .replace('{color}', color)
       .replace('{metal}', metal)
+      .replace('{gender}', gender)
+      .replace('{style}', style)
       .replace('{item}', lower(i.itemWord)),
   )
-  return joinParts([head, ...details])
+  return joinParts([brand, head, ...details])
 }
 
 /** Brand + model, then the color: "Apple iPhone 13 Pro, black". */

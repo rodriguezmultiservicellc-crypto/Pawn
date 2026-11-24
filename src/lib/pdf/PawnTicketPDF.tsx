@@ -56,6 +56,14 @@ export type PawnTicketCollateral = {
   jewelry_size: string | null
   color: string | null
   gemstone_description: string | null
+  // Jewelry details (patches/0106): gender + style are the shop's own;
+  // brand / model / serial are FS 539.001(8)(b)2.a-c for a watch or a
+  // signed piece and print in the Serial and Brand · Model cells.
+  jewelry_gender: string | null
+  jewelry_style: string | null
+  jewelry_brand: string | null
+  jewelry_model: string | null
+  jewelry_serial: string | null
   unique_marks: string | null
   firearm_make: string | null
   firearm_model: string | null

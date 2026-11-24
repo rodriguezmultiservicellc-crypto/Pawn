@@ -37,7 +37,17 @@ export function readCollateralRows(fd: FormData): CollateralRawRow[] {
         coating: fd.get(`collateral_${i}_coating`),
         jewelry_size: fd.get(`collateral_${i}_jewelry_size`),
         color: fd.get(`collateral_${i}_color`),
+        // The popup sends the stones as JSON + a notes line (patches/0106);
+        // gemstone_description only still comes from a tab left open on the
+        // older form.
         gemstone_description: fd.get(`collateral_${i}_gemstone_description`),
+        stones: fd.get(`collateral_${i}_stones`),
+        gemstone_notes: fd.get(`collateral_${i}_gemstone_notes`),
+        jewelry_gender: fd.get(`collateral_${i}_jewelry_gender`),
+        jewelry_style: fd.get(`collateral_${i}_jewelry_style`),
+        jewelry_brand: fd.get(`collateral_${i}_jewelry_brand`),
+        jewelry_model: fd.get(`collateral_${i}_jewelry_model`),
+        jewelry_serial: fd.get(`collateral_${i}_jewelry_serial`),
         unique_marks: fd.get(`collateral_${i}_unique_marks`),
         est_value: fd.get(`collateral_${i}_est_value`),
         pawn_category_slug: fd.get(`collateral_${i}_pawn_category`),

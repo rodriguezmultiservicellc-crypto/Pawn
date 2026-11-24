@@ -24,6 +24,7 @@ import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
 import { readCollateralRows } from '@/lib/pawn/intake-form'
+import { gemstoneText } from '@/lib/pawn/stones'
 import { addDaysIso } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import {
@@ -403,7 +404,15 @@ export async function createLoanAction(
       photo_path: photoPath,
     })
     if (!rowParsed.success) continue
-    collateralInserts.push({ ...rowParsed.data, position: i })
+    // The one place the stones become the line the ticket prints: the boxes
+    // plus the notes (patches/0106). The row never changes after this, so
+    // the line and the boxes cannot drift apart.
+    const gemstones = gemstoneText(rowParsed.data.stones, rowParsed.data.gemstone_notes)
+    collateralInserts.push({
+      ...rowParsed.data,
+      gemstone_description: gemstones !== '' ? gemstones : rowParsed.data.gemstone_description,
+      position: i,
+    })
   }
 
   if (collateralInserts.length === 0) {
@@ -423,6 +432,13 @@ export async function createLoanAction(
       jewelry_size: it.jewelry_size,
       color: it.color,
       gemstone_description: it.gemstone_description,
+      stones: it.stones,
+      gemstone_notes: it.gemstone_notes,
+      jewelry_gender: it.jewelry_gender,
+      jewelry_style: it.jewelry_style,
+      jewelry_brand: it.jewelry_brand,
+      jewelry_model: it.jewelry_model,
+      jewelry_serial: it.jewelry_serial,
       unique_marks: it.unique_marks,
       est_value: it.est_value,
       photo_path: it.photo_path,
@@ -516,6 +532,13 @@ export async function createLoanAction(
     jewelry_size: it.jewelry_size,
     color: it.color,
     gemstone_description: it.gemstone_description,
+    stones: it.stones,
+    gemstone_notes: it.gemstone_notes,
+    jewelry_gender: it.jewelry_gender,
+    jewelry_style: it.jewelry_style,
+    jewelry_brand: it.jewelry_brand,
+    jewelry_model: it.jewelry_model,
+    jewelry_serial: it.jewelry_serial,
     unique_marks: it.unique_marks,
     est_value: it.est_value,
     photo_path: it.photo_path,

@@ -3524,8 +3524,14 @@ export type Database = {
           firearm_serial_number: string | null
           firearm_type: string | null
           gemstone_description: string | null
+          gemstone_notes: string | null
           id: string
+          jewelry_brand: string | null
+          jewelry_gender: string | null
+          jewelry_model: string | null
+          jewelry_serial: string | null
           jewelry_size: string | null
+          jewelry_style: string | null
           karat: number | null
           legacy_ref: string | null
           loan_id: string
@@ -3534,6 +3540,7 @@ export type Database = {
           pawn_subcategory_slug: string | null
           photo_path: string | null
           position: number
+          stones: Json
           tenant_id: string
           tool_brand: string | null
           tool_model: string | null
@@ -3562,8 +3569,14 @@ export type Database = {
           firearm_serial_number?: string | null
           firearm_type?: string | null
           gemstone_description?: string | null
+          gemstone_notes?: string | null
           id?: string
+          jewelry_brand?: string | null
+          jewelry_gender?: string | null
+          jewelry_model?: string | null
+          jewelry_serial?: string | null
           jewelry_size?: string | null
+          jewelry_style?: string | null
           karat?: number | null
           legacy_ref?: string | null
           loan_id: string
@@ -3572,6 +3585,7 @@ export type Database = {
           pawn_subcategory_slug?: string | null
           photo_path?: string | null
           position?: number
+          stones?: Json
           tenant_id: string
           tool_brand?: string | null
           tool_model?: string | null
@@ -3600,8 +3614,14 @@ export type Database = {
           firearm_serial_number?: string | null
           firearm_type?: string | null
           gemstone_description?: string | null
+          gemstone_notes?: string | null
           id?: string
+          jewelry_brand?: string | null
+          jewelry_gender?: string | null
+          jewelry_model?: string | null
+          jewelry_serial?: string | null
           jewelry_size?: string | null
+          jewelry_style?: string | null
           karat?: number | null
           legacy_ref?: string | null
           loan_id?: string
@@ -3610,6 +3630,7 @@ export type Database = {
           pawn_subcategory_slug?: string | null
           photo_path?: string | null
           position?: number
+          stones?: Json
           tenant_id?: string
           tool_brand?: string | null
           tool_model?: string | null

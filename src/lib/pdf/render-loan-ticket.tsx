@@ -128,7 +128,8 @@ export async function renderLoanTicketPdf(args: {
        firearm_serial_number, firearm_type, firearm_barrel_length_inches,
        firearm_action_type, firearm_capacity, firearm_finish,
        firearm_number_of_barrels, electronic_brand, electronic_model,
-       electronic_serial, tool_brand, tool_model`,
+       electronic_serial, tool_brand, tool_model,
+       jewelry_gender, jewelry_style, jewelry_brand, jewelry_model, jewelry_serial`,
     )
     .eq('loan_id', loanId)
     .eq('tenant_id', tenantId)
@@ -146,6 +147,11 @@ export async function renderLoanTicketPdf(args: {
       jewelry_size: c.jewelry_size,
       color: c.color,
       gemstone_description: c.gemstone_description,
+      jewelry_gender: c.jewelry_gender,
+      jewelry_style: c.jewelry_style,
+      jewelry_brand: c.jewelry_brand,
+      jewelry_model: c.jewelry_model,
+      jewelry_serial: c.jewelry_serial,
       unique_marks: c.unique_marks,
       firearm_make: c.firearm_make,
       firearm_model: c.firearm_model,
