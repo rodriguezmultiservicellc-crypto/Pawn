@@ -197,3 +197,41 @@ export function voidablePaymentId(args: {
   if (!last) return null
   return planPaymentVoid({ ...args, eventId: last.id }).ok ? last.id : null
 }
+
+/**
+ * The rows of a ticket's log that no longer stand: a voided payment, and
+ * what it brought with it (its move of the due date, its redemption) —
+ * everything between it and the next payment row. The rows that DO the
+ * voiding are not in the set, nor is the row that put the due date back.
+ */
+export function undoneEventIds<
+  T extends {
+    id: string
+    event_type: string
+    occurred_at: string
+    reverses_event_id: string | null
+    interest_waived: Money
+    new_due_date: string | null
+    previous_due_date: string | null
+  },
+>(events: ReadonlyArray<T>): Set<string> {
+  const voided = new Set<string>()
+  for (const e of events) if (e.reverses_event_id) voided.add(e.reverses_event_id)
+  const undone = new Set<string>(voided)
+  if (voided.size === 0) return undone
+  const ordered = [...events].sort((a, b) => Date.parse(a.occurred_at) - Date.parse(b.occurred_at))
+  let behindVoided = false
+  for (const e of ordered) {
+    if (e.event_type === 'payment') {
+      // A reversal row is a payment row too; it changes nothing here.
+      if (!e.reverses_event_id) behindVoided = voided.has(e.id)
+      continue
+    }
+    if (!behindVoided) continue
+    const putBack =
+      e.previous_due_date != null && e.new_due_date != null && e.new_due_date < e.previous_due_date
+    const ownMove = e.event_type === 'extension' && n(e.interest_waived) === 0 && !putBack
+    if (ownMove || e.event_type === 'redemption') undone.add(e.id)
+  }
+  return undone
+}

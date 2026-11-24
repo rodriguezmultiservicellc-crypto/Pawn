@@ -144,6 +144,7 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
     payment_method: e.payment_method,
     new_due_date: e.new_due_date,
     previous_due_date: e.previous_due_date,
+    legacy: e.legacy_ref != null,
     notes: e.notes,
     occurred_at: e.occurred_at,
   }))

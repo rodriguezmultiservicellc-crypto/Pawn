@@ -60,7 +60,7 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 65 (2026-11-23, night). Items 544-558, FIVE
+  Last session:   Session 65 (2026-11-23, night). Items 544-559, FIVE
                   MIGRATIONS, ALL APPLIED: 0100, 0101, 0102, 0103, 0104.
                   main == feature/sol-pawn-brief.
                   ACTIVE FILES (last touched):
@@ -101,11 +101,17 @@ OPERATION IN FLIGHT: none
                   - ONE PAYMENT CAN BE VOIDED (558, patches/0104): owner /
                     manager, last payment only, a reversal row
                     (CLAUDE.md rule 23).
-                  - NEXT, ASKED AND NOT BUILT YET: the payment history the
-                    way Eddy draws it for a customer who says "I already
-                    paid" (Downloads/IMG_3974.HEIC: pawn date, then each
-                    due date in a row, and under each period the payment
-                    that covered it — date and amount).
+                  - "PAYMENTS BY PERIOD" IS ON THE TICKET (559): Eddy's
+                    sketch (Downloads/IMG_3974.HEIC) — one box per stretch
+                    of time with the payment that paid for it, the unpaid
+                    stretch in red, and "Print for customer".
+                  - LOCAL BUILD TRAP: stopping the dev server leaves broken
+                    generated files in .next/dev/types (validator.ts,
+                    routes.d.ts). Delete those two files before tsc /
+                    build. NEVER chain a commit or push after the build
+                    with ";" — check the build's exit code first (a red
+                    local build was pushed once tonight; the code was
+                    fine, the generated file was not).
                   - STILL NOT EXERCISED FOR REAL: a payment from the list
                     popup, the receipt offered after a payment, a payoff
                     that gives interest back, a move to a picked date,
@@ -941,6 +947,41 @@ Progress_archive.txt — the items from those sessions are there.)
       Spanish; the live deploy.
 
       tsc, 1,117 tests, lint, build green.
+
+ 559. PAYMENTS BY PERIOD — HOW EDDY EXPLAINS "I ALREADY PAID". Eddy:
+      "img_3974 is a sample of how i explain customers the payments they
+      made when they say they alread paid" (a hand sketch: Pawn date 1/1/26,
+      then Due 2/1/26, 3/1/26, 4/1/26 in a row, and under each stretch a V
+      with "Payment date / Amount").
+      - src/lib/pawn/payment-history.ts buildPaymentHistory (pure, 9
+        tests, the sketch is the first one): stretches of time end to end
+        from the pawn date, each with the payment that paid for it; the
+        stretch up to the due date is NOT PAID. Interest is paid behind: a
+        move made in Pawn pays up to one period before the new due date; a
+        move from the old system (calendar months) paid the stretch ending
+        at the date it moved from. Free time is its own box. Payments that
+        moved no date (toward the loan, the payoff) are listed apart.
+        Voided payments and what they brought are left out.
+      - Ticket page: "Payments by period" panel above the event log
+        (green boxes, the unpaid one red when past due, amber otherwise,
+        with the interest owed today) and the total paid on the ticket.
+      - "Print for customer": /api/print/loan/[id]/payments — a letter
+        page, English / Español, same data (paymentHistoryHtml), printed
+        from a hidden frame like the receipts; audit kind print_render,
+        document payment_history.
+      - undoneEventIds moved to payment-void.ts: one definition of "no
+        longer stands" for the event log and the history.
+      LOOKED AT (headless Chrome, local): ticket 15455 — 17 paid boxes
+      from 4/15/2025, the last one 10/15 -> 11/15/2026 NOT PAID, $48.43
+      owed, total $348.90; ticket 15551 — three boxes (the $80.00 covers
+      3/24 -> 11/20/2026) and the $101.00 under Other payments, Paid off.
+      The printed page rendered from the route's HTML.
+      NOT VERIFIED: printed on paper; Spanish screen; a clerk's view; the
+      live deploy. The old system's own records decide the boxes: where it
+      skipped a month (15455, 9/15 -> 11/15/2025 on one $20.00) the box
+      shows that.
+
+      tsc, 1,126 tests, lint, build green.
 
 --- Session 64 (2026-11-22) — Tax split on the receipt, tax-exempt sales, sales tax report, online order tax split (branch feature/sol-pawn-brief == main) ---
 

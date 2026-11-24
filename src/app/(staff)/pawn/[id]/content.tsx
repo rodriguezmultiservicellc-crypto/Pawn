@@ -39,6 +39,8 @@ import {
   type ActionResult,
 } from './actions'
 import { daysBetween, type ChargeModel, type PayoffResult } from '@/lib/pawn/math'
+import { undoneEventIds } from '@/lib/pawn/payment-void'
+import { PaymentHistoryPanel } from '@/components/pawn/PaymentHistoryPanel'
 import type {
   InventoryCategory,
   LoanEventType,
@@ -108,6 +110,8 @@ export type LoanEventView = {
   reverses_event_id: string | null
   /** On an event that moves the due date: the date it moved from. */
   previous_due_date: string | null
+  /** Brought over from the old system (its moves were calendar months). */
+  legacy: boolean
   event_type: LoanEventType
   amount: number | null
   principal_paid: number
@@ -403,6 +407,18 @@ export default function PawnLoanDetail({
         </div>
       </div>
 
+      <PaymentHistoryPanel
+        loanId={loan.id}
+        issueDate={loan.issue_date}
+        dueDate={loan.due_date}
+        termDays={loan.term_days}
+        principal={loan.principal}
+        isOpen={!isTerminal}
+        today={today}
+        interestOwed={isTerminal ? null : payoff.interestOutstanding}
+        charge={charge}
+        events={events}
+      />
       <EventLogPanel
         events={events}
         loanId={loan.id}
@@ -732,32 +748,6 @@ function CollateralPanel({
       )}
     </section>
   )
-}
-
-/**
- * Which rows of the log no longer stand: a voided payment, and the rows it
- * brought with it (its move of the due date, its redemption) — everything
- * between it and the next payment row.
- */
-function undoneEventIds(events: LoanEventView[]): Set<string> {
-  const voided = new Set<string>()
-  for (const e of events) if (e.reverses_event_id) voided.add(e.reverses_event_id)
-  const undone = new Set<string>(voided)
-  if (voided.size === 0) return undone
-  const ordered = [...events].sort((a, b) => Date.parse(a.occurred_at) - Date.parse(b.occurred_at))
-  let behindVoided = false
-  for (const e of ordered) {
-    if (e.event_type === 'payment') {
-      behindVoided = voided.has(e.id)
-      continue
-    }
-    const followUp =
-      (e.event_type === 'extension' && e.interest_waived === 0 && !e.previous_due_date) ||
-      (e.event_type === 'extension' && e.interest_waived === 0 && e.previous_due_date != null && e.new_due_date != null && e.new_due_date > e.previous_due_date) ||
-      e.event_type === 'redemption'
-    if (behindVoided && followUp) undone.add(e.id)
-  }
-  return undone
 }
 
 function EventLogPanel({
