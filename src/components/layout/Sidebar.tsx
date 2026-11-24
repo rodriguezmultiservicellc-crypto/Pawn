@@ -30,6 +30,7 @@ import {
   HandCoins,
   Receipt,
   Wallet,
+  ListBullets,
   ListChecks,
   Globe,
   Plus,
@@ -223,6 +224,10 @@ export function Sidebar({
     /** The open / close group this row belongs to. The row without
      *  `child` is the group's own row and carries the caret. */
     group?: GroupId
+    /** The group's own page repeated as its first sub-item ("View
+     *  inventory"). While the group is open it lights up instead of the
+     *  group row; the icon rail hides it (the group row is the same link). */
+    listRow?: boolean
   }
   type NavSection = {
     /** Visual divider between groups. Renders as a hairline (collapsed)
@@ -236,6 +241,15 @@ export function Sidebar({
     { kind: 'item', href: '/customers', label: t.nav.customers, icon: <Users size={18} weight="regular" /> },
     { kind: 'item', href: '/inventory', label: t.nav.inventory, icon: <Package size={18} weight="regular" />, group: 'inventory' },
     // Inventory's own actions, indented under it.
+    {
+      kind: 'item',
+      href: '/inventory',
+      group: 'inventory',
+      label: t.nav.viewInventory,
+      icon: <ListBullets size={16} weight="regular" />,
+      child: true,
+      listRow: true,
+    },
     {
       kind: 'item',
       href: '/inventory/new',
@@ -560,6 +574,9 @@ export function Sidebar({
   const groupsWithChildren = new Set(
     visibleItems.filter((it) => it.child && it.group).map((it) => it.group),
   )
+  const groupsWithListRow = new Set(
+    visibleItems.filter((it) => it.listRow && it.group).map((it) => it.group),
+  )
   // The icon rail shows every icon, so nothing counts as closed there.
   const isClosed = (group?: GroupId) =>
     !collapsed && !!group && closedGroups.has(group)
@@ -600,7 +617,9 @@ export function Sidebar({
         .filter(
           (it) =>
             it.kind === 'section' ||
-            (it.visible !== false && !(it.child && isClosed(it.group))),
+            (it.visible !== false &&
+              !(it.child && isClosed(it.group)) &&
+              !(it.listRow && collapsed)),
         )
         // Drop a section divider whose group is empty (all items filtered
         // out by visibility) or that lands at the end of the list. Two
@@ -662,8 +681,11 @@ export function Sidebar({
           // Only the most specific match lights up: /inventory/counts is
           // Counts, not Inventory as well — unless Inventory is closed and
           // Counts is hidden, then Inventory stands in for it.
+          // An open group with a "View …" row lets that row light up
+          // for the group's own page instead of the group row.
           const isActive =
-            activeRoot === bestActiveRoot ||
+            (activeRoot === bestActiveRoot &&
+              !(caretGroup && groupOpen && groupsWithListRow.has(caretGroup))) ||
             (!!caretGroup && !groupOpen && activeGroup === caretGroup)
           if (it.disabled) {
             return (
@@ -711,7 +733,7 @@ export function Sidebar({
           }
           return (
             <Link
-              key={it.href}
+              key={it.listRow ? `${it.href}#list` : it.href}
               href={it.href}
               className={`flex items-center gap-2 rounded-lg ${it.child && !collapsed ? 'pl-8 pr-3 py-1.5' : `${itemPadX} py-2`} text-sm font-medium transition-colors ${rowTone(isActive)}`}
               title={collapsed ? it.label : undefined}

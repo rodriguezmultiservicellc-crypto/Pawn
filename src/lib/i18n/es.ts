@@ -73,6 +73,7 @@ export const es: Dictionary = {
     inventory: 'Inventario',
     transfers: 'Transferencias',
     counts: 'Conteos',
+    viewInventory: 'Ver inventario',
     newItem: 'Nueva pieza',
     importInventory: 'Importar',
     newSale: 'Nueva venta',
