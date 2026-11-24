@@ -264,6 +264,23 @@ type Row = {
   photoPreview: string | null
 }
 
+/**
+ * Most jewelry pawned is yellow gold: a jewelry piece starts on Gold and
+ * Yellow, and the clerk changes them when it isn't. Only fills what is still
+ * empty; watches and every other category start blank.
+ */
+function jewelryStartValues(
+  row: Pick<Row, 'metal_type' | 'color'>,
+  topSlug: string | null,
+  subSlug: string | null,
+): Partial<Row> {
+  if (topSlug !== 'jewelry' || subSlug === 'watches' || subSlug === 'watch') return {}
+  return {
+    ...(row.metal_type === '' ? { metal_type: 'gold' as const } : {}),
+    ...(row.color === '' ? { color: en.pawn.new_.colors.yellow } : {}),
+  }
+}
+
 function newRow(): Row {
   return {
     uid: typeof crypto !== 'undefined' ? crypto.randomUUID() : `r${Math.random()}`,
@@ -403,6 +420,7 @@ export const CollateralItemsList = forwardRef<
       c.subcategories.length === 0
         ? {
             ...base,
+            ...jewelryStartValues(base, c.slug, null),
             pawn_category_slug: c.slug,
             category: inventoryCategoryFromSlug(c.slug, null),
           }
@@ -1170,6 +1188,7 @@ function CollateralRow({
             initialTopSlug={row.pending_top_slug}
             onPick={(topSlug, subSlug) =>
               onChange({
+                ...jewelryStartValues(row, topSlug, subSlug),
                 pawn_category_slug: topSlug,
                 pawn_subcategory_slug: subSlug,
                 pending_top_slug: null,
