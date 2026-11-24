@@ -99,6 +99,7 @@ export async function GET(req: Request) {
         exported_at: exportedAt,
         exported_format: format,
         exported_batch_id: batchId,
+        export_outcome: 'reported',
       })
       .in('id', ids)
     if (updateErr) {

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { shopReportRange } from '@/lib/reports/shop-range'
 import { resolveReportScope } from '@/lib/reports/tenant-scope'
-import { getPoliceReportRows } from '@/lib/reports/police-report'
+import { getPoliceReportRows, getVoidedAfterReport } from '@/lib/reports/police-report'
 import { flattenComplianceRow } from '@/lib/compliance/police-report/formats/fl-leadsonline'
 import { buildNcicBySlug } from '@/lib/compliance/ncic'
 import type { PoliceReportFormat } from '@/types/database-aliases'
@@ -54,11 +54,14 @@ export default async function PoliceReportPage(props: {
     tenantId: ctx.tenantId,
   })
 
-  const result = await getPoliceReportRows({
-    supabase: ctx.supabase,
-    tenantIds: scope.tenantIds,
-    range,
-  })
+  const [result, voidedAfterReport] = await Promise.all([
+    getPoliceReportRows({
+      supabase: ctx.supabase,
+      tenantIds: scope.tenantIds,
+      range,
+    }),
+    getVoidedAfterReport({ supabase: ctx.supabase, tenantIds: scope.tenantIds }),
+  ])
 
   const ncicBySlug = await buildNcicBySlug({
     supabase: ctx.supabase,
@@ -86,6 +89,7 @@ export default async function PoliceReportPage(props: {
       previewRows={previewRows}
       complianceRowCount={result.rows.length}
       flattenedRowCount={totalFlattened}
+      voidedAfterReport={voidedAfterReport}
       counts={{
         rows: result.totals?.rows ?? 0,
         pawn_intakes: result.totals?.pawn_intakes ?? 0,

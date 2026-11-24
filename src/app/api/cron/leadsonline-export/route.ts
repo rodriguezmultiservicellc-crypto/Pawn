@@ -30,6 +30,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getUnexportedPoliceReportRows } from '@/lib/reports/police-report'
 import { buildNcicBySlug } from '@/lib/compliance/ncic'
 import { dispatch } from '@/lib/compliance/police-report'
+import { planPoliceExport } from '@/lib/compliance/police-report/void-plan'
+import type { VoidedAfterReport } from '@/lib/reports/police-report'
 import type { PoliceReportFormat } from '@/types/database-aliases'
 
 export const runtime = 'nodejs'
@@ -90,14 +92,34 @@ export async function GET(req: NextRequest) {
     }
     if (rows.length === 0) continue
 
+    // Voided tickets (patches/0108): voided before being reported → left
+    // out; voided after → a correction listed on the batch.
+    const plan = planPoliceExport(rows)
+
+    // 0. Withheld rows: stamped so they never come back, no file needed.
+    if (plan.withheld.length > 0) {
+      const { error: wErr } = await admin
+        .from('compliance_log')
+        .update({ exported_at: generatedAt, exported_format: format, export_outcome: 'withheld_void' })
+        .in('id', plan.withheld.map((r) => r.id))
+      if (wErr) {
+        console.error('[cron:leadsonline-export] withhold stamp failed', t.id, wErr.message)
+        skipped.push({ tenant_id: t.id, reason: `withhold_stamp_failed:${wErr.message}` })
+        continue
+      }
+    }
+    if (plan.report.length === 0 && plan.notices.length === 0) continue
+
     const ncicBySlug = await buildNcicBySlug({ supabase: admin, tenantIds: [t.id] })
     const storeId = t.agency_store_id?.trim() || t.id
 
-    const exportResult = dispatch({ format, rows, tenantStoreId: storeId, ncicBySlug })
+    const exportResult = dispatch({ format, rows: plan.report, tenantStoreId: storeId, ncicBySlug })
+    const voidedAfterReport = await describeNotices(admin, t.id, plan.notices)
 
     const batchId = randomUUID()
-    const rangeStart = rows[0].occurred_at
-    const rangeEnd = rows[rows.length - 1].occurred_at
+    const covered = [...plan.report, ...plan.notices].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at))
+    const rangeStart = covered[0].occurred_at
+    const rangeEnd = covered[covered.length - 1].occurred_at
 
     // 1. Persist the frozen artifact first (never lose the file).
     const { error: insErr } = await admin.from('compliance_export_batches').insert({
@@ -111,6 +133,7 @@ export async function GET(req: NextRequest) {
       filename: exportResult.filename,
       csv_body: exportResult.body,
       generated_by: 'cron',
+      voided_after_report: voidedAfterReport,
     })
     if (insErr) {
       console.error('[cron:leadsonline-export] batch insert failed', t.id, insErr.message)
@@ -118,20 +141,26 @@ export async function GET(req: NextRequest) {
       continue
     }
 
-    // 2. Stamp the covered rows as exported.
-    const ids = rows.map((r) => r.id)
-    const { error: stampErr } = await admin
-      .from('compliance_log')
-      .update({
-        exported_at: generatedAt,
-        exported_format: format,
-        exported_batch_id: batchId,
-      })
-      .in('id', ids)
-    if (stampErr) {
-      console.error('[cron:leadsonline-export] mark-exported failed', t.id, stampErr.message)
-      skipped.push({ tenant_id: t.id, reason: `mark_exported_failed:${stampErr.message}` })
-      // Batch exists; rows will re-export next run (duplicate batch, visible).
+    // 2. Stamp the covered rows as exported, each with what became of it.
+    for (const [group, outcome] of [
+      [plan.report, 'reported'],
+      [plan.notices, 'void_notice'],
+    ] as const) {
+      if (group.length === 0) continue
+      const { error: stampErr } = await admin
+        .from('compliance_log')
+        .update({
+          exported_at: generatedAt,
+          exported_format: format,
+          exported_batch_id: batchId,
+          export_outcome: outcome,
+        })
+        .in('id', group.map((r) => r.id))
+      if (stampErr) {
+        console.error('[cron:leadsonline-export] mark-exported failed', t.id, stampErr.message)
+        skipped.push({ tenant_id: t.id, reason: `mark_exported_failed:${stampErr.message}` })
+        // Batch exists; rows will re-export next run (duplicate batch, visible).
+      }
     }
 
     // 3. Audit (system action, no acting user).
@@ -148,6 +177,8 @@ export async function GET(req: NextRequest) {
         range_start: rangeStart,
         range_end: rangeEnd,
         filename: exportResult.filename,
+        withheld_void: plan.withheld.length,
+        voided_after_report: voidedAfterReport.length,
         via: 'cron',
       },
     })
@@ -169,6 +200,38 @@ export async function GET(req: NextRequest) {
     generated: generated.length,
     batches: generated,
     skipped,
+  })
+}
+
+/**
+ * The corrections a batch carries: each ticket voided after an earlier file
+ * reported it, with when it was reported and when it was voided.
+ */
+async function describeNotices(
+  admin: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+  notices: ReadonlyArray<{ source_id: string; occurred_at: string }>,
+): Promise<VoidedAfterReport[]> {
+  if (notices.length === 0) return []
+  const loanIds = notices.map((n) => n.source_id)
+  const [{ data: loans }, { data: intakes }] = await Promise.all([
+    admin.from('loans').select('id, ticket_number').eq('tenant_id', tenantId).in('id', loanIds),
+    admin
+      .from('compliance_log')
+      .select('source_id, exported_at, exported_batch_id')
+      .eq('tenant_id', tenantId)
+      .eq('event_type', 'pawn_intake')
+      .in('source_id', loanIds),
+  ])
+  return notices.map((n) => {
+    const intake = (intakes ?? []).find((i) => i.source_id === n.source_id)
+    return {
+      loan_id: n.source_id,
+      ticket_number: (loans ?? []).find((l) => l.id === n.source_id)?.ticket_number ?? '',
+      voided_at: n.occurred_at,
+      reported_at: intake?.exported_at ?? null,
+      reported_batch_id: intake?.exported_batch_id ?? null,
+    }
   })
 }
 

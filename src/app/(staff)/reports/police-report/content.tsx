@@ -6,6 +6,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { DateRangePicker } from '@/components/reports/DateRangePicker'
 import type { PoliceReportFormat } from '@/types/database-aliases'
 import type { LeadsOnlineRow } from '@/lib/compliance/police-report/formats/fl-leadsonline'
+import type { VoidedAfterReport } from '@/lib/reports/police-report'
 
 const SUPPORTED_FORMATS: PoliceReportFormat[] = ['fl_leadsonline']
 
@@ -18,6 +19,7 @@ export default function PoliceReportContent({
   complianceRowCount,
   flattenedRowCount,
   counts,
+  voidedAfterReport,
 }: {
   from: string
   to: string
@@ -27,6 +29,8 @@ export default function PoliceReportContent({
   complianceRowCount: number
   flattenedRowCount: number
   counts: { rows: number; pawn_intakes: number; buy_outrights: number }
+  /** Tickets voided after a file reported them (patches/0108). */
+  voidedAfterReport: VoidedAfterReport[]
 }) {
   const { t } = useI18n()
 
@@ -69,6 +73,51 @@ export default function PoliceReportContent({
           <span>{t.compliance.formatDraftWarning}</span>
         </div>
       </div>
+
+      {voidedAfterReport.length > 0 ? (
+        <div className="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm">
+          <div className="flex items-start gap-2 text-danger">
+            <Warning size={18} weight="fill" className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">{t.compliance.voidedAfterReport.title}</p>
+              <p className="text-foreground">{t.compliance.voidedAfterReport.body}</p>
+            </div>
+          </div>
+          <table className="mt-3 w-full text-left text-xs">
+            <thead className="text-muted">
+              <tr>
+                <th className="py-1 pr-3 font-medium">{t.compliance.voidedAfterReport.ticket}</th>
+                <th className="py-1 pr-3 font-medium">{t.compliance.voidedAfterReport.reportedOn}</th>
+                <th className="py-1 pr-3 font-medium">{t.compliance.voidedAfterReport.voidedOn}</th>
+                <th className="py-1 font-medium" />
+              </tr>
+            </thead>
+            <tbody>
+              {voidedAfterReport.map((v) => (
+                <tr key={v.loan_id} className="border-t border-danger/20">
+                  <td className="py-1.5 pr-3 font-mono">
+                    <Link href={`/pawn/${v.loan_id}`} className="text-blue hover:underline">
+                      {v.ticket_number}
+                    </Link>
+                  </td>
+                  <td className="py-1.5 pr-3 font-mono">{v.reported_at ? v.reported_at.slice(0, 10) : '—'}</td>
+                  <td className="py-1.5 pr-3 font-mono">{v.voided_at.slice(0, 10)}</td>
+                  <td className="py-1.5 text-right">
+                    {v.reported_batch_id ? (
+                      <a
+                        href={`/api/compliance/export/${v.reported_batch_id}`}
+                        className="text-blue hover:underline"
+                      >
+                        {t.compliance.voidedAfterReport.reportedFile}
+                      </a>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
 
       <DateRangePicker from={from} to={to} />
 

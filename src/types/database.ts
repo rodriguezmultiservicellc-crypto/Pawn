@@ -593,6 +593,7 @@ export type Database = {
           row_count: number
           tenant_id: string
           transaction_count: number
+          voided_after_report: Json
         }
         Insert: {
           created_at?: string
@@ -606,6 +607,7 @@ export type Database = {
           row_count?: number
           tenant_id: string
           transaction_count?: number
+          voided_after_report?: Json
         }
         Update: {
           created_at?: string
@@ -619,6 +621,7 @@ export type Database = {
           row_count?: number
           tenant_id?: string
           transaction_count?: number
+          voided_after_report?: Json
         }
         Relationships: [
           {
@@ -643,6 +646,7 @@ export type Database = {
           created_at: string
           customer_snapshot: Json
           event_type: string
+          export_outcome: string | null
           exported_at: string | null
           exported_batch_id: string | null
           exported_format:
@@ -660,6 +664,7 @@ export type Database = {
           created_at?: string
           customer_snapshot: Json
           event_type: string
+          export_outcome?: string | null
           exported_at?: string | null
           exported_batch_id?: string | null
           exported_format?:
@@ -677,6 +682,7 @@ export type Database = {
           created_at?: string
           customer_snapshot?: Json
           event_type?: string
+          export_outcome?: string | null
           exported_at?: string | null
           exported_batch_id?: string | null
           exported_format?:

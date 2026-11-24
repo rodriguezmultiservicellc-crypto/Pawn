@@ -3889,6 +3889,14 @@ export const es: Dictionary = {
     },
     formatDraftWarning:
       'BORRADOR DE FORMATO — confirma con la agencia antes de enviar en producción.',
+    voidedAfterReport: {
+      title: 'Anulados después de reportarse',
+      body: 'Estos boletos salieron en un reporte policial y se anularon después. Corrija cada uno con LeadsOnline. Los boletos anulados antes de la exportación diaria quedan fuera del archivo por sí solos.',
+      ticket: 'Boleto',
+      reportedOn: 'Reportado',
+      voidedOn: 'Anulado',
+      reportedFile: 'Archivo en que salió',
+    },
     preview: {
       title: 'Vista previa (primeras 50 filas)',
       rowCount:
