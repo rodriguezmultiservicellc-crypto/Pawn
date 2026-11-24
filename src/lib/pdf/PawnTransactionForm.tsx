@@ -53,8 +53,10 @@ const s = StyleSheet.create({
   footBand: { backgroundColor: INK, color: '#ffffff', fontSize: 7.5, fontWeight: 700, textAlign: 'center', paddingVertical: 1.5 },
   tilCell: { flex: 1, paddingHorizontal: 3.5, paddingTop: 2, paddingBottom: 2.5, borderRightWidth: 0.5, borderRightColor: LINE },
   tilHead: { fontSize: 6.6, fontWeight: 700 },
-  tilBody: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 1 },
-  tilSub: { flex: 1, fontSize: 4.9, lineHeight: 1.15, color: SOFT, paddingRight: 3 },
+  // The cells stretch to the tallest one; each explanation starts at the top
+  // and each figure sits at the bottom right, so all five figures share one line.
+  tilBody: { flexGrow: 1, flexDirection: 'row', alignItems: 'flex-end', marginTop: 1 },
+  tilSub: { flex: 1, alignSelf: 'flex-start', fontSize: 4.9, lineHeight: 1.15, color: SOFT, paddingRight: 3 },
   tilValue: { flexShrink: 0, fontSize: 10.5, fontWeight: 700, fontFamily: 'JetBrains Mono' },
   // statements + signature
   notice: { fontSize: 6, lineHeight: 1.12, marginBottom: 1.2 },
