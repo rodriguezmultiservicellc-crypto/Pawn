@@ -347,17 +347,9 @@ export default function NewPawnLoanForm({
       }}
       className="mx-auto w-full max-w-[1440px] space-y-6"
     >
-      {/* Breadcrumb — replaces the old "Back to pawn loans" link. */}
-      <nav aria-label={tn.breadcrumb} className="flex items-center gap-2 text-sm">
-        <Link
-          href="/pawn"
-          className={`inline-flex h-11 items-center font-semibold text-blue hover:text-blue-2 hover:underline ${FOCUS}`}
-        >
-          {t.pawn.title}
-        </Link>
-        <span className="text-muted">/</span>
-        <h1 className="font-semibold text-foreground">{tn.title}</h1>
-      </nav>
+      {/* No visible title row: the sidebar is the way back to Pawn loans.
+          The heading stays for screen readers. */}
+      <h1 className="sr-only">{tn.title}</h1>
 
       {/* Top row: Pawn loan / Buy outright · Hold to talk */}
       <div className="flex flex-wrap items-start justify-between gap-4">

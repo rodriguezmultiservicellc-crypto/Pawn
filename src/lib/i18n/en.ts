@@ -1314,7 +1314,6 @@ export const en = {
       manageRatesHint: 'Manage rates in Settings → Loan rates.',
       railMissingHint: 'Add a customer, principal, and at least one item',
       // ── "Ledger" layout ──
-      breadcrumb: 'Breadcrumb',
       financingLabel: 'Pawn loan or buy outright',
       newCustomerShort: 'New customer',
       sectionAddCollateral: 'Add collateral',

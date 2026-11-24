@@ -1317,7 +1317,6 @@ export const es: Dictionary = {
       manageRatesHint: 'Administra las tasas en Configuración → Tasas de préstamo.',
       railMissingHint: 'Agrega un cliente, capital y al menos un artículo',
       // ── Diseño "Ledger" ──
-      breadcrumb: 'Ruta de navegación',
       financingLabel: 'Préstamo de empeño o compra directa',
       newCustomerShort: 'Nuevo cliente',
       sectionAddCollateral: 'Agregar garantía',
