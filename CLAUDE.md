@@ -346,6 +346,64 @@ Never kill node processes by image name — always by PID.
       no cash and refunds no card.
     - Every event that moves the due date writes `previous_due_date`.
 
+24. **The drawer's cash has ONE source: `loadDrawerCash`**
+    (`src/lib/pos/drawer-cash.ts`, patches/0113). The register close
+    (expected cash), the open-drawer card on POS and the Daily register
+    report (screen, CSV, PDF) all call it — never add up drawer cash
+    anywhere else.
+    - Never sum `sale_payments` + `layaway_payments`: every layaway payment
+      is ALREADY in `sale_payments`. Only a layaway cancellation refund (a
+      negative `layaway_payments` row) is not.
+    - A new action that moves cash in or out of the drawer must leave a
+      record `loadDrawerCash` reads (as `buy_payouts` and
+      `repair_ticket_events.payment_method` were added for buys and
+      repairs), and `loadDrawerCash` must be taught to read it, in the same
+      change.
+    - Assumptions (Eddy, 2026-11-24 — change the code if he says otherwise):
+      a Pawn loan is handed out in CASH (imported loans never count);
+      voiding a Pawn-made loan = the customer handed the principal back
+      that day (cash in). One drawer is open at a time.
+
+25. **Every pawn payment goes through `planPayment` → `commitPayment`**
+    (`src/app/(staff)/pawn/[id]/actions.ts`). One ticket (Record payment)
+    and several tickets of one customer (Pay together,
+    `recordPaymentsAction`, one `loan_events.payment_group_id`, patches/0112)
+    take the same path — never write a second way to price or book a
+    payment. The fee field is OFF until Eddy confirms which fees § 539.001
+    allows.
+
+26. **A pawn or a buy needs a complete customer record.**
+    `missingPledgorFields()` (`src/lib/customers/pledgor-record.ts`) must be
+    empty before a pawn ticket or a buy is written — the statute's pledgor
+    fields print on the ticket and go to the police. Voiding a Pawn-made
+    ticket writes a `'pawn_void'` `compliance_log` row through the DB
+    trigger `trg_loans_compliance_void` (patches/0108) — app code never
+    writes that row (rule 15).
+
+27. **Collateral item fields (New pawn ticket item popup, patches/0106-0107).**
+    - `gemstone_description` is COMPOSED, never typed: `createLoanAction`
+      builds it from `stones` (JSONB) + `gemstone_notes` with
+      `gemstoneText()` (`src/lib/pawn/stones.ts`). Every reader still reads
+      `gemstone_description`.
+    - Brand / model / serial live per category (`firearm_*`,
+      `electronic_*`, `tool_*`, `jewelry_*`, `general_*`). Read them ONLY
+      through `itemIdentity()` (`src/lib/pawn/item-identity.ts`).
+    - The written item description is ALWAYS English (§ 539.001(8)(a)): the
+      generator takes its words from the `en` dictionary, never from `t`;
+      dropdowns save the English word.
+    - Est. value follows the metal value, and the description follows the
+      fields, only while the clerk has not typed their own
+      (`estValueAfterChange`, `descriptionAfterChange`). Every field change
+      goes through `CollateralRow`'s onChange wrapper.
+    - The popup (`src/components/pawn/CollateralItemsList.tsx`) is a native
+      `<dialog>` opened with `showModal()`, one per row, ALWAYS MOUNTED and
+      INSIDE the ticket `<form>` — its inputs (photo file input included)
+      are what the form submits. Never move it to a portal, never render it
+      only while open, never put a display class (flex / block / grid) on
+      the `<dialog>` itself. Its onCancel ignores any target but the dialog
+      (a file input's "cancel" bubbles). Enter in a field = Add item / Done,
+      never submit the ticket.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

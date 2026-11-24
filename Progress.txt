@@ -60,7 +60,13 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 68 (2026-11-24, ~18:05), items 598-606.
+  Last session:   Session 69 (2026-11-24, ~18:30), item 607 — docs only:
+                  the rules this block listed are now CLAUDE.md critical
+                  rules 24-27. No code, no migration. Context ~15%.
+                  Everything below (Session 68's state, the try-on-live
+                  list, the questions for Eddy) still stands unchanged.
+
+  Session 68 (2026-11-24, ~18:05), items 598-606.
                   Context budget at save: high (my estimate ~65%).
                   TWO MIGRATIONS, BOTH APPLIED TO THE LIVE DB: 0112
                   (loan_events.payment_group_id), 0113
@@ -114,7 +120,8 @@ OPERATION IN FLIGHT: none
                   - Voiding a Pawn-made loan = the customer handed the
                     principal back that day (cash in).
 
-                  RULES WORTH A /convention (not in CLAUDE.md yet):
+                  RULES WORTH A /convention — DONE 2026-11-24 (S69): now
+                  CLAUDE.md rules 24-27 (the S66 item-popup rules too):
                   - Anything that adds up drawer cash goes through
                     loadDrawerCash (never sum sale_payments + layaway_payments:
                     layaway payments are in BOTH). A new cash-moving action
@@ -836,6 +843,26 @@ SESSION HISTORY LOG
 2026-11-13, sessions 33-52 archived 2026-11-21, and sessions 53-63
 archived 2026-11-24 to Progress_archive.txt — the items from those
 sessions are there.)
+
+--- Session 69 (2026-11-24) — Conventions: CLAUDE.md rules 24-27 (branch feature/sol-pawn-brief == main) ---
+
+  607. SESSION RULES WRITTEN INTO CLAUDE.md (CRITICAL RULES 24-27)
+       Eddy said yes to the /convention list in the RESUME block. Added:
+       24 drawer cash has one source, loadDrawerCash (never sum
+          sale_payments + layaway_payments; new cash actions leave a record
+          it reads; the cash-payout / loan-void assumptions);
+       25 every pawn payment goes planPayment -> commitPayment (single and
+          Pay together; fee field off until § 539.001 fees confirmed);
+       26 missingPledgorFields() empty before a pawn / buy; 'pawn_void'
+          compliance row comes only from trg_loans_compliance_void (0108);
+       27 collateral item fields: gemstone_description composed by
+          gemstoneText, brand/model/serial via itemIdentity, description
+          always English (from `en`), estValueAfterChange /
+          descriptionAfterChange through CollateralRow's onChange, and the
+          <dialog> popup rules (always mounted, inside the form, no portal,
+          no display class).
+       Every symbol named was grepped and exists. The rule 6 English-only
+       ticket exception was already in CLAUDE.md, not repeated.
 
 --- Session 68 (2026-11-24) — Pay together (several tickets, one receipt), payment + extension as one log row, no fee field, the drawer counts every cash movement (0112, 0113), test tickets voided, May test drawer closed (branch feature/sol-pawn-brief == main) ---
 
@@ -2272,7 +2299,7 @@ PENDING — NEXT UP
       import for tickets written after 2026-11-17.
     - Delete Downloads\w4.leadsonline.com.har (it holds the LeadsOnline
       login) — if not done.
-    - /convention for the rules in the RESUME block.
+    - (done S69: the RESUME-block rules are CLAUDE.md rules 24-27)
     Then the Session 66 list below.
 
     (Session 66) Have Eddy issue ONE REAL pawn ticket from the new item popup and
