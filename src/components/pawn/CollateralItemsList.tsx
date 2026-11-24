@@ -11,6 +11,7 @@ import {
 import Image from 'next/image'
 import { Plus, Camera, Warning, X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { en } from '@/lib/i18n/en'
 import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
 import { GRAMS_PER } from '@/lib/bench/weight'
@@ -41,6 +42,14 @@ import {
   type ItemMetalValue,
 } from '@/lib/pawn/item-metal-value'
 import type { RateMaps } from '@/lib/metal-counter/math'
+import {
+  GENERAL_COLOR_KEYS,
+  JEWELRY_COLOR_KEYS,
+  choicesFrom,
+  matchChoice,
+  styleKeysFor,
+} from '@/lib/pawn/item-options'
+import { ChoiceOrOther } from './ChoiceOrOther'
 import { PawnedBeforeDialog } from './PawnedBeforeDialog'
 import CategoryPicker, {
   CategoryBanner,
@@ -240,6 +249,15 @@ type Row = {
   // Tool attributes (patches/0041, only shown for 'tools').
   tool_brand: string
   tool_model: string
+  /** FS 539.001(8)(b)2.c for a tool (patches/0107). */
+  tool_serial: string
+  /** FS 539.001(8)(b)2.a-c for an item whose category has no fields of its
+   *  own — General, or one the shop added (patches/0107). */
+  general_brand: string
+  general_model: string
+  general_serial: string
+  /** FS 539.001(8)(b)2.d — size of anything that is not jewelry. */
+  item_size: string
   est_value: string
   photo: File | null
   photoPreview: string | null
@@ -284,6 +302,11 @@ function newRow(): Row {
     electronic_serial: '',
     tool_brand: '',
     tool_model: '',
+    tool_serial: '',
+    general_brand: '',
+    general_model: '',
+    general_serial: '',
+    item_size: '',
     est_value: '0',
     photo: null,
     photoPreview: null,
@@ -435,6 +458,11 @@ export const CollateralItemsList = forwardRef<
       electronic_serial: p.electronic_serial ?? '',
       tool_brand: p.tool_brand ?? '',
       tool_model: p.tool_model ?? '',
+      tool_serial: p.tool_serial ?? '',
+      general_brand: p.general_brand ?? '',
+      general_model: p.general_model ?? '',
+      general_serial: p.general_serial ?? '',
+      item_size: p.item_size ?? '',
       est_value: p.last_value > 0 ? String(p.last_value) : '0',
     }
     setRows((prev) => [...prev, row])
@@ -515,6 +543,11 @@ export const CollateralItemsList = forwardRef<
       r.electronic_serial === '' &&
       r.tool_brand === '' &&
       r.tool_model === '' &&
+      r.tool_serial === '' &&
+      r.general_brand === '' &&
+      r.general_model === '' &&
+      r.general_serial === '' &&
+      r.item_size === '' &&
       r.est_value === '0' &&
       r.photo == null
     )
@@ -818,11 +851,28 @@ function CollateralRow({
     (selectedCategory.subcategories.length === 0 ||
       selectedSubcategory != null)
 
-  // The description this row's fields add up to, in the clerk's language.
+  // The Color and Style choices for a row: what the clerk reads, and the
+  // English word that is saved.
+  function colorChoicesFor(r: Row) {
+    return choicesFrom(
+      r.pawn_category_slug === 'jewelry' ? JEWELRY_COLOR_KEYS : GENERAL_COLOR_KEYS,
+      en.pawn.new_.colors,
+      tn.colors,
+    )
+  }
+  function styleChoicesFor(r: Row) {
+    return choicesFrom(styleKeysFor(r.category), en.pawn.new_.styles, tn.styles)
+  }
+
+  // The description this row's fields add up to. ALWAYS IN ENGLISH — every
+  // word comes from the English dictionary, never from `t` — because FS
+  // 539.001(8)(a) wants the form's entries in English.
   function describeRow(r: Row): string {
     const top = categories.find((c) => c.slug === r.pawn_category_slug) ?? null
     const sub = top?.subcategories.find((s) => s.slug === r.pawn_subcategory_slug) ?? null
-    const inv = t.inventory
+    const inv = en.inventory
+    const words = en.pawn.new_
+    const jewelry = top?.slug === 'jewelry'
     const itemWords: Partial<Record<InventoryCategory, string>> = {
       ring: inv.catRing,
       necklace: inv.catNecklace,
@@ -837,27 +887,31 @@ function CollateralRow({
     }
     const firearmTypeWords: Record<FirearmType, string> = {
       '': '',
-      handgun: tn.itemFirearmTypeHandgun,
-      rifle: tn.itemFirearmTypeRifle,
-      shotgun: tn.itemFirearmTypeShotgun,
+      handgun: words.itemFirearmTypeHandgun,
+      rifle: words.itemFirearmTypeRifle,
+      shotgun: words.itemFirearmTypeShotgun,
       other: '',
     }
-    const hasMetalWord =
-      r.metal_type !== '' && r.metal_type !== 'none' && r.metal_type !== 'other'
-    return generateItemDescription(
-      {
+    const metalKey = METAL_OPTIONS.find((o) => o.value === r.metal_type)?.key
+    const metalWord =
+      metalKey && r.metal_type !== 'none' && r.metal_type !== 'other'
+        ? (inv as unknown as Record<string, string>)[metalKey] ?? ''
+        : ''
+    return generateItemDescription({
         kind: descriptionKind(top?.slug ?? null),
         itemWord: itemWords[r.category] ?? sub?.label ?? '',
         isRing: r.category === 'ring',
-        color: r.color,
-        metalWord: hasMetalWord ? tMetal(r.metal_type as MetalType) : '',
+        // A value picked from the list is already English; one that only
+        // matches a choice's shown word is turned into it.
+        color: matchChoice(r.color, colorChoicesFor(r))?.value ?? r.color,
+        metalWord,
         karat: r.karat,
         weightGrams: r.weight_grams,
-        size: r.jewelry_size,
+        size: jewelry ? r.jewelry_size : r.item_size,
         coatingWord: isSolidMetal(r.coating) ? '' : inv.coatings[r.coating],
         gemstones: gemstoneText(r.stones, r.gemstone_notes),
-        genderWord: r.jewelry_gender ? tn.itemGenderWords[r.jewelry_gender] : '',
-        style: r.jewelry_style,
+        gender: r.jewelry_gender,
+        style: matchChoice(r.jewelry_style, styleChoicesFor(r))?.value ?? r.jewelry_style,
         jewelryBrand: r.jewelry_brand,
         jewelryModel: r.jewelry_model,
         firearmMake: r.firearm_make,
@@ -869,9 +923,9 @@ function CollateralRow({
         electronicModel: r.electronic_model,
         toolBrand: r.tool_brand,
         toolModel: r.tool_model,
-      },
-      { jewelryOrder: tn.itemDescJewelryOrder, ringSize: tn.itemDescRingSize },
-    )
+        generalBrand: r.general_brand,
+        generalModel: r.general_model,
+    })
   }
 
   // What this row's metal is worth: weight × spot at its karat × the shop's
@@ -910,10 +964,25 @@ function CollateralRow({
     }
     onRowChange({ ...patch, ...follow })
   }
+  // FS 539.001(8)(b)2.d — the size of anything that is not jewelry (jewelry
+  // has its own Size / Length). Electronics, tools and general items.
+  const sizeField = (
+    <label className="md:col-span-2 block space-y-1">
+      <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+        {t.pawn.new_.itemSize}
+      </span>
+      <input
+        type="text"
+        name={`collateral_${index}_item_size`}
+        value={row.item_size}
+        onChange={(e) => onChange({ item_size: e.target.value })}
+        placeholder={t.pawn.new_.itemSizePlaceholder}
+        className={INPUT}
+      />
+    </label>
+  )
   const metalValue = metalValueOf(row)
   const metalValueAsText = metalValueText(metalValue)
-  const writesItsOwnDescription =
-    descriptionKind(row.pawn_category_slug) !== 'other'
 
   function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null
@@ -1243,19 +1312,16 @@ function CollateralRow({
           {/* Common FS 539.001(8)(b)(2) fields — visible regardless of
               picked category. Color (e) here; unique marks (i) after the
               category's own fields. */}
-          <label className="md:col-span-2 block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-              {t.pawn.new_.itemColor}
-            </span>
-            <input
-              type="text"
-              name={`collateral_${index}_color`}
-              value={row.color}
-              onChange={(e) => onChange({ color: e.target.value })}
-              placeholder="Yellow / Black / Two-tone"
-              className={INPUT}
-            />
-          </label>
+          <ChoiceOrOther
+            className="md:col-span-2"
+            label={t.pawn.new_.itemColor}
+            name={`collateral_${index}_color`}
+            value={row.color}
+            onChange={(color) => onChange({ color })}
+            choices={colorChoicesFor(row)}
+            otherLabel={t.pawn.new_.itemChoiceOther}
+            otherPlaceholder={t.pawn.new_.itemChoiceOtherText}
+          />
 
           {/* ── JEWELRY: metal / karat / weight / size / coating / stones ── */}
           {selectedCategory?.slug === 'jewelry' ? (
@@ -1413,19 +1479,16 @@ function CollateralRow({
                 </select>
               </label>
 
-              <label className="md:col-span-2 block space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                  {t.pawn.new_.itemStyle}
-                </span>
-                <input
-                  type="text"
-                  name={`collateral_${index}_jewelry_style`}
-                  value={row.jewelry_style}
-                  onChange={(e) => onChange({ jewelry_style: e.target.value })}
-                  placeholder={t.pawn.new_.itemStylePlaceholder}
-                  className={INPUT}
-                />
-              </label>
+              <ChoiceOrOther
+                className="md:col-span-2"
+                label={t.pawn.new_.itemStyle}
+                name={`collateral_${index}_jewelry_style`}
+                value={row.jewelry_style}
+                onChange={(jewelry_style) => onChange({ jewelry_style })}
+                choices={styleChoicesFor(row)}
+                otherLabel={t.pawn.new_.itemChoiceOther}
+                otherPlaceholder={t.pawn.new_.itemChoiceOtherText}
+              />
               {!isSolidMetal(row.coating) ? (
                 <p
                   role="status"
@@ -1812,7 +1875,7 @@ function CollateralRow({
                 />
               </label>
 
-              <label className="md:col-span-6 block space-y-1">
+              <label className="md:col-span-4 block space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemElectronicSerial}
                 </span>
@@ -1826,6 +1889,7 @@ function CollateralRow({
                   className={INPUT}
                 />
               </label>
+              {sizeField}
             </>
           ) : null}
 
@@ -1859,6 +1923,66 @@ function CollateralRow({
                   className={INPUT}
                 />
               </label>
+
+              <label className="md:col-span-4 block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemJewelrySerial}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_tool_serial`}
+                  value={row.tool_serial}
+                  onChange={(e) => onChange({ tool_serial: e.target.value })}
+                  className={INPUT}
+                />
+              </label>
+              {sizeField}
+            </>
+          ) : null}
+
+          {/* ── GENERAL (and any category the shop added): the statute's
+              brand / model / serial / size, FS 539.001(8)(b)2.a-d ── */}
+          {descriptionKind(row.pawn_category_slug) === 'other' ? (
+            <>
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemJewelryBrand}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_general_brand`}
+                  value={row.general_brand}
+                  onChange={(e) => onChange({ general_brand: e.target.value })}
+                  className={INPUT}
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemJewelryModel}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_general_model`}
+                  value={row.general_model}
+                  onChange={(e) => onChange({ general_model: e.target.value })}
+                  className={INPUT}
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemJewelrySerial}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_general_serial`}
+                  value={row.general_serial}
+                  onChange={(e) => onChange({ general_serial: e.target.value })}
+                  className={INPUT}
+                />
+              </label>
+              {sizeField}
             </>
           ) : null}
 
@@ -1891,11 +2015,9 @@ function CollateralRow({
               placeholder="14k gold rope chain, 22 inches"
               className={INPUT}
             />
-            {writesItsOwnDescription ? (
-              <span className="block text-xs text-muted">
-                {t.pawn.new_.itemDescriptionHint}
-              </span>
-            ) : null}
+            <span className="block text-xs text-muted">
+              {t.pawn.new_.itemDescriptionHint}
+            </span>
           </label>
         </div>
       </div>

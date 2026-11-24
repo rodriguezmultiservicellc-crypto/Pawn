@@ -168,11 +168,23 @@ function ItemBlock({
   barrelLength: string
 }) {
   const serial =
-    txt(item.firearm_serial_number) || txt(item.electronic_serial) || txt(item.jewelry_serial)
+    txt(item.firearm_serial_number) ||
+    txt(item.electronic_serial) ||
+    txt(item.jewelry_serial) ||
+    txt(item.tool_serial) ||
+    txt(item.general_serial)
   const brand =
-    txt(item.firearm_make) || txt(item.electronic_brand) || txt(item.tool_brand) || txt(item.jewelry_brand)
+    txt(item.firearm_make) ||
+    txt(item.electronic_brand) ||
+    txt(item.tool_brand) ||
+    txt(item.jewelry_brand) ||
+    txt(item.general_brand)
   const model =
-    txt(item.firearm_model) || txt(item.electronic_model) || txt(item.tool_model) || txt(item.jewelry_model)
+    txt(item.firearm_model) ||
+    txt(item.electronic_model) ||
+    txt(item.tool_model) ||
+    txt(item.jewelry_model) ||
+    txt(item.general_model)
   const genderKey = item.jewelry_gender as keyof FormLabels['genders'] | null
   const gender =
     genderKey && en.genders[genderKey] ? bl(en.genders[genderKey], es.genders[genderKey]) : ''
@@ -196,7 +208,7 @@ function ItemBlock({
           <Cell label={bl(en.metal, es.metal)} value={metal} flex={1.4} />
           <Cell label={bl(en.karat, es.karat)} value={item.karat ? `${Number(item.karat.toFixed(1))}` : ''} flex={0.9} mono />
           <Cell label={bl(en.weight, es.weight)} value={item.weight_grams ? `${Number(item.weight_grams.toFixed(2))} g` : ''} flex={1} mono />
-          <Cell label={bl(en.size, es.size)} value={txt(item.jewelry_size)} flex={0.8} />
+          <Cell label={bl(en.size, es.size)} value={txt(item.jewelry_size) || txt(item.item_size)} flex={0.8} />
           <Cell label={bl(en.style, es.style)} value={txt(item.jewelry_style)} flex={1.3} />
           <Cell label={bl(en.gender, es.gender)} value={gender} flex={1.7} />
           <Cell label={bl(en.color, es.color)} value={txt(item.color)} flex={1.2} />
@@ -222,7 +234,122 @@ function ItemBlock({
   )
 }
 
-export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy: 'customer' | 'store' }) {
+// ── Fitting the sheet ────────────────────────────────────────────────────
+//
+// Fla. Stat. § 539.001(8)(b): "The front of the pawnbroker transaction form
+// must include" the amount financed, the finance charge, the maturity and
+// default dates and the statements — the foot of this sheet. The foot used
+// to be pushed to a second page whenever the items ran long, leaving the
+// front without it. Now the front keeps the foot and as many items as fit;
+// the rest go to a continuation sheet.
+//
+// React-PDF only knows heights after it has laid the page out, so the split
+// is worked out here from the text, a little on the high side: an item sent
+// to the continuation sheet one too early costs nothing, the foot pushed off
+// the front is the thing to avoid.
+
+const PAGE_CONTENT_HEIGHT = 792 - 40 // LETTER minus s.page's vertical padding
+const CONTENT_WIDTH = 612 - 56
+const ITEM_WIDTH = CONTENT_WIDTH - 24 // the "Item No." column
+const VALUE_LINE = 11 // s.value: 8.6pt
+const LABEL_LINE = 6.6 // s.label: 5.2pt
+const CELL_PAD = 4.5 // s.cell: paddingTop + value marginTop + paddingBottom
+const VALUE_CHAR = 4.3 // average width of a character at 8.6pt
+const MONO_CHAR = 5.2
+
+/** How many lines `text` takes in a cell `maxChars` wide, breaking at spaces. */
+export function wrapLines(text: string, maxChars: number): number {
+  const words = text.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return 1
+  const max = Math.max(1, Math.floor(maxChars))
+  let lines = 1
+  let used = 0
+  for (const w of words) {
+    const len = w.length
+    if (used === 0) {
+      lines += Math.ceil(len / max) - 1
+      used = len % max || max
+    } else if (used + 1 + len <= max) {
+      used += 1 + len
+    } else {
+      lines += Math.ceil(len / max)
+      used = len % max || max
+    }
+  }
+  return lines
+}
+
+function cellHeight(value: string, flex: number, total: number, labelLines: number, mono = false): number {
+  const width = (ITEM_WIDTH * flex) / total - 6.5
+  const lines = wrapLines(value, width / (mono ? MONO_CHAR : VALUE_CHAR))
+  return Math.max(21, CELL_PAD + labelLines * LABEL_LINE + lines * VALUE_LINE)
+}
+
+/** Points of height one item takes on the sheet. Mirrors ItemBlock's cells. */
+export function estimateItemHeight(item: PawnTicketCollateral, kind: string, metal: string): number {
+  const t = (v: string | number | null | undefined) => (v == null ? '' : String(v))
+  const serial =
+    t(item.firearm_serial_number) || t(item.electronic_serial) || t(item.jewelry_serial) ||
+    t(item.tool_serial) || t(item.general_serial)
+  const brand =
+    t(item.firearm_make) || t(item.electronic_brand) || t(item.tool_brand) || t(item.jewelry_brand) ||
+    t(item.general_brand)
+  const model =
+    t(item.firearm_model) || t(item.electronic_model) || t(item.tool_model) || t(item.jewelry_model) ||
+    t(item.general_model)
+  const row1 = Math.max(
+    cellHeight(kind, 1.9, 11, 1),
+    cellHeight(item.description, 4.6, 11, 1),
+    cellHeight(serial, 1.6, 11, 1, true),
+    cellHeight([brand, model].filter(Boolean).join(' '), 1.7, 11, 2), // its label always wraps
+    cellHeight('', 1.2, 11, 1),
+  )
+  const row2 = Math.max(
+    cellHeight(metal, 1.4, 12.4, 1),
+    cellHeight('', 0.9, 12.4, 2), // "Karat / Quilates" wraps
+    cellHeight(t(item.jewelry_size) || t(item.item_size), 0.8, 12.4, 1),
+    cellHeight(t(item.jewelry_style), 1.3, 12.4, 1),
+    cellHeight('Women / Mujer', 1.7, 12.4, 1),
+    cellHeight(t(item.color), 1.2, 12.4, 1),
+    cellHeight(t(item.gemstone_description), 2.5, 12.4, 1),
+    cellHeight(t(item.unique_marks), 1.6, 12.4, 1),
+  )
+  const firearm = Boolean(item.firearm_type || item.firearm_caliber || item.firearm_serial_number)
+  return row1 + row2 + (firearm ? 34 : 0) + 1.6
+}
+
+/** Height of the statements column(s) at the foot (s.notice: 6pt). */
+function noticesHeight(texts: ReadonlyArray<string>): number {
+  return texts.reduce((sum, text) => sum + wrapLines(text, 80) * 7.5 + 2, 0)
+}
+
+/**
+ * How many of the items go on the front sheet. Always at least one; all of
+ * them when they fit beside the foot.
+ */
+export function itemsOnFront(args: {
+  itemHeights: ReadonlyArray<number>
+  /** Lines the residence and the place of employment take beyond one each. */
+  extraPledgorLines: number
+  /** The statements printed at the foot, English and Spanish columns. */
+  noticesEn: ReadonlyArray<string>
+  noticesEs: ReadonlyArray<string>
+}): number {
+  const top = 262 + args.extraPledgorLines * VALUE_LINE // header + pledgor + the goods band
+  const foot = 200 + Math.max(noticesHeight(args.noticesEn), noticesHeight(args.noticesEs))
+  const room = PAGE_CONTENT_HEIGHT - top - foot - 10
+  let used = 0
+  let n = 0
+  for (const h of args.itemHeights) {
+    if (n > 0 && used + h > room) break
+    used += h
+    n += 1
+  }
+  return Math.min(args.itemHeights.length, Math.max(1, n))
+}
+
+/** The item words both sheets need, and where the items split. */
+function formParts(data: PawnTicketData) {
   const en: FormLabels = data.i18n.en.pawn.print.form
   const es: FormLabels = data.i18n.es.pawn.print.form
   const ne = data.i18n.en.pawn.new_
@@ -259,13 +386,51 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
     return typeof a === 'string' && typeof b === 'string' ? bl(a, b) : m.replace(/_/g, ' ')
   }
 
+  const c = data.customer
+  const residence = [c.address1, c.address2, c.city, [c.state, c.zip].filter(Boolean).join(' ')]
+    .filter((p) => p && String(p).trim())
+    .join(', ')
+  const pledgorChars = ((CONTENT_WIDTH * 6) / 8 - 6.5) / VALUE_CHAR
+  const frontCount = itemsOnFront({
+    itemHeights: data.collateral.map((item) =>
+      estimateItemHeight(item, kindOf(item), metalWords(item.metal_type)),
+    ),
+    extraPledgorLines:
+      wrapLines(residence, pledgorChars) - 1 + (wrapLines(c.place_of_employment ?? '', pledgorChars) - 1),
+    noticesEn:
+      data.legal_notices.length > 0
+        ? data.legal_notices.map((n) => n.en)
+        : [data.i18n.en.pawn.print.legal.placeholder],
+    noticesEs:
+      data.legal_notices.length > 0
+        ? data.legal_notices.map((n) => n.es)
+        : [data.i18n.es.pawn.print.legal.placeholder],
+  })
+  return {
+    en,
+    es,
+    kindOf,
+    metalWords,
+    residence,
+    frontCount,
+    barrelLength: bl(ne.itemFirearmBarrelLength, ns.itemFirearmBarrelLength),
+  }
+}
+
+/** The copy's name on a sheet: "Customer copy / Copia del cliente". */
+function copyLabel(copy: 'customer' | 'store', en: FormLabels, es: FormLabels): string {
+  return copy === 'store' ? bl(en.storeCopy, es.storeCopy) : bl(en.customerCopy, es.customerCopy)
+}
+
+export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy: 'customer' | 'store' }) {
+  const { en, es, kindOf, metalWords, residence, frontCount, barrelLength } = formParts(data)
+  const frontItems = data.collateral.slice(0, frontCount)
+  const total = data.collateral.length
+
   const t = data.tenant
   const c = data.customer
   const shop = t.dba?.trim() || t.name
   const cityLine = [t.city, [t.state, t.zip].filter(Boolean).join(' ')].filter((p) => p && p.trim()).join(', ')
-  const residence = [c.address1, c.address2, c.city, [c.state, c.zip].filter(Boolean).join(' ')]
-    .filter((p) => p && String(p).trim())
-    .join(', ')
   const closed = data.status === 'redeemed' || data.status === 'forfeited' || data.status === 'voided'
   const closedKey = data.status as 'redeemed' | 'forfeited' | 'voided'
   const idKey = c.id_type as keyof FormLabels['idTypes'] | null
@@ -311,9 +476,7 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
               <Text style={s.controlNo}>{data.ticket_number}</Text>
             </View>
           </View>
-          <Text style={s.copy}>
-            {copy === 'store' ? bl(en.storeCopy, es.storeCopy) : bl(en.customerCopy, es.customerCopy)}
-          </Text>
+          <Text style={s.copy}>{copyLabel(copy, en, es)}</Text>
           {closed ? (
             <Text style={{ fontSize: 8, fontWeight: 700, marginTop: 1 }}>
               {bl(en.status[closedKey], es.status[closedKey]).toUpperCase()}
@@ -377,7 +540,7 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
         <Text style={{ fontSize: 6, textAlign: 'center', paddingVertical: 1.5, borderBottomWidth: 0.5, borderBottomColor: LINE }}>
           {es.securityInterest}
         </Text>
-        {data.collateral.map((item, i) => (
+        {frontItems.map((item, i) => (
           <ItemBlock
             key={i}
             item={item}
@@ -386,11 +549,29 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
             es={es}
             kind={kindOf(item)}
             metal={metalWords(item.metal_type)}
-            barrelLength={bl(ne.itemFirearmBarrelLength, ns.itemFirearmBarrelLength)}
+            barrelLength={barrelLength}
           />
         ))}
-        {data.collateral.length === 0 ? (
+        {total === 0 ? (
           <Text style={{ padding: 8, fontSize: 8, borderBottomWidth: 0.8, borderBottomColor: LINE }}>—</Text>
+        ) : null}
+        {/* More items than the front holds: say so, on the front. */}
+        {total > frontCount ? (
+          <Text
+            style={{
+              fontSize: 7.5,
+              fontWeight: 700,
+              textAlign: 'center',
+              paddingVertical: 2.5,
+              borderBottomWidth: 0.8,
+              borderBottomColor: LINE,
+            }}
+          >
+            {bl(
+              en.itemsContinue.replace('{from}', String(frontCount + 1)).replace('{to}', String(total)),
+              es.itemsContinue.replace('{from}', String(frontCount + 1)).replace('{to}', String(total)),
+            )}
+          </Text>
         ) : null}
       </View>
 
@@ -501,6 +682,78 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
             <Text style={[s.small, { marginTop: 2, width: 104, textAlign: 'center' }]}>{bl(en.thumbPrint, es.thumbPrint)}</Text>
           </View>
         </View>
+      </View>
+    </Page>
+  )
+}
+
+/**
+ * The items that did not fit on the front, on their own sheet(s). Renders
+ * nothing when the front holds them all.
+ */
+export function TransactionFormContinuation({
+  data,
+  copy,
+}: {
+  data: PawnTicketData
+  copy: 'customer' | 'store'
+}) {
+  const { en, es, kindOf, metalWords, frontCount, barrelLength } = formParts(data)
+  const rest = data.collateral.slice(frontCount)
+  if (rest.length === 0) return null
+  const shop = data.tenant.dba?.trim() || data.tenant.name
+
+  return (
+    <Page size="LETTER" style={s.page} wrap>
+      <View
+        style={[s.row, { justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }]}
+        wrap={false}
+        fixed
+      >
+        <View style={{ flex: 1, paddingRight: 8 }}>
+          <Text style={s.title}>
+            {[data.jurisdiction_name?.toUpperCase(), en.title.toUpperCase()].filter(Boolean).join(' ')}
+          </Text>
+          <Text style={s.small}>{es.title}</Text>
+          <Text style={s.shop}>{shop}</Text>
+          <Text style={{ fontSize: 9, fontWeight: 700, marginTop: 3 }}>
+            {bl(en.continuation, es.continuation)}
+          </Text>
+        </View>
+        <View style={{ width: 250, alignItems: 'flex-end' }}>
+          <View style={[s.row, { alignItems: 'center' }]}>
+            <View style={{ marginRight: 6, alignItems: 'flex-end' }}>
+              <Text style={{ fontSize: 8 }}>{en.controlNo}</Text>
+              <Text style={s.small}>{es.controlNo}</Text>
+            </View>
+            <View style={s.controlBox}>
+              <Text style={s.controlNo}>{data.ticket_number}</Text>
+            </View>
+          </View>
+          <Text style={s.copy}>{copyLabel(copy, en, es)}</Text>
+          <Text style={{ fontSize: 8, marginTop: 2 }}>
+            {bl(en.transactionDate, es.transactionDate)}: {mdy(data.issue_date)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={[s.box, { borderBottomWidth: 0 }]}>
+        <Text style={s.band}>{en.securityInterest}</Text>
+        <Text style={{ fontSize: 6, textAlign: 'center', paddingVertical: 1.5, borderBottomWidth: 0.5, borderBottomColor: LINE }}>
+          {es.securityInterest}
+        </Text>
+        {rest.map((item, i) => (
+          <ItemBlock
+            key={i}
+            item={item}
+            no={frontCount + i + 1}
+            en={en}
+            es={es}
+            kind={kindOf(item)}
+            metal={metalWords(item.metal_type)}
+            barrelLength={barrelLength}
+          />
+        ))}
       </View>
     </Page>
   )

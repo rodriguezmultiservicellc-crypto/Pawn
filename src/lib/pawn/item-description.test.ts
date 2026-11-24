@@ -3,17 +3,7 @@ import {
   descriptionAfterChange,
   generateItemDescription,
   type ItemDescriptionInput,
-  type ItemDescriptionWords,
 } from './item-description'
-
-const EN: ItemDescriptionWords = {
-  jewelryOrder: '{karat} {color} {metal} {gender} {style} {item}',
-  ringSize: 'size {v}',
-}
-const ES: ItemDescriptionWords = {
-  jewelryOrder: '{item} {style} {gender} {metal} {color} {karat}',
-  ringSize: 'talla {v}',
-}
 
 const blank: ItemDescriptionInput = {
   kind: 'jewelry',
@@ -26,7 +16,7 @@ const blank: ItemDescriptionInput = {
   size: '',
   coatingWord: '',
   gemstones: '',
-  genderWord: '',
+  gender: '',
   style: '',
   jewelryBrand: '',
   jewelryModel: '',
@@ -39,9 +29,11 @@ const blank: ItemDescriptionInput = {
   electronicModel: '',
   toolBrand: '',
   toolModel: '',
+  generalBrand: '',
+  generalModel: '',
 }
-const gen = (over: Partial<ItemDescriptionInput>, words = EN) =>
-  generateItemDescription({ ...blank, ...over }, words)
+const gen = (over: Partial<ItemDescriptionInput>) =>
+  generateItemDescription({ ...blank, ...over })
 
 describe('jewelry', () => {
   it('is empty with only the category picked', () => {
@@ -111,23 +103,6 @@ describe('jewelry', () => {
     )
   })
 
-  it('puts the words in Spanish order', () => {
-    expect(
-      gen(
-        {
-          itemWord: 'Cadena',
-          color: 'Amarillo',
-          metalWord: 'Oro',
-          karat: '14',
-          weightGrams: '5.2',
-        },
-        ES,
-      ),
-    ).toBe('Cadena oro amarillo 14K, 5.2 g')
-    expect(gen({ itemWord: 'Anillo', isRing: true, metalWord: 'Oro', size: '7' }, ES)).toBe(
-      'Anillo oro, talla 7',
-    )
-  })
 })
 
 describe('jewelry: gender, style, brand', () => {
@@ -138,7 +113,7 @@ describe('jewelry: gender, style, brand', () => {
         color: 'Yellow',
         metalWord: 'Gold',
         karat: '14',
-        genderWord: "men's",
+        gender: 'men',
         style: 'Cuban Link',
         weightGrams: '22',
       }),
@@ -146,7 +121,7 @@ describe('jewelry: gender, style, brand', () => {
   })
 
   it('writes with the gender or the style alone', () => {
-    expect(gen({ itemWord: 'Ring', genderWord: "women's" })).toBe("Women's ring")
+    expect(gen({ itemWord: 'Ring', gender: 'women' })).toBe("Women's ring")
     expect(gen({ itemWord: 'Ring', style: 'Solitaire' })).toBe('Solitaire ring')
   })
 
@@ -157,27 +132,12 @@ describe('jewelry: gender, style, brand', () => {
         jewelryBrand: 'Rolex',
         jewelryModel: 'Submariner 16610',
         metalWord: 'Stainless steel',
-        genderWord: "men's",
+        gender: 'men',
       }),
     ).toBe("Rolex Submariner 16610, stainless steel men's watch")
     expect(gen({ itemWord: 'Watch', jewelryBrand: 'Gucci' })).toBe('Gucci, watch')
   })
 
-  it('reads in Spanish order', () => {
-    expect(
-      gen(
-        {
-          itemWord: 'Cadena',
-          color: 'Amarillo',
-          metalWord: 'Oro',
-          karat: '14',
-          genderWord: 'de hombre',
-          style: 'Cubana',
-        },
-        ES,
-      ),
-    ).toBe('Cadena cubana de hombre oro amarillo 14K')
-  })
 })
 
 describe('other kinds', () => {
@@ -211,8 +171,27 @@ describe('other kinds', () => {
     ).toBe('Glock 19 Gen 5, 9mm handgun, blued')
   })
 
-  it('writes nothing for a category with no fields of its own', () => {
+  it('writes a general item from its brand and model, and nothing without them', () => {
     expect(gen({ kind: 'other', color: 'Red', itemWord: 'Bike' })).toBe('')
+    expect(
+      gen({ kind: 'other', generalBrand: 'Yamaha', generalModel: 'P-45', size: '88 keys', color: 'Black' }),
+    ).toBe('Yamaha P-45, 88 keys, black')
+  })
+
+  it('adds the size of an electronic or a tool', () => {
+    expect(
+      gen({ kind: 'electronics', electronicBrand: 'Samsung', electronicModel: 'UN55', size: '55 in', color: 'Black' }),
+    ).toBe('Samsung UN55, 55 in, black')
+    expect(gen({ kind: 'tools', toolBrand: 'DeWalt', toolModel: 'DCD777', size: '20V' })).toBe(
+      'DeWalt DCD777, 20V',
+    )
+  })
+
+  it('is written in English whatever the screen language (FS 539.001(8)(a))', () => {
+    expect(gen({ itemWord: 'Chain', gender: 'child', karat: '10', metalWord: 'Gold' })).toBe(
+      "10K gold child's chain",
+    )
+    expect(gen({ itemWord: 'Ring', isRing: true, metalWord: 'Gold', size: '7' })).toBe('Gold ring, size 7')
   })
 })
 

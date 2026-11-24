@@ -20,6 +20,7 @@ import {
   planLoanPayment,
   toMoney,
 } from '@/lib/pawn/math'
+import { inventoryDetailsFromCollateral } from '@/lib/pawn/forfeit-inventory'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   recordEarnClawback,
@@ -781,7 +782,13 @@ export async function forfeitLoanAction(
   const { data: collateral } = await supabase
     .from('loan_collateral_items')
     .select(
-      'id, description, category, metal_type, karat, weight_grams, jewelry_size, est_value, photo_path, position',
+      `id, description, category, metal_type, karat, weight_grams, jewelry_size, est_value, photo_path, position,
+       coating, stones, gemstone_notes,
+       jewelry_brand, jewelry_model, jewelry_serial,
+       electronic_brand, electronic_model, electronic_serial,
+       tool_brand, tool_model, tool_serial,
+       general_brand, general_model, general_serial,
+       firearm_make, firearm_model, firearm_serial_number`,
     )
     .eq('loan_id', loan.id)
     .is('deleted_at', null)
@@ -789,6 +796,9 @@ export async function forfeitLoanAction(
 
   const createdInventoryIds: string[] = []
   for (const item of collateral ?? []) {
+    // What the ticket knew about the piece beyond its description: brand,
+    // model, serial, coating, stones (lib/pawn/forfeit-inventory).
+    const details = inventoryDetailsFromCollateral(item)
     const { data: inv, error: invErr } = await supabase
       .from('inventory_items')
       .insert({
@@ -801,6 +811,10 @@ export async function forfeitLoanAction(
         karat: item.karat == null ? null : String(item.karat),
         weight_grams: item.weight_grams,
         jewelry_size: item.jewelry_size,
+        coating: details.coating,
+        brand: details.brand,
+        model: details.model,
+        serial_number: details.serial_number,
         cost_basis: item.est_value ?? 0,
         list_price: null,
         source: 'pawn_forfeit',
@@ -809,7 +823,9 @@ export async function forfeitLoanAction(
         acquired_cost: item.est_value ?? 0,
         location: 'safe',
         status: 'available',
-        notes: `Forfeited from ticket ${loan.id}`,
+        notes: details.stoneNotes
+          ? `Forfeited from ticket ${loan.id}. Stones: ${details.stoneNotes}`
+          : `Forfeited from ticket ${loan.id}`,
         created_by: userId,
         updated_by: userId,
       })
@@ -826,6 +842,27 @@ export async function forfeitLoanAction(
     }
 
     createdInventoryIds.push(inv.id)
+
+    // The stones written at the counter, one inventory stone per line.
+    if (details.stones.length > 0) {
+      const { error: stoneErr } = await supabase.from('inventory_item_stones').insert(
+        details.stones.map((st) => ({
+          tenant_id: tenantId,
+          item_id: inv.id,
+          position: st.position,
+          count: st.count,
+          stone_type: st.stone_type,
+          carat: st.carat,
+          is_total_carat: true,
+          color: st.color,
+          cut: st.cut,
+          clarity: st.clarity,
+        })),
+      )
+      if (stoneErr) {
+        console.error('[pawn.forfeit] stones insert failed for collateral', item.id, stoneErr.message)
+      }
+    }
 
     // Re-link the photo by inserting a fresh inventory_item_photos row that
     // points at the same Storage path. The file is unchanged; ownership of

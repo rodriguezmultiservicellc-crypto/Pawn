@@ -460,6 +460,11 @@ export async function createLoanAction(
       electronic_serial: it.electronic_serial,
       tool_brand: it.tool_brand,
       tool_model: it.tool_model,
+      tool_serial: it.tool_serial,
+      general_brand: it.general_brand,
+      general_model: it.general_model,
+      general_serial: it.general_serial,
+      item_size: it.item_size,
     })),
   )
   if (collErr) {
@@ -561,6 +566,11 @@ export async function createLoanAction(
     electronic_serial: it.electronic_serial,
     tool_brand: it.tool_brand,
     tool_model: it.tool_model,
+    tool_serial: it.tool_serial,
+    general_brand: it.general_brand,
+    general_model: it.general_model,
+    general_serial: it.general_serial,
+    item_size: it.item_size,
   })) as unknown as ComplianceInsertChanges
 
   await supabase.from('compliance_log').insert({

@@ -108,6 +108,12 @@ export type LoanCollateralView = {
   electronic_serial: string | null
   tool_brand: string | null
   tool_model: string | null
+  // patches/0107.
+  tool_serial: string | null
+  general_brand: string | null
+  general_model: string | null
+  general_serial: string | null
+  item_size: string | null
 }
 
 export type LoanEventView = {
@@ -690,6 +696,11 @@ function CollateralPanel({
     push(tn.itemElectronicSerial, c.electronic_serial)
     push(tn.itemToolBrand, c.tool_brand)
     push(tn.itemToolModel, c.tool_model)
+    push(tn.itemJewelrySerial, c.tool_serial)
+    push(tn.itemJewelryBrand, c.general_brand)
+    push(tn.itemJewelryModel, c.general_model)
+    push(tn.itemJewelrySerial, c.general_serial)
+    push(tn.itemSize, c.item_size)
     push(tn.itemUniqueMarks, c.unique_marks)
     return out
   }

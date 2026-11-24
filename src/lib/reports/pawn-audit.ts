@@ -45,6 +45,8 @@ export type PawnAuditItemInput = {
   firearm_serial_number: string | null
   electronic_serial: string | null
   jewelry_serial: string | null
+  tool_serial: string | null
+  general_serial: string | null
 }
 
 export type PawnAuditRow = {
@@ -157,6 +159,8 @@ export function buildPawnAudit(args: {
           it.firearm_serial_number?.trim() ||
           it.electronic_serial?.trim() ||
           it.jewelry_serial?.trim() ||
+          it.tool_serial?.trim() ||
+          it.general_serial?.trim() ||
           null,
       })
     })
@@ -203,7 +207,7 @@ export async function getPawnAudit(args: {
       supabase
         .from('loan_collateral_items')
         .select(
-          'loan_id, position, description, karat, weight_grams, jewelry_size, firearm_serial_number, electronic_serial, jewelry_serial',
+          'loan_id, position, description, karat, weight_grams, jewelry_size, firearm_serial_number, electronic_serial, jewelry_serial, tool_serial, general_serial',
         )
         .in('tenant_id', tenants)
         .in('loan_id', ids)

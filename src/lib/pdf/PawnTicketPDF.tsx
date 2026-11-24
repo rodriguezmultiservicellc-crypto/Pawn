@@ -34,7 +34,7 @@ import {
 import { reportColors } from '@/lib/tokens'
 import type { Dictionary } from '@/lib/i18n/en'
 import type { TicketNotice } from '@/lib/jurisdictions/rules'
-import { TransactionFormPage } from './PawnTransactionForm'
+import { TransactionFormContinuation, TransactionFormPage } from './PawnTransactionForm'
 import type {
   InventoryCategory,
   LoanStatus,
@@ -80,6 +80,13 @@ export type PawnTicketCollateral = {
   electronic_serial: string | null
   tool_brand: string | null
   tool_model: string | null
+  // The rest of FS 539.001(8)(b)2.a-d (patches/0107).
+  tool_serial: string | null
+  general_brand: string | null
+  general_model: string | null
+  general_serial: string | null
+  /** Size of anything that is not jewelry; prints in the Size cell. */
+  item_size: string | null
 }
 
 export type PawnTicketCustomer = {
@@ -260,6 +267,7 @@ function parseBackpageBlocks(text: string): BackpageBlock[] {
 export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
   const en = data.i18n.en.pawn.print
   const es = data.i18n.es.pawn.print
+  const hasReverse = data.backpage_text.trim() !== ''
 
   return (
     <Document title={`Pawn Ticket ${data.ticket_number}`}>
@@ -267,11 +275,16 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
           the reverse right behind it — so a duplex printer backs the
           customer's sheet with the terms — then the store's copy. */}
       <TransactionFormPage data={data} copy="customer" />
+      {/* Items that did not fit on the front (PawnTransactionForm). With no
+          reverse page it follows the front, so a duplex printer backs the
+          front with it. With a reverse page the reverse must back the
+          front, so the customer's continuation prints last instead. */}
+      {hasReverse ? null : <TransactionFormContinuation data={data} copy="customer" />}
 
       {/* ── Reverse side: legal disclosure / policy. English-only by
           operator policy — the ticket is a legal document. Omitted when
           neither the tenant nor its jurisdiction supplies any text. */}
-      {data.backpage_text.trim() ? (
+      {hasReverse ? (
       <Page size="LETTER" style={styles.backpagePage} wrap>
         <Text style={styles.backpageHeader}>
           {en.backpage.header}
@@ -313,6 +326,8 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
       ) : null}
 
       <TransactionFormPage data={data} copy="store" />
+      <TransactionFormContinuation data={data} copy="store" />
+      {hasReverse ? <TransactionFormContinuation data={data} copy="customer" /> : null}
     </Document>
   )
 }

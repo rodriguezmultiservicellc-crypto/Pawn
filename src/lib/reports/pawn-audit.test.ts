@@ -29,6 +29,8 @@ const item = (over: Partial<PawnAuditItemInput>): PawnAuditItemInput => ({
   firearm_serial_number: null,
   electronic_serial: null,
   jewelry_serial: null,
+  tool_serial: null,
+  general_serial: null,
   ...over,
 })
 

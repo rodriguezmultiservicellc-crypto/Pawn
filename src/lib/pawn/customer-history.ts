@@ -66,6 +66,12 @@ export type HistoryItemInput = {
   electronic_serial: string | null
   tool_brand: string | null
   tool_model: string | null
+  // patches/0107.
+  tool_serial: string | null
+  general_brand: string | null
+  general_model: string | null
+  general_serial: string | null
+  item_size: string | null
 }
 
 export type HistoryOutcome = 'open' | 'redeemed' | 'forfeited' | 'voided'
@@ -155,7 +161,16 @@ function pieceKey(it: HistoryItemInput): string {
     it.description.trim().toLowerCase().replace(/\s+/g, ' '),
     num(it.karat) ?? '',
     w == null ? '' : w.toFixed(1),
-    (it.firearm_serial_number ?? it.electronic_serial ?? it.jewelry_serial ?? '').trim().toLowerCase(),
+    (
+      it.firearm_serial_number ??
+      it.electronic_serial ??
+      it.jewelry_serial ??
+      it.tool_serial ??
+      it.general_serial ??
+      ''
+    )
+      .trim()
+      .toLowerCase(),
   ].join('|')
 }
 

@@ -2,9 +2,14 @@
  * New pawn ticket: an item's description, written from its fields.
  *
  * The clerk fills value, color, metal, karat, weight… and the description
- * line writes itself ("14K yellow gold chain, 5.2 g, 22 in"). Pure: the
- * caller passes the words in the clerk's language, so the same function
- * serves English and Spanish.
+ * line writes itself ("14K yellow gold men's cuban link chain, 5.2 g").
+ *
+ * ALWAYS IN ENGLISH, whatever language the clerk's screen is in: Fla. Stat.
+ * § 539.001(8)(a) — the pawnbroker's entries "must be typed or written
+ * indelibly and legibly in English" (2026 edition, read 2026-11-24). So the
+ * word order and the small words are constants here, not dictionary keys,
+ * and the caller passes the item / metal / coating words from the ENGLISH
+ * dictionary.
  *
  * Returns '' when there is nothing to describe yet — a category alone is
  * not a description.
@@ -21,35 +26,34 @@ export type ItemDescriptionKind =
 export const JEWELRY_GENDERS = ['men', 'women', 'unisex', 'child'] as const
 export type JewelryGender = (typeof JEWELRY_GENDERS)[number]
 
-export type ItemDescriptionWords = {
-  /** Word order of a jewelry piece, with the tokens {karat} {color}
-   *  {metal} {gender} {style} {item}. English:
-   *  "{karat} {color} {metal} {gender} {style} {item}"; Spanish:
-   *  "{item} {style} {gender} {metal} {color} {karat}". */
-  jewelryOrder: string
-  /** A ring's size typed as a bare number: "size {v}". */
-  ringSize: string
+/** The gender as it reads inside the description. */
+const GENDER_WORDS: Readonly<Record<JewelryGender, string>> = {
+  men: "men's",
+  women: "women's",
+  unisex: 'unisex',
+  child: "child's",
 }
 
 export type ItemDescriptionInput = {
   kind: ItemDescriptionKind
-  /** "Chain", "Ring"… in the clerk's language; '' when not known. */
+  /** "Chain", "Ring"… in English; '' when not known. */
   itemWord: string
   /** A ring: a size typed as "7" reads "size 7". */
   isRing: boolean
+  /** The color as saved (English when picked from the list). */
   color: string
-  /** "Gold", "Silver"… ; '' for none / other / not picked. */
+  /** "Gold", "Silver"… in English; '' for none / other / not picked. */
   metalWord: string
   karat: string
   weightGrams: string
+  /** Ring size or length (jewelry), or the size of anything else. */
   size: string
-  /** "Gold plated"… ; '' when the piece is solid. */
+  /** "Gold plated"… in English; '' when the piece is solid. */
   coatingWord: string
   /** The stones as one line (lib/pawn/stones gemstoneText). */
   gemstones: string
-  /** "men's" / "de hombre"… as it reads inside a sentence; '' when not picked. */
-  genderWord: string
-  /** "Cuban link", "Solitaire"… as typed. */
+  gender: JewelryGender | ''
+  /** "Cuban link", "Solitaire"… as saved. */
   style: string
   /** A watch's or signed piece's brand and model, as typed. */
   jewelryBrand: string
@@ -57,13 +61,16 @@ export type ItemDescriptionInput = {
   firearmMake: string
   firearmModel: string
   firearmCaliber: string
-  /** "Handgun"… ; '' when not picked. */
+  /** "Handgun"… in English; '' when not picked. */
   firearmTypeWord: string
   firearmFinish: string
   electronicBrand: string
   electronicModel: string
   toolBrand: string
   toolModel: string
+  /** An item in a category with no fields of its own. */
+  generalBrand: string
+  generalModel: string
 }
 
 const clean = (s: string) => s.trim().replace(/\s+/g, ' ')
@@ -96,19 +103,17 @@ function weightText(weight: string): string {
   return `${w} g`
 }
 
-function jewelry(i: ItemDescriptionInput, words: ItemDescriptionWords): string {
+function jewelry(i: ItemDescriptionInput): string {
   const karat = karatText(i.karat)
   const color = lower(i.color)
   const metal = lower(i.metalWord)
   const sizeRaw = clean(i.size)
   const size =
-    sizeRaw !== '' && i.isRing && /^\d+([.,]\d+)?$/.test(sizeRaw)
-      ? words.ringSize.replace('{v}', sizeRaw)
-      : sizeRaw
+    sizeRaw !== '' && i.isRing && /^\d+([.,]\d+)?$/.test(sizeRaw) ? `size ${sizeRaw}` : sizeRaw
   // Same order as the fields on the screen: weight, size, coating, stones.
   const details = [weightText(i.weightGrams), size, lower(i.coatingWord), clean(i.gemstones)]
 
-  const gender = clean(i.genderWord)
+  const gender = i.gender === '' ? '' : GENDER_WORDS[i.gender]
   const style = lower(i.style)
   // Brand and model lead, as typed: "Rolex Submariner 16610, …".
   const brand = clean(`${i.jewelryBrand} ${i.jewelryModel}`)
@@ -124,23 +129,16 @@ function jewelry(i: ItemDescriptionInput, words: ItemDescriptionWords): string {
     details.some((d) => d !== '')
   if (!anything) return ''
 
-  const head = clean(
-    words.jewelryOrder
-      .replace('{karat}', karat)
-      .replace('{color}', color)
-      .replace('{metal}', metal)
-      .replace('{gender}', gender)
-      .replace('{style}', style)
-      .replace('{item}', lower(i.itemWord)),
-  )
+  // "14K yellow gold men's cuban link chain"
+  const head = clean([karat, color, metal, gender, style, lower(i.itemWord)].join(' '))
   return joinParts([brand, head, ...details])
 }
 
-/** Brand + model, then the color: "Apple iPhone 13 Pro, black". */
-function brandModel(brand: string, model: string, color: string): string {
+/** Brand + model, then size and color: "Samsung UN55, 55 in, black". */
+function brandModel(brand: string, model: string, size: string, color: string): string {
   const head = clean(`${brand} ${model}`)
   if (head === '') return ''
-  return joinParts([head, lower(color)])
+  return joinParts([head, clean(size), lower(color)])
 }
 
 function firearm(i: ItemDescriptionInput): string {
@@ -150,21 +148,18 @@ function firearm(i: ItemDescriptionInput): string {
   return joinParts([head, kind, lower(i.firearmFinish), lower(i.color)])
 }
 
-export function generateItemDescription(
-  input: ItemDescriptionInput,
-  words: ItemDescriptionWords,
-): string {
+export function generateItemDescription(input: ItemDescriptionInput): string {
   switch (input.kind) {
     case 'jewelry':
-      return jewelry(input, words)
+      return jewelry(input)
     case 'firearms':
       return firearm(input)
     case 'electronics':
-      return brandModel(input.electronicBrand, input.electronicModel, input.color)
+      return brandModel(input.electronicBrand, input.electronicModel, input.size, input.color)
     case 'tools':
-      return brandModel(input.toolBrand, input.toolModel, input.color)
+      return brandModel(input.toolBrand, input.toolModel, input.size, input.color)
     default:
-      return ''
+      return brandModel(input.generalBrand, input.generalModel, input.size, input.color)
   }
 }
 

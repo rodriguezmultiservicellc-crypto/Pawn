@@ -49,6 +49,11 @@ const item = (over: Partial<HistoryItemInput>): HistoryItemInput => ({
   electronic_serial: null,
   tool_brand: null,
   tool_model: null,
+  tool_serial: null,
+  general_brand: null,
+  general_model: null,
+  general_serial: null,
+  item_size: null,
   ...over,
 })
 

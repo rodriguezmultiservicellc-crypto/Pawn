@@ -65,7 +65,8 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
          firearm_action_type, firearm_capacity, firearm_finish,
          firearm_number_of_barrels, electronic_brand, electronic_model,
          electronic_serial, tool_brand, tool_model,
-         jewelry_gender, jewelry_style, jewelry_brand, jewelry_model, jewelry_serial`,
+         jewelry_gender, jewelry_style, jewelry_brand, jewelry_model, jewelry_serial,
+         tool_serial, general_brand, general_model, general_serial, item_size`,
       )
       .eq('loan_id', id)
       .is('deleted_at', null)
@@ -135,6 +136,11 @@ export default async function PawnLoanDetailPage(props: { params: Params }) {
       electronic_serial: c.electronic_serial,
       tool_brand: c.tool_brand,
       tool_model: c.tool_model,
+      tool_serial: c.tool_serial,
+      general_brand: c.general_brand,
+      general_model: c.general_model,
+      general_serial: c.general_serial,
+      item_size: c.item_size,
     })),
   )
 

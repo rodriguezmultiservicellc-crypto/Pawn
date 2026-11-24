@@ -118,3 +118,33 @@ describe('jewelry details (patches/0106), form → saved row', () => {
     expect(parse({ collateral_0_weight_grams: '7.78' }).weight_grams).toBe(7.78)
   })
 })
+
+describe('the rest of FS 539.001(8)(b)2.a-d (patches/0107), form → saved row', () => {
+  it('keeps a tool serial, a general item brand / model / serial, and the size', () => {
+    const v = parse({
+      collateral_0_tool_serial: ' T-99812 ',
+      collateral_0_general_brand: 'Yamaha',
+      collateral_0_general_model: 'P-45',
+      collateral_0_general_serial: 'YM-5521',
+      collateral_0_item_size: '88 keys',
+    })
+    expect(v.tool_serial).toBe('T-99812')
+    expect(v.general_brand).toBe('Yamaha')
+    expect(v.general_model).toBe('P-45')
+    expect(v.general_serial).toBe('YM-5521')
+    expect(v.item_size).toBe('88 keys')
+  })
+
+  it('saves them as nothing when the boxes are empty or not on the form', () => {
+    const v = parse({ collateral_0_item_size: '' })
+    expect(v.item_size).toBeNull()
+    expect(v.tool_serial).toBeNull()
+    expect(v.general_brand).toBeNull()
+  })
+
+  it('keeps the English color and style the dropdowns submit', () => {
+    const v = parse({ collateral_0_color: 'Yellow', collateral_0_jewelry_style: 'Cuban link' })
+    expect(v.color).toBe('Yellow')
+    expect(v.jewelry_style).toBe('Cuban link')
+  })
+})

@@ -204,6 +204,14 @@ export const collateralItemSchema = z.object({
   // ── Tool attributes (patches/0041) ────────────────────────────────
   tool_brand: optionalTrimmedString,
   tool_model: optionalTrimmedString,
+  // ── The rest of FS 539.001(8)(b)2.a-d (patches/0107) ──────────────
+  tool_serial: optionalTrimmedString,
+  // An item in a category with no fields of its own (General, …).
+  general_brand: optionalTrimmedString,
+  general_model: optionalTrimmedString,
+  general_serial: optionalTrimmedString,
+  // Size of anything that is not jewelry ("55 in", "20V").
+  item_size: optionalTrimmedString,
 })
 
 export type CollateralItemInput = z.infer<typeof collateralItemSchema>

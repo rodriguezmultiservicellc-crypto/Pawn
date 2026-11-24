@@ -3525,7 +3525,11 @@ export type Database = {
           firearm_type: string | null
           gemstone_description: string | null
           gemstone_notes: string | null
+          general_brand: string | null
+          general_model: string | null
+          general_serial: string | null
           id: string
+          item_size: string | null
           jewelry_brand: string | null
           jewelry_gender: string | null
           jewelry_model: string | null
@@ -3544,6 +3548,7 @@ export type Database = {
           tenant_id: string
           tool_brand: string | null
           tool_model: string | null
+          tool_serial: string | null
           unique_marks: string | null
           weight_grams: number | null
         }
@@ -3570,7 +3575,11 @@ export type Database = {
           firearm_type?: string | null
           gemstone_description?: string | null
           gemstone_notes?: string | null
+          general_brand?: string | null
+          general_model?: string | null
+          general_serial?: string | null
           id?: string
+          item_size?: string | null
           jewelry_brand?: string | null
           jewelry_gender?: string | null
           jewelry_model?: string | null
@@ -3589,6 +3598,7 @@ export type Database = {
           tenant_id: string
           tool_brand?: string | null
           tool_model?: string | null
+          tool_serial?: string | null
           unique_marks?: string | null
           weight_grams?: number | null
         }
@@ -3615,7 +3625,11 @@ export type Database = {
           firearm_type?: string | null
           gemstone_description?: string | null
           gemstone_notes?: string | null
+          general_brand?: string | null
+          general_model?: string | null
+          general_serial?: string | null
           id?: string
+          item_size?: string | null
           jewelry_brand?: string | null
           jewelry_gender?: string | null
           jewelry_model?: string | null
@@ -3634,6 +3648,7 @@ export type Database = {
           tenant_id?: string
           tool_brand?: string | null
           tool_model?: string | null
+          tool_serial?: string | null
           unique_marks?: string | null
           weight_grams?: number | null
         }

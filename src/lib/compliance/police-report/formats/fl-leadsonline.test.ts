@@ -54,11 +54,18 @@ describe('LeadsOnline: serial, brand and model of a pawned item (FS 539.001(8)(b
     expect(r.item_model).toBe('Submariner 16610')
   })
 
-  it('reads a tool brand and model', () => {
-    const r = flat({ tool_brand: 'DeWalt', tool_model: 'DCD777' })
+  it('reads a tool brand, model and serial (patches/0107)', () => {
+    const r = flat({ tool_brand: 'DeWalt', tool_model: 'DCD777', tool_serial: 'T-99812' })
     expect(r.item_brand).toBe('DeWalt')
     expect(r.item_model).toBe('DCD777')
-    expect(r.item_serial).toBe('')
+    expect(r.item_serial).toBe('T-99812')
+  })
+
+  it('reads them from a general item (patches/0107)', () => {
+    const r = flat({ general_brand: 'Yamaha', general_model: 'P-45', general_serial: 'YM-5521' })
+    expect(r.item_brand).toBe('Yamaha')
+    expect(r.item_model).toBe('P-45')
+    expect(r.item_serial).toBe('YM-5521')
   })
 
   it('still reads the plain names a buy snapshot uses, and prefers them', () => {

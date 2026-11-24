@@ -221,13 +221,25 @@ export function flattenComplianceRow(
           it.serial ??
           it.firearm_serial_number ??
           it.electronic_serial ??
-          it.jewelry_serial,
+          it.jewelry_serial ??
+          it.tool_serial ??
+          it.general_serial,
       ),
       item_brand: s(
-        it.brand ?? it.firearm_make ?? it.electronic_brand ?? it.tool_brand ?? it.jewelry_brand,
+        it.brand ??
+          it.firearm_make ??
+          it.electronic_brand ??
+          it.tool_brand ??
+          it.jewelry_brand ??
+          it.general_brand,
       ),
       item_model: s(
-        it.model ?? it.firearm_model ?? it.electronic_model ?? it.tool_model ?? it.jewelry_model,
+        it.model ??
+          it.firearm_model ??
+          it.electronic_model ??
+          it.tool_model ??
+          it.jewelry_model ??
+          it.general_model,
       ),
       item_make: s(it.make ?? it.metal_type),
       item_ncic_code: ncicFor(it),
