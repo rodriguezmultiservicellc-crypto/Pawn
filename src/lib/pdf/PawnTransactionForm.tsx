@@ -21,6 +21,7 @@
 import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { reportColors } from '@/lib/tokens'
 import { bi as bl, money } from '@/lib/pos/receipt-thermal'
+import { itemIdentity } from '@/lib/pawn/item-identity'
 import type { PawnTicketCollateral, PawnTicketData } from './PawnTicketPDF'
 
 const INK = reportColors.ink
@@ -167,24 +168,7 @@ function ItemBlock({
   /** "Barrel length" in both languages. */
   barrelLength: string
 }) {
-  const serial =
-    txt(item.firearm_serial_number) ||
-    txt(item.electronic_serial) ||
-    txt(item.jewelry_serial) ||
-    txt(item.tool_serial) ||
-    txt(item.general_serial)
-  const brand =
-    txt(item.firearm_make) ||
-    txt(item.electronic_brand) ||
-    txt(item.tool_brand) ||
-    txt(item.jewelry_brand) ||
-    txt(item.general_brand)
-  const model =
-    txt(item.firearm_model) ||
-    txt(item.electronic_model) ||
-    txt(item.tool_model) ||
-    txt(item.jewelry_model) ||
-    txt(item.general_model)
+  const { serial, brand, model } = itemIdentity(item)
   const genderKey = item.jewelry_gender as keyof FormLabels['genders'] | null
   const gender =
     genderKey && en.genders[genderKey] ? bl(en.genders[genderKey], es.genders[genderKey]) : ''
@@ -288,15 +272,7 @@ function cellHeight(value: string, flex: number, total: number, labelLines: numb
 /** Points of height one item takes on the sheet. Mirrors ItemBlock's cells. */
 export function estimateItemHeight(item: PawnTicketCollateral, kind: string, metal: string): number {
   const t = (v: string | number | null | undefined) => (v == null ? '' : String(v))
-  const serial =
-    t(item.firearm_serial_number) || t(item.electronic_serial) || t(item.jewelry_serial) ||
-    t(item.tool_serial) || t(item.general_serial)
-  const brand =
-    t(item.firearm_make) || t(item.electronic_brand) || t(item.tool_brand) || t(item.jewelry_brand) ||
-    t(item.general_brand)
-  const model =
-    t(item.firearm_model) || t(item.electronic_model) || t(item.tool_model) || t(item.jewelry_model) ||
-    t(item.general_model)
+  const { serial, brand, model } = itemIdentity(item)
   const row1 = Math.max(
     cellHeight(kind, 1.9, 11, 1),
     cellHeight(item.description, 4.6, 11, 1),

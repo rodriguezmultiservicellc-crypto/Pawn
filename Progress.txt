@@ -60,38 +60,94 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 66 (2026-11-23/24), saved twice: 2026-11-24 00:10
-                  (items 563-564) and 2026-11-24 00:40 (items 565-568).
-                  Context budget at the second save: medium (my estimate
-                  ~50%).
-                  No migration. main == feature/sol-pawn-brief.
-                  Nothing is half-built.
-                  Last worked on: the New pawn ticket screen, four changes
-                  Eddy asked for one screenshot at a time — all live:
+  Last session:   Session 66 (2026-11-23/24), saved THREE times: 00:10
+                  (items 563-564), 00:40 (565-568) and 2026-11-24 01:45
+                  (569-575).
+                  Context budget at the third save: very high (my estimate
+                  ~90%; START THE NEXT SESSION FRESH).
+                  TWO MIGRATIONS, BOTH APPLIED TO THE LIVE DB: 0106, 0107.
+                  main == feature/sol-pawn-brief. Nothing is half-built.
+                  Last worked on: the New pawn ticket ITEM POPUP, checked
+                  against Fla. Stat. 539.001(8) (2026 edition, read on
+                  leg.state.fl.us on 2026-11-24) — all live:
                     563  the Principal follows the collateral value
                     565  the "Pawn loans / New pawn ticket" row is gone
                     566  an item's details open in a POPUP
-                    567  the popup's fields are in filling order and the
-                         DESCRIPTION WRITES ITSELF from them
+                    567  fields in filling order; the DESCRIPTION WRITES
+                         ITSELF from them
+                    569  METAL VALUE beside Est. value (weight x spot at
+                         the karat x the shop's pay percent), and Est.
+                         value takes it by default
+                    570  jewelry: gender, style, brand / model / serial,
+                         stones in boxes, weight in g or dwt (0106)
+                    572  Color and Style are DROPDOWNS with "Other"
+                    573  tools serial, General brand / model / serial,
+                         size for everything not jewelry (0107); the
+                         description is ALWAYS ENGLISH; the ticket's front
+                         keeps the lending block (continuation sheet);
+                         forfeits carry brand / serial / coating / stones
 
                   ACTIVE FILES (last touched):
                     src/components/pawn/CollateralItemsList.tsx  the item
                       table + the popup (CollateralRow)
-                    src/lib/pawn/item-description.ts (+ .test.ts)  the
-                      written description
-                    src/lib/pawn/principal-follow.ts (+ .test.ts)
-                    src/app/(staff)/pawn/new/form.tsx   the New ticket form
-                    src/lib/i18n/en.ts, es.ts           pawn.new_ keys
+                    src/components/pawn/ChoiceOrOther.tsx  dropdown + Other
+                    src/lib/pawn/item-description.ts   the written description
+                    src/lib/pawn/item-metal-value.ts   metal value
+                    src/lib/pawn/item-options.ts       color / style lists
+                    src/lib/pawn/item-identity.ts      brand / model / serial
+                    src/lib/pawn/stones.ts             stones + printed line
+                    src/lib/pawn/forfeit-inventory.ts  what a forfeit carries
+                    src/lib/pawn/intake-form.ts, src/lib/validations/loan.ts
+                    src/app/(staff)/pawn/new/actions.ts   the save
+                    src/app/(staff)/pawn/[id]/actions.ts  the forfeit copy
+                    src/lib/pdf/PawnTransactionForm.tsx   the printed ticket
+                    src/lib/compliance/police-report/formats/fl-leadsonline.ts
+                    patches/0106, patches/0107
 
-                  RESUME POINT: ask Eddy how the New pawn ticket screen
-                  feels at the counter now, and confirm what I decided from
-                  short sentences (items 563, 566, 567 list them): a typed
-                  principal is kept and later items add on top; Unique
-                  marks sits between Gemstones and Description and is NOT
-                  in the description; a description he typed himself is
-                  never overwritten; "Pawned before" pieces go straight to
-                  the table instead of opening. Then the Session 65
-                  questions below; all of them still stand.
+                  RESUME POINT: NOTHING SAVED THROUGH THE NEW FIELDS HAS
+                  BEEN SEEN ON A REAL TICKET. Ask Eddy to issue one real
+                  pawn ticket from the new popup (a jewelry piece with
+                  gender, style, a stone line and weight in dwt) and to
+                  print it; then read that row back (loan_collateral_items:
+                  jewelry_*, stones, gemstone_notes, gemstone_description)
+                  and confirm the printed Style / Gender / Stones cells and
+                  the FLORIDA STATEMENTS at the foot (my sample render
+                  printed the "[PLACEHOLDER ...]" line because it carried
+                  no statements — confirm his real ticket does not). Then
+                  the decisions I made for him, listed in items 569-573.
+                  Then the Session 65 questions below; all still stand.
+
+                  WHAT THE STATUTE SAYS (539.001(8), 2026 edition — I read
+                  the item list (8)(b)2 and (8)(a) only, NOT the whole
+                  form):
+                  - (8)(a): entries "must be typed or written indelibly
+                    and legibly in English". The written description is
+                    English always; the dropdowns SAVE the English word.
+                  - (8)(b)2: a. brand, b. model number, c. serial number,
+                    d. size, e. color, f. precious metal type / weight /
+                    content, g. gemstone description "including the number
+                    of stones", h. firearm details, i. other marks — "if
+                    applicable". Gender and style are NOT in it (they are
+                    xPawn's ItemSex and Style columns).
+                  - (8)(b): "The front of the ... form must include" the
+                    lending terms and statements -> continuation sheet.
+
+                  RULES OF THE NEW CODE (worth a CLAUDE.md rule — Eddy has
+                  not been asked; suggest /convention):
+                  - gemstone_description is COMPOSED, never typed: by
+                    createLoanAction from stones (JSONB) + gemstone_notes
+                    (lib/pawn/stones gemstoneText). Every reader still
+                    reads gemstone_description.
+                  - Brand / model / serial live per category (firearm_*,
+                    electronic_*, tool_*, jewelry_*, general_*). Read them
+                    ONLY through lib/pawn/item-identity itemIdentity().
+                  - The description generator takes its words from the
+                    ENGLISH dictionary (`en`), never from `t`.
+                  - Est. value follows the metal value, and the description
+                    follows the fields, only while the clerk has not typed
+                    their own (estValueAfterChange, descriptionAfterChange).
+                    Every field change must go through CollateralRow's
+                    onChange wrapper.
 
                   HOW THE ITEM POPUP WORKS (read before touching
                   CollateralItemsList.tsx):
@@ -112,16 +168,20 @@ OPERATION IN FLIGHT: none
 
                   LOOKED AT (headless Chrome through playwright-core, LOCAL
                   dev server, signed in the way scripts/smoke-browser.mjs
-                  does; no ticket issued, no draft saved): 59 checks, all
-                  passed, no console error — the popup end to end, the
-                  principal sums, the field order, the description for
-                  jewelry / ring size / electronics / firearms / general.
-                  NOT VERIFIED: the live deploy; Spanish on screen (the
-                  Spanish word order is covered by unit tests only); the
-                  photo upload inside the popup; the tools fields; voice
-                  intake and a resumed draft with the popup; a real ticket
-                  issued from the new screen; a phone-size screen beyond
-                  "the card fits".
+                  does; no ticket issued, no draft saved; plus sample
+                  tickets rendered to PDF with made-up data and read):
+                  about 165 checks over the night, all passed, no console
+                  error.
+                  NOT VERIFIED: A REAL TICKET SAVED WITH THE NEW FIELDS; a
+                  real FORFEIT (brand / serial / coating / stones into
+                  inventory — unit-tested mapping only); the live deploy;
+                  the screen in Spanish (the staff language is saved on
+                  the profile — I did not flip Eddy's; Spanish words are
+                  unit-tested); the photo upload inside the popup; voice
+                  intake and a resumed draft with the popup; the
+                  continuation sheet on his real printers (duplex order);
+                  a police export file that includes a pawned item's
+                  serial; a phone beyond "nothing runs off the screen".
 
   Session 65 (2026-11-23), saved 2026-11-23 23:35.
                   Context budget at save: high (one compaction this session;
@@ -693,7 +753,7 @@ SESSION HISTORY LOG
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
 
---- Session 66 (2026-11-23/24) — New pawn ticket: principal follows the collateral, item popup, fields in filling order, description writes itself (branch feature/sol-pawn-brief == main) ---
+--- Session 66 (2026-11-23/24) — New pawn ticket item popup against FS 539.001(8): principal follows collateral, popup, description writes itself, metal value, jewelry details (0106), dropdowns, remaining statute fields (0107), continuation sheet, forfeit carries details (branch feature/sol-pawn-brief == main) ---
 
  563. NEW PAWN TICKET: THE PRINCIPAL FOLLOWS THE COLLATERAL (82e423b).
       Eddy (screenshot of /pawn/new, 100 typed on a $26.00 item): "add the
@@ -842,6 +902,142 @@ Progress_archive.txt — the items from those sessions are there.)
       FOUND, NOT FIXED (older than this session, moved but not added):
       14 placeholders in the item popup are English literals — see KNOWN
       ISSUES.
+
+ 569. ITEM POPUP: METAL VALUE, AND EST. VALUE BY DEFAULT (c27851c).
+      Eddy: "next to the estimated value put value by default calculate
+      the gold karat and the percent discount and the weight = value".
+      - src/lib/pawn/item-metal-value.ts (new, pure, 16 tests):
+        itemMetalValue = grams x spot per gram at the karat x the shop's
+        pay percent, from the SAME RateMaps Buy outright uses
+        (lib/metal-counter loadRateMaps: spot_prices +
+        spot_price_overrides.multiplier; none set = 100%).
+        estValueAfterChange: Est. value follows it until the clerk types
+        their own; a "Use" link puts it back.
+      - A karat BETWEEN two spot buckets is priced by its gold content
+        (12K = 12/14 of the 14K price). Buy outright still prices 12K as
+        14K (purityFromItem) — NOT touched, see KNOWN ISSUES.
+      - page.tsx loads the rate maps; form.tsx -> CollateralItemsList
+        (metalRates). Jewelry only. Plated / no-spot metals show why and
+        leave Est. value at 0.
+      DECISIONS (mine): the percent is NOT a box in the popup (it is the
+      Spot prices page's pay percent per karat; tonight 14K and 18K = 80%,
+      silver 100%); the value is the full metal value, not a loan percent
+      of it.
+      LOOKED AT locally: 14K 5 g = $272.60 (5 g x $54.52/g, 80% of spot).
+
+ 570. JEWELRY ITEMS: GENDER, STYLE, BRAND / MODEL / SERIAL, STONES IN
+      BOXES, WEIGHT IN DWT (871454b; patches/0106 APPLIED).
+      Eddy: "you read the statue n how the form must contain?" — NO, I had
+      not; I had gone by the code's comments. Then: "in jewelry we are
+      missing gender and some other things". I compared the popup with
+      539.001(8)(b)2 and with xPawn's Items.xls columns
+      (C:\Users\rodri\Dropbox\Items.xls, READ ONLY: ItemSex, Style, stone
+      Qty / Type / Color / Cut / Clarity, Units of weight) and asked; he
+      picked all four.
+      - 0106: jewelry_gender (men | women | unisex | child, CHECK),
+        jewelry_style, jewelry_brand, jewelry_model, jewelry_serial,
+        stones JSONB DEFAULT '[]' (CHECK array), gemstone_notes. Dry run
+        first; 20,566 item rows untouched; no RLS, no trigger.
+      - src/lib/pawn/stones.ts (new, 16 tests): normalizeStones,
+        gemstoneText ("3 diamond (round, white, 0.75 ct, VS1); 1 ruby;
+        prong-set"), stonesToDrafts. Up to 6 lines.
+      - The popup: gender select, style, brand / model / serial, a stones
+        block (qty, stone, carats, color, cut, clarity + a notes line),
+        weight with a g / dwt select (grams is what is kept; the unit
+        switch keeps the typed number: 5 g -> 5 dwt = 7.78 g; the last
+        unit is remembered in localStorage pawn.intake.weightUnit).
+      - Save: validations/loan.ts, intake-form.ts, createLoanAction
+        (insert + compliance snapshot). gemstone_description composed
+        there.
+      - Readers: "Pawned before", the ticket page, render-loan-ticket,
+        PawnTransactionForm (new Style + Gender cells; a watch's serial /
+        brand / model in the existing cells), pawn-audit.
+      DECISIONS (mine): a Carats box (not in the list he picked); four
+      genders.
+
+ 571. POLICE EXPORT SENT A PAWNED ITEM'S SERIAL / BRAND / MODEL EMPTY
+      [BUG] (871454b). Root cause: fl-leadsonline.ts read it.serial_number
+      / it.brand / it.model — the names a BUY snapshot uses — while a
+      pawn intake snapshot keeps them as firearm_* / electronic_* /
+      tool_*. Now read through itemIdentity. Older compliance_log rows
+      are fixed too (nothing rewritten; the reader changed). 8 tests in
+      fl-leadsonline.test.ts (new file). NOT VERIFIED on a real export.
+
+ 572. ITEM POPUP: COLOR AND STYLE ARE DROPDOWNS (7dcbef1).
+      Eddy: "make the style and the color dropdown".
+      - src/lib/pawn/item-options.ts (keys only) + pawn.new_.colors /
+        .styles in both dictionaries; src/components/pawn/ChoiceOrOther.tsx:
+        the listed choices + "Other…" that opens a box, so an older value
+        ("Yellow Gold") or a typed one is never lost.
+      - Jewelry: metal colors; everything else: general colors. Style
+        follows the piece (chain / bracelet / ring / earrings / pendant /
+        watch lists; a kind with no list gets them all).
+      - What is SAVED is the English word, whatever the screen language.
+
+ 573. THE REST OF THE STATUTE'S ITEM FIELDS + ENGLISH + THE FRONT OF THE
+      TICKET + FORFEITS (7dcbef1; patches/0107 APPLIED).
+      Eddy: "then fix the remaining" (the five gaps I had listed).
+      - 0107: tool_serial, general_brand, general_model, general_serial,
+        item_size (5 nullable TEXT; dry run first). Tools: serial + size.
+        General (and any category the shop adds): brand, model, serial,
+        size, and its description now writes itself. Electronics: size.
+      - ENGLISH [COMPLIANCE, my own bug from 567]: the description wrote
+        itself in Spanish on a Spanish screen; 539.001(8)(a) wants
+        English. item-description.ts takes no words from the caller any
+        more; keys itemDescJewelryOrder / itemDescRingSize /
+        itemGenderWords removed from both dictionaries.
+      - THE FRONT OF THE TICKET: the foot (Truth in Lending, statements,
+        default date, signature, thumb print) was one unbreakable block
+        after the items; when the items ran long React-PDF moved the FOOT
+        to page 2. PawnTransactionForm.tsx now works out, from the text,
+        how many items fit beside the foot (estimateItemHeight,
+        itemsOnFront, a little high on purpose) and sends the rest to
+        TransactionFormContinuation, with "Items 3 to 6 are on the
+        continuation sheet" on the front. PawnTicketPDF page order: no
+        reverse -> front, continuation, store front, store continuation;
+        with a reverse -> front, reverse, store front, store
+        continuation, customer continuation (so a duplex printer still
+        backs the front with the terms).
+        With the full Florida statements about THREE simple items fit on
+        the front.
+      - FORFEIT: lib/pawn/forfeit-inventory.ts (new, 7 tests) —
+        forfeitLoanAction now copies brand / model / serial_number,
+        COATING (a plated piece used to arrive in inventory as solid, so
+        its melt value counted) and one inventory_item_stones row per
+        stone line; the stone notes go into the item's notes.
+
+ 574. CHECKPOINT GATE (third Session 66 save). Lane: only Pawn files
+      changed. Items.xls in Dropbox was READ only. The browser checks and
+      the sample-ticket renders were scratch files outside the repo (a
+      temporary src/lib/pdf/zz-scratch-ticket.test.tsx was deleted before
+      each commit).
+      - ONE HELPER: "which category holds the brand / model / serial" was
+        written out in six places (the printed form twice, the forfeit
+        mapping, the police export, the audit report, "Pawned before").
+        Now src/lib/pawn/item-identity.ts itemIdentity().
+      - forfeit-inventory.ts used its own copy of the coating list; it
+        uses spot-prices/purity COATINGS now.
+      - Wording: every key added is in en.ts and es.ts and is used; a
+        test now fails if a color / style word is in the dictionary but
+        offered by no list. Removed because nothing reads them:
+        itemWeightGrams, itemStylePlaceholder, itemGenderWords,
+        itemDescJewelryOrder, itemDescRingSize; the unused ColorKey type.
+      - New literals left on purpose: brand examples and codes
+        ("Rolex / Gucci", "Submariner 16610", "VS1", "0.75"), the units
+        "g" / "dwt".
+
+      tsc, 1,224 tests, lint, build green.
+
+ 575. FOUND, NOT FIXED (for Eddy to decide):
+      - Buy outright prices a karat between two buckets as the bucket
+        above (12K as 14K) — the same thing 569 corrected for pawn.
+      - A resumed DRAFT restores six fields of an item only (description,
+        category, metal, karat, weight, value) — older than this session;
+        the popup now has many more.
+      - Forfeits made BEFORE 573 arrived in inventory without coating:
+        any plated piece among them counts as solid there.
+      - 539.001(8)(a) also says the agency approves the form's design; I
+        did not check that, nor the customer block or the statements.
 
 --- Session 65 (2026-11-23) — Pawn loans end to end: payment/extend merged, full-period charge, remaining balance, free time, paid-ahead credit, void a payment, payments by period, shop's own full months (branch feature/sol-pawn-brief == main) ---
 
@@ -3959,18 +4155,27 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Ask Eddy how the New pawn ticket screen feels at the counter after
-    Session 66 (563, 565-567, all live since 2026-11-24, checked only on
-    the local server) and confirm what I decided for him:
+    Have Eddy issue ONE REAL pawn ticket from the new item popup and
+    print it (Session 66, items 563-573, all live since 2026-11-24 and
+    checked only on the local server with no ticket issued): a jewelry
+    piece with gender, style, one stone line and the weight in dwt. Read
+    the row back and look at the print: Style / Gender / Stones cells,
+    and the FLORIDA STATEMENTS at the foot (not a "[PLACEHOLDER ...]").
+    Then confirm what I decided for him:
     - Principal: each item's value is added; an amount he typed is kept
       as his difference, so a later item goes on top of it.
-    - Item popup: Cancel / X / Esc while ADDING throws the item away;
+    - Metal value: full metal value at the Spot prices page's pay
+      percent; no percent box in the popup; no separate loan percent.
+    - Description: always English; Unique marks and Est. value are not in
+      it; his own wording is never overwritten.
+    - Popup: Cancel / X / Esc while ADDING throws the item away;
       "Pawned before" pieces go straight to the table.
-    - Description: Unique marks is not in it; Est. value is not in it; his
-      own wording is never overwritten; General items are typed by hand.
-    Have him try what was not checked: one real ticket issued from the new
-    screen, a photo taken inside the popup, a tool, voice intake, a
+    - Stones: a Carats box; up to six lines. Gender: four choices.
+    - Continuation sheet: about three simple items on the front.
+    Also for him: one forfeit of a piece with a brand or stones (does it
+    reach inventory right?), a photo inside the popup, voice intake, a
     resumed draft, the screen in Spanish, a phone.
+    Suggest /convention for the four rules in the RESUME block.
     Then ask how the pawn screens went at the counter, and confirm two
     things I decided from his words:
     1. Eddy's Jewelers charges the FIRST MONTH FLAT, then by the day
@@ -4095,6 +4300,10 @@ PENDING — NEXT UP
         leave it, since compliance_log is write-once by design.
 
   KNOWN ISSUES TO REVISIT:
+    - Session 66, item 575: Buy outright prices 12K as 14K; a resumed
+      draft restores six item fields only; plated pieces forfeited before
+      2026-11-24 are solid in inventory; the rest of 539.001(8) (customer
+      block, statements, agency approval of the form) was not checked.
     - New pawn ticket item popup: 14 placeholders in
       src/components/pawn/CollateralItemsList.tsx are English literals
       ("14k gold rope chain, 22 inches", "Yellow / Black / Two-tone",

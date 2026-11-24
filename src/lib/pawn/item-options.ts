@@ -39,10 +39,6 @@ export const GENERAL_COLOR_KEYS = [
   'multicolor',
 ] as const
 
-export type ColorKey =
-  | (typeof JEWELRY_COLOR_KEYS)[number]
-  | (typeof GENERAL_COLOR_KEYS)[number]
-
 const CHAIN_STYLES = [
   'cuban_link',
   'figaro',

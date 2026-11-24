@@ -29,6 +29,13 @@ describe('the Color and Style choices', () => {
     }
   })
 
+  it('have no word in the dictionary that no list offers', () => {
+    const offeredColors = new Set<string>([...JEWELRY_COLOR_KEYS, ...GENERAL_COLOR_KEYS])
+    expect(Object.keys(en.pawn.new_.colors).filter((k) => !offeredColors.has(k))).toEqual([])
+    const offeredStyles = new Set<string>(styleKeysFor('other'))
+    expect(Object.keys(en.pawn.new_.styles).filter((k) => !offeredStyles.has(k))).toEqual([])
+  })
+
   it('offer each kind of jewelry its own styles, and everything to a kind with no list', () => {
     expect(styleKeysFor('chain')).toContain('cuban_link')
     expect(styleKeysFor('chain')).not.toContain('solitaire')

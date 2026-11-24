@@ -12,6 +12,8 @@
  * Pure — the action does the inserts.
  */
 
+import { COATINGS, type Coating } from '@/lib/spot-prices/purity'
+import { itemIdentity } from './item-identity'
 import { normalizeStones } from './stones'
 
 export type ForfeitedCollateral = {
@@ -51,36 +53,21 @@ export type ForfeitedInventoryDetails = {
   brand: string | null
   model: string | null
   serial_number: string | null
-  coating: 'none' | 'gold_plated' | 'gold_filled' | 'vermeil' | 'pvd'
+  coating: Coating
   stones: ForfeitedStone[]
   /** The free line about the stones; goes into the item's notes. */
   stoneNotes: string | null
 }
 
-const COATINGS = ['none', 'gold_plated', 'gold_filled', 'vermeil', 'pvd'] as const
-
-function first(...values: Array<string | null>): string | null {
-  for (const v of values) {
-    const t = v?.trim()
-    if (t) return t
-  }
-  return null
-}
-
 export function inventoryDetailsFromCollateral(item: ForfeitedCollateral): ForfeitedInventoryDetails {
   const coating = (COATINGS as ReadonlyArray<string>).includes(item.coating ?? '')
-    ? (item.coating as ForfeitedInventoryDetails['coating'])
+    ? (item.coating as Coating)
     : 'none'
+  const identity = itemIdentity(item)
   return {
-    brand: first(item.jewelry_brand, item.electronic_brand, item.tool_brand, item.general_brand, item.firearm_make),
-    model: first(item.jewelry_model, item.electronic_model, item.tool_model, item.general_model, item.firearm_model),
-    serial_number: first(
-      item.jewelry_serial,
-      item.electronic_serial,
-      item.tool_serial,
-      item.general_serial,
-      item.firearm_serial_number,
-    ),
+    brand: identity.brand || null,
+    model: identity.model || null,
+    serial_number: identity.serial || null,
     coating,
     stones: normalizeStones(item.stones).map((s, i) => ({
       position: i,

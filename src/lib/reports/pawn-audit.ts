@@ -16,6 +16,7 @@
  * Ordered by ticket number the way a person reads them (9 before 10).
  */
 
+import { itemIdentity } from '@/lib/pawn/item-identity'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import type { LoanStatus } from '@/types/database-aliases'
@@ -155,13 +156,7 @@ export function buildPawnAudit(args: {
         karat: numOrNull(it.karat),
         weight_grams: numOrNull(it.weight_grams),
         size: it.jewelry_size?.trim() || null,
-        serial:
-          it.firearm_serial_number?.trim() ||
-          it.electronic_serial?.trim() ||
-          it.jewelry_serial?.trim() ||
-          it.tool_serial?.trim() ||
-          it.general_serial?.trim() ||
-          null,
+        serial: itemIdentity(it).serial || null,
       })
     })
   }

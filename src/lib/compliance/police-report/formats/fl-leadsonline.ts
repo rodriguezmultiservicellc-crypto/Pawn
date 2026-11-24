@@ -27,6 +27,7 @@
  *   item_quantity, item_unit_amount, item_total_amount.
  */
 
+import { itemIdentity } from '@/lib/pawn/item-identity'
 import type { ComplianceLogRow } from '@/types/database-aliases'
 import { rowsToCsv, type CsvColumn } from '@/lib/reports/http'
 
@@ -216,31 +217,9 @@ export function flattenComplianceRow(
       // A pawn intake snapshot keeps these under each category's own
       // name (firearm_*, electronic_*, tool_*, jewelry_*); a buy keeps the
       // plain ones. FS 539.001(8)(b)2.a-c.
-      item_serial: s(
-        it.serial_number ??
-          it.serial ??
-          it.firearm_serial_number ??
-          it.electronic_serial ??
-          it.jewelry_serial ??
-          it.tool_serial ??
-          it.general_serial,
-      ),
-      item_brand: s(
-        it.brand ??
-          it.firearm_make ??
-          it.electronic_brand ??
-          it.tool_brand ??
-          it.jewelry_brand ??
-          it.general_brand,
-      ),
-      item_model: s(
-        it.model ??
-          it.firearm_model ??
-          it.electronic_model ??
-          it.tool_model ??
-          it.jewelry_model ??
-          it.general_model,
-      ),
+      item_serial: s(it.serial_number ?? it.serial) || itemIdentity(it).serial,
+      item_brand: s(it.brand) || itemIdentity(it).brand,
+      item_model: s(it.model) || itemIdentity(it).model,
       item_make: s(it.make ?? it.metal_type),
       item_ncic_code: ncicFor(it),
       item_quantity: String(qty),

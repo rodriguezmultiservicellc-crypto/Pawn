@@ -22,6 +22,7 @@
  * (newest value, redeemed tickets counted).
  */
 
+import { itemIdentity } from '@/lib/pawn/item-identity'
 import { daysBetween } from '@/lib/pawn/math'
 
 export type HistoryLoanInput = {
@@ -161,16 +162,7 @@ function pieceKey(it: HistoryItemInput): string {
     it.description.trim().toLowerCase().replace(/\s+/g, ' '),
     num(it.karat) ?? '',
     w == null ? '' : w.toFixed(1),
-    (
-      it.firearm_serial_number ??
-      it.electronic_serial ??
-      it.jewelry_serial ??
-      it.tool_serial ??
-      it.general_serial ??
-      ''
-    )
-      .trim()
-      .toLowerCase(),
+    itemIdentity(it).serial.toLowerCase(),
   ].join('|')
 }
 
