@@ -1329,6 +1329,11 @@ export const en = {
       itemAdd: 'Add item',
       itemEditTitle: 'Item {n}',
       itemNeedsDetails: 'Needs details',
+      itemDescriptionHint:
+        'Written from the fields above as you fill them. You can change it.',
+      // Word order of a generated jewelry description; keep the four tokens.
+      itemDescJewelryOrder: '{karat} {color} {metal} {item}',
+      itemDescRingSize: 'size {v}',
       signatureUpload: 'Upload signed ticket',
       interest: 'Interest',
       principal: 'Principal',

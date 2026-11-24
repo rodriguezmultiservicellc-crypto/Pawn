@@ -19,6 +19,11 @@ import type {
   MetalType,
 } from '@/types/database-aliases'
 import type { PreviousPawnItem } from '@/lib/pawn/customer-history'
+import {
+  descriptionAfterChange,
+  generateItemDescription,
+  type ItemDescriptionKind,
+} from '@/lib/pawn/item-description'
 import { PawnedBeforeDialog } from './PawnedBeforeDialog'
 import CategoryPicker, {
   CategoryBanner,
@@ -609,6 +614,16 @@ export const CollateralItemsList = forwardRef<
   )
 })
 
+/** Which fields a category has to write a description from. */
+function descriptionKind(topSlug: string | null): ItemDescriptionKind {
+  return topSlug === 'jewelry' ||
+    topSlug === 'firearms' ||
+    topSlug === 'electronics' ||
+    topSlug === 'tools'
+    ? topSlug
+    : 'other'
+}
+
 /** Required fields filled in. A row that is not gets a mark in the table. */
 function isRowComplete(row: Row, categoryStepDone: boolean): boolean {
   if (!categoryStepDone) return false
@@ -642,7 +657,7 @@ function CollateralRow({
   reportOnOpen,
   onOpen,
   onClose,
-  onChange,
+  onChange: onRowChange,
   onRemove,
   tMetal,
 }: {
@@ -701,6 +716,75 @@ function CollateralRow({
     selectedCategory != null &&
     (selectedCategory.subcategories.length === 0 ||
       selectedSubcategory != null)
+
+  // The description this row's fields add up to, in the clerk's language.
+  function describeRow(r: Row): string {
+    const top = categories.find((c) => c.slug === r.pawn_category_slug) ?? null
+    const sub = top?.subcategories.find((s) => s.slug === r.pawn_subcategory_slug) ?? null
+    const inv = t.inventory
+    const itemWords: Partial<Record<InventoryCategory, string>> = {
+      ring: inv.catRing,
+      necklace: inv.catNecklace,
+      bracelet: inv.catBracelet,
+      earrings: inv.catEarrings,
+      pendant: inv.catPendant,
+      chain: inv.catChain,
+      watch: inv.catWatch,
+      coin: inv.catCoin,
+      bullion: inv.catBullion,
+      loose_stone: inv.catLooseStone,
+    }
+    const firearmTypeWords: Record<FirearmType, string> = {
+      '': '',
+      handgun: tn.itemFirearmTypeHandgun,
+      rifle: tn.itemFirearmTypeRifle,
+      shotgun: tn.itemFirearmTypeShotgun,
+      other: '',
+    }
+    const hasMetalWord =
+      r.metal_type !== '' && r.metal_type !== 'none' && r.metal_type !== 'other'
+    return generateItemDescription(
+      {
+        kind: descriptionKind(top?.slug ?? null),
+        itemWord: itemWords[r.category] ?? sub?.label ?? '',
+        isRing: r.category === 'ring',
+        color: r.color,
+        metalWord: hasMetalWord ? tMetal(r.metal_type as MetalType) : '',
+        karat: r.karat,
+        weightGrams: r.weight_grams,
+        size: r.jewelry_size,
+        coatingWord: isSolidMetal(r.coating) ? '' : inv.coatings[r.coating],
+        gemstones: r.gemstone_description,
+        firearmMake: r.firearm_make,
+        firearmModel: r.firearm_model,
+        firearmCaliber: r.firearm_caliber,
+        firearmTypeWord: firearmTypeWords[r.firearm_type],
+        firearmFinish: r.firearm_finish,
+        electronicBrand: r.electronic_brand,
+        electronicModel: r.electronic_model,
+        toolBrand: r.tool_brand,
+        toolModel: r.tool_model,
+      },
+      { jewelryOrder: tn.itemDescJewelryOrder, ringSize: tn.itemDescRingSize },
+    )
+  }
+
+  // Every field change goes through here: the description follows the
+  // fields until the clerk writes their own.
+  function onChange(patch: Partial<Row>) {
+    if ('description' in patch) {
+      onRowChange(patch)
+      return
+    }
+    const description = descriptionAfterChange(
+      row.description,
+      describeRow(row),
+      describeRow({ ...row, ...patch }),
+    )
+    onRowChange(description === row.description ? patch : { ...patch, description })
+  }
+  const writesItsOwnDescription =
+    descriptionKind(row.pawn_category_slug) !== 'other'
 
   function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null
@@ -946,26 +1030,10 @@ function CollateralRow({
 
         {/* Fields — common base + category-specific block */}
         <div className="md:col-span-10 grid grid-cols-1 gap-3 md:grid-cols-6">
-          {/* Common: description + est_value, always shown */}
-          <label className="md:col-span-4 block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-              {t.pawn.new_.itemDescription} *
-            </span>
-            <input
-              type="text"
-              name={`collateral_${index}_description`}
-              required
-              // Focused when the popup opens on the fields, and when they
-              // appear after the category is picked inside it.
-              data-first-field
-              autoFocus
-              value={row.description}
-              onChange={(e) => onChange({ description: e.target.value })}
-              placeholder="14k gold rope chain, 22 inches"
-              className={INPUT}
-            />
-          </label>
-
+          {/* Field order is the order the clerk fills them (Eddy, 2026-11-24):
+              value, color, then the category's own fields, unique marks,
+              and the description LAST — it writes itself from the others
+              (lib/pawn/item-description). */}
           <label className="md:col-span-2 block space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
               {t.pawn.new_.itemEstValue}
@@ -975,6 +1043,12 @@ function CollateralRow({
               step="0.01"
               min={0}
               name={`collateral_${index}_est_value`}
+              // Focused when the popup opens on the fields, and when they
+              // appear after the category is picked inside it. Selected, so
+              // typing replaces the starting 0.
+              data-first-field
+              autoFocus
+              onFocus={(e) => e.currentTarget.select()}
               value={row.est_value}
               onChange={(e) => onChange({ est_value: e.target.value })}
               className={INPUT}
@@ -994,7 +1068,8 @@ function CollateralRow({
           />
 
           {/* Common FS 539.001(8)(b)(2) fields — visible regardless of
-              picked category. Color (e) + unique marks (i). */}
+              picked category. Color (e) here; unique marks (i) after the
+              category's own fields. */}
           <label className="md:col-span-2 block space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
               {t.pawn.new_.itemColor}
@@ -1009,21 +1084,7 @@ function CollateralRow({
             />
           </label>
 
-          <label className="md:col-span-4 block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-              {t.pawn.new_.itemUniqueMarks}
-            </span>
-            <input
-              type="text"
-              name={`collateral_${index}_unique_marks`}
-              value={row.unique_marks}
-              onChange={(e) => onChange({ unique_marks: e.target.value })}
-              placeholder="Engraving, hallmark, scratch pattern"
-              className={INPUT}
-            />
-          </label>
-
-          {/* ── JEWELRY: metal / karat / weight ─────────────────── */}
+          {/* ── JEWELRY: metal / karat / weight / size / coating / stones ── */}
           {selectedCategory?.slug === 'jewelry' ? (
             <>
               <label className="md:col-span-2 block space-y-1">
@@ -1080,6 +1141,22 @@ function CollateralRow({
 
               <label className="md:col-span-2 block space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemJewelrySize}
+                </span>
+                <input
+                  type="text"
+                  name={`collateral_${index}_jewelry_size`}
+                  value={row.jewelry_size}
+                  onChange={(e) =>
+                    onChange({ jewelry_size: e.target.value })
+                  }
+                  placeholder="7  /  22 in"
+                  className={INPUT}
+                />
+              </label>
+
+              <label className="md:col-span-2 block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                   {t.pawn.new_.itemCoating}
                 </span>
                 <select
@@ -1104,22 +1181,6 @@ function CollateralRow({
                   <span>{t.pawn.new_.itemCoatingWarning}</span>
                 </p>
               ) : null}
-
-              <label className="md:col-span-1 block space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                  {t.pawn.new_.itemJewelrySize}
-                </span>
-                <input
-                  type="text"
-                  name={`collateral_${index}_jewelry_size`}
-                  value={row.jewelry_size}
-                  onChange={(e) =>
-                    onChange({ jewelry_size: e.target.value })
-                  }
-                  placeholder="7  /  22 in"
-                  className={INPUT}
-                />
-              </label>
 
               <label className="md:col-span-6 block space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
@@ -1395,6 +1456,42 @@ function CollateralRow({
               </label>
             </>
           ) : null}
+
+          <label className="md:col-span-6 block space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+              {t.pawn.new_.itemUniqueMarks}
+            </span>
+            <input
+              type="text"
+              name={`collateral_${index}_unique_marks`}
+              value={row.unique_marks}
+              onChange={(e) => onChange({ unique_marks: e.target.value })}
+              placeholder="Engraving, hallmark, scratch pattern"
+              className={INPUT}
+            />
+          </label>
+
+          {/* Last: written from the fields above while the clerk leaves it
+              alone; theirs once they type in it (descriptionAfterChange). */}
+          <label className="md:col-span-6 block space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+              {t.pawn.new_.itemDescription} *
+            </span>
+            <input
+              type="text"
+              name={`collateral_${index}_description`}
+              required
+              value={row.description}
+              onChange={(e) => onChange({ description: e.target.value })}
+              placeholder="14k gold rope chain, 22 inches"
+              className={INPUT}
+            />
+            {writesItsOwnDescription ? (
+              <span className="block text-xs text-muted">
+                {t.pawn.new_.itemDescriptionHint}
+              </span>
+            ) : null}
+          </label>
         </div>
       </div>
       ) : null}

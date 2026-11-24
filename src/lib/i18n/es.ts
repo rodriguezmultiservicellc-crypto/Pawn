@@ -1332,6 +1332,11 @@ export const es: Dictionary = {
       itemAdd: 'Agregar artículo',
       itemEditTitle: 'Artículo {n}',
       itemNeedsDetails: 'Faltan datos',
+      itemDescriptionHint:
+        'Se escribe sola con los campos de arriba. Puedes cambiarla.',
+      // Orden de las palabras de una descripción de joyería; conserva los cuatro tokens.
+      itemDescJewelryOrder: '{item} {metal} {color} {karat}',
+      itemDescRingSize: 'talla {v}',
       signatureUpload: 'Subir boleto firmado',
       interest: 'Interés',
       principal: 'Principal',
