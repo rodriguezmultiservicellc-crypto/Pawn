@@ -60,7 +60,68 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 66 (2026-11-23/24), saved THREE times: 00:10
+  Last session:   Session 67 (2026-11-24), saved 2026-11-24 ~12:30.
+                  Context budget at save: high (one compaction this session;
+                  my estimate ~80%). START THE NEXT SESSION FRESH.
+                  Items 576-589. TWO MIGRATIONS, BOTH APPLIED TO THE LIVE
+                  DB: 0108 (pawn void -> compliance_log), 0109 (ticket
+                  paper). main == feature/sol-pawn-brief. Nothing is
+                  half-built.
+                  Last worked on: the PRINTED PAWN TICKET (English only +
+                  stamped Spanish courtesy copy, foot layout, reverse side
+                  behind both copies or none) and the counter rules around
+                  it (customer record complete before a pawn / buy; voided
+                  tickets and the police export).
+
+                  ACTIVE FILES (last touched):
+                    src/lib/pdf/PawnTransactionForm.tsx  the front (one
+                      language per sheet; TicketCopy 'customer' | 'store' |
+                      'courtesy'; CourtesyStamp; itemsOnFront FOOT_BASE 120)
+                    src/lib/pdf/PawnTicketPDF.tsx   page order, ReversePage
+                    src/lib/pdf/render-loan-ticket.tsx  spanish_copy /
+                      spanish_only / pawn_ticket_print_reverse
+                    src/app/api/print/loan/[id]/route.ts  ?copy=spanish
+                    src/app/(staff)/settings/loan-rates/*  Ticket paper
+                    src/lib/customers/pledgor-record.ts  required fields
+                    src/lib/compliance/police-report/void-plan.ts
+                    src/app/api/cron/leadsonline-export/route.ts
+                    src/lib/reports/police-report.ts
+                    src/lib/inventory/search.ts
+                    patches/0108, patches/0109
+
+                  RESUME POINT: Ask Eddy to print ONE real ticket on his
+                  printer, two-sided, after the 9:30 export has run:
+                  customer copy, back, store copy, back (blank-paper
+                  setting); check the new foot (thumb box beside the
+                  statements, narrow default box, wide signature line), the
+                  English-only text, and the "Spanish copy" button's stamped
+                  page. Then have him pick the Ticket paper setting for
+                  pre-printed stock if his shop uses it, and print once.
+                  Then the open decisions in PENDING (LeadsOnline format /
+                  upload; PT-015665 test ticket; 730 customers without a
+                  phone).
+
+                  RULES ADDED THIS SESSION (in CLAUDE.md or worth one):
+                  - CLAUDE.md rule 6 exception (written): the legal pawn
+                    ticket is ENGLISH ONLY (539.001(8)(a)); the Spanish
+                    courtesy copy is stamped "SIN VALIDEZ LEGAL / NOT
+                    LEGALLY VALID". Never put Spanish back on the legal
+                    copies.
+                  - Not yet in CLAUDE.md (suggest /convention): a pawn or
+                    buy needs missingPledgorFields() empty — the intake
+                    actions refuse otherwise; home phone is required with
+                    no "None" (Eddy, "keep it strict").
+                  - Not yet in CLAUDE.md: a void of a Pawn-made ticket is a
+                    'pawn_void' compliance_log row written by a DB trigger;
+                    the export never reads loans.status to decide.
+
+                  TOOLING NOTE: vitest run from the Bash tool fails on
+                  every file ("Cannot read properties of undefined (reading
+                  'config')") because Bash starts in lowercase c:\ and
+                  vitest loads twice. Run vitest from PowerShell
+                  (C:\Users\...). Not a code problem.
+
+  Session 66 (2026-11-23/24), saved THREE times: 00:10
                   (items 563-564), 00:40 (565-568) and 2026-11-24 01:45
                   (569-575).
                   Context budget at the third save: very high (my estimate
@@ -752,6 +813,125 @@ SESSION HISTORY LOG
 2026-09-19, sessions 22, 23, 24, 25, 26, 27, 29, 30, 31, 32 archived
 2026-11-13, and sessions 33-52 archived 2026-11-21 to
 Progress_archive.txt — the items from those sessions are there.)
+
+--- Session 67 (2026-11-24) — The printed pawn ticket (English + stamped Spanish copy, foot, reverse behind both copies), complete customer record before a pawn, voided tickets and the police export, inventory list (branch feature/sol-pawn-brief == main) ---
+
+ 576. PT-015665 CHECKED (Eddy's first ticket from the new popup). Row and
+      print read back: fields saved, statements printed (no placeholder).
+      Test ticket; still ACTIVE (not voided).
+
+ 577. STONE TYPE IS A DROPDOWN (b96f958). item-options STONE_TYPE_KEYS
+      (20 stones) + pawn.new_.stoneTypes; ChoiceOrOther gained labelHidden
+      and an optional name. Saved in ENGLISH (stonesInEnglish via
+      matchChoice) — 539.001(8)(a).
+
+ 578. NEW TICKET ASKS TO PRINT (75bd892). createLoanAction redirects to
+      /pawn/[id]?print=1; the ticket page opens a "Ticket saved — Print
+      ticket / Later" modal (only while not printed). A button, because a
+      browser only opens a tab from a click. NOT SEEN on a real new ticket.
+
+ 579. TICKET FOOT SHORTER (f81924c, cf8009c, 4f0187f, d533157).
+      Eddy's screenshots, in order: compress the foot; align the Truth in
+      Lending figures; take out the employee initials line, put the thumb
+      print box beside the statements running to the bottom, raise the
+      default-date box; make that box narrower and the signature wider.
+      Now: TIL figures share one line (cells stretch, figure bottom-right);
+      statements in one column beside a full-height thumb box; default box
+      184pt; signature line to the thumb box. FOOT_BASE 200 -> 150 -> 120
+      (measured ~100), itemsOnFront tests moved with it. Key
+      pawn.print.form.employee removed.
+
+ 580. SIDEBAR "VIEW INVENTORY" (4cbc8eb). NavItem.listRow: the group's
+      own page as its first sub-item; lights instead of the group row while
+      open; hidden on the icon rail.
+
+ 581. INVENTORY LIST: LEGACY CODE, KARAT/WEIGHT, SEARCH, 50 PER PAGE
+      (3e5c345). Eddy: "display the legacy code ... search is slow ...
+      search more fields like karat weight".
+      - Columns Legacy code and Karat / weight.
+      - src/lib/inventory/search.ts (10 tests): every WORD must match;
+        each word against SKU, description, brand, model, serial, legacy
+        code, karat, shelf, size, finish, metal + category by EN/ES label,
+        and weight ("2.4" g or dwt, "2.4g", "1.5dwt").
+      - 50 per page with a pager + exact count (was the first 200).
+      - Speed: list / import role / tag templates in parallel; thumbnails
+        signed in ONE request (storage.getSignedUrls, new); a search of
+        several words skips the scan lookup round-trip. The DB was never
+        the slow part (3,265 items, ~0.1-0.2 s per search).
+
+ 582. NO PAWN OR BUY WITHOUT A COMPLETE CUSTOMER RECORD (0e05868).
+      Eddy: "a pawn cant be made unless all the attributes of the customer
+      are filled in" (PT-015665: eyes empty, agency held 01/01/2001).
+      539.001(8)(b)3+5 read (2025 text): name, address, home phone, place
+      of employment, DOB, physical description, ID type / number / issuing
+      agency. src/lib/customers/pledgor-record.ts missingPledgorFields
+      (tests); createLoanAction and the buy action refuse with
+      pledgor_incomplete:<fields> (ruleErrorText translates);
+      PledgorRecordBanner on New pawn / New buy lists the gaps as soon as
+      the customer is picked (re-checks on window focus). The customer
+      form refuses an ID agency with a digit (invalid_id_agency).
+      Not required: identifying marks (the statute's marks are the goods'),
+      business phone, email, ID expiry.
+      LIVE DATA (5,225 customers): 1,690 no employment, 730 no phone, 120
+      no weight, a few dozen others — each is stopped at the next pawn /
+      buy. Eddy: phone stays STRICT (no "None").
+
+ 583. JEWELRY ITEM STARTS GOLD / YELLOW (7e32b1e). jewelryStartValues in
+      CollateralItemsList: jewelry (not watches) fills metal gold, color
+      Yellow when empty.
+
+ 584. WATCH SHORTCUT [BUG] (37e6879). The scanned-watch default looked for
+      sub-category 'watch'; the shop's is 'watches' -> watches landed with
+      no sub-category. Accepts both.
+
+ 585. LEGAL TICKET ENGLISH ONLY + STAMPED SPANISH COPY (37e6879, 4f0187f).
+      Eddy: "remove the spanish in the pawn ticket make it all english,
+      make another one in spanish with a stamp ... not legally valid".
+      PawnTransactionForm: one language per sheet (formParts(data, lang),
+      L labels); copy 'courtesy' = Spanish + CourtesyStamp (diagonal
+      SIN VALIDEZ LEGAL / NOT LEGALLY VALID, red note on top), no "see
+      reverse". Printed after the legal copies when customers.language =
+      'es'; "Spanish copy" button on the ticket page opens it alone
+      (?copy=spanish, never locks the ticket). CLAUDE.md rule 6 exception
+      written.
+
+ 586. VOIDED TICKETS AND THE POLICE EXPORT (e188032; patches/0108 APPLIED).
+      Found: the cron already exported PT-015665 at 14:30 UTC (batch of 2);
+      a void wrote nothing to compliance_log; nothing uploads the file
+      anywhere (batches are stored only).
+      - 0108: event_type 'pawn_void' written by trigger
+        trg_loans_compliance_void (SECURITY DEFINER) when a loan becomes
+        voided and has a pawn_intake row (imported tickets: none);
+        compliance_log.export_outcome; compliance_export_batches.
+        voided_after_report. Dry run in a rolled-back transaction first.
+      - void-plan.ts (tests): voided before reported -> both rows withheld
+        (export_outcome 'withheld_void'); voided after -> 'void_notice',
+        listed on the batch and in a red panel on Reports > Police report.
+        The date-range report / CSV leave out voided-before tickets.
+      NOT VERIFIED: a real void through the panel (no ticket voided).
+
+ 587. REVERSE SIDE BEHIND BOTH COPIES, OR NONE (19e2c60; patches/0109
+      APPLIED). settings.pawn_ticket_print_reverse (default TRUE).
+      Settings > Loan rates > Ticket paper: blank paper -> customer front,
+      reverse, store front, reverse, then continuations; pre-printed ->
+      no reverse. Reverse footer lost its page number (key
+      pawn.print.footer.pageOf removed). Supabase gave a Cloudflare error
+      on the first apply; the retry applied it.
+
+ 588. CHECKPOINT GATE. Lane: only Pawn files. Wording: every key added is
+      in en.ts and es.ts and used; removed: pawn.new_.stoneTypePlaceholder,
+      pawn.print.form.employee, pawn.print.footer.pageOf. Dead code: the
+      bilingual helper import left PawnTransactionForm. tsc, lint, 1,248
+      tests green (PowerShell).
+
+ 589. FOUND, NOT FIXED (for Eddy):
+      - The police export only stores a CSV in Pawn; nothing uploads it to
+        LeadsOnline, and the format still says DRAFT.
+      - PT-015665 is a test ticket already in this morning's file; voiding
+        it now lists it as a correction.
+      - The ID on PT-015665's customer expired 2026-01-01; the statute
+        (2025 text read) does not require an unexpired ID — nothing blocks
+        it.
 
 --- Session 66 (2026-11-23/24) — New pawn ticket item popup against FS 539.001(8): principal follows collateral, popup, description writes itself, metal value, jewelry details (0106), dropdowns, remaining statute fields (0107), continuation sheet, forfeit carries details (branch feature/sol-pawn-brief == main) ---
 
@@ -4155,7 +4335,21 @@ PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    Have Eddy issue ONE REAL pawn ticket from the new item popup and
+    Session 67 first: have Eddy print ONE real ticket two-sided on his
+    printer (blank-paper setting: customer front, back, store front,
+    back) and look at the new foot and the English-only text; press
+    "Spanish copy" once; issue a new ticket to see the "Ticket saved —
+    Print ticket" prompt; pick Ticket paper = pre-printed if his stock
+    has the back, and print once more. Then ask:
+    - LeadsOnline: confirm the CSV format and how files reach them (today
+      nothing uploads; the screen says FORMAT DRAFT);
+    - PT-015665 (test ticket, already in the 11/24 file): void it? it
+      will then show as a correction to send;
+    - /convention for the customer-record rule (582) and the pawn_void
+      rule (586).
+    Then the Session 66 list below.
+
+    (Session 66) Have Eddy issue ONE REAL pawn ticket from the new item popup and
     print it (Session 66, items 563-573, all live since 2026-11-24 and
     checked only on the local server with no ticket issued): a jewelry
     piece with gender, style, one stone line and the weight in dwt. Read
