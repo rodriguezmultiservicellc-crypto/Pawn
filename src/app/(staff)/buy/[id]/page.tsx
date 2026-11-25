@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { INVENTORY_PHOTOS_BUCKET, getSignedUrl } from '@/lib/supabase/storage'
+import { signItemPhotos } from '@/lib/inventory/photos-server'
 import BuyReceiptContent, { type BuyReceiptView } from './content'
 
 /**
@@ -85,32 +85,8 @@ export default async function BuyReceiptPage(props: {
   }
 
   // Each item's photos as they are now on its inventory record (where they
-  // are changed), main first — the inventory page's order. 1h signed URLs.
-  const { data: photoRows } = itemIds.length
-    ? await admin
-        .from('inventory_item_photos')
-        .select('item_id, storage_path')
-        .eq('tenant_id', ctx.tenantId)
-        .in('item_id', itemIds)
-        .is('deleted_at', null)
-        .order('is_primary', { ascending: false })
-        .order('position', { ascending: true })
-    : { data: [] }
-  const signed = await Promise.all(
-    (photoRows ?? []).map(async (p) => ({
-      itemId: p.item_id,
-      url: await getSignedUrl({
-        bucket: INVENTORY_PHOTOS_BUCKET,
-        path: p.storage_path,
-        ttlSeconds: 3600,
-      }),
-    })),
-  )
-  const photosById = new Map<string, string[]>()
-  for (const p of signed) {
-    if (!p.url) continue
-    photosById.set(p.itemId, [...(photosById.get(p.itemId) ?? []), p.url])
-  }
+  // are changed), main first.
+  const photosById = await signItemPhotos(admin, ctx.tenantId, itemIds)
 
   const view: BuyReceiptView = {
     transactionId: complianceRow.id,

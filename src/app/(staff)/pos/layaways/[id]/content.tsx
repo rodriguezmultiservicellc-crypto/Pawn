@@ -11,6 +11,8 @@ import {
   Printer,
 } from '@phosphor-icons/react'
 import { PrintReceiptDialog } from '@/components/pos/PrintReceiptDialog'
+import { PhotoViewer } from '@/components/uploads/PhotoViewer'
+import { ItemPhotoThumb } from '@/components/uploads/ItemPhotoThumb'
 import { useI18n } from '@/lib/i18n/context'
 import { LayawayStatusBadge } from '@/components/pos/Badges'
 import { LayawayPaymentDialog } from '@/components/pos/LayawayPaymentDialog'
@@ -54,6 +56,8 @@ export type LayawayDetailItem = {
   quantity: number
   unit_price: number
   line_total: number
+  /** The inventory item's photos now (signed URLs), main first. */
+  photoUrls: string[]
 }
 
 export type LayawayDetailPayment = {
@@ -97,6 +101,14 @@ export default function LayawayDetailContent({
   const [showReminder, setShowReminder] = useState(false)
 
   const isActive = layaway.status === 'active'
+
+  // The photo open in the viewer: which line, which of its photos. View
+  // only — photos are changed on the item's inventory page.
+  const [viewing, setViewing] = useState<{ item: number; index: number } | null>(null)
+  const viewingPhotos = (viewing ? items[viewing.item]?.photoUrls ?? [] : []).map(
+    (url) => ({ path: url, url, name: '' }),
+  )
+  const anyPhotos = items.some((it) => it.photoUrls.length > 0)
 
   return (
     <div className="space-y-5">
@@ -287,6 +299,7 @@ export default function LayawayDetailContent({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+              {anyPhotos ? <th className="w-16 px-3 py-2" aria-hidden /> : null}
               <th className="px-3 py-2">{t.pos.cart.itemDescription}</th>
               <th className="px-3 py-2 text-right">{t.pos.cart.qty}</th>
               <th className="px-3 py-2 text-right">{t.pos.cart.unitPrice}</th>
@@ -294,9 +307,25 @@ export default function LayawayDetailContent({
             </tr>
           </thead>
           <tbody>
-            {items.map((it) => (
+            {items.map((it, i) => (
               <tr key={it.id} className="border-b border-border/60">
-                <td className="px-3 py-2 text-foreground">{it.description}</td>
+                {anyPhotos ? (
+                  <td className="px-3 py-1.5">
+                    <ItemPhotoThumb
+                      urls={it.photoUrls}
+                      onOpen={() => setViewing({ item: i, index: 0 })}
+                    />
+                  </td>
+                ) : null}
+                <td className="px-3 py-2 text-foreground">
+                  {it.inventory_item_id ? (
+                    <Link href={`/inventory/${it.inventory_item_id}`} className="hover:underline">
+                      {it.description}
+                    </Link>
+                  ) : (
+                    it.description
+                  )}
+                </td>
                 <td className="px-3 py-2 text-right font-mono text-foreground">
                   {it.quantity}
                 </td>
@@ -369,6 +398,11 @@ export default function LayawayDetailContent({
           onSubmit={cancelLayawayAction}
         />
       ) : null}
+      <PhotoViewer
+        photos={viewingPhotos}
+        index={viewing?.index ?? null}
+        onIndex={(i) => setViewing(i == null || !viewing ? null : { ...viewing, index: i })}
+      />
     </div>
   )
 }

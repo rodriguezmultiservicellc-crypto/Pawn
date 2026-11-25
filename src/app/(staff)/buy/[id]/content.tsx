@@ -1,19 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft,
   CheckCircle,
   Coins,
-  Image as ImageIcon,
   Printer,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { formatMoney, shortDateTime } from '@/lib/format/money'
 import { PhotoViewer } from '@/components/uploads/PhotoViewer'
-import { FOCUS } from '@/lib/ui/ledger'
+import { ItemPhotoThumb } from '@/components/uploads/ItemPhotoThumb'
 
 export type BuyReceiptItem = {
   inventoryId: string | null
@@ -197,33 +195,10 @@ export default function BuyReceiptContent({
                 <tr key={i}>
                   {anyPhotos ? (
                     <td className="w-14 py-1.5 pr-2 print:hidden">
-                      {it.photoUrls[0] ? (
-                        <button
-                          type="button"
-                          onClick={() => setViewing({ item: i, index: 0 })}
-                          title={t.common.photoStrip.view}
-                          aria-label={t.common.photoStrip.view}
-                          className={`relative block h-12 w-12 cursor-zoom-in overflow-hidden rounded-md border border-border bg-background ${FOCUS}`}
-                        >
-                          <Image
-                            src={it.photoUrls[0]}
-                            alt=""
-                            fill
-                            sizes="48px"
-                            unoptimized
-                            className="object-cover"
-                          />
-                          {it.photoUrls.length > 1 ? (
-                            <span className="absolute bottom-0.5 right-0.5 rounded bg-navy/80 px-1 font-mono text-[9px] text-white">
-                              +{it.photoUrls.length - 1}
-                            </span>
-                          ) : null}
-                        </button>
-                      ) : (
-                        <span className="flex h-12 w-12 items-center justify-center rounded-md border border-border bg-background text-muted">
-                          <ImageIcon size={16} />
-                        </span>
-                      )}
+                      <ItemPhotoThumb
+                        urls={it.photoUrls}
+                        onOpen={() => setViewing({ item: i, index: 0 })}
+                      />
                     </td>
                   ) : null}
                   <td className="py-1.5 font-mono text-xs">

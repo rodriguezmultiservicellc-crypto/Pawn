@@ -6,6 +6,7 @@ import LayawayDetailContent, {
   type LayawayDetailView,
 } from './content'
 import { toMoney } from '@/lib/pos/cart'
+import { signItemPhotos } from '@/lib/inventory/photos-server'
 import type {
   LayawayScheduleKind,
   LayawayStatus,
@@ -67,6 +68,14 @@ export default async function LayawayDetailPage(props: {
       .order('occurred_at', { ascending: false }),
   ])
 
+  // The held pieces' photos, as they are on their inventory records (view
+  // only here). A free-text line has none.
+  const photosById = await signItemPhotos(
+    ctx.supabase,
+    lay.tenant_id,
+    [...new Set((itemRows ?? []).map((it) => it.inventory_item_id).filter((x): x is string => !!x))],
+  )
+
   const items: LayawayDetailItem[] = (itemRows ?? []).map((it) => ({
     id: it.id,
     inventory_item_id: it.inventory_item_id,
@@ -74,6 +83,7 @@ export default async function LayawayDetailPage(props: {
     quantity: Number(it.quantity),
     unit_price: Number(it.unit_price),
     line_total: Number(it.line_total ?? 0),
+    photoUrls: it.inventory_item_id ? photosById.get(it.inventory_item_id) ?? [] : [],
   }))
 
   const payments: LayawayDetailPayment[] = (payRows ?? []).map((p) => ({
