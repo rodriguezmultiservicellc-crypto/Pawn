@@ -40,6 +40,8 @@ export type ItemDescriptionInput = {
   itemWord: string
   /** A ring: a size typed as "7" reads "size 7". */
   isRing: boolean
+  /** A chain, necklace or bracelet: a length typed as "22" reads "22 in". */
+  isLength: boolean
   /** The color as saved (English when picked from the list). */
   color: string
   /** "Gold", "Silver"… in English; '' for none / other / not picked. */
@@ -103,13 +105,38 @@ function weightText(weight: string): string {
   return `${w} g`
 }
 
+const BARE_NUMBER = /^\d+([.,]\d+)?$/
+
+/** The kinds of jewelry (inventory_category) whose Size / Length is a length. */
+const LENGTH_KINDS: ReadonlySet<string> = new Set(['chain', 'necklace', 'bracelet'])
+
+/** A chain, necklace or bracelet: its Size / Length is how long it is. */
+export function isLengthPiece(category: string | null | undefined): boolean {
+  return LENGTH_KINDS.has(category ?? '')
+}
+
+/**
+ * A length as it is written: a bare number is inches ("22" → "22 in"); one
+ * typed with its own unit or words ("55 cm", '22"', "22 in") is left alone.
+ * The saved value stays as the clerk typed it — this is only how the
+ * description and the printed ticket read it.
+ */
+export function lengthText(length: string | null | undefined): string {
+  const l = clean(length ?? '')
+  return BARE_NUMBER.test(l) ? `${l} in` : l
+}
+
 function jewelry(i: ItemDescriptionInput): string {
   const karat = karatText(i.karat)
   const color = lower(i.color)
   const metal = lower(i.metalWord)
   const sizeRaw = clean(i.size)
   const size =
-    sizeRaw !== '' && i.isRing && /^\d+([.,]\d+)?$/.test(sizeRaw) ? `size ${sizeRaw}` : sizeRaw
+    sizeRaw !== '' && i.isRing && BARE_NUMBER.test(sizeRaw)
+      ? `size ${sizeRaw}`
+      : i.isLength
+        ? lengthText(sizeRaw)
+        : sizeRaw
   // Same order as the fields on the screen: weight, size, coating, stones.
   const details = [weightText(i.weightGrams), size, lower(i.coatingWord), clean(i.gemstones)]
 

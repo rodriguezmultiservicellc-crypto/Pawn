@@ -27,7 +27,16 @@ import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { reportColors } from '@/lib/tokens'
 import { money } from '@/lib/pos/receipt-thermal'
 import { itemIdentity } from '@/lib/pawn/item-identity'
+import { isLengthPiece, lengthText } from '@/lib/pawn/item-description'
 import type { PawnTicketCollateral, PawnTicketData } from './PawnTicketPDF'
+
+/** The Size cell: the bare number of a chain, necklace or bracelet is inches
+ *  ("22" prints "22 in"); everything else prints as it was saved. */
+function sizeText(item: PawnTicketCollateral): string {
+  const jewelry = (item.jewelry_size ?? '').trim()
+  if (jewelry !== '') return isLengthPiece(item.category) ? lengthText(jewelry) : jewelry
+  return (item.item_size ?? '').trim()
+}
 
 const INK = reportColors.ink
 const LINE = '#222222'
@@ -202,7 +211,7 @@ function ItemBlock({
           <Cell label={L.metal} value={metal} flex={1.4} />
           <Cell label={L.karat} value={item.karat ? `${Number(item.karat.toFixed(1))}` : ''} flex={0.9} mono />
           <Cell label={L.weight} value={item.weight_grams ? `${Number(item.weight_grams.toFixed(2))} g` : ''} flex={1} mono />
-          <Cell label={L.size} value={txt(item.jewelry_size) || txt(item.item_size)} flex={0.8} />
+          <Cell label={L.size} value={sizeText(item)} flex={0.8} />
           <Cell label={L.style} value={txt(item.jewelry_style)} flex={1.3} />
           <Cell label={L.gender} value={gender} flex={1.7} />
           <Cell label={L.color} value={txt(item.color)} flex={1.2} />
@@ -293,7 +302,7 @@ export function estimateItemHeight(item: PawnTicketCollateral, kind: string, met
   const row2 = Math.max(
     cellHeight(metal, 1.4, 12.4, 1),
     cellHeight('', 0.9, 12.4, 2), // "Karat / Quilates" wraps
-    cellHeight(t(item.jewelry_size) || t(item.item_size), 0.8, 12.4, 1),
+    cellHeight(sizeText(item), 0.8, 12.4, 1),
     cellHeight(t(item.jewelry_style), 1.3, 12.4, 1),
     cellHeight('Women / Mujer', 1.7, 12.4, 1),
     cellHeight(t(item.color), 1.2, 12.4, 1),

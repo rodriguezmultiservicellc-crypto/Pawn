@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   descriptionAfterChange,
   generateItemDescription,
+  isLengthPiece,
   type ItemDescriptionInput,
 } from './item-description'
 
@@ -9,6 +10,7 @@ const blank: ItemDescriptionInput = {
   kind: 'jewelry',
   itemWord: '',
   isRing: false,
+  isLength: false,
   color: '',
   metalWord: '',
   karat: '',
@@ -77,10 +79,30 @@ describe('jewelry', () => {
     expect(gen({ itemWord: 'Ring', isRing: true, metalWord: 'Gold', size: '7.5' })).toBe(
       'Gold ring, size 7.5',
     )
-    // A chain's bare number is left as typed; so is a ring size with words.
-    expect(gen({ itemWord: 'Chain', metalWord: 'Gold', size: '22' })).toBe('Gold chain, 22')
+    // A ring size with words is left as typed; so is the bare number of a
+    // piece that is neither a ring nor a length (a pendant).
+    expect(gen({ itemWord: 'Pendant', metalWord: 'Gold', size: '22' })).toBe('Gold pendant, 22')
     expect(gen({ itemWord: 'Ring', isRing: true, metalWord: 'Gold', size: 'US 7' })).toBe(
       'Gold ring, US 7',
+    )
+  })
+
+  it('reads a bare number on a chain, necklace or bracelet as inches', () => {
+    const chain = { itemWord: 'Chain', isLength: true, metalWord: 'Gold' }
+    expect(gen({ ...chain, weightGrams: '45', size: '22' })).toBe('Gold chain, 45 g, 22 in')
+    expect(gen({ itemWord: 'Bracelet', isLength: true, metalWord: 'Gold', size: '7.5' })).toBe(
+      'Gold bracelet, 7.5 in',
+    )
+    // A length typed with its own unit is left as typed.
+    expect(gen({ ...chain, size: '55 cm' })).toBe('Gold chain, 55 cm')
+    expect(gen({ ...chain, size: '22 in' })).toBe('Gold chain, 22 in')
+    expect(gen({ ...chain, size: '22"' })).toBe('Gold chain, 22"')
+  })
+
+  it('isLengthPiece: chains, necklaces and bracelets', () => {
+    expect(['chain', 'necklace', 'bracelet'].map(isLengthPiece)).toEqual([true, true, true])
+    expect(['ring', 'pendant', 'earrings', 'watch', 'other', '', null].map(isLengthPiece)).toEqual(
+      Array(7).fill(false),
     )
   })
 

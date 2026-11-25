@@ -29,6 +29,7 @@ import {
   JEWELRY_GENDERS,
   descriptionAfterChange,
   generateItemDescription,
+  isLengthPiece,
   type ItemDescriptionKind,
   type JewelryGender,
 } from '@/lib/pawn/item-description'
@@ -888,6 +889,7 @@ function CollateralRow({
       kind: descriptionKind(top?.slug ?? null),
       itemWord: itemWords[r.category] ?? sub?.label ?? '',
       isRing: r.category === 'ring',
+      isLength: isLengthPiece(r.category),
       // A value picked from the list is already English; one that only
       // matches a choice's shown word is turned into it.
       color: matchChoice(r.color, colorChoicesFor(r))?.value ?? r.color,
