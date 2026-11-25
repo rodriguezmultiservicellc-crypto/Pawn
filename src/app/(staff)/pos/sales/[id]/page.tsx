@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
+import { signItemPhotos } from '@/lib/inventory/photos-server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import SaleDetailContent, {
   type SaleDetailItem,
@@ -69,6 +70,14 @@ export default async function SaleDetailPage(props: { params: Params }) {
       .order('occurred_at', { ascending: false }),
   ])
 
+  // The pieces' photos, as they are on their inventory records (view only
+  // here). A free-text line has none.
+  const photosById = await signItemPhotos(
+    ctx.supabase,
+    sale.tenant_id,
+    [...new Set((itemRows ?? []).map((it) => it.inventory_item_id).filter((x): x is string => !!x))],
+  )
+
   const items: SaleDetailItem[] = (itemRows ?? []).map((it) => ({
     id: it.id,
     inventory_item_id: it.inventory_item_id,
@@ -79,6 +88,7 @@ export default async function SaleDetailPage(props: { params: Params }) {
     line_total: Number(it.line_total ?? 0),
     position: it.position,
     returned_qty: Number(it.returned_qty ?? 0),
+    photoUrls: it.inventory_item_id ? photosById.get(it.inventory_item_id) ?? [] : [],
   }))
 
   // Names of the employees a tip belongs to (patches/0096). Read with the

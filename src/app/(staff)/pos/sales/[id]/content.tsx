@@ -25,6 +25,8 @@ import { cancelReaderChargeAction, readerChargeStatusAction } from '../new/reade
 import { isTaxExemptReason, type SaleTaxLine } from '@/lib/pos/sales-tax'
 import { VoidSaleDialog } from '@/components/pos/VoidSaleDialog'
 import { PrintReceiptDialog } from '@/components/pos/PrintReceiptDialog'
+import { PhotoViewer } from '@/components/uploads/PhotoViewer'
+import { ItemPhotoThumb } from '@/components/uploads/ItemPhotoThumb'
 import PosRedemptionBlock, {
   type RedemptionEventView,
 } from '@/components/loyalty/PosRedemptionBlock'
@@ -84,6 +86,8 @@ export type SaleDetailItem = {
   line_total: number
   position: number
   returned_qty: number
+  /** The inventory item's photos now (signed URLs), main first. */
+  photoUrls: string[]
 }
 
 export type SaleDetailPayment = {
@@ -497,6 +501,13 @@ export default function SaleDetailContent({
 
 function ItemsPanel({ items }: { items: SaleDetailItem[] }) {
   const { t } = useI18n()
+  // The photo open in the viewer: which line, which of its photos. View
+  // only — photos are changed on the item's inventory page.
+  const [viewing, setViewing] = useState<{ item: number; index: number } | null>(null)
+  const viewingPhotos = (viewing ? items[viewing.item]?.photoUrls ?? [] : []).map(
+    (url) => ({ path: url, url, name: '' }),
+  )
+  const anyPhotos = items.some((it) => it.photoUrls.length > 0)
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card">
       <header className="border-b border-border px-3 py-2">
@@ -512,6 +523,7 @@ function ItemsPanel({ items }: { items: SaleDetailItem[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+              {anyPhotos ? <th className="w-16 px-3 py-2" aria-hidden /> : null}
               <th className="px-3 py-2">{t.pos.cart.itemDescription}</th>
               <th className="px-3 py-2 text-right">{t.pos.cart.qty}</th>
               <th className="px-3 py-2 text-right">{t.pos.cart.unitPrice}</th>
@@ -522,10 +534,26 @@ function ItemsPanel({ items }: { items: SaleDetailItem[] }) {
             </tr>
           </thead>
           <tbody>
-            {items.map((it) => (
+            {items.map((it, i) => (
               <tr key={it.id} className="border-b border-border/60">
+                {anyPhotos ? (
+                  <td className="px-3 py-1.5">
+                    <ItemPhotoThumb
+                      urls={it.photoUrls}
+                      onOpen={() => setViewing({ item: i, index: 0 })}
+                    />
+                  </td>
+                ) : null}
                 <td className="px-3 py-2">
-                  <div className="font-medium text-foreground">{it.description}</div>
+                  <div className="font-medium text-foreground">
+                    {it.inventory_item_id ? (
+                      <Link href={`/inventory/${it.inventory_item_id}`} className="hover:underline">
+                        {it.description}
+                      </Link>
+                    ) : (
+                      it.description
+                    )}
+                  </div>
                   {it.returned_qty > 0 ? (
                     <div className="text-xs text-muted">
                       {t.pos.cart.qty}{' '}
@@ -553,6 +581,11 @@ function ItemsPanel({ items }: { items: SaleDetailItem[] }) {
           </tbody>
         </table>
       )}
+      <PhotoViewer
+        photos={viewingPhotos}
+        index={viewing?.index ?? null}
+        onIndex={(i) => setViewing(i == null || !viewing ? null : { ...viewing, index: i })}
+      />
     </section>
   )
 }
