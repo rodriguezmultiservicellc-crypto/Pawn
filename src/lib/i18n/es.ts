@@ -139,6 +139,8 @@ export const es: Dictionary = {
     passwordResetSent:
       'Si ese correo está registrado, te enviamos un enlace para restablecer.',
     invalidCredentials: 'Correo o contraseña incorrectos.',
+    showPassword: 'Mostrar contraseña',
+    hidePassword: 'Ocultar contraseña',
     sessionExpired: 'Tu sesión expiró. Inicia sesión nuevamente.',
     inviteExpired:
       'Tu enlace de invitación expiró o ya fue usado. Pide al dueño que lo reenvíe.',

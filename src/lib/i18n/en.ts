@@ -144,6 +144,8 @@ export const en = {
     passwordResetSent:
       "If that email is registered, we've sent a reset link.",
     invalidCredentials: 'Email or password is incorrect.',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     sessionExpired: 'Your session expired. Please sign in again.',
     inviteExpired:
       'Your invite link has expired or was already used. Ask an owner to resend it.',

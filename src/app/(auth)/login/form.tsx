@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useLangLocal } from '@/lib/i18n/use-lang'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 export default function LoginForm() {
   const router = useRouter()
@@ -66,13 +67,14 @@ export default function LoginForm() {
 
       <label className="block space-y-1">
         <span className="text-sm font-semibold text-text-secondary">{t.auth.password}</span>
-        <input
-          type="password"
+        <PasswordInput
           required
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={setPassword}
           className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           autoComplete="current-password"
+          showLabel={t.auth.showPassword}
+          hideLabel={t.auth.hidePassword}
         />
       </label>
 

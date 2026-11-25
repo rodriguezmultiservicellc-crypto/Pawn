@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useLangLocal } from '@/lib/i18n/use-lang'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 /**
  * First-time password set for invited portal users (and password reset
@@ -90,14 +91,15 @@ export default function SetPasswordForm() {
         <span className="text-sm font-semibold text-text-secondary">
           {t.auth.setPasswordPage.newPassword}
         </span>
-        <input
-          type="password"
+        <PasswordInput
           required
           minLength={8}
           value={pw}
-          onChange={(e) => setPw(e.target.value)}
+          onChange={setPw}
           className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           autoComplete="new-password"
+          showLabel={t.auth.showPassword}
+          hideLabel={t.auth.hidePassword}
         />
       </label>
 
@@ -105,14 +107,15 @@ export default function SetPasswordForm() {
         <span className="text-sm font-semibold text-text-secondary">
           {t.auth.setPasswordPage.confirmPassword}
         </span>
-        <input
-          type="password"
+        <PasswordInput
           required
           minLength={8}
           value={pw2}
-          onChange={(e) => setPw2(e.target.value)}
+          onChange={setPw2}
           className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           autoComplete="new-password"
+          showLabel={t.auth.showPassword}
+          hideLabel={t.auth.hidePassword}
         />
       </label>
 
