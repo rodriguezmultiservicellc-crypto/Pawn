@@ -22,6 +22,7 @@ const nothing: PhotoItem = {
   gender: null,
   style: null,
   size: null,
+  folded_in_half: null,
   stones: [],
   stone_notes: null,
   firearm_type: null,
@@ -148,6 +149,21 @@ describe('photoItemPatch — jewelry', () => {
     // The description adds "in" itself (lib/pawn/item-description).
     expect(photoItemPatch({ ...nothing, size: '22 in' }, 'jewelry', 'chain').jewelry_size).toBe('22')
     expect(photoItemPatch({ ...nothing, size: '20"' }, 'jewelry', 'chain').jewelry_size).toBe('20')
+    // A chain laid folded in half on the tray: twice the reading.
+    expect(
+      photoItemPatch({ ...nothing, size: '11', folded_in_half: true }, 'jewelry', 'chain').jewelry_size,
+    ).toBe('22')
+    expect(
+      photoItemPatch({ ...nothing, size: '9.5 in', folded_in_half: true }, 'jewelry', 'chain').jewelry_size,
+    ).toBe('19')
+    expect(
+      photoItemPatch({ ...nothing, size: '7.5', folded_in_half: false }, 'jewelry', 'bracelet').jewelry_size,
+    ).toBe('7.5')
+    // Folded but the reading is not a plain number: left empty, not guessed.
+    expect(
+      'jewelry_size' in
+        photoItemPatch({ ...nothing, size: 'about 11', folded_in_half: true }, 'jewelry', 'chain'),
+    ).toBe(false)
     // No tool in the photo: Size is left as the clerk has it.
     expect('jewelry_size' in photoItemPatch(nothing, 'jewelry', 'ring')).toBe(false)
   })

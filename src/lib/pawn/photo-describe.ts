@@ -59,6 +59,11 @@ export const PhotoItemSchema = z.object({
    *  a ring sizer / mandrel ("9", "9.5"), a length in inches from a ruler or
    *  tape ("22"). */
   size: text,
+  /** The chain lies FOLDED IN HALF along the ruler (both ends at 0, the
+   *  fold at the far end) — the shop's tray is shorter than a long chain
+   *  (Eddy, 2026-11-25). The code doubles the reading; the model only says
+   *  what it sees. */
+  folded_in_half: z.boolean().nullable(),
   stones: z.array(
     z.object({
       qty: z.number().nullable(),
@@ -142,6 +147,15 @@ export function styleWordsFor(inventoryCategory: string): string[] {
   return words(styleKeysFor(inventoryCategory), en.pawn.new_.styles)
 }
 
+/** A chain laid folded in half: its length is twice the ruler reading
+ *  ("11" → "22", "9.5" → "19"). A reading that is not a plain number is
+ *  dropped — better an empty Size than a wrong one. */
+function doubled(reading: string): string {
+  if (!/^\d+([.,]\d+)?$/.test(reading)) return ''
+  const n = Math.round(parseFloat(reading.replace(',', '.')) * 2 * 100) / 100
+  return String(n)
+}
+
 /** The yellow-gold a jewelry piece starts on is only right for a yellow or
  *  rose piece. */
 const GOLD_BY_EYE = new Set(['yellow', 'rose', 'two-tone', 'tri-color'])
@@ -173,7 +187,8 @@ export function photoItemPatch(
   const serial = clean(item.serial, 80)
   // A bare number: the description adds "size" for a ring and "in" for a
   // chain (lib/pawn/item-description), so the unit is not written here.
-  const size = clean(item.size, 20).replace(/^size\s+/i, '').replace(/\s*(in|inch|inches|")$/i, '')
+  const read = clean(item.size, 20).replace(/^size\s+/i, '').replace(/\s*(in|inch|inches|")$/i, '')
+  const size = item.folded_in_half ? doubled(read) : read
 
   if (topSlug === 'jewelry') {
     if (size) patch.jewelry_size = size
