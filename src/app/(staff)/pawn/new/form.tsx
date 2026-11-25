@@ -12,6 +12,7 @@ import {
 import Link from 'next/link'
 import { CheckCircle, FloppyDisk, Plus, Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitInputFiles } from '@/lib/uploads/fit-photo'
 import StalePriceBanner, {
   StaleSpotConfirm,
 } from '@/components/inventory/StalePriceBanner'
@@ -277,8 +278,11 @@ export default function NewPawnLoanForm({
     }
   }, [initialDraft])
 
-  function onSigChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSigPreview(e.target.files?.[0]?.name ?? null)
+  // A photographed signature: HEIC becomes JPEG and a big photo shrinks
+  // (lib/uploads/fit-photo); a PDF goes as it is.
+  async function onSigChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const [file] = await fitInputFiles(e.currentTarget, t.common.preparingPhoto)
+    setSigPreview(file?.name ?? null)
   }
 
   function onSaveDraft() {

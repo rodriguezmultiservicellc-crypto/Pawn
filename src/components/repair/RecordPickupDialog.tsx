@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { CheckCircle, Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitInputFiles } from '@/lib/uploads/fit-photo'
 import { Modal, Footer } from '@/components/pawn/RecordPaymentDialog'
 import type { PaymentMethod } from '@/types/database-aliases'
 
@@ -33,9 +34,18 @@ export function RecordPickupDialog({
   const sigRef = useRef<HTMLInputElement>(null)
   const [sigFileName, setSigFileName] = useState<string | null>(null)
 
-  function onSigChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    setSigFileName(f ? f.name : null)
+  const [sigBusy, setSigBusy] = useState(false)
+
+  // A photographed signature: HEIC becomes JPEG and a big photo shrinks
+  // (lib/uploads/fit-photo); a PDF goes as it is.
+  async function onSigChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSigBusy(true)
+    try {
+      const [f] = await fitInputFiles(e.currentTarget, t.common.preparingPhoto)
+      setSigFileName(f ? f.name : null)
+    } finally {
+      setSigBusy(false)
+    }
   }
 
   function submit() {
@@ -57,7 +67,7 @@ export function RecordPickupDialog({
   }
 
   const trimmedName = name.trim()
-  const canSubmit = trimmedName.length >= 2
+  const canSubmit = trimmedName.length >= 2 && !sigBusy
 
   return (
     <Modal title={t.repair.dialogs.recordPickup.title} onClose={onClose}>

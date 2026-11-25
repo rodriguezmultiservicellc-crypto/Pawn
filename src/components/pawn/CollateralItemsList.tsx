@@ -11,6 +11,8 @@ import {
 import Image from 'next/image'
 import { Plus, Camera, Warning, X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitInputFiles } from '@/lib/uploads/fit-photo'
+import { isBrowserRenderableImage, resolveUploadMime } from '@/lib/uploads/mime'
 import { en } from '@/lib/i18n/en'
 import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
@@ -1015,14 +1017,27 @@ function CollateralRow({
   const metalValue = metalValueOf(row)
   const metalValueAsText = metalValueText(metalValue)
 
-  function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null
-    if (!file) {
+  const [photoBusy, setPhotoBusy] = useState(false)
+
+  // HEIC becomes JPEG and a big photo shrinks before the ticket is sent
+  // (lib/uploads/fit-photo). While that runs, the input is invalid, so
+  // "Add item" / "Done" and "Issue" wait for it.
+  async function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.currentTarget
+    if (!input.files?.[0]) {
       onChange({ photo: null, photoPreview: null })
       return
     }
-    const preview = URL.createObjectURL(file)
-    onChange({ photo: file, photoPreview: preview })
+    setPhotoBusy(true)
+    try {
+      const [file] = await fitInputFiles(input, t.common.preparingPhoto)
+      const preview = isBrowserRenderableImage(resolveUploadMime(file))
+        ? URL.createObjectURL(file)
+        : null
+      onChange({ photo: file, photoPreview: preview })
+    } finally {
+      setPhotoBusy(false)
+    }
   }
 
   const complete = isRowComplete(row, categoryStepDone)
@@ -1232,7 +1247,11 @@ function CollateralRow({
             className="group relative flex h-24 w-full items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-background hover:bg-background hover:text-foreground"
             aria-label={t.pawn.new_.itemPhoto}
           >
-            {row.photoPreview ? (
+            {photoBusy ? (
+              <span className="px-2 text-center text-[10px] text-muted">
+                {t.common.preparingPhoto}
+              </span>
+            ) : row.photoPreview ? (
               <Image
                 src={row.photoPreview}
                 alt=""
@@ -1241,6 +1260,10 @@ function CollateralRow({
                 unoptimized
                 className="object-cover"
               />
+            ) : row.photo ? (
+              <span className="break-all px-2 text-center text-[10px] text-foreground">
+                {row.photo.name}
+              </span>
             ) : (
               <span className="flex flex-col items-center gap-1 text-muted">
                 <Camera size={20} weight="regular" />

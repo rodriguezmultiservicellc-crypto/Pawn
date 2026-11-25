@@ -14,6 +14,7 @@ import {
   User,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitPhotoForUpload } from '@/lib/uploads/fit-photo'
 import { customerFieldErrorText } from '@/lib/customers/field-errors'
 import { isBrowserRenderableImage } from '@/lib/uploads/mime'
 import {
@@ -844,12 +845,13 @@ function PhotoBlock({
   }
 
   function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const fd = new FormData()
-    fd.set('customer_id', customerId)
-    fd.set('file', file)
+    const picked = e.target.files?.[0]
+    if (!picked) return
     startTransition(async () => {
+      // HEIC becomes JPEG and a big photo shrinks (lib/uploads/fit-photo).
+      const fd = new FormData()
+      fd.set('customer_id', customerId)
+      fd.set('file', await fitPhotoForUpload(picked))
       const res = await uploadCustomerPhotoAction(fd)
       if (res.error) setError(res.error)
       if (ref.current) ref.current.value = ''
@@ -1183,19 +1185,21 @@ function UploadButton({
   }
 
   function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const fd = new FormData()
-    fd.set('customer_id', customerId)
-    fd.set('kind', kind)
-    fd.set('file', file)
-    if (kind === 'id_scan') {
-      if (defaultIdType) fd.set('id_type', defaultIdType)
-      if (defaultIdNumber) fd.set('id_number', defaultIdNumber)
-      if (defaultIdState) fd.set('id_state', defaultIdState)
-      if (defaultIdExpiry) fd.set('id_expiry', defaultIdExpiry)
-    }
+    const picked = e.target.files?.[0]
+    if (!picked) return
     startTransition(async () => {
+      // HEIC becomes JPEG and a big photo shrinks (lib/uploads/fit-photo);
+      // a PDF goes as it is.
+      const fd = new FormData()
+      fd.set('customer_id', customerId)
+      fd.set('kind', kind)
+      fd.set('file', await fitPhotoForUpload(picked))
+      if (kind === 'id_scan') {
+        if (defaultIdType) fd.set('id_type', defaultIdType)
+        if (defaultIdNumber) fd.set('id_number', defaultIdNumber)
+        if (defaultIdState) fd.set('id_state', defaultIdState)
+        if (defaultIdExpiry) fd.set('id_expiry', defaultIdExpiry)
+      }
       const res = await uploadCustomerDocumentAction(fd)
       if (res.error) setError(res.error)
       if (ref.current) ref.current.value = ''

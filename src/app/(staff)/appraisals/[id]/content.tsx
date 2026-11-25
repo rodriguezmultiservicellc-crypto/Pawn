@@ -11,6 +11,7 @@ import {
   UploadSimple,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitInputFiles } from '@/lib/uploads/fit-photo'
 import { formatAppraisalMoney } from '@/lib/appraisals/format'
 import {
   addPhotoAction,
@@ -682,6 +683,7 @@ function PhotoUploader({
         name="file"
         accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
         required
+        onChange={(e) => void fitInputFiles(e.currentTarget, t.common.preparingPhoto)}
         className="text-xs"
       />
       <button

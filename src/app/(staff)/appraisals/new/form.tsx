@@ -4,6 +4,7 @@ import { useActionState, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Plus, Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitInputFiles } from '@/lib/uploads/fit-photo'
 import CustomerPicker from '@/components/customers/CustomerPicker'
 import {
   createAppraisalAction,
@@ -83,8 +84,10 @@ export default function NewAppraisalForm({
     setStones((prev) => prev.filter((s) => s.uid !== uid))
   }
 
-  function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files ? Array.from(e.target.files) : []
+  // HEIC becomes JPEG and big photos shrink before the form is sent
+  // (lib/uploads/fit-photo); the input is invalid until that is done.
+  async function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = await fitInputFiles(e.currentTarget, t.common.preparingPhoto)
     setPhotoNames(files.map((f) => f.name))
   }
 

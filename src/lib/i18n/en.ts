@@ -50,6 +50,7 @@ export const en = {
     remove: 'Remove',
     upload: 'Upload',
     uploading: 'Uploading…',
+    preparingPhoto: 'Preparing the photo…',
     view: 'View',
     download: 'Download',
     actions: 'Actions',

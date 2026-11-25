@@ -17,6 +17,7 @@ import {
   X,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitPhotoForUpload } from '@/lib/uploads/fit-photo'
 import { formatMoney } from '@/lib/format/money'
 import { r2 } from '@/lib/money'
 import { splitConsignment, toMoney } from '@/lib/consignment/math'
@@ -507,12 +508,13 @@ function PhotosPanel({
   }
 
   function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const fd = new FormData()
-    fd.set('item_id', itemId)
-    fd.set('file', file)
+    const picked = e.target.files?.[0]
+    if (!picked) return
     startTransition(async () => {
+      // HEIC becomes JPEG and a big photo shrinks (lib/uploads/fit-photo).
+      const fd = new FormData()
+      fd.set('item_id', itemId)
+      fd.set('file', await fitPhotoForUpload(picked))
       const res = await uploadInventoryPhotoAction(fd)
       if (res.error) setError(res.error)
       if (ref.current) ref.current.value = ''

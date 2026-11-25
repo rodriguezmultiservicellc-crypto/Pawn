@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import { Image as ImageIcon, Plus, Trash, Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitPhotoForUpload } from '@/lib/uploads/fit-photo'
 import type { RepairPhotoKind } from '@/types/database-aliases'
 
 export type RepairPhotoItem = {
@@ -57,13 +58,16 @@ export function PhotosPanel({
   }
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    const fd = new FormData()
-    fd.set('ticket_id', ticketId)
-    fd.set('kind', activeKind)
-    fd.set('file', f)
+    const picked = e.target.files?.[0]
+    if (!picked) return
+    const kind = activeKind
     startTransition(async () => {
+      // HEIC becomes JPEG and a big photo shrinks (lib/uploads/fit-photo).
+      const f = await fitPhotoForUpload(picked)
+      const fd = new FormData()
+      fd.set('ticket_id', ticketId)
+      fd.set('kind', kind)
+      fd.set('file', f)
       const res = await onUpload(fd)
       if (res.error) setError(res.error)
       if (fileRef.current) fileRef.current.value = ''

@@ -45,6 +45,7 @@ export const es: Dictionary = {
     remove: 'Quitar',
     upload: 'Subir',
     uploading: 'Subiendo…',
+    preparingPhoto: 'Preparando la foto…',
     view: 'Ver',
     download: 'Descargar',
     actions: 'Acciones',

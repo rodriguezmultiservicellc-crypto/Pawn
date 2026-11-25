@@ -27,6 +27,16 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // Photos reach the server through server actions, whose body is capped at
+  // 1 MB by default: one phone photo on a pawn ticket was enough to fail the
+  // save. The browser now shrinks every photo first (lib/uploads/fit-photo,
+  // ~2000 px JPEG); this leaves room for a ticket with several. Stay under
+  // Vercel's own 4.5 MB request limit.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '4mb',
+    },
+  },
   // Route globs → files traced into those functions (picomatch on the
   // route path; values relative to the project root). Every route that
   // calls registerPdfFonts() lives under one of these three prefixes.

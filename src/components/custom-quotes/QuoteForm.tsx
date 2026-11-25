@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Lock, LockOpen, Plus, Trash } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitInputFiles } from '@/lib/uploads/fit-photo'
 import { formatMoney } from '@/lib/format/money'
 import CustomerPicker, { type CustomerPickerHandle } from '@/components/customers/CustomerPicker'
 import QuickCustomerModal from '@/components/customers/QuickCustomerModal'
@@ -511,6 +512,7 @@ export default function QuoteForm({
               type="file"
               name="reference_photo"
               accept="image/*,.heic,.heif"
+              onChange={(e) => void fitInputFiles(e.currentTarget, t.common.preparingPhoto)}
               className="block w-full text-sm text-foreground"
             />
             <span className="block text-xs text-muted">

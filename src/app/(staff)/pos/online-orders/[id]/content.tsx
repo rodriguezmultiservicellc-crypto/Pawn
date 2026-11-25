@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Package, Truck, Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitInputFiles } from '@/lib/uploads/fit-photo'
 import { formatMoney } from '@/lib/format/money'
 import { absoluteTimestamp } from '@/lib/format/datetime'
 import { ORDER_STATUS_TONE } from '@/components/store/order-status'
@@ -152,7 +153,7 @@ export default function OnlineOrderDetail({ order }: { order: OrderDetail }) {
               </div>
               <label className="block space-y-1 text-sm">
                 <span className="font-semibold text-foreground">{o.actions.signature}</span>
-                <input name="signature_file" type="file" required accept="image/*,application/pdf" capture="environment" className="block text-sm" />
+                <input name="signature_file" type="file" required accept="image/*,application/pdf" capture="environment" onChange={(e) => void fitInputFiles(e.currentTarget, t.common.preparingPhoto)} className="block text-sm" />
               </label>
               <button type="submit" disabled={pending} className={btnPrimary}>
                 {pending ? o.actions.working : o.actions.confirmHandOver}

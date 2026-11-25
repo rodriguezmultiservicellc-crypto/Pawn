@@ -10,6 +10,8 @@ import {
   Trash,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { fitInputFiles } from '@/lib/uploads/fit-photo'
+import { isBrowserRenderableImage, resolveUploadMime } from '@/lib/uploads/mime'
 import { formatMoney } from '@/lib/format/money'
 import StalePriceBanner, {
   StaleSpotConfirm,
@@ -533,13 +535,18 @@ function ItemCard({
     label: v === '' ? f.metalNone : (t.spotPrices.metals as Record<string, string>)[v] ?? v,
   }))
 
-  const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null
-    if (!file) {
+  // HEIC becomes JPEG and a big photo shrinks before the buy is sent
+  // (lib/uploads/fit-photo); the input is invalid until that is done.
+  const onPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget
+    if (!input.files?.[0]) {
       onPatch({ photoFile: null, photoPreview: null })
       return
     }
-    const url = URL.createObjectURL(file)
+    const [file] = await fitInputFiles(input, t.common.preparingPhoto)
+    const url = isBrowserRenderableImage(resolveUploadMime(file))
+      ? URL.createObjectURL(file)
+      : null
     onPatch({ photoFile: file, photoPreview: url })
   }
 
