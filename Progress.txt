@@ -112,7 +112,7 @@ OPERATION IN FLIGHT: none
                   cached (~$0.018 when the 5-min cache is cold); each extra
                   photo ~+$0.0055.
 
-                  RULES WORTH A /convention (not in CLAUDE.md yet):
+                  RULES BELOW — DONE 2026-11-25: now CLAUDE.md rules 28-29:
                   - Intake photos (pawn + buy) upload from the browser into
                     <tenant>/intake/<uuid>.<ext> of inventory-photos
                     (PhotoStrip); forms carry only paths; servers take them
@@ -2418,7 +2418,7 @@ PENDING — NEXT UP
     Session 70 — have Eddy try on the live site (RESUME block list): a
     pawn ticket with 3 photos + Describe from photo, ISSUED; a draft with
     photos resumed; a buy with 2 photos; ANTHROPIC_API_KEY in Vercel; the
-    phone login (Luna Azul?). Offer /convention for the Session 70 rules.
+    phone login (Luna Azul?). (Session 70 rules are CLAUDE.md 28-29.)
     Later: a cleanup job for intake photos of abandoned tickets (files in
     <tenant>/intake/ referenced by no loan_collateral_items, no
     inventory_item_photos and no loan_drafts payload, older than ~30 days).

@@ -404,6 +404,40 @@ Never kill node processes by image name — always by PID.
       (a file input's "cancel" bubbles). Enter in a field = Add item / Done,
       never submit the ticket.
 
+28. **Item photos at intake upload from the browser, never through a
+    server action** (pawn ticket collateral + buy outright, patches/0114).
+    - `PhotoStrip` (`src/components/uploads/PhotoStrip.tsx`) fits each
+      photo (`fitPhotoForUpload`: HEIC → JPEG, shrunk) and uploads it to
+      `inventory-photos/<tenant_id>/intake/<uuid>.<ext>`. The form carries
+      only a JSON list of paths, main photo first, at most 6 per item
+      (`INTAKE_PHOTO_MAX`).
+    - A server takes that list ONLY through `confirmIntakePhotos()`
+      (`src/lib/uploads/intake-photos-server.ts`: this tenant's intake
+      folder + the file exists), BEFORE it writes anything. Never send a
+      photo File inside a server action again — the body cap (4 MB,
+      `next.config.ts`) fails a ticket with a few phone photos.
+    - Pawn: `loan_collateral_items.photo_path` is the MAIN photo, the rest
+      go in `extra_photo_paths` (at most 5). Read all of them through
+      `allPhotoPaths()` (ticket page, forfeit, anything new). Buy: one
+      `inventory_item_photos` row per photo, main = position 0.
+    - Drafts keep the paths in their payload; the page signs them with
+      `signIntakePhotos()` when the draft is resumed.
+
+29. **"Describe from photo" — the AI only fills what can be SEEN, and the
+    clerk checks it** (`/api/ai/vision/pawn-item`, rule 7).
+    - The AI never names a stone: every stone line is written as Cubic
+      zirconia (count, shape, color) and the clerk changes it after
+      testing (Eddy, 2026-11-25). It never fills a weight, a value, carats
+      or clarity, and a karat only from a legible stamp.
+    - Its answer reaches the popup ONLY through `photoItemPatch()` /
+      `seenCategory()` (`src/lib/pawn/photo-describe.ts`): saved words are
+      the shop's English choices (rule 27), slugs must be the shop's own.
+    - It runs only when the clerk presses the button — never automatically
+      (each press costs ~1 cent, +~½ cent per extra photo).
+    - The model is one constant, `PAWN_ITEM_PHOTO_MODEL` in
+      `src/lib/ai/prompts.ts` (Sonnet 5.5 or newer, Eddy). The gate is
+      `pawnIntakeGate()`, shared with voice intake.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN
