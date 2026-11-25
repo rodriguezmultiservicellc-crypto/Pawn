@@ -56,6 +56,9 @@ export const en = {
       main: 'Main',
       makeMain: 'Make this the main photo',
       remove: 'Remove photo',
+      view: 'See this photo bigger',
+      viewerTitle: 'Photo {n} of {total}',
+      replace: 'Replace photo',
       max: 'An item can have up to {n} photos.',
       failed: 'A photo could not be uploaded. Try again.',
       missing:

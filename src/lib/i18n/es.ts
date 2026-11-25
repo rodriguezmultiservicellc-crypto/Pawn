@@ -51,6 +51,9 @@ export const es: Dictionary = {
       main: 'Principal',
       makeMain: 'Hacer esta la foto principal',
       remove: 'Quitar foto',
+      view: 'Ver esta foto más grande',
+      viewerTitle: 'Foto {n} de {total}',
+      replace: 'Cambiar foto',
       max: 'Un artículo puede tener hasta {n} fotos.',
       failed: 'No se pudo subir una foto. Intente de nuevo.',
       missing:
