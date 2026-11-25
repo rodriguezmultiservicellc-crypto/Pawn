@@ -388,15 +388,6 @@ export async function uploadCustomerPhotoAction(
 
   const { tenantId, supabase, userId } = await resolveCustomerTenant(customerId)
 
-  // Read the prior photo path so we can clean it up after the swap.
-  const { data: prior } = await supabase
-    .from('customers')
-    .select('photo_url')
-    .eq('id', customerId)
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
-  const priorPath = prior?.photo_url ?? null
-
   const up = await prepareUpload(file, mime)
 
   const path = customerPhotoPath({
@@ -426,13 +417,9 @@ export async function uploadCustomerPhotoAction(
     return { error: error.message }
   }
 
-  // Best-effort cleanup of the prior photo file.
-  if (priorPath && priorPath !== path) {
-    await deleteFromBucket({
-      bucket: CUSTOMER_DOCUMENTS_BUCKET,
-      path: priorPath,
-    }).catch(() => {})
-  }
+  // The prior photo's file is KEPT: every pawn and buy copies the
+  // customer's photo_url into its compliance_log row (rule 15), so the
+  // police record still points at it (and rule 13 retention applies).
 
   await logAudit({
     tenantId,
@@ -441,6 +428,38 @@ export async function uploadCustomerPhotoAction(
     tableName: 'customers',
     recordId: customerId,
     changes: { photo_swapped: true },
+  })
+
+  revalidatePath(`/customers/${customerId}`)
+  return {}
+}
+
+/**
+ * Takes the photo off the customer's record. The file stays in the bucket,
+ * for the same reason a swap keeps it: compliance_log rows point at it.
+ */
+export async function removeCustomerPhotoAction(
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const customerId = (formData.get('customer_id') as string | null)?.trim()
+  if (!customerId) return { error: 'missing customer_id' }
+
+  const { tenantId, supabase, userId } = await resolveCustomerTenant(customerId)
+
+  const { error } = await supabase
+    .from('customers')
+    .update({ photo_url: null, updated_by: userId })
+    .eq('id', customerId)
+    .eq('tenant_id', tenantId)
+  if (error) return { error: error.message }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'update',
+    tableName: 'customers',
+    recordId: customerId,
+    changes: { photo_removed: true, storage_object_kept: true },
   })
 
   revalidatePath(`/customers/${customerId}`)

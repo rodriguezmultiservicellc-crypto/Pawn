@@ -16,7 +16,7 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import { fitPhotoForUpload } from '@/lib/uploads/fit-photo'
 import { customerFieldErrorText } from '@/lib/customers/field-errors'
-import { isBrowserRenderableImage } from '@/lib/uploads/mime'
+import { PHOTO_ACCEPT, isBrowserRenderableImage } from '@/lib/uploads/mime'
 import {
   CustomerFormFields,
   type CustomerFieldValues,
@@ -30,9 +30,12 @@ import {
   deleteCustomerDocumentAction,
   updateCustomerAction,
   uploadCustomerDocumentAction,
+  removeCustomerPhotoAction,
   uploadCustomerPhotoAction,
   type UpdateCustomerState,
 } from './actions'
+import { PhotoViewer } from '@/components/uploads/PhotoViewer'
+import { FOCUS } from '@/lib/ui/ledger'
 import type {
   CommPreference,
   CustomerDocKind,
@@ -753,7 +756,8 @@ function CustomerLoansPanel({
  * The customer's ID scan, surfaced in the record header so staff can eyeball it
  * against the person in front of them without scrolling to Documents.
  *
- * Deliberately a THUMBNAIL that opens the full scan in a new tab, not a banner.
+ * Deliberately a THUMBNAIL that opens the full scan on a click (the photo
+ * viewer; a PDF in a new tab), not a banner.
  * DESIGN-lunaazul.md: ID scans are "never rendered at hero scale, never shown
  * in any browse surface". A customer's detail page is the record itself rather
  * than a browse surface, so a small gated tile here is consistent — a
@@ -767,6 +771,7 @@ function CustomerLoansPanel({
  */
 function IdScanBlock({ documents }: { documents: CustomerDocumentItem[] }) {
   const { t } = useI18n()
+  const [viewing, setViewing] = useState(false)
 
   // Most recent first — page.tsx orders by created_at desc.
   const scan = documents.find(
@@ -789,36 +794,62 @@ function IdScanBlock({ documents }: { documents: CustomerDocumentItem[] }) {
   // Firefox refuse to paint, so an <img> would render broken on the shop's
   // own machines. Those fall through to the link tile below.
   const isImage = isBrowserRenderableImage(scan.mime_type)
+  const tileClass = `group relative block h-28 w-full overflow-hidden rounded-xl border border-border bg-background transition-all hover:-translate-y-0.5 hover:shadow-lg ${FOCUS}`
+  const tileInner = (
+    <>
+      {isImage ? (
+        <Image
+          src={scan.signed_url as string}
+          alt={t.customers.documentIdScan}
+          fill
+          sizes="176px"
+          unoptimized
+          className="object-cover"
+        />
+      ) : (
+        // PDFs and anything else that cannot render as an <img>.
+        <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted">
+          <Eye size={20} weight="light" />
+          <span className="text-xs">{t.customers.idScanOpen}</span>
+        </div>
+      )}
+      <div className="absolute inset-0 flex items-center justify-center bg-navy/40 opacity-0 transition-opacity group-hover:opacity-100">
+        <Eye size={20} weight="bold" className="text-white" />
+      </div>
+    </>
+  )
 
   return (
     <div className="hidden w-44 shrink-0 sm:block">
-      <a
-        href={scan.signed_url ?? undefined}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={t.customers.idScanOpen}
-        className="group relative block h-28 w-full overflow-hidden rounded-xl border border-border bg-background transition-all hover:-translate-y-0.5 hover:shadow-lg"
-      >
-        {isImage ? (
-          <Image
-            src={scan.signed_url as string}
-            alt={t.customers.documentIdScan}
-            fill
-            sizes="176px"
-            unoptimized
-            className="object-cover"
-          />
-        ) : (
-          // PDFs and anything else that cannot render as an <img>.
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted">
-            <Eye size={20} weight="light" />
-            <span className="text-xs">{t.customers.idScanOpen}</span>
-          </div>
-        )}
-        <div className="absolute inset-0 flex items-center justify-center bg-navy/40 opacity-0 transition-opacity group-hover:opacity-100">
-          <Eye size={20} weight="bold" className="text-white" />
-        </div>
-      </a>
+      {/* An image opens big in the viewer (view only); a PDF in a new tab. */}
+      {isImage ? (
+        <button
+          type="button"
+          onClick={() => setViewing(true)}
+          title={t.customers.idScanOpen}
+          className={`${tileClass} cursor-zoom-in`}
+        >
+          {tileInner}
+        </button>
+      ) : (
+        <a
+          href={scan.signed_url ?? undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t.customers.idScanOpen}
+          className={tileClass}
+        >
+          {tileInner}
+        </a>
+      )}
+      {isImage ? (
+        <PhotoViewer
+          photos={[{ path: scan.id, url: scan.signed_url, name: t.customers.documentIdScan }]}
+          index={viewing ? 0 : null}
+          onIndex={(i) => setViewing(i != null)}
+          noMain
+        />
+      ) : null}
       <div className="mt-1 truncate text-center text-xs text-muted">
         {scan.id_type
           ? `${labelForIdType(scan.id_type, t)}${scan.id_state ? ` · ${scan.id_state}` : ''}`
@@ -835,26 +866,45 @@ function PhotoBlock({
   customerId: string
   signedUrl: string | null
 }) {
+  const { t } = useI18n()
   const ref = useRef<HTMLInputElement>(null)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  // With a photo, a click opens it big (Replace / Remove); without one, a
+  // click picks a photo.
+  const [viewing, setViewing] = useState(false)
 
   function onPick() {
     setError(null)
     ref.current?.click()
   }
 
-  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = e.target.files?.[0]
-    if (!picked) return
+  function upload(picked: File) {
     startTransition(async () => {
+      setError(null)
       // HEIC becomes JPEG and a big photo shrinks (lib/uploads/fit-photo).
       const fd = new FormData()
       fd.set('customer_id', customerId)
       fd.set('file', await fitPhotoForUpload(picked))
       const res = await uploadCustomerPhotoAction(fd)
       if (res.error) setError(res.error)
-      if (ref.current) ref.current.value = ''
+    })
+  }
+
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0]
+    e.target.value = ''
+    if (picked) upload(picked)
+  }
+
+  function removePhoto() {
+    startTransition(async () => {
+      setError(null)
+      const fd = new FormData()
+      fd.set('customer_id', customerId)
+      const res = await removeCustomerPhotoAction(fd)
+      if (res.error) setError(res.error)
+      else setViewing(false)
     })
   }
 
@@ -862,10 +912,16 @@ function PhotoBlock({
     <div>
       <button
         type="button"
-        onClick={onPick}
+        onClick={() => {
+          if (signedUrl) {
+            setError(null)
+            setViewing(true)
+          } else onPick()
+        }}
         disabled={pending}
-        className="group relative h-24 w-24 overflow-hidden rounded-full border border-border bg-background disabled:opacity-50"
-        title="Upload photo"
+        className={`group relative h-24 w-24 overflow-hidden rounded-full border border-border bg-background disabled:opacity-50 ${signedUrl ? 'cursor-zoom-in' : ''} ${FOCUS}`}
+        title={signedUrl ? t.common.photoStrip.view : t.common.photoStrip.add}
+        aria-label={signedUrl ? t.common.photoStrip.view : t.common.photoStrip.add}
       >
         {signedUrl ? (
           <Image
@@ -882,17 +938,34 @@ function PhotoBlock({
           </div>
         )}
         <div className="absolute inset-0 flex items-center justify-center bg-navy/40 opacity-0 transition-opacity group-hover:opacity-100">
-          <Camera size={20} weight="bold" className="text-white" />
+          {signedUrl ? (
+            <Eye size={20} weight="bold" className="text-white" />
+          ) : (
+            <Camera size={20} weight="bold" className="text-white" />
+          )}
         </div>
       </button>
       <input
         ref={ref}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+        accept={PHOTO_ACCEPT}
         onChange={onChange}
         className="sr-only"
       />
-      {error ? <div className="mt-1 text-xs text-danger">{error}</div> : null}
+      {error && !viewing ? <div className="mt-1 text-xs text-danger">{error}</div> : null}
+      <PhotoViewer
+        photos={signedUrl ? [{ path: signedUrl, url: signedUrl, name: '' }] : []}
+        index={viewing && signedUrl ? 0 : null}
+        onIndex={(i) => setViewing(i != null)}
+        noMain
+        edit={{
+          busy: pending,
+          error,
+          accept: PHOTO_ACCEPT,
+          onRemove: () => removePhoto(),
+          onReplace: (_path, file) => upload(file),
+        }}
+      />
     </div>
   )
 }
@@ -1046,6 +1119,11 @@ function DocumentsPanel({
 }) {
   const { t } = useI18n()
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null)
+  // The image documents open in the viewer (view only); a PDF in a new tab.
+  const imageDocs = documents.filter(
+    (d) => d.signed_url && isBrowserRenderableImage(d.mime_type),
+  )
+  const [viewing, setViewing] = useState<number | null>(null)
 
   return (
     <fieldset className="rounded-xl border border-border bg-card p-4">
@@ -1104,7 +1182,16 @@ function DocumentsPanel({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {doc.signed_url ? (
+                  {imageDocs.some((d) => d.id === doc.id) ? (
+                    <button
+                      type="button"
+                      onClick={() => setViewing(imageDocs.findIndex((d) => d.id === doc.id))}
+                      className={`inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground ${FOCUS}`}
+                    >
+                      <Eye size={12} weight="bold" />
+                      {t.customers.viewDocument}
+                    </button>
+                  ) : doc.signed_url ? (
                     <a
                       href={doc.signed_url}
                       target="_blank"
@@ -1133,6 +1220,16 @@ function DocumentsPanel({
           </p>
         ) : null}
       </div>
+      <PhotoViewer
+        photos={imageDocs.map((d) => ({
+          path: d.id,
+          url: d.signed_url,
+          name: d.kind === 'id_scan' ? t.customers.documentIdScan : t.customers.documentSignature,
+        }))}
+        index={viewing}
+        onIndex={setViewing}
+        noMain
+      />
     </fieldset>
   )
 }
