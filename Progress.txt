@@ -60,7 +60,74 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 69 (2026-11-24, ~18:30), item 607 — docs only:
+  Last session:   Session 70 (2026-11-25, ~13:10), items 608-614.
+                  Context budget at save: high (my estimate ~75%; start the
+                  next session fresh).
+                  ONE MIGRATION, APPLIED TO THE LIVE DB: 0114
+                  (loan_collateral_items.extra_photo_paths TEXT[], CHECK <= 5).
+                  main == feature/sol-pawn-brief. Nothing is half-built.
+                  Built + pushed today: Status column off the Pawn list (608),
+                  HEIC/big photos fitted in the browser + 4 MB server-action
+                  cap (609), "Describe from photo" AI on Sonnet 5.5 (610),
+                  chain length reads "22 in" (611), up to 6 photos per item
+                  on pawn + buy (612), password eye on sign-in (613).
+
+                  ACTIVE FILES (last touched):
+                    src/components/uploads/PhotoStrip.tsx   the photo strip
+                    src/lib/uploads/intake-photos.ts (+ -server, + test)
+                    src/lib/uploads/fit-photo.ts            HEIC -> JPEG
+                    src/components/pawn/CollateralItemsList.tsx
+                    src/app/(staff)/pawn/new/{actions,form,page}.tsx
+                    src/app/(staff)/pawn/[id]/{page,content,actions}.ts(x)
+                    src/app/(staff)/buy/new/{actions,form,page}.tsx
+                    src/app/api/ai/vision/pawn-item/route.ts
+                    src/lib/ai/{prompts,pawn-item-photo,pawn-intake-gate}.ts
+                    src/lib/pawn/photo-describe.ts (+ test)
+                    src/lib/pawn/intake-categories.ts
+                    src/components/ui/PasswordInput.tsx
+                    patches/0114-collateral-extra-photos.sql
+
+                  RESUME POINT: nothing half-built. Have Eddy try on the
+                  LIVE site (none of it was saved through a real ticket —
+                  only local-server browser runs, no ticket/buy issued):
+                  1. New pawn ticket: an item with 3 photos (one HEIC from
+                     his phone), make another the main one, "Describe from
+                     photo", ISSUE it; open the ticket page (all photos show,
+                     tap opens full size). Save a draft with photos and
+                     resume it (photos come back).
+                  2. Buy outright with 2 photos on an item; the item's
+                     inventory page shows both.
+                  3. Confirm ANTHROPIC_API_KEY is set in Vercel (if not,
+                     the button says "not set up yet").
+                  4. Phone login: he got "not attached to any agency" —
+                     NOT a Pawn message (Pawn says "No shop assigned"; his
+                     Pawn account is a superadmin + active owner of Eddy's
+                     Jewelers Corp., checked read-only). Likely the phone
+                     opened Luna Azul. If so: handoff to the Luna Azul
+                     session, not fixed here (lane).
+                  Then PENDING IMMEDIATE.
+
+                  AI COST (measured 2026-11-25 from API usage, Sonnet 5.5,
+                  effort low): 1 photo ~$0.0095 with the system prompt
+                  cached (~$0.018 when the 5-min cache is cold); each extra
+                  photo ~+$0.0055.
+
+                  RULES WORTH A /convention (not in CLAUDE.md yet):
+                  - Intake photos (pawn + buy) upload from the browser into
+                    <tenant>/intake/<uuid>.<ext> of inventory-photos
+                    (PhotoStrip); forms carry only paths; servers take them
+                    ONLY through confirmIntakePhotos (this tenant + file
+                    exists) before writing anything. Never send photo Files
+                    through a server action again.
+                  - loan_collateral_items.photo_path = main photo; the rest
+                    in extra_photo_paths; read all via allPhotoPaths().
+                  - "Describe from photo": the AI never names a stone
+                    (always Cubic zirconia), never a weight/value/carat;
+                    mapper lib/pawn/photo-describe is the only way its
+                    answer reaches the popup. Model constant in
+                    lib/ai/prompts.ts (PAWN_ITEM_PHOTO_MODEL).
+
+  Session 69 (2026-11-24, ~18:30), item 607 — docs only:
                   the rules this block listed are now CLAUDE.md critical
                   rules 24-27. No code, no migration. Context ~15%.
                   Everything below (Session 68's state, the try-on-live
@@ -843,6 +910,78 @@ SESSION HISTORY LOG
 2026-11-13, sessions 33-52 archived 2026-11-21, and sessions 53-63
 archived 2026-11-24 to Progress_archive.txt — the items from those
 sessions are there.)
+
+--- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
+
+  608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)
+       src/app/(staff)/pawn/content.tsx — th/td, STATUS_BADGE and
+       labelForStatus deleted; pawn.list.status key removed from en/es.
+       The tabs and the row's colored left edge still say overdue/due soon.
+
+  609. [BUG] HEIC PREVIEW BROKEN + PHONE PHOTOS FAILED THE SAVE (39b2d06)
+       Root cause 1: Chrome/Edge cannot paint HEIC, so the popup showed a
+       broken image (server already converted on save). Root cause 2:
+       photos went inside the server action, whose body cap was Next's
+       default 1 MB — one 2-5 MB phone photo could fail a ticket save.
+       Fix: src/lib/uploads/fit-photo.ts (heic-to, csp build, loaded only
+       for HEIC) turns HEIC into JPEG and shrinks any photo > 700 KB to a
+       2000 px JPEG (q 0.85) before it leaves the browser; wired into every
+       photo input (pawn, buy, appraisals, repair, customers, inventory,
+       quotes, online-order signature). next.config.ts
+       experimental.serverActions.bodySizeLimit = '4mb' (Vercel cap 4.5).
+       Verified in headless Chrome with 2 real iPhone HEICs.
+
+  610. "DESCRIBE FROM PHOTO" — AI FILLS THE ITEM POPUP (ff63a6b)
+       Button under the photos -> /api/ai/vision/pawn-item (Sonnet 5.5,
+       effort low, structured output PhotoItemSchema). Fills color, style
+       (the shop's lists), gender, stamped metal/karat/coating,
+       brand/model/serial when legible, marks, stones. Eddy's decisions:
+       a BUTTON (not automatic); stones ALWAYS "Cubic zirconia" (the AI
+       never names a stone); Sonnet 5.5. Never weight/value/carats. A white
+       piece with no stamp empties Metal. A wrong category (chain under
+       Rings) is changed with a note + "Change back".
+       New shared: src/lib/ai/pawn-intake-gate.ts (voice route uses it
+       too), src/lib/pawn/intake-categories.ts (loader +
+       inventoryCategoryFromSlug, used by the page and the popup),
+       src/lib/pawn/photo-describe.ts (+ 21 tests), src/lib/ai/prompts.ts,
+       src/lib/ai/pawn-item-photo.ts. Live runs: Figaro chain under Rings
+       -> Chains/Figaro; solitaire -> Rings/Solitaire/women's/CZ; drill ->
+       Tools/DEWALT.
+
+  611. CHAIN / NECKLACE / BRACELET LENGTH READS IN INCHES (8f3ca9f)
+       lib/pawn/item-description: isLengthPiece + lengthText — a bare
+       number becomes "22 in" in the description and the printed ticket's
+       Size cell (PawnTransactionForm sizeText). Units typed by the clerk
+       are kept; the saved value is unchanged.
+
+  612. UP TO 6 PHOTOS PER ITEM — PAWN + BUY (e2aeed9, patches/0114 LIVE)
+       src/components/uploads/PhotoStrip.tsx uploads each photo from the
+       browser to inventory-photos/<tenant>/intake/<uuid>.<ext> (existing
+       storage policy — no policy touched), main + make-main + remove; the
+       form carries a JSON path list; a hidden invalid field holds Done /
+       submit while uploading. lib/uploads/intake-photos (parse: this
+       tenant's intake folder only, max 6; + tests) and -server
+       (confirmIntakePhotos: files exist; signIntakePhotos for drafts).
+       Pawn: photo_path = main, extra_photo_paths = rest (0114, CHECK <= 5);
+       ticket page shows all; forfeit copies all to inventory_item_photos;
+       drafts keep photos (page signs them on resume); compliance snapshot
+       carries extra_photo_paths. Buy: one inventory_item_photos row per
+       photo; snapshot carries photo_paths. Describe from photo now reads
+       the item's photos from storage by path (multi-image prompt).
+       Removed: ALLOWED_LOAN/BUY_PHOTO_MIME_TYPES, MAX_LOAN/BUY_PHOTO_BYTES.
+       Browser-tested locally (3 photos, make-main, remove, AI, buy with 2);
+       5 test files deleted from storage after. No ticket/buy saved.
+
+  613. PASSWORD EYE ON SIGN-IN AND SET PASSWORD (09d6100)
+       src/components/ui/PasswordInput.tsx (Eye / EyeSlash, aria-pressed),
+       used by (auth)/login and (auth)/set-password; auth.showPassword /
+       hidePassword in en + es.
+
+  614. PHONE LOGIN "NOT ATTACHED TO ANY AGENCY" — NOT PAWN
+       Pawn has no "agency" wording ("No shop assigned" is Pawn's). Read-
+       only check: Eddy's Pawn auth user is confirmed, superadmin, active
+       owner of Eddy's Jewelers Corp. Likely Luna Azul on the phone; NOT
+       fixed here (lane) — offered a handoff.
 
 --- Session 69 (2026-11-24) — Conventions: CLAUDE.md rules 24-27 (branch feature/sol-pawn-brief == main) ---
 
@@ -2276,6 +2415,13 @@ PENDING — NEXT UP
 
   IMMEDIATE (do this first next session):
     REMEMBER: the shop still runs on xPawn; nothing uploads from Pawn.
+    Session 70 — have Eddy try on the live site (RESUME block list): a
+    pawn ticket with 3 photos + Describe from photo, ISSUED; a draft with
+    photos resumed; a buy with 2 photos; ANTHROPIC_API_KEY in Vercel; the
+    phone login (Luna Azul?). Offer /convention for the Session 70 rules.
+    Later: a cleanup job for intake photos of abandoned tickets (files in
+    <tenant>/intake/ referenced by no loan_collateral_items, no
+    inventory_item_photos and no loan_drafts payload, older than ~30 days).
     Session 68 — have Eddy try once on the live site (nothing was opened
     in a browser this session):
     - Pay together on two real tickets of one customer (Toward
