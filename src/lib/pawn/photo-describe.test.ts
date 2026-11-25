@@ -21,6 +21,7 @@ const nothing: PhotoItem = {
   coating: null,
   gender: null,
   style: null,
+  size: null,
   stones: [],
   stone_notes: null,
   firearm_type: null,
@@ -139,6 +140,16 @@ describe('photoItemPatch — jewelry', () => {
       { qty: '6', type: 'Cubic zirconia', carat: '', color: 'blue', cut: 'baguette', clarity: '' },
     ])
     expect(patch.gemstone_notes).toBe('Six small stones on the shoulders')
+  })
+
+  it('a size read off a sizer or ruler goes in Size / Length as a bare number', () => {
+    expect(photoItemPatch({ ...nothing, size: '9' }, 'jewelry', 'ring').jewelry_size).toBe('9')
+    expect(photoItemPatch({ ...nothing, size: 'size 9.5' }, 'jewelry', 'ring').jewelry_size).toBe('9.5')
+    // The description adds "in" itself (lib/pawn/item-description).
+    expect(photoItemPatch({ ...nothing, size: '22 in' }, 'jewelry', 'chain').jewelry_size).toBe('22')
+    expect(photoItemPatch({ ...nothing, size: '20"' }, 'jewelry', 'chain').jewelry_size).toBe('20')
+    // No tool in the photo: Size is left as the clerk has it.
+    expect('jewelry_size' in photoItemPatch(nothing, 'jewelry', 'ring')).toBe(false)
   })
 
   it('keeps at most six stone lines', () => {

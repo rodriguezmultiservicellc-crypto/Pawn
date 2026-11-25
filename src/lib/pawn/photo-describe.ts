@@ -55,6 +55,10 @@ export const PhotoItemSchema = z.object({
   coating: z.enum(COATINGS).nullable(),
   gender: z.enum(JEWELRY_GENDERS).nullable(),
   style: text,
+  /** Read off a measuring tool in the photo, never guessed: a ring size from
+   *  a ring sizer / mandrel ("9", "9.5"), a length in inches from a ruler or
+   *  tape ("22"). */
+  size: text,
   stones: z.array(
     z.object({
       qty: z.number().nullable(),
@@ -79,6 +83,8 @@ export type PhotoItemPatch = Partial<{
   metal_type: MetalType | ''
   karat: string
   coating: Coating
+  jewelry_size: string
+  item_size: string
   jewelry_gender: JewelryGender | ''
   jewelry_style: string
   jewelry_brand: string
@@ -165,8 +171,12 @@ export function photoItemPatch(
   const brand = clean(item.brand, 80)
   const model = clean(item.model, 80)
   const serial = clean(item.serial, 80)
+  // A bare number: the description adds "size" for a ring and "in" for a
+  // chain (lib/pawn/item-description), so the unit is not written here.
+  const size = clean(item.size, 20).replace(/^size\s+/i, '').replace(/\s*(in|inch|inches|")$/i, '')
 
   if (topSlug === 'jewelry') {
+    if (size) patch.jewelry_size = size
     if (brand) patch.jewelry_brand = brand
     if (model) patch.jewelry_model = model
     if (serial) patch.jewelry_serial = serial
@@ -221,6 +231,7 @@ export function photoItemPatch(
     return patch
   }
 
+  if (size) patch.item_size = size
   const prefix = topSlug === 'electronics' ? 'electronic' : topSlug === 'tools' ? 'tool' : 'general'
   if (brand) patch[`${prefix}_brand`] = brand
   if (model) patch[`${prefix}_model`] = model
