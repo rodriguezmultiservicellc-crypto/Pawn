@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   CheckCircle,
@@ -32,6 +33,10 @@ export type BuyReceiptItem = {
 
 export type BuyReceiptView = {
   transactionId: string
+  /** BT-###### (patches/0115); an older buy carries its first item's SKU. */
+  ticketNumber: string | null
+  /** The state writes purchases on the transaction form: Print prints it. */
+  onForm: boolean
   occurredAt: string | null
   totalPayout: number
   customer: {
@@ -52,11 +57,33 @@ function fmt(n: number | null | undefined): string {
 
 export default function BuyReceiptContent({
   view,
+  justBought = false,
 }: {
   view: BuyReceiptView
+  /** Arrived straight from the buy (?print=1): ask to print the paper. */
+  justBought?: boolean
 }) {
   const { t } = useI18n()
   const r = t.buy.buyReceipt
+  const router = useRouter()
+  const anchorId = view.items[0]?.inventoryId ?? null
+  const [askPrint, setAskPrint] = useState(justBought && anchorId != null)
+  function closeAskPrint() {
+    setAskPrint(false)
+    // Drop ?print=1 so a reload doesn't ask again.
+    if (justBought && anchorId) router.replace(`/buy/${anchorId}`, { scroll: false })
+  }
+  // The bilingual receipt, or the transaction form (its own copies). The
+  // browser's PDF viewer has the print button; window.print() of this page
+  // would print the staff screen.
+  function openPaper(spanish = false) {
+    if (!anchorId) return
+    window.open(
+      `/api/print/buy/${anchorId}${spanish ? '?copy=spanish' : ''}`,
+      '_blank',
+      'noopener,noreferrer',
+    )
+  }
   const summary = (view.items.length === 1 ? r.summaryOne : r.summaryMany)
     .replace('{count}', String(view.items.length))
     .replace('{amount}', fmt(view.totalPayout))
@@ -81,24 +108,23 @@ export default function BuyReceiptContent({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() =>
-              // Open the bilingual PDF receipt in a new tab. Browser's
-              // PDF viewer surfaces the print button. window.print() of
-              // the HTML page would print the staff UI, not a customer
-              // receipt.
-              view.items[0]?.inventoryId
-                ? window.open(
-                    `/api/print/buy/${view.items[0].inventoryId}`,
-                    '_blank',
-                  )
-                : null
-            }
-            disabled={!view.items[0]?.inventoryId}
+            onClick={() => openPaper()}
+            disabled={!anchorId}
             className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background disabled:opacity-50"
           >
             <Printer size={14} weight="bold" />
-            {r.print}
+            {view.onForm ? r.printForm : r.print}
           </button>
+          {view.onForm ? (
+            <button
+              type="button"
+              onClick={() => openPaper(true)}
+              disabled={!anchorId}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background disabled:opacity-50"
+            >
+              {r.spanishCopy}
+            </button>
+          ) : null}
           <Link
             href="/buy/new"
             className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-navy hover:bg-gold-2"
@@ -108,6 +134,32 @@ export default function BuyReceiptContent({
           </Link>
         </div>
       </header>
+
+      {askPrint ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-info/30 bg-info/5 px-3 py-2 text-sm text-foreground print:hidden">
+          <span>{r.printNow}</span>
+          <span className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                openPaper()
+                closeAskPrint()
+              }}
+              className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-navy hover:bg-gold-2"
+            >
+              <Printer size={14} weight="bold" />
+              {view.onForm ? r.printForm : r.print}
+            </button>
+            <button
+              type="button"
+              onClick={closeAskPrint}
+              className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background"
+            >
+              {r.printLater}
+            </button>
+          </span>
+        </div>
+      ) : null}
 
       <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success print:border-0 print:bg-transparent print:px-0">
         <div className="flex items-center gap-2">
@@ -126,8 +178,13 @@ export default function BuyReceiptContent({
         <header className="border-b border-border pb-3">
           <h1 className="font-display flex items-center gap-2 text-2xl font-bold text-foreground">
             <Coins size={22} weight="bold" />
-            {r.title}
+            {view.onForm ? r.titlePurchase : r.title}
           </h1>
+          {view.ticketNumber ? (
+            <div className="mt-1 font-mono text-sm font-semibold text-foreground">
+              {r.ticketNo} {view.ticketNumber}
+            </div>
+          ) : null}
           <div className="mt-1 font-mono text-[11px] text-muted">
             {r.tx}: {view.transactionId}
           </div>

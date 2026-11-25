@@ -60,6 +60,9 @@ import {
   PRIMARY_BTN,
 } from '@/lib/ui/ledger'
 import { createLoanAction, type CreateLoanState } from './actions'
+import { createPurchaseAction, type CreatePurchaseState } from './purchase-actions'
+import BuyPayoutSelect, { type BuyPayoutMethod } from '@/components/buy/BuyPayoutSelect'
+import MixedTenderFields, { mixedSplitOk } from '@/components/buy/MixedTenderFields'
 import type { StripPhoto } from '@/components/uploads/PhotoStrip'
 
 const PAWN_NEW_FORM_ID = 'pawn-new-form'
@@ -117,9 +120,18 @@ export default function NewPawnLoanForm({
   metalRates,
   canConfirmStale,
   tenantId,
+  purchase: purchaseSetup,
 }: {
   /** The shop: item photos upload into its folder. */
   tenantId: string
+  /** Its state writes purchases on the transaction form (patches/0115):
+   *  "Buy outright" turns this screen into a purchase. Null = it does not,
+   *  and Buy outright is its own screen. */
+  purchase: {
+    startInPurchase: boolean
+    buyHoldDays: number
+    storeCreditEnabled: boolean
+  } | null
   rates: LoanRateOption[]
   minLoanAmount: number | null
   loanRules: IntakeLoanRules
@@ -134,10 +146,25 @@ export default function NewPawnLoanForm({
 }) {
   const { t } = useI18n()
   const tn = t.pawn.new_
-  const [state, formAction, pending] = useActionState<CreateLoanState, FormData>(
+  const [loanState, loanAction, loanPending] = useActionState<CreateLoanState, FormData>(
     createLoanAction,
     {},
   )
+  const [purchaseState, purchaseAction, purchasePending] = useActionState<
+    CreatePurchaseState,
+    FormData
+  >(createPurchaseAction, {})
+  // Pawn ticket or purchase: the same screen, the same customer and items.
+  const [mode, setMode] = useState<'pawn' | 'purchase'>(
+    purchaseSetup?.startInPurchase ? 'purchase' : 'pawn',
+  )
+  const isPurchase = mode === 'purchase' && purchaseSetup != null
+  const state = isPurchase ? purchaseState : loanState
+  const pending = isPurchase ? purchasePending : loanPending
+  // How the seller is paid (a purchase).
+  const [payoutMethod, setPayoutMethod] = useState<BuyPayoutMethod>('cash')
+  const [paidCash, setPaidCash] = useState('')
+  const [paidTransfer, setPaidTransfer] = useState('')
   // Stale guard, client half. The form doesn't know per-row metal, so it
   // shows the confirm whenever prices are stale and lets the server decide
   // (lib/spot-prices/stale-gate only holds loans that price metal).
@@ -344,12 +371,21 @@ export default function NewPawnLoanForm({
     collateralValue > 0 ? Math.round((principalNum / collateralValue) * 100) : 0
 
   const revealReady = selectedCustomerId != null
-  const canIssue =
-    !pending &&
-    revealReady &&
-    principalNum > 0 &&
-    collateralCount > 0 &&
-    !overCap
+  const canIssue = isPurchase
+    ? !pending &&
+      revealReady &&
+      collateralCount > 0 &&
+      collateralValue > 0 &&
+      (payoutMethod !== 'mixed' || mixedSplitOk(collateralValue, paidCash, paidTransfer))
+    : !pending &&
+      revealReady &&
+      principalNum > 0 &&
+      collateralCount > 0 &&
+      !overCap
+  const holdUntil =
+    purchaseSetup && purchaseSetup.buyHoldDays > 0
+      ? addDaysIso(today, purchaseSetup.buyHoldDays)
+      : null
 
   const itemsText = `${collateralCount} ${collateralCount === 1 ? tn.itemOne : tn.itemMany}`
   const HINT = 'text-[13px] text-muted'
@@ -357,7 +393,7 @@ export default function NewPawnLoanForm({
   return (
     <form
       id={PAWN_NEW_FORM_ID}
-      action={formAction}
+      action={isPurchase ? purchaseAction : loanAction}
       onSubmit={(e) => {
         if (!canIssue) e.preventDefault()
       }}
@@ -365,7 +401,7 @@ export default function NewPawnLoanForm({
     >
       {/* No visible title row: the sidebar is the way back to Pawn loans.
           The heading stays for screen readers. */}
-      <h1 className="sr-only">{tn.title}</h1>
+      <h1 className="sr-only">{isPurchase ? tn.titlePurchase : tn.title}</h1>
 
       {/* Top row: Pawn loan / Buy outright · Hold to talk */}
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -374,18 +410,39 @@ export default function NewPawnLoanForm({
           aria-label={tn.financingLabel}
           className="inline-flex overflow-hidden rounded-md border border-foreground"
         >
-          <span
-            aria-current="page"
-            className="inline-flex h-11 items-center bg-foreground px-5 text-sm font-semibold text-white"
-          >
-            {tn.financingPawn}
-          </span>
-          <Link
-            href="/buy/new"
-            className={`inline-flex h-11 items-center bg-card px-5 text-sm font-semibold text-foreground hover:bg-background ${FOCUS}`}
-          >
-            {tn.financingBuy}
-          </Link>
+          {purchaseSetup ? (
+            // FL: a buy is written here too, marked Purchase (patches/0115).
+            (['pawn', 'purchase'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={mode === m}
+                onClick={() => setMode(m)}
+                className={`inline-flex h-11 items-center px-5 text-sm font-semibold ${FOCUS} ${
+                  mode === m
+                    ? 'bg-foreground text-white'
+                    : 'bg-card text-foreground hover:bg-background'
+                }`}
+              >
+                {m === 'pawn' ? tn.financingPawn : tn.financingBuy}
+              </button>
+            ))
+          ) : (
+            <>
+              <span
+                aria-current="page"
+                className="inline-flex h-11 items-center bg-foreground px-5 text-sm font-semibold text-white"
+              >
+                {tn.financingPawn}
+              </span>
+              <Link
+                href="/buy/new"
+                className={`inline-flex h-11 items-center bg-card px-5 text-sm font-semibold text-foreground hover:bg-background ${FOCUS}`}
+              >
+                {tn.financingBuy}
+              </Link>
+            </>
+          )}
         </div>
         {selectedCustomerId ? (
           <CustomerPawnHistory
@@ -452,7 +509,8 @@ export default function NewPawnLoanForm({
           ref={collateralRef}
           categories={categories}
           metalRates={metalRates}
-          title={`2 · ${tn.sectionAddCollateral}`}
+          title={`2 · ${isPurchase ? tn.sectionPurchaseItems : tn.sectionAddCollateral}`}
+          valueLabel={isPurchase ? tn.purchaseAmount : undefined}
           previousItems={customerHistory?.history?.previous_items ?? []}
           onTotalsChange={onCollateralTotals}
           tenantId={tenantId}
@@ -461,6 +519,9 @@ export default function NewPawnLoanForm({
 
       {/* 3 · Customer signature · Notes */}
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {isPurchase ? (
+          <p className={`${HINT} self-end`}>{tn.purchaseFormNote}</p>
+        ) : (
         <div className="space-y-2">
           <h2 className={LABEL}>3 · {tn.signature}</h2>
           <button
@@ -481,6 +542,7 @@ export default function NewPawnLoanForm({
             className="sr-only"
           />
         </div>
+        )}
         <label className="block space-y-2">
           <span className={`block ${LABEL}`}>{tn.notes}</span>
           <textarea
@@ -492,6 +554,75 @@ export default function NewPawnLoanForm({
         </label>
       </section>
 
+      {isPurchase ? (
+        <section
+          aria-label={tn.purchaseTotal}
+          className="grid grid-cols-1 divide-y divide-border rounded-lg border border-foreground bg-card lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] lg:divide-x lg:divide-y-0"
+        >
+          {/* a. How the seller is paid */}
+          <div className="space-y-3 p-5">
+            <BuyPayoutSelect
+              value={payoutMethod}
+              onChange={setPayoutMethod}
+              storeCreditEnabled={purchaseSetup?.storeCreditEnabled ?? false}
+              labelClassName={LABEL}
+              selectClassName={INPUT}
+            />
+            {payoutMethod === 'mixed' ? (
+              <MixedTenderFields
+                total={collateralValue}
+                cash={paidCash}
+                transfer={paidTransfer}
+                onCashChange={setPaidCash}
+                onTransferChange={setPaidTransfer}
+              />
+            ) : null}
+          </div>
+
+          {/* b. Items · the hold */}
+          <dl className="space-y-4 p-5 text-sm">
+            <div>
+              <dt className={LABEL}>{tn.sectionPurchaseItems}</dt>
+              <dd className="mt-1 text-foreground">{itemsText}</dd>
+            </div>
+            {holdUntil && purchaseSetup ? (
+              <dd className={HINT}>
+                {tn.purchaseHold
+                  .replace('{days}', String(purchaseSetup.buyHoldDays))
+                  .replace('{date}', holdUntil)}
+              </dd>
+            ) : null}
+          </dl>
+
+          {/* c. Total + submit */}
+          <div className="space-y-3 p-5">
+            <div>
+              <div className={LABEL}>{tn.purchaseTotal}</div>
+              <div className="mt-1 font-mono text-[40px] font-bold leading-tight tabular-nums text-foreground">
+                {fmtMoney(collateralValue)}
+              </div>
+            </div>
+            <StaleSpotConfirm
+              freshness={spotFreshness}
+              canConfirm={canConfirmStale}
+              checked={staleAck}
+              onChange={setStaleAck}
+            />
+            <button
+              type="submit"
+              disabled={!canIssue}
+              className={`${PRIMARY_BTN} h-14 w-full text-base`}
+            >
+              <CheckCircle size={18} weight="bold" />
+              {pending ? tn.purchaseSubmitting : tn.purchaseSubmit}
+            </button>
+            {!canIssue && !pending ? (
+              <p className={`${HINT} text-center`}>{tn.purchaseMissingHint}</p>
+            ) : null}
+          </div>
+        </section>
+      ) : (
+      <>
       {/* Hidden fields submitted to the server */}
       <input type="hidden" name="interest_rate_monthly" value={submittedRate} />
       <input type="hidden" name="min_monthly_charge" value={submittedMinCharge} />
@@ -685,6 +816,8 @@ export default function NewPawnLoanForm({
           ) : null}
         </div>
       </section>
+      </>
+      )}
     </form>
   )
 }

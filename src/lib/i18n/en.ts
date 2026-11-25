@@ -1458,6 +1458,16 @@ export const en = {
       // ── New pawn ticket redesign (two-pane work surface + loan rail) ──
       financingPawn: 'Pawn loan',
       financingBuy: 'Buy outright',
+      // A purchase written on the transaction form (patches/0115).
+      titlePurchase: 'New purchase',
+      sectionPurchaseItems: 'Items bought',
+      purchaseAmount: 'Price paid',
+      purchaseTotal: 'Paid to the seller',
+      purchaseHold: 'Held {days} days, until {date}, then for sale.',
+      purchaseFormNote: 'Written on the pawnbroker transaction form, marked Purchase. The seller signs the printed form.',
+      purchaseSubmit: 'Complete purchase',
+      purchaseSubmitting: 'Saving…',
+      purchaseMissingHint: 'Pick a customer and add at least one item with the price paid.',
       history: {
         title: 'Pawn history',
         loading: 'Loading this customer\u2019s history…',
@@ -1865,6 +1875,12 @@ export const en = {
     print: {
       form: {
         title: 'Pawnbroker transaction form - pawn',
+        // A purchase on the same form (patches/0115).
+        titlePurchase: 'Pawnbroker transaction form - purchase',
+        purchasedGoods: 'Goods purchased by the pawnbroker',
+        continuationPurchase: 'Continuation sheet — purchased goods',
+        amountPaid: 'Amount paid',
+        amountPaidHelp: 'The amount of money paid to the seller for the goods described.',
         pawnbroker: 'Pawnbroker / creditor',
         controlNo: 'Control No.',
         storeCopy: 'Store copy',
@@ -4605,6 +4621,13 @@ export const en = {
       summaryMany: '{count} items purchased for {amount}',
       on: 'on {when}',
       title: 'Buy receipt',
+      // A purchase written on the transaction form (patches/0115).
+      titlePurchase: 'Purchase ticket',
+      ticketNo: 'Ticket',
+      printForm: 'Print transaction form',
+      spanishCopy: 'Spanish copy',
+      printNow: 'Print the transaction form now: the seller signs it and keeps the customer copy.',
+      printLater: 'Later',
       tx: 'Tx',
       customer: 'Customer',
       phone: 'Phone',
@@ -5772,6 +5795,7 @@ export const en = {
       optionalHelp: 'Blank = not governed by statute.',
       retentionYears: 'Record retention (years)',
       policeReporting: 'Police reporting required',
+      purchaseOnForm: 'Purchases are written on the pawnbroker transaction form',
       sectionTicket: 'Pawn ticket text',
       notices: 'Legal notices (JSON)',
       noticesHelp: 'Printed in the ticket legal block. Spanish is a courtesy translation.',

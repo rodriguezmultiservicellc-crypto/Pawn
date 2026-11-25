@@ -438,6 +438,25 @@ Never kill node processes by image name — always by PID.
       `src/lib/ai/prompts.ts` (Sonnet 5.5 or newer, Eddy). The gate is
       `pawnIntakeGate()`, shared with voice intake.
 
+30. **In Florida a buy is written on the pawnbroker transaction form,
+    marked Purchase** (Fla. Stat. § 539.001(8)(a); Eddy, 2026-11-25;
+    patches/0115). Driven by `jurisdictions.purchase_on_form`, never by a
+    state check in code (rule 18).
+    - Those shops buy on New pawn ticket in Purchase mode
+      (`createPurchaseAction`, `src/app/(staff)/pawn/new/purchase-actions.ts`);
+      `/buy/new` redirects there. Each item's Amount is the price paid.
+    - Every buy, whichever screen, ends in `recordBuy()` (`src/lib/buy/record.ts`):
+      compliance row → store credit → `buy_payouts` → audit. Never write a
+      second copy of that tail.
+    - A buy's ticket number is `BT-######`, given by the compliance_log
+      trigger (counter `buy_ticket`; Eddy's Jewelers continues xPawn's buy
+      count from 21667 — re-check against xPawn at cutover). Never send a
+      `reference_number` for a buy. The police file sends its digits.
+    - The form prints from the compliance snapshot (`render-purchase-ticket.tsx`):
+      Purchase checked, Amount paid instead of the lending boxes, no
+      maturity / default date, no reverse, and no notice marked
+      `pawn_only` in `jurisdictions.ticket_notices`.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

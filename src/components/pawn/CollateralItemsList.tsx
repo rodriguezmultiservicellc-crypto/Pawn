@@ -306,9 +306,12 @@ export const CollateralItemsList = forwardRef<
     previousItems?: ReadonlyArray<PreviousPawnItem>
     /** The shop: its folder is where an item's photos upload to. */
     tenantId: string
+    /** What an item's amount is called ("Price paid" on a purchase,
+     *  patches/0115). Default: Est. value. */
+    valueLabel?: string
   }
 >(function CollateralItemsList(
-  { categories, metalRates, onTotalsChange, title, previousItems = [], tenantId },
+  { categories, metalRates, onTotalsChange, title, previousItems = [], tenantId, valueLabel },
   ref,
 ) {
   const { t } = useI18n()
@@ -653,7 +656,7 @@ export const CollateralItemsList = forwardRef<
               <th className={TH}>{tn.colCategory}</th>
               <th className={TH}>{tn.colDescription}</th>
               <th className={TH}>{tn.colWeightSerial}</th>
-              <th className={`${TH} text-right`}>{tn.colValue}</th>
+              <th className={`${TH} text-right`}>{valueLabel ?? tn.colValue}</th>
               <th className={`${TH} text-right`}>{tn.colActions}</th>
             </tr>
           </thead>
@@ -685,6 +688,7 @@ export const CollateralItemsList = forwardRef<
                 }
                 onChange={(patch) => patchRow(row.uid, patch)}
                 onRemove={() => removeRow(row.uid)}
+                valueLabel={valueLabel}
                 tMetal={(m) =>
                   (t.inventory as unknown as Record<string, string>)[
                     METAL_OPTIONS.find((o) => o.value === m)?.key ?? 'metalOther'
@@ -777,6 +781,7 @@ function CollateralRow({
   onChange: onRowChange,
   onRemove,
   tMetal,
+  valueLabel,
 }: {
   index: number
   row: Row
@@ -794,6 +799,8 @@ function CollateralRow({
   onChange: (patch: Partial<Row>) => void
   onRemove: () => void
   tMetal: (m: MetalType) => string
+  /** The item amount's label when it is not Est. value. */
+  valueLabel?: string
 }) {
   const { t } = useI18n()
   const tn = t.pawn.new_
@@ -1348,7 +1355,7 @@ function CollateralRow({
               (lib/pawn/item-description). */}
           <label className="md:col-span-2 block space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-              {t.pawn.new_.itemEstValue}
+              {valueLabel ?? t.pawn.new_.itemEstValue}
             </span>
             <input
               type="number"

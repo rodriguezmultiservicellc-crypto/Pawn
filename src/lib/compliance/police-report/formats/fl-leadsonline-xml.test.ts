@@ -149,6 +149,9 @@ describe('helpers', () => {
   it('ticket numbers: an imported ticket keeps its number, a new one continues the count', () => {
     expect(ticketNumberText({ event_type: 'pawn_intake', reference_number: '15664' })).toBe('15664')
     expect(ticketNumberText({ event_type: 'pawn_void', reference_number: 'PT-015665' })).toBe('15665')
+    // A buy numbered by patches/0115 continues xPawn's buy count; an older one keeps its SKU.
+    expect(ticketNumberText({ event_type: 'buy_outright', reference_number: 'BT-021668' })).toBe('21668')
+    expect(ticketNumberText({ event_type: 'buy_outright', reference_number: 'INV-000123' })).toBe('INV-000123')
   })
   it('shop time and the file name', () => {
     expect(shopDateTime('2026-07-01T16:30:00Z', 'America/New_York')).toBe('2026-07-01T12:30:00')

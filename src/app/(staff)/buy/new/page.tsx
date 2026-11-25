@@ -44,9 +44,14 @@ export default async function NewBuyPage() {
 
   const admin = createAdminClient()
 
-  const [rates, rules, scSettings, spotFreshness] = await Promise.all([
+  // A state that writes purchases on the pawnbroker transaction form (FL
+  // § 539.001(8)(a), patches/0115): a buy is taken on the New pawn ticket
+  // screen, marked Purchase — not here.
+  const rules = await loadTenantRules(admin, ctx.tenantId)
+  if (rules.jurisdiction?.purchase_on_form) redirect('/pawn/new?type=purchase')
+
+  const [rates, scSettings, spotFreshness] = await Promise.all([
     loadRateMaps(ctx.tenantId),
-    loadTenantRules(admin, ctx.tenantId),
     admin
       .from('settings')
       .select('store_credit_enabled')

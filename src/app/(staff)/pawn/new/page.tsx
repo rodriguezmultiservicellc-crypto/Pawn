@@ -15,7 +15,7 @@ import { loadRateMaps } from '@/lib/metal-counter/rates'
 import { loadPawnIntakeCategories } from '@/lib/pawn/intake-categories'
 import { signIntakePhotos } from '@/lib/uploads/intake-photos-server'
 
-type SearchParams = Promise<{ draft?: string }>
+type SearchParams = Promise<{ draft?: string; type?: string }>
 
 export default async function NewPawnLoanPage(props: {
   searchParams: SearchParams
@@ -98,7 +98,7 @@ export default async function NewPawnLoanPage(props: {
   // Resume a saved draft when ?draft=<id> is present. loan_drafts isn't in
   // the generated Database type until the next `npm run db:types` after
   // patches/0045; reach it via a generic client. RLS scopes to the tenant.
-  const { draft: draftId } = await props.searchParams
+  const { draft: draftId, type: startType } = await props.searchParams
   let initialDraft: DraftInitial | null = null
   if (draftId) {
     const db = ctx.supabase as unknown as SupabaseClient
@@ -133,8 +133,27 @@ export default async function NewPawnLoanPage(props: {
     }
   }
 
+  // A state that writes purchases on the transaction form (patches/0115):
+  // this screen also takes a purchase. ?type=purchase (from /buy/new) opens
+  // it that way. A resumed draft is always a pawn.
+  let purchase: { startInPurchase: boolean; buyHoldDays: number; storeCreditEnabled: boolean } | null =
+    null
+  if (j?.purchase_on_form) {
+    const { data: sc } = await ctx.supabase
+      .from('settings')
+      .select('store_credit_enabled')
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle()
+    purchase = {
+      startInPurchase: startType === 'purchase' && !initialDraft,
+      buyHoldDays: rules.buyHoldDays,
+      storeCreditEnabled: sc?.store_credit_enabled === true,
+    }
+  }
+
   return (
     <NewPawnLoanForm
+      purchase={purchase}
       rates={rates}
       minLoanAmount={minLoanAmount}
       loanRules={loanRules}

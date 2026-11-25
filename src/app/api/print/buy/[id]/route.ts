@@ -1,7 +1,10 @@
 /**
  * GET /api/print/buy/[id]
  *
- * Streams a bilingual buy-outright receipt PDF. The path param is the
+ * Streams the buy's paper. Where the state writes purchases on the
+ * pawnbroker transaction form (jurisdictions.purchase_on_form, patches/0115)
+ * that is the form, "Purchase" checked (?copy=spanish: only the courtesy
+ * translation); elsewhere the bilingual buy-outright receipt. The path param is the
  * anchor inventory_item_id (same convention as /buy/[id] page) — we
  * resolve the compliance_log row from there.
  *
@@ -19,6 +22,8 @@ import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/audit'
 import { renderBuyReceiptPdf } from '@/lib/pdf/render-buy-receipt'
+import { renderPurchaseTicketPdf } from '@/lib/pdf/render-purchase-ticket'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -31,7 +36,7 @@ const STAFF_BUY_ROLES = [
 ] as const
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id: anchorItemId } = await ctx.params
@@ -62,13 +67,21 @@ export async function GET(
   // Role gate at the resolved tenant.
   const { userId } = await requireRoleInTenant(item.tenant_id, STAFF_BUY_ROLES)
 
+  const onForm = (await loadTenantRules(admin, item.tenant_id)).jurisdiction?.purchase_on_form === true
   let pdf: { buffer: Buffer; receiptNumber: string }
   try {
-    pdf = await renderBuyReceiptPdf({
-      admin,
-      anchorItemId: item.id,
-      tenantId: item.tenant_id,
-    })
+    pdf = onForm
+      ? await renderPurchaseTicketPdf({
+          admin,
+          anchorItemId: item.id,
+          tenantId: item.tenant_id,
+          copies: new URL(req.url).searchParams.get('copy') === 'spanish' ? 'spanish' : 'ticket',
+        }).then((r) => ({ buffer: r.buffer, receiptNumber: r.ticketNumber }))
+      : await renderBuyReceiptPdf({
+          admin,
+          anchorItemId: item.id,
+          tenantId: item.tenant_id,
+        })
   } catch (err) {
     console.error('[api.print.buy] render failed', err)
     return new Response('render_failed', { status: 500 })
@@ -80,10 +93,14 @@ export async function GET(
     action: 'update',
     tableName: 'compliance_log',
     recordId: item.id,
-    changes: { kind: 'print_render', receipt_number: pdf.receiptNumber },
+    changes: {
+      kind: 'print_render',
+      receipt_number: pdf.receiptNumber,
+      document: onForm ? 'transaction_form_purchase' : 'buy_receipt',
+    },
   })
 
-  const filename = `buy-receipt-${pdf.receiptNumber || item.id}.pdf`
+  const filename = `${onForm ? 'purchase-ticket' : 'buy-receipt'}-${pdf.receiptNumber || item.id}.pdf`
   const ab = new ArrayBuffer(pdf.buffer.byteLength)
   new Uint8Array(ab).set(pdf.buffer)
   const body = new Blob([ab], { type: 'application/pdf' })

@@ -41,6 +41,7 @@ export default async function JurisdictionEditPage(props: { params: Params }) {
     record_retention_years:
       row.record_retention_years == null ? '' : String(row.record_retention_years),
     police_reporting_required: row.police_reporting_required,
+    purchase_on_form: row.purchase_on_form,
     rate_tiers_json: row.rate_tiers == null ? '' : JSON.stringify(row.rate_tiers, null, 2),
     ticket_notices_json: JSON.stringify(row.ticket_notices ?? [], null, 2),
     ticket_backpage: row.ticket_backpage ?? '',

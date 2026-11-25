@@ -3,6 +3,7 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { signItemPhotos } from '@/lib/inventory/photos-server'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
 import BuyReceiptContent, { type BuyReceiptView } from './content'
 
 /**
@@ -17,6 +18,7 @@ import BuyReceiptContent, { type BuyReceiptView } from './content'
  */
 export default async function BuyReceiptPage(props: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ print?: string }>
 }) {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
@@ -30,6 +32,8 @@ export default async function BuyReceiptPage(props: {
   ])
 
   const { id } = await props.params
+  // ?print=1 — just bought at the counter: ask to print right away.
+  const justBought = (await props.searchParams).print === '1'
 
   const admin = createAdminClient()
 
@@ -88,8 +92,15 @@ export default async function BuyReceiptPage(props: {
   // are changed), main first.
   const photosById = await signItemPhotos(admin, ctx.tenantId, itemIds)
 
+  // Purchases on the pawnbroker transaction form (patches/0115): the page
+  // prints the form, not the receipt.
+  const onForm =
+    (await loadTenantRules(admin, ctx.tenantId)).jurisdiction?.purchase_on_form === true
+
   const view: BuyReceiptView = {
     transactionId: complianceRow.id,
+    ticketNumber: complianceRow.reference_number ?? null,
+    onForm,
     occurredAt: complianceRow.occurred_at ?? complianceRow.created_at ?? null,
     totalPayout: complianceRow.amount != null ? Number(complianceRow.amount) : 0,
     customer: {
@@ -139,5 +150,5 @@ export default async function BuyReceiptPage(props: {
     }),
   }
 
-  return <BuyReceiptContent view={view} />
+  return <BuyReceiptContent view={view} justBought={justBought} />
 }

@@ -1457,6 +1457,16 @@ export const es: Dictionary = {
       // ── Rediseño de nuevo empeño (panel de trabajo + barra del préstamo) ──
       financingPawn: 'Préstamo de empeño',
       financingBuy: 'Compra directa',
+      // Una compra escrita en el formulario de transacción (patches/0115).
+      titlePurchase: 'Nueva compra',
+      sectionPurchaseItems: 'Artículos comprados',
+      purchaseAmount: 'Precio pagado',
+      purchaseTotal: 'Pagado al vendedor',
+      purchaseHold: 'Retenidos {days} días, hasta el {date}; después a la venta.',
+      purchaseFormNote: 'Se escribe en el formulario de transacción del prestamista, marcado Compra. El vendedor firma el formulario impreso.',
+      purchaseSubmit: 'Completar compra',
+      purchaseSubmitting: 'Guardando…',
+      purchaseMissingHint: 'Elija un cliente y agregue al menos un artículo con el precio pagado.',
       history: {
         title: 'Historial de empeños',
         loading: 'Cargando el historial del cliente…',
@@ -1852,6 +1862,12 @@ export const es: Dictionary = {
     print: {
       form: {
         title: 'Formulario de transacción de casa de empeño - empeño',
+        // Una compra en el mismo formulario (patches/0115).
+        titlePurchase: 'Formulario de transacción de casa de empeño - compra',
+        purchasedGoods: 'Bienes comprados por el prestamista',
+        continuationPurchase: 'Hoja de continuación — bienes comprados',
+        amountPaid: 'Monto pagado',
+        amountPaidHelp: 'El dinero pagado al vendedor por los bienes descritos.',
         pawnbroker: 'Prestamista / acreedor',
         controlNo: 'No. de control',
         storeCopy: 'Copia de la tienda',
@@ -4606,6 +4622,13 @@ export const es: Dictionary = {
       summaryMany: '{count} artículos comprados por {amount}',
       on: 'el {when}',
       title: 'Recibo de compra',
+      // Una compra escrita en el formulario de transacción (patches/0115).
+      titlePurchase: 'Boleto de compra',
+      ticketNo: 'Boleto',
+      printForm: 'Imprimir formulario de transacción',
+      spanishCopy: 'Copia en español',
+      printNow: 'Imprima ahora el formulario de transacción: el vendedor lo firma y se queda con la copia del cliente.',
+      printLater: 'Después',
       tx: 'Tx',
       customer: 'Cliente',
       phone: 'Teléfono',
@@ -5768,6 +5791,7 @@ export const es: Dictionary = {
       optionalHelp: 'Vacío = no lo regula la ley.',
       retentionYears: 'Conservación de registros (años)',
       policeReporting: 'Reporte a la policía obligatorio',
+      purchaseOnForm: 'Las compras se escriben en el formulario de transacción del prestamista',
       sectionTicket: 'Texto del boleto de empeño',
       notices: 'Avisos legales (JSON)',
       noticesHelp: 'Se imprimen en el bloque legal del boleto. El español es una traducción de cortesía.',

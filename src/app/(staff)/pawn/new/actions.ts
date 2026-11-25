@@ -21,6 +21,8 @@ import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
 import { readCollateralRows } from '@/lib/pawn/intake-form'
+import { collateralSnapshot } from '@/lib/pawn/collateral-snapshot'
+import { PLEDGOR_SNAPSHOT_COLUMNS, pledgorSnapshot } from '@/lib/compliance/pledgor-snapshot'
 import { gemstoneText } from '@/lib/pawn/stones'
 import { addDaysIso } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
@@ -293,9 +295,7 @@ export async function createLoanAction(
   // Defense in depth: re-validate the customer belongs to this tenant.
   const { data: customer } = await supabase
     .from('customers')
-    .select(
-      'id, first_name, last_name, middle_name, date_of_birth, phone, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_expiry, height_inches, weight_lbs, sex, race, hair_color, eye_color, identifying_marks, place_of_employment, photo_url',
-    )
+    .select(PLEDGOR_SNAPSHOT_COLUMNS)
     .eq('id', v.customer_id)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
@@ -489,82 +489,13 @@ export async function createLoanAction(
   // Compliance log — write-once intake snapshot. The 0001 schema models this
   // as event_type='pawn_intake' + source_table='loans' + source_id. Snapshots
   // are JSONB so the police-report exporter has a deterministic source.
-  const customerSnapshot = {
-    id: customer.id,
-    ofac_screening_id: gate.screeningId,
-    first_name: customer.first_name,
-    last_name: customer.last_name,
-    middle_name: customer.middle_name,
-    date_of_birth: customer.date_of_birth,
-    phone: customer.phone,
-    email: customer.email,
-    address1: customer.address1,
-    address2: customer.address2,
-    city: customer.city,
-    state: customer.state,
-    zip: customer.zip,
-    country: customer.country,
-    id_type: customer.id_type,
-    id_number: customer.id_number,
-    id_state: customer.id_state,
-    id_expiry: customer.id_expiry,
-    // FL pawn-statute physical description fields (Phase 1 / 0004).
-    height_inches: customer.height_inches,
-    weight_lbs: customer.weight_lbs,
-    sex: customer.sex,
-    race: customer.race,
-    hair_color: customer.hair_color,
-    eye_color: customer.eye_color,
-    identifying_marks: customer.identifying_marks,
-    place_of_employment: customer.place_of_employment,
-    photo_url: customer.photo_url,
-  } as unknown as ComplianceInsertChanges
+  const customerSnapshot = pledgorSnapshot(customer, gate.screeningId)
 
   const itemsSnapshot = collateralInserts.map((it) => ({
-    description: it.description,
-    category: it.category,
-    metal_type: it.metal_type,
-    karat: it.karat,
-    weight_grams: it.weight_grams,
-    coating: it.coating,
-    jewelry_size: it.jewelry_size,
-    color: it.color,
-    gemstone_description: it.gemstone_description,
-    stones: it.stones,
-    gemstone_notes: it.gemstone_notes,
-    jewelry_gender: it.jewelry_gender,
-    jewelry_style: it.jewelry_style,
-    jewelry_brand: it.jewelry_brand,
-    jewelry_model: it.jewelry_model,
-    jewelry_serial: it.jewelry_serial,
-    unique_marks: it.unique_marks,
-    est_value: it.est_value,
+    ...collateralSnapshot(it),
     photo_path: it.photo_path,
     extra_photo_paths: it.extra_photo_paths,
     position: it.position,
-    pawn_category_slug: it.pawn_category_slug,
-    pawn_subcategory_slug: it.pawn_subcategory_slug,
-    // FL Ch. 539 reporting reads firearm fields out of this snapshot.
-    firearm_make: it.firearm_make,
-    firearm_model: it.firearm_model,
-    firearm_caliber: it.firearm_caliber,
-    firearm_serial_number: it.firearm_serial_number,
-    firearm_type: it.firearm_type,
-    firearm_barrel_length_inches: it.firearm_barrel_length_inches,
-    firearm_action_type: it.firearm_action_type,
-    firearm_capacity: it.firearm_capacity,
-    firearm_finish: it.firearm_finish,
-    firearm_number_of_barrels: it.firearm_number_of_barrels,
-    electronic_brand: it.electronic_brand,
-    electronic_model: it.electronic_model,
-    electronic_serial: it.electronic_serial,
-    tool_brand: it.tool_brand,
-    tool_model: it.tool_model,
-    tool_serial: it.tool_serial,
-    general_brand: it.general_brand,
-    general_model: it.general_model,
-    general_serial: it.general_serial,
-    item_size: it.item_size,
   })) as unknown as ComplianceInsertChanges
 
   await supabase.from('compliance_log').insert({

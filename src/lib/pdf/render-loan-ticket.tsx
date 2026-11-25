@@ -313,6 +313,7 @@ export async function renderLoanTicketPdf(args: {
 
   // ── 7. Assemble + render
   const data: PawnTicketData = {
+    transaction: 'pawn',
     ticket_number: loan.ticket_number ?? '',
     status: loan.status as LoanStatus,
     principal,

@@ -1,6 +1,5 @@
 'use server'
 
-import { loadClerkInitials } from '@/lib/compliance/clerk'
 import { missingPledgorFields, pledgorIncompleteError } from '@/lib/customers/pledgor-record'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -10,27 +9,17 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { buyOutrightSchema } from '@/lib/validations/buy-outright'
 import { intakePhotoMime } from '@/lib/uploads/intake-photos'
 import { confirmIntakePhotos } from '@/lib/uploads/intake-photos-server'
-import { logAudit } from '@/lib/audit'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
-import {
-  isStoreCreditEnabled,
-  issueForBuy as issueStoreCreditForBuy,
-} from '@/lib/store-credit/events'
+import { isStoreCreditEnabled } from '@/lib/store-credit/events'
+import { meltValueAtBuy, recordBuy } from '@/lib/buy/record'
+import { PLEDGOR_SNAPSHOT_COLUMNS } from '@/lib/compliance/pledgor-snapshot'
 import { addDaysIso, r4 } from '@/lib/pawn/math'
 import { loadTenantRules } from '@/lib/jurisdictions/load'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import { checkStaleSpotGate } from '@/lib/spot-prices/stale-gate'
-import {
-  computeMeltValue,
-  meltMetalFromItem,
-  purityFromItem,
-} from '@/lib/spot-prices/melt'
+import { meltMetalFromItem } from '@/lib/spot-prices/melt'
 import { splitTenders } from '@/lib/metal-counter/math'
 import { isSolidMetal } from '@/lib/spot-prices/purity'
-import type { Database } from '@/types/database'
-
-type ComplianceInsertChanges =
-  Database['public']['Tables']['compliance_log']['Insert']['customer_snapshot']
 
 export type CreateBuyState = {
   error?: string
@@ -188,9 +177,7 @@ export async function createBuyOutrightAction(
   // Customer must belong to this tenant.
   const { data: customer } = await supabase
     .from('customers')
-    .select(
-      'id, first_name, last_name, middle_name, date_of_birth, phone, email, address1, address2, city, state, zip, country, id_type, id_number, id_state, id_country, id_expiry, height_inches, weight_lbs, sex, race, hair_color, eye_color, identifying_marks, place_of_employment, photo_url',
-    )
+    .select(PLEDGOR_SNAPSHOT_COLUMNS)
     .eq('id', v.customer_id)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
@@ -322,22 +309,15 @@ export async function createBuyOutrightAction(
     }
     const photoPath = photos[0] ?? null
 
-    // Best-effort melt value at acquisition time (snapshot for police
-    // report + future analytics). A coated piece has none (patches/0067).
-    const meltMetal = isSolidMetal(item.coating) ? meltMetalFromItem(item.metal) : null
-    const purity = meltMetal
-      ? purityFromItem({ metal: item.metal, karat: item.karat })
-      : null
-    let meltAtBuy: number | null = null
-    if (meltMetal && purity && item.weight_grams != null) {
-      const melt = await computeMeltValue({
-        metalType: meltMetal,
-        purity,
-        weightGrams: item.weight_grams,
-        tenantId,
-      })
-      meltAtBuy = melt?.value ?? null
-    }
+    // Best-effort melt value at acquisition time (police snapshot +
+    // analytics). A coated piece has none.
+    const meltAtBuy = await meltValueAtBuy({
+      tenantId,
+      metal: item.metal,
+      karat: item.karat,
+      coating: item.coating,
+      weightGrams: item.weight_grams,
+    })
 
     inserted.push({
       id: invRow.id,
@@ -363,169 +343,55 @@ export async function createBuyOutrightAction(
 
   const totalPayout = r4(inserted.reduce((s, it) => s + it.payout, 0))
 
-  // Compliance log — one row per buy TRANSACTION, items_snapshot lists
-  // every item. The FL LeadsOnline exporter flattens 1 compliance row →
-  // N police-report rows. source_table=inventory_items, source_id=first
-  // item's id (consistent navigation target).
-  const customerSnapshot = {
-    id: customer.id,
-    ofac_screening_id: gate.screeningId,
-    first_name: customer.first_name,
-    last_name: customer.last_name,
-    middle_name: customer.middle_name,
-    date_of_birth: customer.date_of_birth,
-    phone: customer.phone,
-    email: customer.email,
-    address1: customer.address1,
-    address2: customer.address2,
-    city: customer.city,
-    state: customer.state,
-    zip: customer.zip,
-    country: customer.country,
-    id_type: customer.id_type,
-    id_number: customer.id_number,
-    id_state: customer.id_state,
-    id_expiry: customer.id_expiry,
-    height_inches: customer.height_inches,
-    weight_lbs: customer.weight_lbs,
-    sex: customer.sex,
-    race: customer.race,
-    hair_color: customer.hair_color,
-    eye_color: customer.eye_color,
-    identifying_marks: customer.identifying_marks,
-    place_of_employment: customer.place_of_employment,
-    photo_url: customer.photo_url,
-  } as unknown as ComplianceInsertChanges
-
-  const itemsSnapshot = inserted.map((it) => ({
-    inventory_item_id: it.id,
-    sku: it.sku,
-    description: it.description,
-    category: it.category,
-    metal_type: it.metal,
-    karat: it.karat,
-    weight_grams: it.weight_grams,
-    coating: it.coating,
-    payout: it.payout,
-    melt_value_at_buy: it.melt_value_at_buy,
-    serial_number: it.serial_number,
-    photo_path: it.photo_path,
-    photo_paths: it.photo_paths,
-    position: it.position,
-  })) as unknown as ComplianceInsertChanges
-
-  const firstItemId = inserted[0].id
-  const { data: complianceRow, error: complianceErr } = await supabase.from('compliance_log').insert({
-    tenant_id: tenantId,
-    source_table: 'inventory_items',
-    source_id: firstItemId,
-    event_type: 'buy_outright',
-    customer_snapshot: customerSnapshot,
-    items_snapshot: itemsSnapshot,
-    amount: totalPayout,
-    // The police upload's <ticket_number> and <clerk> (patches/0111). A buy
-    // has no ticket number: its first item's SKU names it.
-    reference_number: inserted[0].sku,
-    clerk: await loadClerkInitials(supabase, userId),
-  }).select('id').single()
-  if (complianceErr || !complianceRow) {
-    // A purchase that can't reach the police-report ledger must not stand.
-    // Withdraw the just-inserted items (soft delete) and surface the error
-    // before the operator pays out.
-    console.error('[buy.create] compliance_log insert failed', complianceErr)
-    await supabase
-      .from('inventory_items')
-      .update({ deleted_at: new Date().toISOString(), updated_by: userId })
-      .in(
-        'id',
-        inserted.map((it) => it.id),
-      )
-      .eq('tenant_id', tenantId)
-    return { error: 'compliance_log_failed', values: echo }
-  }
-
-  // Payout as store credit (patches/0053). Runs AFTER compliance_log, so a
-  // purchase that never reached the police-report ledger — and was therefore
-  // withdrawn above — cannot leave credit sitting on the seller's account.
-  // Idempotent per buy (keyed to the anchor item id).
-  if (v.payment_method === 'store_credit') {
-    const issued = await issueStoreCreditForBuy({
-      admin: createAdminClient(),
-      tenantId,
-      customerId: v.customer_id,
-      buyAnchorItemId: firstItemId,
-      amount: totalPayout,
-      performedBy: userId,
-    })
-    if (issued.ok === false) {
-      // The purchase itself stands: the items are in inventory and the
-      // compliance_log row is written, and that row is write-once by
-      // design (Rule 15) — withdrawing the items now would leave the
-      // police report describing a purchase that supposedly never
-      // happened. So the transaction is real and the shop owes the seller;
-      // say so, and staff issues the credit from the customer's panel.
-      console.error('[buy.create] store credit payout failed', issued.error)
-      return { error: 'store_credit_issue_failed', values: echo }
-    }
-    revalidatePath(`/customers/${v.customer_id}`)
-  }
-
-  // What the seller was paid, one row per tender (patches/0113): the drawer
-  // close counts the cash ones. Store credit is a tender too (it never
-  // touches the drawer). Service client after the role check above — staff
-  // can only read this table. The buy stands either way (its compliance row
-  // is written); a failure here is logged loudly, not hidden.
-  const { error: payoutErr } = await createAdminClient()
-    .from('buy_payouts')
-    .insert(
-      tenderSplit.tenders.map((tn) => ({
-        tenant_id: tenantId,
-        customer_id: v.customer_id,
-        compliance_log_id: complianceRow.id,
-        reference_number: inserted[0].sku,
-        payout_method: tn.method,
-        amount: tn.amount,
-        paid_by: userId,
-      })),
-    )
-  if (payoutErr) {
-    console.error('[buy.create] buy_payouts insert failed — drawer will not count this payout', payoutErr)
-  }
-
-  await logAudit({
+  // The police row, the store credit, the payout rows, the audit row —
+  // lib/buy/record (shared with a purchase on the transaction form).
+  const recorded = await recordBuy({
+    supabase,
     tenantId,
     userId,
-    action: 'buy_outright',
-    tableName: 'inventory_items',
-    recordId: firstItemId,
-    changes: {
-      flow: 'buy_outright',
-      customer_id: v.customer_id,
-      payment_method: v.payment_method,
-      // One entry per tender; two for a mixed cash + transfer payout.
-      tenders: tenderSplit.tenders,
-      total_payout: totalPayout,
-      total_grams: r4(
-        inserted.reduce((s, it) => s + (it.weight_grams ?? 0), 0),
-      ),
-      item_count: inserted.length,
-      hold_until: holdUntil,
-      item_skus: inserted.map((it) => it.sku),
-      notes: v.notes,
-      // Manager confirmed issuing against a stale spot price (null when fresh).
-      stale_spot_ack: staleGate.acknowledged
-        ? {
-            confirmed_by: userId,
-            spot_fetched_at: staleGate.freshness.newestFetchedAt,
-            spot_age_hours: staleGate.freshness.ageHours,
-          }
-        : null,
-    },
+    customer,
+    screeningId: gate.screeningId,
+    items: inserted.map((it) => ({
+      id: it.id,
+      sku: it.sku,
+      weight_grams: it.weight_grams,
+      snapshot: {
+        inventory_item_id: it.id,
+        sku: it.sku,
+        description: it.description,
+        category: it.category,
+        metal_type: it.metal,
+        karat: it.karat,
+        weight_grams: it.weight_grams,
+        coating: it.coating,
+        payout: it.payout,
+        melt_value_at_buy: it.melt_value_at_buy,
+        serial_number: it.serial_number,
+        photo_path: it.photo_path,
+        photo_paths: it.photo_paths,
+        position: it.position,
+      },
+    })),
+    totalPayout,
+    paymentMethod: v.payment_method,
+    tenders: tenderSplit.tenders,
+    notes: v.notes,
+    holdUntil,
+    staleSpotAck: staleGate.acknowledged
+      ? {
+          confirmed_by: userId,
+          spot_fetched_at: staleGate.freshness.newestFetchedAt,
+          spot_age_hours: staleGate.freshness.ageHours,
+        }
+      : null,
+    flow: 'buy_outright',
   })
+  if (!recorded.ok) return { error: recorded.error, values: echo }
+  if (v.payment_method === 'store_credit') revalidatePath(`/customers/${v.customer_id}`)
 
   revalidatePath('/inventory')
   revalidatePath('/buy')
-  redirect(`/buy/${firstItemId}`)
+  redirect(`/buy/${inserted[0].id}?print=1`)
 }
 
 // No non-function exports here, not even `export type { … }` — Turbopack's

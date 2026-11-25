@@ -5,7 +5,7 @@ import type { Database } from '@/types/database'
 import { effectiveRules, toJurisdiction, type EffectiveRules } from './rules'
 
 export const JURISDICTION_COLUMNS =
-  'code, name, statute, default_timezone, rate_cap_monthly, rate_tiers, period_days, charge_full_periods, min_charge_cap, min_term_days, max_term_days, grace_days, grace_rolls_to_business_day, buy_hold_days, repair_abandon_days, record_retention_years, police_reporting_required, ticket_notices, ticket_backpage, verified_on'
+  'code, name, statute, default_timezone, rate_cap_monthly, rate_tiers, period_days, charge_full_periods, min_charge_cap, min_term_days, max_term_days, grace_days, grace_rolls_to_business_day, buy_hold_days, repair_abandon_days, record_retention_years, police_reporting_required, ticket_notices, ticket_backpage, verified_on, purchase_on_form'
 
 /**
  * Resolve a tenant's jurisdiction + effective (statute-floored) rules.

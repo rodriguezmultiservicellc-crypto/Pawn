@@ -36,6 +36,7 @@ const FL: Jurisdiction = {
   ticket_notices: [],
   ticket_backpage: null,
   verified_on: '2026-09-18',
+  purchase_on_form: true,
 }
 
 describe('maxMonthlyRate', () => {

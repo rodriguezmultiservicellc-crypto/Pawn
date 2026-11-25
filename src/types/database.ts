@@ -3052,6 +3052,7 @@ export type Database = {
             | Database["public"]["Enums"]["police_report_format"]
             | null
           police_reporting_required: boolean
+          purchase_on_form: boolean
           rate_cap_monthly: number | null
           rate_tiers: Json | null
           record_retention_years: number | null
@@ -3085,6 +3086,7 @@ export type Database = {
             | Database["public"]["Enums"]["police_report_format"]
             | null
           police_reporting_required?: boolean
+          purchase_on_form?: boolean
           rate_cap_monthly?: number | null
           rate_tiers?: Json | null
           record_retention_years?: number | null
@@ -3118,6 +3120,7 @@ export type Database = {
             | Database["public"]["Enums"]["police_report_format"]
             | null
           police_reporting_required?: boolean
+          purchase_on_form?: boolean
           rate_cap_monthly?: number | null
           rate_tiers?: Json | null
           record_retention_years?: number | null

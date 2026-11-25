@@ -352,10 +352,19 @@ export function itemsOnFront(args: {
  *  539.001(8)(a): "in English"); Spanish is a stamped courtesy copy. */
 export type TicketLang = 'en' | 'es'
 
+/** The jurisdiction's statements this form prints: a purchase leaves out
+ *  the pawn-only ones (FL: the forfeiture statement, patches/0115). */
+function noticesFor(data: PawnTicketData) {
+  return data.transaction === 'purchase'
+    ? data.legal_notices.filter((n) => !n.pawn_only)
+    : data.legal_notices
+}
+
 /** The statements printed at the foot, in the sheet's language. */
 function noticesOf(data: PawnTicketData, lang: TicketLang): string[] {
-  return data.legal_notices.length > 0
-    ? data.legal_notices.map((n) => n[lang])
+  const notices = noticesFor(data)
+  return notices.length > 0
+    ? notices.map((n) => n[lang])
     : [data.i18n[lang].pawn.print.legal.placeholder]
 }
 
@@ -462,6 +471,8 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
   const lang = langOf(copy)
   const { L, kindOf, metalWords, residence, frontCount, barrelLength } = formParts(data, lang)
   const frontItems = data.collateral.slice(0, frontCount)
+  const purchase = data.transaction === 'purchase'
+  const notices = noticesFor(data)
   const total = data.collateral.length
 
   const t = data.tenant
@@ -478,7 +489,9 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
       <View style={[s.row, { justifyContent: 'space-between', alignItems: 'flex-start' }]} wrap={false}>
         <View style={{ flex: 1, paddingRight: 8 }}>
           <Text style={s.title}>
-            {[data.jurisdiction_name?.toUpperCase(), L.title.toUpperCase()].filter(Boolean).join(' ')}
+            {[data.jurisdiction_name?.toUpperCase(), (purchase ? L.titlePurchase : L.title).toUpperCase()]
+              .filter(Boolean)
+              .join(' ')}
           </Text>
           <Text style={[s.small, { marginTop: 3 }]}>{L.pawnbroker}:</Text>
           <Text style={s.shop}>{shop}</Text>
@@ -516,20 +529,22 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
               {L.status[closedKey].toUpperCase()}
             </Text>
           ) : null}
-          <View style={[s.row, { marginTop: 5, alignItems: 'center' }]}>
-            <View style={{ marginRight: 8, alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: 8 }}>{L.maturityDate}</Text>
+          {purchase ? null : (
+            <View style={[s.row, { marginTop: 5, alignItems: 'center' }]}>
+              <View style={{ marginRight: 8, alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 8 }}>{L.maturityDate}</Text>
+              </View>
+              <Text style={{ fontSize: 10.5, fontWeight: 700 }}>{mdy(data.due_date)}</Text>
             </View>
-            <Text style={{ fontSize: 10.5, fontWeight: 700 }}>{mdy(data.due_date)}</Text>
-          </View>
+          )}
         </View>
       </View>
 
       <View style={[s.row, { justifyContent: 'flex-end', alignItems: 'center', marginTop: 4, marginBottom: 3 }]}>
         <Text style={{ fontSize: 8 }}>{L.typeOfTransaction}:</Text>
-        <Check on={false} label={L.typePurchase} />
+        <Check on={purchase} label={L.typePurchase} />
         <Check on={false} label={L.typeConsignment} />
-        <Check on label={L.typePawn} />
+        <Check on={!purchase} label={L.typePawn} />
       </View>
 
       {/* ── Pledgor / seller */}
@@ -569,7 +584,7 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
 
       {/* ── Pledged goods */}
       <View style={[s.box, { marginTop: 4, borderBottomWidth: 0 }]}>
-        <Text style={s.band}>{L.securityInterest}</Text>
+        <Text style={s.band}>{purchase ? L.purchasedGoods : L.securityInterest}</Text>
         {frontItems.map((item, i) => (
           <ItemBlock
             key={i}
@@ -604,6 +619,18 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
       {/* ── The foot of the sheet: lending boxes, statements, signature.
             One unbreakable block pinned to the bottom margin. */}
       <View style={{ marginTop: 'auto', paddingTop: 5 }} wrap={false}>
+        {purchase ? (
+          // (8)(b)7: in the case of a purchase, the amount paid.
+          <View style={[s.box, s.row]}>
+            <View style={[s.tilCell, { borderRightWidth: 0 }]}>
+              <Text style={s.tilHead}>{L.amountPaid.toUpperCase()}</Text>
+              <View style={s.tilBody}>
+                <Text style={s.tilSub}>{L.amountPaidHelp}</Text>
+                <Text style={s.tilValue}>{money(data.principal)}</Text>
+              </View>
+            </View>
+          </View>
+        ) : (
         <View style={s.box}>
           <Text style={s.footBand}>{L.truthInLending.toUpperCase()}</Text>
           <View style={s.row}>
@@ -634,6 +661,7 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
             </Text>
           </View>
         </View>
+        )}
 
         {/* Statements, then default date and signature, on the left; the
             thumb print box on the right, as tall as all of them. */}
@@ -642,10 +670,10 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
             {/* The jurisdiction's statements, in the sheet's language. A shop
                 with no jurisdiction on file prints the placeholder instead,
                 so the missing legal text is impossible to overlook. */}
-            {data.legal_notices.length === 0 ? (
+            {notices.length === 0 ? (
               <Text style={s.notice}>{data.i18n[lang].pawn.print.legal.placeholder}</Text>
             ) : (
-              data.legal_notices.map((n, i) => (
+              notices.map((n, i) => (
                 <Text key={i} style={[s.notice, n.bold ? { fontWeight: 700 } : {}]}>
                   {n[lang]}
                 </Text>
@@ -654,7 +682,9 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
 
             {/* Default date and the amount to redeem on it · signature. */}
             <View style={[s.row, { marginTop: 3, alignItems: 'flex-end' }]}>
-              {/* Narrow, so the signature line gets the width. */}
+              {/* Narrow, so the signature line gets the width. A purchase
+                  has no default date. */}
+              {purchase ? null : (
               <View style={[s.box, s.row, { width: 184 }]}>
                 <View style={{ width: 88, padding: 3, borderRightWidth: 0.5, borderRightColor: LINE }}>
                   <Text style={{ fontSize: 7, fontWeight: 700 }}>{L.defaultDate}:</Text>
@@ -667,7 +697,8 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
                   </Text>
                 </View>
               </View>
-              <View style={{ flex: 1, paddingLeft: 14 }}>
+              )}
+              <View style={{ flex: 1, paddingLeft: purchase ? 0 : 14 }}>
                 {data.signatureImage ? (
                   // eslint-disable-next-line jsx-a11y/alt-text
                   <Image src={data.signatureImage} style={{ height: 24, objectFit: 'contain', objectPosition: 'left' }} />
@@ -677,8 +708,9 @@ export function TransactionFormPage({ data, copy }: { data: PawnTicketData; copy
                 <View style={s.sigLine}>
                   <Text style={s.small}>{L.signature}</Text>
                 </View>
-                {/* The courtesy copy has no reverse: the terms are English only. */}
-                {copy === 'courtesy' ? null : (
+                {/* The courtesy copy has no reverse: the terms are English
+                    only. A purchase has none at all. */}
+                {copy === 'courtesy' || purchase ? null : (
                   <Text style={{ fontSize: 7, fontWeight: 700, textAlign: 'right', marginTop: 2 }}>
                     {L.seeReverse}
                   </Text>
@@ -722,11 +754,16 @@ export function TransactionFormContinuation({
       >
         <View style={{ flex: 1, paddingRight: 8 }}>
           <Text style={s.title}>
-            {[data.jurisdiction_name?.toUpperCase(), L.title.toUpperCase()].filter(Boolean).join(' ')}
+            {[
+              data.jurisdiction_name?.toUpperCase(),
+              (data.transaction === 'purchase' ? L.titlePurchase : L.title).toUpperCase(),
+            ]
+              .filter(Boolean)
+              .join(' ')}
           </Text>
           <Text style={s.shop}>{shop}</Text>
           <Text style={{ fontSize: 9, fontWeight: 700, marginTop: 3 }}>
-            {L.continuation}
+            {data.transaction === 'purchase' ? L.continuationPurchase : L.continuation}
           </Text>
         </View>
         <View style={{ width: 250, alignItems: 'flex-end' }}>
@@ -746,7 +783,9 @@ export function TransactionFormContinuation({
       </View>
 
       <View style={[s.box, { borderBottomWidth: 0 }]}>
-        <Text style={s.band}>{L.securityInterest}</Text>
+        <Text style={s.band}>
+          {data.transaction === 'purchase' ? L.purchasedGoods : L.securityInterest}
+        </Text>
         {rest.map((item, i) => (
           <ItemBlock
             key={i}

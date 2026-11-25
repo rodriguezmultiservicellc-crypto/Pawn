@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { collateralItemsArraySchema } from './loan'
 
 /**
  * Buy-outright (gold-buying) Zod schemas. Mirror loan-collateral shape so
@@ -101,6 +102,11 @@ export const buyItemSchema = z.object({
 
 export type BuyItemInput = z.infer<typeof buyItemSchema>
 
+/** How the seller is paid — Buy outright and a purchase on the form alike. */
+export const buyPayoutMethodSchema = z
+  .enum(['cash', 'transfer', 'card', 'check', 'other', 'store_credit', 'mixed'])
+  .default('cash')
+
 export const buyOutrightSchema = z.object({
   customer_id: z.string().uuid(),
   // 'store_credit' pays the seller in credit instead of cash — the action
@@ -109,9 +115,7 @@ export const buyOutrightSchema = z.object({
   // 'transfer' (bank / Zelle) and 'mixed' (cash + transfer, amounts in
   // paid_cash / paid_transfer) came with the metal counter (brief Phase 3);
   // 'mixed' is split into tenders by lib/metal-counter/math splitTenders.
-  payment_method: z
-    .enum(['cash', 'transfer', 'card', 'check', 'other', 'store_credit', 'mixed'])
-    .default('cash'),
+  payment_method: buyPayoutMethodSchema,
   paid_cash: optionalDecimal,
   paid_transfer: optionalDecimal,
   notes: optionalTrimmedString,
@@ -121,3 +125,21 @@ export const buyOutrightSchema = z.object({
 export type BuyOutrightInput = z.infer<typeof buyOutrightSchema>
 
 // A buy's photos upload from the browser: lib/uploads/intake-photos.
+
+/**
+ * A purchase written on the pawnbroker transaction form (patches/0115): the
+ * New pawn ticket screen in Purchase mode. The items are the screen's own
+ * (collateral_<n>_*, every field the form prints); each item's Amount is
+ * what the seller is paid for it. How the seller is paid is the same choice
+ * as Buy outright.
+ */
+export const purchaseOnFormSchema = z.object({
+  customer_id: z.string().uuid(),
+  payment_method: buyPayoutMethodSchema,
+  paid_cash: optionalDecimal,
+  paid_transfer: optionalDecimal,
+  notes: optionalTrimmedString,
+  collateral: collateralItemsArraySchema,
+})
+
+export type PurchaseOnFormInput = z.infer<typeof purchaseOnFormSchema>

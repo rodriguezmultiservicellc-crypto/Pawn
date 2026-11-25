@@ -11,7 +11,9 @@ import { RATE_PERIOD_DAYS, type ChargeModel } from '@/lib/pawn/math'
 
 export type RateTier = { up_to: number | null; rate: number }
 
-export type TicketNotice = { bold: boolean; en: string; es: string }
+/** One statement printed above the signature. `pawn_only`: it belongs on a
+ *  pawn, not a purchase (FL: the forfeiture statement, patches/0115). */
+export type TicketNotice = { bold: boolean; en: string; es: string; pawn_only?: boolean }
 
 /** The subset of a `jurisdictions` row the app reasons about. */
 export type Jurisdiction = {
@@ -36,6 +38,9 @@ export type Jurisdiction = {
   ticket_notices: TicketNotice[]
   ticket_backpage: string | null
   verified_on: string | null
+  /** Purchases are written on the pawnbroker transaction form, marked as a
+   *  purchase (FL § 539.001(8)(a), patches/0115). */
+  purchase_on_form: boolean
 }
 
 /** Tenant-level values after applying the statutory floors. */
@@ -85,6 +90,7 @@ export function parseTicketNotices(v: Json | null): TicketNotice[] {
       bold: r.bold === true,
       en,
       es: typeof r.es === 'string' ? r.es.trim() : '',
+      ...(r.pawn_only === true ? { pawn_only: true } : {}),
     })
   }
   return out
@@ -111,6 +117,7 @@ type JurisdictionRow = {
   ticket_notices: Json
   ticket_backpage: string | null
   verified_on: string | null
+  purchase_on_form: boolean
 }
 
 const numOrNull = (v: number | string | null): number | null =>
@@ -138,6 +145,7 @@ export function toJurisdiction(row: JurisdictionRow): Jurisdiction {
     ticket_notices: parseTicketNotices(row.ticket_notices),
     ticket_backpage: row.ticket_backpage,
     verified_on: row.verified_on,
+    purchase_on_form: row.purchase_on_form,
   }
 }
 

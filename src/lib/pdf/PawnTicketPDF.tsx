@@ -126,6 +126,12 @@ export type PawnTicketTenant = {
 }
 
 export type PawnTicketData = {
+  /** Which transaction the form records (FL § 539.001(8)(a): "an indication
+   *  of whether the transaction is a pawn or a purchase", patches/0115). A
+   *  purchase prints its amount paid instead of the lending boxes, no
+   *  maturity or default date, no pawn-only statement and no reverse; its
+   *  `principal` is the amount paid. */
+  transaction: 'pawn' | 'purchase'
   ticket_number: string
   status: LoanStatus
   principal: number
@@ -270,12 +276,14 @@ function parseBackpageBlocks(text: string): BackpageBlock[] {
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
-  const hasReverse = data.backpage_text.trim() !== ''
+  // The reverse is the pawn's terms: a purchase has none.
+  const hasReverse = data.transaction === 'pawn' && data.backpage_text.trim() !== ''
+  const docTitle = `${data.transaction === 'purchase' ? 'Purchase' : 'Pawn'} Ticket ${data.ticket_number}`
   const reverse = hasReverse ? <ReversePage data={data} /> : null
 
   if (data.spanish_only) {
     return (
-      <Document title={`Pawn Ticket ${data.ticket_number} — Spanish courtesy copy`}>
+      <Document title={`${docTitle} — Spanish courtesy copy`}>
         <TransactionFormPage data={data} copy="courtesy" />
         <TransactionFormContinuation data={data} copy="courtesy" />
       </Document>
@@ -283,7 +291,7 @@ export default function PawnTicketPDF({ data }: { data: PawnTicketData }) {
   }
 
   return (
-    <Document title={`Pawn Ticket ${data.ticket_number}`}>
+    <Document title={docTitle}>
       {hasReverse ? (
         <>
           {/* Blank paper (settings.pawn_ticket_print_reverse, patches/0109):

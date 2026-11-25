@@ -134,10 +134,15 @@ const grams = (v: unknown) => {
 }
 
 /** The ticket number as the agency knows it: digits for a pawn ("PT-015665"
- *  → "15665", continuing xPawn's count); a buy's SKU as is. */
+ *  → "15665", continuing xPawn's count) and for a buy numbered BT-######
+ *  (patches/0115, continuing xPawn's buy count); an older buy's SKU as is. */
 export function ticketNumberText(row: Pick<ComplianceLogRow, 'reference_number' | 'event_type'>): string {
   const ref = s(row.reference_number)
-  if (row.event_type === 'pawn_intake' || row.event_type === 'pawn_void') {
+  if (
+    row.event_type === 'pawn_intake' ||
+    row.event_type === 'pawn_void' ||
+    (row.event_type === 'buy_outright' && /^BT-\d+$/.test(ref))
+  ) {
     const d = ref.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
     return d || ref
   }

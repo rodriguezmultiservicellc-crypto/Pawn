@@ -25,6 +25,7 @@ export type JurisdictionFormInitial = {
   repair_abandon_days: string
   record_retention_years: string
   police_reporting_required: boolean
+  purchase_on_form: boolean
   rate_tiers_json: string
   ticket_notices_json: string
   ticket_backpage: string
@@ -190,6 +191,7 @@ export default function JurisdictionForm({
             {text('record_retention_years', ta.retentionYears, { type: 'number' })}
           </div>
           {check('police_reporting_required', ta.policeReporting, false)}
+          {check('purchase_on_form', ta.purchaseOnForm, false)}
         </section>
 
         <section className="space-y-4 rounded-xl border border-border bg-card p-4">
