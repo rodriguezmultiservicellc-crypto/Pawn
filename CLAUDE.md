@@ -459,6 +459,28 @@ Never kill node processes by image name — always by PID.
       maturity / default date, no reverse, and no notice marked
       `pawn_only` in `jurisdictions.ticket_notices`.
 
+31. **Purity follows the metal: karats for gold, parts per thousand for
+    silver, platinum and palladium** (Eddy, 2026-11-25: "28 karat doesn't
+    exist… silver would be .999 or .925"). One `karat` column holds both
+    (loan_collateral_items NUMERIC(4,1) up to 999.9; inventory_items TEXT).
+    Every rule is in `src/lib/spot-prices/purity.ts` — never write a
+    karat range, a "K" suffix or a silver default anywhere else.
+    - Ranges: gold / two-tone 1-24, silver / platinum / palladium 100-999.9,
+      base metals (steel, tungsten, titanium…) none (`purityScaleOf`,
+      `isValidPurity`, `isPurityInput`). Refused on screen AND by the
+      server schemas (loan collateral, buy item, inventory item).
+    - The field is ONE component, `PurityField`
+      (`src/components/pawn/PurityField.tsx`): pawn popup, Buy outright,
+      inventory form. A new metal brings its own purity
+      (`purityAfterMetalChange`: silver 925, platinum 950, gold blank).
+    - Display: `purityText` ("14K", "925"). Inventory keeps that same
+      text — every writer of an inventory row goes through
+      `purityForInventory` (buy, inventory form, FL purchase, forfeit).
+    - Price by metal content: `purityContentRatio` (12K = 12/14 of 14K,
+      800 silver = 800/925 of sterling; 990+ silver is the fine bucket).
+    - Police file: `jewelry_kt` only for gold (as xPawn sends it); a
+      silver / platinum purity rides in the description.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

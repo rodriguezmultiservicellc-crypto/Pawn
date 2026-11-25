@@ -60,7 +60,55 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 70 (2026-11-25, saved 13:10 and ~14:15), items
+  Last session:   Session 71 (2026-11-25, saved ~18:55), items 617-630.
+                  Context budget at save: high (the conversation was
+                  compacted once; start the next session fresh).
+                  ONE MIGRATION, APPLIED TO THE LIVE DB: 0115 (Florida
+                  purchase on the pawnbroker form: jurisdictions.
+                  purchase_on_form, ticket notice pawn_only, BT-######
+                  buy numbers from counter 'buy_ticket' seeded 21667).
+                  main == feature/sol-pawn-brief. Nothing is half-built.
+                  Built + pushed: photo viewer everywhere (617-624),
+                  Florida buy = Purchase on the pawn form (623), the AI
+                  reads the weight off a scale (627), Karat / Purity
+                  dropdown that follows the metal on the pawn popup, Buy
+                  outright and inventory (628-629).
+                  New rules: CLAUDE.md 30 (FL purchase) and 31 (purity).
+
+                  ACTIVE FILES (last touched):
+                    src/lib/spot-prices/purity.ts (+ test)  purity rules
+                    src/components/pawn/PurityField.tsx
+                    src/components/pawn/ChoiceOrOther.tsx
+                    src/components/pawn/CollateralItemsList.tsx
+                    src/app/(staff)/buy/new/form.tsx
+                    src/components/inventory/InventoryFormFields.tsx
+                    src/lib/validations/{loan,buy-outright,inventory,purity}.ts
+                    src/lib/buy/record.ts  meltValueAtBuy by content
+                    src/lib/pawn/photo-describe.ts  scale_reading, purity
+                    src/app/(staff)/pawn/new/purchase-actions.ts
+                    src/components/uploads/{PhotoViewer,ItemPhotoThumb}.tsx
+
+                  RESUME POINT: nothing half-built. Have Eddy try on the
+                  LIVE site (only tsc / lint / tests / build ran; no
+                  ticket, buy or inventory item was saved):
+                  1. Pawn popup: Metal Silver -> Purity shows 925 Sterling;
+                     Gold -> Karat 10-24K; type 28 under Other -> red
+                     message, Add item refuses. Description reads
+                     "925 silver chain".
+                  2. Buy outright (non-FL screen) and an inventory item:
+                     the same field; an old item with "14K" opens with
+                     14K picked; saving keeps "14K" / "925".
+                  3. Describe from photo with a photo of the piece ON a
+                     scale -> Weight filled (and a 925 stamp -> Purity).
+                  4. Florida: /buy/new opens New pawn ticket in Purchase
+                     mode; write one test purchase -> BT-021668, print the
+                     form (Purchase checked); then VOID it so the counter
+                     story stays clean (ask Eddy first).
+                  5. The photo popups: ticket, inventory, repair, customer,
+                     buy, layaway, sale, repair pickup signature.
+                  Then the Session 70 list below, then PENDING IMMEDIATE.
+
+  Session 70 (2026-11-25, saved 13:10 and ~14:15), items
                   608-616. Later today: the AI reads a ring size off a
                   sizer and a chain length off the tray ruler (folded in
                   half -> doubled in code) — 615-616. Eddy is building a
@@ -917,6 +965,94 @@ SESSION HISTORY LOG
 2026-11-13, sessions 33-52 archived 2026-11-21, and sessions 53-63
 archived 2026-11-24 to Progress_archive.txt — the items from those
 sessions are there.)
+
+--- Session 71 (2026-11-25) — Photo viewer on every page, Florida purchase on the pawn form (0115), weight off a scale, Karat / Purity follows the metal (branch feature/sol-pawn-brief == main) ---
+
+  617. PHOTO STRIP: CLICK A PHOTO TO SEE IT BIG (6b742f1)
+       Intake strip (pawn + buy): popup with Replace / Make main / Remove.
+
+  618. SHARED PhotoViewer + PAWN TICKET PAGE PHOTOS (c11b506)
+       src/components/uploads/PhotoViewer.tsx (native dialog, browse the
+       item's photos); ticket page collateral photos open it view only.
+
+  619. INVENTORY ITEM PHOTOS: VIEW, REPLACE, MAKE MAIN, REMOVE (0f7a1e1)
+       replaceInventoryPhotoAction (audit photo_replace).
+       [BUG] Root cause: removing a photo deleted its Storage file even
+       when a forfeited pawn ticket's collateral still pointed at it ->
+       deletePhotoFileIfUnused. PHOTO_ACCEPT in lib/uploads/mime.
+
+  620. REPAIR TICKET PHOTOS: VIEW, REPLACE, REMOVE (f13f26e)
+       replacePhotoAction keeps kind/position/caption; locked ticket
+       refused on the server. [BUG] removing a quote-made ticket's
+       reference photo deleted the quote's photo too — now checked.
+
+  621. CUSTOMER PAGE: PHOTO, ID SCAN, IMAGE DOCUMENTS IN THE POPUP (a4b8763)
+       removeCustomerPhotoAction. A replaced/removed customer photo KEEPS
+       its file: compliance_log rows copy photo_url (police record).
+
+  622. BUY TICKET + LAYAWAY + SALE PAGES: ITEM PHOTOS (4de896b, 7a87327,
+       aa9e649). New shared signItemPhotos (lib/inventory/photos-server,
+       batch-signed, main first) + ItemPhotoThumb (48 px, "+N"). View only.
+
+  623. FLORIDA: A BUY IS A PURCHASE ON THE PAWNBROKER FORM (81e931d,
+       patches/0115 LIVE). Fla. Stat. 539.001(8)(a). jurisdictions.
+       purchase_on_form (FL TRUE); /buy/new redirects to New pawn ticket
+       in Purchase mode (createPurchaseAction); every buy ends in
+       recordBuy() (compliance -> store credit -> buy_payouts -> audit);
+       BT-###### from the compliance_log trigger, counter buy_ticket
+       seeded 21667 (xPawn's last buy in the police files); the police
+       file sends the digits. Form prints from the compliance snapshot:
+       Purchase checked, Amount paid, no maturity, no reverse, no
+       pawn_only notice. Dry run: BT-021668, BT-021669, rolled back.
+       PDF checked with pdf.js screenshots. CLAUDE.md rule 30.
+
+  624. REPAIR PICKUP SIGNATURE: THUMBNAIL, CLICK TO SEE IT BIG (d28c555)
+       Image signatures only (pickup_signature_is_image); a PDF keeps its
+       link.
+
+  625. (Eddy asked) AVIF? NO — answered only. Claude vision and react-pdf
+       take no AVIF; browsers cannot encode it from canvas. The real
+       waste: 48 px thumbnails load the 2000 px original (unoptimized).
+       Offered Supabase image transforms or saved thumbnails if pages
+       feel slow. Nothing built.
+
+  626. (Eddy asked) CSS anchor positioning snippet (IMG_3985) explained.
+       Nothing built.
+
+  627. DESCRIBE FROM PHOTO READS THE WEIGHT OFF A SCALE (a48b24a)
+       PhotoItem.scale_reading {value, unit g|dwt|ozt|oz}: only a lit,
+       legible display with THIS piece on the scale; weightFromScale()
+       (lib/pawn/photo-describe): dwt stays dwt on screen, others to
+       grams; <=0 or > 5000 g dropped. All photos go in one call.
+       Not tried with a real scale photo. CLAUDE.md rule 29 updated.
+
+  628. [BUG] KARAT ACCEPTED 28 AND "KARATS" OF SILVER — PAWN POPUP (3a8351e)
+       Root cause: a number box 0-24 for every metal; silver/platinum had
+       no way to say 925/950, and pricing assumed sterling for all silver.
+       Now: lib/spot-prices/purity (purityScaleOf, purityChoicesFor,
+       defaultPurityFor, isValidPurity, purityFromWords, purityText,
+       purityContentRatio); popup dropdown + Other (ChoiceOrOther gets
+       error + inputMode + custom validity so Add item stops); metal
+       change brings its purity; collateralItemSchema superRefine
+       (karat_for_metal). Description "925 silver chain"; ticket page,
+       pawn history, audit report show "14K"/"925"; 999 silver priced as
+       fine, 800 by content; police jewelry_kt gold only (xPawn's files
+       send it only for gold — checked their XML structure, no values
+       printed); voice intake + photo reader go through purityFromWords
+       (a 925 stamp fills Purity now). Labels now "10K" (were "10k").
+
+  629. SAME FIELD ON BUY OUTRIGHT + INVENTORY FORM (1f5c168)
+       One PurityField component (pawn popup, buy, inventory). Inventory
+       keeps text "14K"/"925" (checked live, read-only: every saved value
+       already had that form — 14K 1,497, 10K 1,052, 925 251…);
+       purityForInventory on every writer (buy schema, inventory schemas,
+       FL purchase, forfeit — the last two wrote "14" before).
+       Buy outright now prices by metal content on screen AND in
+       meltValueAtBuy (fixes S66 known issue "12K priced as 14K").
+       Orphaned keys inventory.karat + buy.form.karat removed (en + es).
+       1,351 tests, tsc, lint, next build green. CLAUDE.md rule 31.
+
+  630. /progress — Session 71 checkpoint.
 
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
@@ -2439,6 +2575,16 @@ PENDING — NEXT UP
 
   IMMEDIATE (do this first next session):
     REMEMBER: the shop still runs on xPawn; nothing uploads from Pawn.
+    Session 71 — have Eddy try on the live site (RESUME block list 1-5):
+    the Karat / Purity field on the pawn popup, Buy outright and an
+    inventory item; Describe from photo with a piece on a scale; one
+    Florida test purchase (BT-021668) printed and then voided (ask him);
+    the photo popups. Before cutover: the buy counter (21667) and the loan
+    counter must sit above xPawn's last numbers (memory
+    project_xpawn_still_live).
+    Not done: the pawn calculator (/pawn/calculator), appraisals, repair
+    line items and custom quotes still take a typed karat — offer the
+    same PurityField if Eddy wants it.
     Session 70 — have Eddy try on the live site (RESUME block list): a
     pawn ticket with 3 photos + Describe from photo, ISSUED; a draft with
     photos resumed; a buy with 2 photos; ANTHROPIC_API_KEY in Vercel; the
@@ -2617,7 +2763,8 @@ PENDING — NEXT UP
         leave it, since compliance_log is write-once by design.
 
   KNOWN ISSUES TO REVISIT:
-    - Session 66, item 575: Buy outright prices 12K as 14K; a resumed
+    - Session 66, item 575: (FIXED S71 629: Buy outright prices by metal
+      content now) a resumed
       draft restores six item fields only; plated pieces forfeited before
       2026-11-24 are solid in inventory; the rest of 539.001(8) (customer
       block, statements, agency approval of the form) was not checked.
