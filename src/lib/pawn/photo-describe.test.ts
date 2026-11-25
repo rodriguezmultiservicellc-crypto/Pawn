@@ -23,6 +23,7 @@ const nothing: PhotoItem = {
   style: null,
   size: null,
   folded_in_half: null,
+  scale_reading: null,
   stones: [],
   stone_notes: null,
   firearm_type: null,
@@ -177,6 +178,37 @@ describe('photoItemPatch — jewelry', () => {
     expect(
       photoItemPatch({ ...nothing, brand: 'Rolex', model: 'Datejust', serial: 'X123' }, 'jewelry', 'watch'),
     ).toEqual({ jewelry_brand: 'Rolex', jewelry_model: 'Datejust', jewelry_serial: 'X123' })
+  })
+})
+
+describe('photoItemPatch — weight from a scale in the photo', () => {
+  it('takes grams as read', () => {
+    expect(
+      photoItemPatch({ ...nothing, scale_reading: { value: 12.37, unit: 'g' } }, 'jewelry', 'chain'),
+    ).toEqual({ weight_unit: 'g', weight_dwt: '', weight_grams: '12.37' })
+  })
+  it('keeps pennyweight on screen, grams underneath', () => {
+    expect(
+      photoItemPatch({ ...nothing, scale_reading: { value: 8.5, unit: 'dwt' } }, 'jewelry', 'chain'),
+    ).toEqual({ weight_unit: 'dwt', weight_dwt: '8.5', weight_grams: '13.22' })
+  })
+  it('turns troy ounces into grams', () => {
+    expect(
+      photoItemPatch({ ...nothing, scale_reading: { value: 1, unit: 'ozt' } }, 'jewelry', 'coin').weight_grams,
+    ).toBe('31.1')
+  })
+  it('drops a zero, a negative or an impossible reading', () => {
+    for (const value of [0, -1.2, 9000]) {
+      expect(
+        'weight_grams' in photoItemPatch({ ...nothing, scale_reading: { value, unit: 'g' } }, 'jewelry', 'ring'),
+      ).toBe(false)
+    }
+  })
+  it('no scale, no weight', () => {
+    expect('weight_grams' in photoItemPatch(nothing, 'jewelry', 'ring')).toBe(false)
+  })
+  it('refuses a unit the popup does not have', () => {
+    expect(PhotoItemSchema.safeParse({ ...nothing, scale_reading: { value: 2, unit: 'ct' } }).success).toBe(false)
   })
 })
 

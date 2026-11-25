@@ -10,6 +10,7 @@ import {
   styleKeysFor,
 } from './item-options'
 import { MAX_STONES, type StoneDraft } from './stones'
+import { GRAMS_PER, WEIGHT_UNITS } from '@/lib/bench/weight'
 
 /**
  * "Describe from photo" in the New pawn ticket item popup (Eddy, 2026-11-25).
@@ -21,7 +22,10 @@ import { MAX_STONES, type StoneDraft } from './stones'
  *
  * What the photo reader may and may not say (the prompt in
  * lib/ai/prompts.ts asks for this; the mapper here enforces it):
- * - Never a weight, a value, a carat weight or a clarity.
+ * - Never a value, a carat weight or a clarity. A weight ONLY as read off a
+ *   scale display in a photo with the piece on the scale (Eddy, 2026-11-25:
+ *   "take a photo of the item in the scale") — copied with its unit, turned
+ *   into grams here. No scale in the photos, no weight.
  * - A karat only when a stamp is legible (the route trusts the model on
  *   that; anything outside 1-24 is dropped here).
  * - NEVER what a stone is. A photo cannot tell a diamond from a cubic
@@ -64,6 +68,11 @@ export const PhotoItemSchema = z.object({
    *  (Eddy, 2026-11-25). The code doubles the reading; the model only says
    *  what it sees. */
   folded_in_half: z.boolean().nullable(),
+  /** The number on a scale's display, with the unit the display shows, from
+   *  a photo with the piece on the scale. Never estimated. */
+  scale_reading: z
+    .object({ value: z.number(), unit: z.enum(WEIGHT_UNITS) })
+    .nullable(),
   stones: z.array(
     z.object({
       qty: z.number().nullable(),
@@ -87,6 +96,9 @@ export type PhotoItemPatch = Partial<{
   unique_marks: string
   metal_type: MetalType | ''
   karat: string
+  weight_grams: string
+  weight_unit: 'g' | 'dwt'
+  weight_dwt: string
   coating: Coating
   jewelry_size: string
   item_size: string
@@ -156,6 +168,31 @@ function doubled(reading: string): string {
   return String(n)
 }
 
+/** A piece of jewelry weighs more than nothing and less than this; a reading
+ *  outside is a misread display, dropped. */
+const MAX_SCALE_GRAMS = 5000
+
+/** The popup's weight fields from a scale reading. Pennyweight stays in
+ *  pennyweight on screen (grams are what is kept, 2 dp like the popup's own
+ *  conversion); grams, troy and plain ounces become grams. */
+function weightFromScale(r: PhotoItem['scale_reading']): PhotoItemPatch {
+  if (!r || !Number.isFinite(r.value) || r.value <= 0) return {}
+  const grams = r.value * GRAMS_PER[r.unit]
+  if (grams > MAX_SCALE_GRAMS) return {}
+  if (r.unit === 'dwt') {
+    return {
+      weight_unit: 'dwt',
+      weight_dwt: String(r.value),
+      weight_grams: String(Math.round(grams * 100) / 100),
+    }
+  }
+  return {
+    weight_unit: 'g',
+    weight_dwt: '',
+    weight_grams: String(Math.round(grams * (r.unit === 'g' ? 10000 : 100)) / (r.unit === 'g' ? 10000 : 100)),
+  }
+}
+
 /** The yellow-gold a jewelry piece starts on is only right for a yellow or
  *  rose piece. */
 const GOLD_BY_EYE = new Set(['yellow', 'rose', 'two-tone', 'tri-color'])
@@ -202,6 +239,7 @@ export function photoItemPatch(
       patch.karat = String(Math.round(item.karat * 2) / 2)
     }
     if (item.coating && item.coating !== 'none') patch.coating = item.coating
+    Object.assign(patch, weightFromScale(item.scale_reading))
     if (item.gender) patch.jewelry_gender = item.gender
     const style = clean(item.style, 60)
     if (style) patch.jewelry_style = asChoice(style, styleWordsFor(inventoryCategory))

@@ -29,8 +29,10 @@ export const maxDuration = 60
  * the clerk checks them before the item is added (rule 7 — nothing
  * AI-written reaches a ticket without staff looking at it).
  *
- * What the model may say, and what it never says (a weight, a value, what a
- * stone is), is in lib/pawn/photo-describe + lib/ai/prompts.
+ * What the model may say, and what it never says (a value, what a stone is;
+ * a weight only off a scale display in the photo), is in
+ * lib/pawn/photo-describe + lib/ai/prompts. Every photo of the item goes in
+ * one call, so a close-up of the stamp and a photo on the scale add up.
  *
  * Errors are CODES; the popup shows its own translated text for each.
  *

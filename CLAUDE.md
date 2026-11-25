@@ -427,8 +427,10 @@ Never kill node processes by image name — always by PID.
     clerk checks it** (`/api/ai/vision/pawn-item`, rule 7).
     - The AI never names a stone: every stone line is written as Cubic
       zirconia (count, shape, color) and the clerk changes it after
-      testing (Eddy, 2026-11-25). It never fills a weight, a value, carats
-      or clarity, and a karat only from a legible stamp.
+      testing (Eddy, 2026-11-25). It never fills a value, carats or
+      clarity, a karat only from a legible stamp, and a weight only as read
+      off a scale display in a photo with the piece on it (copied with its
+      unit, turned into grams by `photoItemPatch`; Eddy, 2026-11-25).
     - Its answer reaches the popup ONLY through `photoItemPatch()` /
       `seenCategory()` (`src/lib/pawn/photo-describe.ts`): saved words are
       the shop's English choices (rule 27), slugs must be the shop's own.
