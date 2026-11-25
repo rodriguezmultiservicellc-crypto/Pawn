@@ -45,6 +45,8 @@ import { daysBetween, type ChargeModel, type PayoffResult } from '@/lib/pawn/mat
 import { undoneEventIds } from '@/lib/pawn/payment-void'
 import { mergePaymentMoves } from '@/lib/pawn/event-log'
 import { PaymentHistoryPanel } from '@/components/pawn/PaymentHistoryPanel'
+import { PhotoViewer } from '@/components/uploads/PhotoViewer'
+import { FOCUS } from '@/lib/ui/ledger'
 import type {
   InventoryCategory,
   LoanEventType,
@@ -703,6 +705,13 @@ function CollateralPanel({
 }) {
   const { t } = useI18n()
   const tn = t.pawn.new_
+  // The photo open in the viewer: which item, which of its photos. View
+  // only — an issued ticket's collateral is frozen (CLAUDE.md rule 14).
+  const [viewing, setViewing] = useState<{ itemId: string; index: number } | null>(null)
+  const viewingPhotos =
+    collateral
+      .find((c) => c.id === viewing?.itemId)
+      ?.photo_signed_urls.map((url) => ({ path: url, url, name: '' })) ?? []
   const firearmTypeLabel = (v: string | null): string | null => {
     switch (v) {
       case 'handgun':
@@ -779,8 +788,13 @@ function CollateralPanel({
             >
               <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md border border-border bg-background">
                 {c.photo_signed_urls[0] ? (
-                  // Opens the full photo in a new tab.
-                  <a href={c.photo_signed_urls[0]} target="_blank" rel="noopener noreferrer">
+                  <button
+                    type="button"
+                    onClick={() => setViewing({ itemId: c.id, index: 0 })}
+                    title={t.common.photoStrip.view}
+                    aria-label={t.common.photoStrip.view}
+                    className={`absolute inset-0 cursor-zoom-in ${FOCUS}`}
+                  >
                     <Image
                       src={c.photo_signed_urls[0]}
                       alt=""
@@ -789,7 +803,7 @@ function CollateralPanel({
                       unoptimized
                       className="object-cover"
                     />
-                  </a>
+                  </button>
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-muted">
                     <ImageIcon size={20} />
@@ -799,16 +813,17 @@ function CollateralPanel({
               <div className="min-w-0 flex-1">
                 {c.photo_signed_urls.length > 1 ? (
                   <div className="mb-2 flex flex-wrap gap-1.5">
-                    {c.photo_signed_urls.slice(1).map((url) => (
-                      <a
+                    {c.photo_signed_urls.slice(1).map((url, i) => (
+                      <button
                         key={url}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative h-10 w-10 overflow-hidden rounded border border-border bg-background"
+                        type="button"
+                        onClick={() => setViewing({ itemId: c.id, index: i + 1 })}
+                        title={t.common.photoStrip.view}
+                        aria-label={t.common.photoStrip.view}
+                        className={`relative h-10 w-10 cursor-zoom-in overflow-hidden rounded border border-border bg-background ${FOCUS}`}
                       >
                         <Image src={url} alt="" fill sizes="40px" unoptimized className="object-cover" />
-                      </a>
+                      </button>
                     ))}
                   </div>
                 ) : null}
@@ -847,6 +862,11 @@ function CollateralPanel({
           ))}
         </div>
       )}
+      <PhotoViewer
+        photos={viewingPhotos}
+        index={viewing?.index ?? null}
+        onIndex={(i) => setViewing(i == null || !viewing ? null : { ...viewing, index: i })}
+      />
     </section>
   )
 }

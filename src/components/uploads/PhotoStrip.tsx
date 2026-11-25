@@ -2,15 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import {
-  ArrowsClockwise,
-  Camera,
-  CaretLeft,
-  CaretRight,
-  Star,
-  Trash,
-  X,
-} from '@phosphor-icons/react'
+import { Camera, Star, X } from '@phosphor-icons/react'
+import { PhotoViewer } from '@/components/uploads/PhotoViewer'
 import { useI18n } from '@/lib/i18n/context'
 import { createClient } from '@/lib/supabase/client'
 import { fitPhotoForUpload } from '@/lib/uploads/fit-photo'
@@ -119,7 +112,7 @@ export function PhotoStrip({
 
   /** Puts a new photo in the place of the one at `path` (same position, so
    *  a replaced main photo stays the main one). */
-  async function replaceFile(path: string, picked: File): Promise<boolean> {
+  async function replaceFile(path: string, picked: File) {
     setError(null)
     setUploading((n) => n + 1)
     try {
@@ -127,11 +120,9 @@ export function PhotoStrip({
       const next = photosNow.current.map((p) => (p.path === path ? photo : p))
       photosNow.current = next
       onChange(next)
-      return true
     } catch (err) {
       console.error('[photos] replace failed', err)
       setError(tp.failed)
-      return false
     } finally {
       setUploading((n) => n - 1)
     }
@@ -251,224 +242,23 @@ export function PhotoStrip({
       <PhotoViewer
         photos={photos}
         index={viewing}
-        busy={uploading > 0}
-        error={error}
         onIndex={setViewing}
-        onMakeMain={(path) => {
-          makeMain(path)
-          setViewing(0)
+        edit={{
+          busy: uploading > 0,
+          error,
+          accept: ACCEPT,
+          onMakeMain: (path) => {
+            makeMain(path)
+            setViewing(0)
+          },
+          onRemove: (path, i) => {
+            remove(path)
+            const left = photos.length - 1
+            setViewing(left === 0 ? null : Math.min(i, left - 1))
+          },
+          onReplace: (path, file) => void replaceFile(path, file),
         }}
-        onRemove={(path, i) => {
-          remove(path)
-          const left = photos.length - 1
-          setViewing(left === 0 ? null : Math.min(i, left - 1))
-        }}
-        onReplace={replaceFile}
       />
     </div>
-  )
-}
-
-/**
- * One photo, big, in a popup: browse the item's photos, replace this one,
- * make it the main one, or remove it.
- *
- * A <dialog> opened with showModal(), so it stacks above the item popup it
- * usually sits in. Its cancel / close events are stopped here: React passes
- * them up its tree, and the item popup would take them for its own and
- * close too.
- */
-function PhotoViewer({
-  photos,
-  index,
-  busy,
-  error,
-  onIndex,
-  onMakeMain,
-  onRemove,
-  onReplace,
-}: {
-  photos: StripPhoto[]
-  index: number | null
-  busy: boolean
-  error: string | null
-  onIndex: (i: number | null) => void
-  onMakeMain: (path: string) => void
-  onRemove: (path: string, i: number) => void
-  onReplace: (path: string, file: File) => Promise<boolean>
-}) {
-  const { t } = useI18n()
-  const tp = t.common.photoStrip
-  const dialogRef = useRef<HTMLDialogElement>(null)
-  const replaceRef = useRef<HTMLInputElement>(null)
-  const photo = index != null ? photos[index] ?? null : null
-  const open = photo != null
-
-  useEffect(() => {
-    const d = dialogRef.current
-    if (!d) return
-    if (open && !d.open) d.showModal()
-    if (!open && d.open) d.close()
-  }, [open])
-
-  const count = photos.length
-  const go = (step: number) => {
-    if (index == null || count < 2) return
-    onIndex((index + step + count) % count)
-  }
-
-  const iconBtn = `inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-navy shadow-lg hover:bg-white disabled:opacity-40 ${FOCUS}`
-  const actionBtn = `inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-sm font-bold text-foreground hover:bg-background disabled:opacity-50 ${FOCUS}`
-
-  return (
-    <dialog
-      ref={dialogRef}
-      aria-label={tp.view}
-      onCancel={(e) => {
-        e.stopPropagation()
-        // A file picker dismissed without a file fires its own "cancel".
-        if (e.target !== e.currentTarget) return
-        e.preventDefault()
-        onIndex(null)
-      }}
-      onClose={(e) => {
-        e.stopPropagation()
-        if (open) onIndex(null)
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'ArrowLeft') go(-1)
-        else if (e.key === 'ArrowRight') go(1)
-        else return
-        e.preventDefault()
-      }}
-      // A click on the dimmed backdrop (outside the card) closes it.
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onIndex(null)
-      }}
-      className="m-0 h-full max-h-none w-full max-w-none bg-navy/70 p-4 text-left text-sm font-normal text-foreground"
-    >
-      {photo ? (
-        <div
-          className="flex h-full items-center justify-center"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) onIndex(null)
-          }}
-        >
-          <div className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-card shadow-lg">
-            <div className="flex items-center justify-between border-b border-border px-4 py-2">
-              <span className="text-sm font-semibold">
-                {tp.viewerTitle
-                  .replace('{n}', String((index ?? 0) + 1))
-                  .replace('{total}', String(count))}
-                {index === 0 ? (
-                  <span className="ml-2 rounded bg-navy px-1.5 py-0.5 text-[11px] text-white">
-                    {tp.main}
-                  </span>
-                ) : null}
-              </span>
-              <button
-                type="button"
-                onClick={() => onIndex(null)}
-                title={t.common.close}
-                aria-label={t.common.close}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:text-foreground ${FOCUS}`}
-              >
-                <X size={18} weight="bold" />
-              </button>
-            </div>
-
-            <div className="relative h-[65vh] min-h-48 bg-background">
-              {photo.url ? (
-                <Image
-                  key={photo.path}
-                  src={photo.url}
-                  alt=""
-                  fill
-                  sizes="(max-width: 768px) 100vw, 768px"
-                  unoptimized
-                  className="object-contain"
-                />
-              ) : (
-                <span className="flex h-full items-center justify-center break-all px-4 text-center text-sm text-foreground">
-                  {photo.name}
-                </span>
-              )}
-              {busy ? (
-                <span className="absolute inset-x-0 bottom-3 mx-auto w-fit rounded-md bg-navy/80 px-3 py-1 text-xs text-white">
-                  {t.common.preparingPhoto}
-                </span>
-              ) : null}
-              {count > 1 ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => go(-1)}
-                    title={t.common.previous}
-                    aria-label={t.common.previous}
-                    className={`absolute left-3 top-1/2 -translate-y-1/2 ${iconBtn}`}
-                  >
-                    <CaretLeft size={18} weight="bold" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => go(1)}
-                    title={t.common.next}
-                    aria-label={t.common.next}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${iconBtn}`}
-                  >
-                    <CaretRight size={18} weight="bold" />
-                  </button>
-                </>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => replaceRef.current?.click()}
-                className={actionBtn}
-              >
-                <ArrowsClockwise size={16} weight="bold" />
-                {tp.replace}
-              </button>
-              {index !== 0 ? (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => onMakeMain(photo.path)}
-                  className={actionBtn}
-                >
-                  <Star size={16} weight="bold" />
-                  {tp.makeMain}
-                </button>
-              ) : null}
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => onRemove(photo.path, index ?? 0)}
-                className={`${actionBtn} ml-auto text-danger`}
-              >
-                <Trash size={16} weight="bold" />
-                {tp.remove}
-              </button>
-            </div>
-            {error ? <p className="px-4 pb-3 text-xs text-danger">{error}</p> : null}
-          </div>
-        </div>
-      ) : null}
-      <input
-        ref={replaceRef}
-        type="file"
-        accept={ACCEPT}
-        onChange={(e) => {
-          const file = e.currentTarget.files?.[0]
-          e.currentTarget.value = ''
-          if (file && photo) void onReplace(photo.path, file)
-        }}
-        className="sr-only"
-        tabIndex={-1}
-      />
-    </dialog>
   )
 }
