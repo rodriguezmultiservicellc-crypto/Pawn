@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { pawnIntakeGate } from '@/lib/ai/pawn-intake-gate'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/audit'
+import { purityFromWords } from '@/lib/spot-prices/purity'
 import type {
   CustomerInsert,
   InventoryCategory,
@@ -99,7 +100,7 @@ no prose. Output schema:
 Rules:
 - Use null when a field isn't mentioned. Never guess.
 - Convert spoken numbers to digits ("two hundred" -> 200, "doscientos" -> 200).
-- Karat: "fourteen karat" / "14k" / "catorce quilates" -> "14K".
+- Karat: "fourteen karat" / "14k" / "catorce quilates" -> "14K". Silver, platinum and palladium have no karats: "sterling" / "nine twenty-five" -> "925", platinum "950".
 - White gold / rose gold each map to their own metal_type, NOT "gold".
 - Map item words to the closest enum: "wedding ring"/"engagement ring"/"signet" -> "ring";
   "necklace"/"chain" -> use "chain" only when there are no pendants/charms; "rolex"/"watch" -> "watch";
@@ -257,7 +258,8 @@ export async function POST(req: NextRequest) {
           )
             ? (extracted.collateral.metal_type as MetalType)
             : '',
-        karat: extracted.collateral.karat?.toString().trim() ?? '',
+        // "14K" heard → "14"; a purity the metal cannot have → blank.
+        karat: purityFromWords(extracted.collateral.metal_type, extracted.collateral.karat),
         weight_grams:
           extracted.collateral.weight_grams != null
             ? extracted.collateral.weight_grams.toString()

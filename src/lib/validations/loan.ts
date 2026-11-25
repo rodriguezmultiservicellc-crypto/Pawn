@@ -6,6 +6,7 @@ import {
 import { MAX_EXTENSION_PERIODS, MAX_FREE_DAYS } from '@/lib/pawn/math'
 import { JEWELRY_GENDERS } from '@/lib/pawn/item-description'
 import { MAX_STONES, normalizeStones } from '@/lib/pawn/stones'
+import { isValidPurity } from '@/lib/spot-prices/purity'
 
 /**
  * Pawn-loan Zod schemas — intake, payment (which may extend), forfeit, void.
@@ -63,7 +64,9 @@ const requiredDecimalPositive = z
 const optionalKarat = z
   .preprocess(
     (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
-    z.coerce.number().min(0).max(24).nullable().optional(),
+    // Karats or parts per thousand; which one, and its range, is checked
+    // against the metal on the whole item (isValidPurity).
+    z.coerce.number().min(0).max(999.9).nullable().optional(),
   )
   .transform((v) => (v === null || v === undefined ? null : v))
 
@@ -212,6 +215,13 @@ export const collateralItemSchema = z.object({
   general_serial: optionalTrimmedString,
   // Size of anything that is not jewelry ("55 in", "20V").
   item_size: optionalTrimmedString,
+}).superRefine((item, ctx) => {
+  // Karats for gold (1-24), parts per thousand for silver, platinum and
+  // palladium (925, 950…), none for steel and the like — what the popup
+  // offers, checked again here.
+  if (!isValidPurity(item.metal_type, item.karat)) {
+    ctx.addIssue({ code: 'custom', path: ['karat'], message: 'karat_for_metal' })
+  }
 })
 
 export type CollateralItemInput = z.infer<typeof collateralItemSchema>

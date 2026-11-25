@@ -63,11 +63,15 @@ const build = (a: { loans: HistoryLoanInput[]; items: HistoryItemInput[] }) =>
 
 describe('pawnItemLabel', () => {
   it('reads karat, the piece and its weight', () => {
-    expect(pawnItemLabel({ description: 'Figaro chain', karat: '10.0', weight_grams: '23.6000' })).toBe('10k Figaro chain 23.6g')
+    expect(pawnItemLabel({ description: 'Figaro chain', karat: '10.0', weight_grams: '23.6000' })).toBe('10K Figaro chain 23.6g')
   })
   it('does not repeat a karat the description already says', () => {
     expect(pawnItemLabel({ description: '10k box chain', karat: 10, weight_grams: 34.3 })).toBe('10k box chain 34.3g')
     expect(pawnItemLabel({ description: 'Bracelet 14k cuban link', karat: 14, weight_grams: null })).toBe('Bracelet 14k cuban link')
+  })
+  it('writes silver in parts per thousand, once', () => {
+    expect(pawnItemLabel({ description: 'Rope chain', metal_type: 'silver', karat: 925, weight_grams: 12 })).toBe('925 Rope chain 12g')
+    expect(pawnItemLabel({ description: '925 silver rope chain', metal_type: 'silver', karat: 925, weight_grams: null })).toBe('925 silver rope chain')
   })
   it('is just the description for a piece with no metal facts', () => {
     expect(pawnItemLabel({ description: 'Glock 19X', karat: null, weight_grams: 0 })).toBe('Glock 19X')
@@ -99,7 +103,7 @@ describe('buildCustomerPawnHistory', () => {
         item({ loan_id: 'here', description: 'Cuban bracelet', weight_grams: 19.5 }),
       ],
     })
-    expect(h.previous_items.map((p) => p.label)).toEqual(['10k Figaro chain 23.6g'])
+    expect(h.previous_items.map((p) => p.label)).toEqual(['10K Figaro chain 23.6g'])
   })
 
   it('the same piece pawned many times is one entry with its newest value', () => {
@@ -133,7 +137,7 @@ describe('buildCustomerPawnHistory', () => {
         item({ loan_id: 'before', position: 1, description: 'Wedding band', weight_grams: 4 }),
       ],
     })
-    expect(h.previous_items.map((p) => p.label)).toEqual(['10k Wedding band 4g'])
+    expect(h.previous_items.map((p) => p.label)).toEqual(['10K Wedding band 4g'])
   })
 
   it('does not offer a piece that was picked up once and lost later', () => {
@@ -195,7 +199,7 @@ describe('buildCustomerPawnHistory', () => {
       items: [item({ loan_id: 'b', position: 1, description: 'Ring', weight_grams: 4 }), item({ loan_id: 'b', position: 0 })],
     })
     expect(h.recent.map((r) => [r.ticket_number, r.outcome])).toEqual([['2', 'forfeited'], ['1', 'redeemed']])
-    expect(h.recent[0].items).toEqual(['10k Figaro chain 23.6g', '10k Ring 4g'])
+    expect(h.recent[0].items).toEqual(['10K Figaro chain 23.6g', '10K Ring 4g'])
   })
 
   it('caps the pieces offered', () => {

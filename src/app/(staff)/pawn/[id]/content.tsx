@@ -1,5 +1,6 @@
 'use client'
 
+import { purityText } from '@/lib/spot-prices/purity'
 import { useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -832,7 +833,7 @@ function CollateralPanel({
                   {[
                     c.category,
                     c.metal_type,
-                    c.karat ? `${c.karat}k` : null,
+                    purityText(c.metal_type, c.karat) || null,
                     c.weight_grams ? `${c.weight_grams}g` : null,
                   ]
                     .filter(Boolean)

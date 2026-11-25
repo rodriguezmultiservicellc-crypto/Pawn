@@ -22,6 +22,7 @@
  * item's SKU is sent), ID types other than DL.
  */
 
+import { purityScaleOf } from '@/lib/spot-prices/purity'
 import type { ComplianceLogRow } from '@/types/database-aliases'
 import { itemIdentity } from '@/lib/pawn/item-identity'
 import { normalizeStones } from '@/lib/pawn/stones'
@@ -181,7 +182,10 @@ function writeItem(o: Out, it: Obj, index: number, ncic: string, amountKey: 'est
   o.raw('<item_picture code="A"/>', d)
   o.el('jewelry_style', jewelry ? s(it.jewelry_style) : '', d)
   o.el('jewelry_metal', jewelry ? metalText(it.metal_type, it.color) : '', d)
-  o.el('jewelry_kt', jewelry ? digits(it.karat) : '', d)
+  // Karats only: xPawn's accepted files send jewelry_kt for gold alone. A
+  // silver or platinum purity (925, 950) is in item_desc, never sent as a
+  // karat of 925.
+  o.el('jewelry_kt', jewelry && purityScaleOf(s(it.metal_type)) === 'karat' ? digits(it.karat) : '', d)
   o.el('jewelry_wt', jewelry ? grams(it.weight_grams) : '', d)
   o.el('jewelry_size', s(it.jewelry_size) || s(it.item_size), d)
   o.el('jewelry_sex', jewelry ? (GENDER[s(it.jewelry_gender)] ?? '') : '', d)

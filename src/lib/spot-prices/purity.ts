@@ -47,15 +47,132 @@ export function meltMetalFromItem(
   return null
 }
 
+// ── Purity: one `karat` column, two ways of writing it ────────────────────
+//
+// Gold is written in karats (14 = 14K, 24 at most). Silver, platinum and
+// palladium are written in parts per thousand (925 = sterling, 950
+// platinum, 999 fine) — a "karat" of silver does not exist. Both live in the
+// same `karat` column (loan_collateral_items NUMERIC(4,1) holds 999.9;
+// inventory_items TEXT already kept '925'); the metal says which it is.
+// Every screen, ticket and report reads it through these helpers.
+
+/** How a metal's purity is written. */
+export type PurityScale = 'karat' | 'fineness'
+
 /**
- * Pick the most-likely MetalPurity for an item from its metal and (for
- * gold) karat. Returns null when it can't be pinned down.
+ * Karats for the gold family and for two-tone ('mixed' — almost always
+ * gold) or a metal not picked yet; parts per thousand for silver, platinum
+ * and palladium; none for base metals (steel, tungsten, titanium…).
+ */
+export function purityScaleOf(metal: string | null | undefined): PurityScale | null {
+  if (metal === 'silver' || metal === 'platinum' || metal === 'palladium') return 'fineness'
+  if (
+    metal == null ||
+    metal === '' ||
+    metal === 'gold' ||
+    metal === 'rose_gold' ||
+    metal === 'white_gold' ||
+    metal === 'mixed'
+  ) {
+    return 'karat'
+  }
+  return null
+}
+
+/** The range a purity can be, by how it is written. */
+export const PURITY_LIMITS: Readonly<Record<PurityScale, { min: number; max: number }>> = {
+  karat: { min: 1, max: 24 },
+  // 999.9 is the most the column holds, and as fine as metal is sold.
+  fineness: { min: 100, max: 999.9 },
+}
+
+/** The choices the dropdown lists for a metal, most common first. Anything
+ *  else in range is typed under "Other". */
+export function purityChoicesFor(metal: string | null | undefined): ReadonlyArray<string> {
+  switch (metal) {
+    case 'silver':
+      return ['925', '999', '900', '800']
+    case 'platinum':
+      return ['950', '900', '850']
+    case 'palladium':
+      return ['950', '500']
+    default:
+      return purityScaleOf(metal) === 'karat' ? ['10', '14', '18', '22', '24'] : []
+  }
+}
+
+/** What a metal starts on when it is picked: what nearly all of it is.
+ *  Gold has no default — 10K and 14K are both common. */
+export function defaultPurityFor(metal: string | null | undefined): string {
+  if (metal === 'silver') return '925'
+  if (metal === 'platinum' || metal === 'palladium') return '950'
+  return ''
+}
+
+const PLAIN_NUMBER = /^\d+(\.\d)?$/
+
+/**
+ * Empty is valid (not known). Otherwise a plain number, at most one decimal
+ * (the column's precision), inside its metal's range. A metal with no
+ * purity (steel…) takes none. "28" on gold or "14" on silver is refused.
+ */
+export function isValidPurity(
+  metal: string | null | undefined,
+  value: string | number | null | undefined,
+): boolean {
+  const text = value == null ? '' : String(value).trim()
+  if (text === '') return true
+  const scale = purityScaleOf(metal)
+  if (!scale) return false
+  // A number from the database ("14.0" kept as 14) or as typed.
+  const n = typeof value === 'number' ? value : PLAIN_NUMBER.test(text) ? Number(text) : NaN
+  if (!Number.isFinite(n) || Math.abs(Math.round(n * 10) - n * 10) > 1e-9) return false
+  const { min, max } = PURITY_LIMITS[scale]
+  return n >= min && n <= max
+}
+
+/**
+ * A purity heard or read somewhere else (voice intake "14K", a stamp the
+ * photo reader saw) as the popup keeps it: "14", "925". '' when it is not a
+ * purity this metal can have.
+ */
+export function purityFromWords(
+  metal: string | null | undefined,
+  words: string | number | null | undefined,
+): string {
+  if (words == null) return ''
+  const m = /^(\d+(?:\.\d+)?)\s*(?:k|kt|karat)?$/i.exec(String(words).trim())
+  if (!m) return ''
+  const value = String(Number(Number(m[1]).toFixed(1)))
+  return isValidPurity(metal, value) ? value : ''
+}
+
+/** "14K", "925", or '' — how a purity reads on a screen, a ticket line or a
+ *  description. A number the metal cannot have reads as it is, without "K". */
+export function purityText(
+  metal: string | null | undefined,
+  value: string | number | null | undefined,
+): string {
+  const text = value == null ? '' : String(value).trim()
+  if (text === '') return ''
+  const n = typeof value === 'number' ? value : Number(text)
+  if (!Number.isFinite(n) || n <= 0) return ''
+  const shown = String(Number(n.toFixed(1)))
+  return purityScaleOf(metal) === 'karat' && n <= PURITY_LIMITS.karat.max ? `${shown}K` : shown
+}
+
+/**
+ * Pick the most-likely MetalPurity for an item from its metal and its
+ * purity. Returns null when it can't be pinned down.
  *
- *   silver                → sterling_925 (most pawn silver is sterling;
- *                           fine bullion is priced with purity='fine')
+ *   silver                → fine at 990 and up, else sterling_925 (most pawn
+ *                           silver is sterling; no purity = sterling)
  *   platinum              → platinum_950
  *   palladium             → palladium_950
  *   gold family + karat   → 24 / 22 / 18 / 14 / 10k bucket nearest the karat
+ *
+ * A purity between buckets is priced by its metal content from the bucket
+ * (`purityContentRatio`).
  */
 export function purityFromItem(args: {
   metal: MetalType | string | null | undefined
@@ -71,7 +188,11 @@ export function purityFromItem(args: {
         ? parseFloat(args.karat)
         : args.karat
 
-  if (metal === 'silver') return 'sterling_925'
+  if (metal === 'silver') {
+    return karat != null && isFinite(karat) && karat >= 990 && karat <= 999.9
+      ? 'fine'
+      : 'sterling_925'
+  }
   if (metal === 'platinum') return 'platinum_950'
   if (metal === 'palladium') return 'palladium_950'
 
@@ -105,6 +226,38 @@ export function karatForPurity(purity: MetalPurity): string | null {
     default:
       return null
   }
+}
+
+/** Parts per thousand each fineness bucket is priced at. */
+const BUCKET_FINENESS: Partial<Record<MetalPurity, number>> = {
+  sterling_925: 925,
+  fine: 999,
+  platinum_950: 950,
+  palladium_950: 950,
+}
+
+/**
+ * How much of its bucket's metal a piece holds: a 12K piece is 12/14 of the
+ * 14K price, 800 silver 800/925 of sterling, 900 platinum 900/950. 1 when
+ * the purity is the bucket's own, unknown, or out of range. 24K is the top
+ * gold bucket (23.5 and up), priced as it is. Lending on more metal than is
+ * there is the expensive mistake.
+ */
+export function purityContentRatio(
+  metal: string | null | undefined,
+  karat: string | number | null | undefined,
+  purity: MetalPurity,
+): number {
+  if (!isValidPurity(metal, karat)) return 1
+  const n = karat == null || String(karat).trim() === '' ? null : Number(karat)
+  if (n == null) return 1
+  if (purityScaleOf(metal) === 'karat') {
+    if (purity === 'pure_24k') return 1
+    const bucket = Number(karatForPurity(purity))
+    return bucket > 0 ? n / bucket : 1
+  }
+  const bucket = BUCKET_FINENESS[purity]
+  return bucket ? n / bucket : 1
 }
 
 /** Surface coatings (patches/0067). Anything but 'none' is NOT solid metal. */

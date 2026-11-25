@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { INPUT } from '@/lib/ui/ledger'
 import { matchChoice, type Choice } from '@/lib/pawn/item-options'
 
@@ -18,6 +18,9 @@ const OTHER = '__other__'
  * Inside a grid with its own header row (a stone line), pass `labelHidden`
  * (the label is kept for screen readers and shown as the empty choice) and
  * no `name`: the caller submits the value itself.
+ *
+ * `error` shows under the field (a typed value the field cannot take);
+ * `otherInputMode` picks the phone keyboard for the typed box.
  */
 export function ChoiceOrOther({
   label,
@@ -29,6 +32,8 @@ export function ChoiceOrOther({
   otherPlaceholder,
   className,
   labelHidden = false,
+  error,
+  otherInputMode,
 }: {
   label: string
   name?: string
@@ -39,10 +44,18 @@ export function ChoiceOrOther({
   otherPlaceholder: string
   className?: string
   labelHidden?: boolean
+  error?: string | null
+  otherInputMode?: 'text' | 'decimal'
 }) {
   // "Other…" was picked and nothing is typed yet. With something typed that
   // is not on the list, Other shows by itself.
   const [otherOpen, setOtherOpen] = useState(false)
+  // The error is the typed box's own validity too, so a form or popup that
+  // checks :invalid before it closes stops on it with this message.
+  const otherRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    otherRef.current?.setCustomValidity(error ?? '')
+  })
   const match = matchChoice(value, choices)
   const showOther = otherOpen || (value.trim() !== '' && match == null)
 
@@ -85,15 +98,19 @@ export function ChoiceOrOther({
       </select>
       {showOther ? (
         <input
+          ref={otherRef}
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           aria-label={`${label}: ${otherLabel}`}
           placeholder={otherPlaceholder}
+          inputMode={otherInputMode}
+          aria-invalid={error ? true : undefined}
           autoFocus
           className={INPUT}
         />
       ) : null}
+      {error ? <p className="text-xs text-danger">{error}</p> : null}
       {name ? (
         <input type="hidden" name={name} value={match ? match.value : value.trim()} />
       ) : null}

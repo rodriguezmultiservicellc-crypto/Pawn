@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { en } from '@/lib/i18n/en'
 import { Constants } from '@/types/database'
 import type { MetalType } from '@/types/database-aliases'
-import { COATINGS, type Coating } from '@/lib/spot-prices/purity'
+import { COATINGS, purityFromWords, type Coating } from '@/lib/spot-prices/purity'
 import { JEWELRY_GENDERS, type JewelryGender } from './item-description'
 import {
   GENERAL_COLOR_KEYS,
@@ -235,9 +235,10 @@ export function photoItemPatch(
 
     if (item.metal_type) patch.metal_type = item.metal_type
     else if (color && !GOLD_BY_EYE.has(color.toLowerCase())) patch.metal_type = ''
-    if (item.karat != null && item.karat >= 1 && item.karat <= 24) {
-      patch.karat = String(Math.round(item.karat * 2) / 2)
-    }
+    // Karats for gold, parts per thousand for silver / platinum (a 925 or
+    // 950 stamp). One the metal cannot have is dropped.
+    const karat = purityFromWords(patch.metal_type ?? item.metal_type, item.karat)
+    if (karat) patch.karat = karat
     if (item.coating && item.coating !== 'none') patch.coating = item.coating
     Object.assign(patch, weightFromScale(item.scale_reading))
     if (item.gender) patch.jewelry_gender = item.gender

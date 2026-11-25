@@ -8,18 +8,19 @@
  * the Spot prices page; no percent set = 100%). Pure — the page loads the
  * rate maps once and the popup does the math as the clerk types.
  *
- * Spot prices come in karat buckets (10 / 14 / 18 / 22 / 24). A karat in
- * between is priced by its gold content from the bucket it falls in — a 12K
- * piece is 12/14 of the 14K price, never the full 14K price. Lending on
- * more gold than is there is the expensive mistake.
+ * Spot prices come in purity buckets (gold 10 / 14 / 18 / 22 / 24K; silver
+ * 925 and fine; platinum and palladium 950). A purity in between is priced
+ * by its metal content from the bucket it falls in — a 12K piece is 12/14 of
+ * the 14K price, 800 silver 800/925 of sterling (purityContentRatio).
+ * Lending on more metal than is there is the expensive mistake.
  */
 
 import { resolveRate, type RateMaps } from '@/lib/metal-counter/math'
 import { r4 } from '@/lib/pawn/math'
 import {
   isSolidMetal,
-  karatForPurity,
   meltMetalFromItem,
+  purityContentRatio,
   purityFromItem,
 } from '@/lib/spot-prices/purity'
 
@@ -70,18 +71,9 @@ export function itemMetalValue(rates: RateMaps, item: ItemMetalInput): ItemMetal
   const rate = resolveRate(rates, meltMetal, purity, 'pay')
   if (rate.perGram == null) return { status: 'no_price' }
 
-  // Gold between two buckets: by its gold content. 24K is the top bucket
-  // (23.5 and up), priced as it is.
-  let scale = 1
-  if (meltMetal === 'gold' && purity !== 'pure_24k') {
-    const karat = num(item.karat)
-    const bucketKarat = num(karatForPurity(purity))
-    if (karat != null && bucketKarat != null && bucketKarat > 0) {
-      scale = karat / bucketKarat
-    }
-  }
-
-  const perGram = r4(rate.perGram * scale)
+  // Between two buckets (12K gold, 800 silver, 900 platinum): by its metal
+  // content.
+  const perGram = r4(rate.perGram * purityContentRatio(metal, item.karat, purity))
   return {
     status: 'ok',
     value: Math.round(grams * perGram * 100) / 100,

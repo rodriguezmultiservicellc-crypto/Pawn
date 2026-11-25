@@ -15,6 +15,8 @@
  * not a description.
  */
 
+import { purityText } from '@/lib/spot-prices/purity'
+
 export type ItemDescriptionKind =
   | 'jewelry'
   | 'firearms'
@@ -46,6 +48,9 @@ export type ItemDescriptionInput = {
   color: string
   /** "Gold", "Silver"… in English; '' for none / other / not picked. */
   metalWord: string
+  /** The metal as saved ('gold', 'silver'…): says whether `karat` is
+   *  karats ("14K") or parts per thousand ("925"). */
+  metal: string
   karat: string
   weightGrams: string
   /** Ring size or length (jewelry), or the size of anything else. */
@@ -93,12 +98,6 @@ function joinParts(parts: ReadonlyArray<string>): string {
   return capFirst(parts.filter((p) => p !== '').join(', '))
 }
 
-function karatText(karat: string): string {
-  const k = clean(karat)
-  if (k === '' || !(parseFloat(k) > 0)) return ''
-  return `${k}K`
-}
-
 function weightText(weight: string): string {
   const w = clean(weight)
   if (w === '' || !(parseFloat(w) > 0)) return ''
@@ -127,7 +126,8 @@ export function lengthText(length: string | null | undefined): string {
 }
 
 function jewelry(i: ItemDescriptionInput): string {
-  const karat = karatText(i.karat)
+  // "14K yellow gold…", "925 silver…".
+  const karat = purityText(i.metal, clean(i.karat))
   const color = lower(i.color)
   const metal = lower(i.metalWord)
   const sizeRaw = clean(i.size)

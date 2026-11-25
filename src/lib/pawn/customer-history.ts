@@ -22,6 +22,7 @@
  * (newest value, redeemed tickets counted).
  */
 
+import { purityText } from '@/lib/spot-prices/purity'
 import { itemIdentity } from '@/lib/pawn/item-identity'
 import { daysBetween } from '@/lib/pawn/math'
 
@@ -140,18 +141,22 @@ export function outcomeOf(status: string): HistoryOutcome {
 
 const SAME_DAY_ORDER: Record<HistoryOutcome, number> = { open: 0, forfeited: 1, redeemed: 2, voided: 3 }
 
-/** "10k Figaro chain 23.6g" — karat, what it is, weight. */
+/** "10K Figaro chain 23.6g", "925 rope chain 12g" — purity, what it is, weight. */
 export function pawnItemLabel(item: {
   description: string
+  metal_type?: string | null
   karat: number | string | null
   weight_grams: number | string | null
 }): string {
-  const k = num(item.karat)
+  const purity = purityText(item.metal_type, item.karat)
   const w = num(item.weight_grams)
   const desc = item.description.trim()
-  // "10k chain" already says its karat.
-  const saysKarat = k != null && new RegExp(`\\b${Number(k.toFixed(1))}\\s?k`, 'i').test(desc)
-  return [k != null && !saysKarat ? `${Number(k.toFixed(1))}k` : null, desc, w != null ? `${Number(w.toFixed(2))}g` : null]
+  // "10k chain" / "925 chain" already says its purity.
+  const karats = purity.endsWith('K')
+  const digits = (karats ? purity.slice(0, -1) : purity).replace('.', '\\.')
+  const saysPurity =
+    purity !== '' && new RegExp(`\\b${digits}${karats ? '\\s?k' : '\\b'}`, 'i').test(desc)
+  return [purity !== '' && !saysPurity ? purity : null, desc, w != null ? `${Number(w.toFixed(2))}g` : null]
     .filter(Boolean)
     .join(' ')
 }

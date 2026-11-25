@@ -16,6 +16,7 @@
  * Ordered by ticket number the way a person reads them (9 before 10).
  */
 
+import { purityText } from '@/lib/spot-prices/purity'
 import { itemIdentity } from '@/lib/pawn/item-identity'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
@@ -40,6 +41,7 @@ export type PawnAuditItemInput = {
   loan_id: string
   position: number
   description: string
+  metal_type: string | null
   karat: number | string | null
   weight_grams: number | string | null
   jewelry_size: string | null
@@ -66,6 +68,7 @@ export type PawnAuditRow = {
   item_no: number
   item_count: number
   description: string
+  metal_type: string | null
   karat: number | null
   weight_grams: number | null
   size: string | null
@@ -83,13 +86,14 @@ export function compareTickets(a: string, b: string): number {
   return a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' })
 }
 
-/** "14k · 4.6 g · Size 9 · S/N BPNL281" — the facts that identify a piece in the safe. */
+/** "14K · 4.6 g · Size 9 · S/N BPNL281" ("925 · …" for silver) — the facts that identify a piece in the safe. */
 export function auditItemDetail(
-  row: Pick<PawnAuditRow, 'karat' | 'weight_grams' | 'size' | 'serial'>,
+  row: Pick<PawnAuditRow, 'metal_type' | 'karat' | 'weight_grams' | 'size' | 'serial'>,
   labels: { size: string; serial: string },
 ): string {
   const parts: string[] = []
-  if (row.karat != null) parts.push(`${Number(row.karat.toFixed(1))}k`)
+  const purity = purityText(row.metal_type, row.karat)
+  if (purity) parts.push(purity)
   if (row.weight_grams != null) parts.push(`${Number(row.weight_grams.toFixed(2))} g`)
   if (row.size) parts.push(`${labels.size} ${row.size}`)
   if (row.serial) parts.push(`${labels.serial} ${row.serial}`)
@@ -138,6 +142,7 @@ export function buildPawnAudit(args: {
         item_no: 0,
         item_count: 0,
         description: '',
+        metal_type: null,
         karat: null,
         weight_grams: null,
         size: null,
@@ -153,6 +158,7 @@ export function buildPawnAudit(args: {
         item_no: i + 1,
         item_count: items.length,
         description: it.description,
+        metal_type: it.metal_type,
         karat: numOrNull(it.karat),
         weight_grams: numOrNull(it.weight_grams),
         size: it.jewelry_size?.trim() || null,
@@ -202,7 +208,7 @@ export async function getPawnAudit(args: {
       supabase
         .from('loan_collateral_items')
         .select(
-          'loan_id, position, description, karat, weight_grams, jewelry_size, firearm_serial_number, electronic_serial, jewelry_serial, tool_serial, general_serial',
+          'loan_id, position, description, metal_type, karat, weight_grams, jewelry_size, firearm_serial_number, electronic_serial, jewelry_serial, tool_serial, general_serial',
         )
         .in('tenant_id', tenants)
         .in('loan_id', ids)

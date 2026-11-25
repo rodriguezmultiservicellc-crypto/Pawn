@@ -23,6 +23,7 @@ const item = (over: Partial<PawnAuditItemInput>): PawnAuditItemInput => ({
   loan_id: 'L1',
   position: 0,
   description: 'Fancy ring',
+  metal_type: 'gold',
   karat: '14.0',
   weight_grams: '4.6000',
   jewelry_size: '9',
@@ -113,11 +114,14 @@ describe('buildPawnAudit', () => {
 describe('auditItemDetail', () => {
   const labels = { size: 'Size', serial: 'S/N' }
   it('joins what identifies the piece', () => {
-    expect(auditItemDetail({ karat: 14, weight_grams: 4.6, size: '9', serial: null }, labels)).toBe('14k · 4.6 g · Size 9')
-    expect(auditItemDetail({ karat: null, weight_grams: null, size: null, serial: 'BPNL281' }, labels)).toBe('S/N BPNL281')
-    expect(auditItemDetail({ karat: 10, weight_grams: 16.556, size: null, serial: null }, labels)).toBe('10k · 16.56 g')
+    expect(auditItemDetail({ metal_type: 'gold', karat: 14, weight_grams: 4.6, size: '9', serial: null }, labels)).toBe('14K · 4.6 g · Size 9')
+    expect(auditItemDetail({ metal_type: null, karat: null, weight_grams: null, size: null, serial: 'BPNL281' }, labels)).toBe('S/N BPNL281')
+    expect(auditItemDetail({ metal_type: 'gold', karat: 10, weight_grams: 16.556, size: null, serial: null }, labels)).toBe('10K · 16.56 g')
+  })
+  it('writes silver in parts per thousand', () => {
+    expect(auditItemDetail({ metal_type: 'silver', karat: 925, weight_grams: 12, size: null, serial: null }, labels)).toBe('925 · 12 g')
   })
   it('is empty when nothing is known', () => {
-    expect(auditItemDetail({ karat: null, weight_grams: null, size: null, serial: null }, labels)).toBe('')
+    expect(auditItemDetail({ metal_type: null, karat: null, weight_grams: null, size: null, serial: null }, labels)).toBe('')
   })
 })

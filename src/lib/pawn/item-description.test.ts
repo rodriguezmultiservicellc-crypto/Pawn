@@ -13,6 +13,7 @@ const blank: ItemDescriptionInput = {
   isLength: false,
   color: '',
   metalWord: '',
+  metal: '',
   karat: '',
   weightGrams: '',
   size: '',
@@ -110,6 +111,16 @@ describe('jewelry', () => {
     expect(gen({ itemWord: 'Chain', metalWord: 'Silver', karat: '0', weightGrams: '0' })).toBe(
       'Silver chain',
     )
+  })
+
+  it('writes silver and platinum in parts per thousand, never as karats', () => {
+    expect(gen({ itemWord: 'Chain', metal: 'silver', metalWord: 'Silver', karat: '925' })).toBe(
+      '925 silver chain',
+    )
+    expect(gen({ itemWord: 'Ring', metal: 'platinum', metalWord: 'Platinum', karat: '950' })).toBe(
+      '950 platinum ring',
+    )
+    expect(gen({ itemWord: 'Ring', metal: 'gold', metalWord: 'Gold', karat: '14' })).toBe('14K gold ring')
   })
 
   it('works without an item word', () => {

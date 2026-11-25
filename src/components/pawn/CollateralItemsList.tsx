@@ -15,7 +15,15 @@ import { inventoryCategoryFromSlug } from '@/lib/pawn/intake-categories'
 import { photoItemPatch, type PhotoItem } from '@/lib/pawn/photo-describe'
 import { en } from '@/lib/i18n/en'
 import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
-import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
+import {
+  COATINGS,
+  defaultPurityFor,
+  isSolidMetal,
+  isValidPurity,
+  purityChoicesFor,
+  purityScaleOf,
+  type Coating,
+} from '@/lib/spot-prices/purity'
 import { GRAMS_PER } from '@/lib/bench/weight'
 import type { WatchModelMatch } from './InlinePawnCalculator'
 import type {
@@ -747,6 +755,7 @@ function descriptionKind(topSlug: string | null): ItemDescriptionKind {
 function isRowComplete(row: Row, categoryStepDone: boolean): boolean {
   if (!categoryStepDone) return false
   if (row.description.trim() === '') return false
+  if (!isValidPurity(row.metal_type, row.karat)) return false
   if (row.pawn_category_slug === 'firearms' && row.firearm_serial_number.trim() === '') {
     return false
   }
@@ -907,6 +916,7 @@ function CollateralRow({
       // matches a choice's shown word is turned into it.
       color: matchChoice(r.color, colorChoicesFor(r))?.value ?? r.color,
       metalWord,
+      metal: r.metal_type,
       karat: r.karat,
       weightGrams: r.weight_grams,
       size: jewelry ? r.jewelry_size : r.item_size,
@@ -947,7 +957,20 @@ function CollateralRow({
   // the description. `base` is the row the change is made to — the one on
   // screen, except after a wait (the photo reader), when it is the row as
   // it is by then.
-  function onChange(patch: Partial<Row>, base: Row = row) {
+  function onChange(patchIn: Partial<Row>, base: Row = row) {
+    // A new metal brings its own purity: silver 925, platinum 950, gold
+    // blank. One the clerk chose stays while the new metal can have it
+    // (14 from yellow to white gold); one the old metal filled in, or one
+    // the new metal cannot have (925 on gold), is replaced.
+    const patch = { ...patchIn }
+    if ('metal_type' in patch && !('karat' in patch)) {
+      const metal = patch.metal_type ?? ''
+      const k = base.karat.trim()
+      if (k === '' || k === defaultPurityFor(base.metal_type) || !isValidPurity(metal, k)) {
+        const next = defaultPurityFor(metal)
+        if (next !== k) patch.karat = next
+      }
+    }
     const after = { ...base, ...patch }
     const follow: Partial<Row> = {}
     if (!('est_value' in patch)) {
@@ -1087,6 +1110,17 @@ function CollateralRow({
   }
 
   const complete = isRowComplete(row, categoryStepDone)
+
+  // The purity choices for this metal: "14K"; "925 · Sterling".
+  const purityScale = purityScaleOf(row.metal_type)
+  const purityNotes: Record<string, string> =
+    row.metal_type === 'silver'
+      ? { '925': t.pawn.new_.puritySterling, '999': t.pawn.new_.purityFine, '900': t.pawn.new_.purityCoin }
+      : {}
+  const purityChoices = purityChoicesFor(row.metal_type).map((v) => ({
+    value: v,
+    label: purityScale === 'karat' ? `${v}K` : purityNotes[v] ? `${v} · ${purityNotes[v]}` : v,
+  }))
 
   // "Add item" / "Done": the browser's own message on the first field that
   // is wrong, and the popup stays; otherwise it closes.
@@ -1468,21 +1502,35 @@ function CollateralRow({
                 </select>
               </label>
 
-              <label className="md:col-span-1 block space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                  {t.pawn.new_.itemKarat}
-                </span>
-                <input
-                  type="number"
-                  step="0.5"
-                  min={0}
-                  max={24}
+              {/* Gold in karats, silver / platinum / palladium in parts per
+                  thousand (925, 950), steel and the like none: the choices
+                  follow the metal, and Other takes any purity it can have. */}
+              {purityScale ? (
+                <ChoiceOrOther
+                  className="md:col-span-1"
+                  label={purityScale === 'karat' ? t.pawn.new_.itemKarat : t.pawn.new_.itemPurity}
                   name={`collateral_${index}_karat`}
                   value={row.karat}
-                  onChange={(e) => onChange({ karat: e.target.value })}
-                  className={INPUT}
+                  onChange={(karat) => onChange({ karat })}
+                  choices={purityChoices}
+                  otherLabel={t.pawn.new_.itemChoiceOther}
+                  otherPlaceholder={
+                    purityScale === 'karat'
+                      ? t.pawn.new_.purityOtherKarat
+                      : t.pawn.new_.purityOtherFineness
+                  }
+                  otherInputMode="decimal"
+                  error={
+                    isValidPurity(row.metal_type, row.karat)
+                      ? null
+                      : purityScale === 'karat'
+                        ? t.pawn.new_.purityBadKarat
+                        : t.pawn.new_.purityBadFineness
+                  }
                 />
-              </label>
+              ) : (
+                <input type="hidden" name={`collateral_${index}_karat`} value="" />
+              )}
 
               {/* Weight in grams or pennyweight. Grams is what is kept,
                   printed and priced; dwt is only how it was typed. */}
