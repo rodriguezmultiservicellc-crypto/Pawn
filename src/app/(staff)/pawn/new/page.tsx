@@ -12,7 +12,7 @@ import { parseDraftPayload } from '@/lib/pawn/intake-form'
 import { getSpotFreshness } from '@/lib/spot-prices/lookup'
 import { canConfirmStaleSpot } from '@/lib/spot-prices/stale-gate'
 import { loadRateMaps } from '@/lib/metal-counter/rates'
-import type { PawnIntakeCategory } from '@/components/pawn/CategoryPicker'
+import { loadPawnIntakeCategories } from '@/lib/pawn/intake-categories'
 
 type SearchParams = Promise<{ draft?: string }>
 
@@ -87,47 +87,12 @@ export default async function NewPawnLoanPage(props: {
   }
 
   // Pawn intake categories — operator-editable, RLS-scoped to this
-  // tenant. Two-level hierarchy: top-levels have parent_id IS NULL,
-  // sub-categories point to a parent. Firearms-flagged tiles
-  // (top-level OR sub) are filtered when has_firearms is FALSE.
-  const { data: catRows } = await ctx.supabase
-    .from('pawn_intake_categories')
-    .select('id, slug, label, icon, requires_ffl, parent_id')
-    .eq('tenant_id', ctx.tenantId)
-    .is('deleted_at', null)
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true })
-
-  const visible = (catRows ?? []).filter(
-    (c) => !c.requires_ffl || hasFirearms,
+  // tenant; firearms tiles are left out when has_firearms is FALSE.
+  const categories = await loadPawnIntakeCategories(
+    ctx.supabase,
+    ctx.tenantId,
+    hasFirearms,
   )
-
-  // Group subs by parent_id.
-  const subsByParent = new Map<string, typeof visible>()
-  for (const r of visible) {
-    if (r.parent_id != null) {
-      const arr = subsByParent.get(r.parent_id) ?? []
-      arr.push(r)
-      subsByParent.set(r.parent_id, arr)
-    }
-  }
-
-  const categories: PawnIntakeCategory[] = visible
-    .filter((r) => r.parent_id == null)
-    .map((r) => ({
-      id: r.id,
-      slug: r.slug,
-      label: r.label,
-      icon: r.icon,
-      requires_ffl: r.requires_ffl,
-      subcategories: (subsByParent.get(r.id) ?? []).map((s) => ({
-        id: s.id,
-        slug: s.slug,
-        label: s.label,
-        icon: s.icon,
-        requires_ffl: s.requires_ffl,
-      })),
-    }))
 
   // Resume a saved draft when ?draft=<id> is present. loan_drafts isn't in
   // the generated Database type until the next `npm run db:types` after

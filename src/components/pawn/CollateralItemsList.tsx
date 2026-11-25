@@ -9,10 +9,12 @@ import {
   useState,
 } from 'react'
 import Image from 'next/image'
-import { Plus, Camera, Warning, X } from '@phosphor-icons/react'
+import { Plus, Camera, Sparkle, Warning, X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { fitInputFiles } from '@/lib/uploads/fit-photo'
 import { isBrowserRenderableImage, resolveUploadMime } from '@/lib/uploads/mime'
+import { inventoryCategoryFromSlug } from '@/lib/pawn/intake-categories'
+import { photoItemPatch, type PhotoItem } from '@/lib/pawn/photo-describe'
 import { en } from '@/lib/i18n/en'
 import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
@@ -135,54 +137,6 @@ const METAL_OPTIONS: ReadonlyArray<{ value: MetalType; key: string }> = [
 ]
 
 type FirearmType = 'handgun' | 'rifle' | 'shotgun' | 'other' | ''
-
-/**
- * Derive a reasonable inventory_category enum value from the picked
- * pawn_intake_categories slug pair. Used to keep the legacy
- * loan_collateral_items.category column populated without showing a
- * separate dropdown to the operator — pawn_category_slug +
- * pawn_subcategory_slug are the new source of truth, but the enum
- * column still drives forfeiture-to-inventory routing and reports.
- *
- * Falls back to 'other' for anything we can't map (e.g., firearms,
- * general, custom operator-added categories).
- */
-function inventoryCategoryFromSlug(
-  topSlug: string | null,
-  subSlug: string | null,
-): InventoryCategory {
-  if (!topSlug) return 'other'
-  if (topSlug === 'jewelry') {
-    switch (subSlug) {
-      case 'rings':
-        return 'ring'
-      case 'necklaces':
-        return 'necklace'
-      case 'bracelets':
-        return 'bracelet'
-      case 'earrings':
-        return 'earrings'
-      case 'pendants':
-        return 'pendant'
-      case 'chains':
-        return 'chain'
-      case 'watches':
-        return 'watch'
-      case 'coins':
-        return 'coin'
-      case 'bullion':
-        return 'bullion'
-      case 'loose-stones':
-      case 'loose_stones':
-        return 'loose_stone'
-      default:
-        return 'other'
-    }
-  }
-  if (topSlug === 'electronics') return 'electronics'
-  if (topSlug === 'tools') return 'tool'
-  return 'other'
-}
 
 type Row = {
   /** stable id per row, only for React key */
@@ -975,25 +929,27 @@ function CollateralRow({
 
   // Every field change goes through here. Two fields follow the others
   // until the clerk writes their own: the Est. value (the metal value) and
-  // the description.
-  function onChange(patch: Partial<Row>) {
-    const after = { ...row, ...patch }
+  // the description. `base` is the row the change is made to — the one on
+  // screen, except after a wait (the photo reader), when it is the row as
+  // it is by then.
+  function onChange(patch: Partial<Row>, base: Row = row) {
+    const after = { ...base, ...patch }
     const follow: Partial<Row> = {}
     if (!('est_value' in patch)) {
       const estValue = estValueAfterChange(
-        row.est_value,
-        metalValueText(metalValueOf(row)),
+        base.est_value,
+        metalValueText(metalValueOf(base)),
         metalValueText(metalValueOf(after)),
       )
-      if (estValue !== row.est_value) follow.est_value = estValue
+      if (estValue !== base.est_value) follow.est_value = estValue
     }
     if (!('description' in patch)) {
       const description = descriptionAfterChange(
-        row.description,
-        describeRow(row),
+        base.description,
+        describeRow(base),
         describeRow(after),
       )
-      if (description !== row.description) follow.description = description
+      if (description !== base.description) follow.description = description
     }
     onRowChange({ ...patch, ...follow })
   }
@@ -1019,6 +975,30 @@ function CollateralRow({
 
   const [photoBusy, setPhotoBusy] = useState(false)
 
+  // "Describe from photo": the photo goes to /api/ai/vision/pawn-item and
+  // what can be SEEN in it fills the fields (lib/pawn/photo-describe says
+  // what that is — never a weight, a value, or what a stone is). When the
+  // photo shows another category than the one picked, the category is
+  // changed, said so, and "Change back" undoes it.
+  type AiNote =
+    | { kind: 'filled' }
+    | { kind: 'nothing' }
+    | { kind: 'error'; text: string }
+    | {
+        kind: 'moved'
+        seen: string
+        from: string
+        to: string
+        back: Pick<Row, 'pawn_category_slug' | 'pawn_subcategory_slug' | 'category'>
+      }
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiNote, setAiNote] = useState<AiNote | null>(null)
+  // The row as it is now, for the answer that comes back seconds later.
+  const rowNow = useRef(row)
+  useEffect(() => {
+    rowNow.current = row
+  })
+
   // HEIC becomes JPEG and a big photo shrinks before the ticket is sent
   // (lib/uploads/fit-photo). While that runs, the input is invalid, so
   // "Add item" / "Done" and "Issue" wait for it.
@@ -1029,6 +1009,7 @@ function CollateralRow({
       return
     }
     setPhotoBusy(true)
+    setAiNote(null)
     try {
       const [file] = await fitInputFiles(input, t.common.preparingPhoto)
       const preview = isBrowserRenderableImage(resolveUploadMime(file))
@@ -1037,6 +1018,79 @@ function CollateralRow({
       onChange({ photo: file, photoPreview: preview })
     } finally {
       setPhotoBusy(false)
+    }
+  }
+
+  function categoryLabel(topSlug: string | null, subSlug: string | null): string {
+    const top = categories.find((c) => c.slug === topSlug)
+    const sub = top?.subcategories.find((s) => s.slug === subSlug)
+    return [top?.label, sub?.label].filter(Boolean).join(' → ')
+  }
+
+  async function describeFromPhoto() {
+    if (!row.photo || !row.pawn_category_slug || aiBusy) return
+    const ai = tn.photoAi
+    setAiBusy(true)
+    setAiNote(null)
+    try {
+      const fd = new FormData()
+      fd.set('photo', row.photo)
+      fd.set('pawn_category', row.pawn_category_slug)
+      fd.set('pawn_subcategory', row.pawn_subcategory_slug ?? '')
+      const res = await fetch('/api/ai/vision/pawn-item', { method: 'POST', body: fd })
+      const json = (await res.json().catch(() => null)) as {
+        error?: string
+        data?: { item: PhotoItem; category: { top: string; sub: string | null } | null }
+      } | null
+      if (!res.ok || !json?.data) {
+        const errors: Record<string, string> = ai.errors
+        setAiNote({ kind: 'error', text: errors[json?.error ?? ''] ?? ai.errors.failed })
+        return
+      }
+      const { item, category } = json.data
+      const now = rowNow.current
+      const moved =
+        category != null &&
+        (category.top !== now.pawn_category_slug ||
+          category.sub !== now.pawn_subcategory_slug)
+      const top = moved ? category.top : now.pawn_category_slug
+      const sub = moved ? category.sub : now.pawn_subcategory_slug
+      const kind = inventoryCategoryFromSlug(top, sub)
+      const seen = photoItemPatch(item, top, kind)
+      onChange(
+        {
+          ...(moved
+            ? {
+                ...jewelryStartValues(now, top, sub),
+                pawn_category_slug: top,
+                pawn_subcategory_slug: sub,
+                pending_top_slug: null,
+                category: kind,
+              }
+            : {}),
+          ...seen,
+        },
+        now,
+      )
+      setAiNote(
+        moved
+          ? {
+              kind: 'moved',
+              seen: item.item_seen,
+              from: categoryLabel(now.pawn_category_slug, now.pawn_subcategory_slug),
+              to: categoryLabel(top, sub),
+              back: {
+                pawn_category_slug: now.pawn_category_slug,
+                pawn_subcategory_slug: now.pawn_subcategory_slug,
+                category: now.category,
+              },
+            }
+          : { kind: Object.keys(seen).length > 0 ? 'filled' : 'nothing' },
+      )
+    } catch {
+      setAiNote({ kind: 'error', text: ai.errors.failed })
+    } finally {
+      setAiBusy(false)
     }
   }
 
@@ -1234,6 +1288,45 @@ function CollateralRow({
         </div>
       )}
 
+      {/* What "Describe from photo" did. */}
+      {categoryStepDone && aiNote ? (
+        <div
+          role="status"
+          className={`mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-md border px-3 py-2 text-sm ${
+            aiNote.kind === 'error'
+              ? 'border-danger/30 bg-danger/5 text-danger'
+              : aiNote.kind === 'moved'
+                ? 'border-warning/40 bg-warning/5 text-foreground'
+                : 'border-border bg-background text-foreground'
+          }`}
+        >
+          <span>
+            {aiNote.kind === 'error'
+              ? aiNote.text
+              : aiNote.kind === 'nothing'
+                ? tn.photoAi.nothing
+                : aiNote.kind === 'moved'
+                  ? `${tn.photoAi.moved
+                      .replace('{seen}', aiNote.seen)
+                      .replace('{from}', aiNote.from)
+                      .replace('{to}', aiNote.to)} ${tn.photoAi.check}`
+                  : `${tn.photoAi.filled} ${tn.photoAi.check}`}
+          </span>
+          {aiNote.kind === 'moved' ? (
+            <button
+              type="button"
+              onClick={() => {
+                onChange({ ...aiNote.back, pending_top_slug: null })
+                setAiNote({ kind: 'filled' })
+              }}
+              className={`inline-flex h-9 shrink-0 items-center rounded-md px-2 text-sm font-semibold text-blue hover:text-blue-2 hover:underline ${FOCUS}`}
+            >
+              {tn.photoAi.changeBack}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {categoryStepDone ? (
       <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
         {/* Photo */}
@@ -1279,6 +1372,17 @@ function CollateralRow({
             onChange={onPhotoChange}
             className="sr-only"
           />
+          {row.photo && !photoBusy ? (
+            <button
+              type="button"
+              onClick={describeFromPhoto}
+              disabled={aiBusy}
+              className={`mt-2 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-45 ${FOCUS}`}
+            >
+              <Sparkle size={14} weight="fill" className="shrink-0 text-gold" />
+              {aiBusy ? tn.photoAi.working : tn.photoAi.button}
+            </button>
+          ) : null}
         </div>
 
         {/* Fields — common base + category-specific block */}

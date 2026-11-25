@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
-import { getCtx } from '@/lib/supabase/ctx'
+import { pawnIntakeGate } from '@/lib/ai/pawn-intake-gate'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/audit'
 import type {
@@ -9,7 +9,6 @@ import type {
   InventoryCategory,
   Language,
   MetalType,
-  TenantRole,
 } from '@/types/database-aliases'
 
 export const runtime = 'nodejs'
@@ -37,13 +36,6 @@ export const runtime = 'nodejs'
  * owner | manager | pawn_clerk | chain_admin (the same set that can
  * intake a pawn loan via the form). Module-gated on tenants.has_pawn.
  */
-
-const ALLOWED_ROLES: ReadonlyArray<TenantRole> = [
-  'owner',
-  'chain_admin',
-  'manager',
-  'pawn_clerk',
-]
 
 // 5MB cap. A 30-second webm/opus stream is ~250KB — anything bigger
 // is almost certainly an attempt to abuse the upstream API call.
@@ -167,53 +159,10 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const ctx = await getCtx()
-  if (!ctx) return bad(401, 'Not signed in.')
-  if (!ctx.tenantId) return bad(403, 'No active tenant.')
-
-  // Module gate.
-  const { data: tenant } = await ctx.supabase
-    .from('tenants')
-    .select('has_pawn')
-    .eq('id', ctx.tenantId)
-    .maybeSingle()
-  if (!tenant?.has_pawn) return bad(403, 'Pawn module is disabled for this tenant.')
-
-  // Role gate. Inline because requireRoleInTenant() does redirect()
-  // (server-action style) which doesn't translate to JSON 4xx.
-  const directMembership = await ctx.supabase
-    .from('user_tenants')
-    .select('role')
-    .eq('user_id', ctx.userId)
-    .eq('tenant_id', ctx.tenantId)
-    .eq('is_active', true)
-    .maybeSingle()
-  let resolvedRole = directMembership.data?.role as TenantRole | undefined
-  if (!resolvedRole || !ALLOWED_ROLES.includes(resolvedRole)) {
-    // Chain-admin fallback: a chain_admin at the parent tenant counts
-    // for every child shop.
-    const { data: t } = await ctx.supabase
-      .from('tenants')
-      .select('parent_tenant_id')
-      .eq('id', ctx.tenantId)
-      .maybeSingle()
-    if (t?.parent_tenant_id) {
-      const { data: ca } = await ctx.supabase
-        .from('user_tenants')
-        .select('role')
-        .eq('user_id', ctx.userId)
-        .eq('tenant_id', t.parent_tenant_id)
-        .eq('role', 'chain_admin')
-        .eq('is_active', true)
-        .maybeSingle()
-      if (ca?.role === 'chain_admin') {
-        resolvedRole = 'chain_admin'
-      }
-    }
-  }
-  if (!resolvedRole || !ALLOWED_ROLES.includes(resolvedRole)) {
-    return bad(403, 'Insufficient role for pawn intake.')
-  }
+  // Signed in + pawn module + a role that may write a pawn ticket.
+  const gate = await pawnIntakeGate()
+  if (!gate.ok) return gate.response
+  const ctx = { ...gate.ctx, tenantId: gate.tenantId }
 
   // Multipart parse.
   let formData: FormData

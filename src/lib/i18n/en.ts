@@ -1665,6 +1665,26 @@ export const en = {
       itemColor: 'Color',
       itemUniqueMarks: 'Unique marks',
       itemPhoto: 'Photo',
+      photoAi: {
+        button: 'Describe from photo',
+        working: 'Looking at the photo…',
+        filled: 'Filled in from the photo.',
+        check:
+          'Check every field: the AI cannot weigh the piece or test its metal or stones. Stones are entered as cubic zirconia until you test them.',
+        nothing: 'The AI found nothing to add from this photo.',
+        moved:
+          'The photo looks like: {seen}. The category was changed from {from} to {to}.',
+        changeBack: 'Change back',
+        errors: {
+          unreadable:
+            'The AI could not make out the item in this photo. Take a closer, sharper photo and try again.',
+          not_configured: 'The photo reader is not set up yet.',
+          photo_too_large: 'This photo is too large to read.',
+          photo_type: 'This kind of file cannot be read. Use a JPG, PNG, WebP or HEIC photo.',
+          busy: 'The photo reader is busy. Try again in a moment.',
+          failed: 'The photo could not be read. Try again.',
+        },
+      },
       itemPhotoHelp: 'Optional photo of this collateral item.',
       // Firearm fields (patches/0041) — show only on rows where the
       // operator picks the 'firearms' top-level pawn intake category.

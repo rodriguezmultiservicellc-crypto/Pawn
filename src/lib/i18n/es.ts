@@ -1664,6 +1664,26 @@ export const es: Dictionary = {
       itemColor: 'Color',
       itemUniqueMarks: 'Marcas únicas',
       itemPhoto: 'Foto',
+      photoAi: {
+        button: 'Describir con la foto',
+        working: 'Mirando la foto…',
+        filled: 'Se llenó con la foto.',
+        check:
+          'Revise cada campo: la IA no puede pesar la pieza ni probar el metal o las piedras. Las piedras se anotan como zirconia cúbica hasta que usted las pruebe.',
+        nothing: 'La IA no encontró nada que agregar con esta foto.',
+        moved:
+          'La foto parece: {seen}. La categoría se cambió de {from} a {to}.',
+        changeBack: 'Volver a la anterior',
+        errors: {
+          unreadable:
+            'La IA no pudo distinguir el artículo en esta foto. Tome una foto más cercana y nítida e intente de nuevo.',
+          not_configured: 'El lector de fotos todavía no está configurado.',
+          photo_too_large: 'Esta foto es demasiado grande para leerla.',
+          photo_type: 'Este tipo de archivo no se puede leer. Use una foto JPG, PNG, WebP o HEIC.',
+          busy: 'El lector de fotos está ocupado. Intente de nuevo en un momento.',
+          failed: 'No se pudo leer la foto. Intente de nuevo.',
+        },
+      },
       itemPhotoHelp: 'Foto opcional de esta prenda.',
       // Campos de arma de fuego (patches/0041) — sólo en filas con la
       // categoría 'firearms'.
