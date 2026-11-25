@@ -59,6 +59,7 @@ import {
   recordPickupAction,
   removePartAction,
   removePhotoAction,
+  replacePhotoAction,
   removeStoneAction,
   requestApprovalAction,
   returnFromQaAction,
@@ -635,6 +636,7 @@ export default function RepairTicketDetail({
         readOnly={ticket.is_locked}
         onUpload={(fd) => passThrough(fd, addPhotoAction)}
         onRemove={(photoId) => removePhotoAction(photoId)}
+        onReplace={(fd) => passThrough(fd, replacePhotoAction)}
         onSetCaption={(fd) => passThrough(fd, setPhotoCaptionAction)}
       />
 

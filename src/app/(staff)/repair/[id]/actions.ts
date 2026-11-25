@@ -1664,10 +1664,8 @@ export async function removePhotoAction(
     .is('deleted_at', null)
     .maybeSingle()
   if (!photo) return { error: 'not_found' }
-  const { supabase, userId } = await requireRoleInTenant(
-    photo.tenant_id,
-    STAFF_REPAIR_ROLES,
-  )
+  const { ticket, supabase, userId } = await resolveTicketScope(photo.ticket_id)
+  if (ticket.is_locked) return { error: 'customer_locked' }
 
   const { error } = await supabase
     .from('repair_ticket_photos')
@@ -1676,11 +1674,7 @@ export async function removePhotoAction(
     .eq('tenant_id', photo.tenant_id)
   if (error) return { error: error.message }
 
-  // Best-effort storage cleanup.
-  await deleteFromBucket({
-    bucket: REPAIR_PHOTOS_BUCKET,
-    path: photo.storage_path,
-  })
+  await deleteRepairPhotoFileIfUnused(supabase, photo.tenant_id, photo.storage_path)
 
   await logAudit({
     tenantId: photo.tenant_id,
@@ -1693,6 +1687,126 @@ export async function removePhotoAction(
 
   revalidatePath(`/repair/${photo.ticket_id}`)
   return { ok: true }
+}
+
+/**
+ * Puts a new photo in the place of an old one: same kind (intake / in
+ * progress / final / reference), position and caption. The old row is
+ * soft-deleted.
+ */
+export async function replacePhotoAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const photoId = (formData.get('photo_id') as string | null)?.trim()
+  if (!photoId) return { error: 'missing_photo_id' }
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  const { data: old } = await ctx.supabase
+    .from('repair_ticket_photos')
+    .select('id, ticket_id, storage_path, kind, caption, position')
+    .eq('id', photoId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (!old) return { error: 'not_found' }
+  const { ticket, supabase, userId, tenantId } = await resolveTicketScope(old.ticket_id)
+  if (ticket.is_locked) return { error: 'customer_locked' }
+
+  const file = formData.get('file')
+  if (!(file instanceof File) || file.size === 0) return { error: 'missing_file' }
+  if (file.size > MAX_REPAIR_PHOTO_BYTES) return { error: 'tooLarge' }
+  const mime = resolveUploadMime(file)
+  if (!ALLOWED_REPAIR_PHOTO_MIME_TYPES.includes(mime as never))
+    return { error: 'mimeNotAllowed' }
+
+  const up = await prepareUpload(file, mime)
+  const ext = pickExt(up.mime, up.filename)
+  const path = `${tenantId}/${ticket.id}/${old.kind}/${newUuid()}.${ext}`
+  try {
+    await uploadToBucket({
+      bucket: REPAIR_PHOTOS_BUCKET,
+      path,
+      body: up.body,
+      contentType: up.mime,
+    })
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'uploadFailed' }
+  }
+
+  const { data: inserted, error } = await supabase
+    .from('repair_ticket_photos')
+    .insert({
+      ticket_id: ticket.id,
+      tenant_id: tenantId,
+      storage_path: path,
+      kind: old.kind,
+      caption: old.caption,
+      position: old.position,
+      uploaded_by: userId,
+    })
+    .select('id')
+    .single()
+  if (error || !inserted) {
+    await deleteFromBucket({ bucket: REPAIR_PHOTOS_BUCKET, path }).catch(() => {})
+    return { error: error?.message ?? 'insert_failed' }
+  }
+
+  await supabase
+    .from('repair_ticket_photos')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', photoId)
+    .eq('tenant_id', tenantId)
+
+  await deleteRepairPhotoFileIfUnused(supabase, tenantId, old.storage_path)
+
+  await supabase.from('repair_ticket_events').insert({
+    ticket_id: ticket.id,
+    tenant_id: tenantId,
+    event_type: 'photo_added',
+    notes: `${old.kind} photo replaced`,
+    performed_by: userId,
+  })
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'photo_replace_repair',
+    tableName: 'repair_ticket_photos',
+    recordId: inserted.id,
+    changes: { kind: old.kind, replaces_photo_id: photoId },
+  })
+
+  revalidatePath(`/repair/${ticket.id}`)
+  return { ok: true }
+}
+
+/**
+ * Removes a repair photo's file only when nothing else still shows it. A
+ * ticket made from a custom quote shares the quote's reference photo file
+ * (custom_quotes.reference_photo_path), so deleting it would break the
+ * photo on the quote.
+ */
+async function deleteRepairPhotoFileIfUnused(
+  supabase: AdminLikeClient,
+  tenantId: string,
+  path: string,
+): Promise<void> {
+  const [photos, quotes] = await Promise.all([
+    supabase
+      .from('repair_ticket_photos')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('storage_path', path)
+      .is('deleted_at', null),
+    supabase
+      .from('custom_quotes')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('reference_photo_path', path),
+  ])
+  // A failed check keeps the file: an orphan file is harmless, a missing
+  // one is a broken photo.
+  if ([photos, quotes].some((r) => r.error || (r.count ?? 0) > 0)) return
+  await deleteFromBucket({ bucket: REPAIR_PHOTOS_BUCKET, path }).catch(() => {})
 }
 
 export async function setPhotoCaptionAction(

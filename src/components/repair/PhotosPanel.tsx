@@ -5,6 +5,9 @@ import Image from 'next/image'
 import { Image as ImageIcon, Plus, Trash, Upload } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { fitPhotoForUpload } from '@/lib/uploads/fit-photo'
+import { PHOTO_ACCEPT } from '@/lib/uploads/mime'
+import { FOCUS } from '@/lib/ui/ledger'
+import { PhotoViewer } from '@/components/uploads/PhotoViewer'
 import type { RepairPhotoKind } from '@/types/database-aliases'
 
 export type RepairPhotoItem = {
@@ -29,6 +32,7 @@ export function PhotosPanel({
   readOnly,
   onUpload,
   onRemove,
+  onReplace,
   onSetCaption,
 }: {
   ticketId: string
@@ -40,11 +44,19 @@ export function PhotosPanel({
   onRemove: (
     photoId: string,
   ) => Promise<{ error?: string; ok?: boolean }>
+  /** FormData: photo_id + file. */
+  onReplace: (
+    formData: FormData,
+  ) => Promise<{ error?: string; ok?: boolean }>
   onSetCaption: (
     formData: FormData,
   ) => Promise<{ error?: string; ok?: boolean }>
 }) {
   const { t } = useI18n()
+  // The photo open in the viewer (its place in this tab's photos), or null.
+  const [viewing, setViewing] = useState<number | null>(null)
+  const [viewerPending, startViewer] = useTransition()
+  const [viewerError, setViewerError] = useState<string | null>(null)
   const [activeKind, setActiveKind] = useState<RepairPhotoKind>('intake')
   const fileRef = useRef<HTMLInputElement>(null)
   const [pending, startTransition] = useTransition()
@@ -119,7 +131,7 @@ export function PhotosPanel({
             <input
               ref={fileRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+              accept={PHOTO_ACCEPT}
               onChange={onFileChange}
               className="sr-only"
             />
@@ -134,10 +146,14 @@ export function PhotosPanel({
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:grid-cols-3">
-          {filtered.map((p) => (
+          {filtered.map((p, i) => (
             <PhotoTile
               key={p.id}
               photo={p}
+              onOpen={() => {
+                setViewerError(null)
+                setViewing(i)
+              }}
               readOnly={readOnly}
               onRemove={onRemove}
               onSetCaption={onSetCaption}
@@ -145,17 +161,51 @@ export function PhotosPanel({
           ))}
         </ul>
       )}
+      <PhotoViewer
+        photos={filtered.map((p) => ({ path: p.id, url: p.signed_url, name: p.caption ?? '' }))}
+        index={viewing}
+        onIndex={setViewing}
+        noMain
+        edit={
+          readOnly
+            ? undefined
+            : {
+                busy: viewerPending,
+                error: viewerError,
+                accept: PHOTO_ACCEPT,
+                onRemove: (id, i) =>
+                  startViewer(async () => {
+                    const res = await onRemove(id)
+                    if (res.error) return setViewerError(res.error)
+                    const left = filtered.length - 1
+                    setViewing(left === 0 ? null : Math.min(i, left - 1))
+                  }),
+                onReplace: (id, picked) =>
+                  startViewer(async () => {
+                    setViewerError(null)
+                    const fd = new FormData()
+                    fd.set('photo_id', id)
+                    fd.set('file', await fitPhotoForUpload(picked))
+                    const res = await onReplace(fd)
+                    if (res.error) setViewerError(res.error)
+                  }),
+              }
+        }
+      />
     </section>
   )
 }
 
 function PhotoTile({
   photo,
+  onOpen,
   readOnly,
   onRemove,
   onSetCaption,
 }: {
   photo: RepairPhotoItem
+  /** Opens this photo big in the viewer. */
+  onOpen: () => void
   readOnly?: boolean
   onRemove: (
     photoId: string,
@@ -189,14 +239,22 @@ function PhotoTile({
     <li className="overflow-hidden rounded-md border border-border bg-card">
       <div className="relative aspect-[4/3] w-full bg-background">
         {photo.signed_url ? (
-          <Image
-            src={photo.signed_url}
-            alt={photo.caption ?? ''}
-            fill
-            sizes="(min-width: 768px) 33vw, 100vw"
-            unoptimized
-            className="object-cover"
-          />
+          <button
+            type="button"
+            onClick={onOpen}
+            title={t.common.photoStrip.view}
+            aria-label={t.common.photoStrip.view}
+            className={`absolute inset-0 cursor-zoom-in ${FOCUS}`}
+          >
+            <Image
+              src={photo.signed_url}
+              alt={photo.caption ?? ''}
+              fill
+              sizes="(min-width: 768px) 33vw, 100vw"
+              unoptimized
+              className="object-cover"
+            />
+          </button>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted">
             <ImageIcon size={28} weight="light" />

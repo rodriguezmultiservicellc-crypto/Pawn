@@ -63,6 +63,7 @@ export type AuditAction =
   | 'remove_stone_repair'
   | 'photo_upload_repair'
   | 'photo_delete_repair'
+  | 'photo_replace_repair'
   | 'photo_caption'
   | 'timer_start'
   | 'timer_stop'

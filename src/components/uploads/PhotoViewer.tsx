@@ -20,7 +20,8 @@ export type ViewerEdit = {
   busy: boolean
   error: string | null
   accept: string
-  onMakeMain: (path: string) => void
+  /** Left out where photos have no main one (repair tickets). */
+  onMakeMain?: (path: string) => void
   onRemove: (path: string, index: number) => void
   onReplace: (path: string, file: File) => void
 }
@@ -28,7 +29,7 @@ export type ViewerEdit = {
 /**
  * One photo, big, in a popup, with arrows through the item's other photos.
  * With `edit`, it can also replace the photo, make it the main one, or
- * remove it (intake — components/uploads/PhotoStrip).
+ * remove it (intake photo strip, inventory item, repair ticket).
  *
  * A <dialog> opened with showModal(), so it stacks above an item popup it
  * may sit in. Its cancel / close events are stopped here: React passes them
@@ -39,12 +40,15 @@ export function PhotoViewer({
   index,
   onIndex,
   edit,
+  noMain = false,
 }: {
   photos: ViewerPhoto[]
   /** The photo showing (its place in `photos`), or null = closed. */
   index: number | null
   onIndex: (i: number | null) => void
   edit?: ViewerEdit
+  /** The first photo is not a "main" one (repair tickets): no badge. */
+  noMain?: boolean
 }) {
   const { t } = useI18n()
   const tp = t.common.photoStrip
@@ -105,7 +109,7 @@ export function PhotoViewer({
                 {tp.viewerTitle
                   .replace('{n}', String((index ?? 0) + 1))
                   .replace('{total}', String(count))}
-                {index === 0 && count > 1 ? (
+                {index === 0 && count > 1 && !noMain ? (
                   <span className="ml-2 rounded bg-navy px-1.5 py-0.5 text-[11px] text-white">
                     {tp.main}
                   </span>
@@ -179,11 +183,11 @@ export function PhotoViewer({
                     <ArrowsClockwise size={16} weight="bold" />
                     {tp.replace}
                   </button>
-                  {index !== 0 ? (
+                  {index !== 0 && edit.onMakeMain ? (
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => edit.onMakeMain(photo.path)}
+                      onClick={() => edit.onMakeMain?.(photo.path)}
                       className={actionBtn}
                     >
                       <Star size={16} weight="bold" />
