@@ -1214,6 +1214,7 @@ export const es: Dictionary = {
       photo_upload: 'Foto subida',
       photo_delete: 'Foto eliminada',
       photo_set_primary: 'Foto principal asignada',
+      photo_replace: 'Foto cambiada',
       stone_add: 'Piedra agregada',
       stone_delete: 'Piedra retirada',
       // Transfer-specific
@@ -1273,6 +1274,7 @@ export const es: Dictionary = {
           photo_upload: 'Foto del artículo subida',
           photo_delete: 'Foto del artículo eliminada',
           photo_set_primary: 'Foto principal del artículo asignada',
+          photo_replace: 'Foto del artículo cambiada',
         },
         inventory_item_stones: {
           stone_add: 'Piedra agregada al artículo',

@@ -12,7 +12,12 @@ import {
   INTAKE_PHOTO_MAX,
   intakePhotoPath,
 } from '@/lib/uploads/intake-photos'
-import { extensionForUpload, isBrowserRenderableImage, resolveUploadMime } from '@/lib/uploads/mime'
+import {
+  PHOTO_ACCEPT as ACCEPT,
+  extensionForUpload,
+  isBrowserRenderableImage,
+  resolveUploadMime,
+} from '@/lib/uploads/mime'
 import { FOCUS } from '@/lib/ui/ledger'
 
 /** A photo of the item: where it is stored, and what to show for it. */
@@ -23,9 +28,6 @@ export type StripPhoto = {
   url: string | null
   name: string
 }
-
-const ACCEPT =
-  'image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif'
 
 /**
  * The photos of ONE item at intake (pawn ticket collateral, buy outright):

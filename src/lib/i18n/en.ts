@@ -1215,6 +1215,7 @@ export const en = {
       photo_upload: 'Uploaded photo',
       photo_delete: 'Deleted photo',
       photo_set_primary: 'Set primary photo',
+      photo_replace: 'Replaced photo',
       stone_add: 'Added stone',
       stone_delete: 'Removed stone',
       // Transfer-specific
@@ -1274,6 +1275,7 @@ export const en = {
           photo_upload: 'Uploaded item photo',
           photo_delete: 'Deleted item photo',
           photo_set_primary: 'Set primary item photo',
+          photo_replace: 'Replaced item photo',
         },
         inventory_item_stones: {
           stone_add: 'Added stone to item',

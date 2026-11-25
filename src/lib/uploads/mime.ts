@@ -121,3 +121,8 @@ export function isBrowserRenderableImage(mime: string | null): boolean {
   if (!m.startsWith('image/')) return false
   return !BROWSER_UNRENDERABLE.has(MIME_ALIASES[m] ?? m)
 }
+
+/** The `accept` of a photo file input: what fit-photo / the upload path
+ *  take (HEIC included — it is converted before upload). */
+export const PHOTO_ACCEPT =
+  'image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif'

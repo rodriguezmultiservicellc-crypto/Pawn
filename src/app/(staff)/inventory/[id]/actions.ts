@@ -401,10 +401,7 @@ export async function deleteInventoryPhotoAction(
     .eq('id', photoId)
     .eq('tenant_id', tenantId)
 
-  await deleteFromBucket({
-    bucket: INVENTORY_PHOTOS_BUCKET,
-    path: photo.storage_path,
-  }).catch(() => {})
+  await deletePhotoFileIfUnused(supabase, tenantId, photo.storage_path)
 
   // If we just deleted the primary, promote the next-positioned photo.
   if (photo.is_primary) {
@@ -434,6 +431,129 @@ export async function deleteInventoryPhotoAction(
   })
 
   revalidatePath(`/inventory/${itemId}`)
+}
+
+/**
+ * Puts a new photo in the place of an old one: same position, and the main
+ * photo if the old one was. The new row goes in first (the one-primary
+ * trigger demotes the old one), then the old row is soft-deleted.
+ */
+export async function replaceInventoryPhotoAction(
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const photoId = (formData.get('photo_id') as string | null)?.trim()
+  const itemId = (formData.get('item_id') as string | null)?.trim()
+  if (!photoId || !itemId) return { error: 'missing item_id' }
+
+  const file = formData.get('file')
+  if (!(file instanceof File) || file.size === 0) return { error: 'no_file' }
+  if (file.size > MAX_PHOTO_BYTES) return { error: 'too_large' }
+  const mime = resolveUploadMime(file)
+  if (!ALLOWED_PHOTO_MIME_TYPES.includes(mime as never)) {
+    return { error: 'mime_not_allowed' }
+  }
+
+  const { tenantId, supabase, userId } = await resolveItemTenant(itemId)
+
+  const { data: old } = await supabase
+    .from('inventory_item_photos')
+    .select('storage_path, position, is_primary, caption')
+    .eq('id', photoId)
+    .eq('item_id', itemId)
+    .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (!old) return { error: 'not_found' }
+
+  const up = await prepareUpload(file, mime)
+  const path = inventoryPhotoPath({
+    tenantId,
+    itemId,
+    mimeType: up.mime,
+    filename: up.filename,
+  })
+  await uploadToBucket({
+    bucket: INVENTORY_PHOTOS_BUCKET,
+    path,
+    body: up.body,
+    contentType: up.mime,
+  })
+
+  const { data: photoRow, error } = await supabase
+    .from('inventory_item_photos')
+    .insert({
+      tenant_id: tenantId,
+      item_id: itemId,
+      storage_path: path,
+      mime_type: up.mime,
+      byte_size: file.size,
+      position: old.position,
+      is_primary: old.is_primary,
+      caption: old.caption,
+      created_by: userId,
+    })
+    .select('id')
+    .single()
+  if (error || !photoRow) {
+    await deleteFromBucket({ bucket: INVENTORY_PHOTOS_BUCKET, path }).catch(() => {})
+    return { error: error?.message ?? 'insert_failed' }
+  }
+
+  await supabase
+    .from('inventory_item_photos')
+    .update({ deleted_at: new Date().toISOString(), is_primary: false })
+    .eq('id', photoId)
+    .eq('tenant_id', tenantId)
+
+  await deletePhotoFileIfUnused(supabase, tenantId, old.storage_path)
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'photo_replace',
+    tableName: 'inventory_item_photos',
+    recordId: photoRow.id,
+    changes: { item_id: itemId, replaces_photo_id: photoId, position: old.position },
+  })
+
+  revalidatePath(`/inventory/${itemId}`)
+  return {}
+}
+
+/**
+ * Removes a photo's file from Storage only when nothing else still shows
+ * it. A forfeited item's photos ARE its pawn ticket's collateral photos
+ * (the forfeit re-links the same paths), so deleting the file would break
+ * the photo on the ticket too.
+ */
+async function deletePhotoFileIfUnused(
+  supabase: Awaited<ReturnType<typeof resolveItemTenant>>['supabase'],
+  tenantId: string,
+  path: string,
+): Promise<void> {
+  const [photos, mainOnTicket, extraOnTicket] = await Promise.all([
+    supabase
+      .from('inventory_item_photos')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('storage_path', path)
+      .is('deleted_at', null),
+    supabase
+      .from('loan_collateral_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('photo_path', path),
+    supabase
+      .from('loan_collateral_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .contains('extra_photo_paths', [path]),
+  ])
+  // A failed check keeps the file: an orphan file is harmless, a missing
+  // one is a broken photo.
+  const checks = [photos, mainOnTicket, extraOnTicket]
+  if (checks.some((r) => r.error || (r.count ?? 0) > 0)) return
+  await deleteFromBucket({ bucket: INVENTORY_PHOTOS_BUCKET, path }).catch(() => {})
 }
 
 // ── Stones ──────────────────────────────────────────────────────────────

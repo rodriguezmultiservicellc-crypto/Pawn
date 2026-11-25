@@ -32,6 +32,7 @@ export type AuditAction =
   | 'photo_upload'
   | 'photo_delete'
   | 'photo_set_primary'
+  | 'photo_replace'
   | 'stone_add'
   | 'stone_delete'
   // Transfer-specific

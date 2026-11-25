@@ -33,10 +33,14 @@ import {
   deleteInventoryPhotoAction,
   deleteInventoryStoneAction,
   makePhotoPrimaryAction,
+  replaceInventoryPhotoAction,
   updateInventoryItemAction,
   uploadInventoryPhotoAction,
   type UpdateInventoryItemState,
 } from './actions'
+import { PhotoViewer } from '@/components/uploads/PhotoViewer'
+import { FOCUS } from '@/lib/ui/ledger'
+import { PHOTO_ACCEPT } from '@/lib/uploads/mime'
 import {
   createEbayDraftAction,
   endEbayListingAction,
@@ -521,6 +525,17 @@ function PhotosPanel({
     })
   }
 
+  // The photo open in the viewer (its place in `photos`), or null.
+  const [viewing, setViewing] = useState<number | null>(null)
+  const [viewerPending, startViewer] = useTransition()
+  const [viewerError, setViewerError] = useState<string | null>(null)
+  const photoForm = (photoId: string) => {
+    const fd = new FormData()
+    fd.set('photo_id', photoId)
+    fd.set('item_id', itemId)
+    return fd
+  }
+
   return (
     <fieldset className="rounded-xl border border-border bg-card p-4">
       <legend className="px-1 text-sm font-semibold text-foreground">
@@ -528,8 +543,16 @@ function PhotosPanel({
       </legend>
       <div className="mt-2 space-y-3">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {photos.map((p) => (
-            <PhotoTile key={p.id} itemId={itemId} photo={p} />
+          {photos.map((p, i) => (
+            <PhotoTile
+              key={p.id}
+              itemId={itemId}
+              photo={p}
+              onOpen={() => {
+                setViewerError(null)
+                setViewing(i)
+              }}
+            />
           ))}
           <button
             type="button"
@@ -543,13 +566,43 @@ function PhotosPanel({
           <input
             ref={ref}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+            accept={PHOTO_ACCEPT}
             onChange={onChange}
             className="sr-only"
           />
         </div>
         {error ? <div className="text-xs text-danger">{error}</div> : null}
       </div>
+      <PhotoViewer
+        photos={photos.map((p) => ({ path: p.id, url: p.signed_url, name: p.caption ?? '' }))}
+        index={viewing}
+        onIndex={setViewing}
+        edit={{
+          busy: viewerPending,
+          error: viewerError,
+          accept: PHOTO_ACCEPT,
+          // The list comes back main-first, so the new main one is the first.
+          onMakeMain: (id) =>
+            startViewer(async () => {
+              await makePhotoPrimaryAction(photoForm(id))
+              setViewing(0)
+            }),
+          onRemove: (id, i) =>
+            startViewer(async () => {
+              await deleteInventoryPhotoAction(photoForm(id))
+              const left = photos.length - 1
+              setViewing(left === 0 ? null : Math.min(i, left - 1))
+            }),
+          onReplace: (id, picked) =>
+            startViewer(async () => {
+              setViewerError(null)
+              const fd = photoForm(id)
+              fd.set('file', await fitPhotoForUpload(picked))
+              const res = await replaceInventoryPhotoAction(fd)
+              if (res.error) setViewerError(res.error)
+            }),
+        }}
+      />
     </fieldset>
   )
 }
@@ -557,9 +610,12 @@ function PhotosPanel({
 function PhotoTile({
   itemId,
   photo,
+  onOpen,
 }: {
   itemId: string
   photo: InventoryPhotoItem
+  /** Opens this photo big in the viewer. */
+  onOpen: () => void
 }) {
   const { t } = useI18n()
   const [pending, startTransition] = useTransition()
@@ -584,21 +640,29 @@ function PhotoTile({
   return (
     <div className="relative aspect-square overflow-hidden rounded-md border border-border bg-background">
       {photo.signed_url ? (
-        <Image
-          src={photo.signed_url}
-          alt={photo.caption ?? ''}
-          fill
-          sizes="(max-width: 640px) 50vw, 25vw"
-          unoptimized
-          className="object-cover"
-        />
+        <button
+          type="button"
+          onClick={onOpen}
+          title={t.common.photoStrip.view}
+          aria-label={t.common.photoStrip.view}
+          className={`absolute inset-0 cursor-zoom-in ${FOCUS}`}
+        >
+          <Image
+            src={photo.signed_url}
+            alt={photo.caption ?? ''}
+            fill
+            sizes="(max-width: 640px) 50vw, 25vw"
+            unoptimized
+            className="object-cover"
+          />
+        </button>
       ) : (
         <div className="flex h-full w-full items-center justify-center text-muted">
           <ImageIcon size={24} />
         </div>
       )}
       {photo.is_primary ? (
-        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gold px-2 py-0.5 text-xs font-medium text-navy">
+        <span className="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gold px-2 py-0.5 text-xs font-medium text-navy">
           <StarFour size={10} weight="fill" />
           {t.inventory.primary}
         </span>
