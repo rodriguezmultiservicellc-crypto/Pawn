@@ -9,17 +9,12 @@ import { requireRoleInTenant } from '@/lib/supabase/guards'
 import {
   collateralItemSchema,
   loanCreateSchema,
-  ALLOWED_LOAN_PHOTO_MIME_TYPES,
   ALLOWED_SIGNATURE_MIME_TYPES,
-  MAX_LOAN_PHOTO_BYTES,
   MAX_SIGNATURE_BYTES,
   type CollateralItemInput,
 } from '@/lib/validations/loan'
-import {
-  CUSTOMER_DOCUMENTS_BUCKET,
-  INVENTORY_PHOTOS_BUCKET,
-  uploadToBucket,
-} from '@/lib/supabase/storage'
+import { CUSTOMER_DOCUMENTS_BUCKET, uploadToBucket } from '@/lib/supabase/storage'
+import { confirmIntakePhotos } from '@/lib/uploads/intake-photos-server'
 import { extensionForUpload as pickExt, resolveUploadMime } from '@/lib/uploads/mime'
 import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
@@ -229,6 +224,16 @@ export async function createLoanAction(
 
   const v = parsed.data
 
+  // Each item's photos are already in storage (uploaded by the browser):
+  // check every list is this shop's and every file is there BEFORE anything
+  // is written, so a ticket never lands short of a photo the clerk saw.
+  const photoLists: string[][] = []
+  for (const row of collateralRaw) {
+    const confirmed = await confirmIntakePhotos(row.raw.photos, tenantId)
+    if (!confirmed.ok) return { error: 'photos_missing' }
+    photoLists.push(confirmed.paths)
+  }
+
   // Stale spot-price guard (24h rule): a loan whose collateral is priced
   // off a stale feed needs a manager's confirmation. A loan on a laptop
   // never touches spot, so it passes untouched.
@@ -375,39 +380,18 @@ export async function createLoanAction(
     }
   }
 
-  // Upload each collateral photo, then insert the snapshot rows.
-  const collateralInserts: Array<CollateralItemInput & { photo_path: string | null }> = []
+  // The snapshot rows: the main photo in photo_path, the rest in
+  // extra_photo_paths (patches/0114).
+  const collateralInserts: Array<
+    CollateralItemInput & { photo_path: string | null; extra_photo_paths: string[] }
+  > = []
   for (let i = 0; i < v.collateral.length; i++) {
     const item = v.collateral[i]
-    const file = collateralRaw[i]?.photo ?? null
-    let photoPath: string | null = null
-    if (file && file.size > 0) {
-      if (file.size > MAX_LOAN_PHOTO_BYTES) {
-        return { error: 'photo_too_large' }
-      }
-      const mime = resolveUploadMime(file)
-      if (!ALLOWED_LOAN_PHOTO_MIME_TYPES.includes(mime as never)) {
-        return { error: 'photo_mime_not_allowed' }
-      }
-      const up = await prepareUpload(file, mime)
-      const ext = pickExt(up.mime, up.filename)
-      const path = `${tenantId}/loans/${loanId}/${newUuid()}.${ext}`
-      try {
-        await uploadToBucket({
-          bucket: INVENTORY_PHOTOS_BUCKET,
-          path,
-          body: up.body,
-          contentType: up.mime,
-        })
-        photoPath = path
-      } catch (err) {
-        console.error('[pawn.create] collateral photo upload failed', err)
-      }
-    }
+    const [mainPhoto = null, ...extraPhotos] = photoLists[i] ?? []
     // Validate the row again with photo_path (paranoia + uniform shape).
     const rowParsed = collateralItemSchema.safeParse({
       ...item,
-      photo_path: photoPath,
+      photo_path: mainPhoto,
     })
     if (!rowParsed.success) continue
     // The one place the stones become the line the ticket prints: the boxes
@@ -418,6 +402,7 @@ export async function createLoanAction(
       ...rowParsed.data,
       gemstone_description: gemstones !== '' ? gemstones : rowParsed.data.gemstone_description,
       position: i,
+      extra_photo_paths: extraPhotos,
     })
   }
 
@@ -448,6 +433,7 @@ export async function createLoanAction(
       unique_marks: it.unique_marks,
       est_value: it.est_value,
       photo_path: it.photo_path,
+      extra_photo_paths: it.extra_photo_paths,
       position: it.position,
       pawn_category_slug: it.pawn_category_slug,
       pawn_subcategory_slug: it.pawn_subcategory_slug,
@@ -554,6 +540,7 @@ export async function createLoanAction(
     unique_marks: it.unique_marks,
     est_value: it.est_value,
     photo_path: it.photo_path,
+    extra_photo_paths: it.extra_photo_paths,
     position: it.position,
     pawn_category_slug: it.pawn_category_slug,
     pawn_subcategory_slug: it.pawn_subcategory_slug,

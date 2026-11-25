@@ -13,6 +13,7 @@ import { getSpotFreshness } from '@/lib/spot-prices/lookup'
 import { canConfirmStaleSpot } from '@/lib/spot-prices/stale-gate'
 import { loadRateMaps } from '@/lib/metal-counter/rates'
 import { loadPawnIntakeCategories } from '@/lib/pawn/intake-categories'
+import { signIntakePhotos } from '@/lib/uploads/intake-photos-server'
 
 type SearchParams = Promise<{ draft?: string }>
 
@@ -112,10 +113,22 @@ export default async function NewPawnLoanPage(props: {
       | { id: string; customer_id: string; payload: unknown }
       | null
     if (d) {
+      const payload = parseDraftPayload(d.payload)
+      const tenantId = ctx.tenantId
       initialDraft = {
         id: d.id,
         customerId: d.customer_id,
-        payload: parseDraftPayload(d.payload),
+        payload,
+        // The draft keeps its items' photo paths; show them again. Only this
+        // shop's photos that are still in storage come back.
+        photos: await Promise.all(
+          payload.collateral.map(async (row) =>
+            (await signIntakePhotos(row.photos, tenantId)).map((p) => ({
+              ...p,
+              name: '',
+            })),
+          ),
+        ),
       }
     }
   }
@@ -130,6 +143,7 @@ export default async function NewPawnLoanPage(props: {
       spotFreshness={spotFreshness}
       metalRates={metalRates}
       canConfirmStale={canConfirmStaleSpot(ctx.tenantRole)}
+      tenantId={ctx.tenantId}
     />
   )
 }

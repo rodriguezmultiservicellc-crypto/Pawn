@@ -10,8 +10,7 @@ import {
   Trash,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { fitInputFiles } from '@/lib/uploads/fit-photo'
-import { isBrowserRenderableImage, resolveUploadMime } from '@/lib/uploads/mime'
+import { PhotoStrip, type StripPhoto } from '@/components/uploads/PhotoStrip'
 import { formatMoney } from '@/lib/format/money'
 import StalePriceBanner, {
   StaleSpotConfirm,
@@ -64,8 +63,8 @@ type ItemRow = {
    *  a negotiated number). Re-armed whenever the weight is retyped. */
   payoutAuto: boolean
   serial_number: string
-  photoFile: File | null
-  photoPreview: string | null
+  /** Photos already uploaded (components/uploads/PhotoStrip), main first. */
+  photos: StripPhoto[]
 }
 
 const CATEGORY_VALUES = [
@@ -107,8 +106,7 @@ function blankItem(): ItemRow {
     mode: 'weight',
     payoutAuto: true,
     serial_number: '',
-    photoFile: null,
-    photoPreview: null,
+    photos: [],
   }
 }
 
@@ -144,7 +142,10 @@ export default function BuyForm({
   storeCreditEnabled = false,
   spotFreshness,
   canConfirmStale,
+  tenantId,
 }: {
+  /** The shop: item photos upload into its folder. */
+  tenantId: string
   /** Spot per gram + this tenant's pay / sell multipliers (lib/metal-counter/rates). */
   rates: RateMaps
   buyHoldDays: number
@@ -365,6 +366,7 @@ export default function BuyForm({
               key={row.uid}
               row={row}
               idx={idx}
+              tenantId={tenantId}
               fieldError={fieldError}
               onPatch={(patch, changed) => patchItem(row.uid, patch, changed)}
               onRemove={() => removeItem(row.uid)}
@@ -496,6 +498,7 @@ export default function BuyForm({
 function ItemCard({
   row,
   idx,
+  tenantId,
   fieldError,
   onPatch,
   onRemove,
@@ -505,6 +508,7 @@ function ItemCard({
 }: {
   row: ItemRow
   idx: number
+  tenantId: string
   fieldError: (k: string) => string | undefined
   onPatch: (patch: Partial<ItemRow>, changed?: 'weight' | 'payout' | 'rate' | 'mode') => void
   onRemove: () => void
@@ -534,21 +538,6 @@ function ItemCard({
     value: v,
     label: v === '' ? f.metalNone : (t.spotPrices.metals as Record<string, string>)[v] ?? v,
   }))
-
-  // HEIC becomes JPEG and a big photo shrinks before the buy is sent
-  // (lib/uploads/fit-photo); the input is invalid until that is done.
-  const onPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.currentTarget
-    if (!input.files?.[0]) {
-      onPatch({ photoFile: null, photoPreview: null })
-      return
-    }
-    const [file] = await fitInputFiles(input, t.common.preparingPhoto)
-    const url = isBrowserRenderableImage(resolveUploadMime(file))
-      ? URL.createObjectURL(file)
-      : null
-    onPatch({ photoFile: file, photoPreview: url })
-  }
 
   const isOverridden = rate.multiplier !== 1
   const errPrefix = `items.${idx}.`
@@ -637,17 +626,16 @@ function ItemCard({
           onChange={(v) => onPatch({ coating: v as Coating, mode: 'weight' }, 'rate')}
           options={COATINGS.map((c) => ({ value: c, label: t.inventory.coatings[c] }))}
         />
+        {/* Photos — uploaded as they are picked; the form carries their
+            paths (components/uploads/PhotoStrip). */}
         <div className="md:col-span-2">
-          <label className="block space-y-1">
-            <span className="text-xs font-medium text-foreground">{f.photo}</span>
-            <input
-              type="file"
-              name={`item_${idx}_photo`}
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-              onChange={onPhotoChange}
-              className="block w-full text-xs text-foreground file:mr-2 file:rounded-md file:border-0 file:bg-background file:px-3 file:py-1 file:text-xs file:text-foreground"
-            />
-          </label>
+          <PhotoStrip
+            tenantId={tenantId}
+            name={`item_${idx}_photos`}
+            photos={row.photos}
+            onChange={(photos) => onPatch({ photos })}
+            label={f.photo}
+          />
         </div>
       </div>
 
@@ -718,16 +706,6 @@ function ItemCard({
         ) : null}
       </div>
 
-      {row.photoPreview ? (
-        <div className="mt-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={row.photoPreview}
-            alt=""
-            className="h-20 w-20 rounded-md border border-border object-cover"
-          />
-        </div>
-      ) : null}
     </article>
   )
 }

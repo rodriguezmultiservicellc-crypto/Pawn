@@ -382,15 +382,8 @@ export const loanPaymentVoidSchema = z.object({
 
 export type LoanPaymentVoidInput = z.infer<typeof loanPaymentVoidSchema>
 
-// ── File constraints (signature + collateral photos) ────────────────────────
-
-export const ALLOWED_LOAN_PHOTO_MIME_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
-  'image/heic',
-] as const
+// ── File constraints (signature) ────────────────────────────────────────────
+// Collateral photos upload from the browser: lib/uploads/intake-photos.
 
 export const ALLOWED_SIGNATURE_MIME_TYPES = [
   'image/jpeg',
@@ -401,5 +394,4 @@ export const ALLOWED_SIGNATURE_MIME_TYPES = [
   'application/pdf',
 ] as const
 
-export const MAX_LOAN_PHOTO_BYTES = 8 * 1024 * 1024 // 8 MB
 export const MAX_SIGNATURE_BYTES = 5 * 1024 * 1024 // 5 MB

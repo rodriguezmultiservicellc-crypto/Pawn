@@ -7,17 +7,9 @@ import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
-import {
-  buyOutrightSchema,
-  ALLOWED_BUY_PHOTO_MIME_TYPES,
-  MAX_BUY_PHOTO_BYTES,
-} from '@/lib/validations/buy-outright'
-import {
-  INVENTORY_PHOTOS_BUCKET,
-  uploadToBucket,
-} from '@/lib/supabase/storage'
-import { extensionForUpload as pickExt, resolveUploadMime } from '@/lib/uploads/mime'
-import { prepareUpload } from '@/lib/uploads/convert'
+import { buyOutrightSchema } from '@/lib/validations/buy-outright'
+import { intakePhotoMime } from '@/lib/uploads/intake-photos'
+import { confirmIntakePhotos } from '@/lib/uploads/intake-photos-server'
 import { logAudit } from '@/lib/audit'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
 import {
@@ -47,13 +39,11 @@ export type CreateBuyState = {
   values?: Record<string, string>
 }
 
-function newUuid(): string {
-  return crypto.randomUUID()
-}
-
+/** The item rows of a buy. `photos` is the JSON list of each item's photo
+ *  paths, already uploaded by the browser (lib/uploads/intake-photos). */
 function readBuyItemRows(
   fd: FormData,
-): Array<{ raw: Record<string, FormDataEntryValue | null>; photo: File | null }> {
+): Array<{ raw: Record<string, FormDataEntryValue | null>; photos: FormDataEntryValue | null }> {
   const countRaw = fd.get('item_count')
   const count = Math.max(
     0,
@@ -61,12 +51,9 @@ function readBuyItemRows(
   )
   const rows: Array<{
     raw: Record<string, FormDataEntryValue | null>
-    photo: File | null
+    photos: FormDataEntryValue | null
   }> = []
   for (let i = 0; i < count; i++) {
-    const photoVal = fd.get(`item_${i}_photo`)
-    const photo =
-      photoVal instanceof File && photoVal.size > 0 ? photoVal : null
     rows.push({
       raw: {
         description: fd.get(`item_${i}_description`),
@@ -79,7 +66,7 @@ function readBuyItemRows(
         serial_number: fd.get(`item_${i}_serial_number`),
         position: String(i),
       },
-      photo,
+      photos: fd.get(`item_${i}_photos`),
     })
   }
   return rows
@@ -164,6 +151,16 @@ export async function createBuyOutrightAction(
 
   const v = parsed.data
 
+  // Each item's photos are already in storage (uploaded by the browser):
+  // check every list is this shop's and every file is there BEFORE anything
+  // is written.
+  const photoLists: string[][] = []
+  for (const row of itemRows) {
+    const confirmed = await confirmIntakePhotos(row.photos, tenantId)
+    if (!confirmed.ok) return { error: 'photos_missing', values: echo }
+    photoLists.push(confirmed.paths)
+  }
+
   // How the seller is paid. 'mixed' = cash + transfer whose parts must add
   // up to the total payout to the cent (brief Phase 3). Resolved before any
   // write so a bad split leaves nothing behind. The buy has no tender
@@ -246,7 +243,10 @@ export async function createBuyOutrightAction(
     coating: string
     payout: number
     melt_value_at_buy: number | null
+    /** The main photo (for the police snapshot); every photo is an
+     *  inventory_item_photos row. */
     photo_path: string | null
+    photo_paths: string[]
     serial_number: string | null
     category: string
     position: number
@@ -256,10 +256,10 @@ export async function createBuyOutrightAction(
 
   for (let i = 0; i < v.items.length; i++) {
     const item = v.items[i]
-    const file = itemRows[i]?.photo ?? null
+    const photos = photoLists[i] ?? []
 
-    // Insert the inventory_items row first to obtain the id (needed for
-    // the storage path).
+    // Insert the inventory_items row first to obtain the id its photos
+    // point at.
     const acquiredCost = r4(item.payout)
 
     const { data: invRow, error: invErr } = await supabase
@@ -303,44 +303,24 @@ export async function createBuyOutrightAction(
       }
     }
 
-    // Upload photo if provided.
-    let photoPath: string | null = null
-    if (file && file.size > 0) {
-      if (file.size > MAX_BUY_PHOTO_BYTES) {
-        return { error: `photo_too_large_row_${i + 1}`, values: echo }
-      }
-      const mime = resolveUploadMime(file)
-      if (!ALLOWED_BUY_PHOTO_MIME_TYPES.includes(mime as never)) {
-        return { error: `photo_mime_not_allowed_row_${i + 1}`, values: echo }
-      }
-      const up = await prepareUpload(file, mime)
-      const ext = pickExt(up.mime, up.filename)
-      const path = `${tenantId}/${invRow.id}/${newUuid()}.${ext}`
-      try {
-        await uploadToBucket({
-          bucket: INVENTORY_PHOTOS_BUCKET,
-          path,
-          body: up.body,
-          contentType: up.mime,
-        })
-        photoPath = path
-
-        // Record on inventory_item_photos so the photos panel sees it.
-        await supabase.from('inventory_item_photos').insert({
+    // Record every photo on inventory_item_photos (main first) so the
+    // item's photos panel sees them.
+    if (photos.length > 0) {
+      const { error: photoErr } = await supabase.from('inventory_item_photos').insert(
+        photos.map((path, position) => ({
           tenant_id: tenantId,
           item_id: invRow.id,
           storage_path: path,
-          mime_type: up.mime,
-          byte_size: file.size,
-          position: 0,
-          is_primary: true,
+          mime_type: intakePhotoMime(path),
+          position,
+          is_primary: position === 0,
           caption: null,
           created_by: userId,
-        })
-      } catch (err) {
-        console.error('[buy.create] photo upload failed', err)
-      }
+        })),
+      )
+      if (photoErr) console.error('[buy.create] photo rows failed', photoErr.message)
     }
+    const photoPath = photos[0] ?? null
 
     // Best-effort melt value at acquisition time (snapshot for police
     // report + future analytics). A coated piece has none (patches/0067).
@@ -370,6 +350,7 @@ export async function createBuyOutrightAction(
       payout: acquiredCost,
       melt_value_at_buy: meltAtBuy,
       photo_path: photoPath,
+      photo_paths: photos,
       serial_number: item.serial_number,
       category: item.category,
       position: i,
@@ -429,6 +410,7 @@ export async function createBuyOutrightAction(
     melt_value_at_buy: it.melt_value_at_buy,
     serial_number: it.serial_number,
     photo_path: it.photo_path,
+    photo_paths: it.photo_paths,
     position: it.position,
   })) as unknown as ComplianceInsertChanges
 

@@ -51,6 +51,16 @@ export const en = {
     upload: 'Upload',
     uploading: 'Uploading…',
     preparingPhoto: 'Preparing the photo…',
+    photoStrip: {
+      add: 'Add photo',
+      main: 'Main',
+      makeMain: 'Make this the main photo',
+      remove: 'Remove photo',
+      max: 'An item can have up to {n} photos.',
+      failed: 'A photo could not be uploaded. Try again.',
+      missing:
+        'A photo of an item could not be found in storage. Remove it from the item, add it again, and save.',
+    },
     view: 'View',
     download: 'Download',
     actions: 'Actions',

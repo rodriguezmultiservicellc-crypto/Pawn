@@ -60,6 +60,7 @@ import {
   PRIMARY_BTN,
 } from '@/lib/ui/ledger'
 import { createLoanAction, type CreateLoanState } from './actions'
+import type { StripPhoto } from '@/components/uploads/PhotoStrip'
 
 const PAWN_NEW_FORM_ID = 'pawn-new-form'
 
@@ -76,6 +77,8 @@ export type DraftInitial = {
   id: string
   customerId: string
   payload: LoanDraftPayload
+  /** Each draft item's photos, signed to show (same order as the items). */
+  photos: StripPhoto[][]
 }
 
 /** Statutory limits from the tenant's jurisdiction (patches/0048). */
@@ -113,7 +116,10 @@ export default function NewPawnLoanForm({
   spotFreshness,
   metalRates,
   canConfirmStale,
+  tenantId,
 }: {
+  /** The shop: item photos upload into its folder. */
+  tenantId: string
   rates: LoanRateOption[]
   minLoanAmount: number | null
   loanRules: IntakeLoanRules
@@ -253,7 +259,7 @@ export default function NewPawnLoanForm({
     historyState && historyState.customerId === selectedCustomerId ? historyState : null
 
   // Resume a saved draft: inject its collateral rows into the editor once on
-  // mount. Photos aren't restored (not staged in the draft); category slugs
+  // mount, with their photos (already in storage, signed by the page). Category slugs
   // aren't restored by addExtractedRow yet (same limitation as voice intake)
   // — the operator re-confirms each row's category before issuing.
   const draftAppliedRef = useRef(false)
@@ -266,8 +272,9 @@ export default function NewPawnLoanForm({
       initialDraft.payload.collateral.some(
         (row) => moneyTextToCents(row.est_value ?? '') > 0,
       )
-    for (const row of initialDraft.payload.collateral) {
+    for (const [i, row] of initialDraft.payload.collateral.entries()) {
       collateralRef.current?.addExtractedRow({
+        photos: initialDraft.photos[i] ?? [],
         description: row.description ?? '',
         category: (row.category || 'other') as InventoryCategory,
         metal_type: (row.metal_type || '') as MetalType | '',
@@ -448,6 +455,7 @@ export default function NewPawnLoanForm({
           title={`2 · ${tn.sectionAddCollateral}`}
           previousItems={customerHistory?.history?.previous_items ?? []}
           onTotalsChange={onCollateralTotals}
+          tenantId={tenantId}
         />
       </section>
 

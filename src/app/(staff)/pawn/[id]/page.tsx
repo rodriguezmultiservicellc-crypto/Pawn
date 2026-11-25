@@ -17,6 +17,7 @@ import PawnLoanDetail, {
   type LoanView,
 } from './content'
 import type { LoanEventType, LoanStatus } from '@/types/database-aliases'
+import { allPhotoPaths } from '@/lib/uploads/intake-photos'
 
 type Params = Promise<{ id: string }>
 
@@ -64,7 +65,7 @@ export default async function PawnLoanDetailPage(props: {
       .from('loan_collateral_items')
       .select(
         `id, description, category, metal_type, karat, weight_grams, est_value,
-         photo_path, position, jewelry_size, color, gemstone_description,
+         photo_path, extra_photo_paths, position, jewelry_size, color, gemstone_description,
          unique_marks, firearm_make, firearm_model, firearm_caliber,
          firearm_serial_number, firearm_type, firearm_barrel_length_inches,
          firearm_action_type, firearm_capacity, firearm_finish,
@@ -102,13 +103,12 @@ export default async function PawnLoanDetailPage(props: {
       weight_grams: c.weight_grams == null ? null : Number(c.weight_grams),
       est_value: c.est_value == null ? 0 : Number(c.est_value),
       photo_path: c.photo_path,
-      photo_signed_url: c.photo_path
-        ? await getSignedUrl({
-            bucket: INVENTORY_PHOTOS_BUCKET,
-            path: c.photo_path,
-            ttlSeconds: 3600,
-          })
-        : null,
+      // Every photo of the item, main first (patches/0114).
+      photo_signed_urls: await Promise.all(
+        allPhotoPaths(c).map((path) =>
+          getSignedUrl({ bucket: INVENTORY_PHOTOS_BUCKET, path, ttlSeconds: 3600 }),
+        ),
+      ).then((urls) => urls.filter((u): u is string => u != null)),
       position: c.position,
       jewelry_size: c.jewelry_size,
       color: c.color,

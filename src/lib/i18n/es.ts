@@ -46,6 +46,16 @@ export const es: Dictionary = {
     upload: 'Subir',
     uploading: 'Subiendo…',
     preparingPhoto: 'Preparando la foto…',
+    photoStrip: {
+      add: 'Agregar foto',
+      main: 'Principal',
+      makeMain: 'Hacer esta la foto principal',
+      remove: 'Quitar foto',
+      max: 'Un artículo puede tener hasta {n} fotos.',
+      failed: 'No se pudo subir una foto. Intente de nuevo.',
+      missing:
+        'No se encontró una foto de un artículo. Quítela del artículo, agréguela de nuevo y guarde.',
+    },
     view: 'Ver',
     download: 'Descargar',
     actions: 'Acciones',

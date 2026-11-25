@@ -84,7 +84,8 @@ export type LoanCollateralView = {
   weight_grams: number | null
   est_value: number
   photo_path: string | null
-  photo_signed_url: string | null
+  /** Every photo of the item, main first. */
+  photo_signed_urls: string[]
   position: number
   // FS 539.001 + per-category attributes (patches/0041, 0043).
   jewelry_size: string | null
@@ -777,15 +778,18 @@ function CollateralPanel({
               className="flex gap-3 rounded-md border border-border bg-background/30 p-3"
             >
               <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md border border-border bg-background">
-                {c.photo_signed_url ? (
-                  <Image
-                    src={c.photo_signed_url}
-                    alt=""
-                    fill
-                    sizes="80px"
-                    unoptimized
-                    className="object-cover"
-                  />
+                {c.photo_signed_urls[0] ? (
+                  // Opens the full photo in a new tab.
+                  <a href={c.photo_signed_urls[0]} target="_blank" rel="noopener noreferrer">
+                    <Image
+                      src={c.photo_signed_urls[0]}
+                      alt=""
+                      fill
+                      sizes="80px"
+                      unoptimized
+                      className="object-cover"
+                    />
+                  </a>
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-muted">
                     <ImageIcon size={20} />
@@ -793,6 +797,21 @@ function CollateralPanel({
                 )}
               </div>
               <div className="min-w-0 flex-1">
+                {c.photo_signed_urls.length > 1 ? (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {c.photo_signed_urls.slice(1).map((url) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative h-10 w-10 overflow-hidden rounded border border-border bg-background"
+                      >
+                        <Image src={url} alt="" fill sizes="40px" unoptimized className="object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="font-medium text-foreground">{c.description}</div>
                 <div className="mt-1 text-xs text-muted">
                   {[

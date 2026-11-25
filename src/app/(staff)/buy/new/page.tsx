@@ -63,6 +63,7 @@ export default async function NewBuyPage() {
       storeCreditEnabled={scSettings?.data?.store_credit_enabled === true}
       spotFreshness={spotFreshness}
       canConfirmStale={canConfirmStaleSpot(ctx.tenantRole)}
+      tenantId={ctx.tenantId}
     />
   )
 }

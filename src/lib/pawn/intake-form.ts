@@ -9,26 +9,25 @@
  * imported by multiple server-action files.
  */
 
-/** One collateral row's raw FormData values + its optional photo File. */
+/** One collateral row's raw FormData values. */
 export type CollateralRawRow = {
   raw: Record<string, FormDataEntryValue | null>
-  photo: File | null
 }
 
 /**
- * Parse `collateral_<n>_<field>` entries out of FormData. Files
- * (`collateral_<n>_photo`) are returned separately so the caller can upload
- * first and then write the validated path.
+ * Parse `collateral_<n>_<field>` entries out of FormData. `photos` is the
+ * JSON list of the item's photo paths (already uploaded by the browser —
+ * lib/uploads/intake-photos); the caller checks it before recording it, and
+ * a draft keeps it as it came.
  */
 export function readCollateralRows(fd: FormData): CollateralRawRow[] {
   const countRaw = fd.get('collateral_count')
   const count = Math.max(0, Math.min(50, parseInt(String(countRaw ?? '0'), 10) || 0))
   const rows: CollateralRawRow[] = []
   for (let i = 0; i < count; i++) {
-    const photoVal = fd.get(`collateral_${i}_photo`)
-    const photo = photoVal instanceof File && photoVal.size > 0 ? photoVal : null
     rows.push({
       raw: {
+        photos: fd.get(`collateral_${i}_photos`),
         description: fd.get(`collateral_${i}_description`),
         category: fd.get(`collateral_${i}_category`),
         metal_type: fd.get(`collateral_${i}_metal_type`),
@@ -78,7 +77,6 @@ export function readCollateralRows(fd: FormData): CollateralRawRow[] {
         item_size: fd.get(`collateral_${i}_item_size`),
         position: String(i),
       },
-      photo,
     })
   }
   return rows
@@ -100,9 +98,9 @@ export type LoanDraftPayload = {
   collateral: DraftCollateralRow[]
 }
 
-/** Build the JSONB draft payload from a /pawn/new submission. Photos are
- *  dropped (Files can't be staged in JSONB) — they're re-attached when the
- *  operator resumes the draft and finalizes the loan. */
+/** Build the JSONB draft payload from a /pawn/new submission. Each item's
+ *  photos are kept as their paths (`photos`): they are already in storage,
+ *  and the page shows them again when the draft is resumed. */
 export function buildDraftPayload(fd: FormData): LoanDraftPayload {
   const g = (k: string) => String(fd.get(k) ?? '')
   const collateral = readCollateralRows(fd).map(({ raw }) => {

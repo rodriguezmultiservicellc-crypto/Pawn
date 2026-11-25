@@ -30,6 +30,7 @@ import {
 } from '@/lib/loyalty/events'
 import { planPaymentVoid } from '@/lib/pawn/payment-void'
 import type { LoanStatus, PaymentMethod } from '@/types/database-aliases'
+import { allPhotoPaths } from '@/lib/uploads/intake-photos'
 
 export type ActionResult = {
   error?: string
@@ -924,7 +925,7 @@ export async function forfeitLoanAction(
   const { data: collateral } = await supabase
     .from('loan_collateral_items')
     .select(
-      `id, description, category, metal_type, karat, weight_grams, jewelry_size, est_value, photo_path, position,
+      `id, description, category, metal_type, karat, weight_grams, jewelry_size, est_value, photo_path, extra_photo_paths, position,
        coating, stones, gemstone_notes,
        jewelry_brand, jewelry_model, jewelry_serial,
        electronic_brand, electronic_model, electronic_serial,
@@ -1006,20 +1007,23 @@ export async function forfeitLoanAction(
       }
     }
 
-    // Re-link the photo by inserting a fresh inventory_item_photos row that
-    // points at the same Storage path. The file is unchanged; ownership of
-    // the path now spans both loan_collateral_items and inventory_item_photos
-    // until the loan row is GC'd, but soft-delete is OK since loans never
-    // hard-delete.
-    if (item.photo_path) {
-      await supabase.from('inventory_item_photos').insert({
-        tenant_id: tenantId,
-        item_id: inv.id,
-        storage_path: item.photo_path,
-        is_primary: true,
-        position: 0,
-        created_by: userId,
-      })
+    // Re-link EVERY photo (main first, patches/0114) by inserting fresh
+    // inventory_item_photos rows that point at the same Storage paths. The
+    // files are unchanged; ownership of a path now spans both
+    // loan_collateral_items and inventory_item_photos, which is fine since
+    // loans never hard-delete.
+    const photos = allPhotoPaths(item)
+    if (photos.length > 0) {
+      await supabase.from('inventory_item_photos').insert(
+        photos.map((path, position) => ({
+          tenant_id: tenantId,
+          item_id: inv.id,
+          storage_path: path,
+          is_primary: position === 0,
+          position,
+          created_by: userId,
+        })),
+      )
     }
   }
 

@@ -3593,6 +3593,7 @@ export type Database = {
           electronic_model: string | null
           electronic_serial: string | null
           est_value: number
+          extra_photo_paths: string[]
           firearm_action_type: string | null
           firearm_barrel_length_inches: number | null
           firearm_caliber: string | null
@@ -3643,6 +3644,7 @@ export type Database = {
           electronic_model?: string | null
           electronic_serial?: string | null
           est_value?: number
+          extra_photo_paths?: string[]
           firearm_action_type?: string | null
           firearm_barrel_length_inches?: number | null
           firearm_caliber?: string | null
@@ -3693,6 +3695,7 @@ export type Database = {
           electronic_model?: string | null
           electronic_serial?: string | null
           est_value?: number
+          extra_photo_paths?: string[]
           firearm_action_type?: string | null
           firearm_barrel_length_inches?: number | null
           firearm_caliber?: string | null

@@ -43,7 +43,7 @@ export function pawnItemPhotoSystemPrompt(categories: CategoryTree): string {
     ([kind, label]) => `- ${label}: ${styleWordsFor(kind).join(', ')}`,
   ).join('\n')
 
-  return `You help a pawn shop clerk fill in the item form of a pawn ticket. You are shown one photo of the item a customer is pawning, and you report what can be seen in it.
+  return `You help a pawn shop clerk fill in the item form of a pawn ticket. You are shown one or more photos of ONE item a customer is pawning, and you report what can be seen in them.
 
 Your answer fills form fields that print on a legal pawn ticket and go into a police report. The clerk weighs the piece and tests its metal and stones after you answer. So report only what a person looking at this photo can actually see, and leave a field null whenever the photo does not show it: a blank costs the clerk a few seconds, a wrong guess ends up on a legal document. Write every word in English.
 
@@ -84,13 +84,20 @@ ${styleLines}
 Fields that belong to another kind of item stay null, and "stones" stays an empty list.`
 }
 
-/** The user turn that goes with the photo. */
-export function pawnItemPhotoUserText(picked: {
-  topSlug: string
-  topLabel: string
-  subSlug: string | null
-  subLabel: string | null
-}): string {
+/** The user turn that goes with the photos. */
+export function pawnItemPhotoUserText(
+  picked: {
+    topSlug: string
+    topLabel: string
+    subSlug: string | null
+    subLabel: string | null
+  },
+  photoCount: number,
+): string {
   const sub = picked.subSlug ? `, sub-category ${picked.subSlug} (${picked.subLabel})` : ''
-  return `The clerk picked category ${picked.topSlug} (${picked.topLabel})${sub}. Describe the item in this photo.`
+  const what =
+    photoCount > 1
+      ? `These ${photoCount} photos all show the SAME item from different angles (a close-up may show a stamp or a serial number). Describe that one item, combining what the photos show.`
+      : 'Describe the item in this photo.'
+  return `The clerk picked category ${picked.topSlug} (${picked.topLabel})${sub}. ${what}`
 }

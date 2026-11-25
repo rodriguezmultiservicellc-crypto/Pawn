@@ -8,11 +8,9 @@ import {
   useRef,
   useState,
 } from 'react'
-import Image from 'next/image'
-import { Plus, Camera, Sparkle, Warning, X } from '@phosphor-icons/react'
+import { Plus, Sparkle, Warning, X } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { fitInputFiles } from '@/lib/uploads/fit-photo'
-import { isBrowserRenderableImage, resolveUploadMime } from '@/lib/uploads/mime'
+import { PhotoStrip, type StripPhoto } from '@/components/uploads/PhotoStrip'
 import { inventoryCategoryFromSlug } from '@/lib/pawn/intake-categories'
 import { photoItemPatch, type PhotoItem } from '@/lib/pawn/photo-describe'
 import { en } from '@/lib/i18n/en'
@@ -90,6 +88,8 @@ export type CollateralListHandle = {
     karat: string
     weight_grams: string
     est_value: string
+    /** A resumed draft's photos, already signed to show. */
+    photos?: StripPhoto[]
   }) => void
 }
 
@@ -104,8 +104,8 @@ export type CollateralListHandle = {
  *     the description — written from the other fields while the clerk
  *     leaves it alone (lib/pawn/item-description).
  *
- * Photos are kept as File objects in component state. On submit, the form
- * action serializes them via FormData under names:
+ * Photos upload to storage the moment they are picked; the row keeps their
+ * paths. On submit, the form action reads the rows from FormData under names:
  *   collateral_count               — number of rows
  *   collateral_<n>_pawn_category    — top-level slug
  *   collateral_<n>_pawn_subcategory — sub slug (empty when no sub)
@@ -115,7 +115,8 @@ export type CollateralListHandle = {
  *   collateral_<n>_karat
  *   collateral_<n>_weight_grams
  *   collateral_<n>_est_value
- *   collateral_<n>_photo            — the File (optional)
+ *   collateral_<n>_photos           — JSON list of the photos' storage
+ *                                     paths, main first (already uploaded)
  *
  * The server action reads these via formData.get(`collateral_<n>_*`).
  *
@@ -217,8 +218,9 @@ type Row = {
   /** FS 539.001(8)(b)2.d — size of anything that is not jewelry. */
   item_size: string
   est_value: string
-  photo: File | null
-  photoPreview: string | null
+  /** The item's photos, already uploaded (components/uploads/PhotoStrip).
+   *  The first is the main one. */
+  photos: StripPhoto[]
 }
 
 /**
@@ -283,8 +285,7 @@ function newRow(): Row {
     general_serial: '',
     item_size: '',
     est_value: '0',
-    photo: null,
-    photoPreview: null,
+    photos: [],
   }
 }
 
@@ -303,9 +304,11 @@ export const CollateralItemsList = forwardRef<
     /** Pieces this customer pawned and picked up before. ONE pill opens the
      *  list; adding a piece writes it again with what was lent last time. */
     previousItems?: ReadonlyArray<PreviousPawnItem>
+    /** The shop: its folder is where an item's photos upload to. */
+    tenantId: string
   }
 >(function CollateralItemsList(
-  { categories, metalRates, onTotalsChange, title, previousItems = [] },
+  { categories, metalRates, onTotalsChange, title, previousItems = [], tenantId },
   ref,
 ) {
   const { t } = useI18n()
@@ -527,7 +530,7 @@ export const CollateralItemsList = forwardRef<
       r.general_serial === '' &&
       r.item_size === '' &&
       r.est_value === '0' &&
-      r.photo == null
+      r.photos.length === 0
     )
   }
 
@@ -560,6 +563,7 @@ export const CollateralItemsList = forwardRef<
           karat: extracted.karat,
           weight_grams: extracted.weight_grams,
           est_value: extracted.est_value || '0',
+          photos: extracted.photos ?? [],
         }
         setRows((prev) => {
           if (prev.length === 1 && isPristineRow(prev[0])) {
@@ -667,6 +671,7 @@ export const CollateralItemsList = forwardRef<
                 key={row.uid}
                 index={idx}
                 row={row}
+                tenantId={tenantId}
                 categories={categories}
                 metalRates={metalRates}
                 open={popup?.uid === row.uid}
@@ -761,6 +766,7 @@ function fmtValue(v: string): string {
 function CollateralRow({
   index,
   row,
+  tenantId,
   categories,
   metalRates,
   open,
@@ -774,6 +780,7 @@ function CollateralRow({
 }: {
   index: number
   row: Row
+  tenantId: string
   categories: PawnIntakeCategory[]
   metalRates: RateMaps
   /** This item's popup is the one showing. */
@@ -790,7 +797,6 @@ function CollateralRow({
 }) {
   const { t } = useI18n()
   const tn = t.pawn.new_
-  const photoInputRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const fieldId = useId()
 
@@ -975,8 +981,6 @@ function CollateralRow({
   const metalValue = metalValueOf(row)
   const metalValueAsText = metalValueText(metalValue)
 
-  const [photoBusy, setPhotoBusy] = useState(false)
-
   // "Describe from photo": the photo goes to /api/ai/vision/pawn-item and
   // what can be SEEN in it fills the fields (lib/pawn/photo-describe says
   // what that is — never a weight, a value, or what a stone is). When the
@@ -1001,28 +1005,6 @@ function CollateralRow({
     rowNow.current = row
   })
 
-  // HEIC becomes JPEG and a big photo shrinks before the ticket is sent
-  // (lib/uploads/fit-photo). While that runs, the input is invalid, so
-  // "Add item" / "Done" and "Issue" wait for it.
-  async function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const input = e.currentTarget
-    if (!input.files?.[0]) {
-      onChange({ photo: null, photoPreview: null })
-      return
-    }
-    setPhotoBusy(true)
-    setAiNote(null)
-    try {
-      const [file] = await fitInputFiles(input, t.common.preparingPhoto)
-      const preview = isBrowserRenderableImage(resolveUploadMime(file))
-        ? URL.createObjectURL(file)
-        : null
-      onChange({ photo: file, photoPreview: preview })
-    } finally {
-      setPhotoBusy(false)
-    }
-  }
-
   function categoryLabel(topSlug: string | null, subSlug: string | null): string {
     const top = categories.find((c) => c.slug === topSlug)
     const sub = top?.subcategories.find((s) => s.slug === subSlug)
@@ -1030,13 +1012,14 @@ function CollateralRow({
   }
 
   async function describeFromPhoto() {
-    if (!row.photo || !row.pawn_category_slug || aiBusy) return
+    if (row.photos.length === 0 || !row.pawn_category_slug || aiBusy) return
     const ai = tn.photoAi
     setAiBusy(true)
     setAiNote(null)
     try {
+      // The photos are already in storage: only their paths go.
       const fd = new FormData()
-      fd.set('photo', row.photo)
+      fd.set('photo_paths', JSON.stringify(row.photos.map((p) => p.path)))
       fd.set('pawn_category', row.pawn_category_slug)
       fd.set('pawn_subcategory', row.pawn_subcategory_slug ?? '')
       const res = await fetch('/api/ai/vision/pawn-item', { method: 'POST', body: fd })
@@ -1331,50 +1314,20 @@ function CollateralRow({
 
       {categoryStepDone ? (
       <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
-        {/* Photo */}
+        {/* Photos — uploaded as they are picked; the form carries their
+            paths (components/uploads/PhotoStrip). */}
         <div className="md:col-span-2">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-            {t.pawn.new_.itemPhoto}
-          </span>
-          <button
-            type="button"
-            onClick={() => photoInputRef.current?.click()}
-            className="group relative flex h-24 w-full items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-background hover:bg-background hover:text-foreground"
-            aria-label={t.pawn.new_.itemPhoto}
-          >
-            {photoBusy ? (
-              <span className="px-2 text-center text-[10px] text-muted">
-                {t.common.preparingPhoto}
-              </span>
-            ) : row.photoPreview ? (
-              <Image
-                src={row.photoPreview}
-                alt=""
-                fill
-                sizes="120px"
-                unoptimized
-                className="object-cover"
-              />
-            ) : row.photo ? (
-              <span className="break-all px-2 text-center text-[10px] text-foreground">
-                {row.photo.name}
-              </span>
-            ) : (
-              <span className="flex flex-col items-center gap-1 text-muted">
-                <Camera size={20} weight="regular" />
-                <span className="text-[10px]">{t.common.upload}</span>
-              </span>
-            )}
-          </button>
-          <input
-            ref={photoInputRef}
-            type="file"
-            name={`collateral_${index}_photo`}
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-            onChange={onPhotoChange}
-            className="sr-only"
+          <PhotoStrip
+            tenantId={tenantId}
+            name={`collateral_${index}_photos`}
+            photos={row.photos}
+            onChange={(photos) => {
+              setAiNote(null)
+              onChange({ photos })
+            }}
+            label={t.pawn.new_.itemPhoto}
           />
-          {row.photo && !photoBusy ? (
+          {row.photos.length > 0 ? (
             <button
               type="button"
               onClick={describeFromPhoto}

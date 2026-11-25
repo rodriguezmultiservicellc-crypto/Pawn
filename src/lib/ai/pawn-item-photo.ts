@@ -8,10 +8,10 @@ import {
 } from './prompts'
 
 /**
- * SERVER ONLY. The Claude call behind /api/ai/vision/pawn-item: one photo of
- * a pawned item + the category the clerk picked → what can be seen in it.
- * The route does the gates and the file checks; this is the call alone, so
- * it can be run against real photos without a signed-in browser.
+ * SERVER ONLY. The Claude call behind /api/ai/vision/pawn-item: the photos
+ * of ONE pawned item + the category the clerk picked → what can be seen in
+ * them. The route does the gates and fetches the photos; this is the call
+ * alone, so it can be run against real photos without a signed-in browser.
  */
 
 export type PawnItemPhotoImageType = 'image/jpeg' | 'image/png' | 'image/webp'
@@ -23,15 +23,15 @@ type CategoryTree = ReadonlyArray<{
 }>
 
 export type PawnItemPhotoResult =
-  | { ok: true; item: PhotoItem }
+  | { ok: true; item: PhotoItem; usage: Anthropic.Usage }
   | { ok: false; error: 'busy' | 'failed' }
 
 export async function describePawnItemPhoto(args: {
   apiKey: string
   categories: CategoryTree
   picked: { topSlug: string; topLabel: string; subSlug: string | null; subLabel: string | null }
-  mime: PawnItemPhotoImageType
-  bytes: Buffer
+  /** One or more photos of the SAME item, main first. */
+  images: ReadonlyArray<{ mime: PawnItemPhotoImageType; bytes: Buffer }>
 }): Promise<PawnItemPhotoResult> {
   const anthropic = new Anthropic({ apiKey: args.apiKey })
   try {
@@ -52,15 +52,13 @@ export async function describePawnItemPhoto(args: {
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: args.mime,
-                data: args.bytes.toString('base64'),
-              },
-            },
-            { type: 'text', text: pawnItemPhotoUserText(args.picked) },
+            ...args.images.map(
+              (img): Anthropic.ImageBlockParam => ({
+                type: 'image',
+                source: { type: 'base64', media_type: img.mime, data: img.bytes.toString('base64') },
+              }),
+            ),
+            { type: 'text', text: pawnItemPhotoUserText(args.picked, args.images.length) },
           ],
         },
       ],
@@ -72,7 +70,7 @@ export async function describePawnItemPhoto(args: {
       return { ok: false, error: 'failed' }
     }
     const item = response.parsed_output
-    return item ? { ok: true, item } : { ok: false, error: 'failed' }
+    return item ? { ok: true, item, usage: response.usage } : { ok: false, error: 'failed' }
   } catch (e) {
     console.error('[vision/pawn-item] claude failed', e)
     if (e instanceof Anthropic.RateLimitError) return { ok: false, error: 'busy' }

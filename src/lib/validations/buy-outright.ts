@@ -120,12 +120,4 @@ export const buyOutrightSchema = z.object({
 
 export type BuyOutrightInput = z.infer<typeof buyOutrightSchema>
 
-export const ALLOWED_BUY_PHOTO_MIME_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
-  'image/heic',
-] as const
-
-export const MAX_BUY_PHOTO_BYTES = 8 * 1024 * 1024 // 8 MB
+// A buy's photos upload from the browser: lib/uploads/intake-photos.
