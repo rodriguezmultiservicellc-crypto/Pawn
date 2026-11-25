@@ -1,14 +1,19 @@
 'use client'
 
+import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft,
   CheckCircle,
   Coins,
+  Image as ImageIcon,
   Printer,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { formatMoney, shortDateTime } from '@/lib/format/money'
+import { PhotoViewer } from '@/components/uploads/PhotoViewer'
+import { FOCUS } from '@/lib/ui/ledger'
 
 export type BuyReceiptItem = {
   inventoryId: string | null
@@ -23,6 +28,8 @@ export type BuyReceiptItem = {
   serialNumber: string | null
   liveStatus: string | null
   holdUntil: string | null
+  /** The item's photos now (signed URLs), main first. */
+  photoUrls: string[]
 }
 
 export type BuyReceiptView = {
@@ -55,6 +62,13 @@ export default function BuyReceiptContent({
   const summary = (view.items.length === 1 ? r.summaryOne : r.summaryMany)
     .replace('{count}', String(view.items.length))
     .replace('{amount}', fmt(view.totalPayout))
+  // The photo open in the viewer: which item, which of its photos. View
+  // only — photos are changed on the item's inventory page.
+  const [viewing, setViewing] = useState<{ item: number; index: number } | null>(null)
+  const viewingPhotos = (viewing ? view.items[viewing.item]?.photoUrls ?? [] : []).map(
+    (url) => ({ path: url, url, name: '' }),
+  )
+  const anyPhotos = view.items.some((it) => it.photoUrls.length > 0)
 
   return (
     <div className="space-y-6 print:max-w-none">
@@ -169,6 +183,7 @@ export default function BuyReceiptContent({
           <table className="mt-2 w-full text-sm">
             <thead className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
               <tr>
+                {anyPhotos ? <th className="py-1 print:hidden" aria-hidden /> : null}
                 <th className="py-1">{r.colSku}</th>
                 <th className="py-1">{r.colDescription}</th>
                 <th className="py-1">{r.colMetal}</th>
@@ -180,6 +195,37 @@ export default function BuyReceiptContent({
             <tbody className="divide-y divide-border">
               {view.items.map((it, i) => (
                 <tr key={i}>
+                  {anyPhotos ? (
+                    <td className="w-14 py-1.5 pr-2 print:hidden">
+                      {it.photoUrls[0] ? (
+                        <button
+                          type="button"
+                          onClick={() => setViewing({ item: i, index: 0 })}
+                          title={t.common.photoStrip.view}
+                          aria-label={t.common.photoStrip.view}
+                          className={`relative block h-12 w-12 cursor-zoom-in overflow-hidden rounded-md border border-border bg-background ${FOCUS}`}
+                        >
+                          <Image
+                            src={it.photoUrls[0]}
+                            alt=""
+                            fill
+                            sizes="48px"
+                            unoptimized
+                            className="object-cover"
+                          />
+                          {it.photoUrls.length > 1 ? (
+                            <span className="absolute bottom-0.5 right-0.5 rounded bg-navy/80 px-1 font-mono text-[9px] text-white">
+                              +{it.photoUrls.length - 1}
+                            </span>
+                          ) : null}
+                        </button>
+                      ) : (
+                        <span className="flex h-12 w-12 items-center justify-center rounded-md border border-border bg-background text-muted">
+                          <ImageIcon size={16} />
+                        </span>
+                      )}
+                    </td>
+                  ) : null}
                   <td className="py-1.5 font-mono text-xs">
                     {it.inventoryId ? (
                       <Link
@@ -230,6 +276,7 @@ export default function BuyReceiptContent({
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-navy">
+                {anyPhotos ? <td className="print:hidden" /> : null}
                 <td colSpan={5} className="py-2 text-right text-xs uppercase tracking-wide text-muted">
                   {r.total}
                 </td>
@@ -258,6 +305,11 @@ export default function BuyReceiptContent({
 
         <footer className="mt-4 text-[10px] text-muted">{r.footer}</footer>
       </article>
+      <PhotoViewer
+        photos={viewingPhotos}
+        index={viewing?.index ?? null}
+        onIndex={(i) => setViewing(i == null || !viewing ? null : { ...viewing, index: i })}
+      />
     </div>
   )
 }
