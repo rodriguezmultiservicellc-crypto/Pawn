@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
+import { PhotoViewer } from '@/components/uploads/PhotoViewer'
+import { FOCUS } from '@/lib/ui/ledger'
 import {
   ArrowLeft,
   CashRegister,
@@ -115,6 +118,7 @@ export type RepairTicketView = {
   pickup_by_name: string | null
   pickup_id_check: string | null
   pickup_signature_signed_url: string | null
+  pickup_signature_is_image: boolean
   assigned_to: string | null
   assigned_to_name: string | null
   status: RepairStatus
@@ -700,6 +704,9 @@ export default function RepairTicketDetail({
 }
 
 function OverviewPanel({ ticket }: { ticket: RepairTicketView }) {
+  // The pickup signature, big, view only: it is the customer's record of
+  // taking the piece home, never changed.
+  const [viewingSignature, setViewingSignature] = useState(false)
   const { t } = useI18n()
   return (
     <section className="rounded-xl border border-border bg-card">
@@ -745,7 +752,38 @@ function OverviewPanel({ ticket }: { ticket: RepairTicketView }) {
                 {t.repair.detail.idCheck}: {ticket.pickup_id_check}
               </dd>
             ) : null}
-            {ticket.pickup_signature_signed_url ? (
+            {ticket.pickup_signature_signed_url && ticket.pickup_signature_is_image ? (
+              <dd className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => setViewingSignature(true)}
+                  title={t.repair.detail.pickupSignatureView}
+                  aria-label={t.repair.detail.pickupSignatureView}
+                  className={`relative block h-16 w-40 cursor-zoom-in overflow-hidden rounded-md border border-border bg-white ${FOCUS}`}
+                >
+                  <Image
+                    src={ticket.pickup_signature_signed_url}
+                    alt=""
+                    fill
+                    sizes="160px"
+                    unoptimized
+                    className="object-contain"
+                  />
+                </button>
+                <PhotoViewer
+                  photos={[
+                    {
+                      path: ticket.pickup_signature_signed_url,
+                      url: ticket.pickup_signature_signed_url,
+                      name: t.repair.detail.pickupSignatureView,
+                    },
+                  ]}
+                  index={viewingSignature ? 0 : null}
+                  onIndex={(i) => setViewingSignature(i != null)}
+                  noMain
+                />
+              </dd>
+            ) : ticket.pickup_signature_signed_url ? (
               <a
                 href={ticket.pickup_signature_signed_url}
                 target="_blank"

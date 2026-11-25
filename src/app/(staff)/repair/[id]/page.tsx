@@ -306,6 +306,8 @@ export default async function RepairTicketDetailPage(props: {
     pickup_by_name: ticket.pickup_by_name,
     pickup_id_check: ticket.pickup_id_check,
     pickup_signature_signed_url: signatureSignedUrl,
+    // A photographed signature shows in the photo viewer; a PDF opens in a tab.
+    pickup_signature_is_image: /\.(jpe?g|png|webp|gif)$/i.test(ticket.pickup_signature_path ?? ''),
     assigned_to: ticket.assigned_to,
     assigned_to_name: ticket.assigned_to
       ? userNames[ticket.assigned_to] ?? null
