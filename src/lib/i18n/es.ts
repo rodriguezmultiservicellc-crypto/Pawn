@@ -1352,7 +1352,6 @@ export const es: Dictionary = {
       dueDate: 'Vence',
       daysToDue: 'Días para vencer',
       daysOverdue: 'Días vencido',
-      status: 'Estado',
       empty: 'Aún no hay empeños. Crea uno para comenzar.',
       emptyForFilter: 'Ningún empeño coincide con el filtro actual.',
       searchPlaceholder: 'Buscar por boleto, cliente o teléfono…',

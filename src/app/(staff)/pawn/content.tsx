@@ -74,15 +74,6 @@ type SortKey = 'due' | 'principal' | 'payoff'
 
 const TERMINAL: ReadonlyArray<LoanStatus> = ['redeemed', 'forfeited', 'voided']
 
-const STATUS_BADGE: Record<LoanStatus, string> = {
-  active: 'bg-success/10 text-success',
-  extended: 'bg-success/10 text-success',
-  partial_paid: 'bg-warning/10 text-warning',
-  redeemed: 'bg-background text-muted',
-  forfeited: 'bg-navy/10 text-navy',
-  voided: 'bg-background text-muted',
-}
-
 export default function PawnContent({
   rows,
   query,
@@ -419,7 +410,6 @@ export default function PawnContent({
                   dir={sortDir}
                   onClick={() => setSort('due')}
                 />
-                <th className="px-4 py-3 font-bold">{t.pawn.list.status}</th>
                 <th className="px-4 py-3 text-right font-bold">
                   {t.common.actions}
                 </th>
@@ -531,13 +521,6 @@ export default function PawnContent({
                             )
                           : t.pawn.list.relDueIn.replace('{n}', String(days))}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_BADGE[r.status]}`}
-                      >
-                        {labelForStatus(r.status, t)}
-                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div
@@ -900,24 +883,4 @@ function fmtMoney(v: number | string): string {
     currency: 'USD',
     minimumFractionDigits: 2,
   })
-}
-
-function labelForStatus(
-  s: LoanStatus,
-  t: ReturnType<typeof useI18n>['t'],
-): string {
-  switch (s) {
-    case 'active':
-      return t.pawn.statusActive
-    case 'extended':
-      return t.pawn.statusExtended
-    case 'partial_paid':
-      return t.pawn.statusPartialPaid
-    case 'redeemed':
-      return t.pawn.statusRedeemed
-    case 'forfeited':
-      return t.pawn.statusForfeited
-    case 'voided':
-      return t.pawn.statusVoided
-  }
 }

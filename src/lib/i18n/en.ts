@@ -1353,7 +1353,6 @@ export const en = {
       dueDate: 'Due',
       daysToDue: 'Days to due',
       daysOverdue: 'Days overdue',
-      status: 'Status',
       empty: 'No pawn loans yet. Create one to get started.',
       emptyForFilter: 'No loans match the current filter.',
       searchPlaceholder: 'Search by ticket, customer name, or phone…',
