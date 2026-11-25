@@ -6,7 +6,7 @@ import { loadClerkInitials } from '@/lib/compliance/clerk'
 import { logAudit } from '@/lib/audit'
 import { issueForBuy as issueStoreCreditForBuy } from '@/lib/store-credit/events'
 import { computeMeltValue, meltMetalFromItem, purityFromItem } from '@/lib/spot-prices/melt'
-import { isSolidMetal } from '@/lib/spot-prices/purity'
+import { isSolidMetal, purityContentRatio } from '@/lib/spot-prices/purity'
 import { r4 } from '@/lib/pawn/math'
 import type { Tender } from '@/lib/metal-counter/math'
 import { pledgorSnapshot, type PledgorSnapshotSource } from '@/lib/compliance/pledgor-snapshot'
@@ -46,7 +46,9 @@ export async function meltValueAtBuy(args: {
     weightGrams: args.weightGrams,
     tenantId: args.tenantId,
   })
-  return melt?.value ?? null
+  if (melt?.value == null) return null
+  // Between two buckets (12K, 800 silver): by its metal content.
+  return r4(melt.value * purityContentRatio(args.metal, args.karat, purity))
 }
 
 export type RecordBuyResult =

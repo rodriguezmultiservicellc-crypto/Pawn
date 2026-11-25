@@ -1,3 +1,4 @@
+import { checkInventoryPurity, keepInventoryPurity } from './purity'
 import { z } from 'zod'
 
 /**
@@ -268,7 +269,9 @@ function clearConsignment<T extends ConsignmentShape>(val: T): T {
 
 export const inventoryItemCreateSchema = inventoryItemBaseSchema
   .superRefine(checkConsignment)
+  .superRefine(checkInventoryPurity)
   .transform(clearConsignment)
+  .transform(keepInventoryPurity)
 
 export const inventoryItemUpdateSchema = inventoryItemBaseSchema
   .extend({
@@ -276,7 +279,9 @@ export const inventoryItemUpdateSchema = inventoryItemBaseSchema
     sale_price: optionalDecimal,
   })
   .superRefine(checkConsignment)
+  .superRefine(checkInventoryPurity)
   .transform(clearConsignment)
+  .transform(keepInventoryPurity)
 
 export type InventoryItemCreateInput = z.infer<typeof inventoryItemCreateSchema>
 export type InventoryItemUpdateInput = z.infer<typeof inventoryItemUpdateSchema>

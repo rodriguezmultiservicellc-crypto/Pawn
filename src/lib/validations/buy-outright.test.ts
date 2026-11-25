@@ -141,6 +141,24 @@ describe('buyItemSchema', () => {
   })
 })
 
+describe('buyItemSchema — karat / purity', () => {
+  it('keeps it as inventory keeps it', () => {
+    const gold = buyItemSchema.safeParse(validItem({ karat: '14' }))
+    expect(gold.success && gold.data.karat).toBe('14K')
+    const silver = buyItemSchema.safeParse(validItem({ metal: 'silver', karat: '925' }))
+    expect(silver.success && silver.data.karat).toBe('925')
+  })
+  it('refuses one the metal cannot have', () => {
+    expect(buyItemSchema.safeParse(validItem({ karat: '28' })).success).toBe(false)
+    expect(buyItemSchema.safeParse(validItem({ metal: 'silver', karat: '14' })).success).toBe(false)
+    expect(buyItemSchema.safeParse(validItem({ metal: 'stainless_steel', karat: '14' })).success).toBe(false)
+  })
+  it('takes none', () => {
+    const r = buyItemSchema.safeParse(validItem({ karat: '' }))
+    expect(r.success && r.data.karat).toBeNull()
+  })
+})
+
 // ── buyOutrightSchema ──────────────────────────────────────────────────
 
 describe('buyOutrightSchema', () => {

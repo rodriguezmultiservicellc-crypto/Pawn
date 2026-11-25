@@ -147,6 +147,40 @@ export function purityFromWords(
   return isValidPurity(metal, value) ? value : ''
 }
 
+/** What a clerk has in a purity box is usable: empty, or a purity this
+ *  metal can have ("14", "14K", "925"). */
+export function isPurityInput(metal: string | null | undefined, text: string | null | undefined): boolean {
+  return (text ?? '').trim() === '' || purityFromWords(metal, text) !== ''
+}
+
+/**
+ * The purity after the metal changes. A new metal brings its own (silver
+ * 925, platinum 950, gold blank). One the clerk chose stays while the new
+ * metal can have it (14 from yellow to white gold); one the old metal filled
+ * in, or one the new metal cannot have (925 on gold), is replaced.
+ */
+export function purityAfterMetalChange(
+  oldMetal: string | null | undefined,
+  newMetal: string | null | undefined,
+  purity: string,
+): string {
+  const k = purity.trim()
+  if (k === '' || k === defaultPurityFor(oldMetal) || !isPurityInput(newMetal, k)) {
+    return defaultPurityFor(newMetal)
+  }
+  return purity
+}
+
+/** How inventory_items.karat (TEXT) keeps a purity: "14K", "925"; null
+ *  for none or one the metal cannot have. Every writer of an inventory row
+ *  goes through it, so the tag, the catalog and the search read one form. */
+export function purityForInventory(
+  metal: string | null | undefined,
+  raw: string | number | null | undefined,
+): string | null {
+  return purityText(metal, purityFromWords(metal, raw)) || null
+}
+
 /** "14K", "925", or '' — how a purity reads on a screen, a ticket line or a
  *  description. A number the metal cannot have reads as it is, without "K". */
 export function purityText(
@@ -248,9 +282,11 @@ export function purityContentRatio(
   karat: string | number | null | undefined,
   purity: MetalPurity,
 ): number {
-  if (!isValidPurity(metal, karat)) return 1
-  const n = karat == null || String(karat).trim() === '' ? null : Number(karat)
-  if (n == null) return 1
+  // "14", "14K" (inventory's form) or "925"; anything else is priced as its
+  // bucket.
+  const read = purityFromWords(metal, karat)
+  if (read === '') return 1
+  const n = Number(read)
   if (purityScaleOf(metal) === 'karat') {
     if (purity === 'pure_24k') return 1
     const bucket = Number(karatForPurity(purity))

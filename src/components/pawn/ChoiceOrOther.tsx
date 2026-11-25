@@ -32,6 +32,7 @@ export function ChoiceOrOther({
   otherPlaceholder,
   className,
   labelHidden = false,
+  labelClassName,
   error,
   otherInputMode,
 }: {
@@ -44,6 +45,8 @@ export function ChoiceOrOther({
   otherPlaceholder: string
   className?: string
   labelHidden?: boolean
+  /** The label's look on a screen with its own label style. */
+  labelClassName?: string
   error?: string | null
   otherInputMode?: 'text' | 'decimal'
 }) {
@@ -67,7 +70,7 @@ export function ChoiceOrOther({
         className={
           labelHidden
             ? 'sr-only'
-            : 'block text-xs font-semibold uppercase tracking-[0.08em] text-muted'
+            : labelClassName ?? 'block text-xs font-semibold uppercase tracking-[0.08em] text-muted'
         }
       >
         {label}

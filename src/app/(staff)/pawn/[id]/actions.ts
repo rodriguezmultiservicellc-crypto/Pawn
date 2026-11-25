@@ -1,5 +1,6 @@
 'use server'
 
+import { purityForInventory } from '@/lib/spot-prices/purity'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
@@ -951,7 +952,8 @@ export async function forfeitLoanAction(
         description: item.description,
         category: item.category,
         metal: item.metal_type ?? null,
-        karat: item.karat == null ? null : String(item.karat),
+        // As inventory keeps it: "14K", "925".
+        karat: purityForInventory(item.metal_type, item.karat),
         weight_grams: item.weight_grams,
         jewelry_size: item.jewelry_size,
         coating: details.coating,

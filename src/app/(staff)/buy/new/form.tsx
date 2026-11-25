@@ -26,11 +26,15 @@ import EntryModeToggle, { pctLabel, type EntryMode } from '@/components/buy/Entr
 import type { SpotFreshness } from '@/lib/spot-prices/staleness'
 import {
   COATINGS,
+  isPurityInput,
   isSolidMetal,
   meltMetalFromItem,
+  purityAfterMetalChange,
+  purityContentRatio,
   purityFromItem,
   type Coating,
 } from '@/lib/spot-prices/purity'
+import { PurityField } from '@/components/pawn/PurityField'
 import {
   dollarsFromGrams,
   grams3,
@@ -180,7 +184,12 @@ export default function BuyForm({
     const coated = !isSolidMetal(row.coating)
     const meltMetal = coated ? null : meltMetalFromItem(row.metal)
     const purity = meltMetal ? purityFromItem({ metal: row.metal, karat: row.karat }) : null
-    return { ...resolveRate(rates, meltMetal, purity, 'pay'), purity, coated }
+    const rate = resolveRate(rates, meltMetal, purity, 'pay')
+    // Between two buckets (12K, 800 silver): by its metal content, as the
+    // pawn ticket and meltValueAtBuy price it.
+    const ratio = purity ? purityContentRatio(row.metal, row.karat, purity) : 1
+    const perGram = rate.perGram == null ? null : Math.round(rate.perGram * ratio * 10000) / 10000
+    return { ...rate, perGram, purity, coated }
   }
 
   /**
@@ -266,6 +275,8 @@ export default function BuyForm({
   const involvesMetal = items.some(
     (r) => meltMetalFromItem(r.metal) != null && isSolidMetal(r.coating),
   )
+  // A purity the metal cannot have (28K, 925 on gold) stops the buy.
+  const purityBlocked = items.some((r) => !isPurityInput(r.metal, r.karat))
   const staleBlocked =
     spotFreshness.stale && involvesMetal && !(canConfirmStale && staleAck)
   const mixedBlocked =
@@ -431,7 +442,7 @@ export default function BuyForm({
           </Link>
           <button
             type="submit"
-            disabled={pending || items.length === 0 || staleBlocked || mixedBlocked}
+            disabled={pending || items.length === 0 || staleBlocked || mixedBlocked || purityBlocked}
             className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
           >
             {pending ? (
@@ -553,15 +564,19 @@ function ItemCard({
           name={`item_${idx}_metal`}
           label={f.metal}
           value={row.metal}
-          onChange={(v) => onPatch({ metal: v }, 'rate')}
+          onChange={(v) =>
+            onPatch({ metal: v, karat: purityAfterMetalChange(row.metal, v, row.karat) }, 'rate')
+          }
           options={metals}
         />
-        <Field
+        {/* Karat for gold, parts per thousand for silver / platinum, none
+            for steel — the same field as the pawn ticket's. */}
+        <PurityField
+          metal={row.metal}
           name={`item_${idx}_karat`}
-          label={f.karat}
           value={row.karat}
           onChange={(v) => onPatch({ karat: v }, 'rate')}
-          placeholder="14"
+          labelClassName="block text-xs font-medium text-foreground"
         />
         <Field
           name={`item_${idx}_weight_grams`}

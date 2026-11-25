@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   defaultPurityFor,
+  isPurityInput,
   isValidPurity,
+  purityAfterMetalChange,
   purityChoicesFor,
+  purityForInventory,
   purityContentRatio,
   purityFromItem,
   purityFromWords,
@@ -82,6 +85,34 @@ describe('purity: karats for gold, parts per thousand for silver and platinum', 
   })
 })
 
+describe('purity when the metal changes, and in inventory', () => {
+  it('brings the new metal its own purity', () => {
+    expect(purityAfterMetalChange('gold', 'silver', '')).toBe('925')
+    expect(purityAfterMetalChange('gold', 'silver', '14')).toBe('925')
+    expect(purityAfterMetalChange('silver', 'platinum', '925')).toBe('950')
+    expect(purityAfterMetalChange('silver', 'gold', '925')).toBe('')
+    expect(purityAfterMetalChange('gold', 'stainless_steel', '14')).toBe('')
+  })
+  it('keeps one the clerk chose while the new metal can have it', () => {
+    expect(purityAfterMetalChange('gold', 'white_gold', '14')).toBe('14')
+    expect(purityAfterMetalChange('gold', 'rose_gold', '14K')).toBe('14K')
+    expect(purityAfterMetalChange('silver', 'silver', '800')).toBe('800')
+  })
+  it('accepts what a clerk can have in the box', () => {
+    expect(isPurityInput('gold', '14K')).toBe(true)
+    expect(isPurityInput('gold', '')).toBe(true)
+    expect(isPurityInput('gold', '28')).toBe(false)
+  })
+  it('keeps inventory as "14K" and "925"', () => {
+    expect(purityForInventory('gold', '14')).toBe('14K')
+    expect(purityForInventory('gold', '14K')).toBe('14K')
+    expect(purityForInventory('white_gold', 10)).toBe('10K')
+    expect(purityForInventory('silver', '925')).toBe('925')
+    expect(purityForInventory('silver', '14')).toBeNull()
+    expect(purityForInventory('gold', '')).toBeNull()
+  })
+})
+
 describe('pricing by purity', () => {
   it('prices fine silver as fine, the rest as sterling', () => {
     expect(purityFromItem({ metal: 'silver', karat: '999' })).toBe('fine')
@@ -91,6 +122,7 @@ describe('pricing by purity', () => {
 
   it('pays for the metal that is there', () => {
     expect(purityContentRatio('gold', '12', '14k')).toBeCloseTo(12 / 14)
+    expect(purityContentRatio('gold', '12K', '14k')).toBeCloseTo(12 / 14)
     expect(purityContentRatio('gold', '24', 'pure_24k')).toBe(1)
     expect(purityContentRatio('silver', '800', 'sterling_925')).toBeCloseTo(800 / 925)
     expect(purityContentRatio('silver', '925', 'sterling_925')).toBe(1)

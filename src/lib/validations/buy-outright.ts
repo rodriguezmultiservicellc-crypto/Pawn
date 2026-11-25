@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { collateralItemsArraySchema } from './loan'
+import { checkInventoryPurity, keepInventoryPurity } from './purity'
 
 /**
  * Buy-outright (gold-buying) Zod schemas. Mirror loan-collateral shape so
@@ -99,6 +100,10 @@ export const buyItemSchema = z.object({
   photo_path: z.string().nullable().optional(),
   position: z.coerce.number().int().min(0).default(0),
 })
+  // Karat for gold, parts per thousand for silver / platinum; kept as
+  // inventory keeps it ("14K", "925").
+  .superRefine(checkInventoryPurity)
+  .transform(keepInventoryPurity)
 
 export type BuyItemInput = z.infer<typeof buyItemSchema>
 

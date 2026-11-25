@@ -5,7 +5,13 @@ import { Sparkle, Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { CommissionField } from '@/components/consignment/CommissionField'
 import { priceFromCost } from '@/lib/custom-quotes/math'
-import { COATINGS, isSolidMetal, type Coating } from '@/lib/spot-prices/purity'
+import {
+  COATINGS,
+  isSolidMetal,
+  purityAfterMetalChange,
+  type Coating,
+} from '@/lib/spot-prices/purity'
+import { PurityField } from '@/components/pawn/PurityField'
 import { formatMoney } from '@/lib/format/money'
 import type {
   InventoryCategory,
@@ -149,6 +155,10 @@ export function InventoryFormFields({
   const [source, setSource] = useState<InventorySource>(v.source)
   // Coating drives the "not solid gold" warning (patches/0067).
   const [coating, setCoating] = useState<Coating>(v.coating)
+  // Metal drives the Karat / Purity choices (karats for gold, 925 for
+  // silver…); a new metal brings its own purity.
+  const [metal, setMetal] = useState<string>(v.metal ?? '')
+  const [karat, setKarat] = useState<string>(v.karat ?? '')
   // Cost + list price are controlled so "Suggest price" can fill the list.
   const [costBasis, setCostBasis] = useState(v.cost_basis)
   const [listPrice, setListPrice] = useState(v.list_price ?? '')
@@ -262,7 +272,11 @@ export function InventoryFormFields({
           <Select
             label={t.inventory.metal}
             name="metal"
-            defaultValue={v.metal ?? ''}
+            value={metal}
+            onChange={(next) => {
+              setKarat((k) => purityAfterMetalChange(metal, next, k))
+              setMetal(next)
+            }}
             error={fieldError?.('metal')}
             options={[
               { value: '', label: '—' },
@@ -283,11 +297,12 @@ export function InventoryFormFields({
               { value: 'other', label: t.inventory.metalOther },
             ]}
           />
-          <Field
-            label={t.inventory.karat}
+          <PurityField
+            metal={metal}
             name="karat"
-            defaultValue={v.karat ?? ''}
-            placeholder="14K"
+            value={karat}
+            onChange={setKarat}
+            labelClassName="block text-sm font-medium text-foreground"
           />
           <Field
             label={t.inventory.weightGrams}
