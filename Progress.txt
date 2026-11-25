@@ -60,7 +60,14 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 70 (2026-11-25, ~13:10), items 608-614.
+  Last session:   Session 70 (2026-11-25, saved 13:10 and ~14:15), items
+                  608-616. Later today: the AI reads a ring size off a
+                  sizer and a chain length off the tray ruler (folded in
+                  half -> doubled in code) — 615-616. Eddy is building a
+                  black tray with a ruler; check a real tray photo when he
+                  sends one. A "photo could not be read" at 14:00 was a
+                  STALE TAB from before e2aeed9 (old client sends `photo`,
+                  route now wants `photo_paths` -> 400); reload fixes it.
                   Context budget at save: high (my estimate ~75%; start the
                   next session fresh).
                   ONE MIGRATION, APPLIED TO THE LIVE DB: 0114
@@ -976,6 +983,23 @@ sessions are there.)
        src/components/ui/PasswordInput.tsx (Eye / EyeSlash, aria-pressed),
        used by (auth)/login and (auth)/set-password; auth.showPassword /
        hidePassword in en + es.
+
+  615. [BUG] DESCRIBE FROM PHOTO NEVER FILLED SIZE (02261c0)
+       Root cause: PhotoItemSchema had no size field, so a ring on a sizing
+       stick came back with Size empty. New PhotoItem.size: read ONLY from
+       a measuring tool in the photo (sizer / ruler / tape), never
+       estimated; bare number into jewelry_size (item_size elsewhere) —
+       the description adds "size" / "in". Checked on Eddy's own sizer
+       photo (latest upload): size 9.
+
+  616. FOLDED CHAIN ON THE TRAY = TWICE THE RULER (addd335)
+       Eddy's tray ruler is shorter than long chains, so chains lie folded
+       in half (ends at 0, loop at the far end). PhotoItem.folded_in_half:
+       the model reports the reading + whether folded; doubled() in
+       lib/pawn/photo-describe doubles it ("11" -> "22"); a non-numeric
+       reading is dropped. Unit-tested; not yet tried on a real tray photo.
+       Also found: 5 production 400s at 14:00 (vercel logs) = an old
+       browser tab from before e2aeed9; reload fixes it.
 
   614. PHONE LOGIN "NOT ATTACHED TO ANY AGENCY" — NOT PAWN
        Pawn has no "agency" wording ("No shop assigned" is Pawn's). Read-
@@ -2419,6 +2443,9 @@ PENDING — NEXT UP
     pawn ticket with 3 photos + Describe from photo, ISSUED; a draft with
     photos resumed; a buy with 2 photos; ANTHROPIC_API_KEY in Vercel; the
     phone login (Luna Azul?). (Session 70 rules are CLAUDE.md 28-29.)
+    When Eddy's ruler tray is ready: read one real folded-chain photo and
+    one straight bracelet photo through Describe from photo; check the
+    length.
     Later: a cleanup job for intake photos of abandoned tickets (files in
     <tenant>/intake/ referenced by no loan_collateral_items, no
     inventory_item_photos and no loan_drafts payload, older than ~30 days).
