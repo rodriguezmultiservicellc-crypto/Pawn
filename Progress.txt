@@ -1153,6 +1153,11 @@ sessions are there.)
        Then (Eddy): a MISSING expiry blocks too — the clerk enters it from
        the ID in the popup the first time an imported customer comes in.
 
+  637. DESCRIBE FROM PHOTO: A WATCH'S DIAL COLOR GOES IN UNIQUE MARKS
+       (Eddy asked) Prompt line in src/lib/ai/prompts.ts: for a watch,
+       unique_marks starts with the dial color ("Green dial"), then any
+       engraving / damage after a semicolon. Not tried with a real photo.
+
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
   608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)

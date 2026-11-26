@@ -60,7 +60,7 @@ The clerk already picked one. Set "category_slug" and "subcategory_slug" to the 
 
 - "color": the color as it looks to an untrained eye. For jewelry this is the color of the metal, one of: ${colorWordsFor('jewelry').join(', ')} (a white or silver-colored piece is White, unless a 925 or STERLING stamp shows it is silver). For anything else, one of: ${colorWordsFor(null).join(', ')}.
 - "brand", "model", "serial": only what is printed, engraved or stamped on the item and legible in the photo, copied exactly. Never infer a brand from the design, and never guess a character you cannot read; use null instead.
-- "unique_marks": engravings and inscriptions (quote the text), monograms, and visible damage such as a dent, a deep scratch, a missing stone or a broken clasp. Null when there is none.
+- "unique_marks": engravings and inscriptions (quote the text), monograms, and visible damage such as a dent, a deep scratch, a missing stone or a broken clasp. For a WATCH, begin it with the dial color as it looks, such as "Green dial", "Black dial", "Blue sunburst dial" or "Silver dial" (the dial color tells two watches of the same model apart), then any engravings or damage after a semicolon. Null when there is none.
 
 ## Jewelry
 
