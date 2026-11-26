@@ -8,6 +8,7 @@ import CustomerPicker, {
   type CustomerPickerHandle,
 } from '@/components/customers/CustomerPicker'
 import QuickCustomerModal from '@/components/customers/QuickCustomerModal'
+import { CustomerRepairHistory } from '@/components/repair/CustomerRepairHistory'
 import type { CustomerScan } from '@/lib/customers/scan-prefill'
 import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import {
@@ -447,6 +448,11 @@ export default function NewRepairTicketForm({
             initialCustomer={selectedCustomer}
             error={state.fieldErrors?.customer_id}
             onChange={setSelectedCustomer}
+            // The picked customer and their repairs on one row, like New
+            // pawn ticket (Eddy, 2026-11-26).
+            afterSelected={
+              selectedCustomer ? <CustomerRepairHistory customerId={selectedCustomer.id} /> : null
+            }
             trailing={
               <button
                 type="button"
@@ -458,7 +464,7 @@ export default function NewRepairTicketForm({
               </button>
             }
           />
-          <p className={HINT}>{tn.pickCustomerHelp}</p>
+          {selectedCustomer ? null : <p className={HINT}>{tn.pickCustomerHelp}</p>}
         </section>
 
         {/* 2 · Items — like the pawn ticket: a pill per item type, the items

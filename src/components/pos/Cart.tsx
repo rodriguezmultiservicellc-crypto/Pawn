@@ -22,6 +22,7 @@ import type { StartReaderResult } from '@/app/(staff)/pos/sales/new/reader-actio
 import type { CardSlip } from './CardSlipFields'
 import CustomerPicker, { type CustomerPickerHandle } from '@/components/customers/CustomerPicker'
 import QuickCustomerModal from '@/components/customers/QuickCustomerModal'
+import { CustomerSalesHistory } from '@/components/pos/CustomerSalesHistory'
 import {
   AddInventoryItemDialog,
   type InventoryPickRow,
@@ -644,6 +645,8 @@ export function Cart({
             name="customer_id"
             initialCustomerId={initialCustomerId ?? null}
             onChange={(c) => setCustomerId(c?.id ?? null)}
+            // Their purchases and layaways, under the picked customer.
+            afterSelected={customerId ? <CustomerSalesHistory customerId={customerId} /> : null}
             // Shown while searching; once a customer is picked the X clears it.
             trailing={customerId ? null : (
               <button

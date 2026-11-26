@@ -73,9 +73,10 @@ const CustomerPicker = forwardRef<
     /** Extra controls rendered at the end of the search row (and beside
      *  the selected customer), e.g. "+ New customer". */
     trailing?: React.ReactNode
-    /** 'lg' only. Shown on the same row as the picked customer, between the
-     *  name and `trailing` (New pawn ticket: the pawn history). When given,
-     *  the name box shrinks to its text and this takes the rest of the row. */
+    /** Shown with the picked customer (New pawn / repair ticket: their
+     *  history; New sale: their purchases). 'lg': on the same row, between
+     *  the name and `trailing` — the name box shrinks to its text and this
+     *  takes the rest of the row. 'md': under the name. */
     afterSelected?: React.ReactNode
     /** A scanned license with no customer on file opens a popup that asks
      *  "Add customer" or "Search another way". Add hands the scan here so
@@ -337,6 +338,7 @@ const CustomerPicker = forwardRef<
                 <X size={16} weight="bold" />
               </button>
             </div>
+            {afterSelected}
             {trailing}
           </>
         )}
