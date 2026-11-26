@@ -37,7 +37,10 @@ export function CustomerPawnHistory({
   const h = t.pawn.new_.history
   const [open, setOpen] = useState(false)
 
-  const shell = 'min-w-0 flex-1 rounded-xl border border-border bg-card px-4 py-3'
+  // One row with the picked customer (CustomerPicker `afterSelected`): as
+  // tall as the name box (52px) until "Show tickets" opens it.
+  const shell =
+    'flex min-h-[52px] min-w-[min(100%,20rem)] flex-1 flex-col justify-center rounded-md border border-border bg-card px-3 py-1.5'
   if (failed) return <div className={`${shell} text-sm text-danger`}>{h.failed}</div>
   if (!history) return <div className={`${shell} text-sm text-muted`}>{h.loading}</div>
   if (history.total === 0 && history.voided === 0) {
@@ -45,15 +48,15 @@ export function CustomerPawnHistory({
   }
 
   const stat = (label: string, value: string, tone = 'text-foreground') => (
-    <div className="min-w-16">
-      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
-      <div className={`font-mono text-lg font-bold ${tone}`}>{value}</div>
+    <div>
+      <div className="text-[11px] uppercase leading-tight tracking-wide text-muted">{label}</div>
+      <div className={`font-mono text-base font-bold leading-tight ${tone}`}>{value}</div>
     </div>
   )
 
   return (
     <div className={shell}>
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <ClockCounterClockwise size={18} weight="regular" />
           {h.title}
@@ -72,7 +75,7 @@ export function CustomerPawnHistory({
             type="button"
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="inline-flex h-9 items-center gap-1 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground hover:bg-background"
+            className="inline-flex h-9 items-center gap-1 rounded-md border border-border bg-card px-3 text-xs font-semibold text-foreground hover:bg-background"
           >
             {open ? h.hide : h.show}
             <CaretDown size={12} weight="bold" className={`transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -81,7 +84,7 @@ export function CustomerPawnHistory({
       </div>
 
       {open ? (
-        <div className="mt-3 border-t border-border pt-3">
+        <div className="mb-1.5 mt-2 border-t border-border pt-3">
           <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
             {history.recent.map((r) => (
               <li key={r.loan_id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">

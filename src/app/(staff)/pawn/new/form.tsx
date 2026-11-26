@@ -521,6 +521,18 @@ export default function NewPawnLoanForm({
           initialCustomerId={initialDraft?.customerId ?? null}
           error={state.fieldErrors?.customer_id}
           onChange={(c) => setSelectedCustomerId(c?.id ?? null)}
+          // Once a customer is picked the name box shrinks to its text and
+          // the pawn history sits to its right, on the same row — one line
+          // instead of three (Eddy, 2026-11-26: "trying to save space").
+          afterSelected={
+            selectedCustomerId ? (
+              <CustomerPawnHistory
+                customerId={selectedCustomerId}
+                history={customerHistory?.history ?? null}
+                failed={customerHistory?.failed ?? false}
+              />
+            ) : null
+          }
           trailing={
             <button
               type="button"
@@ -532,17 +544,8 @@ export default function NewPawnLoanForm({
             </button>
           }
         />
-        <p className={HINT}>{tn.pickCustomerHelp}</p>
+        {selectedCustomerId ? null : <p className={HINT}>{tn.pickCustomerHelp}</p>}
         <PledgorRecordBanner customerId={selectedCustomerId} />
-        {/* Under the customer, full width — in the top row it made the row
-            tall and left empty space beside the buttons (Eddy, 2026-11-26). */}
-        {selectedCustomerId ? (
-          <CustomerPawnHistory
-            customerId={selectedCustomerId}
-            history={customerHistory?.history ?? null}
-            failed={customerHistory?.failed ?? false}
-          />
-        ) : null}
       </section>
 
       <QuickCustomerModal

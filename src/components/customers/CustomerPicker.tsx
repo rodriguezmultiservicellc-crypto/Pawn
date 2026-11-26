@@ -73,6 +73,10 @@ const CustomerPicker = forwardRef<
     /** Extra controls rendered at the end of the search row (and beside
      *  the selected customer), e.g. "+ New customer". */
     trailing?: React.ReactNode
+    /** 'lg' only. Shown on the same row as the picked customer, between the
+     *  name and `trailing` (New pawn ticket: the pawn history). When given,
+     *  the name box shrinks to its text and this takes the rest of the row. */
+    afterSelected?: React.ReactNode
     /** A scanned license with no customer on file opens a popup that asks
      *  "Add customer" or "Search another way". Add hands the scan here so
      *  the page can open New customer filled from the license. Without it,
@@ -91,6 +95,7 @@ const CustomerPicker = forwardRef<
     enableDlScan = false,
     size = 'md',
     trailing = null,
+    afterSelected = null,
     onAddFromScan,
   },
   ref,
@@ -293,9 +298,16 @@ const CustomerPicker = forwardRef<
       <div className="flex flex-col gap-1" ref={containerRef}>
         <input type="hidden" name={name} value={selected.id} />
         {lg ? (
-          <div className="flex flex-wrap items-stretch gap-2">
-            <div className="flex min-h-[52px] min-w-[240px] flex-1 items-center gap-2 rounded-md border-2 border-blue bg-background px-4">
-              <div className="min-w-0 flex-1 text-sm font-semibold text-foreground">
+          <div className={`flex flex-wrap gap-2 ${afterSelected ? 'items-start' : 'items-stretch'}`}>
+            <div
+              className={`flex min-h-[52px] items-center gap-2 rounded-md border-2 border-blue bg-background ${
+                afterSelected ? 'max-w-full flex-none pl-4 pr-1 sm:max-w-[26rem]' : 'min-w-[240px] flex-1 px-4'
+              }`}
+            >
+              <div
+                className={`min-w-0 flex-1 text-sm font-semibold text-foreground ${afterSelected ? 'truncate' : ''}`}
+                title={afterSelected ? selected.label : undefined}
+              >
                 {selected.label}
               </div>
               <button
@@ -307,6 +319,7 @@ const CustomerPicker = forwardRef<
                 <X size={16} weight="bold" />
               </button>
             </div>
+            {afterSelected}
             {trailing}
           </div>
         ) : (
