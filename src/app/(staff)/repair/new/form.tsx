@@ -179,12 +179,9 @@ export default function NewRepairTicketForm({
 
   const view = useSyncExternalStore(subscribeView, readPersistedView, serverView)
 
-  // Rail estimate — DISPLAY-ONLY calculator (like the pawn-rail redemption
-  // preview). The official quote/deposit are set post-intake via the repair
-  // quote workflow (quote_set event + status transition). The ticket ignores
-  // them; only a draft keeps them (est_* hidden fields).
-  const [labor, setLabor] = useState(draft?.est_labor ?? '')
-  const [materials, setMaterials] = useState(draft?.est_materials ?? '')
+  // Deposit — DISPLAY-ONLY (balance preview). The deposit is collected on the
+  // ticket page (it moves drawer cash); the ticket ignores this box, only a
+  // draft keeps it (est_deposit).
   const [deposit, setDeposit] = useState(draft?.est_deposit ?? '')
 
   const builtItems = items.filter((it) => it.item_type !== '')
@@ -192,10 +189,8 @@ export default function NewRepairTicketForm({
     (it) => it.service_type === 'stone_setting' || it.service_type === 'custom',
   )
 
-  const estTotal = (parseFloat(labor) || 0) + (parseFloat(materials) || 0)
-  const estBalance = Math.max(0, estTotal - (parseFloat(deposit) || 0))
-  // Classic prices each item (patches/0122): the total is their sum, and an
-  // item not priced yet is pointed out. (Simple keeps its own estimate.)
+  // Each item has its price (patches/0122), in both views: the total is
+  // their sum, and an item not priced yet is pointed out.
   const itemsTotal = builtItems.reduce((sum, li) => sum + (parseFloat(li.price) || 0), 0)
   const unpricedCount = builtItems.filter((li) => li.price.trim() === '').length
   const itemsBalance = Math.max(0, itemsTotal - (parseFloat(deposit) || 0))
@@ -347,8 +342,6 @@ export default function NewRepairTicketForm({
       {/* Ticket-level fields — one source for both views. */}
       <input type="hidden" name="promised_date" value={promisedDate} />
       {/* Only a draft reads these (the QR handoff); the ticket ignores them. */}
-      <input type="hidden" name="est_labor" value={labor} />
-      <input type="hidden" name="est_materials" value={materials} />
       <input type="hidden" name="est_deposit" value={deposit} />
       {savedDraftId ? <input type="hidden" name="draft_id" value={savedDraftId} /> : null}
       <input type="hidden" name="assigned_to" value={assignedTo} />
@@ -418,13 +411,11 @@ export default function NewRepairTicketForm({
           onPromisedDateChange={setPromisedDate}
           assignedTo={assignedTo}
           onAssignedToChange={setAssignedTo}
-          labor={labor}
-          onLaborChange={setLabor}
-          materials={materials}
-          onMaterialsChange={setMaterials}
           deposit={deposit}
           onDepositChange={setDeposit}
-          estBalance={estBalance}
+          itemsTotal={itemsTotal}
+          unpricedCount={unpricedCount}
+          balance={itemsBalance}
           canOpen={canOpen}
           needsService={needsService}
           submitLabel={pending ? tn.submitting : tn.submit}

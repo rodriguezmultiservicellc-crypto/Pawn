@@ -31,8 +31,6 @@ describe('repair draft payload', () => {
         promised_date: '2026-12-01',
         assigned_to: 'abc',
         notes_internal: 'rush',
-        est_labor: '40',
-        est_materials: '10',
         est_deposit: '20',
       }),
     )

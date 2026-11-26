@@ -46,8 +46,6 @@ export type RepairDraftPayload = {
   promised_date: string
   assigned_to: string
   notes_internal: string
-  est_labor: string
-  est_materials: string
   est_deposit: string
 }
 
@@ -119,8 +117,6 @@ export function buildRepairDraftPayload(fd: FormData): RepairDraftPayload {
     promised_date: str(fd.get('promised_date')),
     assigned_to: str(fd.get('assigned_to')),
     notes_internal: str(fd.get('notes_internal')),
-    est_labor: str(fd.get('est_labor')),
-    est_materials: str(fd.get('est_materials')),
     est_deposit: str(fd.get('est_deposit')),
   }
 }
@@ -138,8 +134,6 @@ export function parseRepairDraftPayload(raw: unknown): RepairDraftPayload {
     promised_date: str(o.promised_date),
     assigned_to: str(o.assigned_to),
     notes_internal: str(o.notes_internal),
-    est_labor: str(o.est_labor),
-    est_materials: str(o.est_materials),
     est_deposit: str(o.est_deposit),
   }
 }

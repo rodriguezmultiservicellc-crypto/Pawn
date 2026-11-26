@@ -51,13 +51,14 @@ export type SimpleViewProps = {
   onPromisedDateChange: (v: string) => void
   assignedTo: string
   onAssignedToChange: (v: string) => void
-  labor: string
-  onLaborChange: (v: string) => void
-  materials: string
-  onMaterialsChange: (v: string) => void
   deposit: string
   onDepositChange: (v: string) => void
-  estBalance: number
+  /** Sum of the items' prices (patches/0122). */
+  itemsTotal: number
+  /** Built items with no price yet. */
+  unpricedCount: number
+  /** Items total − deposit, never below 0. */
+  balance: number
   canOpen: boolean
   needsService: boolean
   submitLabel: string
@@ -104,13 +105,11 @@ export function SimpleRepairTicketView({
   onPromisedDateChange,
   assignedTo,
   onAssignedToChange,
-  labor,
-  onLaborChange,
-  materials,
-  onMaterialsChange,
   deposit,
   onDepositChange,
-  estBalance,
+  itemsTotal,
+  unpricedCount,
+  balance,
   canOpen,
   needsService,
   submitLabel,
@@ -244,12 +243,11 @@ export function SimpleRepairTicketView({
           onPromisedDateChange={onPromisedDateChange}
           assignedTo={assignedTo}
           onAssignedToChange={onAssignedToChange}
-          labor={labor}
-          onLaborChange={onLaborChange}
-          materials={materials}
-          onMaterialsChange={onMaterialsChange}
           deposit={deposit}
           onDepositChange={onDepositChange}
+          itemsTotal={itemsTotal}
+          unpricedCount={unpricedCount}
+          fmtMoney={fmtMoney}
         />
       </div>
 
@@ -269,7 +267,7 @@ export function SimpleRepairTicketView({
             </div>
             <div className="text-lg font-extrabold tabular-nums">
               {ts.balance}{' '}
-              <span className="font-mono">{fmtMoney(estBalance)}</span>
+              <span className="font-mono">{fmtMoney(balance)}</span>
             </div>
             {needsService ? (
               <div className="text-[11.5px] font-semibold text-gold">
@@ -484,6 +482,13 @@ function SimpleItemCard({
             className={inputCls}
           />
         </label>
+        {/* What the shop charges for this item (patches/0122) — the same
+            price Classic sets in the item popup. */}
+        <MoneyField
+          label={tn.list.price}
+          value={item.price}
+          onChange={(v) => onChange({ price: v })}
+        />
       </div>
     </section>
   )
@@ -513,12 +518,11 @@ function PickupAndPrice({
   onPromisedDateChange,
   assignedTo,
   onAssignedToChange,
-  labor,
-  onLaborChange,
-  materials,
-  onMaterialsChange,
   deposit,
   onDepositChange,
+  itemsTotal,
+  unpricedCount,
+  fmtMoney,
 }: {
   locale: string
   technicians: TechnicianOption[]
@@ -526,18 +530,15 @@ function PickupAndPrice({
   onPromisedDateChange: (v: string) => void
   assignedTo: string
   onAssignedToChange: (v: string) => void
-  labor: string
-  onLaborChange: (v: string) => void
-  materials: string
-  onMaterialsChange: (v: string) => void
   deposit: string
   onDepositChange: (v: string) => void
+  itemsTotal: number
+  unpricedCount: number
+  fmtMoney: (v: number) => string
 }) {
   const { t } = useI18n()
-  const ts = t.repair.new_.simple
-  const [split, setSplit] = useState(
-    () => materials !== '' && (parseFloat(materials) || 0) !== 0,
-  )
+  const tn = t.repair.new_
+  const ts = tn.simple
   const [showPicker, setShowPicker] = useState(false)
 
   // Which chip matches the promised date. The browser clock is only consulted
@@ -554,18 +555,6 @@ function PickupAndPrice({
   const promisedWords = promisedDate
     ? formatReadyBy(promisedDate, locale, 'long')
     : ''
-
-  function toggleSplit() {
-    if (split) {
-      // Fold both boxes back into one estimate.
-      const total = (parseFloat(labor) || 0) + (parseFloat(materials) || 0)
-      onLaborChange(total ? String(total) : '')
-      onMaterialsChange('')
-      setSplit(false)
-    } else {
-      setSplit(true)
-    }
-  }
 
   return (
     <section className={card}>
@@ -616,31 +605,25 @@ function PickupAndPrice({
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {split ? (
-          <>
-            <MoneyField label={ts.labor} value={labor} onChange={onLaborChange} />
-            <MoneyField
-              label={ts.materials}
-              value={materials}
-              onChange={onMaterialsChange}
-            />
-          </>
-        ) : (
-          <MoneyField label={ts.estimate} value={labor} onChange={onLaborChange} />
-        )}
+        {/* The items' prices added up — each is set on its item card. */}
+        <div className="space-y-1.5">
+          <div className={fieldLabel}>{tn.list.itemsTotal}</div>
+          <div className="flex min-h-11 items-center rounded-xl border-2 border-border bg-background px-3.5 font-mono text-base font-bold tabular-nums text-foreground">
+            {fmtMoney(itemsTotal)}
+          </div>
+          {unpricedCount > 0 ? (
+            <p className="text-xs font-semibold text-warning">
+              {tn.list.notPriced.replace('{n}', String(unpricedCount))}
+            </p>
+          ) : null}
+        </div>
         <MoneyField
           label={ts.depositToday}
           value={deposit}
           onChange={onDepositChange}
         />
       </div>
-      <button
-        type="button"
-        onClick={toggleSplit}
-        className="mt-2 text-sm font-semibold text-blue hover:underline"
-      >
-        {split ? ts.unsplitLink : ts.splitLink}
-      </button>
+      <p className="mt-2 text-xs text-muted">{tn.list.priceHelp}</p>
 
       <label className="mt-4 block space-y-1.5">
         <span className={fieldLabel}>{ts.technician}</span>
