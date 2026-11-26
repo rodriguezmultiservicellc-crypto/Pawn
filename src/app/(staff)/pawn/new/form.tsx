@@ -474,13 +474,6 @@ export default function NewPawnLoanForm({
             </>
           )}
         </div>
-        {selectedCustomerId ? (
-          <CustomerPawnHistory
-            customerId={selectedCustomerId}
-            history={customerHistory?.history ?? null}
-            failed={customerHistory?.failed ?? false}
-          />
-        ) : null}
         <div className="flex flex-wrap items-start gap-3">
           <VoicePawnButton onDataExtracted={handleVoiceData} />
           {/* Move this ticket to an iPad / phone / laptop with a QR code — the
@@ -541,6 +534,15 @@ export default function NewPawnLoanForm({
         />
         <p className={HINT}>{tn.pickCustomerHelp}</p>
         <PledgorRecordBanner customerId={selectedCustomerId} />
+        {/* Under the customer, full width — in the top row it made the row
+            tall and left empty space beside the buttons (Eddy, 2026-11-26). */}
+        {selectedCustomerId ? (
+          <CustomerPawnHistory
+            customerId={selectedCustomerId}
+            history={customerHistory?.history ?? null}
+            failed={customerHistory?.failed ?? false}
+          />
+        ) : null}
       </section>
 
       <QuickCustomerModal
