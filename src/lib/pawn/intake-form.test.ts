@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { collateralItemSchema } from '@/lib/validations/loan'
-import { readCollateralRows } from './intake-form'
+import { buildDraftPayload, hasUnconfirmedItems, readCollateralRows } from './intake-form'
 import { gemstoneText } from './stones'
 
 function form(fields: Record<string, string>, count = 1): FormData {
@@ -146,5 +146,17 @@ describe('the rest of FS 539.001(8)(b)2.a-d (patches/0107), form → saved row',
     const v = parse({ collateral_0_color: 'Yellow', collateral_0_jewelry_style: 'Cuban link' })
     expect(v.color).toBe('Yellow')
     expect(v.jewelry_style).toBe('Cuban link')
+  })
+})
+
+describe('an item filled by voice and not checked', () => {
+  it('blocks issuing until the clerk presses Done', () => {
+    expect(hasUnconfirmedItems(readCollateralRows(form({ ...base, collateral_0_unconfirmed: '1' })))).toBe(true)
+    expect(hasUnconfirmedItems(readCollateralRows(form({ ...base, collateral_0_unconfirmed: '' })))).toBe(false)
+    expect(hasUnconfirmedItems(readCollateralRows(form(base)))).toBe(false)
+  })
+  it('stays unconfirmed in a saved draft', () => {
+    const d = buildDraftPayload(form({ ...base, collateral_0_unconfirmed: '1' }))
+    expect(d.collateral[0].unconfirmed).toBe('1')
   })
 })

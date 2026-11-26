@@ -82,6 +82,9 @@ import CategoryPicker, {
  */
 export type CollateralListHandle = {
   addWatchRow: (match: WatchModelMatch) => void
+  /** A saved draft's item with every field it had (resuming a draft, or a
+   *  ticket handed over by QR code). */
+  addDraftRow: (draft: Record<string, string>, photos: StripPhoto[]) => void
   /**
    * Append (or replace the pristine seed row with) a row populated from
    * voice-extracted collateral data. Same in-place-replace behavior as
@@ -228,6 +231,9 @@ type Row = {
   /** The item's photos, already uploaded (components/uploads/PhotoStrip).
    *  The first is the main one. */
   photos: StripPhoto[]
+  /** Filled by voice (or a draft that was) and not checked by the clerk
+   *  yet: the ticket cannot be issued until they open it and press Done. */
+  unconfirmed: boolean
 }
 
 /**
@@ -293,6 +299,66 @@ function newRow(): Row {
     item_size: '',
     est_value: '0',
     photos: [],
+    unconfirmed: false,
+  }
+}
+
+const FIREARM_TYPE_VALUES: ReadonlyArray<FirearmType> = ['handgun', 'rifle', 'shotgun', 'other', '']
+
+/** A saved draft's item, every field as it was (lib/pawn/intake-form
+ *  buildDraftPayload keeps the form's own field names). */
+function rowFromDraft(d: Record<string, string>, photos: StripPhoto[]): Row {
+  const v = (k: string) => d[k] ?? ''
+  const base = newRow()
+  const stones = stonesToDrafts(v('stones'))
+  const gender = v('jewelry_gender')
+  const coating = v('coating')
+  const firearmType = v('firearm_type') as FirearmType
+  return {
+    ...base,
+    pawn_category_slug: v('pawn_category_slug') || null,
+    pawn_subcategory_slug: v('pawn_subcategory_slug') || null,
+    description: v('description'),
+    category: (v('category') || 'other') as InventoryCategory,
+    metal_type: v('metal_type') as MetalType | '',
+    karat: v('karat'),
+    weight_grams: v('weight_grams'),
+    coating: (COATINGS as ReadonlyArray<string>).includes(coating) ? (coating as Coating) : 'none',
+    jewelry_size: v('jewelry_size'),
+    jewelry_gender: (JEWELRY_GENDERS as ReadonlyArray<string>).includes(gender)
+      ? (gender as JewelryGender)
+      : '',
+    jewelry_style: v('jewelry_style'),
+    jewelry_brand: v('jewelry_brand'),
+    jewelry_model: v('jewelry_model'),
+    jewelry_serial: v('jewelry_serial'),
+    stones: stones.length > 0 ? stones : [blankStone()],
+    gemstone_notes: v('gemstone_notes') || v('gemstone_description'),
+    color: v('color'),
+    unique_marks: v('unique_marks'),
+    firearm_make: v('firearm_make'),
+    firearm_model: v('firearm_model'),
+    firearm_caliber: v('firearm_caliber'),
+    firearm_serial_number: v('firearm_serial_number'),
+    firearm_type: FIREARM_TYPE_VALUES.includes(firearmType) ? firearmType : '',
+    firearm_barrel_length_inches: v('firearm_barrel_length_inches'),
+    firearm_action_type: v('firearm_action_type'),
+    firearm_capacity: v('firearm_capacity'),
+    firearm_finish: v('firearm_finish'),
+    firearm_number_of_barrels: v('firearm_number_of_barrels'),
+    electronic_brand: v('electronic_brand'),
+    electronic_model: v('electronic_model'),
+    electronic_serial: v('electronic_serial'),
+    tool_brand: v('tool_brand'),
+    tool_model: v('tool_model'),
+    tool_serial: v('tool_serial'),
+    general_brand: v('general_brand'),
+    general_model: v('general_model'),
+    general_serial: v('general_serial'),
+    item_size: v('item_size'),
+    est_value: v('est_value') || '0',
+    photos,
+    unconfirmed: v('unconfirmed') === '1',
   }
 }
 
@@ -305,7 +371,7 @@ export const CollateralItemsList = forwardRef<
     metalRates: RateMaps
     /** Reports running { item count, summed est_value } up to the parent
      *  so the loan-summary rail can show collateral value + LTV live. */
-    onTotalsChange?: (count: number, totalValue: number) => void
+    onTotalsChange?: (count: number, totalValue: number, unconfirmed: number) => void
     /** Section label shown before the category pills. */
     title: string
     /** Pieces this customer pawned and picked up before. ONE pill opens the
@@ -354,14 +420,16 @@ export const CollateralItemsList = forwardRef<
     if (!onTotalsChange) return
     let count = 0
     let total = 0
+    let unconfirmed = 0
     for (const r of rows) {
+      if (r.unconfirmed) unconfirmed += 1
       const started =
         r.pawn_category_slug != null || r.description.trim() !== ''
       if (!started) continue
       count += 1
       total += parseFloat(r.est_value) || 0
     }
-    onTotalsChange(count, total)
+    onTotalsChange(count, total, unconfirmed)
   }, [rows, onTotalsChange])
 
   // Default category for auto-populated rows (voice intake / watch
@@ -558,6 +626,15 @@ export const CollateralItemsList = forwardRef<
           return [...prev, built]
         })
       },
+      addDraftRow(draft, photos) {
+        const built = rowFromDraft(draft, photos)
+        setRows((prev) => {
+          if (prev.length === 1 && isPristineRow(prev[0])) {
+            return [{ ...built, uid: prev[0].uid }]
+          }
+          return [...prev, built]
+        })
+      },
       addExtractedRow(extracted) {
         const built: Row = {
           ...newRow(),
@@ -574,13 +651,14 @@ export const CollateralItemsList = forwardRef<
           weight_grams: extracted.weight_grams,
           est_value: extracted.est_value || '0',
           photos: extracted.photos ?? [],
+          // Heard, not checked: the clerk opens it and presses Done.
+          unconfirmed: true,
         }
-        setRows((prev) => {
-          if (prev.length === 1 && isPristineRow(prev[0])) {
-            return [{ ...built, uid: prev[0].uid }]
-          }
-          return [...prev, built]
-        })
+        setRows((prev) =>
+          prev.length === 1 && isPristineRow(prev[0]) ? [built] : [...prev, built],
+        )
+        // Opens at once: the clerk checks what was heard before going on.
+        setPopup({ uid: built.uid, adding: false, report: false })
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1139,6 +1217,8 @@ function CollateralRow({
       }
       return
     }
+    // Pressing Add item / Done is the clerk's check of what voice filled in.
+    if (row.unconfirmed) onChange({ unconfirmed: false })
     onClose()
   }
 
@@ -1178,7 +1258,12 @@ function CollateralRow({
         <td className={`${TD} text-foreground`}>{categoryText}</td>
         <td className={`${TD} text-foreground`}>
           {row.description.trim() || <span className="text-muted">—</span>}
-          {!complete ? (
+          {row.unconfirmed ? (
+            <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-danger">
+              <Warning size={12} weight="bold" />
+              {tn.itemUnconfirmed}
+            </span>
+          ) : !complete ? (
             <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-warning">
               <Warning size={12} weight="bold" />
               {tn.itemNeedsDetails}
@@ -1280,6 +1365,16 @@ function CollateralRow({
         name={`collateral_${index}_pawn_subcategory`}
         value={row.pawn_subcategory_slug ?? ''}
       />
+      <input
+        type="hidden"
+        name={`collateral_${index}_unconfirmed`}
+        value={row.unconfirmed ? '1' : ''}
+      />
+      {row.unconfirmed ? (
+        <p className="mb-3 shrink-0 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-foreground">
+          {tn.itemUnconfirmedHelp}
+        </p>
+      ) : null}
 
       {/* Per-row pawn intake category picker. While not picked, only
           the picker shows — fields below are hidden so the operator

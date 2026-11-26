@@ -39,7 +39,6 @@ import {
   CollateralItemsList,
   type CollateralListHandle,
 } from '@/components/pawn/CollateralItemsList'
-import type { InventoryCategory, MetalType } from '@/types/database-aliases'
 import { CustomerPawnHistory } from '@/components/pawn/CustomerPawnHistory'
 import type { CustomerPawnHistory as PawnHistory } from '@/lib/pawn/customer-history'
 import { loadCustomerPawnHistoryAction } from './history-actions'
@@ -230,7 +229,10 @@ export default function NewPawnLoanForm({
   // summary bar's collateral value + LTV state, and the principal.
   const [collateralCount, setCollateralCount] = useState(0)
   const [collateralValue, setCollateralValue] = useState(0)
-  const onCollateralTotals = useCallback((count: number, total: number) => {
+  // Items filled by voice the clerk has not checked: nothing is issued.
+  const [unconfirmedCount, setUnconfirmedCount] = useState(0)
+  const onCollateralTotals = useCallback((count: number, total: number, unconfirmed: number) => {
+    setUnconfirmedCount(unconfirmed)
     setCollateralCount(count)
     setCollateralValue(total)
     const cents = Math.round(total * 100)
@@ -301,10 +303,10 @@ export default function NewPawnLoanForm({
   const customerHistory =
     historyState && historyState.customerId === selectedCustomerId ? historyState : null
 
-  // Resume a saved draft: inject its collateral rows into the editor once on
-  // mount, with their photos (already in storage, signed by the page). Category slugs
-  // aren't restored by addExtractedRow yet (same limitation as voice intake)
-  // — the operator re-confirms each row's category before issuing.
+  // Resume a saved draft: put its items back into the editor once on mount,
+  // every field as it was saved, with their photos (already in storage,
+  // signed by the page). An item voice filled and nobody checked stays
+  // unconfirmed.
   const draftAppliedRef = useRef(false)
   useEffect(() => {
     if (draftAppliedRef.current || !initialDraft) return
@@ -316,15 +318,7 @@ export default function NewPawnLoanForm({
         (row) => moneyTextToCents(row.est_value ?? '') > 0,
       )
     for (const [i, row] of initialDraft.payload.collateral.entries()) {
-      collateralRef.current?.addExtractedRow({
-        photos: initialDraft.photos[i] ?? [],
-        description: row.description ?? '',
-        category: (row.category || 'other') as InventoryCategory,
-        metal_type: (row.metal_type || '') as MetalType | '',
-        karat: row.karat ?? '',
-        weight_grams: row.weight_grams ?? '',
-        est_value: row.est_value ?? '',
-      })
+      collateralRef.current?.addDraftRow(row, initialDraft.photos[i] ?? [])
     }
   }, [initialDraft])
 
@@ -391,12 +385,14 @@ export default function NewPawnLoanForm({
     ? !pending &&
       revealReady &&
       collateralCount > 0 &&
+      unconfirmedCount === 0 &&
       collateralValue > 0 &&
       (payoutMethod !== 'mixed' || mixedSplitOk(collateralValue, paidCash, paidTransfer))
     : !pending &&
       revealReady &&
       principalNum > 0 &&
       collateralCount > 0 &&
+      unconfirmedCount === 0 &&
       !overCap
   const holdUntil =
     purchaseSetup && purchaseSetup.buyHoldDays > 0
@@ -854,7 +850,9 @@ export default function NewPawnLoanForm({
           ) : null}
 
           {!canIssue && !pending ? (
-            <p className={`${HINT} text-center`}>{tn.railMissingHint}</p>
+            <p className={`${HINT} text-center`}>
+              {unconfirmedCount > 0 ? tn.railUnconfirmedHint : tn.railMissingHint}
+            </p>
           ) : null}
         </div>
       </section>

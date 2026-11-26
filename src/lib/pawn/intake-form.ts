@@ -75,6 +75,9 @@ export function readCollateralRows(fd: FormData): CollateralRawRow[] {
         general_model: fd.get(`collateral_${i}_general_model`),
         general_serial: fd.get(`collateral_${i}_general_serial`),
         item_size: fd.get(`collateral_${i}_item_size`),
+        // "1" while an item filled by voice has not been checked by the
+        // clerk (Eddy, 2026-11-26: a legal transaction needs verification).
+        unconfirmed: fd.get(`collateral_${i}_unconfirmed`),
         position: String(i),
       },
     })
@@ -119,6 +122,14 @@ export function buildDraftPayload(fd: FormData): LoanDraftPayload {
     notes: g('notes'),
     collateral,
   }
+}
+
+/** Items filled by voice that the clerk has not checked yet. Issuing a
+ *  ticket or a purchase is refused while there is one. */
+export const ITEMS_UNCONFIRMED = 'items_unconfirmed'
+
+export function hasUnconfirmedItems(rows: ReadonlyArray<{ raw: Record<string, unknown> }>): boolean {
+  return rows.some((r) => String(r.raw.unconfirmed ?? '') === '1')
 }
 
 /** Defensively coerce a stored JSONB payload back into LoanDraftPayload. */

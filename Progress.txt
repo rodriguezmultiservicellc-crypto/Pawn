@@ -1240,6 +1240,20 @@ sessions are there.)
 
   642. /progress — Session 73 checkpoint.
 
+  643. AN ITEM FILLED BY VOICE MUST BE CHECKED BEFORE THE TICKET ISSUES
+       (Eddy: the Rolex was added by speech; a legal transaction needs
+       verification). Row.unconfirmed (CollateralItemsList): set by voice
+       (addExtractedRow, which now opens the item's popup), cleared only by
+       Add item / Done; red "Filled by voice: open and check it" in the
+       table + a note in the popup; Issue off + railUnconfirmedHint; server
+       refuses items_unconfirmed (pawn + FL purchase). CLAUDE.md rule 33.
+       [BUG] A resumed draft (and so the QR handoff) brought back only
+       description, category, metal, karat, weight and value — brand,
+       model, serial, unique marks, stones, size, firearm fields and the
+       pawn category were lost. New addDraftRow / rowFromDraft restores every
+       field. Eddy's draft 64f555ba was saved BEFORE this: its Rolex is
+       not flagged. Not tried live.
+
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
   608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)

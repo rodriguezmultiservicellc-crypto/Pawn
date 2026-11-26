@@ -30,6 +30,9 @@ export function ruleErrorText(t: Dictionary, raw: string): string {
   // An item's photo list the server could not confirm (lib/uploads/intake-photos-server).
   if (raw === 'photos_missing') return t.common.photoStrip.missing
 
+  // An item filled by voice the clerk has not checked (lib/pawn/intake-form).
+  if (raw === 'items_unconfirmed') return t.pawn.new_.itemUnconfirmedError
+
   const block = INTAKE_BLOCK_CODES.find((c) => raw === c)
   if (block) return t.ofac.intakeErrors[block]
 

@@ -11,7 +11,11 @@ import { PLEDGOR_SNAPSHOT_COLUMNS } from '@/lib/compliance/pledgor-snapshot'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
 import { meltValueAtBuy, recordBuy } from '@/lib/buy/record'
 import { purchaseOnFormSchema } from '@/lib/validations/buy-outright'
-import { readCollateralRows } from '@/lib/pawn/intake-form'
+import {
+  hasUnconfirmedItems,
+  ITEMS_UNCONFIRMED,
+  readCollateralRows,
+} from '@/lib/pawn/intake-form'
 import { collateralSnapshot } from '@/lib/pawn/collateral-snapshot'
 import { inventoryDetailsFromCollateral } from '@/lib/pawn/forfeit-inventory'
 import { gemstoneText } from '@/lib/pawn/stones'
@@ -69,6 +73,8 @@ export async function createPurchaseAction(
   const tenantId = ctx.tenantId
 
   const collateralRaw = readCollateralRows(formData)
+  // An item filled by voice must be checked by the clerk first.
+  if (hasUnconfirmedItems(collateralRaw)) return { error: ITEMS_UNCONFIRMED }
   const parsed = purchaseOnFormSchema.safeParse({
     customer_id: formData.get('customer_id'),
     payment_method: formData.get('payment_method'),

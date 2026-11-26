@@ -20,7 +20,11 @@ import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
-import { readCollateralRows } from '@/lib/pawn/intake-form'
+import {
+  hasUnconfirmedItems,
+  ITEMS_UNCONFIRMED,
+  readCollateralRows,
+} from '@/lib/pawn/intake-form'
 import { collateralSnapshot } from '@/lib/pawn/collateral-snapshot'
 import { PLEDGOR_SNAPSHOT_COLUMNS, pledgorSnapshot } from '@/lib/compliance/pledgor-snapshot'
 import { gemstoneText } from '@/lib/pawn/stones'
@@ -197,6 +201,8 @@ export async function createLoanAction(
   const computedDueDate = termDays > 0 ? addDaysIso(issueDate, termDays) : null
 
   const collateralRaw = readCollateralRows(formData)
+  // An item filled by voice must be checked by the clerk first.
+  if (hasUnconfirmedItems(collateralRaw)) return { error: ITEMS_UNCONFIRMED }
 
   const parsed = loanCreateSchema.safeParse({
     customer_id: formData.get('customer_id'),

@@ -1533,6 +1533,11 @@ export const en = {
       itemAdd: 'Add item',
       itemEditTitle: 'Item {n}',
       itemNeedsDetails: 'Needs details',
+      // An item filled by voice: the clerk checks it (Eddy, 2026-11-26).
+      itemUnconfirmed: 'Filled by voice: open and check it',
+      itemUnconfirmedHelp: 'Filled in by voice. Check every field against the item and the customer, then press Done. This is a legal record: nothing is issued until you do.',
+      itemUnconfirmedError: 'An item filled by voice has not been checked. Open it, check every field, then press Done.',
+      railUnconfirmedHint: 'Check the items filled by voice first: open each one and press Done.',
       itemDescriptionHint:
         'Written in English from the fields above as you fill them (Florida law asks for English). You can change it.',
       // Jewelry details (patches/0106).

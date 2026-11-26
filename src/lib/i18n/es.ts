@@ -1532,6 +1532,11 @@ export const es: Dictionary = {
       itemAdd: 'Agregar artículo',
       itemEditTitle: 'Artículo {n}',
       itemNeedsDetails: 'Faltan datos',
+      // Un artículo llenado por voz: el empleado lo revisa (Eddy, 2026-11-26).
+      itemUnconfirmed: 'Llenado por voz: ábralo y revíselo',
+      itemUnconfirmedHelp: 'Llenado por voz. Revise cada campo con el artículo y el cliente, y presione Listo. Es un registro legal: no se emite nada hasta que lo haga.',
+      itemUnconfirmedError: 'Un artículo llenado por voz no ha sido revisado. Ábralo, revise cada campo y presione Listo.',
+      railUnconfirmedHint: 'Primero revise los artículos llenados por voz: abra cada uno y presione Listo.',
       itemDescriptionHint:
         'Se escribe sola en inglés con los campos de arriba (la ley de Florida la pide en inglés). Puedes cambiarla.',
       // Detalles de joyería (patches/0106).

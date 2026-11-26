@@ -502,6 +502,17 @@ Never kill node processes by image name — always by PID.
     sign-in page keeps the whole link in `next`, paths on this site only),
     and no RLS policy was touched.
 
+33. **An item filled by voice is not on the ticket until the clerk checks it**
+    (Eddy, 2026-11-26: "this is a legal transaction, it needs
+    verification"). Voice intake adds the item with `unconfirmed` set and
+    opens its popup; only the popup's Add item / Done clears it. While any
+    item is unconfirmed the Issue button is off and `createLoanAction` /
+    `createPurchaseAction` refuse (`items_unconfirmed`, the form field
+    `collateral_<n>_unconfirmed`, `hasUnconfirmedItems` in
+    `src/lib/pawn/intake-form.ts`). A draft keeps the flag. A resumed draft
+    restores EVERY field of every item (`addDraftRow` / `rowFromDraft`) —
+    never only the description.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN
