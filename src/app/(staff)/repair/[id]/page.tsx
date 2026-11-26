@@ -175,7 +175,7 @@ export default async function RepairTicketDetailPage(props: {
   // Line items (one row per customer item).
   const { data: lineItemRows } = await ctx.supabase
     .from('repair_ticket_line_items')
-    .select('id, line_index, title, service_type, work_needed')
+    .select('id, line_index, title, service_type, work_needed, price')
     .eq('ticket_id', id)
     .is('deleted_at', null)
     .order('line_index', { ascending: true })
@@ -185,6 +185,7 @@ export default async function RepairTicketDetailPage(props: {
     title: li.title,
     service_type: li.service_type as ServiceType,
     work_needed: li.work_needed,
+    price: li.price == null ? null : Number(li.price),
   }))
 
   // Resolve user names for assigned_to + technicians + event performers.

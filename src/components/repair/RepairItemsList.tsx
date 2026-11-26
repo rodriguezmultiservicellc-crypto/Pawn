@@ -41,6 +41,9 @@ export type LineItem = {
    *  ticket until a service has been chosen explicitly. */
   service_touched: boolean
   work_needed: string
+  /** What the shop charges for this item, as typed ('' = not priced yet;
+   *  patches/0122). Every item priced = the ticket is quoted at their sum. */
+  price: string
   /** The item's photos, main first, already uploaded. */
   photos: StripPhoto[]
 }
@@ -55,6 +58,7 @@ export function newLineItem(): LineItem {
     service_type: 'repair',
     service_touched: false,
     work_needed: '',
+    price: '',
     photos: [],
   }
 }
@@ -81,6 +85,14 @@ export const SERVICE_CHOICES: ReadonlyArray<{
   { value: 'nameplate', labelKey: 'nameplate' },
   { value: 'custom', labelKey: 'custom' },
 ]
+
+/** A typed price as money: "$85.00". */
+function fmtPrice(v: string): string {
+  const n = parseFloat(v)
+  return isFinite(n)
+    ? n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
+    : '—'
+}
 
 type Step = 'photos' | 'item' | 'service'
 const STEPS: ReadonlyArray<Step> = ['photos', 'item', 'service']
@@ -137,6 +149,7 @@ export function RepairItemsList({
               <th className={TH}>{tl.colItem}</th>
               <th className={TH}>{tl.colService}</th>
               <th className={TH}>{tl.colWork}</th>
+              <th className={`${TH} text-right`}>{tl.colPrice}</th>
               <th className={`${TH} text-right`}>{tl.colPhotos}</th>
               <th className={`${TH} text-right`}>{tl.colActions}</th>
             </tr>
@@ -144,7 +157,7 @@ export function RepairItemsList({
           {items.length === 0 ? (
             <tbody>
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted">
+                <td colSpan={7} className="px-4 py-10 text-center text-muted">
                   {tl.empty}
                 </td>
               </tr>
@@ -269,6 +282,9 @@ function ItemRow({
         </td>
         <td className={`${TD} text-foreground`}>
           {item.work_needed.trim() || <span className="text-muted">—</span>}
+        </td>
+        <td className={`${TD} text-right font-mono font-semibold text-foreground`}>
+          {item.price.trim() ? fmtPrice(item.price) : <span className="font-normal text-muted">—</span>}
         </td>
         <td className={`${TD} text-right font-mono text-foreground`}>{item.photos.length}</td>
         <td className="px-4 py-2 text-right align-top">
@@ -474,9 +490,10 @@ function ItemRow({
                         </div>
                         <p className="text-[13px] text-muted">{tn.workPresetsHelp}</p>
                       </div>
-                      <label className="flex flex-col space-y-1.5">
-                        <span className={`block ${LABEL}`}>{tn.workNeeded}</span>
+                      <div className="flex flex-col space-y-1.5">
+                        <label htmlFor={`${fieldId}-work`} className={`block ${LABEL}`}>{tn.workNeeded}</label>
                         <textarea
+                          id={`${fieldId}-work`}
                           ref={workRef}
                           rows={10}
                           value={item.work_needed}
@@ -484,7 +501,26 @@ function ItemRow({
                           placeholder={tn.workNeededPlaceholder}
                           className={`block min-h-56 w-full flex-1 rounded-md border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-blue ${FOCUS}`}
                         />
-                      </label>
+                        {/* The price of this item's work (patches/0122). */}
+                        <label htmlFor={`${fieldId}-price`} className={`block pt-2 ${LABEL}`}>{tl.price}</label>
+                        <div className="relative max-w-xs">
+                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-lg font-semibold text-muted">
+                            $
+                          </span>
+                          <input
+                            id={`${fieldId}-price`}
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            inputMode="decimal"
+                            placeholder="0.00"
+                            value={item.price}
+                            onChange={(e) => onChange({ price: e.target.value })}
+                            className={`block h-11 w-full rounded-md border-2 border-blue bg-card pl-7 pr-3 font-mono text-lg font-semibold tabular-nums text-foreground outline-none ${FOCUS}`}
+                          />
+                        </div>
+                        <span className="block text-[13px] text-muted">{tl.priceHelp}</span>
+                      </div>
                     </div>
                   </div>
                 </div>

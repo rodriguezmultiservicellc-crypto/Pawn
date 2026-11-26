@@ -190,6 +190,11 @@ export default function NewRepairTicketForm({
 
   const estTotal = (parseFloat(labor) || 0) + (parseFloat(materials) || 0)
   const estBalance = Math.max(0, estTotal - (parseFloat(deposit) || 0))
+  // Classic prices each item (patches/0122): the total is their sum, and an
+  // item not priced yet is pointed out. (Simple keeps its own estimate.)
+  const itemsTotal = builtItems.reduce((sum, li) => sum + (parseFloat(li.price) || 0), 0)
+  const unpricedCount = builtItems.filter((li) => li.price.trim() === '').length
+  const itemsBalance = Math.max(0, itemsTotal - (parseFloat(deposit) || 0))
 
   // Same gate in both views (customer + at least one built item). Simple adds
   // one requirement of its own: every built item needs an explicit service,
@@ -324,6 +329,7 @@ export default function NewRepairTicketForm({
             name={`li_${i}_service_touched`}
             value={li.service_touched ? '1' : '0'}
           />
+          <input type="hidden" name={`li_${i}_price`} value={li.price} />
           {/* Paths of the photos the browser already uploaded (patches/0119).
               Here, not in the popup, so a switch to Simple keeps them. */}
           <input
@@ -524,11 +530,9 @@ export default function NewRepairTicketForm({
                   className={`${INPUT} font-mono`}
                 />
               </label>
-              <MoneyField label={tn.laborLabel} value={labor} onChange={setLabor} />
-              <MoneyField label={tn.materialsLabel} value={materials} onChange={setMaterials} />
               <MoneyField label={tn.depositLabel} value={deposit} onChange={setDeposit} />
             </div>
-            <p className={HINT}>{tn.estimateHelp}</p>
+            <p className={HINT}>{tn.list.priceHelp}</p>
           </div>
 
           {/* b. Summary */}
@@ -560,10 +564,15 @@ export default function NewRepairTicketForm({
               )}
             </div>
             <div>
-              <dt className={LABEL}>{tn.estimatedTotal}</dt>
+              <dt className={LABEL}>{tn.list.itemsTotal}</dt>
               <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">
-                {fmtMoney(estTotal)}
+                {fmtMoney(itemsTotal)}
               </dd>
+              {unpricedCount > 0 ? (
+                <dd className="mt-0.5 text-[13px] font-semibold text-warning">
+                  {tn.list.notPriced.replace('{n}', String(unpricedCount))}
+                </dd>
+              ) : null}
             </div>
           </dl>
 
@@ -572,7 +581,7 @@ export default function NewRepairTicketForm({
             <div>
               <div className={LABEL}>{tn.balanceDue}</div>
               <div className="mt-1 font-mono text-[40px] font-bold leading-tight tabular-nums text-foreground">
-                {fmtMoney(estBalance)}
+                {fmtMoney(itemsBalance)}
               </div>
             </div>
             <button

@@ -47,6 +47,7 @@ import {
 } from '@/lib/repair/workflow'
 import { computeBalanceDue, lineTotalCost, r4 } from '@/lib/repair/billing'
 import { notifyRepairReadyIfEnabled } from '@/lib/repair/notify'
+import { applyRepairQuote } from '@/lib/repair/quote'
 import type {
   RepairStatus,
   RepairTicketUpdate,
@@ -220,49 +221,15 @@ export async function setQuoteAction(
   )
   if (ticket.is_locked) return { error: 'customer_locked' }
 
-  const balance = computeBalanceDue({
-    quote: v.quote_amount,
-    deposit: ticket.deposit_amount,
-  })
-
-  let nextStatus: RepairStatus = ticket.status as RepairStatus
-  if (ticket.status === 'intake') {
-    if (canTransition(ticket.status as RepairStatus, 'quoted')) {
-      nextStatus = 'quoted'
-    }
-  }
-
-  const { error: upErr } = await supabase
-    .from('repair_tickets')
-    .update({
-      quote_amount: v.quote_amount,
-      quote_set_at: new Date().toISOString(),
-      balance_due: balance,
-      status: nextStatus,
-      updated_by: userId,
-    })
-    .eq('id', ticket.id)
-    .eq('tenant_id', tenantId)
-  if (upErr) return { error: upErr.message }
-
-  await supabase.from('repair_ticket_events').insert({
-    ticket_id: ticket.id,
-    tenant_id: tenantId,
-    event_type: 'quote_set',
-    amount: v.quote_amount,
-    new_status: nextStatus !== ticket.status ? nextStatus : null,
-    notes: v.notes,
-    performed_by: userId,
-  })
-
-  await logAudit({
+  const res = await applyRepairQuote({
+    supabase,
     tenantId,
     userId,
-    action: 'quote_set',
-    tableName: 'repair_tickets',
-    recordId: ticket.id,
-    changes: { quote_amount: v.quote_amount, new_status: nextStatus },
+    ticket,
+    amount: v.quote_amount,
+    notes: v.notes ?? null,
   })
+  if ('error' in res) return res
 
   revalidatePath(`/repair/${ticket.id}`)
   revalidatePath('/repair')

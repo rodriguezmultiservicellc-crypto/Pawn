@@ -19,6 +19,7 @@ describe('repair draft payload', () => {
         li_0_service_type: 'stone_setting',
         li_0_service_touched: '1',
         li_0_work_needed: 'Set center stone',
+        li_0_price: '85.00',
         li_0_photos: JSON.stringify(['t/intake/a.jpg', 'b.jpg']),
         li_1_item_type: '',
         li_1_service_type: 'repair',
@@ -44,6 +45,7 @@ describe('repair draft payload', () => {
       service_type: 'stone_setting',
       service_touched: true,
       work_needed: 'Set center stone',
+      price: '85.00',
       photos: ['t/intake/a.jpg', 'b.jpg'],
     })
     expect(payload.line_items[1].service_touched).toBe(false)

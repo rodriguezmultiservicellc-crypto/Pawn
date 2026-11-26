@@ -161,6 +161,8 @@ export type RepairLineItemView = {
   title: string
   service_type: ServiceType
   work_needed: string | null
+  /** The item's price, set at intake (patches/0122); null = not priced. */
+  price: number | null
 }
 
 export type RepairPhotoView = {
@@ -828,7 +830,14 @@ function ItemPanel({
                   <span className="font-semibold text-foreground">
                     {li.title}
                   </span>
-                  <ServiceTypeBadge type={li.service_type} />
+                  <span className="flex shrink-0 items-center gap-2">
+                    {li.price != null ? (
+                      <span className="font-mono font-semibold tabular-nums text-foreground">
+                        {li.price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                      </span>
+                    ) : null}
+                    <ServiceTypeBadge type={li.service_type} />
+                  </span>
                 </div>
                 {li.work_needed ? (
                   <div className="mt-1 text-foreground/90 whitespace-pre-wrap">

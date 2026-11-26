@@ -21,6 +21,8 @@ export type RepairDraftLineItem = {
   /** The clerk picked the service (the Simple view asks for it). */
   service_touched: boolean
   work_needed: string
+  /** What the shop charges for the item, as typed ('' = not priced). */
+  price: string
   /** The item's photo paths, main first (repair-photos/<tenant>/intake/…). */
   photos: string[]
 }
@@ -82,6 +84,7 @@ function lineItemFrom(get: (field: string) => unknown): RepairDraftLineItem {
     service_type: serviceOf(get('service_type')),
     service_touched: get('service_touched') === true || get('service_touched') === '1',
     work_needed: str(get('work_needed')),
+    price: str(get('price')),
     photos: pathsOf(get('photos')),
   }
 }

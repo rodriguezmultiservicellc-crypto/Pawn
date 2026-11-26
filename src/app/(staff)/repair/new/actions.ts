@@ -11,6 +11,8 @@ import {
 } from '@/lib/repair/line-items'
 import { confirmIntakePhotos } from '@/lib/uploads/intake-photos-server'
 import { logAudit } from '@/lib/audit'
+import { applyRepairQuote } from '@/lib/repair/quote'
+import { r4 } from '@/lib/repair/billing'
 
 export type CreateRepairTicketState = {
   error?: string
@@ -70,6 +72,7 @@ function readLineItemRows(fd: FormData) {
       title: fd.get(`li_${i}_title`),
       service_type: fd.get(`li_${i}_service_type`),
       work_needed: fd.get(`li_${i}_work_needed`),
+      price: fd.get(`li_${i}_price`),
       // The item's photos: a JSON list of paths the browser already uploaded
       // to repair-photos/<tenant>/intake/ (patches/0119).
       photos: fd.get(`li_${i}_photos`),
@@ -174,7 +177,7 @@ export async function createRepairTicketAction(
       created_by: userId,
       updated_by: userId,
     })
-    .select('id, ticket_number')
+    .select('id, ticket_number, status, deposit_amount')
     .single()
   if (tErr || !ticket) return { error: tErr?.message ?? 'insert_failed' }
   const ticketId = ticket.id
@@ -193,6 +196,7 @@ export async function createRepairTicketAction(
       title: li.title,
       service_type: li.service_type,
       work_needed: li.work_needed,
+      price: li.price,
     }))
     const { data: inserted, error: liErr } = await supabase
       .from('repair_ticket_line_items')
@@ -253,6 +257,25 @@ export async function createRepairTicketAction(
     new_status: 'intake',
     performed_by: userId,
   })
+
+  // 6b. Every item priced at intake (patches/0122): their sum is the
+  //     ticket's quote, set the way "Set quote" sets it. Best-effort like
+  //     the rest after the ticket row: the clerk can still set it by hand.
+  const prices = v.line_items.map((li) => li.price)
+  if (prices.every((p): p is number => p != null)) {
+    const total = r4(prices.reduce((sum, p) => sum + p, 0))
+    if (total > 0) {
+      const quoted = await applyRepairQuote({
+        supabase,
+        tenantId,
+        userId,
+        ticket,
+        amount: total,
+        notes: null,
+      })
+      if ('error' in quoted) console.error('[repair.create] quote not set', quoted.error)
+    }
+  }
 
   // 7. Audit.
   await logAudit({

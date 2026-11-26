@@ -5302,6 +5302,7 @@ export type Database = {
           item_type: string
           karat: string | null
           line_index: number
+          price: number | null
           service_type: Database["public"]["Enums"]["service_type"]
           tenant_id: string
           ticket_id: string
@@ -5317,6 +5318,7 @@ export type Database = {
           item_type: string
           karat?: string | null
           line_index: number
+          price?: number | null
           service_type: Database["public"]["Enums"]["service_type"]
           tenant_id: string
           ticket_id: string
@@ -5332,6 +5334,7 @@ export type Database = {
           item_type?: string
           karat?: string | null
           line_index?: number
+          price?: number | null
           service_type?: Database["public"]["Enums"]["service_type"]
           tenant_id?: string
           ticket_id?: string

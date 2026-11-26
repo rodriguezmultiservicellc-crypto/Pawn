@@ -153,6 +153,8 @@ export const repairLineItemSchema = z.object({
   title: z.string().trim().min(1, 'required').max(200),
   service_type: serviceTypeSchema,
   work_needed: optionalTrimmedString,
+  // What the shop charges for this item (patches/0122); empty = not priced yet.
+  price: optionalDecimal,
 })
 
 export type RepairLineItemInput = z.infer<typeof repairLineItemSchema>
