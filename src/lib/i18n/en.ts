@@ -1720,6 +1720,8 @@ export const en = {
         moved:
           'The photo looks like: {seen}. The category was changed from {from} to {to}.',
         changeBack: 'Change back',
+        photosDiffer:
+          'The photos do not all show the same item. Only the main (first) photo was described: remove the photos that belong to another item.',
         errors: {
           unreadable:
             'The AI could not make out the item in this photo. Take a closer, sharper photo and try again.',

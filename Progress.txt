@@ -1159,6 +1159,17 @@ sessions are there.)
        bezel"), then any
        engraving / damage after a semicolon. Not tried with a real photo.
 
+  638. [BUG] THE AI WROTE A NOTE ABOUT THE PHOTOS INTO UNIQUE MARKS
+       Eddy's item had a chain photo (main) + a Rolex photo; Unique marks got
+       "...the first photo shows a gold Figaro-style chain, so the photos may
+       not show the same item" — a field that prints on the legal ticket.
+       Root cause: the answer had no place for a remark to the clerk, and the
+       prompt said the photos "all show the SAME item". Now PhotoItem has
+       photos_differ (boolean); the prompt says: describe ONLY the first
+       (main) photo's item when they differ, never put a remark about the
+       photos in any field. The popup shows a translated red line
+       (photoAi.photosDiffer). Not tried with a real photo.
+
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
   608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)

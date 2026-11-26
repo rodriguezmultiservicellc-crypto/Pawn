@@ -8,6 +8,7 @@ import {
 
 const nothing: PhotoItem = {
   readable: true,
+  photos_differ: false,
   item_seen: '',
   category_slug: null,
   subcategory_slug: null,

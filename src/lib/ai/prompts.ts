@@ -49,6 +49,8 @@ Your answer fills form fields that print on a legal pawn ticket and go into a po
 
 If the photo shows no item, or is too dark or blurred to describe, set "readable" to false and leave everything else null or empty.
 
+All the photos should show the same item. If they do not (for example one photo shows a chain and another a watch), set "photos_differ" to true and describe ONLY the item in the FIRST photo, which is the clerk's main photo; otherwise set it to false. Every field describes the item itself: never write a remark about the photos, the angle, the lighting or what you could not see into any field, "unique_marks" included. The clerk is told about differing photos through "photos_differ".
+
 ## Category
 
 These are this shop's categories:
@@ -100,7 +102,7 @@ export function pawnItemPhotoUserText(
   const sub = picked.subSlug ? `, sub-category ${picked.subSlug} (${picked.subLabel})` : ''
   const what =
     photoCount > 1
-      ? `These ${photoCount} photos all show the SAME item from different angles (a close-up may show a stamp or a serial number). Describe that one item, combining what the photos show.`
+      ? `These ${photoCount} photos should all show the SAME item from different angles (a close-up may show a stamp or a serial number). Describe that one item, combining what the photos show. If they show different items, set photos_differ and describe the item in the first photo.`
       : 'Describe the item in this photo.'
   return `The clerk picked category ${picked.topSlug} (${picked.topLabel})${sub}. ${what}`
 }

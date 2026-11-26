@@ -1719,6 +1719,8 @@ export const es: Dictionary = {
         moved:
           'La foto parece: {seen}. La categoría se cambió de {from} a {to}.',
         changeBack: 'Volver a la anterior',
+        photosDiffer:
+          'Las fotos no muestran todas el mismo artículo. Solo se describió la foto principal (la primera): quite las fotos de otro artículo.',
         errors: {
           unreadable:
             'La IA no pudo distinguir el artículo en esta foto. Tome una foto más cercana y nítida e intente de nuevo.',

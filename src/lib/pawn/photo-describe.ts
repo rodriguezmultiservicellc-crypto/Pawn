@@ -46,6 +46,10 @@ export const PhotoItemSchema = z.object({
   readable: z.boolean(),
   /** A few plain English words for what the photo shows: "gold rope chain". */
   item_seen: z.string(),
+  /** The photos do not all show the same item (a chain and a watch). Shown
+   *  to the clerk as a warning; NEVER written into a field that prints on the
+   *  ticket (Eddy, 2026-11-25: the AI wrote that note into Unique marks). */
+  photos_differ: z.boolean(),
   /** The shop's category the photo belongs to (pawn_intake_categories.slug). */
   category_slug: text,
   subcategory_slug: text,

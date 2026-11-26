@@ -1021,6 +1021,8 @@ function CollateralRow({
       }
   const [aiBusy, setAiBusy] = useState(false)
   const [aiNote, setAiNote] = useState<AiNote | null>(null)
+  // The photos showed different items: the answer describes the main one.
+  const [aiPhotosDiffer, setAiPhotosDiffer] = useState(false)
   // The row as it is now, for the answer that comes back seconds later.
   const rowNow = useRef(row)
   useEffect(() => {
@@ -1038,6 +1040,7 @@ function CollateralRow({
     const ai = tn.photoAi
     setAiBusy(true)
     setAiNote(null)
+    setAiPhotosDiffer(false)
     try {
       // The photos are already in storage: only their paths go.
       const fd = new FormData()
@@ -1055,6 +1058,7 @@ function CollateralRow({
         return
       }
       const { item, category } = json.data
+      setAiPhotosDiffer(item.photos_differ === true)
       const now = rowNow.current
       const moved =
         category != null &&
@@ -1318,6 +1322,9 @@ function CollateralRow({
                       .replace('{from}', aiNote.from)
                       .replace('{to}', aiNote.to)} ${tn.photoAi.check}`
                   : `${tn.photoAi.filled} ${tn.photoAi.check}`}
+            {aiPhotosDiffer && aiNote.kind !== 'error' ? (
+              <span className="mt-1 block font-semibold text-danger">{tn.photoAi.photosDiffer}</span>
+            ) : null}
           </span>
           {aiNote.kind === 'moved' ? (
             <button
