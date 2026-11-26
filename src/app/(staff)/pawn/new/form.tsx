@@ -31,6 +31,7 @@ import {
 } from '@/lib/jurisdictions/rules'
 import { ruleErrorText } from '@/lib/jurisdictions/messages'
 import { saveLoanDraft } from '../drafts/actions'
+import { DraftHandoffButton, TicketMovedNotice } from '@/components/pawn/DraftHandoff'
 import {
   type LoanDraftPayload,
 } from '@/lib/pawn/intake-form'
@@ -121,7 +122,10 @@ export default function NewPawnLoanForm({
   canConfirmStale,
   tenantId,
   purchase: purchaseSetup,
+  handoff,
 }: {
+  /** Opened from another device's QR code (?handoff=): what came of it. */
+  handoff: 'claimed' | 'expired' | 'used' | null
   /** The shop: item photos upload into its folder. */
   tenantId: string
   /** Its state writes purchases on the transaction form (patches/0115):
@@ -170,6 +174,18 @@ export default function NewPawnLoanForm({
   // (lib/spot-prices/stale-gate only holds loans that price metal).
   const [staleAck, setStaleAck] = useState(false)
   const [savingDraft, startSaveDraft] = useTransition()
+  // The draft this ticket is saved as (resumed, or saved by the QR handoff).
+  const [savedDraftId, setSavedDraftId] = useState<string | null>(initialDraft?.id ?? null)
+  // The ticket moved to another device through the QR code: this screen
+  // closes its copy, so the same ticket is never issued twice.
+  const [moved, setMoved] = useState(false)
+  const onMoved = useCallback(() => setMoved(true), [])
+  // Arrived through a QR code: drop the one-time code from the address bar,
+  // so a reload does not say "already used".
+  useEffect(() => {
+    if (!handoff || !initialDraft) return
+    window.history.replaceState(null, '', `/pawn/new?draft=${initialDraft.id}`)
+  }, [handoff, initialDraft])
 
   // Issue date locked to today (no back-dating from intake). Server also
   // defaults to today when missing.
@@ -390,6 +406,8 @@ export default function NewPawnLoanForm({
   const itemsText = `${collateralCount} ${collateralCount === 1 ? tn.itemOne : tn.itemMany}`
   const HINT = 'text-[13px] text-muted'
 
+  if (moved) return <TicketMovedNotice />
+
   return (
     <form
       id={PAWN_NEW_FORM_ID}
@@ -402,6 +420,19 @@ export default function NewPawnLoanForm({
       {/* No visible title row: the sidebar is the way back to Pawn loans.
           The heading stays for screen readers. */}
       <h1 className="sr-only">{isPurchase ? tn.titlePurchase : tn.title}</h1>
+
+      {handoff ? (
+        <div
+          role="status"
+          className={`rounded-md border px-3 py-2 text-sm ${
+            handoff === 'claimed'
+              ? 'border-success/30 bg-success/5 text-foreground'
+              : 'border-warning/40 bg-warning/5 text-foreground'
+          }`}
+        >
+          {handoff === 'claimed' ? tn.handoff.arrived : tn.handoff.invalid}
+        </div>
+      ) : null}
 
       {/* Top row: Pawn loan / Buy outright · Hold to talk */}
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -628,8 +659,8 @@ export default function NewPawnLoanForm({
       <input type="hidden" name="min_monthly_charge" value={submittedMinCharge} />
       {/* rate_id is staged in drafts so the rate select can be restored. */}
       <input type="hidden" name="rate_id" value={rateChoice} />
-      {initialDraft ? (
-        <input type="hidden" name="draft_id" value={initialDraft.id} />
+      {savedDraftId ? (
+        <input type="hidden" name="draft_id" value={savedDraftId} />
       ) : null}
       <input type="hidden" name="due_date" value={computedDueDate} />
 
@@ -810,6 +841,17 @@ export default function NewPawnLoanForm({
             <FloppyDisk size={16} weight="bold" />
             {savingDraft ? tn.draftSaving : tn.saveDraft}
           </button>
+
+          {/* Move this ticket to an iPad / phone / laptop with a QR code. */}
+          {!isPurchase ? (
+            <DraftHandoffButton
+              formId={PAWN_NEW_FORM_ID}
+              disabled={selectedCustomerId == null}
+              className={`${OUTLINE_BTN} w-full`}
+              onDraftSaved={setSavedDraftId}
+              onMoved={onMoved}
+            />
+          ) : null}
 
           {!canIssue && !pending ? (
             <p className={`${HINT} text-center`}>{tn.railMissingHint}</p>

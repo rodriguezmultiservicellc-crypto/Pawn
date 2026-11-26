@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { claimHandoff, type ClaimResult } from '@/lib/pawn/draft-handoff'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getCtx } from '@/lib/supabase/ctx'
 import NewPawnLoanForm, {
@@ -15,7 +16,7 @@ import { loadRateMaps } from '@/lib/metal-counter/rates'
 import { loadPawnIntakeCategories } from '@/lib/pawn/intake-categories'
 import { signIntakePhotos } from '@/lib/uploads/intake-photos-server'
 
-type SearchParams = Promise<{ draft?: string; type?: string }>
+type SearchParams = Promise<{ draft?: string; type?: string; handoff?: string }>
 
 export default async function NewPawnLoanPage(props: {
   searchParams: SearchParams
@@ -98,7 +99,19 @@ export default async function NewPawnLoanPage(props: {
   // Resume a saved draft when ?draft=<id> is present. loan_drafts isn't in
   // the generated Database type until the next `npm run db:types` after
   // patches/0045; reach it via a generic client. RLS scopes to the tenant.
-  const { draft: draftId, type: startType } = await props.searchParams
+  const { draft: draftId, type: startType, handoff: handoffCode } = await props.searchParams
+  // Opened from another device's QR code: take the draft (once; the device
+  // that showed the code closes its copy). lib/pawn/draft-handoff.
+  let handoff: ClaimResult | null = null
+  if (draftId && handoffCode && /^[0-9a-f-]{36}$/i.test(draftId)) {
+    handoff = await claimHandoff({
+      supabase: ctx.supabase,
+      tenantId: ctx.tenantId,
+      userId: ctx.userId,
+      draftId,
+      code: handoffCode,
+    })
+  }
   let initialDraft: DraftInitial | null = null
   if (draftId) {
     const db = ctx.supabase as unknown as SupabaseClient
@@ -163,6 +176,7 @@ export default async function NewPawnLoanPage(props: {
       metalRates={metalRates}
       canConfirmStale={canConfirmStaleSpot(ctx.tenantRole)}
       tenantId={ctx.tenantId}
+      handoff={handoff}
     />
   )
 }

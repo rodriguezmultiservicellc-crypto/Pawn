@@ -1709,6 +1709,26 @@ export const en = {
       // Common FS 539.001 fields (patches/0043).
       itemColor: 'Color',
       itemUniqueMarks: 'Unique marks',
+      // Move a New pawn ticket to another device with a QR code.
+      handoff: {
+        button: 'Continue on another device',
+        preparing: 'Preparing…',
+        title: 'Continue on another device',
+        body: 'Scan this code with the iPad, phone or laptop (signed in to Pawn). The ticket opens there as it is and closes here. The code works once, for {minutes} minutes.',
+        qrAlt: 'QR code to open this ticket on another device',
+        waiting: 'Waiting for the other device…',
+        expired: 'The code expired. Make a new one, or keep the ticket here.',
+        newCode: 'New code',
+        keepHere: 'Keep it here',
+        noCustomer: 'Pick the customer first.',
+        failed: 'Could not prepare the code. Try again.',
+        movedTitle: 'This ticket moved to another device',
+        movedBody: 'It is open on the device that scanned the code. Finish it there.',
+        goPawns: 'Pawns',
+        newTicket: 'New ticket',
+        arrived: 'Continued from another device: the ticket is here as it was.',
+        invalid: 'That code had expired or was already used, so the other screen did not close. The saved draft opened here; make sure it is not being finished there too.',
+      },
       // The item popup's steps.
       wizard: { label: 'Item steps', photos: 'Photos', item: 'Item', stones: 'Stones', next: 'Next' },
       itemPhoto: 'Photo',

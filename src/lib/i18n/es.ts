@@ -1708,6 +1708,26 @@ export const es: Dictionary = {
       // Campos comunes FS 539.001 (patches/0043).
       itemColor: 'Color',
       itemUniqueMarks: 'Marcas únicas',
+      // Pasar un boleto de empeño a otro dispositivo con un código QR.
+      handoff: {
+        button: 'Continuar en otro dispositivo',
+        preparing: 'Preparando…',
+        title: 'Continuar en otro dispositivo',
+        body: 'Escanee este código con el iPad, teléfono o laptop (con sesión en Pawn). El boleto se abre allí tal como está y se cierra aquí. El código sirve una vez, por {minutes} minutos.',
+        qrAlt: 'Código QR para abrir este boleto en otro dispositivo',
+        waiting: 'Esperando al otro dispositivo…',
+        expired: 'El código venció. Genere uno nuevo o mantenga el boleto aquí.',
+        newCode: 'Código nuevo',
+        keepHere: 'Mantenerlo aquí',
+        noCustomer: 'Elija primero al cliente.',
+        failed: 'No se pudo preparar el código. Intente de nuevo.',
+        movedTitle: 'Este boleto pasó a otro dispositivo',
+        movedBody: 'Está abierto en el dispositivo que escaneó el código. Termínelo allí.',
+        goPawns: 'Empeños',
+        newTicket: 'Boleto nuevo',
+        arrived: 'Continuado desde otro dispositivo: el boleto está aquí tal como estaba.',
+        invalid: 'Ese código ya había vencido o ya se usó, así que la otra pantalla no se cerró. Se abrió aquí el borrador guardado; asegúrese de que no lo estén terminando allá también.',
+      },
       // Los pasos de la ventana del artículo.
       wizard: { label: 'Pasos del artículo', photos: 'Fotos', item: 'Artículo', stones: 'Piedras', next: 'Siguiente' },
       itemPhoto: 'Foto',

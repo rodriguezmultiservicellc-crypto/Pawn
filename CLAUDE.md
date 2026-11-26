@@ -490,6 +490,18 @@ Never kill node processes by image name — always by PID.
     - Police file: `jewelry_kt` only for gold (as xPawn sends it); a
       silver / platinum purity rides in the description.
 
+32. **A New pawn ticket moves to another device as a DRAFT, by QR code**
+    (patches/0117; Eddy, 2026-11-26). "Continue on another device" saves the
+    draft and shows a QR code for `/pawn/new?draft=<id>&handoff=<code>`;
+    the device that opens it claims the draft ONCE (`claimHandoff`, an
+    update that matches the code's SHA-256, unclaimed, not expired) and the
+    computer, polling `handoffStatus`, replaces its form with "moved to
+    another device". All of it is in `src/lib/pawn/draft-handoff.ts` — the
+    only way to save a draft is `upsertLoanDraft`. The code lasts 10
+    minutes, is never a login (the device signs in as staff first; the
+    sign-in page keeps the whole link in `next`, paths on this site only),
+    and no RLS policy was touched.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

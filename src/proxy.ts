@@ -148,7 +148,9 @@ export async function proxy(request: NextRequest) {
     }
     const url = request.nextUrl.clone()
     url.pathname = pathname.startsWith('/portal') ? '/portal/login' : '/login'
-    url.searchParams.set('next', pathname)
+    // The query too (a QR handoff link carries ?draft=&handoff=).
+    url.search = ''
+    url.searchParams.set('next', pathname + request.nextUrl.search)
     return NextResponse.redirect(url)
   }
 

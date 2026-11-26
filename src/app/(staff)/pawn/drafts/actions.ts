@@ -6,7 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { logAudit } from '@/lib/audit'
-import { buildDraftPayload } from '@/lib/pawn/intake-form'
+import { upsertLoanDraft } from '@/lib/pawn/draft-handoff'
 
 const DRAFT_ROLES = ['owner', 'manager', 'pawn_clerk', 'chain_admin'] as const
 
@@ -37,65 +37,10 @@ export async function saveLoanDraft(formData: FormData): Promise<void> {
   ])
   const tenantId = ctx.tenantId
 
-  const customerId = String(formData.get('customer_id') ?? '').trim()
-  if (!customerId) redirect('/pawn/new')
-
-  // Defense in depth: the customer must belong to this tenant.
-  const { data: customer } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('id', customerId)
-    .eq('tenant_id', tenantId)
-    .is('deleted_at', null)
-    .maybeSingle()
-  if (!customer) redirect('/pawn/new')
-
-  const payload = buildDraftPayload(formData)
-  const draftId = String(formData.get('draft_id') ?? '').trim()
-  const db = supabase as unknown as SupabaseClient
-
-  if (draftId) {
-    await db
-      .from('loan_drafts')
-      .update({ customer_id: customerId, payload, updated_by: userId })
-      .eq('id', draftId)
-      .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
-    await logAudit({
-      tenantId,
-      userId,
-      action: 'update',
-      tableName: 'loan_drafts',
-      recordId: draftId,
-      changes: { customer_id: customerId, item_count: payload.collateral.length },
-    })
-  } else {
-    const { data: inserted } = await db
-      .from('loan_drafts')
-      .insert({
-        tenant_id: tenantId,
-        customer_id: customerId,
-        payload,
-        created_by: userId,
-        updated_by: userId,
-      })
-      .select('id')
-      .single()
-    const newId = (inserted as { id: string } | null)?.id
-    if (newId) {
-      await logAudit({
-        tenantId,
-        userId,
-        action: 'create',
-        tableName: 'loan_drafts',
-        recordId: newId,
-        changes: {
-          customer_id: customerId,
-          item_count: payload.collateral.length,
-        },
-      })
-    }
-  }
+  // One way to save a draft (lib/pawn/draft-handoff), shared with the QR
+  // handoff. No customer, or not this shop's: back to the form.
+  const draftId = await upsertLoanDraft({ supabase, tenantId, userId, formData })
+  if (!draftId) redirect('/pawn/new')
 
   revalidatePath('/pawn/drafts')
   redirect('/pawn/drafts')

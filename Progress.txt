@@ -1178,6 +1178,22 @@ sessions are there.)
        for jewelry. Prompt: a watch's unique marks = dial + bezel + engraving
        / damage, never what every watch of the model has. Not tried live.
 
+  640. ITEM POPUP: ONE SIZE FOR EVERY STEP; PHOTOS SHOWN WHOLE (b55263c)
+       Card = screen height (max 960px), flex column: header, money fields,
+       step bar, description and buttons fixed; only the step scrolls.
+       PhotoStrip large mode (object-contain, bigger tiles) on Photos.
+
+  641. QR HANDOFF: MOVE A NEW PAWN TICKET TO ANOTHER DEVICE (patches/0117
+       LIVE: loan_drafts.handoff_token_hash / _expires_at / _claimed_at /
+       _claimed_by, no policy change). lib/pawn/draft-handoff (upsertLoan-
+       Draft — Save draft uses it too —, startHandoff, handoffStatus,
+       cancelHandoff, claimHandoff); pawn/drafts/handoff-actions (QR SVG via
+       the new qrcode package); components/pawn/DraftHandoff (button + QR
+       popup, polls every 2.5 s; TicketMovedNotice). New pawn page claims on
+       ?handoff= and shows arrived / invalid. [BUG] proxy dropped the query
+       from next= on sign-in; now kept, and the login page only follows a
+       path on this site. CLAUDE.md rule 32. Not tried on two devices.
+
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
   608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)

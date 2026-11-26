@@ -10,7 +10,9 @@ import { PasswordInput } from '@/components/ui/PasswordInput'
 export default function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
-  const next = params.get('next') ?? '/'
+  // Only a path on this site ("/pawn/new?draft=…"), never another site.
+  const asked = params.get('next') ?? '/'
+  const next = asked.startsWith('/') && !asked.startsWith('//') && !asked.startsWith('/\\') ? asked : '/'
   const errorParam = params.get('error')
   const { t, lang, setLang } = useLangLocal()
 
