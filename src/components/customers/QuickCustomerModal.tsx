@@ -91,15 +91,18 @@ export default function QuickCustomerModal({
   )
 
   return createPortal(
+    // The panel is never taller than the window: title and buttons stay in
+    // view and only the fields scroll. (A centered panel taller than the
+    // window used to lose its title and its buttons off the screen.)
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-navy/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
       onMouseDown={onClose}
     >
       <div
-        className="relative my-8 w-full max-w-lg rounded-xl border border-border bg-card shadow-lg"
+        className="relative flex max-h-full w-full max-w-lg flex-col rounded-xl border border-border bg-card shadow-lg"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-border px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between border-b border-border px-5 py-4">
           <div>
             <h2 className="font-display text-lg font-bold text-foreground">
               {tn.quickCustomerTitle}
@@ -117,7 +120,11 @@ export default function QuickCustomerModal({
         </div>
 
         {/* onSubmit, not action: a refused save must not wipe what was typed. */}
-        <form onSubmit={submitKeepingValues(formAction)} className="space-y-4 px-5 py-4">
+        <form
+          onSubmit={submitKeepingValues(formAction)}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {state.error ? (
             <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
               {state.error}
@@ -150,6 +157,38 @@ export default function QuickCustomerModal({
               />
             </Field>
           </div>
+
+          {/* The address prints on the pawn ticket and goes to the police
+              (missingPledgorFields): ask for it here so a new customer does
+              not open the Complete customer record popup right after. */}
+          <fieldset className="rounded-lg border border-border p-3">
+            <legend className="px-1 text-xs font-semibold text-muted">
+              {tc.sectionAddress}
+            </legend>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="col-span-2 sm:col-span-4">
+                <Field label={tc.address1} error={fe.address1}>
+                  <input name="address1" className={inputCls(!!fe.address1)} />
+                </Field>
+              </div>
+              <div className="col-span-2 sm:col-span-4">
+                <Field label={tc.address2} error={fe.address2}>
+                  <input name="address2" className={inputCls(!!fe.address2)} />
+                </Field>
+              </div>
+              <div className="col-span-2">
+                <Field label={tc.city} error={fe.city}>
+                  <input name="city" className={inputCls(!!fe.city)} />
+                </Field>
+              </div>
+              <Field label={tc.state} error={fe.state}>
+                <input name="state" className={inputCls(!!fe.state)} />
+              </Field>
+              <Field label={tc.zip} error={fe.zip}>
+                <input name="zip" inputMode="numeric" className={inputCls(!!fe.zip)} />
+              </Field>
+            </div>
+          </fieldset>
 
           <fieldset className="rounded-lg border border-border p-3">
             <legend className="px-1 text-xs font-semibold text-muted">
@@ -277,8 +316,9 @@ export default function QuickCustomerModal({
               </Field>
             </div>
           </fieldset>
+          </div>
 
-          <div className="flex items-center justify-end gap-2 pt-1">
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-5 py-3">
             <button
               type="button"
               onClick={onClose}
