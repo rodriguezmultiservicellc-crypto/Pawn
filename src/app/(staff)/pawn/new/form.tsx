@@ -478,7 +478,22 @@ export default function NewPawnLoanForm({
             failed={customerHistory?.failed ?? false}
           />
         ) : null}
-        <VoicePawnButton onDataExtracted={handleVoiceData} />
+        <div className="flex flex-wrap items-start gap-3">
+          <VoicePawnButton onDataExtracted={handleVoiceData} />
+          {/* Move this ticket to an iPad / phone / laptop with a QR code — the
+              same spot on every New ticket (top right; New repair too). A
+              purchase cannot be a draft, so it has none. */}
+          {!isPurchase ? (
+            <DraftHandoffButton
+              kind="pawn"
+              formId={PAWN_NEW_FORM_ID}
+              disabled={selectedCustomerId == null}
+              className={OUTLINE_BTN}
+              onDraftSaved={setSavedDraftId}
+              onMoved={onMoved}
+            />
+          ) : null}
+        </div>
       </div>
 
       <StalePriceBanner freshness={spotFreshness} />
@@ -837,18 +852,6 @@ export default function NewPawnLoanForm({
             <FloppyDisk size={16} weight="bold" />
             {savingDraft ? tn.draftSaving : tn.saveDraft}
           </button>
-
-          {/* Move this ticket to an iPad / phone / laptop with a QR code. */}
-          {!isPurchase ? (
-            <DraftHandoffButton
-              kind="pawn"
-              formId={PAWN_NEW_FORM_ID}
-              disabled={selectedCustomerId == null}
-              className={`${OUTLINE_BTN} w-full`}
-              onDraftSaved={setSavedDraftId}
-              onMoved={onMoved}
-            />
-          ) : null}
 
           {!canIssue && !pending ? (
             <p className={`${HINT} text-center`}>

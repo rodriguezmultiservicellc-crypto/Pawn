@@ -117,7 +117,9 @@ export function DraftHandoffButton({
   }
 
   return (
-    <>
+    // One block: the button and its error line stay together wherever the
+    // ticket puts it (top right of every New ticket, Eddy 2026-11-26).
+    <div className="flex flex-col gap-1">
       <button type="button" onClick={start} disabled={disabled || pending} className={className}>
         <QrCode size={16} weight="bold" />
         {pending ? h.preparing : h.button}
@@ -169,7 +171,7 @@ export function DraftHandoffButton({
             document.body,
           )
         : null}
-    </>
+    </div>
   )
 }
 
