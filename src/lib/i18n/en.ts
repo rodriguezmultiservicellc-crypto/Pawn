@@ -2516,7 +2516,6 @@ export const en = {
       railNoItems: 'No items yet',
       photosHelp:
         'Document the item before any work begins — protects you and the customer.',
-      estimateLabel: 'Estimate',
       estimateHelp: 'For your reference — set the official quote after intake.',
       laborLabel: 'Labor',
       materialsLabel: 'Materials',

@@ -2505,7 +2505,6 @@ export const es: Dictionary = {
       railNoItems: 'Aún no hay artículos',
       photosHelp:
         'Documenta el artículo antes de empezar cualquier trabajo — te protege a ti y al cliente.',
-      estimateLabel: 'Estimado',
       estimateHelp: 'Solo de referencia — fija la cotización oficial después de la recepción.',
       laborLabel: 'Mano de obra',
       materialsLabel: 'Materiales',

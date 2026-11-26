@@ -6,7 +6,6 @@ import {
   Plus,
   Trash,
   Upload,
-  User,
   CheckCircle,
   Wrench,
   Diamond,
@@ -23,6 +22,7 @@ import CustomerPicker, {
   type CustomerPickerHandle,
 } from '@/components/customers/CustomerPicker'
 import QuickCustomerModal from '@/components/customers/QuickCustomerModal'
+import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import {
   ITEM_TYPES,
   KARAT_OPTIONS,
@@ -269,8 +269,7 @@ export default function NewRepairTicketForm({
     setPhotoNames(files.map((f) => f.name))
   }
 
-  const inputCls =
-    'block w-full rounded-lg border-2 border-border bg-background px-3.5 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold'
+  const HINT = 'text-[13px] text-muted'
 
   return (
     <form
@@ -279,47 +278,42 @@ export default function NewRepairTicketForm({
       onSubmit={(e) => {
         if (!canOpen) e.preventDefault()
       }}
+      className="mx-auto w-full max-w-[1440px]"
     >
-      {/* Sub bar */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold">{tn.title}</h1>
-        <div className="flex items-center gap-4">
-          <div
-            role="group"
-            aria-label={tn.viewLabel}
-            className="inline-flex rounded-xl border border-border bg-card p-0.5"
-          >
-            {(['classic', 'simple'] as const).map((v) => {
-              const on = view === v
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => persistView(v)}
-                  className={`min-h-9 rounded-[10px] px-3 text-sm font-bold transition-colors ${
-                    on
-                      ? 'bg-navy text-white'
-                      : 'text-muted hover:text-foreground'
-                  }`}
-                >
-                  {v === 'classic' ? tn.viewClassic : tn.viewSimple}
-                </button>
-              )
-            })}
-          </div>
-          <Link href="/repair" className="text-sm text-muted hover:text-foreground">
-            {t.repair.backToList}
-          </Link>
+      {/* Same page shape as New pawn ticket: no visible title row (the
+          sidebar is the way back), the view switch on top. */}
+      <h1 className="sr-only">{tn.title}</h1>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div
+          role="group"
+          aria-label={tn.viewLabel}
+          className="inline-flex overflow-hidden rounded-md border border-foreground"
+        >
+          {(['classic', 'simple'] as const).map((v) => {
+            const on = view === v
+            return (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={on}
+                onClick={() => persistView(v)}
+                className={`inline-flex h-11 items-center px-5 text-sm font-semibold ${FOCUS} ${
+                  on ? 'bg-foreground text-white' : 'bg-card text-foreground hover:bg-background'
+                }`}
+              >
+                {v === 'classic' ? tn.viewClassic : tn.viewSimple}
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {state.error ? (
-        <div className="mb-4 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+        <div className="mb-6 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
-        <div className="mb-4 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+        <div className="mb-6 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
           {t.common.fixErrorsBelow}
         </div>
       ) : null}
@@ -440,300 +434,221 @@ export default function NewRepairTicketForm({
           fmtMoney={fmtMoney}
         />
       ) : (
-      <div className="grid grid-cols-1 items-start gap-[18px] lg:grid-cols-[1fr_360px]">
-        {/* ── LEFT: work surface ─────────────────────────────────────── */}
-        <div className="space-y-4">
-          {/* Customer */}
-          <fieldset className="rounded-xl border border-border bg-card p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">
-              {tn.sectionCustomer}
-            </legend>
-            <p className="mt-1 text-xs font-medium text-warning">
-              {tn.pickCustomerHelp}
-            </p>
-            <div className="mt-2 flex items-start gap-2">
-              <div className="flex-1">
-                <CustomerPicker
-                  ref={customerPickerRef}
-                  name="customer_id"
-                  required
-                  initialCustomer={selectedCustomer}
-                  error={state.fieldErrors?.customer_id}
-                  onChange={setSelectedCustomer}
-                />
-              </div>
+      <div className="space-y-6">
+        {/* 1 · Customer */}
+        <section className="space-y-2">
+          <h2 className={LABEL}>1 · {tn.sectionCustomer}</h2>
+          <CustomerPicker
+            ref={customerPickerRef}
+            name="customer_id"
+            required
+            enableDlScan
+            size="lg"
+            initialCustomer={selectedCustomer}
+            error={state.fieldErrors?.customer_id}
+            onChange={setSelectedCustomer}
+            trailing={
               <button
                 type="button"
                 onClick={() => setShowCustomerModal(true)}
-                className="shrink-0 rounded-md border border-border bg-card px-3 py-3 text-sm text-foreground hover:bg-background hover:text-foreground"
-              >
-                {tn.newCustomer}
-              </button>
-            </div>
-          </fieldset>
-
-          {/* Items */}
-          <fieldset className="rounded-xl border border-border bg-card p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">
-              {tn.sectionItem}
-            </legend>
-            <p className="mt-1 text-xs text-muted">{tn.itemsHelp}</p>
-            {state.fieldErrors?.line_items ? (
-              <p className="mt-1 text-xs text-danger">{tn.atLeastOneItem}</p>
-            ) : null}
-
-            <div className="mt-3 space-y-3">
-              {items.map((li, idx) => (
-                <LineItemEditor
-                  key={li.uid}
-                  index={idx}
-                  item={li}
-                  canRemove={items.length > 1}
-                  onChange={(patch) => patchItem(li.uid, patch)}
-                  onRemove={() => removeItem(li.uid)}
-                />
-              ))}
-              <button
-                type="button"
-                onClick={addItem}
-                className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
+                className={`${OUTLINE_BTN} h-[52px]`}
               >
                 <Plus size={14} weight="bold" />
-                {tn.addItem}
+                {tn.newCustomer}
               </button>
-            </div>
-
-            {/* Stones (shown when any item is stone-setting / custom) */}
-            {showStones ? (
-              <div className="mt-4 rounded-xl border border-dashed border-border bg-background/50 p-3">
-                <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-gold">
-                  {tn.sectionStones}
-                </h3>
-                <div className="space-y-3">
-                  {stones.map((s, idx) => (
-                    <StoneRowEditor
-                      key={s.uid}
-                      index={idx}
-                      row={s}
-                      onChange={(patch) => patchStone(s.uid, patch)}
-                      onRemove={() => removeStone(s.uid)}
-                    />
-                  ))}
-                  <button
-                    type="button"
-                    onClick={addStone}
-                    className="inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
-                  >
-                    <Plus size={14} weight="bold" />
-                    {tn.addStone}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </fieldset>
-
-          {/* Intake photos */}
-          <fieldset className="rounded-xl border border-border bg-card p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">
-              {tn.sectionPhotos}
-            </legend>
-            <p className="mt-1 text-xs text-muted">{tn.photosHelp}</p>
-            <div className="mt-2">
-              <button
-                type="button"
-                onClick={() => photoInputRef.current?.click()}
-                className="flex w-full flex-col items-center gap-1 rounded-xl border-[1.5px] border-dashed border-border bg-background px-3 py-5 text-center hover:border-gold"
-              >
-                <Upload size={22} weight="regular" className="text-gold" />
-                <span className="text-sm font-bold text-foreground">
-                  {tn.photoUpload}
-                </span>
-                <span className="text-[11.5px] text-muted">
-                  {tn.photoUploadHelp}
-                </span>
-              </button>
-              {photoNames.length > 0 ? (
-                <ul className="mt-2 space-y-1 text-xs text-muted">
-                  {photoNames.map((n, i) => (
-                    <li key={i}>{n}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          </fieldset>
-
-          {/* Repair notes (tech) */}
-          <fieldset className="rounded-xl border border-border bg-card p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">
-              {tn.sectionStaff}
-            </legend>
-            <label className="mt-2 block space-y-1">
-              <span className="text-sm font-medium text-foreground">
-                {tn.notesInternal}
-              </span>
-              <textarea
-                rows={2}
-                value={notesInternal}
-                onChange={(e) => setNotesInternal(e.target.value)}
-                className={inputCls}
-              />
-              <span className="text-xs text-muted">{tn.notesInternalHelp}</span>
-            </label>
-          </fieldset>
-        </div>
-
-        {/* ── RIGHT: ticket summary rail ─────────────────────────────── */}
-        <aside className="rounded-2xl bg-navy p-[18px] text-white shadow-lg lg:sticky lg:top-4">
-          <h2 className="mb-3.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white/50">
-            {tn.railSummaryTitle}
-          </h2>
-
-          {/* Customer chip */}
-          <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gold/15 text-gold">
-              <User size={16} weight="bold" />
-            </span>
-            <span className="min-w-0 truncate text-[13.5px] font-bold">
-              {selectedCustomer?.label ?? tn.railNoCustomer}
-            </span>
-          </div>
-
-          {/* Items summary */}
-          <div className="mb-1 flex items-center justify-between px-0.5">
-            <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-white/55">
-              {tn.railItemsTitle}
-            </span>
-            <span className="text-[12px] font-bold tabular-nums text-white/70">
-              {builtItems.length}
-            </span>
-          </div>
-          {builtItems.length === 0 ? (
-            <p className="mb-3 px-0.5 text-[12px] text-white/45">
-              {tn.railNoItems}
-            </p>
-          ) : (
-            <ul className="mb-3 space-y-1">
-              {builtItems.map((li) => (
-                <li
-                  key={li.uid}
-                  className="flex items-start gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1.5"
-                >
-                  <span className="mt-[3px] h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
-                  <span className="min-w-0">
-                    <span className="block truncate text-[12.5px] font-semibold">
-                      {lineItemTitle(li)}
-                    </span>
-                    {li.work_needed.trim() ? (
-                      <span className="block truncate text-[11px] text-white/55">
-                        {li.work_needed}
-                      </span>
-                    ) : null}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/* Assign technician */}
-          <label className="mt-3 block">
-            <span className="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-white/55">
-              {tn.assignedTo}
-            </span>
-            <select
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              className="h-[42px] w-full rounded-lg border border-white/15 bg-white/[0.07] px-3 text-sm font-bold text-white outline-none focus:border-gold [&>option]:text-navy"
-            >
-              <option value="">{tn.assignedToNone}</option>
-              {technicians.map((tech) => (
-                <option key={tech.id} value={tech.id}>
-                  {tech.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {/* Promised pickup */}
-          <label className="mt-3 block">
-            <span className="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-white/55">
-              {tn.promisedDate}
-            </span>
-            <input
-              type="date"
-              value={promisedDate}
-              onChange={(e) => setPromisedDate(e.target.value)}
-              className="h-[42px] w-full rounded-lg border border-white/15 bg-white/[0.07] px-3 text-sm font-semibold text-white outline-none focus:border-gold"
-            />
-          </label>
-
-          <div className="my-3.5 h-px bg-white/10" />
-
-          {/* Estimate (display-only calculator) */}
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-white/55">
-              {tn.estimateLabel}
-            </span>
-          </div>
-          <RailMoney label={tn.laborLabel} value={labor} onChange={setLabor} />
-          <RailMoney
-            label={tn.materialsLabel}
-            value={materials}
-            onChange={setMaterials}
+            }
           />
-          <div className="flex items-center justify-between px-0.5 py-1.5 text-[13px]">
-            <span className="font-semibold text-white/60">
-              {tn.estimatedTotal}
-            </span>
-            <span className="font-bold tabular-nums">{fmtMoney(estTotal)}</span>
-          </div>
-          <div className="mt-1.5">
-            <RailMoney
-              label={tn.depositLabel}
-              value={deposit}
-              onChange={setDeposit}
-            />
+          <p className={HINT}>{tn.pickCustomerHelp}</p>
+        </section>
+
+        {/* 2 · Items (+ stones when a stone-setting / custom item exists) */}
+        <section className="space-y-3">
+          <div>
+            <h2 className={LABEL}>2 · {tn.sectionItem}</h2>
+            <p className={`mt-1 ${HINT}`}>{tn.itemsHelp}</p>
+            {state.fieldErrors?.line_items ? (
+              <p className="mt-1 text-[13px] font-semibold text-danger">{tn.atLeastOneItem}</p>
+            ) : null}
           </div>
 
-          <div className="my-2 rounded-xl border border-gold/25 bg-gold/10 p-3">
-            <div className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-white/60">
-              {tn.balanceDue}
-            </div>
-            <div className="mt-0.5 text-[27px] font-extrabold tabular-nums">
-              {fmtMoney(estBalance)}
-            </div>
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            {items.map((li, idx) => (
+              <LineItemEditor
+                key={li.uid}
+                index={idx}
+                item={li}
+                canRemove={items.length > 1}
+                onChange={(patch) => patchItem(li.uid, patch)}
+                onRemove={() => removeItem(li.uid)}
+              />
+            ))}
           </div>
-          <p className="mb-1 text-[10.5px] text-white/40">{tn.estimateHelp}</p>
-
-          {/* Open ticket */}
-          <button
-            type="submit"
-            disabled={!canOpen}
-            className="mt-1 flex h-14 w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-b from-gold-2 to-gold text-base font-extrabold text-[#3a2600] shadow-lg transition-all hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:hover:translate-y-0"
-          >
-            <CheckCircle size={18} weight="bold" />
-            {pending ? tn.submitting : tn.submit}
+          <button type="button" onClick={addItem} className={OUTLINE_BTN}>
+            <Plus size={14} weight="bold" />
+            {tn.addItem}
           </button>
 
-          <Link
-            href="/repair"
-            className="mt-2.5 flex h-11 w-full items-center justify-center rounded-xl border border-white/13 bg-white/[0.07] text-[13px] font-bold text-white hover:bg-white/12"
-          >
-            {t.common.cancel}
-          </Link>
-
-          {!canOpen && !pending ? (
-            <p className="mt-2.5 text-center text-[11.5px] font-semibold text-white/50">
-              {tn.railMissingHint}
-            </p>
+          {showStones ? (
+            <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+              <h3 className={LABEL}>{tn.sectionStones}</h3>
+              {stones.map((s, idx) => (
+                <StoneRowEditor
+                  key={s.uid}
+                  index={idx}
+                  row={s}
+                  onChange={(patch) => patchStone(s.uid, patch)}
+                  onRemove={() => removeStone(s.uid)}
+                />
+              ))}
+              <button type="button" onClick={addStone} className={OUTLINE_BTN}>
+                <Plus size={14} weight="bold" />
+                {tn.addStone}
+              </button>
+            </div>
           ) : null}
-        </aside>
+        </section>
+
+        {/* 3 · Intake photos · Repair notes */}
+        <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <h2 className={LABEL}>3 · {tn.sectionPhotos}</h2>
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className={OUTLINE_BTN}
+            >
+              <Upload size={16} weight="bold" />
+              {tn.photoUpload}
+            </button>
+            <p className={HINT}>{tn.photosHelp}</p>
+            {photoNames.length > 0 ? (
+              <ul className="space-y-1 text-[13px] text-foreground">
+                {photoNames.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          <label className="block space-y-2">
+            <span className={`block ${LABEL}`}>{tn.notesInternal}</span>
+            <textarea
+              rows={3}
+              value={notesInternal}
+              onChange={(e) => setNotesInternal(e.target.value)}
+              className={`block w-full rounded-md border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-blue ${FOCUS}`}
+            />
+            <span className={`block ${HINT}`}>{tn.notesInternalHelp}</span>
+          </label>
+        </section>
+
+        {/* Ticket summary bar: terms · summary · balance + actions
+            (the same bar as New pawn ticket's loan summary). */}
+        <section
+          aria-label={tn.railSummaryTitle}
+          className="grid grid-cols-1 divide-y divide-border rounded-lg border border-foreground bg-card lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] lg:divide-x lg:divide-y-0"
+        >
+          {/* a. Technician · pickup · estimate */}
+          <div className="space-y-3 p-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className={`block ${LABEL}`}>{tn.assignedTo}</span>
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  className={INPUT}
+                >
+                  <option value="">{tn.assignedToNone}</option>
+                  {technicians.map((tech) => (
+                    <option key={tech.id} value={tech.id}>
+                      {tech.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block space-y-1.5">
+                <span className={`block ${LABEL}`}>{tn.promisedDate}</span>
+                <input
+                  type="date"
+                  value={promisedDate}
+                  onChange={(e) => setPromisedDate(e.target.value)}
+                  className={`${INPUT} font-mono`}
+                />
+              </label>
+              <MoneyField label={tn.laborLabel} value={labor} onChange={setLabor} />
+              <MoneyField label={tn.materialsLabel} value={materials} onChange={setMaterials} />
+              <MoneyField label={tn.depositLabel} value={deposit} onChange={setDeposit} />
+            </div>
+            <p className={HINT}>{tn.estimateHelp}</p>
+          </div>
+
+          {/* b. Summary */}
+          <dl className="space-y-4 p-5 text-sm">
+            <div>
+              <dt className={LABEL}>{tn.sectionCustomer}</dt>
+              <dd className="mt-1 font-semibold text-foreground">
+                {selectedCustomer?.label ?? (
+                  <span className="font-normal text-muted">{tn.railNoCustomer}</span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className={LABEL}>
+                {tn.railItemsTitle}{' '}
+                <span className="font-mono tabular-nums">({builtItems.length})</span>
+              </dt>
+              {builtItems.length === 0 ? (
+                <dd className="mt-1 text-muted">{tn.railNoItems}</dd>
+              ) : (
+                builtItems.map((li) => (
+                  <dd key={li.uid} className="mt-1 text-foreground">
+                    <span className="font-semibold">{lineItemTitle(li)}</span>
+                    {li.work_needed.trim() ? (
+                      <span className="text-muted"> · {li.work_needed}</span>
+                    ) : null}
+                  </dd>
+                ))
+              )}
+            </div>
+            <div>
+              <dt className={LABEL}>{tn.estimatedTotal}</dt>
+              <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">
+                {fmtMoney(estTotal)}
+              </dd>
+            </div>
+          </dl>
+
+          {/* c. Balance + actions */}
+          <div className="space-y-3 p-5">
+            <div>
+              <div className={LABEL}>{tn.balanceDue}</div>
+              <div className="mt-1 font-mono text-[40px] font-bold leading-tight tabular-nums text-foreground">
+                {fmtMoney(estBalance)}
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={!canOpen}
+              className={`${PRIMARY_BTN} h-14 w-full text-base`}
+            >
+              <CheckCircle size={18} weight="bold" />
+              {pending ? tn.submitting : tn.submit}
+            </button>
+            <Link href="/repair" className={`${OUTLINE_BTN} w-full`}>
+              {t.common.cancel}
+            </Link>
+            {!canOpen && !pending ? (
+              <p className={`${HINT} text-center`}>{tn.railMissingHint}</p>
+            ) : null}
+          </div>
+        </section>
       </div>
       )}
     </form>
   )
 }
 
-function RailMoney({
+/** A money input with its label above and a "$" inside (display-only estimate). */
+function MoneyField({
   label,
   value,
   onChange,
@@ -743,21 +658,21 @@ function RailMoney({
   onChange: (v: string) => void
 }) {
   return (
-    <div className="relative mb-2.5">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-bold text-white/50">
-        $
-      </span>
-      <input
-        inputMode="decimal"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="0.00"
-        className="h-10 w-full rounded-lg border border-white/15 bg-white/[0.07] pl-7 pr-16 text-sm font-bold tabular-nums text-white outline-none focus:border-gold"
-      />
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10.5px] font-bold uppercase text-white/45">
-        {label}
-      </span>
-    </div>
+    <label className="block space-y-1.5">
+      <span className={`block ${LABEL}`}>{label}</span>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm font-semibold text-muted">
+          $
+        </span>
+        <input
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0.00"
+          className={`${INPUT} pl-7 font-mono tabular-nums`}
+        />
+      </div>
+    </label>
   )
 }
 
@@ -786,7 +701,7 @@ function LineItemEditor({
   const chipOff = 'border-border bg-card text-muted hover:border-gold'
 
   return (
-    <div className="rounded-xl border border-border bg-background/40 p-3">
+    <div className="rounded-lg border border-border bg-card p-4">
       <div className="mb-2 flex items-center justify-between">
         <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-mono text-foreground">
           {tn.itemLabel.replace('{n}', String(index + 1))}
@@ -804,7 +719,7 @@ function LineItemEditor({
       </div>
 
       {/* Item type chips */}
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+      <div className={LABEL}>
         {tn.itemType}
       </div>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -826,7 +741,7 @@ function LineItemEditor({
       </div>
 
       {/* Karat chips */}
-      <div className="mt-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+      <div className={`mt-3 ${LABEL}`}>
         {tn.karat}
       </div>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -848,7 +763,7 @@ function LineItemEditor({
       {/* Weight + dimension */}
       <div className="mt-2.5 grid grid-cols-2 gap-2">
         <label className="block space-y-1">
-          <span className="text-[11px] font-medium text-foreground">
+          <span className={`block ${LABEL}`}>
             {tn.weightGrams}
           </span>
           <input
@@ -858,11 +773,11 @@ function LineItemEditor({
             value={item.weight_grams}
             onChange={(e) => onChange({ weight_grams: e.target.value })}
             placeholder={tn.weightPlaceholder}
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className={INPUT}
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-[11px] font-medium text-foreground">
+          <span className={`block ${LABEL}`}>
             {tn.dimension}
           </span>
           <input
@@ -870,13 +785,13 @@ function LineItemEditor({
             value={item.dimension}
             onChange={(e) => onChange({ dimension: e.target.value })}
             placeholder={tn.dimensionPlaceholder}
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className={INPUT}
           />
         </label>
       </div>
 
       {/* Service chips */}
-      <div className="mt-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+      <div className={`mt-3 ${LABEL}`}>
         {tn.service}
       </div>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -899,7 +814,7 @@ function LineItemEditor({
 
       {/* Work needed */}
       <label className="mt-2.5 block space-y-1">
-        <span className="text-[11px] font-medium text-foreground">
+        <span className={`block ${LABEL}`}>
           {tn.workNeeded}
         </span>
         <input
@@ -907,7 +822,7 @@ function LineItemEditor({
           value={item.work_needed}
           onChange={(e) => onChange({ work_needed: e.target.value })}
           placeholder={tn.workNeededPlaceholder}
-          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+          className={INPUT}
         />
       </label>
 
@@ -939,7 +854,7 @@ function StoneRowEditor({
 }) {
   const { t } = useI18n()
   return (
-    <div className="rounded-lg border border-border bg-background/40 p-3">
+    <div className="rounded-md border border-border bg-background p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-mono text-foreground">
           {t.repair.new_.stoneIndex} {index + 1}
@@ -1004,7 +919,7 @@ function StoneRowEditor({
           onChange={(v) => onChange({ mounting_position: v })}
         />
         <label className="md:col-span-2 block space-y-1">
-          <span className="text-xs font-medium text-foreground">
+          <span className={`block ${LABEL}`}>
             {t.repair.new_.stoneSource}
           </span>
           <select
@@ -1014,7 +929,7 @@ function StoneRowEditor({
                 source: e.target.value as 'customer_supplied' | 'shop_supplied',
               })
             }
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className={INPUT}
           >
             <option value="customer_supplied">
               {t.repair.new_.stoneSourceCustomer}
@@ -1025,14 +940,14 @@ function StoneRowEditor({
           </select>
         </label>
         <label className="md:col-span-6 block space-y-1">
-          <span className="text-xs font-medium text-foreground">
+          <span className={`block ${LABEL}`}>
             {t.repair.new_.stoneNotes}
           </span>
           <input
             type="text"
             value={row.notes}
             onChange={(e) => onChange({ notes: e.target.value })}
-            className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+            className={INPUT}
           />
         </label>
       </div>
@@ -1063,7 +978,7 @@ function Input({
     span === 2 ? 'md:col-span-2' : span === 3 ? 'md:col-span-3' : ''
   return (
     <label className={`block space-y-1 ${colSpan}`}>
-      <span className="text-xs font-medium text-foreground">{label}</span>
+      <span className={`block ${LABEL}`}>{label}</span>
       <input
         type={type}
         step={step}
@@ -1071,7 +986,7 @@ function Input({
         required={required}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+        className={INPUT}
       />
     </label>
   )
