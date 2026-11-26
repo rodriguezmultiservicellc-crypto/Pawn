@@ -2248,7 +2248,7 @@ export const es: Dictionary = {
         balance: 'Saldo pendiente',
         tracking: 'Siga su reparación en línea',
       },
-      columns: { item: 'Artículo', work: 'Trabajo solicitado', weight: 'Peso', stone: 'Piedra', source: 'Provista por' },
+      columns: { item: 'Artículo', work: 'Trabajo solicitado', weight: 'Peso', price: 'Precio', stone: 'Piedra', source: 'Provista por' },
       stoneSource: { customer_supplied: 'Cliente', shop_supplied: 'Tienda' },
       quotePending: 'Cotización pendiente',
       abandonNotice:

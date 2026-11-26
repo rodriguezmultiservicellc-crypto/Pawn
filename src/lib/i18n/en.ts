@@ -2260,7 +2260,7 @@ export const en = {
         balance: 'Balance due',
         tracking: 'Track your repair online',
       },
-      columns: { item: 'Item', work: 'Work requested', weight: 'Weight', stone: 'Stone', source: 'Supplied by' },
+      columns: { item: 'Item', work: 'Work requested', weight: 'Weight', price: 'Price', stone: 'Stone', source: 'Supplied by' },
       stoneSource: { customer_supplied: 'Customer', shop_supplied: 'Shop' },
       quotePending: 'Quote pending',
       abandonNotice:

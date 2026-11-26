@@ -43,7 +43,7 @@ export async function renderRepairTicketPdf(args: {
       .maybeSingle(),
     admin
       .from('repair_ticket_line_items')
-      .select('title, work_needed, weight_grams')
+      .select('title, work_needed, weight_grams, price')
       .eq('ticket_id', ticketId)
       .is('deleted_at', null)
       .order('line_index'),
@@ -103,6 +103,7 @@ export async function renderRepairTicketPdf(args: {
       title: li.title,
       work_needed: li.work_needed,
       weight_grams: li.weight_grams == null ? null : Number(li.weight_grams),
+      price: li.price == null ? null : Number(li.price),
     })),
     stones: (stones ?? []).map((st) => ({
       stone_index: st.stone_index,

@@ -15,6 +15,8 @@ export type RepairTicketPDFLineItem = {
   title: string
   work_needed: string | null
   weight_grams: number | null
+  /** What the shop charges for this item (patches/0122); null = not priced. */
+  price: number | null
 }
 
 export type RepairTicketPDFStone = {
@@ -122,28 +124,35 @@ export default function RepairTicketPDF({ data }: { data: RepairTicketPDFData })
         <Title en={en.sections.items} es={es.sections.items} />
         <View style={s.table}>
           <View style={s.tableHeader}>
-            <Text style={[s.tableHeaderCell, { width: '40%' }]}>
+            <Text style={[s.tableHeaderCell, { width: '33%' }]}>
               {en.columns.item}
               <Text style={s.tableHeaderCellEs}> / {es.columns.item}</Text>
             </Text>
-            <Text style={[s.tableHeaderCell, { width: '45%' }]}>
+            <Text style={[s.tableHeaderCell, { width: '41%' }]}>
               {en.columns.work}
               <Text style={s.tableHeaderCellEs}> / {es.columns.work}</Text>
             </Text>
-            <Text style={[s.tableHeaderCell, { width: '15%', textAlign: 'right' }]}>
+            <Text style={[s.tableHeaderCell, { width: '12%', textAlign: 'right' }]}>
               {en.columns.weight}
               <Text style={s.tableHeaderCellEs}> / {es.columns.weight}</Text>
+            </Text>
+            <Text style={[s.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>
+              {en.columns.price}
+              <Text style={s.tableHeaderCellEs}> / {es.columns.price}</Text>
             </Text>
           </View>
           {(data.line_items.length > 0
             ? data.line_items
-            : [{ title: data.item_description, work_needed: data.title, weight_grams: null }]
+            : [{ title: data.item_description, work_needed: data.title, weight_grams: null, price: null }]
           ).map((li, i) => (
             <View key={i} style={s.tableRow}>
-              <Text style={[s.tableCell, { width: '40%' }]}>{li.title}</Text>
-              <Text style={[s.tableCell, { width: '45%' }]}>{li.work_needed ?? '—'}</Text>
-              <Text style={[s.tableCellMono, { width: '15%' }]}>
+              <Text style={[s.tableCell, { width: '33%' }]}>{li.title}</Text>
+              <Text style={[s.tableCell, { width: '41%' }]}>{li.work_needed ?? '—'}</Text>
+              <Text style={[s.tableCellMono, { width: '12%' }]}>
                 {li.weight_grams == null ? '—' : `${Math.round(li.weight_grams * 1000) / 1000} g`}
+              </Text>
+              <Text style={[s.tableCellMono, { width: '14%' }]}>
+                {li.price == null ? '—' : pdfMoney(li.price)}
               </Text>
             </View>
           ))}

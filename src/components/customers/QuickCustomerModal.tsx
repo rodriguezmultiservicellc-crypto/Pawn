@@ -20,6 +20,7 @@ import {
 } from '@/app/(staff)/customers/new/inline-actions'
 import type { PickerCustomerResult } from '@/lib/customers/picker-search'
 import { scanFields, type CustomerScan } from '@/lib/customers/scan-prefill'
+import DlScanner from '@/components/customers/DlScanner'
 
 /**
  * Inline "new customer" modal. Creates a customer via a server action that
@@ -56,9 +57,14 @@ export default function QuickCustomerModal({
   // height_inches value Zod consumes (mirrors CustomerFormFields).
   const [heightFeet, setHeightFeet] = useState('')
   const [heightInches, setHeightInches] = useState('')
-  const v = prefill ? scanFields(prefill.info) : null
-  // Each time the popup opens, the height boxes start from the scan (or
-  // empty). Set during render, not in an effect (react-hooks rule).
+  // The license this form was filled from: the one handed in (`prefill`,
+  // a scan the picker could not match) or one scanned here with the
+  // popup's own Scan ID button.
+  const [scan, setScan] = useState<CustomerScan | null>(null)
+  const v = scan ? scanFields(scan.info) : null
+  const formRef = useRef<HTMLFormElement>(null)
+  // Each time the popup opens it starts from `prefill` (or empty). Set
+  // during render, not in an effect (react-hooks rule).
   const [openedFor, setOpenedFor] = useState<{ open: boolean; prefill: CustomerScan | null }>({
     open: false,
     prefill: null,
@@ -66,11 +72,31 @@ export default function QuickCustomerModal({
   if (open !== openedFor.open || prefill !== openedFor.prefill) {
     setOpenedFor({ open, prefill })
     if (open) {
-      const h = v?.height_inches
+      setScan(prefill)
+      const h = prefill ? scanFields(prefill.info).height_inches : undefined
       setHeightFeet(h != null ? String(Math.floor(h / 12)) : '')
       setHeightInches(h != null ? String(h % 12) : '')
     }
   }
+  // A license scanned with the form open: every field the license carries
+  // replaces what is in the box; the rest of what the clerk typed stays.
+  // The inputs are uncontrolled (a refused save keeps them), so they are
+  // written directly.
+  function applyScan(info: CustomerScan['info'], raw: string) {
+    const f = scanFields(info)
+    const form = formRef.current
+    for (const [k, val] of Object.entries(f)) {
+      if (k === 'height_inches' || k === 'middle_name' || k === 'id_country') continue
+      const el = form?.elements.namedItem(k)
+      if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) el.value = String(val)
+    }
+    if (f.height_inches != null) {
+      setHeightFeet(String(Math.floor(f.height_inches / 12)))
+      setHeightInches(String(f.height_inches % 12))
+    }
+    setScan({ info, raw })
+  }
+
   const today = new Date().toISOString().slice(0, 10)
   const expired = !!v?.id_expiry && v.id_expiry < today
   const composedHeight = (() => {
@@ -145,14 +171,15 @@ export default function QuickCustomerModal({
 
         {/* onSubmit, not action: a refused save must not wipe what was typed. */}
         <form
+          ref={formRef}
           onSubmit={submitKeepingValues(formAction)}
           className="flex min-h-0 flex-1 flex-col"
         >
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {prefill ? (
+          {scan ? (
             <div className="rounded-md border border-info/30 bg-info/5 px-3 py-2 text-sm text-foreground">
               {t.dlScanner.autoFilled} ✓
-              <input type="hidden" name="dl_raw_payload" value={prefill.raw} />
+              <input type="hidden" name="dl_raw_payload" value={scan.raw} />
               <input type="hidden" name="id_country" value="US" />
               {v?.middle_name ? <input type="hidden" name="middle_name" value={v.middle_name} /> : null}
             </div>
@@ -360,6 +387,11 @@ export default function QuickCustomerModal({
           </div>
 
           <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-5 py-3">
+            {/* Scan the back of the license: fills the form from it. */}
+            <DlScanner
+              onResult={applyScan}
+              className="mr-auto inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-background"
+            />
             <button
               type="button"
               onClick={onClose}
