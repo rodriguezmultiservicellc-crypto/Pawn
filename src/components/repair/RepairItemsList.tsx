@@ -12,6 +12,7 @@ import {
   itemTypeLabelEn,
 } from '@/lib/repair/line-items'
 import type { ServiceType } from '@/types/database-aliases'
+import { appendWorkPhrase } from '@/lib/repair/work-presets'
 
 /**
  * Step 2 of New repair ticket, laid out like the pawn ticket's items (Eddy,
@@ -202,6 +203,21 @@ function ItemRow({
   const fieldId = useId()
   // A new item starts on its photos; an item already on the ticket on Item.
   const [step, setStep] = useState<Step>('photos')
+  const workRef = useRef<HTMLTextAreaElement>(null)
+
+  /** A ready-made phrase goes on its own line; its "#" is selected so the
+   *  clerk types the number right over it. */
+  function addPhrase(phrase: string) {
+    const { text, blank } = appendWorkPhrase(item.work_needed, phrase)
+    onChange({ work_needed: text })
+    requestAnimationFrame(() => {
+      const el = workRef.current
+      if (!el) return
+      el.focus()
+      const [s, e] = blank ?? [text.length, text.length]
+      el.setSelectionRange(s, e)
+    })
+  }
 
   useEffect(() => {
     const d = dialogRef.current
@@ -437,16 +453,38 @@ function ItemRow({
                         ))}
                       </div>
                     </div>
-                    <label className="block space-y-1.5">
-                      <span className={`block ${LABEL}`}>{tn.workNeeded}</span>
-                      <textarea
-                        rows={3}
-                        value={item.work_needed}
-                        onChange={(e) => onChange({ work_needed: e.target.value })}
-                        placeholder={tn.workNeededPlaceholder}
-                        className={`block w-full rounded-md border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-blue ${FOCUS}`}
-                      />
-                    </label>
+                    {/* Left: ready-made phrases for this service; a click adds
+                        one to the work needed. Right: the work itself. */}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                      <div className="space-y-1.5">
+                        <span className={`block ${LABEL}`}>{tn.workPresetsTitle}</span>
+                        <div className="flex flex-col gap-1.5">
+                          {tn.workPresets[item.service_type].map((phrase) => (
+                            <button
+                              key={phrase}
+                              type="button"
+                              onClick={() => addPhrase(phrase)}
+                              className={`flex min-h-11 items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-left text-sm text-foreground transition-colors hover:border-blue hover:bg-background ${FOCUS}`}
+                            >
+                              <Plus size={12} weight="bold" className="shrink-0 text-muted" />
+                              {phrase}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[13px] text-muted">{tn.workPresetsHelp}</p>
+                      </div>
+                      <label className="flex flex-col space-y-1.5">
+                        <span className={`block ${LABEL}`}>{tn.workNeeded}</span>
+                        <textarea
+                          ref={workRef}
+                          rows={10}
+                          value={item.work_needed}
+                          onChange={(e) => onChange({ work_needed: e.target.value })}
+                          placeholder={tn.workNeededPlaceholder}
+                          className={`block min-h-56 w-full flex-1 rounded-md border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-blue ${FOCUS}`}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
 

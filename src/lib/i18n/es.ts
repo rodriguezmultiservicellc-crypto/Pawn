@@ -2507,6 +2507,19 @@ export const es: Dictionary = {
       railMissingHint: 'Elige un cliente y agrega al menos un artículo',
       photosInvalid: 'No se encontró una foto de un artículo. Quítala y tómala de nuevo.',
       // ── Artículos como en el boleto de empeño: botones, tabla, ventana por artículo ──
+      // Frases listas para Trabajo a realizar, por servicio. El "#" es lo
+      // que completa el empleado (queda seleccionado al insertar).
+      workPresetsTitle: 'Trabajos comunes',
+      workPresetsHelp: 'Haz clic para agregarlo al trabajo a realizar.',
+      workPresets: {
+        repair: ['Soldar cadena rota', 'Soldar junto al broche', 'Cambiar broche', 'Cambiar argolla', 'Arreglar uñas', 'Cambiar pila de reloj', 'Acortar correa de reloj # eslabones', 'Limpiar y pulir'],
+        stone_setting: ['Montar piedra del cliente', 'Apretar piedras', 'Reponer piedra faltante', 'Reconstruir punta de # uñas', 'Reconstruir uñas'],
+        sizing: ['Subir anillo a talla #', 'Bajar anillo a talla #', 'Poner bolitas de ajuste', 'Acortar cadena a # pulg', 'Alargar cadena a # pulg'],
+        restring: ['Ensartar perlas con nudos', 'Ensartar perlas sin nudos', 'Ensartar cuentas', 'Broche nuevo al ensartar'],
+        plating: ['Baño de rodio', 'Baño de oro amarillo', 'Baño de oro rosado'],
+        engraving: ['Grabar por dentro: #', 'Grabar atrás: #', 'Grabar al frente: #'],
+        custom: ['Hacer según diseño del cliente', 'Cotizar antes de empezar', 'El cliente trae el oro'],
+      },
       list: {
         colNo: '#',
         colItem: 'Artículo',

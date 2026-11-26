@@ -2518,6 +2518,19 @@ export const en = {
       balanceDue: 'Balance due at pickup',
       railMissingHint: 'Pick a customer and add at least one item',
       photosInvalid: 'A photo of an item could not be found. Remove it and take it again.',
+      // Ready-made phrases for Work needed, by service (Eddy, 2026-11-26). A
+      // "#" is the spot the clerk fills in (it is selected after insert).
+      workPresetsTitle: 'Common work',
+      workPresetsHelp: 'Click to add it to the work needed.',
+      workPresets: {
+        repair: ['Solder chain break', 'Solder by clasp', 'Replace clasp', 'Replace jump ring', 'Fix prongs', 'Replace watch battery', 'Shorten watch band # links', 'Clean and polish'],
+        stone_setting: ['Set customer stone', 'Tighten stones', 'Replace missing stone', 'Retip # prongs', 'Rebuild prongs'],
+        sizing: ['Size ring up to #', 'Size ring down to #', 'Add sizing beads', 'Shorten chain to # in', 'Lengthen chain to # in'],
+        restring: ['Restring pearls with knots', 'Restring pearls, no knots', 'Restring beads', 'New clasp on restring'],
+        plating: ['Rhodium plating', 'Yellow gold plating', 'Rose gold plating'],
+        engraving: ['Engrave inside: #', 'Engrave back: #', 'Engrave front: #'],
+        custom: ['Make to customer design', 'Quote before starting', 'Customer supplies the gold'],
+      },
       // ── Items like the pawn ticket: pills, table, popup per item ──
       list: {
         colNo: '#',
