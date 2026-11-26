@@ -60,7 +60,35 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 74 (2026-11-26, saved ~01:40), items 643-644.
+  Last session:   Session 75 (2026-11-26, saved ~11:30), items 645-660.
+                  Context budget at save: high (compacted once; START FRESH).
+                  FIVE MIGRATIONS, ALL APPLIED TO THE LIVE DB: 0118
+                  (repair_drafts + 2 staff RLS policies, Eddy approved),
+                  0119 (repair_ticket_photos.line_item_id), 0120 + 0121
+                  (service_type 'nameplate' + its stages), 0122
+                  (repair_ticket_line_items.price). main ==
+                  feature/sol-pawn-brief (bd68965). Nothing is half-built.
+                  Built + pushed: New repair ticket rebuilt like New pawn
+                  (items in popups, browser photo upload, work phrases,
+                  price per item, QR handoff); scanned license with no
+                  customer -> popup -> New customer filled from it; phone
+                  digits find a formatted phone; customer + history on one
+                  row on New pawn / New repair / New sale, Show -> popup.
+                  ACTIVE FILES: src/components/customers/
+                  {CustomerHistoryCard,CustomerPicker,QuickCustomerModal}.tsx,
+                  src/components/repair/RepairItemsList.tsx,
+                  src/app/(staff)/repair/new/{form,actions}.tsx,
+                  src/lib/customers/{search,scan-prefill}.ts.
+                  RESUME POINT: nothing half-built; only tsc / lint / tests /
+                  build ran (and one read-only DB check of the phone search).
+                  Have Eddy try LIVE: 1. New repair ticket: two items with
+                  photos + prices -> opens Quoted; QR to the phone. 2. Scan a
+                  license nobody has -> popup -> Add customer filled. 3. Type
+                  8136475237 in a customer search. 4. Pick a customer on New
+                  pawn / repair / sale -> history card beside / under ->
+                  Show tickets popup. Then the Session 74 list below.
+
+  Session 74 (2026-11-26, saved ~01:40), items 643-644.
                   Context budget at save: very high (START FRESH).
                   No migration. main == feature/sol-pawn-brief. Nothing
                   is half-built. Built + pushed (6211d6a): an item filled
@@ -1278,6 +1306,59 @@ sessions are there.)
        not flagged. Not tried live.
 
   644. /progress — Session 74 checkpoint.
+
+--- Session 75 (2026-11-26) — New repair ticket like New pawn (popups, browser photos, phrases, price, QR), scan -> add customer, phone search, customer history cards ---
+
+  645. QUICK NEW CUSTOMER POPUP fits the window (only the fields scroll)
+       and asks for the address; address1 / city / state / zip REQUIRED,
+       checked again in createCustomerInlineAction (INLINE_REQUIRED_ADDRESS).
+  646. /pawn/calculator REMOVED (page, sidebar entry, nav.loanCalculator).
+  647. New sale: "POS / New sale" breadcrumb removed (sr-only h1).
+  648. SIDEBAR AND PAGE SCROLL APART: the nav is sticky h-dvh overflow-y-auto.
+  649. NEW REPAIR TICKET LOOKS LIKE NEW PAWN: Classic / Simple switch,
+       customer section (scan ID, New customer), items, notes, 3-column
+       summary bar.
+  650. QR HANDOFF FOR NEW REPAIR (0118 repair_drafts + 2 staff policies,
+       approved by Eddy). draft-handoff.ts functions take the table;
+       upsertRepairDraft + draft-payload.ts. DraftHandoff kind pawn|repair.
+       CLAUDE.md 32.
+  651. REPAIR ITEMS LIKE PAWN ITEMS + PHOTOS FROM THE BROWSER (0119):
+       RepairItemsList (pills, table, popup Photos · Item · Service);
+       PhotoStrip into repair-photos, confirmIntakePhotos before any write;
+       repair_ticket_photos.line_item_id. Bucket now a REQUIRED argument
+       (IntakePhotoBucket). CLAUDE.md 28.
+  652. WORK PHRASES: Service step = ready-made phrases left ("Size ring up
+       to #", cursor lands on #), the work textarea right
+       (lib/repair/work-presets.ts appendWorkPhrase).
+  653. NAMEPLATE IS A SERVICE (0120 enum value, 0121 its stages); labels,
+       badges, board, portal, simple view.
+  654. "Continue on another device" in the same spot on every New ticket
+       (top right); pawn's moved up from the summary bar.
+  655. PRICE PER REPAIR ITEM (0122 repair_ticket_line_items.price
+       NUMERIC(18,4)): popup field, table column, Items total in the bar.
+       Every item priced -> the ticket opens quoted through the new shared
+       applyRepairQuote (lib/repair/quote.ts, also behind Set quote).
+  656. SCANNED LICENSE WITH NO CUSTOMER -> POPUP: Add customer (New
+       customer opens filled from the license, dl_raw_payload kept) or
+       Search another way. CustomerPicker onAddFromScan, QuickCustomerModal
+       prefill, one mapping scanFields() (lib/customers/scan-prefill.ts)
+       also used by the full New customer page. Pawn + repair.
+  657. NEW PAWN TOP ROW: pawn history moved out (it made the row tall);
+       then Eddy's customer-row-compact.patch applied: picked customer and
+       history on ONE row (CustomerPicker afterSelected).
+  658. [BUG] PHONE SEARCH: "8136475237" found nobody — phones are stored
+       formatted "(813) 647-5237" and the search ilike'd the word as typed.
+       customerSearchFilters now matches a number-like word against phone
+       by its digits (phone.match.8[^0-9]*1…; phoneDigits drops a leading
+       US 1). Checked read-only against the live DB: finds Rodriguez1.
+  659. CUSTOMER HISTORY CARDS: one CustomerHistoryCard (pawn moved onto it);
+       Repair history on New repair (lib/repair/customer-history.ts +
+       repair/new/history-actions.ts) and Purchases + layaways on New sale
+       (lib/pos/customer-history.ts + pos/sales/new/history-actions.ts;
+       under the customer, the picker is the small size there). Show
+       tickets / Show sales opens a popup like Pawned before; rows open in
+       a new tab.
+  660. /progress — Session 75 checkpoint.
 
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
@@ -2800,6 +2881,15 @@ PENDING — NEXT UP
 
   IMMEDIATE (do this first next session):
     REMEMBER: the shop still runs on xPawn; nothing uploads from Pawn.
+    Session 75 — have Eddy try on the live site (RESUME block list 1-4):
+    New repair ticket (items, photos, prices -> quoted, QR), scan -> Add
+    customer, phone-digit search, the history cards + Show popup.
+    Not built (offer): item prices on the printed repair ticket; the
+    Simple repair view still has its own labor / materials estimate (never
+    saved) and no per-item price; Deposit on New repair records no money
+    (collected on the ticket page); work phrases are fixed, not
+    shop-editable (would need a table + RLS approval); Buy outright scan
+    still shows the old notice (no popup there).
     Session 74 — have Eddy try: a voice item opens its popup and blocks
     Issue until Done; a resumed draft brings back brand / model / stones.
     Draft 64f555ba's Rolex was saved before the flag: check it by hand.
