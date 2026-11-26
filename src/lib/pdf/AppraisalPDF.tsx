@@ -30,6 +30,7 @@ import {
   View,
 } from '@react-pdf/renderer'
 import { reportColors } from '@/lib/tokens'
+import { purityScaleOf, purityText } from '@/lib/spot-prices/purity'
 import type { Dictionary } from '@/lib/i18n/en'
 import type {
   AppraisalPurpose,
@@ -454,6 +455,8 @@ function Field({
 export default function AppraisalPDF({ data }: { data: AppraisalPdfData }) {
   const en = data.i18n.en.appraisal.print
   const es = data.i18n.es.appraisal.print
+  // Silver / platinum / palladium are written in parts per thousand.
+  const purityIsFineness = purityScaleOf(data.metal_type) === 'fineness'
 
   const tenantSubline = joinAddress([
     data.tenant.address,
@@ -589,9 +592,9 @@ export default function AppraisalPDF({ data }: { data: AppraisalPdfData }) {
             width="third"
           />
           <Field
-            labelEn={en.fields.karat}
-            labelEs={es.fields.karat}
-            value={data.karat == null ? '—' : `${data.karat}k`}
+            labelEn={purityIsFineness ? data.i18n.en.pawn.new_.itemPurity : en.fields.karat}
+            labelEs={purityIsFineness ? data.i18n.es.pawn.new_.itemPurity : es.fields.karat}
+            value={purityText(data.metal_type, data.karat) || '—'}
             mono
             width="third"
           />

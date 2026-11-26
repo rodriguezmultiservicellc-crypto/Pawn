@@ -33,7 +33,8 @@ export default async function NewAppraisalPage(props: {
     label: `${i.sku} — ${i.description}`,
     description: i.description,
     metal: i.metal,
-    karat: i.karat == null ? null : Number(i.karat),
+    // TEXT as inventory keeps it ("14K", "925"); Number("14K") was NaN.
+    karat: i.karat == null ? null : String(i.karat),
     weight_grams: i.weight_grams == null ? null : Number(i.weight_grams),
   }))
 

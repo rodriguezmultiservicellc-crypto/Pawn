@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidPurity } from '@/lib/spot-prices/purity'
 
 /**
  * Appraisal Zod schemas — create, update, finalize, void, photos, stones.
@@ -149,6 +150,17 @@ export const appraisalInitialStonesArraySchema = z
   .optional()
   .default([])
 
+// ── Purity follows the metal (lib/spot-prices/purity, CLAUDE.md rule 31) ────
+
+function checkAppraisalPurity(
+  val: { metal_type?: string | null; karat?: number | null },
+  ctx: z.RefinementCtx,
+): void {
+  if (val.karat != null && !isValidPurity(val.metal_type ?? null, val.karat)) {
+    ctx.addIssue({ code: 'custom', path: ['karat'], message: 'karat_for_metal' })
+  }
+}
+
 // ── Create appraisal ────────────────────────────────────────────────────────
 
 export const appraisalCreateSchema = z.object({
@@ -166,7 +178,7 @@ export const appraisalCreateSchema = z.object({
   valid_from: requiredDate,
   valid_until: optionalDate,
   stones: appraisalInitialStonesArraySchema,
-})
+}).superRefine(checkAppraisalPurity)
 
 export type AppraisalCreateInput = z.infer<typeof appraisalCreateSchema>
 
@@ -198,7 +210,7 @@ export const appraisalUpdateSchema = z.object({
   notes: optionalTrimmedString,
   valid_from: optionalDate,
   valid_until: optionalDate,
-})
+}).superRefine(checkAppraisalPurity)
 
 export type AppraisalUpdateInput = z.infer<typeof appraisalUpdateSchema>
 

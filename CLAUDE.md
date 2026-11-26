@@ -471,13 +471,15 @@ Never kill node processes by image name — always by PID.
       server schemas (loan collateral, buy item, inventory item).
     - The field is ONE component, `PurityField`
       (`src/components/pawn/PurityField.tsx`): pawn popup, Buy outright,
-      inventory form. A new metal brings its own purity
+      inventory form, loan calculator, new appraisal (appraisals.karat is
+      NUMERIC(4,1) since patches/0116). A new metal brings its own purity
       (`purityAfterMetalChange`: silver 925, platinum 950, gold blank).
     - Display: `purityText` ("14K", "925"). Inventory keeps that same
       text — every writer of an inventory row goes through
       `purityForInventory` (buy, inventory form, FL purchase, forfeit).
     - Price by metal content: `purityContentRatio` (12K = 12/14 of 14K,
-      800 silver = 800/925 of sterling; 990+ silver is the fine bucket).
+      800 silver = 800/925 of sterling; 990+ silver is the fine bucket) —
+      pawn ticket, Buy, and the suggested loan (`computeSuggestedLoan`).
     - Police file: `jewelry_kt` only for gold (as xPawn sends it); a
       silver / platinum purity rides in the description.
 

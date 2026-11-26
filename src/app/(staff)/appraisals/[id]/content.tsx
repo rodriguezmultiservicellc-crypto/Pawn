@@ -13,6 +13,7 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import { fitInputFiles } from '@/lib/uploads/fit-photo'
 import { formatAppraisalMoney } from '@/lib/appraisals/format'
+import { purityScaleOf, purityText } from '@/lib/spot-prices/purity'
 import {
   addPhotoAction,
   finalizeAppraisalAction,
@@ -352,9 +353,15 @@ export default function AppraisalDetail({
           <Field label={t.appraisal.new_.metal}>
             {appraisal.metal_type ?? '—'}
           </Field>
-          <Field label={t.appraisal.new_.karat}>
+          <Field
+            label={
+              purityScaleOf(appraisal.metal_type) === 'fineness'
+                ? t.pawn.new_.itemPurity
+                : t.appraisal.new_.karat
+            }
+          >
             <span className="font-mono">
-              {appraisal.karat == null ? '—' : `${appraisal.karat}k`}
+              {purityText(appraisal.metal_type, appraisal.karat) || '—'}
             </span>
           </Field>
           <Field label={t.appraisal.new_.weightGrams}>

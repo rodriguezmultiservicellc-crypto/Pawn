@@ -11,6 +11,8 @@ import {
   type CreateAppraisalState,
 } from './actions'
 import StoneEditor, { type StoneRow, newStoneRow } from '@/components/appraisals/StoneEditor'
+import { PurityField } from '@/components/pawn/PurityField'
+import { purityAfterMetalChange, purityFromWords } from '@/lib/spot-prices/purity'
 import type { AppraisalPurpose, MetalType } from '@/types/database-aliases'
 
 export type InventoryOption = {
@@ -18,7 +20,8 @@ export type InventoryOption = {
   label: string
   description: string
   metal: string | null
-  karat: number | null
+  /** As inventory keeps it: "14K", "925". */
+  karat: string | null
   weight_grams: number | null
 }
 
@@ -97,8 +100,10 @@ export default function NewAppraisalForm({
     const match = inventory.find((i) => i.id === value)
     if (match) {
       if (!itemDescription) setItemDescription(match.description)
+      // Inventory keeps "14K" / "925": read through the metal it belongs to.
+      const itemMetal = metal || match.metal || ''
       if (!metal && match.metal) setMetal(match.metal)
-      if (!karat && match.karat != null) setKarat(String(match.karat))
+      if (!karat && match.karat) setKarat(purityFromWords(itemMetal, match.karat))
       if (!weightGrams && match.weight_grams != null)
         setWeightGrams(String(match.weight_grams))
     }
@@ -212,7 +217,10 @@ export default function NewAppraisalForm({
               <select
                 name="metal_type"
                 value={metal}
-                onChange={(e) => setMetal(e.target.value)}
+                onChange={(e) => {
+                  setKarat(purityAfterMetalChange(metal, e.target.value, karat))
+                  setMetal(e.target.value)
+                }}
                 className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
               >
                 <option value="">—</option>
@@ -224,20 +232,14 @@ export default function NewAppraisalForm({
               </select>
             </label>
 
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">
-                {t.appraisal.new_.karat}
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                name="karat"
-                value={karat}
-                onChange={(e) => setKarat(e.target.value)}
-                placeholder="14"
-                className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
-              />
-            </label>
+            {/* Karat / Purity follows the metal (CLAUDE.md rule 31). */}
+            <PurityField
+              metal={metal}
+              value={karat}
+              onChange={setKarat}
+              name="karat"
+              labelClassName="block text-sm font-medium text-foreground"
+            />
 
             <label className="block space-y-1">
               <span className="text-sm font-medium text-foreground">

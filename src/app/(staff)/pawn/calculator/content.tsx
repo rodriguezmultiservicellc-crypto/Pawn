@@ -7,6 +7,12 @@ import {
   type CalculatorState,
 } from './actions'
 import StalePriceBanner from '@/components/inventory/StalePriceBanner'
+import { PurityField } from '@/components/pawn/PurityField'
+import {
+  isPurityInput,
+  purityAfterMetalChange,
+  purityFromWords,
+} from '@/lib/spot-prices/purity'
 import type { SpotFreshness } from '@/lib/spot-prices/staleness'
 
 type Row = {
@@ -44,6 +50,10 @@ export default function CalculatorContent({
     calculateSuggestedLoanAction,
     { status: 'idle' },
   )
+
+  // A purity the metal cannot have (28K, 14 on silver) stops Calculate; the
+  // field shows why.
+  const purityBlocked = rows.some((r) => !isPurityInput(r.metal, r.karat))
 
   function addRow() {
     setRows((r) => [...r, blankRow()])
@@ -90,7 +100,7 @@ export default function CalculatorContent({
               <input
                 type="hidden"
                 name={`row_${idx}_karat`}
-                value={row.karat}
+                value={purityFromWords(row.metal, row.karat) || row.karat.trim()}
               />
               <input
                 type="hidden"
@@ -117,7 +127,12 @@ export default function CalculatorContent({
                 <Field label="Metal">
                   <select
                     value={row.metal}
-                    onChange={(e) => patchRow(row.id, { metal: e.target.value })}
+                    onChange={(e) =>
+                      patchRow(row.id, {
+                        metal: e.target.value,
+                        karat: purityAfterMetalChange(row.metal, e.target.value, row.karat),
+                      })
+                    }
                     className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
                   >
                     <option value="gold">gold</option>
@@ -129,15 +144,15 @@ export default function CalculatorContent({
                     <option value="other">other</option>
                   </select>
                 </Field>
-                <Field label="Karat">
-                  <input
-                    type="text"
-                    value={row.karat}
-                    onChange={(e) => patchRow(row.id, { karat: e.target.value })}
-                    placeholder="14"
-                    className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm font-mono"
-                  />
-                </Field>
+                {/* Karat / Purity follows the metal (CLAUDE.md rule 31);
+                    nothing for a base metal. The row's hidden input above
+                    sends it. */}
+                <PurityField
+                  metal={row.metal}
+                  value={row.karat}
+                  onChange={(karat) => patchRow(row.id, { karat })}
+                  labelClassName="block text-[11px] uppercase tracking-wide text-muted"
+                />
                 <Field label="Weight (g)">
                   <input
                     type="number"
@@ -222,7 +237,7 @@ export default function CalculatorContent({
             <div className="md:col-span-2 flex items-end">
               <button
                 type="submit"
-                disabled={pending}
+                disabled={pending || purityBlocked}
                 className="rounded-md bg-gold px-4 py-2 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
               >
                 {pending ? 'Computing…' : 'Calculate'}

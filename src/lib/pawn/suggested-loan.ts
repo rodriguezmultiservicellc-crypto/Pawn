@@ -6,7 +6,11 @@ import {
   meltMetalFromItem,
   purityFromItem,
 } from '@/lib/spot-prices/melt'
-import { isSolidMetal } from '@/lib/spot-prices/purity'
+import {
+  isPurityInput,
+  isSolidMetal,
+  purityContentRatio,
+} from '@/lib/spot-prices/purity'
 import type { MetalType } from '@/types/database-aliases'
 
 /**
@@ -151,6 +155,12 @@ async function tryComputeMelt(
     return null
   }
 
+  // A purity the metal cannot have (28K, 14 on silver) prices nothing.
+  if (!isPurityInput(row.metal ?? null, row.karat == null ? '' : String(row.karat))) {
+    outWarnings.push('karat_for_metal')
+    return null
+  }
+
   const purity = purityFromItem({
     metal: row.metal ?? null,
     karat: row.karat ?? null,
@@ -170,7 +180,9 @@ async function tryComputeMelt(
     outWarnings.push('no_spot_price_or_weight')
     return null
   }
-  return result.value
+  // The bucket's price for the metal that is there: 12K = 12/14 of 14K,
+  // 800 silver = 800/925 of sterling (the same as the pawn ticket and Buy).
+  return r4(result.value * purityContentRatio(row.metal ?? null, row.karat ?? null, purity))
 }
 
 function parseMoney(v: string | number | null | undefined): number | null {

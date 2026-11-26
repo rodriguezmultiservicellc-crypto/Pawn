@@ -1054,6 +1054,19 @@ sessions are there.)
 
   630. /progress — Session 71 checkpoint.
 
+  631. SAME FIELD ON THE LOAN CALCULATOR + NEW APPRAISAL (patches/0116 LIVE)
+       PurityField on /pawn/calculator and /appraisals/new; metal change
+       brings its purity; Calculate / the appraisal form stop on a bad one.
+       computeSuggestedLoan (calculator AND the pawn ticket's suggested
+       loan) prices by metal content (purityContentRatio) and gives
+       karat_for_metal instead of a melt for a bad purity.
+       [BUG] appraisals.karat was NUMERIC(4,2) (99.99 max): 925 silver could
+       not be saved -> NUMERIC(4,1) (0 appraisals live, no dependent view).
+       [BUG] New appraisal from an inventory item read "14K" as NaN ->
+       purityFromWords. Appraisal page + PDF show purityText ("14K"/"925",
+       label Purity for silver/platinum). Schema refuses karat_for_metal
+       (create + update; appraisal.test.ts). Not tried on the live site.
+
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
   608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)
@@ -2582,9 +2595,9 @@ PENDING — NEXT UP
     the photo popups. Before cutover: the buy counter (21667) and the loan
     counter must sit above xPawn's last numbers (memory
     project_xpawn_still_live).
-    Not done: the pawn calculator (/pawn/calculator), appraisals, repair
-    line items and custom quotes still take a typed karat — offer the
-    same PurityField if Eddy wants it.
+    Calculator + new appraisal got the PurityField too (631, 0116 live).
+    Not done: repair line items and custom quotes still take a typed
+    karat — offer the same PurityField if Eddy wants it.
     Session 70 — have Eddy try on the live site (RESUME block list): a
     pawn ticket with 3 photos + Describe from photo, ISSUED; a draft with
     photos resumed; a buy with 2 photos; ANTHROPIC_API_KEY in Vercel; the
