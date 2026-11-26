@@ -494,6 +494,10 @@ export const es: Dictionary = {
     bannerTitle: 'Registro del cliente incompleto',
     bannerBody: 'Florida exige estos datos en el boleto antes de un empeño o una compra: {fields}.',
     completeRecord: 'Completar registro del cliente',
+    // La ventana en Nuevo empeño / Nueva compra: solo los campos que faltan.
+    popupBody: 'Complete lo que necesita el boleto. Solo estos campos se guardan en el cliente.',
+    popupFailed: 'No se guardó. Revise los campos marcados en rojo.',
+    openFullRecord: 'Abrir el registro completo',
     fields: {
       last_name: 'Apellido',
       first_name: 'Nombre',

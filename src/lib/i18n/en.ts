@@ -502,6 +502,10 @@ export const en = {
     bannerTitle: 'Customer record incomplete',
     bannerBody: 'Florida requires these on the ticket before a pawn or buy: {fields}.',
     completeRecord: 'Complete customer record',
+    // The popup on New pawn / New buy: only the missing fields.
+    popupBody: 'Fill in what the ticket needs. Only these fields are saved on the customer.',
+    popupFailed: 'Not saved. Check the fields marked in red.',
+    openFullRecord: 'Open the full record',
     fields: {
       last_name: 'Last name',
       first_name: 'First name',

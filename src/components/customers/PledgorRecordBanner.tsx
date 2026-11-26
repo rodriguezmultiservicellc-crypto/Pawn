@@ -1,28 +1,35 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { Warning } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { loadPledgorGapsAction } from '@/app/(staff)/customers/pledgor-actions'
-import type { PledgorField } from '@/lib/customers/pledgor-record'
+import type { PledgorField, PledgorRecord } from '@/lib/customers/pledgor-record'
+import { CompletePledgorDialog } from './CompletePledgorDialog'
 
 /**
  * Under the customer picker on New pawn / New buy: names what the picked
- * customer's record still lacks (FL 539.001(8)(b)) and links to it. Checks
- * again when the clerk comes back to this tab, so fixing the record in
- * another tab clears it. The save is refused on the server either way.
+ * customer's record still lacks (FL 539.001(8)(b)). "Complete customer
+ * record" opens a popup with just those fields, so the clerk never leaves
+ * the ticket (Eddy, 2026-11-25). Checks again when the clerk comes back to
+ * this tab, so a fix made on the full record (the popup links to it) clears
+ * it too. The save is refused on the server either way.
  */
 export function PledgorRecordBanner({ customerId }: { customerId: string | null }) {
   const { t } = useI18n()
-  const [result, setResult] = useState<{ id: string; missing: PledgorField[] } | null>(null)
+  const [result, setResult] = useState<{
+    id: string
+    missing: PledgorField[]
+    record: PledgorRecord
+  } | null>(null)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     if (!customerId) return
     let live = true
     const check = () => {
       void loadPledgorGapsAction(customerId).then((r) => {
-        if (live && r.ok) setResult({ id: customerId, missing: r.missing })
+        if (live && r.ok) setResult({ id: customerId, missing: r.missing, record: r.record })
       })
     }
     check()
@@ -50,13 +57,30 @@ export function PledgorRecordBanner({ customerId }: { customerId: string | null 
           )}
         </p>
       </div>
-      <Link
-        href={`/customers/${customerId}`}
-        target="_blank"
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
         className="shrink-0 rounded-xl border border-danger/40 bg-card px-3 py-1.5 font-semibold text-danger hover:bg-background"
       >
         {t.pledgorRecord.completeRecord}
-      </Link>
+      </button>
+      {open ? (
+        <CompletePledgorDialog
+          key={result.missing.join(',')}
+          customerId={customerId}
+          missing={result.missing}
+          record={result.record}
+          onClose={() => setOpen(false)}
+          onSaved={(missing) => {
+            setOpen(false)
+            // Re-read the record so the next popup starts from what was saved.
+            void loadPledgorGapsAction(customerId).then((r) => {
+              if (r.ok) setResult({ id: customerId, missing: r.missing, record: r.record })
+              else setResult((s) => (s ? { ...s, missing } : s))
+            })
+          }}
+        />
+      ) : null}
     </div>
   )
 }

@@ -95,6 +95,20 @@ export function missingPledgorFields(c: PledgorRecord): PledgorField[] {
   return PLEDGOR_FIELDS.filter((f) => !ok[f])
 }
 
+/** The customer columns a field is written in (address is four). */
+export type PledgorColumn =
+  | Exclude<PledgorField, 'address'>
+  | 'address1'
+  | 'city'
+  | 'state'
+  | 'zip'
+
+export function pledgorColumnsFor(fields: readonly PledgorField[]): PledgorColumn[] {
+  return fields.flatMap((f): PledgorColumn[] =>
+    f === 'address' ? ['address1', 'city', 'state', 'zip'] : [f],
+  )
+}
+
 /** The error an intake returns: `pledgor_incomplete:eye_color,race`. */
 export const PLEDGOR_INCOMPLETE = 'pledgor_incomplete'
 

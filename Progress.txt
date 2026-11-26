@@ -1085,6 +1085,15 @@ sessions are there.)
        Customers list scan uses it too. Eddy's 2 records: merge them at
        /customers/merge (not done by Claude).
 
+  634. "COMPLETE CUSTOMER RECORD" IS A POPUP ON NEW PAWN / NEW BUY
+       PledgorRecordBanner opens CompletePledgorDialog (components/
+       customers): only the missing pledgor fields, portaled to <body>, no
+       <form> (the banner sits inside the ticket form). completePledgor-
+       RecordAction saves ONLY those columns (pledgorColumnsFor; address =
+       address1/city/state/zip) through customerCreateSchema.pick, never
+       clears a column, audited (kind pledgor_complete). "Open the full
+       record" still opens the customer in a new tab. Not tried live.
+
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
   608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)
