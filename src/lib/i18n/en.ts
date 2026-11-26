@@ -588,6 +588,7 @@ export const en = {
       serviceTypeRestring: 'Restring',
       serviceTypePlating: 'Plating',
       serviceTypeEngraving: 'Engraving',
+      serviceTypeNameplate: 'Nameplate',
       serviceTypeCustom: 'Custom',
       trendsTitle: 'Trends',
       trendsSubtitle: 'Last 12 months — transaction count by module',
@@ -2428,6 +2429,7 @@ export const en = {
       restring: 'Restring',
       plating: 'Plating',
       engraving: 'Engraving',
+      nameplate: 'Nameplate',
       custom: 'Custom',
     },
     statusBadges: {
@@ -2529,6 +2531,7 @@ export const en = {
         restring: ['Restring pearls with knots', 'Restring pearls, no knots', 'Restring beads', 'New clasp on restring'],
         plating: ['Rhodium plating', 'Yellow gold plating', 'Rose gold plating'],
         engraving: ['Engrave inside: #', 'Engrave back: #', 'Engrave front: #'],
+        nameplate: ['Make nameplate: #', 'Nameplate letters: #', 'Solder nameplate to chain', 'Fix broken nameplate letter', 'Add diamond cut', 'Replace nameplate chain'],
         custom: ['Make to customer design', 'Quote before starting', 'Customer supplies the gold'],
       },
       // ── Items like the pawn ticket: pills, table, popup per item ──
@@ -2574,6 +2577,7 @@ export const en = {
           restring: 'e.g. knot between pearls',
           plating: 'e.g. yellow gold plate',
           engraving: 'e.g. initials inside band',
+          nameplate: 'e.g. name, font, chain length',
           custom: 'Describe the work',
           none: 'What should the bench do?',
         },

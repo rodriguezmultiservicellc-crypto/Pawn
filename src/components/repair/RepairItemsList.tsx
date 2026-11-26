@@ -70,7 +70,7 @@ export function lineItemTitle(li: LineItem): string {
 
 export const SERVICE_CHOICES: ReadonlyArray<{
   value: ServiceType
-  labelKey: 'repair' | 'stoneSetting' | 'sizing' | 'restring' | 'plating' | 'engraving' | 'custom'
+  labelKey: 'repair' | 'stoneSetting' | 'sizing' | 'restring' | 'plating' | 'engraving' | 'nameplate' | 'custom'
 }> = [
   { value: 'repair', labelKey: 'repair' },
   { value: 'stone_setting', labelKey: 'stoneSetting' },
@@ -78,6 +78,7 @@ export const SERVICE_CHOICES: ReadonlyArray<{
   { value: 'restring', labelKey: 'restring' },
   { value: 'plating', labelKey: 'plating' },
   { value: 'engraving', labelKey: 'engraving' },
+  { value: 'nameplate', labelKey: 'nameplate' },
   { value: 'custom', labelKey: 'custom' },
 ]
 

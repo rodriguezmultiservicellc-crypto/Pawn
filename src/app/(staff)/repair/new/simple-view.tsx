@@ -66,7 +66,7 @@ export type SimpleViewProps = {
 
 const SERVICE_LABEL_KEY: Record<
   ServiceType,
-  'repair' | 'stoneSetting' | 'sizing' | 'restring' | 'plating' | 'engraving' | 'custom'
+  'repair' | 'stoneSetting' | 'sizing' | 'restring' | 'plating' | 'engraving' | 'nameplate' | 'custom'
 > = {
   repair: 'repair',
   stone_setting: 'stoneSetting',
@@ -74,6 +74,7 @@ const SERVICE_LABEL_KEY: Record<
   restring: 'restring',
   plating: 'plating',
   engraving: 'engraving',
+  nameplate: 'nameplate',
   custom: 'custom',
 }
 

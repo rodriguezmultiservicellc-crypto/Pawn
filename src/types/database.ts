@@ -8696,6 +8696,7 @@ export type Database = {
         | "restring"
         | "plating"
         | "engraving"
+        | "nameplate"
         | "custom"
       subscription_status:
         | "trialing"
@@ -9135,6 +9136,7 @@ export const Constants = {
         "restring",
         "plating",
         "engraving",
+        "nameplate",
         "custom",
       ],
       subscription_status: [

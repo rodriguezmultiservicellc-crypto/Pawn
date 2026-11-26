@@ -732,6 +732,8 @@ function labelForServiceType(
       return cd.serviceTypePlating
     case 'engraving':
       return cd.serviceTypeEngraving
+    case 'nameplate':
+      return cd.serviceTypeNameplate
     case 'custom':
       return cd.serviceTypeCustom
     default:

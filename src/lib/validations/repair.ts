@@ -78,6 +78,7 @@ export const serviceTypeSchema = z.enum([
   'restring',
   'plating',
   'engraving',
+  'nameplate',
   'custom',
 ])
 

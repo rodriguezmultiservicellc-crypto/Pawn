@@ -16,6 +16,7 @@ const SERVICE_TYPE_VALUES: ReadonlyArray<ServiceType> = [
   'restring',
   'plating',
   'engraving',
+  'nameplate',
   'custom',
 ]
 

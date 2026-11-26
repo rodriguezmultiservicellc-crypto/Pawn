@@ -580,6 +580,7 @@ export const es: Dictionary = {
       serviceTypeRestring: 'Reensartado',
       serviceTypePlating: 'Baño',
       serviceTypeEngraving: 'Grabado',
+      serviceTypeNameplate: 'Placa de nombre',
       serviceTypeCustom: 'Personalizado',
       trendsTitle: 'Tendencias',
       trendsSubtitle: 'Últimos 12 meses — transacciones por módulo',
@@ -2416,6 +2417,7 @@ export const es: Dictionary = {
       restring: 'Ensartado',
       plating: 'Baño',
       engraving: 'Grabado',
+      nameplate: 'Placa de nombre',
       custom: 'Custom',
     },
     statusBadges: {
@@ -2518,6 +2520,7 @@ export const es: Dictionary = {
         restring: ['Ensartar perlas con nudos', 'Ensartar perlas sin nudos', 'Ensartar cuentas', 'Broche nuevo al ensartar'],
         plating: ['Baño de rodio', 'Baño de oro amarillo', 'Baño de oro rosado'],
         engraving: ['Grabar por dentro: #', 'Grabar atrás: #', 'Grabar al frente: #'],
+        nameplate: ['Hacer placa de nombre: #', 'Letras de la placa: #', 'Soldar placa a la cadena', 'Arreglar letra rota de la placa', 'Agregar corte diamante', 'Cambiar cadena de la placa'],
         custom: ['Hacer según diseño del cliente', 'Cotizar antes de empezar', 'El cliente trae el oro'],
       },
       list: {
@@ -2562,6 +2565,7 @@ export const es: Dictionary = {
           restring: 'p. ej. nudo entre perlas',
           plating: 'p. ej. baño de oro amarillo',
           engraving: 'p. ej. iniciales dentro del aro',
+          nameplate: 'p. ej. nombre, letra, largo de cadena',
           custom: 'Describe el trabajo',
           none: '¿Qué debe hacer el taller?',
         },

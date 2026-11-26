@@ -220,6 +220,8 @@ function serviceTypeLabel(
       return t.repair.serviceTypes.plating
     case 'engraving':
       return t.repair.serviceTypes.engraving
+    case 'nameplate':
+      return t.repair.serviceTypes.nameplate
     case 'custom':
       return t.repair.serviceTypes.custom
     default:

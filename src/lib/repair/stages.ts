@@ -21,6 +21,7 @@ export const SERVICE_TYPES: ReadonlyArray<ServiceType> = [
   'restring',
   'plating',
   'engraving',
+  'nameplate',
   'custom',
 ]
 

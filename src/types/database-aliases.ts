@@ -223,6 +223,7 @@ export type ServiceType =
   | 'restring'
   | 'plating'
   | 'engraving'
+  | 'nameplate'
   | 'custom'
 
 export type RepairStatus =

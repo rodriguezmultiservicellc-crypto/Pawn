@@ -14,6 +14,7 @@ const TONE: Record<ServiceType, { dot: string }> = {
   restring: { dot: 'bg-muted' },
   plating: { dot: 'bg-blue' },
   engraving: { dot: 'bg-muted' },
+  nameplate: { dot: 'bg-blue' },
   custom: { dot: 'bg-navy' },
 }
 
@@ -28,6 +29,7 @@ export function serviceTypeLabel(t: Dictionary, type: ServiceType): string {
     restring: m.restring,
     plating: m.plating,
     engraving: m.engraving,
+    nameplate: m.nameplate,
     custom: m.custom,
   }
   return map[type]

@@ -87,6 +87,7 @@ export const SIMPLE_SERVICES: ReadonlyArray<ServiceType> = [
   'restring',
   'plating',
   'engraving',
+  'nameplate',
   'custom',
 ]
 
