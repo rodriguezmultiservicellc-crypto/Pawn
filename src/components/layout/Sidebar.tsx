@@ -396,15 +396,6 @@ export function Sidebar({
       visible: modules.has_pawn,
       child: true,
     },
-    {
-      kind: 'item',
-      href: '/pawn/calculator',
-      group: 'pawns',
-      label: t.nav.loanCalculator,
-      icon: <Calculator size={16} weight="regular" />,
-      visible: modules.has_pawn,
-      child: true,
-    },
     // Repair — a heading over the bench's three pages.
     {
       kind: 'item',

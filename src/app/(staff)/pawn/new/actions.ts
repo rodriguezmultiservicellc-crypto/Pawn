@@ -76,11 +76,8 @@ export type SuggestLoanState =
  * Inline calculator action — reads the SAME collateral_<n>_* field
  * names that the pawn-new form's CollateralItemsList writes, so the
  * operator can hit "Calculate" inline and get a suggested principal
- * without leaving the page.
- *
- * Distinct from calculateSuggestedLoanAction in /pawn/calculator —
- * that action reads row_<n>_* (its own field names). Both call the
- * same lib/pawn/suggested-loan.computeSuggestedLoan under the hood.
+ * without leaving the page. The math is
+ * lib/pawn/suggested-loan.computeSuggestedLoan.
  */
 export async function suggestLoanFromCollateralAction(
   _prev: SuggestLoanState,

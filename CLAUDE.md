@@ -478,7 +478,7 @@ Never kill node processes by image name — always by PID.
       server schemas (loan collateral, buy item, inventory item).
     - The field is ONE component, `PurityField`
       (`src/components/pawn/PurityField.tsx`): pawn popup, Buy outright,
-      inventory form, loan calculator, new appraisal (appraisals.karat is
+      inventory form, new appraisal (appraisals.karat is
       NUMERIC(4,1) since patches/0116). A new metal brings its own purity
       (`purityAfterMetalChange`: silver 925, platinum 950, gold blank).
     - Display: `purityText` ("14K", "925"). Inventory keeps that same

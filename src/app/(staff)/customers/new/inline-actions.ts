@@ -13,6 +13,8 @@ export type InlineCustomerState = {
   customer?: { id: string; label: string }
 }
 
+const INLINE_REQUIRED_ADDRESS = ['address1', 'city', 'state', 'zip'] as const
+
 /**
  * Create a customer WITHOUT navigating away. Returns the new customer's
  * id + picker label so an intake flow (e.g. /pawn/new) can drop it straight
@@ -28,6 +30,14 @@ export async function createCustomerInlineAction(
   if (!ctx.tenantId) redirect('/no-tenant')
 
   const { supabase, userId } = await requireStaff(ctx.tenantId)
+
+  // The quick popup always asks for the address (Eddy, 2026-11-26): a pawn
+  // or buy needs it (missingPledgorFields). Checked here, not only on screen.
+  const fieldErrors: Record<string, string> = {}
+  for (const key of INLINE_REQUIRED_ADDRESS) {
+    if ((formData.get(key) ?? '').toString().trim() === '') fieldErrors[key] = 'required'
+  }
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors }
 
   const result = await createCustomerFromForm({
     supabase,

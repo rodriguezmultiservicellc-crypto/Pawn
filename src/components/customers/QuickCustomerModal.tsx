@@ -158,17 +158,17 @@ export default function QuickCustomerModal({
             </Field>
           </div>
 
-          {/* The address prints on the pawn ticket and goes to the police
-              (missingPledgorFields): ask for it here so a new customer does
-              not open the Complete customer record popup right after. */}
+          {/* Required (Eddy, 2026-11-26; checked again in
+              createCustomerInlineAction): the address prints on the pawn
+              ticket and goes to the police (missingPledgorFields). */}
           <fieldset className="rounded-lg border border-border p-3">
             <legend className="px-1 text-xs font-semibold text-muted">
               {tc.sectionAddress}
             </legend>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="col-span-2 sm:col-span-4">
-                <Field label={tc.address1} error={fe.address1}>
-                  <input name="address1" className={inputCls(!!fe.address1)} />
+                <Field label={tc.address1} required error={fe.address1}>
+                  <input name="address1" required className={inputCls(!!fe.address1)} />
                 </Field>
               </div>
               <div className="col-span-2 sm:col-span-4">
@@ -177,15 +177,15 @@ export default function QuickCustomerModal({
                 </Field>
               </div>
               <div className="col-span-2">
-                <Field label={tc.city} error={fe.city}>
-                  <input name="city" className={inputCls(!!fe.city)} />
+                <Field label={tc.city} required error={fe.city}>
+                  <input name="city" required className={inputCls(!!fe.city)} />
                 </Field>
               </div>
-              <Field label={tc.state} error={fe.state}>
-                <input name="state" className={inputCls(!!fe.state)} />
+              <Field label={tc.state} required error={fe.state}>
+                <input name="state" required className={inputCls(!!fe.state)} />
               </Field>
-              <Field label={tc.zip} error={fe.zip}>
-                <input name="zip" inputMode="numeric" className={inputCls(!!fe.zip)} />
+              <Field label={tc.zip} required error={fe.zip}>
+                <input name="zip" required inputMode="numeric" className={inputCls(!!fe.zip)} />
               </Field>
             </div>
           </fieldset>

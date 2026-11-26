@@ -1,6 +1,6 @@
 /**
  * Pure metal → spot-bucket helpers. No Supabase import, so client
- * components (Buy Outright, Sell Metal, the loan calculator) and server
+ * components (Buy Outright, Sell Metal, the pawn item popup) and server
  * code share ONE mapping. `lib/spot-prices/melt.ts` re-exports these for
  * its existing callers.
  */

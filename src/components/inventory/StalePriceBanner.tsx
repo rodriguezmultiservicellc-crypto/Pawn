@@ -10,8 +10,8 @@ import {
 } from '@/lib/spot-prices/staleness'
 
 /**
- * Red banner shown on Spot Prices, Buy Outright, New Pawn Ticket and the
- * Loan Calculator when the newest spot price is older than the threshold
+ * Red banner shown on Spot Prices, Buy Outright, Sell Metal, New Pawn Ticket,
+ * Tools and custom quotes when the newest spot price is older than the threshold
  * (or there is none). Renders nothing while the feed is fresh.
  *
  * `onDark` flips the palette for the navy intake rails. `showOpenLink`

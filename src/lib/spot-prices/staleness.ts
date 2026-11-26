@@ -2,7 +2,7 @@
  * Stale-price rule — pure, no I/O.
  *
  * A spot price older than SPOT_STALE_AFTER_HOURS is "stale": the Spot
- * Prices, Buy Outright, New Pawn Ticket and Loan Calculator screens show
+ * Prices, Buy Outright, Sell Metal and New Pawn Ticket screens show
  * a red banner, and issuing a buy or a loan on precious-metal items needs
  * a manager's confirmation (checked again server-side). No price at all
  * counts as stale too — there is nothing to price from.

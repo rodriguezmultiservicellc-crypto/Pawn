@@ -256,16 +256,9 @@ export default function NewSaleForm({
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-4">
-      <nav aria-label={t.pos.sale.breadcrumb} className="flex items-center gap-2 text-sm">
-        <Link
-          href="/pos"
-          className="inline-flex h-11 items-center font-semibold text-blue hover:text-blue-2 hover:underline focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue"
-        >
-          {t.pos.sale.breadcrumbPos}
-        </Link>
-        <span className="text-muted">/</span>
-        <h1 className="font-semibold text-foreground">{t.pos.sale.new}</h1>
-      </nav>
+      {/* No breadcrumb on screen (Eddy, 2026-11-26); the heading stays for
+          screen readers. */}
+      <h1 className="sr-only">{t.pos.sale.new}</h1>
 
       {lastSale ? (
         <div

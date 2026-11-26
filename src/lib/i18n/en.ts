@@ -108,7 +108,6 @@ export const en = {
     ebayListings: 'eBay listings',
     pawns: 'Pawns',
     newPawn: 'New pawn',
-    loanCalculator: 'Loan calculator',
     buyOutright: 'Buy outright',
     buys: 'Buys',
     sellMetal: 'Sell metal',
@@ -2947,8 +2946,6 @@ export const en = {
       outOfStockMsg: '{name} has none left in stock.',
       addAnyway: 'Add anyway',
       addAnywayHelp: 'It goes in as a separate line that is not taken from inventory, so no stock record is marked sold.',
-      breadcrumb: 'Breadcrumb',
-      breadcrumbPos: 'POS',
     },
     cart: {
       qty: 'Qty',

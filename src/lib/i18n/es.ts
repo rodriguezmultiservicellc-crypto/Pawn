@@ -103,7 +103,6 @@ export const es: Dictionary = {
     ebayListings: 'Anuncios eBay',
     pawns: 'Empeños',
     newPawn: 'Nuevo empeño',
-    loanCalculator: 'Calculadora',
     buyOutright: 'Compra directa',
     buys: 'Compras',
     sellMetal: 'Venta de metal',
@@ -2940,8 +2939,6 @@ export const es: Dictionary = {
       outOfStockMsg: 'No quedan existencias de {name}.',
       addAnyway: 'Agregar de todos modos',
       addAnywayHelp: 'Se agrega como una línea aparte que no sale del inventario, así que ningún registro de existencias se marca como vendido.',
-      breadcrumb: 'Ruta de navegación',
-      breadcrumbPos: 'POS',
     },
     cart: {
       qty: 'Cant.',
