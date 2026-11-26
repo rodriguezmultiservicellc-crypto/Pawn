@@ -124,7 +124,11 @@ export async function createPurchaseAction(
   if (!customer) return { error: 'customer_not_found' }
 
   // FL 539.001(8)(b)3: the form carries the seller's full record.
-  const missing = missingPledgorFields(customer)
+  // An expired ID counts as missing, on the shop's date.
+  const missing = missingPledgorFields(
+    customer,
+    todayInTimezone((await loadTenantRules(createAdminClient(), tenantId)).timezone),
+  )
   if (missing.length > 0) return { error: pledgorIncompleteError(missing) }
 
   if (v.payment_method === 'store_credit') {

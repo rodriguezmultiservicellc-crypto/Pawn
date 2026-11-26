@@ -11,6 +11,8 @@ import { getCtx } from '@/lib/supabase/ctx'
 import { requireStaff } from '@/lib/supabase/guards'
 import { logAudit } from '@/lib/audit'
 import { customerCreateSchema } from '@/lib/validations/customer'
+import { loadTenantRules } from '@/lib/jurisdictions/load'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import {
   PLEDGOR_COLUMNS,
   pledgorColumnsFor,
@@ -37,7 +39,8 @@ export async function loadPledgorGapsAction(
     .is('deleted_at', null)
     .maybeSingle<PledgorRecord>()
   if (!data) return { ok: false }
-  return { ok: true, missing: missingPledgorFields(data), record: data }
+  const today = todayInTimezone((await loadTenantRules(supabase, ctx.tenantId)).timezone)
+  return { ok: true, missing: missingPledgorFields(data, today), record: data }
 }
 
 /**
@@ -68,7 +71,8 @@ export async function completePledgorRecordAction(
     .maybeSingle<PledgorRecord>()
   if (!before) return { ok: false }
 
-  const columns = pledgorColumnsFor(missingPledgorFields(before))
+  const today = todayInTimezone((await loadTenantRules(supabase, ctx.tenantId)).timezone)
+  const columns = pledgorColumnsFor(missingPledgorFields(before, today))
   if (columns.length === 0) return { ok: true, missing: [] }
 
   const mask = Object.fromEntries(columns.map((c) => [c, true as const])) as {
@@ -109,5 +113,5 @@ export async function completePledgorRecordAction(
   }
 
   const after = { ...before, ...patch } as PledgorRecord
-  return { ok: true, missing: missingPledgorFields(after) }
+  return { ok: true, missing: missingPledgorFields(after, today) }
 }

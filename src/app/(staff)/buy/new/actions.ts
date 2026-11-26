@@ -186,7 +186,11 @@ export async function createBuyOutrightAction(
   if (!customer) return { error: 'customer_not_found', values: echo }
 
   // FL 539.001(8)(b): the form must carry the seller's full record.
-  const missing = missingPledgorFields(customer)
+  // An expired ID counts as missing, on the shop's date.
+  const missing = missingPledgorFields(
+    customer,
+    todayInTimezone((await loadTenantRules(createAdminClient(), tenantId)).timezone),
+  )
   if (missing.length > 0) return { error: pledgorIncompleteError(missing), values: echo }
 
   // Paying the seller in store credit needs the module on. Checked before

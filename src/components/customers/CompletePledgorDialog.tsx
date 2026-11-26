@@ -211,6 +211,14 @@ export function CompletePledgorDialog({
         return text('id_number', c.idNumber)
       case 'id_state':
         return text('id_state', c.idIssuingState)
+      case 'id_expiry':
+        // The ID on file expired: take the new one. Number and agency show
+        // here unless they are missing on their own (listed above).
+        return [
+          missing.includes('id_number') ? null : text('id_number', c.idNumber),
+          text('id_expiry', c.idExpiry, 'date'),
+          missing.includes('id_state') ? null : text('id_state', c.idIssuingState),
+        ]
     }
   }
 

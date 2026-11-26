@@ -522,6 +522,7 @@ export const en = {
       id_type: 'ID type',
       id_number: 'ID number',
       id_state: 'ID issuing agency / state',
+      id_expiry: 'An ID that is not expired (the one on file has expired)',
     },
   },
 

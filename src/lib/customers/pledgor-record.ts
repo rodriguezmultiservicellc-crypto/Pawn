@@ -9,8 +9,13 @@
  * description is the one the ticket prints and the police report sends:
  * sex, race, height, weight, hair, eyes.
  *
- * Not required: middle name, business phone, email, ID expiry, and the
- * identifying marks box (the statute's "identifying marks" are the goods').
+ * Not required: middle name, business phone, email, and the identifying
+ * marks box (the statute's "identifying marks" are the goods').
+ *
+ * An EXPIRED ID is refused (Eddy, 2026-11-25: "license is expired and it let
+ * me continue to do the pawn"): `id_expiry` is "missing" when the record has
+ * an expiry date before the shop's today. A record with no expiry date is not
+ * refused for it — thousands of imported records have none.
  * The thumbprint and signature are taken on the paper ticket.
  *
  * Pure; the pawn and buy actions refuse the intake with the list, and the
@@ -33,6 +38,7 @@ export const PLEDGOR_FIELDS = [
   'id_type',
   'id_number',
   'id_state',
+  'id_expiry',
 ] as const
 
 export type PledgorField = (typeof PLEDGOR_FIELDS)[number]
@@ -56,11 +62,12 @@ export type PledgorRecord = {
   id_type: string | null
   id_number: string | null
   id_state: string | null
+  id_expiry: string | null
 }
 
 /** The columns to select for missingPledgorFields. */
 export const PLEDGOR_COLUMNS =
-  'last_name, first_name, address1, city, state, zip, phone, place_of_employment, date_of_birth, sex, race, height_inches, weight_lbs, hair_color, eye_color, id_type, id_number, id_state'
+  'last_name, first_name, address1, city, state, zip, phone, place_of_employment, date_of_birth, sex, race, height_inches, weight_lbs, hair_color, eye_color, id_type, id_number, id_state, id_expiry'
 
 const filled = (v: string | null | undefined) => !!v && v.trim() !== ''
 
@@ -73,8 +80,14 @@ export function isIdAgency(v: string | null | undefined): boolean {
   return filled(v) && !/\d/.test(v!)
 }
 
-/** The fields still missing, in the order the ticket prints them. */
-export function missingPledgorFields(c: PledgorRecord): PledgorField[] {
+/** An ID with an expiry date before `today` (the shop's YYYY-MM-DD). */
+export function isIdExpired(expiry: string | null | undefined, today: string): boolean {
+  return filled(expiry) && expiry!.slice(0, 10) < today
+}
+
+/** The fields still missing, in the order the ticket prints them. `today`
+ *  is the shop's date (todayInTimezone): an expired ID counts as missing. */
+export function missingPledgorFields(c: PledgorRecord, today: string): PledgorField[] {
   const ok: Record<PledgorField, boolean> = {
     last_name: filled(c.last_name),
     first_name: filled(c.first_name),
@@ -91,6 +104,7 @@ export function missingPledgorFields(c: PledgorRecord): PledgorField[] {
     id_type: filled(c.id_type),
     id_number: filled(c.id_number),
     id_state: isIdAgency(c.id_state),
+    id_expiry: !isIdExpired(c.id_expiry, today),
   }
   return PLEDGOR_FIELDS.filter((f) => !ok[f])
 }
@@ -104,9 +118,15 @@ export type PledgorColumn =
   | 'zip'
 
 export function pledgorColumnsFor(fields: readonly PledgorField[]): PledgorColumn[] {
-  return fields.flatMap((f): PledgorColumn[] =>
-    f === 'address' ? ['address1', 'city', 'state', 'zip'] : [f],
+  const cols = fields.flatMap((f): PledgorColumn[] =>
+    f === 'address'
+      ? ['address1', 'city', 'state', 'zip']
+      : // An expired ID is replaced by the new one: number, expiry, agency.
+        f === 'id_expiry'
+        ? ['id_number', 'id_expiry', 'id_state']
+        : [f],
   )
+  return [...new Set(cols)]
 }
 
 /** The error an intake returns: `pledgor_incomplete:eye_color,race`. */

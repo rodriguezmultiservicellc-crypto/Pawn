@@ -373,8 +373,12 @@ Never kill node processes by image name — always by PID.
     allows.
 
 26. **A pawn or a buy needs a complete customer record.**
-    `missingPledgorFields()` (`src/lib/customers/pledgor-record.ts`) must be
-    empty before a pawn ticket or a buy is written — the statute's pledgor
+    `missingPledgorFields(customer, today)` (`src/lib/customers/pledgor-record.ts`)
+    must be empty before a pawn ticket or a buy is written. An ID whose
+    `id_expiry` is before the shop's today counts as missing (`id_expiry`;
+    Eddy, 2026-11-25); no expiry on file is not refused. The banner's popup
+    (`CompletePledgorDialog`) takes the missing fields, and the new ID for an
+    expired one — the statute's pledgor
     fields print on the ticket and go to the police. Voiding a Pawn-made
     ticket writes a `'pawn_void'` `compliance_log` row through the DB
     trigger `trg_loans_compliance_void` (patches/0108) — app code never

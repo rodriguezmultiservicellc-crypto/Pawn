@@ -1142,6 +1142,15 @@ sessions are there.)
        Jewelers + RMS gmail addresses forward to his main inbox.
        /progress — Session 72 checkpoint.
 
+  636. [BUG] AN EXPIRED LICENSE DID NOT STOP A PAWN (Eddy, customer ff884c8e)
+       Root cause: missingPledgorFields never looked at id_expiry (the
+       comment called expiry "not required"). Now missingPledgorFields(c,
+       today) — today = the shop's date — lists 'id_expiry' when the expiry
+       is before today; no expiry on file is not refused (imported records).
+       Server: createLoanAction, createPurchaseAction, createBuyOutright-
+       Action. Screen: the banner; its popup takes the new ID (number,
+       expiry, agency — pledgorColumnsFor). CLAUDE.md rule 26 updated.
+
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
   608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)

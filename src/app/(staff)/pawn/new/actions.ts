@@ -304,7 +304,7 @@ export async function createLoanAction(
   if (!customer) return { error: 'customer_not_found' }
 
   // FL 539.001(8)(b): the ticket must carry the pledgor's full record.
-  const missing = missingPledgorFields(customer)
+  const missing = missingPledgorFields(customer, issueDate)
   if (missing.length > 0) return { error: pledgorIncompleteError(missing) }
 
   // Banned list + OFAC SDN screening (patches/0051). Refuses the intake on

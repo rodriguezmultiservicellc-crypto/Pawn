@@ -514,6 +514,7 @@ export const es: Dictionary = {
       id_type: 'Tipo de identificación',
       id_number: 'Número de identificación',
       id_state: 'Agencia / estado emisor',
+      id_expiry: 'Una identificación vigente (la registrada está vencida)',
     },
   },
 
