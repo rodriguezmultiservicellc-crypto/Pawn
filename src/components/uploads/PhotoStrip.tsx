@@ -8,9 +8,9 @@ import { useI18n } from '@/lib/i18n/context'
 import { createClient } from '@/lib/supabase/client'
 import { fitPhotoForUpload } from '@/lib/uploads/fit-photo'
 import {
-  INTAKE_PHOTOS_BUCKET,
   INTAKE_PHOTO_MAX,
   intakePhotoPath,
+  type IntakePhotoBucket,
 } from '@/lib/uploads/intake-photos'
 import {
   PHOTO_ACCEPT as ACCEPT,
@@ -30,13 +30,15 @@ export type StripPhoto = {
 }
 
 /**
- * The photos of ONE item at intake (pawn ticket collateral, buy outright):
+ * The photos of ONE item at intake (pawn ticket collateral, buy outright,
+ * a repair ticket's item):
  * up to INTAKE_PHOTO_MAX, the first is the main one.
  *
  * Each photo picked is fitted (HEIC → JPEG, shrunk — lib/uploads/fit-photo)
- * and uploaded straight to the shop's folder in inventory-photos
+ * and uploaded straight to the shop's folder in `bucket`
  * (lib/uploads/intake-photos). The form gets only the list of paths, in the
- * hidden input `name`. While a photo is uploading, a hidden field is
+ * hidden input `name` (or the parent carries them itself when `name` is
+ * left out). While a photo is uploading, a hidden field is
  * invalid, so the item popup's Done and the form's submit wait for it.
  *
  * Clicking a photo opens it big in a viewer, where it can be replaced, made
@@ -44,6 +46,7 @@ export type StripPhoto = {
  */
 export function PhotoStrip({
   tenantId,
+  bucket,
   name,
   photos,
   onChange,
@@ -51,8 +54,10 @@ export function PhotoStrip({
   large = false,
 }: {
   tenantId: string
-  /** The hidden input that carries the paths (JSON). */
-  name: string
+  bucket: IntakePhotoBucket
+  /** The hidden input that carries the paths (JSON). Left out when the
+   *  parent submits the paths itself. */
+  name?: string
   photos: StripPhoto[]
   onChange: (photos: StripPhoto[]) => void
   label: string
@@ -84,7 +89,7 @@ export function PhotoStrip({
     const mime = resolveUploadMime(file)
     const path = intakePhotoPath(tenantId, extensionForUpload(mime, file.name))
     const { error: upErr } = await createClient()
-      .storage.from(INTAKE_PHOTOS_BUCKET)
+      .storage.from(bucket)
       .upload(path, file, { contentType: mime, upsert: false })
     if (upErr) throw upErr
     return {
@@ -150,7 +155,9 @@ export function PhotoStrip({
       <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-muted">
         {label}
       </span>
-      <input type="hidden" name={name} value={JSON.stringify(photos.map((p) => p.path))} />
+      {name ? (
+        <input type="hidden" name={name} value={JSON.stringify(photos.map((p) => p.path))} />
+      ) : null}
       {/* Invalid while a photo uploads: holds Done / submit until it is in. */}
       <input
         ref={busyRef}

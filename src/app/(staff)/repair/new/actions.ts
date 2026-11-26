@@ -4,21 +4,12 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
-import {
-  ALLOWED_REPAIR_PHOTO_MIME_TYPES,
-  MAX_REPAIR_PHOTO_BYTES,
-  repairTicketCreateSchema,
-} from '@/lib/validations/repair'
-import {
-  REPAIR_PHOTOS_BUCKET,
-  uploadToBucket,
-} from '@/lib/supabase/storage'
+import { repairTicketCreateSchema } from '@/lib/validations/repair'
 import {
   deriveItemDescription,
   deriveTicketTitle,
 } from '@/lib/repair/line-items'
-import { extensionForUpload as pickExt, resolveUploadMime } from '@/lib/uploads/mime'
-import { prepareUpload } from '@/lib/uploads/convert'
+import { confirmIntakePhotos } from '@/lib/uploads/intake-photos-server'
 import { logAudit } from '@/lib/audit'
 
 export type CreateRepairTicketState = {
@@ -33,10 +24,6 @@ const STAFF_REPAIR_ROLES = [
   'repair_tech',
   'chain_admin',
 ] as const
-
-function newUuid(): string {
-  return crypto.randomUUID()
-}
 
 /** Pull `stones[<n>][<field>]` style entries out of FormData. */
 function readStoneRows(fd: FormData) {
@@ -83,6 +70,9 @@ function readLineItemRows(fd: FormData) {
       title: fd.get(`li_${i}_title`),
       service_type: fd.get(`li_${i}_service_type`),
       work_needed: fd.get(`li_${i}_work_needed`),
+      // The item's photos: a JSON list of paths the browser already uploaded
+      // to repair-photos/<tenant>/intake/ (patches/0119).
+      photos: fd.get(`li_${i}_photos`),
     })
   }
   // Keep only rows the operator actually built (an item type was chosen).
@@ -140,6 +130,16 @@ export async function createRepairTicketAction(
 
   const v = parsed.data
 
+  // Each item's photos, checked BEFORE anything is written: this shop's
+  // intake folder, and really in storage (rule 28). A list that fails is
+  // refused whole — never a ticket missing a photo the clerk saw.
+  const itemPhotos: string[][] = []
+  for (const row of lineItemRows) {
+    const confirmed = await confirmIntakePhotos(row.photos, tenantId, 'repair-photos')
+    if (!confirmed.ok) return { error: 'photos_invalid' }
+    itemPhotos.push(confirmed.paths)
+  }
+
   // Ticket-level title / item_description / service_type are DERIVED from the
   // line items so every existing reader (list, board, detail, portal, feed)
   // keeps working. The first item's service_type represents the ticket.
@@ -180,6 +180,7 @@ export async function createRepairTicketAction(
   const ticketId = ticket.id
 
   // 2. Insert line items (one row per customer item).
+  let lineItemIds: string[] = []
   {
     const rows = v.line_items.map((li, idx) => ({
       ticket_id: ticketId,
@@ -193,10 +194,15 @@ export async function createRepairTicketAction(
       service_type: li.service_type,
       work_needed: li.work_needed,
     }))
-    const { error: liErr } = await supabase
+    const { data: inserted, error: liErr } = await supabase
       .from('repair_ticket_line_items')
       .insert(rows)
-    if (liErr) return { error: liErr.message }
+      .select('id, line_index')
+    if (liErr || !inserted) return { error: liErr?.message ?? 'insert_failed' }
+    lineItemIds = inserted
+      .slice()
+      .sort((a, b) => a.line_index - b.line_index)
+      .map((li) => li.id)
   }
 
   // 4. Insert stones.
@@ -220,40 +226,24 @@ export async function createRepairTicketAction(
     await supabase.from('repair_ticket_stones').insert(rows)
   }
 
-  // 5. Upload intake photos. Multiple files under 'intake_files' (FormData
-  //    appends — getAll picks them all up).
-  const photoFiles = formData
-    .getAll('intake_files')
-    .filter((v): v is File => v instanceof File && v.size > 0)
-  let photoCount = 0
-  for (let i = 0; i < photoFiles.length; i++) {
-    const f = photoFiles[i]
-    if (f.size > MAX_REPAIR_PHOTO_BYTES) continue
-    const mime = resolveUploadMime(f)
-    if (!ALLOWED_REPAIR_PHOTO_MIME_TYPES.includes(mime as never)) continue
-    const up = await prepareUpload(f, mime)
-    const ext = pickExt(up.mime, up.filename)
-    const path = `${tenantId}/${ticketId}/intake/${newUuid()}.${ext}`
-    try {
-      await uploadToBucket({
-        bucket: REPAIR_PHOTOS_BUCKET,
-        path,
-        body: up.body,
-        contentType: up.mime,
-      })
-      await supabase.from('repair_ticket_photos').insert({
-        ticket_id: ticketId,
-        tenant_id: tenantId,
-        storage_path: path,
-        kind: 'intake',
-        position: i,
-        uploaded_by: userId,
-      })
-      photoCount++
-    } catch (err) {
-      console.error('[repair.create] intake photo upload failed', err)
-    }
+  // 5. Intake photos: already in storage (uploaded by the browser); each one
+  //    is recorded with the item it was taken for (patches/0119).
+  const photoRows = itemPhotos.flatMap((paths, item) =>
+    paths.map((path, position) => ({
+      ticket_id: ticketId,
+      tenant_id: tenantId,
+      line_item_id: lineItemIds[item] ?? null,
+      storage_path: path,
+      kind: 'intake' as const,
+      position,
+      uploaded_by: userId,
+    })),
+  )
+  if (photoRows.length > 0) {
+    const { error: phErr } = await supabase.from('repair_ticket_photos').insert(photoRows)
+    if (phErr) console.error('[repair.create] intake photos not recorded', phErr)
   }
+  const photoCount = photoRows.length
 
   // 6. Intake event.
   await supabase.from('repair_ticket_events').insert({

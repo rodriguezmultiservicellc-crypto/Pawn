@@ -137,7 +137,7 @@ export default async function NewPawnLoanPage(props: {
         // shop's photos that are still in storage come back.
         photos: await Promise.all(
           payload.collateral.map(async (row) =>
-            (await signIntakePhotos(row.photos, tenantId)).map((p) => ({
+            (await signIntakePhotos(row.photos, tenantId, 'inventory-photos')).map((p) => ({
               ...p,
               name: '',
             })),

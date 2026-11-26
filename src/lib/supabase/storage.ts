@@ -199,7 +199,7 @@ export async function getSignedUrl(args: {
  * left out.
  */
 export async function getSignedUrls(args: {
-  bucket: typeof INVENTORY_PHOTOS_BUCKET
+  bucket: typeof INVENTORY_PHOTOS_BUCKET | typeof REPAIR_PHOTOS_BUCKET
   paths: string[]
   ttlSeconds?: number
 }): Promise<Map<string, string>> {

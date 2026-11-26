@@ -8,8 +8,8 @@ import { loadPawnIntakeCategories } from '@/lib/pawn/intake-categories'
 import { seenCategory } from '@/lib/pawn/photo-describe'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { prepareUpload } from '@/lib/uploads/convert'
+import { INVENTORY_PHOTOS_BUCKET } from '@/lib/supabase/storage'
 import {
-  INTAKE_PHOTOS_BUCKET,
   intakePhotoMime,
   parseIntakePhotoPaths,
 } from '@/lib/uploads/intake-photos'
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient()
   const images: Array<{ mime: PawnItemPhotoImageType; bytes: Buffer }> = []
   for (const path of paths) {
-    const { data: blob, error } = await admin.storage.from(INTAKE_PHOTOS_BUCKET).download(path)
+    const { data: blob, error } = await admin.storage.from(INVENTORY_PHOTOS_BUCKET).download(path)
     if (error || !blob) return bad(400, 'bad_request')
     if (blob.size > MAX_PHOTO_BYTES) return bad(413, 'photo_too_large')
     const declared = intakePhotoMime(path)

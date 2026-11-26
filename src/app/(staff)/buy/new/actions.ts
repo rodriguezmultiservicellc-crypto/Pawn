@@ -145,7 +145,7 @@ export async function createBuyOutrightAction(
   // is written.
   const photoLists: string[][] = []
   for (const row of itemRows) {
-    const confirmed = await confirmIntakePhotos(row.photos, tenantId)
+    const confirmed = await confirmIntakePhotos(row.photos, tenantId, 'inventory-photos')
     if (!confirmed.ok) return { error: 'photos_missing', values: echo }
     photoLists.push(confirmed.paths)
   }

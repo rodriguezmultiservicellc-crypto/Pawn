@@ -2,49 +2,39 @@
 
 import { useActionState, useCallback, useRef, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
-import {
-  Plus,
-  Trash,
-  Upload,
-  CheckCircle,
-  Wrench,
-  Diamond,
-  Ruler,
-  LinkSimple,
-  PaintBrush,
-  PenNib,
-  Sparkle,
-  type Icon,
-} from '@phosphor-icons/react'
+import { Plus, Trash, CheckCircle } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { fitInputFiles } from '@/lib/uploads/fit-photo'
 import CustomerPicker, {
   type CustomerPickerHandle,
 } from '@/components/customers/CustomerPicker'
 import QuickCustomerModal from '@/components/customers/QuickCustomerModal'
 import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import {
-  ITEM_TYPES,
-  KARAT_OPTIONS,
-  composeLineItemTitle,
-  itemTypeLabelEn,
-} from '@/lib/repair/line-items'
+  RepairItemsList,
+  lineItemTitle,
+  newLineItem,
+  type LineItem,
+} from '@/components/repair/RepairItemsList'
+import type { StripPhoto } from '@/components/uploads/PhotoStrip'
 import {
   createRepairTicketAction,
   type CreateRepairTicketState,
 } from './actions'
-import type { ServiceType } from '@/types/database-aliases'
 import type { PickerCustomerResult } from '@/lib/customers/picker-search'
 import { SimpleRepairTicketView } from './simple-view'
 import type { ClaimResult } from '@/lib/pawn/draft-handoff'
 import type { RepairDraftPayload } from '@/lib/repair/draft-payload'
 import { DraftHandoffButton, TicketMovedNotice } from '@/components/pawn/DraftHandoff'
 
+export type { LineItem }
+
 /** A draft opened on this device (the QR handoff, patches/0118). */
 export type RepairDraftInitial = {
   id: string
   customer: PickerCustomerResult
   payload: RepairDraftPayload
+  /** Each item's photos, signed again to show (same order as line_items). */
+  photos: StripPhoto[][]
 }
 
 export type TechnicianOption = {
@@ -89,72 +79,12 @@ function persistView(next: IntakeView) {
   viewListeners.forEach((cb) => cb())
 }
 
-const SERVICE_TILES: ReadonlyArray<{
-  value: ServiceType
-  labelKey:
-    | 'repair'
-    | 'stoneSetting'
-    | 'sizing'
-    | 'restring'
-    | 'plating'
-    | 'engraving'
-    | 'custom'
-  icon: Icon
-}> = [
-  { value: 'repair', labelKey: 'repair', icon: Wrench },
-  { value: 'stone_setting', labelKey: 'stoneSetting', icon: Diamond },
-  { value: 'sizing', labelKey: 'sizing', icon: Ruler },
-  { value: 'restring', labelKey: 'restring', icon: LinkSimple },
-  { value: 'plating', labelKey: 'plating', icon: PaintBrush },
-  { value: 'engraving', labelKey: 'engraving', icon: PenNib },
-  { value: 'custom', labelKey: 'custom', icon: Sparkle },
-]
-
 function fmtMoney(v: number): string {
   if (!isFinite(v)) return '$0.00'
   return v.toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
-  })
-}
-
-// ── Line item ────────────────────────────────────────────────────────────────
-
-export type LineItem = {
-  uid: string
-  item_type: string
-  karat: string
-  weight_grams: string
-  dimension: string
-  service_type: ServiceType
-  /** False until the operator picks a service. Classic starts every item at
-   *  'repair' (unchanged); the Simple view shows nothing selected and will
-   *  not open the ticket until a service has been chosen explicitly. */
-  service_touched: boolean
-  work_needed: string
-}
-
-function newLineItem(): LineItem {
-  return {
-    uid:
-      typeof crypto !== 'undefined' ? crypto.randomUUID() : `li${Math.random()}`,
-    item_type: '',
-    karat: '',
-    weight_grams: '',
-    dimension: '',
-    service_type: 'repair',
-    service_touched: false,
-    work_needed: '',
-  }
-}
-
-function lineItemTitle(li: LineItem): string {
-  return composeLineItemTitle({
-    typeLabel: li.item_type ? itemTypeLabelEn(li.item_type) : '',
-    karat: li.karat,
-    weightGrams: li.weight_grams,
-    dimension: li.dimension,
   })
 }
 
@@ -192,10 +122,13 @@ function newStoneRow(): StoneRow {
 }
 
 export default function NewRepairTicketForm({
+  tenantId,
   technicians,
   initialDraft,
   handoff,
 }: {
+  /** The shop's folder photos upload to (repair-photos/<tenantId>/intake). */
+  tenantId: string
   technicians: TechnicianOption[]
   initialDraft: RepairDraftInitial | null
   /** Opened from another device's QR code: did the claim work? */
@@ -212,10 +145,13 @@ export default function NewRepairTicketForm({
 
   // A draft from another device brings back every field it had.
   const draft = initialDraft?.payload ?? null
+  // Like the pawn ticket, the list starts empty: a pill adds each item.
   const [items, setItems] = useState<LineItem[]>(() =>
-    draft && draft.line_items.length > 0
-      ? draft.line_items.map((li) => ({ ...newLineItem(), ...li }))
-      : [newLineItem()],
+    (draft?.line_items ?? []).map((li, i) => ({
+      ...newLineItem(),
+      ...li,
+      photos: initialDraft?.photos[i] ?? [],
+    })),
   )
   const [stones, setStones] = useState<StoneRow[]>(() =>
     (draft?.stones ?? []).map((st) => ({ ...newStoneRow(), ...st })),
@@ -225,8 +161,6 @@ export default function NewRepairTicketForm({
   // The ticket moved to another device: this screen lets it go.
   const [moved, setMoved] = useState(false)
   const onMoved = useCallback(() => setMoved(true), [])
-  const photoInputRef = useRef<HTMLInputElement>(null)
-  const [photoNames, setPhotoNames] = useState<string[]>([])
 
   const [selectedCustomer, setSelectedCustomer] =
     useState<PickerCustomerResult | null>(initialDraft?.customer ?? null)
@@ -268,16 +202,17 @@ export default function NewRepairTicketForm({
     builtItems.length > 0 &&
     !needsService
 
-  function addItem() {
-    setItems((prev) => [...prev, newLineItem()])
+  /** Adds an item (of this type, from a pill) and returns its uid. */
+  function addItem(itemType = ''): string {
+    const li = { ...newLineItem(), item_type: itemType }
+    setItems((prev) => [...prev, li])
+    return li.uid
   }
   function patchItem(uid: string, patch: Partial<LineItem>) {
     setItems((prev) => prev.map((it) => (it.uid === uid ? { ...it, ...patch } : it)))
   }
   function removeItem(uid: string) {
-    setItems((prev) =>
-      prev.length <= 1 ? prev : prev.filter((it) => it.uid !== uid),
-    )
+    setItems((prev) => prev.filter((it) => it.uid !== uid))
   }
 
   function addStone() {
@@ -288,13 +223,6 @@ export default function NewRepairTicketForm({
   }
   function removeStone(uid: string) {
     setStones((prev) => prev.filter((s) => s.uid !== uid))
-  }
-
-  // HEIC becomes JPEG and big photos shrink before the ticket is sent
-  // (lib/uploads/fit-photo); the input is invalid until that is done.
-  async function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = await fitInputFiles(e.currentTarget, t.common.preparingPhoto)
-    setPhotoNames(files.map((f) => f.name))
   }
 
   const HINT = 'text-[13px] text-muted'
@@ -360,7 +288,7 @@ export default function NewRepairTicketForm({
 
       {state.error ? (
         <div className="mb-6 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {state.error}
+          {state.error === 'photos_invalid' ? tn.photosInvalid : state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
         <div className="mb-6 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -395,6 +323,13 @@ export default function NewRepairTicketForm({
             type="hidden"
             name={`li_${i}_service_touched`}
             value={li.service_touched ? '1' : '0'}
+          />
+          {/* Paths of the photos the browser already uploaded (patches/0119).
+              Here, not in the popup, so a switch to Simple keeps them. */}
+          <input
+            type="hidden"
+            name={`li_${i}_photos`}
+            value={JSON.stringify(li.photos.map((p) => p.path))}
           />
         </div>
       ))}
@@ -443,18 +378,6 @@ export default function NewRepairTicketForm({
         </>
       ) : null}
 
-      {/* Intake photos: the file input stays mounted outside both views so a
-          selection made in Classic survives a switch to Simple and back. */}
-      <input
-        ref={photoInputRef}
-        type="file"
-        name="intake_files"
-        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-        multiple
-        onChange={onPhotoChange}
-        className="sr-only"
-      />
-
       <QuickCustomerModal
         open={showCustomerModal}
         onClose={() => setShowCustomerModal(false)}
@@ -468,7 +391,7 @@ export default function NewRepairTicketForm({
         <SimpleRepairTicketView
           technicians={technicians}
           items={items}
-          onAddItem={addItem}
+          onAddItem={() => void addItem()}
           onPatchItem={patchItem}
           onRemoveItem={removeItem}
           customer={selectedCustomer}
@@ -521,32 +444,18 @@ export default function NewRepairTicketForm({
           <p className={HINT}>{tn.pickCustomerHelp}</p>
         </section>
 
-        {/* 2 · Items (+ stones when a stone-setting / custom item exists) */}
+        {/* 2 · Items — like the pawn ticket: a pill per item type, the items
+            in a table, each in its own popup (Photos · Item · Service). */}
         <section className="space-y-3">
-          <div>
-            <h2 className={LABEL}>2 · {tn.sectionItem}</h2>
-            <p className={`mt-1 ${HINT}`}>{tn.itemsHelp}</p>
-            {state.fieldErrors?.line_items ? (
-              <p className="mt-1 text-[13px] font-semibold text-danger">{tn.atLeastOneItem}</p>
-            ) : null}
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            {items.map((li, idx) => (
-              <LineItemEditor
-                key={li.uid}
-                index={idx}
-                item={li}
-                canRemove={items.length > 1}
-                onChange={(patch) => patchItem(li.uid, patch)}
-                onRemove={() => removeItem(li.uid)}
-              />
-            ))}
-          </div>
-          <button type="button" onClick={addItem} className={OUTLINE_BTN}>
-            <Plus size={14} weight="bold" />
-            {tn.addItem}
-          </button>
+          <RepairItemsList
+            title={`2 · ${tn.sectionItem}`}
+            items={items}
+            tenantId={tenantId}
+            error={state.fieldErrors?.line_items ? tn.atLeastOneItem : null}
+            onAdd={addItem}
+            onPatch={patchItem}
+            onRemove={removeItem}
+          />
 
           {showStones ? (
             <div className="space-y-3 rounded-lg border border-border bg-card p-4">
@@ -568,29 +477,10 @@ export default function NewRepairTicketForm({
           ) : null}
         </section>
 
-        {/* 3 · Intake photos · Repair notes */}
-        <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div className="space-y-2">
-            <h2 className={LABEL}>3 · {tn.sectionPhotos}</h2>
-            <button
-              type="button"
-              onClick={() => photoInputRef.current?.click()}
-              className={OUTLINE_BTN}
-            >
-              <Upload size={16} weight="bold" />
-              {tn.photoUpload}
-            </button>
-            <p className={HINT}>{tn.photosHelp}</p>
-            {photoNames.length > 0 ? (
-              <ul className="space-y-1 text-[13px] text-foreground">
-                {photoNames.map((n, i) => (
-                  <li key={i}>{n}</li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-          <label className="block space-y-2">
-            <span className={`block ${LABEL}`}>{tn.notesInternal}</span>
+        {/* 3 · Repair notes */}
+        <section>
+          <label className="block max-w-3xl space-y-2">
+            <span className={`block ${LABEL}`}>3 · {tn.notesInternal}</span>
             <textarea
               rows={3}
               value={notesInternal}
@@ -733,171 +623,6 @@ function MoneyField({
         />
       </div>
     </label>
-  )
-}
-
-// ── Line-item editor (title-builder chips + service + work) ───────────────────
-
-function LineItemEditor({
-  index,
-  item,
-  canRemove,
-  onChange,
-  onRemove,
-}: {
-  index: number
-  item: LineItem
-  canRemove: boolean
-  onChange: (patch: Partial<LineItem>) => void
-  onRemove: () => void
-}) {
-  const { t } = useI18n()
-  const tn = t.repair.new_
-  const title = lineItemTitle(item)
-
-  const chipBase =
-    'rounded-lg border-[1.5px] px-2.5 py-1.5 text-[12px] font-bold transition-colors'
-  const chipOn = 'border-gold bg-gold/[0.08] text-foreground'
-  const chipOff = 'border-border bg-card text-muted hover:border-gold'
-
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-mono text-foreground">
-          {tn.itemLabel.replace('{n}', String(index + 1))}
-        </span>
-        {canRemove ? (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10"
-          >
-            <Trash size={12} weight="bold" />
-            {tn.removeItem}
-          </button>
-        ) : null}
-      </div>
-
-      {/* Item type chips */}
-      <div className={LABEL}>
-        {tn.itemType}
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {ITEM_TYPES.map((it) => {
-          const on = item.item_type === it.value
-          return (
-            <button
-              key={it.value}
-              type="button"
-              onClick={() =>
-                onChange({ item_type: on ? '' : it.value })
-              }
-              className={`${chipBase} ${on ? chipOn : chipOff}`}
-            >
-              {tn.itemTypes[it.value]}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Karat chips */}
-      <div className={`mt-3 ${LABEL}`}>
-        {tn.karat}
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {KARAT_OPTIONS.map((k) => {
-          const on = item.karat === k
-          return (
-            <button
-              key={k}
-              type="button"
-              onClick={() => onChange({ karat: on ? '' : k })}
-              className={`${chipBase} ${on ? chipOn : chipOff}`}
-            >
-              {k}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Weight + dimension */}
-      <div className="mt-2.5 grid grid-cols-2 gap-2">
-        <label className="block space-y-1">
-          <span className={`block ${LABEL}`}>
-            {tn.weightGrams}
-          </span>
-          <input
-            type="number"
-            step="0.001"
-            inputMode="decimal"
-            value={item.weight_grams}
-            onChange={(e) => onChange({ weight_grams: e.target.value })}
-            placeholder={tn.weightPlaceholder}
-            className={INPUT}
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className={`block ${LABEL}`}>
-            {tn.dimension}
-          </span>
-          <input
-            type="text"
-            value={item.dimension}
-            onChange={(e) => onChange({ dimension: e.target.value })}
-            placeholder={tn.dimensionPlaceholder}
-            className={INPUT}
-          />
-        </label>
-      </div>
-
-      {/* Service chips */}
-      <div className={`mt-3 ${LABEL}`}>
-        {tn.service}
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {SERVICE_TILES.map(({ value, labelKey }) => {
-          const on = item.service_type === value
-          return (
-            <button
-              key={value}
-              type="button"
-              onClick={() =>
-                onChange({ service_type: value, service_touched: true })
-              }
-              className={`${chipBase} ${on ? chipOn : chipOff}`}
-            >
-              {t.repair.serviceTypes[labelKey]}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Work needed */}
-      <label className="mt-2.5 block space-y-1">
-        <span className={`block ${LABEL}`}>
-          {tn.workNeeded}
-        </span>
-        <input
-          type="text"
-          value={item.work_needed}
-          onChange={(e) => onChange({ work_needed: e.target.value })}
-          placeholder={tn.workNeededPlaceholder}
-          className={INPUT}
-        />
-      </label>
-
-      {/* Composed title preview */}
-      <div className="mt-2.5 rounded-lg border border-border bg-card px-3 py-2">
-        <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
-          {tn.titlePreview}
-        </span>
-        <div className="mt-0.5 text-sm font-semibold text-foreground">
-          {title || (
-            <span className="font-normal text-muted">{tn.titleEmpty}</span>
-          )}
-        </div>
-      </div>
-    </div>
   )
 }
 

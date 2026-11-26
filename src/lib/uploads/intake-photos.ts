@@ -16,9 +16,12 @@
  * Pure: the browser, the server actions and the tests share it.
  */
 
-/** The bucket intake photos live in (= INVENTORY_PHOTOS_BUCKET in
- *  lib/supabase/storage, which the browser cannot import). */
-export const INTAKE_PHOTOS_BUCKET = 'inventory-photos' as const
+/** The buckets intake photos go to (= INVENTORY_PHOTOS_BUCKET /
+ *  REPAIR_PHOTOS_BUCKET in lib/supabase/storage, which the browser cannot
+ *  import): pawn collateral and buys in inventory-photos, repair items in
+ *  repair-photos (patches/0119). Both buckets' storage policies let staff
+ *  write in their own shop's folder. */
+export type IntakePhotoBucket = 'inventory-photos' | 'repair-photos'
 
 /** Most photos one item may have. */
 export const INTAKE_PHOTO_MAX = 6

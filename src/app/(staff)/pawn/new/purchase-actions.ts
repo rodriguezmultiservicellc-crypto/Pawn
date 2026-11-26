@@ -96,7 +96,7 @@ export async function createPurchaseAction(
   // Every photo is this shop's and is in storage BEFORE anything is written.
   const photoLists: string[][] = []
   for (const row of collateralRaw) {
-    const confirmed = await confirmIntakePhotos(row.raw.photos, tenantId)
+    const confirmed = await confirmIntakePhotos(row.raw.photos, tenantId, 'inventory-photos')
     if (!confirmed.ok) return { error: 'photos_missing' }
     photoLists.push(confirmed.paths)
   }

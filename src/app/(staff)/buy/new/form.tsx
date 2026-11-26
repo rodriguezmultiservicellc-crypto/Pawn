@@ -600,6 +600,7 @@ function ItemCard({
         <div className="md:col-span-2">
           <PhotoStrip
             tenantId={tenantId}
+            bucket="inventory-photos"
             name={`item_${idx}_photos`}
             photos={row.photos}
             onChange={(photos) => onPatch({ photos })}

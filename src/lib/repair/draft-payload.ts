@@ -5,8 +5,8 @@
  * and the page reads it back with parseRepairDraftPayload. A draft is never a
  * ticket — opening the ticket validates everything as usual.
  *
- * Photos do not travel: the repair form sends its photo files with the ticket,
- * so a photo picked on the first device has to be taken again on the second.
+ * Each item keeps its photos' paths (already uploaded by the browser,
+ * patches/0119); the page signs them again when the draft opens.
  */
 
 import type { ServiceType } from '@/types/database-aliases'
@@ -21,6 +21,8 @@ export type RepairDraftLineItem = {
   /** The clerk picked the service (the Simple view asks for it). */
   service_touched: boolean
   work_needed: string
+  /** The item's photo paths, main first (repair-photos/<tenant>/intake/…). */
+  photos: string[]
 }
 
 export type RepairDraftStone = {
@@ -55,6 +57,19 @@ const serviceOf = (v: unknown): ServiceType =>
   SERVICE_TYPES.includes(v as ServiceType) ? (v as ServiceType) : 'repair'
 const sourceOf = (v: unknown): RepairDraftStone['source'] =>
   v === 'shop_supplied' ? 'shop_supplied' : 'customer_supplied'
+/** A JSON list of paths (the form) or a list (a stored payload) → strings.
+ *  Whose folder they are in is checked when they are signed or recorded. */
+const pathsOf = (v: unknown): string[] => {
+  let list: unknown = v
+  if (typeof v === 'string') {
+    try {
+      list = JSON.parse(v)
+    } catch {
+      return []
+    }
+  }
+  return Array.isArray(list) ? list.filter((p): p is string => typeof p === 'string') : []
+}
 const countOf = (v: unknown, max: number) =>
   Math.max(0, Math.min(max, parseInt(str(v), 10) || 0))
 
@@ -67,6 +82,7 @@ function lineItemFrom(get: (field: string) => unknown): RepairDraftLineItem {
     service_type: serviceOf(get('service_type')),
     service_touched: get('service_touched') === true || get('service_touched') === '1',
     work_needed: str(get('work_needed')),
+    photos: pathsOf(get('photos')),
   }
 }
 

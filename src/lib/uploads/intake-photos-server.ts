@@ -1,6 +1,6 @@
 import 'server-only'
-import { INVENTORY_PHOTOS_BUCKET, getSignedUrls } from '@/lib/supabase/storage'
-import { parseIntakePhotoPaths } from './intake-photos'
+import { getSignedUrls } from '@/lib/supabase/storage'
+import { parseIntakePhotoPaths, type IntakePhotoBucket } from './intake-photos'
 
 /**
  * SERVER ONLY. An item's photo list as a form sent it → the paths to record,
@@ -12,12 +12,13 @@ import { parseIntakePhotoPaths } from './intake-photos'
 export async function confirmIntakePhotos(
   raw: unknown,
   tenantId: string,
+  bucket: IntakePhotoBucket,
 ): Promise<{ ok: true; paths: string[] } | { ok: false }> {
   const paths = parseIntakePhotoPaths(raw, tenantId)
   if (paths == null) return { ok: false }
   if (paths.length === 0) return { ok: true, paths }
   // A path that is not in storage gets no signed URL.
-  const found = await getSignedUrls({ bucket: INVENTORY_PHOTOS_BUCKET, paths, ttlSeconds: 60 })
+  const found = await getSignedUrls({ bucket, paths, ttlSeconds: 60 })
   return paths.every((p) => found.has(p)) ? { ok: true, paths } : { ok: false }
 }
 
@@ -26,9 +27,10 @@ export async function confirmIntakePhotos(
 export async function signIntakePhotos(
   raw: unknown,
   tenantId: string,
+  bucket: IntakePhotoBucket,
 ): Promise<Array<{ path: string; url: string }>> {
   const paths = parseIntakePhotoPaths(raw, tenantId) ?? []
-  const urls = await getSignedUrls({ bucket: INVENTORY_PHOTOS_BUCKET, paths })
+  const urls = await getSignedUrls({ bucket, paths })
   return paths.flatMap((path) => {
     const url = urls.get(path)
     return url ? [{ path, url }] : []

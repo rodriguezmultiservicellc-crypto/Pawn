@@ -2436,7 +2436,6 @@ export const es: Dictionary = {
       sectionCustomer: 'Cliente',
       sectionItem: 'Artículos',
       sectionStones: 'Piedras',
-      sectionPhotos: 'Fotos al recibir',
       sectionStaff: 'Notas de reparación',
       pickCustomer: 'Selecciona un cliente',
       pickCustomerHelp:
@@ -2444,9 +2443,6 @@ export const es: Dictionary = {
       newCustomer: 'Crear nuevo cliente',
       customer: 'Cliente',
       // ── Recepción de múltiples artículos (chips para el título) ──
-      itemsHelp:
-        'Agrega cada artículo que deja el cliente. Arma su título con los chips, elige el servicio y anota el trabajo requerido.',
-      itemLabel: 'Artículo {n}',
       itemType: 'Tipo de artículo',
       itemTypes: {
         ring: 'Anillo',
@@ -2468,16 +2464,12 @@ export const es: Dictionary = {
       workNeeded: 'Trabajo requerido',
       workNeededPlaceholder: 'p. ej. soldar en el broche',
       titlePreview: 'Título',
-      titleEmpty: 'Elige un tipo de artículo para armar el título',
       addItem: 'Agregar artículo',
       removeItem: 'Quitar',
       atLeastOneItem: 'Agrega al menos un artículo.',
       promisedDate: 'Fecha prometida de entrega',
       assignedTo: 'Asignar técnico',
       assignedToNone: '— sin asignar —',
-      photoUpload: 'Agregar fotos al recibir',
-      photoUploadHelp:
-        'Varias fotos OK. Documenta el artículo antes de iniciar el trabajo.',
       addStone: 'Agregar piedra',
       removeStone: 'Quitar',
       stoneIndex: 'Piedra #',
@@ -2513,6 +2505,25 @@ export const es: Dictionary = {
       depositLabel: 'Depósito',
       balanceDue: 'Saldo al recoger',
       railMissingHint: 'Elige un cliente y agrega al menos un artículo',
+      photosInvalid: 'No se encontró una foto de un artículo. Quítala y tómala de nuevo.',
+      // ── Artículos como en el boleto de empeño: botones, tabla, ventana por artículo ──
+      list: {
+        colNo: '#',
+        colItem: 'Artículo',
+        colService: 'Servicio',
+        colWork: 'Trabajo a realizar',
+        colPhotos: 'Fotos',
+        colActions: 'Acciones',
+        empty: 'Elige un tipo de artículo arriba para agregar el primero.',
+        edit: 'Editar',
+        addTitle: 'Agregar artículo',
+        editTitle: 'Artículo {n}',
+        stepsLabel: 'Pasos del artículo',
+        steps: { photos: 'Fotos', item: 'Artículo', service: 'Servicio' },
+        photosLabel: 'Fotos del artículo',
+        next: 'Siguiente',
+        done: 'Listo',
+      },
       // ── Selector de vista (Clásica | Simple) ──
       viewLabel: 'Vista',
       viewClassic: 'Clásica',

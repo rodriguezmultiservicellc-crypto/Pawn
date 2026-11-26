@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
 import { claimHandoff, type ClaimResult } from '@/lib/pawn/draft-handoff'
 import { parseRepairDraftPayload } from '@/lib/repair/draft-payload'
+import { signIntakePhotos } from '@/lib/uploads/intake-photos-server'
 import NewRepairTicketForm, { type RepairDraftInitial, type TechnicianOption } from './form'
 
 type SearchParams = Promise<{ draft?: string; handoff?: string }>
@@ -72,6 +73,8 @@ export default async function NewRepairTicketPage(props: { searchParams: SearchP
       .maybeSingle()
     const c = d?.customers
     if (d && c) {
+      const payload = parseRepairDraftPayload(d.payload)
+      const tenantId = ctx.tenantId
       initialDraft = {
         id: d.id,
         // The same label the customer picker shows.
@@ -79,13 +82,24 @@ export default async function NewRepairTicketPage(props: { searchParams: SearchP
           id: c.id,
           label: `${c.last_name}, ${c.first_name}${c.phone ? ` · ${c.phone}` : ''}`,
         },
-        payload: parseRepairDraftPayload(d.payload),
+        payload,
+        // Each item's photos, shown again. Only this shop's photos that are
+        // still in storage come back.
+        photos: await Promise.all(
+          payload.line_items.map(async (li) =>
+            (await signIntakePhotos(li.photos, tenantId, 'repair-photos')).map((p) => ({
+              ...p,
+              name: '',
+            })),
+          ),
+        ),
       }
     }
   }
 
   return (
     <NewRepairTicketForm
+      tenantId={ctx.tenantId}
       technicians={technicianOptions}
       initialDraft={initialDraft}
       handoff={handoff}

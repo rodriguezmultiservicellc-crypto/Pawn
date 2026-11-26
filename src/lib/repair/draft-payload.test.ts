@@ -19,6 +19,7 @@ describe('repair draft payload', () => {
         li_0_service_type: 'stone_setting',
         li_0_service_touched: '1',
         li_0_work_needed: 'Set center stone',
+        li_0_photos: JSON.stringify(['t/intake/a.jpg', 'b.jpg']),
         li_1_item_type: '',
         li_1_service_type: 'repair',
         li_1_service_touched: '0',
@@ -43,8 +44,10 @@ describe('repair draft payload', () => {
       service_type: 'stone_setting',
       service_touched: true,
       work_needed: 'Set center stone',
+      photos: ['t/intake/a.jpg', 'b.jpg'],
     })
     expect(payload.line_items[1].service_touched).toBe(false)
+    expect(payload.line_items[1].photos).toEqual([])
     expect(payload.stones[0]).toMatchObject({ stone_type: 'Diamond', size_mm: '5', source: 'shop_supplied' })
     expect(payload.est_deposit).toBe('20')
     // Stored as JSON and read back: nothing lost.

@@ -412,10 +412,14 @@ Never kill node processes by image name — always by PID.
       never submit the ticket.
 
 28. **Item photos at intake upload from the browser, never through a
-    server action** (pawn ticket collateral + buy outright, patches/0114).
+    server action** (pawn ticket collateral + buy outright, patches/0114;
+    repair ticket items, patches/0119).
     - `PhotoStrip` (`src/components/uploads/PhotoStrip.tsx`) fits each
       photo (`fitPhotoForUpload`: HEIC → JPEG, shrunk) and uploads it to
-      `inventory-photos/<tenant_id>/intake/<uuid>.<ext>`. The form carries
+      `<bucket>/<tenant_id>/intake/<uuid>.<ext>` — `inventory-photos` for
+      pawn / buy, `repair-photos` for repair. The bucket is a REQUIRED
+      argument of `PhotoStrip`, `confirmIntakePhotos` and `signIntakePhotos`
+      (`IntakePhotoBucket`); never default it. The form carries
       only a JSON list of paths, main photo first, at most 6 per item
       (`INTAKE_PHOTO_MAX`).
     - A server takes that list ONLY through `confirmIntakePhotos()`
@@ -426,7 +430,9 @@ Never kill node processes by image name — always by PID.
     - Pawn: `loan_collateral_items.photo_path` is the MAIN photo, the rest
       go in `extra_photo_paths` (at most 5). Read all of them through
       `allPhotoPaths()` (ticket page, forfeit, anything new). Buy: one
-      `inventory_item_photos` row per photo, main = position 0.
+      `inventory_item_photos` row per photo, main = position 0. Repair: one
+      `repair_ticket_photos` row per photo (kind `intake`) with
+      `line_item_id` = the item it was taken for.
     - Drafts keep the paths in their payload; the page signs them with
       `signIntakePhotos()` when the draft is resumed.
 
@@ -507,8 +513,12 @@ Never kill node processes by image name — always by PID.
     table (`'loan_drafts' | 'repair_drafts'`) — never copy them. A repair
     draft is saved ONLY by `upsertRepairDraft` (`src/lib/repair/draft-save.ts`)
     and its payload is `src/lib/repair/draft-payload.ts`; opening the ticket
-    soft-deletes it. Repair photos do not travel (they are sent with the
-    ticket, not uploaded first).
+    soft-deletes it. Each item's photo paths ride in the draft (rule 28).
+    New repair ticket's items work like the pawn ticket's: a pill per item
+    type, a table, a popup per item (Photos · Item · Service) —
+    `src/components/repair/RepairItemsList.tsx`, a native `<dialog>` kept
+    mounted inside the form like rule 27's; the form submits every value
+    through its own hidden `li_<n>_*` fields.
 
 33. **An item filled by voice is not on the ticket until the clerk checks it**
     (Eddy, 2026-11-26: "this is a legal transaction, it needs

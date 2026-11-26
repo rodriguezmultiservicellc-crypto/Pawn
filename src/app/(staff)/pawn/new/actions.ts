@@ -234,7 +234,7 @@ export async function createLoanAction(
   // is written, so a ticket never lands short of a photo the clerk saw.
   const photoLists: string[][] = []
   for (const row of collateralRaw) {
-    const confirmed = await confirmIntakePhotos(row.raw.photos, tenantId)
+    const confirmed = await confirmIntakePhotos(row.raw.photos, tenantId, 'inventory-photos')
     if (!confirmed.ok) return { error: 'photos_missing' }
     photoLists.push(confirmed.paths)
   }

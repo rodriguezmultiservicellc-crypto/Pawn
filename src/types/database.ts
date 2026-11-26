@@ -5370,6 +5370,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           kind: Database["public"]["Enums"]["repair_photo_kind"]
+          line_item_id: string | null
           position: number
           storage_path: string
           tenant_id: string
@@ -5382,6 +5383,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           kind: Database["public"]["Enums"]["repair_photo_kind"]
+          line_item_id?: string | null
           position?: number
           storage_path: string
           tenant_id: string
@@ -5394,6 +5396,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["repair_photo_kind"]
+          line_item_id?: string | null
           position?: number
           storage_path?: string
           tenant_id?: string
@@ -5401,6 +5404,13 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "repair_ticket_photos_line_item_id_fkey"
+            columns: ["line_item_id"]
+            isOneToOne: false
+            referencedRelation: "repair_ticket_line_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "repair_ticket_photos_tenant_id_fkey"
             columns: ["tenant_id"]

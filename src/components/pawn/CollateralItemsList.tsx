@@ -1566,6 +1566,7 @@ function CollateralRow({
         <div data-step="photos" className={step === 'photos' ? 'md:col-span-6 space-y-3' : 'hidden'}>
           <PhotoStrip
             tenantId={tenantId}
+            bucket="inventory-photos"
             name={`collateral_${index}_photos`}
             photos={row.photos}
             onChange={(photos) => {
