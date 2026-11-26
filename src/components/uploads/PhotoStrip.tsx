@@ -48,6 +48,7 @@ export function PhotoStrip({
   photos,
   onChange,
   label,
+  large = false,
 }: {
   tenantId: string
   /** The hidden input that carries the paths (JSON). */
@@ -55,6 +56,8 @@ export function PhotoStrip({
   photos: StripPhoto[]
   onChange: (photos: StripPhoto[]) => void
   label: string
+  /** Big tiles showing the whole photo (the pawn item popup's Photos step). */
+  large?: boolean
 }) {
   const { t } = useI18n()
   const tp = t.common.photoStrip
@@ -65,6 +68,7 @@ export function PhotoStrip({
   /** The photo open in the viewer (its place in the list), or null. */
   const [viewing, setViewing] = useState<number | null>(null)
   // The list as it is now, for uploads that finish one by one.
+  const TILE = large ? "h-44" : "h-20"
   const photosNow = useRef(photos)
   useEffect(() => {
     photosNow.current = photos
@@ -157,11 +161,11 @@ export function PhotoStrip({
         onChange={() => {}}
         className="sr-only"
       />
-      <div className="grid grid-cols-2 gap-2">
+      <div className={large ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4" : "grid grid-cols-2 gap-2"}>
         {photos.map((p, i) => (
           <div
             key={p.path}
-            className="group relative h-20 overflow-hidden rounded-md border border-border bg-background"
+            className={`group relative ${TILE} overflow-hidden rounded-md border border-border bg-background`}
           >
             {/* The whole tile opens the viewer; the corner buttons sit above it. */}
             <button
@@ -172,7 +176,7 @@ export function PhotoStrip({
               className={`absolute inset-0 h-full w-full cursor-zoom-in ${FOCUS}`}
             >
               {p.url ? (
-                <Image src={p.url} alt="" fill sizes="100px" unoptimized className="object-cover" />
+                <Image src={p.url} alt="" fill sizes={large ? "300px" : "100px"} unoptimized className={large ? "object-contain" : "object-cover"} />
               ) : (
                 <span className="flex h-full items-center justify-center break-all px-1 text-center text-[10px] text-foreground">
                   {p.name}
@@ -209,7 +213,7 @@ export function PhotoStrip({
           ? Array.from({ length: uploading }, (_, i) => (
               <div
                 key={`up-${i}`}
-                className="flex h-20 items-center justify-center rounded-md border border-dashed border-border bg-background px-1 text-center text-[10px] text-muted"
+                className={`flex ${TILE} items-center justify-center rounded-md border border-dashed border-border bg-background px-1 text-center text-[10px] text-muted`}
               >
                 {t.common.preparingPhoto}
               </div>
@@ -220,7 +224,7 @@ export function PhotoStrip({
             type="button"
             onClick={() => inputRef.current?.click()}
             aria-label={tp.add}
-            className={`flex h-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border bg-background text-muted hover:text-foreground ${FOCUS}`}
+            className={`flex ${TILE} flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border bg-background text-muted hover:text-foreground ${FOCUS}`}
           >
             <Camera size={18} weight="regular" />
             <span className="text-[10px]">{photos.length === 0 ? t.common.upload : tp.add}</span>

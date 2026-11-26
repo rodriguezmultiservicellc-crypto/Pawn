@@ -1244,9 +1244,9 @@ function CollateralRow({
                 // where no field exists yet.
                 tabIndex={-1}
                 data-popup-card
-                className="w-full max-w-5xl rounded-xl border border-border bg-card p-5 shadow-lg outline-none"
+                className="flex h-[calc(100dvh-2rem)] max-h-[960px] w-full max-w-5xl flex-col rounded-xl border border-border bg-card p-5 shadow-lg outline-none"
               >
-                <header className="mb-4 flex items-center justify-between gap-3">
+                <header className="mb-4 flex shrink-0 items-center justify-between gap-3">
                   <h3
                     id={`${fieldId}-title`}
                     className="text-base font-semibold text-foreground"
@@ -1264,6 +1264,8 @@ function CollateralRow({
                     <X size={16} weight="bold" />
                   </button>
                 </header>
+                {/* One size for every step: only the step's fields scroll. */}
+                <div className="flex min-h-0 flex-1 flex-col">
 
       {/* Hidden inputs always present so the form action sees the
           slug pair on submit. Empty strings serialize fine — the
@@ -1285,7 +1287,7 @@ function CollateralRow({
           the banner replaces the picker and the rest of the row
           reveals. */}
       {!categoryStepDone ? (
-        <div className="mb-3">
+        <div className="mb-3 min-h-0 flex-1 overflow-y-auto">
           <CategoryPicker
             categories={categories}
             initialTopSlug={row.pending_top_slug}
@@ -1304,7 +1306,7 @@ function CollateralRow({
           />
         </div>
       ) : (
-        <div className="mb-3">
+        <div className="mb-3 shrink-0">
           <CategoryBanner
             category={selectedCategory!}
             subcategory={selectedSubcategory}
@@ -1324,7 +1326,7 @@ function CollateralRow({
       {categoryStepDone && aiNote ? (
         <div
           role="status"
-          className={`mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-md border px-3 py-2 text-sm ${
+          className={`mb-3 flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-md border px-3 py-2 text-sm ${
             aiNote.kind === 'error'
               ? 'border-danger/30 bg-danger/5 text-danger'
               : aiNote.kind === 'moved'
@@ -1363,7 +1365,8 @@ function CollateralRow({
       ) : null}
 
       {categoryStepDone ? (
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+      <>
+      <div className="grid shrink-0 grid-cols-1 gap-3 md:grid-cols-6">
         {/* The two money fields on top; then the steps (Photos · Item ·
             Stones — Eddy, 2026-11-25: "too much stuff on the screen"); the
             description under all of them. A step that is not shown is only
@@ -1459,6 +1462,9 @@ function CollateralRow({
               </button>
             ))}
           </nav>
+      </div>
+      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
 
         {/* Photos — uploaded as they are picked; the form carries their
             paths (components/uploads/PhotoStrip). */}
@@ -1472,6 +1478,7 @@ function CollateralRow({
               onChange({ photos })
             }}
             label={t.pawn.new_.itemPhoto}
+            large
           />
           {row.photos.length > 0 ? (
             <button
@@ -2192,6 +2199,9 @@ function CollateralRow({
             </div>
           ) : null}
 
+      </div>
+      </div>
+      <div className="shrink-0 border-t border-border pt-3">
           {/* Last: written from the fields above while the clerk leaves it
               alone; theirs once they type in it (descriptionAfterChange). */}
           <label className="md:col-span-6 block space-y-1">
@@ -2212,9 +2222,11 @@ function CollateralRow({
             </span>
           </label>
       </div>
+      </>
       ) : null}
+                </div>
 
-                <footer className="mt-5 flex flex-wrap items-center justify-between gap-2">
+                <footer className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
                   {adding ? (
                     <span />
                   ) : (
