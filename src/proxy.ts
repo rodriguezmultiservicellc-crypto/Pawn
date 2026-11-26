@@ -211,9 +211,9 @@ export const config = {
      * Match all request paths except for the ones starting with:
      * - api (API routes — they handle their own auth)
      * - _next/static, _next/image (Next internals)
-     * - favicon.ico, robots.txt, sitemap.xml
+     * - favicon.ico, robots.txt, sitemap.xml, manifest.webmanifest
      * - file extensions (images, fonts, etc.)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|otf)).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|otf)).*)',
   ],
 }
