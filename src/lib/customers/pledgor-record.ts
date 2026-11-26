@@ -12,10 +12,11 @@
  * Not required: middle name, business phone, email, and the identifying
  * marks box (the statute's "identifying marks" are the goods').
  *
- * An EXPIRED ID is refused (Eddy, 2026-11-25: "license is expired and it let
- * me continue to do the pawn"): `id_expiry` is "missing" when the record has
- * an expiry date before the shop's today. A record with no expiry date is not
- * refused for it — thousands of imported records have none.
+ * The ID must be CURRENT (Eddy, 2026-11-25: "license is expired and it let
+ * me continue to do the pawn", then "make a missing expiry block it too"):
+ * `id_expiry` is "missing" when the record has no expiry date OR one before
+ * the shop's today. Many imported xPawn records have none; the clerk enters
+ * it from the ID in the popup the first time that customer pawns or sells.
  * The thumbprint and signature are taken on the paper ticket.
  *
  * Pure; the pawn and buy actions refuse the intake with the list, and the
@@ -104,7 +105,7 @@ export function missingPledgorFields(c: PledgorRecord, today: string): PledgorFi
     id_type: filled(c.id_type),
     id_number: filled(c.id_number),
     id_state: isIdAgency(c.id_state),
-    id_expiry: !isIdExpired(c.id_expiry, today),
+    id_expiry: filled(c.id_expiry) && !isIdExpired(c.id_expiry, today),
   }
   return PLEDGOR_FIELDS.filter((f) => !ok[f])
 }

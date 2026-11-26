@@ -57,9 +57,10 @@ describe('an expired ID', () => {
   it('is refused like a missing field', () => {
     expect(missingPledgorFields({ ...full, id_expiry: '2026-11-24' }, TODAY)).toEqual(['id_expiry'])
   })
-  it('expiring today is still good; no expiry on file is not refused', () => {
+  it('expiring today is still good; no expiry on file is refused too', () => {
     expect(missingPledgorFields({ ...full, id_expiry: TODAY }, TODAY)).toEqual([])
-    expect(missingPledgorFields({ ...full, id_expiry: null }, TODAY)).toEqual([])
+    expect(missingPledgorFields({ ...full, id_expiry: null }, TODAY)).toEqual(['id_expiry'])
+    expect(missingPledgorFields({ ...full, id_expiry: ' ' }, TODAY)).toEqual(['id_expiry'])
     expect(isIdExpired('2026-11-24T00:00:00', TODAY)).toBe(true)
   })
   it('the popup takes the new ID: number, expiry and agency, once each', () => {

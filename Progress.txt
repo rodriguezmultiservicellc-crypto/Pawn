@@ -1150,6 +1150,8 @@ sessions are there.)
        Server: createLoanAction, createPurchaseAction, createBuyOutright-
        Action. Screen: the banner; its popup takes the new ID (number,
        expiry, agency — pledgorColumnsFor). CLAUDE.md rule 26 updated.
+       Then (Eddy): a MISSING expiry blocks too — the clerk enters it from
+       the ID in the popup the first time an imported customer comes in.
 
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
