@@ -604,8 +604,11 @@ export function Sidebar({
   )
 
   return (
+    // The menu and the page scroll on their own (Eddy, 2026-11-26): the menu
+    // is pinned to the window's height and scrolls inside itself; reaching its
+    // end never scrolls the page (overscroll-contain).
     <nav
-      className={`flex ${widthClass} shrink-0 flex-col gap-0.5 bg-navy px-2 py-4 transition-[width] duration-150`}
+      className={`sticky top-0 flex h-dvh ${widthClass} shrink-0 flex-col gap-0.5 self-start overflow-y-auto overscroll-contain bg-navy [&>*]:shrink-0 px-2 py-4 transition-[width] duration-150 [scrollbar-color:rgb(255_255_255/0.2)_transparent] [scrollbar-width:thin]`}
       aria-label="Primary"
     >
       <button
