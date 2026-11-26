@@ -2373,6 +2373,21 @@ export const es: Dictionary = {
         cancel_refused: 'orocut.com rechazó la cancelación: la orden ya está {status}.',
       },
     },
+    drafts: {
+      navTitle: 'Borradores',
+      title: 'Borradores de reparación',
+      subtitle: 'Boletos de reparación aún no abiertos — guardados aquí o pasados a otro dispositivo. Continúa uno para terminarlo.',
+      empty: 'No hay borradores. En Nuevo boleto de reparación, presiona «Guardar borrador» para guardarlo aquí.',
+      backToRepairs: 'Volver a reparaciones',
+      customer: 'Cliente',
+      items: 'Artículos',
+      total: 'Total',
+      noTotal: 'Sin precio',
+      onOtherDevice: 'Abierto en otro dispositivo',
+      savedAt: 'Guardado',
+      continue: 'Continuar',
+      discard: 'Descartar',
+    },
     list: {
       filterAll: 'Todas',
       filterIntake: 'Recibidas',
@@ -2440,6 +2455,8 @@ export const es: Dictionary = {
       voided: 'Anulada',
     },
     new_: {
+      saveDraft: 'Guardar borrador',
+      draftSaving: 'Guardando borrador…',
       history: {
         title: 'Historial de reparaciones',
         loading: 'Cargando las reparaciones del cliente…',

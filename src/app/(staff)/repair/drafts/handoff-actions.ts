@@ -1,8 +1,6 @@
 'use server'
 
 import QRCode from 'qrcode'
-import { getCtx } from '@/lib/supabase/ctx'
-import { requireRoleInTenant } from '@/lib/supabase/guards'
 import { siteOrigin } from '@/lib/http/site-origin'
 import {
   cancelHandoff,
@@ -12,23 +10,9 @@ import {
   type HandoffStatus,
 } from '@/lib/pawn/draft-handoff'
 import { upsertRepairDraft } from '@/lib/repair/draft-save'
+import { repairDraftScope as draftScope } from '@/lib/repair/draft-scope'
 
-/** Who may open a repair ticket (same list as createRepairTicketAction). */
-const REPAIR_ROLES = ['owner', 'manager', 'pawn_clerk', 'repair_tech', 'chain_admin'] as const
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-async function draftScope() {
-  const ctx = await getCtx()
-  if (!ctx?.tenantId) return null
-  const { data: tenant } = await ctx.supabase
-    .from('tenants')
-    .select('has_repair')
-    .eq('id', ctx.tenantId)
-    .maybeSingle()
-  if (!tenant?.has_repair) return null
-  const { supabase, userId } = await requireRoleInTenant(ctx.tenantId, [...REPAIR_ROLES])
-  return { supabase, userId, tenantId: ctx.tenantId }
-}
 
 /**
  * "Continue on another device" on New repair ticket: save it as a draft and

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
+  FileDashed,
   Kanban,
   MagnifyingGlass,
   Plus,
@@ -116,6 +117,13 @@ export default function RepairContent({
               <span>{t.repair.list.openBoard}</span>
             </Link>
           ) : null}
+          <Link
+            href="/repair/drafts"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-background hover:text-foreground"
+          >
+            <FileDashed size={16} weight="bold" />
+            <span>{t.repair.drafts.navTitle}</span>
+          </Link>
           <Link
             href="/repair/new"
             className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-navy font-medium hover:bg-gold-2"

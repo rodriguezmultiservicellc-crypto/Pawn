@@ -1,8 +1,15 @@
 'use client'
 
-import { useActionState, useCallback, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  useActionState,
+  useCallback,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from 'react'
 import Link from 'next/link'
-import { Plus, Trash, CheckCircle } from '@phosphor-icons/react'
+import { Plus, Trash, CheckCircle, FloppyDisk } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import CustomerPicker, {
   type CustomerPickerHandle,
@@ -27,6 +34,7 @@ import { SimpleRepairTicketView } from './simple-view'
 import type { ClaimResult } from '@/lib/pawn/draft-handoff'
 import type { RepairDraftPayload } from '@/lib/repair/draft-payload'
 import { DraftHandoffButton, TicketMovedNotice } from '@/components/pawn/DraftHandoff'
+import { saveRepairDraftAction } from '../drafts/actions'
 
 export type { LineItem }
 
@@ -163,6 +171,7 @@ export default function NewRepairTicketForm({
   // The ticket moved to another device: this screen lets it go.
   const [moved, setMoved] = useState(false)
   const onMoved = useCallback(() => setMoved(true), [])
+  const [savingDraft, startSaveDraft] = useTransition()
 
   const [selectedCustomer, setSelectedCustomer] =
     useState<PickerCustomerResult | null>(initialDraft?.customer ?? null)
@@ -229,6 +238,15 @@ export default function NewRepairTicketForm({
     setStones((prev) => prev.filter((s) => s.uid !== uid))
   }
 
+  function onSaveDraft() {
+    const formEl = document.getElementById(REPAIR_FORM_ID) as HTMLFormElement | null
+    if (!formEl) return
+    const fd = new FormData(formEl)
+    startSaveDraft(async () => {
+      await saveRepairDraftAction(fd)
+    })
+  }
+
   const HINT = 'text-[13px] text-muted'
 
   if (moved) return <TicketMovedNotice kind="repair" />
@@ -268,15 +286,27 @@ export default function NewRepairTicketForm({
             )
           })}
         </div>
-        {/* Move this ticket to an iPad / phone / laptop with a QR code. */}
-        <DraftHandoffButton
-          kind="repair"
-          formId={REPAIR_FORM_ID}
-          disabled={selectedCustomer == null}
-          className={OUTLINE_BTN}
-          onDraftSaved={setSavedDraftId}
-          onMoved={onMoved}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Park it in Repair > Drafts — any device can continue it there. */}
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            disabled={savingDraft || selectedCustomer == null}
+            className={OUTLINE_BTN}
+          >
+            <FloppyDisk size={16} weight="bold" />
+            {savingDraft ? tn.draftSaving : tn.saveDraft}
+          </button>
+          {/* Move this ticket to an iPad / phone / laptop with a QR code. */}
+          <DraftHandoffButton
+            kind="repair"
+            formId={REPAIR_FORM_ID}
+            disabled={selectedCustomer == null}
+            className={OUTLINE_BTN}
+            onDraftSaved={setSavedDraftId}
+            onMoved={onMoved}
+          />
+        </div>
       </div>
 
       {handoff ? (

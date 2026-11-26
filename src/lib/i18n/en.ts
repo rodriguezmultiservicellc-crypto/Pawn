@@ -2385,6 +2385,21 @@ export const en = {
         cancel_refused: 'orocut.com refused the cancel — the order is already {status}.',
       },
     },
+    drafts: {
+      navTitle: 'Drafts',
+      title: 'Saved repair drafts',
+      subtitle: 'Repair tickets not opened yet — saved here or moved to another device. Continue one to finish it.',
+      empty: 'No saved drafts. On New repair ticket, press "Save as draft" to park one here.',
+      backToRepairs: 'Back to repairs',
+      customer: 'Customer',
+      items: 'Items',
+      total: 'Total',
+      noTotal: 'Not priced',
+      onOtherDevice: 'Opened on another device',
+      savedAt: 'Saved',
+      continue: 'Continue',
+      discard: 'Discard',
+    },
     list: {
       filterAll: 'All',
       filterIntake: 'Intake',
@@ -2452,6 +2467,8 @@ export const en = {
       voided: 'Voided',
     },
     new_: {
+      saveDraft: 'Save as draft',
+      draftSaving: 'Saving draft…',
       history: {
         title: 'Repair history',
         loading: 'Loading this customer’s repairs…',
