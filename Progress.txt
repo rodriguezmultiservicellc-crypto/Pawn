@@ -60,7 +60,12 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 75 (2026-11-26, saved ~11:30), items 645-660.
+  Last session:   Session 75 (2026-11-26, saved ~11:30, updated ~12:30),
+                  items 645-664. Later the same day (661-664): Pawned
+                  before piece can be put back; Scan ID inside the New
+                  customer popup; item prices on the printed repair
+                  ticket; per-item price in the Simple repair view (its
+                  labor / materials estimate removed). main == 091c1b5+.
                   Context budget at save: high (compacted once; START FRESH).
                   FIVE MIGRATIONS, ALL APPLIED TO THE LIVE DB: 0118
                   (repair_drafts + 2 staff RLS policies, Eddy approved),
@@ -1359,6 +1364,22 @@ sessions are there.)
        tickets / Show sales opens a popup like Pawned before; rows open in
        a new tab.
   660. /progress — Session 75 checkpoint.
+  661. [BUG] PAWNED BEFORE: a piece added, then removed from the ticket,
+       stayed "Added" and could not be put back — the list kept its own Set
+       that removeRow never touched. Row.previous_key now marks the row; the
+       added set is derived from the rows. "Added" no longer adds a second
+       copy (button disabled).
+  662. SCAN ID IN THE NEW CUSTOMER POPUP (footer, left): fills every field
+       the license carries (scanFields), keeps the rest; raw barcode kept;
+       expired warning. QuickCustomerModal applyScan writes the uncontrolled
+       inputs directly.
+  663. PRINTED REPAIR TICKET: Price / Precio column per item
+       (RepairTicketPDF + render-repair-ticket reads line item price).
+  664. SIMPLE REPAIR VIEW: Price on each item card (same LineItem.price as
+       Classic); Pickup card shows Items total + "n not priced yet";
+       bottom-bar balance = items total − deposit. The labor / materials
+       estimate (never saved) removed from both views and from the draft
+       payload (est_labor / est_materials); 5 simple.* keys removed.
 
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
@@ -2884,9 +2905,9 @@ PENDING — NEXT UP
     Session 75 — have Eddy try on the live site (RESUME block list 1-4):
     New repair ticket (items, photos, prices -> quoted, QR), scan -> Add
     customer, phone-digit search, the history cards + Show popup.
-    Not built (offer): item prices on the printed repair ticket; the
-    Simple repair view still has its own labor / materials estimate (never
-    saved) and no per-item price; Deposit on New repair records no money
+    Also try: Pawned before -> add, remove, add again; Scan ID inside the
+    New customer popup; print a priced repair ticket; Simple view prices.
+    Not built (offer): Deposit on New repair records no money
     (collected on the ticket page); work phrases are fixed, not
     shop-editable (would need a table + RLS approval); Buy outright scan
     still shows the old notice (no popup there).
