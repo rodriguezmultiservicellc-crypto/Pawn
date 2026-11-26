@@ -60,7 +60,28 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 73 (2026-11-25 -> 11-26, saved ~01:00), items
+  Last session:   Session 74 (2026-11-26, saved ~01:40), items 643-644.
+                  Context budget at save: very high (START FRESH).
+                  No migration. main == feature/sol-pawn-brief. Nothing
+                  is half-built. Built + pushed (6211d6a): an item filled
+                  by voice is unconfirmed until the clerk presses Done in
+                  its popup (Issue off + server refuses items_unconfirmed);
+                  a resumed draft / QR handoff now restores EVERY field of
+                  every item (it lost brand, model, serial, marks, stones,
+                  category). CLAUDE.md rule 33.
+                  ACTIVE FILES: src/components/pawn/CollateralItemsList.tsx
+                  (Row.unconfirmed, rowFromDraft, addDraftRow),
+                  src/app/(staff)/pawn/new/form.tsx, src/lib/pawn/
+                  intake-form.ts (hasUnconfirmedItems).
+                  RESUME POINT: have Eddy try live: speak an item -> its
+                  popup opens with the red note; Issue stays off until
+                  Done; save a draft with an unchecked voice item and
+                  resume it (still red; brand / model / stones all back).
+                  His draft 64f555ba was saved before this: its Rolex is
+                  NOT flagged — he checks it by hand. Then the Session 73
+                  list below.
+
+  Session 73 (2026-11-25 -> 11-26, saved ~01:00), items
                   636-642. Context budget at save: very high (compacted
                   once; START THE NEXT SESSION FRESH).
                   ONE MIGRATION, APPLIED TO THE LIVE DB: 0117 (loan_drafts
@@ -1240,6 +1261,8 @@ sessions are there.)
 
   642. /progress — Session 73 checkpoint.
 
+--- Session 74 (2026-11-26) — An item filled by voice must be checked; a resumed draft keeps every field ---
+
   643. AN ITEM FILLED BY VOICE MUST BE CHECKED BEFORE THE TICKET ISSUES
        (Eddy: the Rolex was added by speech; a legal transaction needs
        verification). Row.unconfirmed (CollateralItemsList): set by voice
@@ -1253,6 +1276,8 @@ sessions are there.)
        pawn category were lost. New addDraftRow / rowFromDraft restores every
        field. Eddy's draft 64f555ba was saved BEFORE this: its Rolex is
        not flagged. Not tried live.
+
+  644. /progress — Session 74 checkpoint.
 
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
@@ -2775,6 +2800,9 @@ PENDING — NEXT UP
 
   IMMEDIATE (do this first next session):
     REMEMBER: the shop still runs on xPawn; nothing uploads from Pawn.
+    Session 74 — have Eddy try: a voice item opens its popup and blocks
+    Issue until Done; a resumed draft brings back brand / model / stones.
+    Draft 64f555ba's Rolex was saved before the flag: check it by hand.
     Session 73 — have Eddy try on the live site (RESUME block list 1-4):
     the QR handoff on two devices (signed in and signed out), the item
     popup steps, the ID-expiry block, Describe from photo on a watch.
