@@ -60,7 +60,46 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 71 (2026-11-25, saved ~18:55), items 617-630.
+  Last session:   Session 72 (2026-11-25, saved ~23:10), items 631-635.
+                  Context budget at save: high (compacted once; start the
+                  next session fresh).
+                  ONE MIGRATION, APPLIED TO THE LIVE DB: 0116
+                  (appraisals.karat NUMERIC(4,2) -> (4,1), 0 rows).
+                  main == feature/sol-pawn-brief. Nothing is half-built.
+                  Built + pushed: Karat / Purity on the loan calculator +
+                  new appraisal, suggested loan by metal content (631);
+                  Buys list in the side menu, buy print popup, new pawn
+                  ticket -> /pawn?print=<id> with the print popup there
+                  (632); renewed license found by name + DOB, "Put the
+                  new license on file" (633); Complete customer record is
+                  a popup on New pawn / New buy (634).
+
+                  ACTIVE FILES (last touched):
+                    src/components/customers/{CompletePledgorDialog,
+                      PledgorRecordBanner,CustomerPicker}.tsx
+                    src/app/(staff)/customers/pledgor-actions.ts
+                    src/lib/customers/{pledgor-record,picker-search}.ts
+                    src/app/(staff)/buy/{page,content}.tsx  Buys list
+                    src/components/pawn/PrintNewTicketPrompt.tsx
+                    src/app/(staff)/pawn/{page,content}.tsx  ?print=<id>
+                    src/lib/pawn/suggested-loan.ts
+                    patches/0116-appraisal-purity.sql
+
+                  RESUME POINT: nothing half-built. Have Eddy try on the
+                  LIVE site (only tsc / lint / tests / build ran):
+                  1. New pawn ticket: save -> lands on /pawn with "Ticket
+                     saved" popup; Print opens the PDF and locks it.
+                  2. Side menu Pawns > Buys lists buys; a FL purchase opens
+                     the "Purchase saved" popup right away.
+                  3. Pick a customer missing fields -> Complete customer
+                     record popup -> Save clears the banner.
+                  4. Scan his renewed license -> found by name + DOB ->
+                     "Put the new license on file". His 2 records: merge
+                     at /customers/merge (he does it).
+                  5. Calculator / new appraisal: Silver -> 925, 28K refused.
+                  Then the Session 71 list below, then PENDING IMMEDIATE.
+
+  Session 71 (2026-11-25, saved ~18:55), items 617-630.
                   Context budget at save: high (the conversation was
                   compacted once; start the next session fresh).
                   ONE MIGRATION, APPLIED TO THE LIVE DB: 0115 (Florida
@@ -1054,6 +1093,8 @@ sessions are there.)
 
   630. /progress — Session 71 checkpoint.
 
+--- Session 72 (2026-11-25) — Purity on calculator + appraisals (0116), Buys list, print popups, new ticket -> /pawn, renewed license, customer record popup ---
+
   631. SAME FIELD ON THE LOAN CALCULATOR + NEW APPRAISAL (patches/0116 LIVE)
        PurityField on /pawn/calculator and /appraisals/new; metal change
        brings its purity; Calculate / the appraisal form stop on a bad one.
@@ -1093,6 +1134,13 @@ sessions are there.)
        address1/city/state/zip) through customerCreateSchema.pick, never
        clears a column, audited (kind pledgor_complete). "Open the full
        record" still opens the customer in a new tab. Not tried live.
+
+  635. NOTES OUTSIDE THE CODE
+       LeadsOnline (Steve McCunn): an Ironclad INFO form first, then the
+       NDA, then the API info — Eddy fills and signs both (memory
+       reference_leadsonline_upload_format). Global CLAUDE.md: Eddy's
+       Jewelers + RMS gmail addresses forward to his main inbox.
+       /progress — Session 72 checkpoint.
 
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
@@ -2615,6 +2663,11 @@ PENDING — NEXT UP
 
   IMMEDIATE (do this first next session):
     REMEMBER: the shop still runs on xPawn; nothing uploads from Pawn.
+    Session 72 — have Eddy try on the live site (RESUME block list 1-5):
+    new ticket -> /pawn print popup, Buys list + buy print popup, the
+    Complete customer record popup, the renewed-license scan, purity on
+    the calculator / appraisal. LeadsOnline: waiting on Eddy's info form,
+    then the NDA, then API info -> build the sender.
     Session 71 — have Eddy try on the live site (RESUME block list 1-5):
     the Karat / Purity field on the pawn popup, Buy outright and an
     inventory item; Describe from photo with a piece on a scale; one
