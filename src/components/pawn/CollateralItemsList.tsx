@@ -153,6 +153,10 @@ type FirearmType = 'handgun' | 'rifle' | 'shotgun' | 'other' | ''
 type Row = {
   /** stable id per row, only for React key */
   uid: string
+  /** The "Pawned before" piece this row came from (PreviousPawnItem.key).
+   *  UI only, never submitted: the list shows "Added" while a row carries
+   *  it, so a removed row can be put back. */
+  previous_key?: string
   /** pawn_intake_categories.slug — top-level. NULL = picker still
    *  visible at the top of the row. */
   pawn_category_slug: string | null
@@ -400,15 +404,18 @@ export const CollateralItemsList = forwardRef<
     adding: boolean
     report: boolean
   } | null>(null)
-  // The "Pawned before" list, and which of its pieces are on this ticket.
+  // The "Pawned before" list. Which of its pieces are on this ticket is read
+  // from the rows themselves, so removing a row frees its piece again
+  // (Eddy, 2026-11-26: a piece taken off could not be put back).
   const [beforeOpen, setBeforeOpen] = useState(false)
-  const [beforeAdded, setBeforeAdded] = useState<ReadonlySet<string>>(new Set())
-  // Another customer's pieces: nothing from the new list is on the ticket yet.
+  const beforeAdded: ReadonlySet<string> = new Set(
+    rows.flatMap((r) => (r.previous_key ? [r.previous_key] : [])),
+  )
+  // Another customer's pieces: close the list.
   const beforeSig = previousItems.map((p) => p.key).join('|')
   const [beforeSigSeen, setBeforeSigSeen] = useState(beforeSig)
   if (beforeSigSeen !== beforeSig) {
     setBeforeSigSeen(beforeSig)
-    setBeforeAdded(new Set())
     setBeforeOpen(false)
   }
 
@@ -483,6 +490,7 @@ export const CollateralItemsList = forwardRef<
     const previousStones = stonesToDrafts(p.stones)
     const row: Row = {
       ...newRow(),
+      previous_key: p.key,
       pawn_category_slug: top?.slug ?? defaultCategorySlug,
       pawn_subcategory_slug: sub?.slug ?? null,
       description: p.description,
@@ -712,10 +720,7 @@ export const CollateralItemsList = forwardRef<
         <PawnedBeforeDialog
           items={previousItems}
           addedKeys={beforeAdded}
-          onAdd={(p) => {
-            addPrevious(p)
-            setBeforeAdded((prev) => new Set(prev).add(p.key))
-          }}
+          onAdd={addPrevious}
           onClose={() => setBeforeOpen(false)}
         />
       ) : null}

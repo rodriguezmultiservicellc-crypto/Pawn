@@ -87,10 +87,13 @@ export function PawnedBeforeDialog({
                 ) : null}
                 <button
                   type="button"
+                  // On the ticket already: no second copy. Removing its row
+                  // from the ticket turns this back into Add.
+                  disabled={added}
                   onClick={() => onAdd(p)}
                   className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-bold transition-colors ${
                     added
-                      ? 'border border-success/40 bg-success/5 text-success hover:bg-success/10'
+                      ? 'cursor-default border border-success/40 bg-success/5 text-success'
                       : 'bg-gold text-navy hover:bg-gold-2'
                   }`}
                 >
