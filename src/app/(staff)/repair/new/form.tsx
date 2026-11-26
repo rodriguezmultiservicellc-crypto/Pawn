@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useRef, useState, useSyncExternalStore } from 'react'
+import { useActionState, useCallback, useRef, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import {
   Plus,
@@ -36,6 +36,16 @@ import {
 import type { ServiceType } from '@/types/database-aliases'
 import type { PickerCustomerResult } from '@/lib/customers/picker-search'
 import { SimpleRepairTicketView } from './simple-view'
+import type { ClaimResult } from '@/lib/pawn/draft-handoff'
+import type { RepairDraftPayload } from '@/lib/repair/draft-payload'
+import { DraftHandoffButton, TicketMovedNotice } from '@/components/pawn/DraftHandoff'
+
+/** A draft opened on this device (the QR handoff, patches/0118). */
+export type RepairDraftInitial = {
+  id: string
+  customer: PickerCustomerResult
+  payload: RepairDraftPayload
+}
 
 export type TechnicianOption = {
   id: string
@@ -183,8 +193,13 @@ function newStoneRow(): StoneRow {
 
 export default function NewRepairTicketForm({
   technicians,
+  initialDraft,
+  handoff,
 }: {
   technicians: TechnicianOption[]
+  initialDraft: RepairDraftInitial | null
+  /** Opened from another device's QR code: did the claim work? */
+  handoff: ClaimResult | null
 }) {
   const { t } = useI18n()
   const tn = t.repair.new_
@@ -195,31 +210,44 @@ export default function NewRepairTicketForm({
     FormData
   >(createRepairTicketAction, {})
 
-  const [items, setItems] = useState<LineItem[]>([newLineItem()])
-  const [stones, setStones] = useState<StoneRow[]>([])
+  // A draft from another device brings back every field it had.
+  const draft = initialDraft?.payload ?? null
+  const [items, setItems] = useState<LineItem[]>(() =>
+    draft && draft.line_items.length > 0
+      ? draft.line_items.map((li) => ({ ...newLineItem(), ...li }))
+      : [newLineItem()],
+  )
+  const [stones, setStones] = useState<StoneRow[]>(() =>
+    (draft?.stones ?? []).map((st) => ({ ...newStoneRow(), ...st })),
+  )
+  // The draft this ticket was saved as; opening the ticket closes it.
+  const [savedDraftId, setSavedDraftId] = useState<string | null>(initialDraft?.id ?? null)
+  // The ticket moved to another device: this screen lets it go.
+  const [moved, setMoved] = useState(false)
+  const onMoved = useCallback(() => setMoved(true), [])
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [photoNames, setPhotoNames] = useState<string[]>([])
 
   const [selectedCustomer, setSelectedCustomer] =
-    useState<PickerCustomerResult | null>(null)
+    useState<PickerCustomerResult | null>(initialDraft?.customer ?? null)
   const customerPickerRef = useRef<CustomerPickerHandle>(null)
   const [showCustomerModal, setShowCustomerModal] = useState(false)
 
   // Ticket-level fields live in state (not in uncontrolled inputs) so they
   // survive a view switch; both views submit them via the hidden inputs below.
-  const [promisedDate, setPromisedDate] = useState('')
-  const [assignedTo, setAssignedTo] = useState('')
-  const [notesInternal, setNotesInternal] = useState('')
+  const [promisedDate, setPromisedDate] = useState(draft?.promised_date ?? '')
+  const [assignedTo, setAssignedTo] = useState(draft?.assigned_to ?? '')
+  const [notesInternal, setNotesInternal] = useState(draft?.notes_internal ?? '')
 
   const view = useSyncExternalStore(subscribeView, readPersistedView, serverView)
 
   // Rail estimate — DISPLAY-ONLY calculator (like the pawn-rail redemption
   // preview). The official quote/deposit are set post-intake via the repair
-  // quote workflow (quote_set event + status transition), so these inputs
-  // are intentionally NOT submitted.
-  const [labor, setLabor] = useState('')
-  const [materials, setMaterials] = useState('')
-  const [deposit, setDeposit] = useState('')
+  // quote workflow (quote_set event + status transition). The ticket ignores
+  // them; only a draft keeps them (est_* hidden fields).
+  const [labor, setLabor] = useState(draft?.est_labor ?? '')
+  const [materials, setMaterials] = useState(draft?.est_materials ?? '')
+  const [deposit, setDeposit] = useState(draft?.est_deposit ?? '')
 
   const builtItems = items.filter((it) => it.item_type !== '')
   const showStones = items.some(
@@ -271,6 +299,8 @@ export default function NewRepairTicketForm({
 
   const HINT = 'text-[13px] text-muted'
 
+  if (moved) return <TicketMovedNotice kind="repair" />
+
   return (
     <form
       id={REPAIR_FORM_ID}
@@ -306,7 +336,27 @@ export default function NewRepairTicketForm({
             )
           })}
         </div>
+        {/* Move this ticket to an iPad / phone / laptop with a QR code. */}
+        <DraftHandoffButton
+          kind="repair"
+          formId={REPAIR_FORM_ID}
+          disabled={selectedCustomer == null}
+          className={OUTLINE_BTN}
+          onDraftSaved={setSavedDraftId}
+          onMoved={onMoved}
+        />
       </div>
+
+      {handoff ? (
+        <div
+          role="status"
+          className={`mb-6 rounded-md border px-3 py-2 text-sm text-foreground ${
+            handoff === 'claimed' ? 'border-success/30 bg-success/5' : 'border-warning/40 bg-warning/5'
+          }`}
+        >
+          {handoff === 'claimed' ? t.pawn.new_.handoff.arrived : t.pawn.new_.handoff.invalid}
+        </div>
+      ) : null}
 
       {state.error ? (
         <div className="mb-6 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -341,11 +391,21 @@ export default function NewRepairTicketForm({
             name={`li_${i}_work_needed`}
             value={li.work_needed}
           />
+          <input
+            type="hidden"
+            name={`li_${i}_service_touched`}
+            value={li.service_touched ? '1' : '0'}
+          />
         </div>
       ))}
 
       {/* Ticket-level fields — one source for both views. */}
       <input type="hidden" name="promised_date" value={promisedDate} />
+      {/* Only a draft reads these (the QR handoff); the ticket ignores them. */}
+      <input type="hidden" name="est_labor" value={labor} />
+      <input type="hidden" name="est_materials" value={materials} />
+      <input type="hidden" name="est_deposit" value={deposit} />
+      {savedDraftId ? <input type="hidden" name="draft_id" value={savedDraftId} /> : null}
       <input type="hidden" name="assigned_to" value={assignedTo} />
       <input type="hidden" name="notes_internal" value={notesInternal} />
 

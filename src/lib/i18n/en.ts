@@ -1729,6 +1729,7 @@ export const en = {
         movedTitle: 'This ticket moved to another device',
         movedBody: 'It is open on the device that scanned the code. Finish it there.',
         goPawns: 'Pawns',
+        goRepairs: 'Repairs',
         newTicket: 'New ticket',
         arrived: 'Continued from another device: the ticket is here as it was.',
         invalid: 'That code had expired or was already used, so the other screen did not close. The saved draft opened here; make sure it is not being finished there too.',

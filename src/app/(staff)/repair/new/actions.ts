@@ -282,6 +282,19 @@ export async function createRepairTicketAction(
     },
   })
 
+  // Opened from a draft (the QR handoff, patches/0118): the draft is done.
+  // Best-effort — the ticket is already written; a stale draft is harmless.
+  // The computer that showed the code sees 'gone' and closes its copy.
+  const draftId = String(formData.get('draft_id') ?? '').trim()
+  if (draftId) {
+    await supabase
+      .from('repair_drafts')
+      .update({ deleted_at: new Date().toISOString(), updated_by: userId })
+      .eq('id', draftId)
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+  }
+
   revalidatePath('/repair')
   redirect(`/repair/${ticketId}`)
 }

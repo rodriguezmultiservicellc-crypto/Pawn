@@ -1,8 +1,12 @@
 import { redirect } from 'next/navigation'
 import { getCtx } from '@/lib/supabase/ctx'
-import NewRepairTicketForm, { type TechnicianOption } from './form'
+import { claimHandoff, type ClaimResult } from '@/lib/pawn/draft-handoff'
+import { parseRepairDraftPayload } from '@/lib/repair/draft-payload'
+import NewRepairTicketForm, { type RepairDraftInitial, type TechnicianOption } from './form'
 
-export default async function NewRepairTicketPage() {
+type SearchParams = Promise<{ draft?: string; handoff?: string }>
+
+export default async function NewRepairTicketPage(props: { searchParams: SearchParams }) {
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   if (!ctx.tenantId) redirect('/no-tenant')
@@ -42,5 +46,49 @@ export default async function NewRepairTicketPage() {
     }))
   }
 
-  return <NewRepairTicketForm technicians={technicianOptions} />
+  // Opened from another device's QR code (patches/0118): take the draft
+  // (once; the device that showed the code closes its copy), then load it.
+  const { draft: draftId, handoff: handoffCode } = await props.searchParams
+  const validDraftId = draftId && /^[0-9a-f-]{36}$/i.test(draftId) ? draftId : null
+  let handoff: ClaimResult | null = null
+  if (validDraftId && handoffCode) {
+    handoff = await claimHandoff({
+      supabase: ctx.supabase,
+      table: 'repair_drafts',
+      tenantId: ctx.tenantId,
+      userId: ctx.userId,
+      draftId: validDraftId,
+      code: handoffCode,
+    })
+  }
+  let initialDraft: RepairDraftInitial | null = null
+  if (validDraftId) {
+    const { data: d } = await ctx.supabase
+      .from('repair_drafts')
+      .select('id, payload, customers(id, first_name, last_name, phone)')
+      .eq('id', validDraftId)
+      .eq('tenant_id', ctx.tenantId)
+      .is('deleted_at', null)
+      .maybeSingle()
+    const c = d?.customers
+    if (d && c) {
+      initialDraft = {
+        id: d.id,
+        // The same label the customer picker shows.
+        customer: {
+          id: c.id,
+          label: `${c.last_name}, ${c.first_name}${c.phone ? ` · ${c.phone}` : ''}`,
+        },
+        payload: parseRepairDraftPayload(d.payload),
+      }
+    }
+  }
+
+  return (
+    <NewRepairTicketForm
+      technicians={technicianOptions}
+      initialDraft={initialDraft}
+      handoff={handoff}
+    />
+  )
 }

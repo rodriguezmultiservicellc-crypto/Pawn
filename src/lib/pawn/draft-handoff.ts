@@ -8,6 +8,8 @@ import { buildDraftPayload } from '@/lib/pawn/intake-form'
 /**
  * Pawn drafts on the server: saving one from the New pawn form, and moving
  * one to another device with a QR code (patches/0117; Eddy, 2026-11-26).
+ * The handoff functions take the table: repair drafts move the same way
+ * (patches/0118, /repair/new; saved by lib/repair/draft-save).
  *
  * Handoff: the computer saves the draft and gets a one-time code (only its
  * SHA-256 is stored) that is good for HANDOFF_MINUTES. The QR code is the
@@ -18,6 +20,10 @@ import { buildDraftPayload } from '@/lib/pawn/intake-form'
  */
 
 export const HANDOFF_MINUTES = 10
+
+/** The drafts that can move: pawn tickets (0117) and repair tickets (0118).
+ *  Both tables have the same handoff columns. */
+export type DraftTable = 'loan_drafts' | 'repair_drafts'
 
 /** loan_drafts is reached through a generic client (see drafts/actions). */
 const asDb = (s: unknown) => s as SupabaseClient
@@ -100,6 +106,7 @@ export async function upsertLoanDraft(args: {
 /** Arm a handoff on a saved draft: a fresh one-time code, the old one gone. */
 export async function startHandoff(args: {
   supabase: unknown
+  table: DraftTable
   tenantId: string
   userId: string
   draftId: string
@@ -107,7 +114,7 @@ export async function startHandoff(args: {
   const code = randomBytes(24).toString('base64url')
   const expiresAt = new Date(Date.now() + HANDOFF_MINUTES * 60_000).toISOString()
   const { data } = await asDb(args.supabase)
-    .from('loan_drafts')
+    .from(args.table)
     .update({
       handoff_token_hash: hashHandoffCode(code),
       handoff_expires_at: expiresAt,
@@ -124,7 +131,7 @@ export async function startHandoff(args: {
     tenantId: args.tenantId,
     userId: args.userId,
     action: 'update',
-    tableName: 'loan_drafts',
+    tableName: args.table,
     recordId: args.draftId,
     changes: { kind: 'handoff_start', expires_at: expiresAt },
   })
@@ -135,11 +142,12 @@ export type HandoffStatus = 'waiting' | 'claimed' | 'expired' | 'gone'
 
 export async function handoffStatus(
   supabase: unknown,
+  table: DraftTable,
   tenantId: string,
   draftId: string,
 ): Promise<HandoffStatus> {
   const { data } = await asDb(supabase)
-    .from('loan_drafts')
+    .from(table)
     .select('handoff_token_hash, handoff_expires_at, handoff_claimed_at, deleted_at')
     .eq('id', draftId)
     .eq('tenant_id', tenantId)
@@ -159,9 +167,14 @@ export async function handoffStatus(
 }
 
 /** The computer kept the ticket: the code stops working. */
-export async function cancelHandoff(supabase: unknown, tenantId: string, draftId: string) {
+export async function cancelHandoff(
+  supabase: unknown,
+  table: DraftTable,
+  tenantId: string,
+  draftId: string,
+) {
   await asDb(supabase)
-    .from('loan_drafts')
+    .from(table)
     .update({ handoff_token_hash: null, handoff_expires_at: null })
     .eq('id', draftId)
     .eq('tenant_id', tenantId)
@@ -177,6 +190,7 @@ export type ClaimResult = 'claimed' | 'expired' | 'used'
  */
 export async function claimHandoff(args: {
   supabase: unknown
+  table: DraftTable
   tenantId: string
   userId: string
   draftId: string
@@ -185,7 +199,7 @@ export async function claimHandoff(args: {
   const db = asDb(args.supabase)
   const now = new Date().toISOString()
   const { data } = await db
-    .from('loan_drafts')
+    .from(args.table)
     .update({
       handoff_claimed_at: now,
       handoff_claimed_by: args.userId,
@@ -204,12 +218,12 @@ export async function claimHandoff(args: {
       tenantId: args.tenantId,
       userId: args.userId,
       action: 'update',
-      tableName: 'loan_drafts',
+      tableName: args.table,
       recordId: args.draftId,
       changes: { kind: 'handoff_claim' },
     })
     return 'claimed'
   }
-  const status = await handoffStatus(db, args.tenantId, args.draftId)
+  const status = await handoffStatus(db, args.table, args.tenantId, args.draftId)
   return status === 'expired' ? 'expired' : 'used'
 }

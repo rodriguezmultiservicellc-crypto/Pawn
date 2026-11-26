@@ -11,6 +11,27 @@ import {
   draftHandoffStatusAction,
   startDraftHandoffAction,
 } from '@/app/(staff)/pawn/drafts/handoff-actions'
+import {
+  cancelRepairHandoffAction,
+  repairHandoffStatusAction,
+  startRepairHandoffAction,
+} from '@/app/(staff)/repair/drafts/handoff-actions'
+
+/** Which ticket moves: a New pawn ticket (0117) or a New repair ticket (0118). */
+export type HandoffKind = 'pawn' | 'repair'
+
+const ACTIONS = {
+  pawn: {
+    start: startDraftHandoffAction,
+    status: draftHandoffStatusAction,
+    cancel: cancelDraftHandoffAction,
+  },
+  repair: {
+    start: startRepairHandoffAction,
+    status: repairHandoffStatusAction,
+    cancel: cancelRepairHandoffAction,
+  },
+} as const
 
 const POLL_MS = 2500
 
@@ -19,15 +40,18 @@ const POLL_MS = 2500
  * ticket as a draft and shows a QR code; the iPad / phone / laptop that scans
  * it opens the same ticket, and this screen closes its copy (onMoved) so one
  * ticket is never on two screens. Cancel keeps it here and the code stops
- * working. lib/pawn/draft-handoff has the rules.
+ * working. lib/pawn/draft-handoff has the rules. New repair ticket moves the
+ * same way (kind 'repair', patches/0118).
  */
 export function DraftHandoffButton({
+  kind,
   formId,
   disabled,
   className,
   onDraftSaved,
   onMoved,
 }: {
+  kind: HandoffKind
   formId: string
   disabled: boolean
   className: string
@@ -52,7 +76,7 @@ export function DraftHandoffButton({
     const fd = new FormData(formEl)
     setError(null)
     startTransition(async () => {
-      const res = await startDraftHandoffAction(fd)
+      const res = await ACTIONS[kind].start(fd)
       if (!res.ok) {
         setError(res.error === 'no_customer' ? h.noCustomer : h.failed)
         return
@@ -68,7 +92,7 @@ export function DraftHandoffButton({
     if (!shown) return
     let live = true
     const timer = window.setInterval(() => {
-      void draftHandoffStatusAction(shown.draftId).then((status) => {
+      void ACTIONS[kind].status(shown.draftId).then((status) => {
         if (!live) return
         if (status === 'claimed' || status === 'gone') {
           window.clearInterval(timer)
@@ -84,10 +108,10 @@ export function DraftHandoffButton({
       live = false
       window.clearInterval(timer)
     }
-  }, [shown, onMoved])
+  }, [shown, onMoved, kind])
 
   function keepHere() {
-    if (shown) void cancelDraftHandoffAction(shown.draftId)
+    if (shown) void ACTIONS[kind].cancel(shown.draftId)
     setShown(null)
     setExpired(false)
   }
@@ -150,7 +174,7 @@ export function DraftHandoffButton({
 }
 
 /** What this screen shows once the ticket moved to another device. */
-export function TicketMovedNotice() {
+export function TicketMovedNotice({ kind }: { kind: HandoffKind }) {
   const { t } = useI18n()
   const h = t.pawn.new_.handoff
   return (
@@ -160,15 +184,15 @@ export function TicketMovedNotice() {
       <p className="mt-2 text-sm text-text-secondary">{h.movedBody}</p>
       <div className="mt-6 flex justify-center gap-2">
         <Link
-          href="/pawn"
+          href={kind === 'repair' ? '/repair' : '/pawn'}
           className="inline-flex h-11 items-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-background"
         >
-          {h.goPawns}
+          {kind === 'repair' ? h.goRepairs : h.goPawns}
         </Link>
         {/* A fresh, empty ticket: a full load, not this screen's state. */}
         <button
           type="button"
-          onClick={() => window.location.assign('/pawn/new')}
+          onClick={() => window.location.assign(kind === 'repair' ? '/repair/new' : '/pawn/new')}
           className="inline-flex h-11 items-center rounded-xl bg-gold px-5 text-sm font-bold text-navy hover:bg-gold-2"
         >
           {h.newTicket}

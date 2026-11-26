@@ -402,7 +402,7 @@ export default function NewPawnLoanForm({
   const itemsText = `${collateralCount} ${collateralCount === 1 ? tn.itemOne : tn.itemMany}`
   const HINT = 'text-[13px] text-muted'
 
-  if (moved) return <TicketMovedNotice />
+  if (moved) return <TicketMovedNotice kind="pawn" />
 
   return (
     <form
@@ -841,6 +841,7 @@ export default function NewPawnLoanForm({
           {/* Move this ticket to an iPad / phone / laptop with a QR code. */}
           {!isPurchase ? (
             <DraftHandoffButton
+              kind="pawn"
               formId={PAWN_NEW_FORM_ID}
               disabled={selectedCustomerId == null}
               className={`${OUTLINE_BTN} w-full`}

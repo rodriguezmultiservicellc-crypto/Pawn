@@ -3768,6 +3768,10 @@ export type Database = {
           created_by: string | null
           customer_id: string
           deleted_at: string | null
+          handoff_claimed_at: string | null
+          handoff_claimed_by: string | null
+          handoff_expires_at: string | null
+          handoff_token_hash: string | null
           id: string
           payload: Json
           tenant_id: string
@@ -3779,6 +3783,10 @@ export type Database = {
           created_by?: string | null
           customer_id: string
           deleted_at?: string | null
+          handoff_claimed_at?: string | null
+          handoff_claimed_by?: string | null
+          handoff_expires_at?: string | null
+          handoff_token_hash?: string | null
           id?: string
           payload?: Json
           tenant_id: string
@@ -3790,6 +3798,10 @@ export type Database = {
           created_by?: string | null
           customer_id?: string
           deleted_at?: string | null
+          handoff_claimed_at?: string | null
+          handoff_claimed_by?: string | null
+          handoff_expires_at?: string | null
+          handoff_token_hash?: string | null
           id?: string
           payload?: Json
           tenant_id?: string
@@ -5002,6 +5014,76 @@ export type Database = {
           },
           {
             foreignKeyName: "register_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repair_drafts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          deleted_at: string | null
+          handoff_claimed_at: string | null
+          handoff_claimed_by: string | null
+          handoff_expires_at: string | null
+          handoff_token_hash: string | null
+          id: string
+          payload: Json
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          deleted_at?: string | null
+          handoff_claimed_at?: string | null
+          handoff_claimed_by?: string | null
+          handoff_expires_at?: string | null
+          handoff_token_hash?: string | null
+          id?: string
+          payload?: Json
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          deleted_at?: string | null
+          handoff_claimed_at?: string | null
+          handoff_claimed_by?: string | null
+          handoff_expires_at?: string | null
+          handoff_token_hash?: string | null
+          id?: string
+          payload?: Json
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_drafts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_drafts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_drafts_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

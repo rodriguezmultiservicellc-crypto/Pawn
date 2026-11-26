@@ -501,6 +501,14 @@ Never kill node processes by image name — always by PID.
     minutes, is never a login (the device signs in as staff first; the
     sign-in page keeps the whole link in `next`, paths on this site only),
     and no RLS policy was touched.
+    **New repair ticket moves the same way** (patches/0118, table
+    `repair_drafts`, its two staff policies approved by Eddy 2026-11-26):
+    `/repair/new?draft=<id>&handoff=<code>`. The handoff functions take the
+    table (`'loan_drafts' | 'repair_drafts'`) — never copy them. A repair
+    draft is saved ONLY by `upsertRepairDraft` (`src/lib/repair/draft-save.ts`)
+    and its payload is `src/lib/repair/draft-payload.ts`; opening the ticket
+    soft-deletes it. Repair photos do not travel (they are sent with the
+    ticket, not uploaded first).
 
 33. **An item filled by voice is not on the ticket until the clerk checks it**
     (Eddy, 2026-11-26: "this is a legal transaction, it needs

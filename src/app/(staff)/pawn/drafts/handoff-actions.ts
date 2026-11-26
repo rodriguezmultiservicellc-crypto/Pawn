@@ -1,7 +1,7 @@
 'use server'
 
-import { headers } from 'next/headers'
 import QRCode from 'qrcode'
+import { siteOrigin } from '@/lib/http/site-origin'
 import { getCtx } from '@/lib/supabase/ctx'
 import { requireRoleInTenant } from '@/lib/supabase/guards'
 import {
@@ -29,17 +29,6 @@ async function draftScope() {
   return { supabase, userId, tenantId: ctx.tenantId }
 }
 
-/** The address the other device opens: this site, as the browser reached it. */
-async function siteOrigin(): Promise<string> {
-  const h = await headers()
-  const host = h.get('x-forwarded-host') ?? h.get('host')
-  if (host) {
-    const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
-    return `${proto}://${host}`
-  }
-  return (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3060').replace(/\/+$/, '')
-}
-
 /**
  * "Continue on another device": save the ticket as a draft and return the QR
  * code that opens it on the other device (lib/pawn/draft-handoff).
@@ -54,7 +43,7 @@ export async function startDraftHandoffAction(
   if (!scope) return { ok: false, error: 'failed' }
   const draftId = await upsertLoanDraft({ ...scope, formData })
   if (!draftId) return { ok: false, error: 'no_customer' }
-  const started = await startHandoff({ ...scope, draftId })
+  const started = await startHandoff({ ...scope, table: 'loan_drafts', draftId })
   if (!started) return { ok: false, error: 'failed' }
   const url = `${await siteOrigin()}/pawn/new?draft=${draftId}&handoff=${started.code}`
   const qrSvg = await QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' })
@@ -66,7 +55,7 @@ export async function draftHandoffStatusAction(draftId: string): Promise<Handoff
   if (!UUID.test(draftId)) return 'gone'
   const scope = await draftScope()
   if (!scope) return 'gone'
-  return handoffStatus(scope.supabase, scope.tenantId, draftId)
+  return handoffStatus(scope.supabase, 'loan_drafts', scope.tenantId, draftId)
 }
 
 /** The computer keeps the ticket: the code stops working. */
@@ -74,5 +63,5 @@ export async function cancelDraftHandoffAction(draftId: string): Promise<void> {
   if (!UUID.test(draftId)) return
   const scope = await draftScope()
   if (!scope) return
-  await cancelHandoff(scope.supabase, scope.tenantId, draftId)
+  await cancelHandoff(scope.supabase, 'loan_drafts', scope.tenantId, draftId)
 }

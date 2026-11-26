@@ -106,6 +106,7 @@ export default async function NewPawnLoanPage(props: {
   if (draftId && handoffCode && /^[0-9a-f-]{36}$/i.test(draftId)) {
     handoff = await claimHandoff({
       supabase: ctx.supabase,
+      table: 'loan_drafts',
       tenantId: ctx.tenantId,
       userId: ctx.userId,
       draftId,

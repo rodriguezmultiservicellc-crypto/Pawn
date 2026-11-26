@@ -1728,6 +1728,7 @@ export const es: Dictionary = {
         movedTitle: 'Este boleto pasó a otro dispositivo',
         movedBody: 'Está abierto en el dispositivo que escaneó el código. Termínelo allí.',
         goPawns: 'Empeños',
+        goRepairs: 'Reparaciones',
         newTicket: 'Boleto nuevo',
         arrived: 'Continuado desde otro dispositivo: el boleto está aquí tal como estaba.',
         invalid: 'Ese código ya había vencido o ya se usó, así que la otra pantalla no se cerró. Se abrió aquí el borrador guardado; asegúrese de que no lo estén terminando allá también.',
