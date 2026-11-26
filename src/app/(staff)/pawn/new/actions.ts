@@ -558,7 +558,8 @@ export async function createLoanAction(
   }
 
   revalidatePath('/pawn')
-  // ?print=1: the ticket page asks to print at once — the customer signs the
-  // printed ticket before leaving the counter.
-  redirect(`/pawn/${loanId}?print=1`)
+  // Back to the Pawns list (Eddy, 2026-11-25), which asks to print the new
+  // ticket at once (?print=<id>) — the customer signs the printed ticket
+  // before leaving the counter.
+  redirect(`/pawn?print=${loanId}`)
 }

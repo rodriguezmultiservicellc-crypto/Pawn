@@ -18,6 +18,8 @@ type SearchParams = Promise<{
   status?: string
   due?: string
   customer?: string
+  /** A ticket just issued (createLoanAction): ask to print it. */
+  print?: string
 }>
 
 const NON_TERMINAL_STATUSES: ReadonlyArray<LoanStatus> = [
@@ -413,8 +415,26 @@ export default async function PawnListPage(props: {
     redeemedInterest,
   }
 
+  // Just issued: offer to print it — only while it is not printed yet, so a
+  // reload or Back after printing never asks again.
+  const printId = (params.print ?? '').trim()
+  const { data: toPrint } = /^[0-9a-f-]{36}$/i.test(printId)
+    ? await ctx.supabase
+        .from('loans')
+        .select('id, ticket_number, is_printed')
+        .eq('tenant_id', ctx.tenantId)
+        .eq('id', printId)
+        .is('deleted_at', null)
+        .maybeSingle()
+    : { data: null }
+
   return (
     <PawnContent
+      printPrompt={
+        toPrint && !toPrint.is_printed
+          ? { loanId: toPrint.id, ticketNumber: toPrint.ticket_number ?? '' }
+          : null
+      }
       rows={rows}
       query={q}
       statusFilter={statusFilter}

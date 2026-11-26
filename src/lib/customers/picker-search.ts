@@ -90,6 +90,60 @@ export async function findCustomerByIdNumber(
   }
 }
 
+export type ScanMatch = PickerCustomerResult & {
+  /** How the scanned license found the record. */
+  by: 'id_number' | 'name_dob'
+  /** By name + birth date: the ID number the record has (an old license). */
+  idNumberOnFile: string | null
+}
+
+/**
+ * The customer a scanned license belongs to. First the license number; then
+ * — a renewed Florida license can carry a NEW number (Eddy, 2026-11-25: "my
+ * license was renewed and the number is different now, but I'm in there 2
+ * times") — the same first + last name AND date of birth from the license.
+ * Name alone is never enough (lib/customers/duplicates). Several records by
+ * name + birth date: the oldest, the one a merge keeps.
+ */
+export async function findCustomerForScan(scan: {
+  licenseNumber: string
+  firstName: string
+  lastName: string
+  /** YYYY-MM-DD from the license, or ''. */
+  dob: string
+}): Promise<ScanMatch | null> {
+  const byNumber = scan.licenseNumber.trim()
+    ? await findCustomerByIdNumber(scan.licenseNumber)
+    : null
+  if (byNumber) return { ...byNumber, by: 'id_number', idNumberOnFile: null }
+
+  const first = scan.firstName.trim()
+  const last = scan.lastName.trim()
+  if (!first || !last || !/^\d{4}-\d{2}-\d{2}$/.test(scan.dob)) return null
+
+  const ctx = await getCtx()
+  if (!ctx || !ctx.tenantId) return null
+  const exact = (s: string) => s.replace(/[\\%_]/g, (m) => '\\' + m)
+  const { data } = await ctx.supabase
+    .from('customers')
+    .select('id, first_name, last_name, phone, id_number')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .eq('date_of_birth', scan.dob)
+    .ilike('first_name', exact(first))
+    .ilike('last_name', exact(last))
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (!data) return null
+  return {
+    id: data.id,
+    label: `${data.last_name}, ${data.first_name}${data.phone ? ` · ${data.phone}` : ''}`,
+    by: 'name_dob',
+    idNumberOnFile: data.id_number,
+  }
+}
+
 /**
  * Lookup a single customer by id, used when a form has a prefilled
  * customer (e.g., redirected from /customers/[id] with ?customer=). Returns

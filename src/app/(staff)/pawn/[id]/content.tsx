@@ -27,8 +27,6 @@ import { VoidPaymentDialog } from '@/components/pawn/VoidPaymentDialog'
 import { RedeemConfirmDialog } from '@/components/pawn/RedeemConfirmDialog'
 import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
 import { ReceiptFormatDialog } from '@/components/pos/PrintReceiptDialog'
-import { Modal } from '@/components/pos/Modal'
-import { useRouter } from 'next/navigation'
 import PrintTagsMenu from '@/components/labels/PrintTagsMenu'
 import type { TemplateChoice } from '@/lib/labels/templates'
 import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
@@ -166,7 +164,6 @@ export default function PawnLoanDetail({
   canGiveFreeTime,
   voidablePayment,
   forfeit,
-  justIssued = false,
   tagChoices,
 }: {
   loan: LoanView
@@ -182,20 +179,9 @@ export default function PawnLoanDetail({
    *  with it. Null for clerks and when there is none. */
   voidablePayment: { eventId: string; restoreDueDate: string | null; reopens: boolean } | null
   forfeit: { eligible: boolean; eligibleOn: string; lastRedemptionDate: string }
-  /** Arrived straight from issuing the ticket (?print=1): ask to print it. */
-  justIssued?: boolean
   tagChoices: TemplateChoice[]
 }) {
   const { t } = useI18n()
-  const router = useRouter()
-  // Only a ticket not printed yet is offered: a reload or Back after printing
-  // never asks again.
-  const [askPrint, setAskPrint] = useState(justIssued && !loan.is_printed)
-  function closeAskPrint() {
-    setAskPrint(false)
-    // Drop ?print=1 so a reload doesn't ask again.
-    if (justIssued) router.replace(`/pawn/${loan.id}`, { scroll: false })
-  }
   const [dialog, setDialog] = useState<DialogKind>(null)
   const [printPending, startPrintTransition] = useTransition()
   const [printToast, setPrintToast] = useState<string | null>(null)
@@ -513,36 +499,6 @@ export default function PawnLoanDetail({
           onClose={() => setVoidFor(null)}
           onSubmit={(fd) => actionWithToast(voidPaymentAction(fd))}
         />
-      ) : null}
-      {askPrint ? (
-        <Modal title={t.pawn.actions.printNowTitle} onClose={closeAskPrint}>
-          <p className="text-sm text-text-secondary">
-            {t.pawn.actions.printNowBody.replace('{number}', loan.ticket_number)}
-          </p>
-          <div className="mt-5 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={closeAskPrint}
-              className="inline-flex h-11 items-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-background"
-            >
-              {t.pawn.actions.printNowLater}
-            </button>
-            {/* A click, not an effect: the browser only lets a click open
-                the ticket's tab. Enter prints. */}
-            <button
-              type="button"
-              autoFocus
-              onClick={() => {
-                onPrint()
-                closeAskPrint()
-              }}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-gold px-5 text-sm font-bold text-navy transition-all hover:-translate-y-0.5 hover:bg-gold-2 hover:shadow-lg"
-            >
-              <Printer size={16} weight="bold" />
-              {t.pawn.actions.printTicket}
-            </button>
-          </div>
-        </Modal>
       ) : null}
       {paidReceipt ? (
         <ReceiptFormatDialog

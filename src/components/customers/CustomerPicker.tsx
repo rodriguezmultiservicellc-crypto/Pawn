@@ -12,8 +12,9 @@ import { MagnifyingGlass, X, CaretDown } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import DlScanner from '@/components/customers/DlScanner'
 import type { DLInfo } from '@/lib/dl-parser'
+import { updateIdFromScanAction } from '@/app/(staff)/customers/[id]/actions'
 import {
-  findCustomerByIdNumber,
+  findCustomerForScan,
   getCustomerForPicker,
   searchCustomersForPicker,
   type PickerCustomerResult,
@@ -100,6 +101,29 @@ const CustomerPicker = forwardRef<
   const [highlightIndex, setHighlightIndex] = useState(0)
   const [isSearching, startTransition] = useTransition()
   const [scanNotice, setScanNotice] = useState<string | null>(null)
+  // A scan found the customer by name + birth date, not by number: a renewed
+  // license. Offer to put the new number on file.
+  const [renewal, setRenewal] = useState<{
+    customerId: string
+    info: DLInfo
+    onFile: string | null
+    status: 'ask' | 'saving' | 'saved' | 'failed'
+  } | null>(null)
+  const [, startRenewal] = useTransition()
+  function saveRenewal() {
+    if (!renewal) return
+    const r = renewal
+    setRenewal({ ...r, status: 'saving' })
+    startRenewal(async () => {
+      const res = await updateIdFromScanAction({
+        customerId: r.customerId,
+        licenseNumber: r.info.licenseNumber,
+        expiry: r.info.expirationDate,
+        state: r.info.state,
+      })
+      setRenewal({ ...r, status: 'ok' in res ? 'saved' : 'failed' })
+    })
+  }
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -196,6 +220,7 @@ const CustomerPicker = forwardRef<
     setResults([])
     setIsOpen(false)
     setScanNotice(null)
+    setRenewal(null)
     onChange?.(null)
     requestAnimationFrame(() => inputRef.current?.focus())
   }
@@ -207,9 +232,19 @@ const CustomerPicker = forwardRef<
       return
     }
     startTransition(async () => {
-      const match = await findCustomerByIdNumber(info.licenseNumber)
+      const match = await findCustomerForScan({
+        licenseNumber: info.licenseNumber,
+        firstName: info.firstName,
+        lastName: info.lastName,
+        dob: info.dob,
+      })
       if (match) {
         pick(match)
+        setRenewal(
+          match.by === 'name_dob'
+            ? { customerId: match.id, info, onFile: match.idNumberOnFile, status: 'ask' }
+            : null,
+        )
       } else {
         const name =
           [info.firstName, info.lastName].filter(Boolean).join(' ').trim() ||
@@ -279,6 +314,29 @@ const CustomerPicker = forwardRef<
             {trailing}
           </>
         )}
+        {renewal && renewal.customerId === selected.id ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground">
+            <span>
+              {renewal.status === 'saved'
+                ? cp.renewedSaved
+                : renewal.status === 'failed'
+                  ? cp.renewedFailed
+                  : cp.renewedFound
+                      .replace('{old}', renewal.onFile || '—')
+                      .replace('{new}', renewal.info.licenseNumber)}
+            </span>
+            {renewal.status === 'ask' || renewal.status === 'saving' || renewal.status === 'failed' ? (
+              <button
+                type="button"
+                onClick={saveRenewal}
+                disabled={renewal.status === 'saving'}
+                className="rounded-md bg-gold px-3 py-1.5 text-xs font-bold text-navy hover:bg-gold-2 disabled:opacity-50"
+              >
+                {cp.renewedUpdate}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         {error ? <p className="text-xs text-danger">{error}</p> : null}
       </div>
     )

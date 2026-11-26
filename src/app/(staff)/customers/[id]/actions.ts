@@ -198,6 +198,62 @@ export async function updateCustomerAction(
   return { ok: true }
 }
 
+/**
+ * A renewed license, scanned at the counter, replaces the one on file: the
+ * new number and expiry (and issuing state when it reads as one). Only the
+ * ID fields — the clerk edits anything else on the customer page. The old
+ * number stays in the audit row.
+ */
+export async function updateIdFromScanAction(input: {
+  customerId: string
+  licenseNumber: string
+  /** YYYY-MM-DD, or ''. */
+  expiry: string
+  state: string
+}): Promise<{ ok: true } | { error: string }> {
+  const number = input.licenseNumber.trim().toUpperCase()
+  if (!input.customerId || !/^[A-Z0-9-]{4,30}$/.test(number)) {
+    return { error: 'invalid_license' }
+  }
+  const { tenantId, supabase, userId } = await resolveCustomerTenant(input.customerId)
+
+  const { data: before } = await supabase
+    .from('customers')
+    .select('id_number, id_expiry, id_state')
+    .eq('id', input.customerId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  if (!before) return { error: 'not_found' }
+
+  const patch: { id_number: string; id_expiry?: string; id_state?: string; updated_by: string } = {
+    id_number: number,
+    updated_by: userId,
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input.expiry)) patch.id_expiry = input.expiry
+  if (/^[A-Z]{2}$/.test(input.state.trim().toUpperCase())) {
+    patch.id_state = input.state.trim().toUpperCase()
+  }
+
+  const { error } = await supabase
+    .from('customers')
+    .update(patch)
+    .eq('id', input.customerId)
+    .eq('tenant_id', tenantId)
+  if (error) return { error: error.message }
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'update',
+    tableName: 'customers',
+    recordId: input.customerId,
+    changes: { kind: 'id_from_scan', before, after: patch },
+  })
+
+  revalidatePath(`/customers/${input.customerId}`)
+  return { ok: true }
+}
+
 export async function banCustomerAction(formData: FormData): Promise<void> {
   const raw = {
     customer_id: formData.get('customer_id'),

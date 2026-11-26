@@ -20,6 +20,7 @@ import { RecordPaymentDialog } from '@/components/pawn/RecordPaymentDialog'
 import { PayTogetherDialog } from '@/components/pawn/PayTogetherDialog'
 import { ReceiptFormatDialog } from '@/components/pos/PrintReceiptDialog'
 import { MAX_PAY_TOGETHER } from '@/lib/validations/loan'
+import { PrintNewTicketPrompt } from '@/components/pawn/PrintNewTicketPrompt'
 import { recordPaymentAction, recordPaymentsAction } from './[id]/actions'
 
 export type PawnListRow = {
@@ -84,7 +85,10 @@ export default function PawnContent({
   stats,
   today,
   charge,
+  printPrompt,
 }: {
+  /** A ticket just issued (/pawn?print=<id>): ask to print it now. */
+  printPrompt: { loanId: string; ticketNumber: string } | null
   rows: PawnListRow[]
   query: string
   statusFilter: string
@@ -107,6 +111,14 @@ export default function PawnContent({
     setSearchInput(query)
   }
   const [pending, startTransition] = useTransition()
+  const [askPrint, setAskPrint] = useState(printPrompt != null)
+  function closeAskPrint() {
+    setAskPrint(false)
+    // Drop ?print= so a reload doesn't ask again; keep the rest.
+    const usp = new URLSearchParams(sp.toString())
+    usp.delete('print')
+    router.replace(`/pawn${usp.toString() ? `?${usp.toString()}` : ''}`, { scroll: false })
+  }
   // Payment / Extend opens right here; the customer receipt follows it.
   const [payFor, setPayFor] = useState<PawnListRow | null>(null)
   const [receiptFor, setReceiptFor] = useState<{
@@ -190,6 +202,13 @@ export default function PawnContent({
 
   return (
     <div className="space-y-6">
+      {askPrint && printPrompt ? (
+        <PrintNewTicketPrompt
+          loanId={printPrompt.loanId}
+          ticketNumber={printPrompt.ticketNumber}
+          onClose={closeAskPrint}
+        />
+      ) : null}
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">{t.pawn.title}</h1>
         <div className="flex items-center gap-2">

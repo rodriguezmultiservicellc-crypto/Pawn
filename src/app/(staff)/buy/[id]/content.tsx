@@ -12,6 +12,7 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import { formatMoney, shortDateTime } from '@/lib/format/money'
 import { PhotoViewer } from '@/components/uploads/PhotoViewer'
+import { Modal } from '@/components/pos/Modal'
 import { ItemPhotoThumb } from '@/components/uploads/ItemPhotoThumb'
 
 export type BuyReceiptItem = {
@@ -99,11 +100,11 @@ export default function BuyReceiptContent({
     <div className="space-y-6 print:max-w-none">
       <header className="flex items-center justify-between print:hidden">
         <Link
-          href="/inventory"
+          href="/buy"
           className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
         >
           <ArrowLeft size={14} weight="bold" />
-          {r.backToInventory}
+          {r.backToBuys}
         </Link>
         <div className="flex gap-2">
           <button
@@ -135,30 +136,34 @@ export default function BuyReceiptContent({
         </div>
       </header>
 
+      {/* Just bought: the same "print it now" popup as a new pawn ticket.
+          A click, not an effect: the browser only lets a click open the
+          form's tab. Enter prints. */}
       {askPrint ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-info/30 bg-info/5 px-3 py-2 text-sm text-foreground print:hidden">
-          <span>{r.printNow}</span>
-          <span className="flex gap-2">
+        <Modal title={r.printNowTitle} onClose={closeAskPrint}>
+          <p className="text-sm text-text-secondary">{r.printNow}</p>
+          <div className="mt-5 flex items-center justify-end gap-2">
             <button
               type="button"
+              onClick={closeAskPrint}
+              className="inline-flex h-11 items-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-background"
+            >
+              {r.printLater}
+            </button>
+            <button
+              type="button"
+              autoFocus
               onClick={() => {
                 openPaper()
                 closeAskPrint()
               }}
-              className="inline-flex items-center gap-1 rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-navy hover:bg-gold-2"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-gold px-5 text-sm font-bold text-navy transition-all hover:-translate-y-0.5 hover:bg-gold-2 hover:shadow-lg"
             >
-              <Printer size={14} weight="bold" />
+              <Printer size={16} weight="bold" />
               {view.onForm ? r.printForm : r.print}
             </button>
-            <button
-              type="button"
-              onClick={closeAskPrint}
-              className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background"
-            >
-              {r.printLater}
-            </button>
-          </span>
-        </div>
+          </div>
+        </Modal>
       ) : null}
 
       <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success print:border-0 print:bg-transparent print:px-0">

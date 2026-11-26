@@ -1067,6 +1067,24 @@ sessions are there.)
        label Purity for silver/platinum). Schema refuses karat_for_metal
        (create + update; appraisal.test.ts). Not tried on the live site.
 
+  632. BUYS LIST + PRINT POPUPS + NEW TICKET GOES TO /pawn (Eddy asked)
+       /buy lists every buy (compliance_log buy_outright, newest first,
+       search by BT number or customer name, 50 a page); side menu Pawns >
+       Buys. Buy page: "print it now" is a popup like the pawn ticket's;
+       Back goes to Buys. createLoanAction now redirects to
+       /pawn?print=<id>: the Pawns list shows PrintNewTicketPrompt
+       (components/pawn) — Print locks + opens the PDF, Later leaves it.
+       The ticket page's old ?print=1 popup is removed.
+
+  633. [BUG] RENEWED LICENSE MADE A SECOND CUSTOMER (Eddy scanned his own)
+       Root cause: a scan matched id_number only; a renewed FL license can
+       carry a new number. findCustomerForScan (lib/customers/picker-search):
+       number, else same first + last name AND date of birth (oldest
+       record). The picker then offers "Put the new license on file"
+       (updateIdFromScanAction: id_number / id_expiry / id_state, audited).
+       Customers list scan uses it too. Eddy's 2 records: merge them at
+       /customers/merge (not done by Claude).
+
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
   608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)

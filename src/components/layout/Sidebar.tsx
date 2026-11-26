@@ -28,6 +28,7 @@ import {
   Toolbox,
   CurrencyDollar,
   HandCoins,
+  ClipboardText,
   Receipt,
   Bank,
   Wallet,
@@ -380,10 +381,18 @@ export function Sidebar({
       kind: 'item',
       href: '/buy/new',
       group: 'pawns',
-      // Buy-outright detail pages live at /buy/<id>.
-      activePrefix: '/buy',
       label: t.nav.buyOutright,
       icon: <HandCoins size={16} weight="regular" />,
+      visible: modules.has_pawn,
+      child: true,
+    },
+    // Every buy, newest first; a buy's own page (/buy/<id>) lights it up.
+    {
+      kind: 'item',
+      href: '/buy',
+      group: 'pawns',
+      label: t.nav.buys,
+      icon: <ClipboardText size={16} weight="regular" />,
       visible: modules.has_pawn,
       child: true,
     },
