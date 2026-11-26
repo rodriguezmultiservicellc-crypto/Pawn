@@ -10,7 +10,8 @@ import {
   type CustomerFieldValues,
 } from '@/components/customers/CustomerFormFields'
 import DlScanner from '@/components/customers/DlScanner'
-import { parseHeightInches, type DLInfo } from '@/lib/dl-parser'
+import type { DLInfo } from '@/lib/dl-parser'
+import { scanFields } from '@/lib/customers/scan-prefill'
 import type { CommPreference, IdDocumentType, Language } from '@/types/database-aliases'
 import {
   createCustomerAction,
@@ -89,27 +90,7 @@ function mergeScanIntoCustomer(
   current: CustomerFieldValues,
   info: DLInfo,
 ): CustomerFieldValues {
-  const next: CustomerFieldValues = { ...current }
-  if (info.firstName) next.first_name = info.firstName
-  if (info.middleName) next.middle_name = info.middleName
-  if (info.lastName) next.last_name = info.lastName
-  if (info.dob) next.date_of_birth = info.dob
-  if (info.gender) next.sex = info.gender
-  if (info.licenseNumber) next.id_number = info.licenseNumber
-  if (info.expirationDate) next.id_expiry = info.expirationDate
-  if (info.address) next.address1 = info.address
-  if (info.city) next.city = info.city
-  if (info.state) {
-    next.state = info.state
-    next.id_state = info.state
-  }
-  if (info.zip) next.zip = info.zip
-  const inches = parseHeightInches(info.height)
-  if (inches != null) next.height_inches = inches
-  // Force these on a successful scan.
-  next.id_type = 'drivers_license'
-  next.id_country = 'US'
-  return next
+  return { ...current, ...scanFields(info) }
 }
 
 export default function NewCustomerForm({

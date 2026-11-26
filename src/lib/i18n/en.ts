@@ -24,6 +24,13 @@ export const en = {
       scanButton: 'Scan ID',
       scanNoMatch: 'No customer found with that DL on file.',
       scanNoNumber: "Scan didn't return a license number. Try again.",
+      // Popup when a scanned license matches no customer.
+      noMatchTitle: 'No customer with this license',
+      noMatchBody: 'Add them now — the form is filled from the license — or search another way (name, phone).',
+      noMatchName: 'Name',
+      noMatchLicense: 'License',
+      noMatchAdd: 'Add customer',
+      noMatchSearch: 'Search another way',
       // Found by name + date of birth: a renewed license with a new number.
       renewedFound: 'Found by name and date of birth. The license on file is {old}; this one is {new}.',
       renewedUpdate: 'Put the new license on file',

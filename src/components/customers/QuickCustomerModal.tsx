@@ -19,21 +19,28 @@ import {
   type InlineCustomerState,
 } from '@/app/(staff)/customers/new/inline-actions'
 import type { PickerCustomerResult } from '@/lib/customers/picker-search'
+import { scanFields, type CustomerScan } from '@/lib/customers/scan-prefill'
 
 /**
  * Inline "new customer" modal. Creates a customer via a server action that
  * returns the new id + picker label WITHOUT navigating, then hands it to the
  * caller (typically to drop straight into a CustomerPicker). Used by the
  * pawn-intake flow so staff never leave a half-filled ticket to add a walk-in.
+ *
+ * `prefill` = a scanned license with no customer on file (CustomerPicker's
+ * "Add customer"): the fields open filled from it, and the raw barcode is
+ * kept on the customer (dl_raw_payload) as on the full New customer page.
  */
 export default function QuickCustomerModal({
   open,
   onClose,
   onCreated,
+  prefill = null,
 }: {
   open: boolean
   onClose: () => void
   onCreated: (customer: PickerCustomerResult) => void
+  prefill?: CustomerScan | null
 }) {
   const { t } = useI18n()
   const tc = t.customers
@@ -49,6 +56,23 @@ export default function QuickCustomerModal({
   // height_inches value Zod consumes (mirrors CustomerFormFields).
   const [heightFeet, setHeightFeet] = useState('')
   const [heightInches, setHeightInches] = useState('')
+  const v = prefill ? scanFields(prefill.info) : null
+  // Each time the popup opens, the height boxes start from the scan (or
+  // empty). Set during render, not in an effect (react-hooks rule).
+  const [openedFor, setOpenedFor] = useState<{ open: boolean; prefill: CustomerScan | null }>({
+    open: false,
+    prefill: null,
+  })
+  if (open !== openedFor.open || prefill !== openedFor.prefill) {
+    setOpenedFor({ open, prefill })
+    if (open) {
+      const h = v?.height_inches
+      setHeightFeet(h != null ? String(Math.floor(h / 12)) : '')
+      setHeightInches(h != null ? String(h % 12) : '')
+    }
+  }
+  const today = new Date().toISOString().slice(0, 10)
+  const expired = !!v?.id_expiry && v.id_expiry < today
   const composedHeight = (() => {
     const ft = parseInt(heightFeet, 10)
     const inch = parseInt(heightInches, 10)
@@ -125,6 +149,19 @@ export default function QuickCustomerModal({
           className="flex min-h-0 flex-1 flex-col"
         >
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          {prefill ? (
+            <div className="rounded-md border border-info/30 bg-info/5 px-3 py-2 text-sm text-foreground">
+              {t.dlScanner.autoFilled} ✓
+              <input type="hidden" name="dl_raw_payload" value={prefill.raw} />
+              <input type="hidden" name="id_country" value="US" />
+              {v?.middle_name ? <input type="hidden" name="middle_name" value={v.middle_name} /> : null}
+            </div>
+          ) : null}
+          {expired ? (
+            <div className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-warning">
+              {t.dlScanner.expiredWarning} ({v?.id_expiry})
+            </div>
+          ) : null}
           {state.error ? (
             <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
               {state.error}
@@ -136,12 +173,13 @@ export default function QuickCustomerModal({
               <input
                 ref={firstFieldRef}
                 name="first_name"
+                defaultValue={v?.first_name ?? ''}
                 required
                 className={inputCls(!!fe.first_name)}
               />
             </Field>
             <Field label={tc.lastName} required error={fe.last_name}>
-              <input name="last_name" required className={inputCls(!!fe.last_name)} />
+              <input name="last_name" defaultValue={v?.last_name ?? ''} required className={inputCls(!!fe.last_name)} />
             </Field>
             <Field label={tc.phone} error={fe.phone}>
               <input name="phone" type="tel" inputMode="tel" autoComplete="off" className={inputCls(!!fe.phone)} />
@@ -152,6 +190,7 @@ export default function QuickCustomerModal({
             <Field label={tc.dob} error={fe.date_of_birth}>
               <input
                 name="date_of_birth"
+                defaultValue={v?.date_of_birth ?? ''}
                 type="date"
                 className={inputCls(!!fe.date_of_birth)}
               />
@@ -168,7 +207,7 @@ export default function QuickCustomerModal({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="col-span-2 sm:col-span-4">
                 <Field label={tc.address1} required error={fe.address1}>
-                  <input name="address1" required className={inputCls(!!fe.address1)} />
+                  <input name="address1" defaultValue={v?.address1 ?? ''} required className={inputCls(!!fe.address1)} />
                 </Field>
               </div>
               <div className="col-span-2 sm:col-span-4">
@@ -178,14 +217,14 @@ export default function QuickCustomerModal({
               </div>
               <div className="col-span-2">
                 <Field label={tc.city} required error={fe.city}>
-                  <input name="city" required className={inputCls(!!fe.city)} />
+                  <input name="city" defaultValue={v?.city ?? ''} required className={inputCls(!!fe.city)} />
                 </Field>
               </div>
               <Field label={tc.state} required error={fe.state}>
-                <input name="state" required className={inputCls(!!fe.state)} />
+                <input name="state" defaultValue={v?.state ?? ''} required className={inputCls(!!fe.state)} />
               </Field>
               <Field label={tc.zip} required error={fe.zip}>
-                <input name="zip" required inputMode="numeric" className={inputCls(!!fe.zip)} />
+                <input name="zip" defaultValue={v?.zip ?? ''} required inputMode="numeric" className={inputCls(!!fe.zip)} />
               </Field>
             </div>
           </fieldset>
@@ -196,7 +235,7 @@ export default function QuickCustomerModal({
             </legend>
             <div className="grid grid-cols-2 gap-3">
               <Field label={tc.idType} error={fe.id_type}>
-                <select name="id_type" className={inputCls(!!fe.id_type)} defaultValue="">
+                <select name="id_type" className={inputCls(!!fe.id_type)} defaultValue={v?.id_type ?? ''}>
                   <option value="">—</option>
                   <option value="drivers_license">{tc.idTypeDriversLicense}</option>
                   <option value="state_id">{tc.idTypeStateId}</option>
@@ -209,14 +248,15 @@ export default function QuickCustomerModal({
                 </select>
               </Field>
               <Field label={tc.idNumber} error={fe.id_number}>
-                <input name="id_number" className={inputCls(!!fe.id_number)} />
+                <input name="id_number" defaultValue={v?.id_number ?? ''} className={inputCls(!!fe.id_number)} />
               </Field>
               <Field label={tc.idIssuingState} error={fe.id_state}>
-                <input name="id_state" className={inputCls(!!fe.id_state)} />
+                <input name="id_state" defaultValue={v?.id_state ?? ''} className={inputCls(!!fe.id_state)} />
               </Field>
               <Field label={tc.idExpiry} error={fe.id_expiry}>
                 <input
                   name="id_expiry"
+                defaultValue={v?.id_expiry ?? ''}
                   type="date"
                   className={inputCls(!!fe.id_expiry)}
                 />
@@ -262,6 +302,7 @@ export default function QuickCustomerModal({
               <Field label={tc.sex} error={fe.sex}>
                 <DescriptionSelect
                   name="sex"
+                  defaultValue={v?.sex}
                   options={SEX_OPTIONS}
                   labels={tc.sexOptions}
                   invalid={!!fe.sex}
@@ -378,17 +419,19 @@ function inputCls(hasError: boolean): string {
  */
 function DescriptionSelect({
   name,
+  defaultValue,
   options,
   labels,
   invalid,
 }: {
   name: string
+  defaultValue?: string
   options: readonly DescriptionOption[]
   labels: Record<string, string>
   invalid: boolean
 }) {
   return (
-    <select name={name} className={inputCls(invalid)}>
+    <select name={name} defaultValue={defaultValue ?? ''} className={inputCls(invalid)}>
       {descriptionOptions(options, labels, null).map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}

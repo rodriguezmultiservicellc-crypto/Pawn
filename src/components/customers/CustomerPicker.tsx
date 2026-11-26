@@ -8,10 +8,12 @@ import {
   useState,
   useTransition,
 } from 'react'
-import { MagnifyingGlass, X, CaretDown } from '@phosphor-icons/react'
+import { createPortal } from 'react-dom'
+import { MagnifyingGlass, X, CaretDown, UserPlus, IdentificationCard } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import DlScanner from '@/components/customers/DlScanner'
 import type { DLInfo } from '@/lib/dl-parser'
+import type { CustomerScan } from '@/lib/customers/scan-prefill'
 import { updateIdFromScanAction } from '@/app/(staff)/customers/[id]/actions'
 import {
   findCustomerForScan,
@@ -71,6 +73,11 @@ const CustomerPicker = forwardRef<
     /** Extra controls rendered at the end of the search row (and beside
      *  the selected customer), e.g. "+ New customer". */
     trailing?: React.ReactNode
+    /** A scanned license with no customer on file opens a popup that asks
+     *  "Add customer" or "Search another way". Add hands the scan here so
+     *  the page can open New customer filled from the license. Without it,
+     *  the picker only shows an inline notice. */
+    onAddFromScan?: (scan: CustomerScan) => void
   }
 >(function CustomerPicker(
   {
@@ -84,6 +91,7 @@ const CustomerPicker = forwardRef<
     enableDlScan = false,
     size = 'md',
     trailing = null,
+    onAddFromScan,
   },
   ref,
 ) {
@@ -101,6 +109,8 @@ const CustomerPicker = forwardRef<
   const [highlightIndex, setHighlightIndex] = useState(0)
   const [isSearching, startTransition] = useTransition()
   const [scanNotice, setScanNotice] = useState<string | null>(null)
+  // The scan found no one, and the page can add a customer: ask what to do.
+  const [noMatch, setNoMatch] = useState<CustomerScan | null>(null)
   // A scan found the customer by name + birth date, not by number: a renewed
   // license. Offer to put the new number on file.
   const [renewal, setRenewal] = useState<{
@@ -225,8 +235,9 @@ const CustomerPicker = forwardRef<
     requestAnimationFrame(() => inputRef.current?.focus())
   }
 
-  function onDlScan(info: DLInfo) {
+  function onDlScan(info: DLInfo, raw: string) {
     setScanNotice(null)
+    setNoMatch(null)
     if (!info.licenseNumber) {
       setScanNotice(cp.scanNoNumber)
       return
@@ -245,6 +256,8 @@ const CustomerPicker = forwardRef<
             ? { customerId: match.id, info, onFile: match.idNumberOnFile, status: 'ask' }
             : null,
         )
+      } else if (onAddFromScan) {
+        setNoMatch({ info, raw })
       } else {
         const name =
           [info.firstName, info.lastName].filter(Boolean).join(' ').trim() ||
@@ -389,6 +402,21 @@ const CustomerPicker = forwardRef<
         {trailing}
       </div>
 
+      {noMatch ? (
+        <ScanNoMatchDialog
+          scan={noMatch}
+          onAdd={() => {
+            const s = noMatch
+            setNoMatch(null)
+            onAddFromScan?.(s)
+          }}
+          onSearch={() => {
+            setNoMatch(null)
+            requestAnimationFrame(() => inputRef.current?.focus())
+          }}
+        />
+      ) : null}
+
       {scanNotice ? (
         <div className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
           {scanNotice}
@@ -438,3 +466,88 @@ const CustomerPicker = forwardRef<
 })
 
 export default CustomerPicker
+
+/**
+ * "No customer with this license" — the two ways on: add the customer from
+ * the license, or go back and search by name / phone (a customer on file
+ * under an old or mistyped license number).
+ */
+function ScanNoMatchDialog({
+  scan,
+  onAdd,
+  onSearch,
+}: {
+  scan: CustomerScan
+  onAdd: () => void
+  onSearch: () => void
+}) {
+  const { t } = useI18n()
+  const cp = t.common.customerPicker
+  const addRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    addRef.current?.focus()
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onSearch()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onSearch])
+
+  const { info } = scan
+  const name = [info.firstName, info.middleName, info.lastName].filter(Boolean).join(' ').trim()
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
+      onMouseDown={onSearch}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="scan-no-match-title"
+        className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-lg"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-warning/10 text-warning">
+            <IdentificationCard size={20} weight="bold" />
+          </span>
+          <div className="min-w-0">
+            <h2 id="scan-no-match-title" className="font-display text-lg font-bold text-foreground">
+              {cp.noMatchTitle}
+            </h2>
+            <p className="mt-1 text-sm text-text-secondary">{cp.noMatchBody}</p>
+          </div>
+        </div>
+        <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-lg border border-border bg-background px-4 py-3 text-sm">
+          <dt className="text-muted">{cp.noMatchName}</dt>
+          <dd className="font-semibold text-foreground">{name || '—'}</dd>
+          <dt className="text-muted">{cp.noMatchLicense}</dt>
+          <dd className="font-mono text-foreground">
+            {info.licenseNumber}
+            {info.state ? ` · ${info.state}` : ''}
+          </dd>
+        </dl>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            onClick={onSearch}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-background"
+          >
+            <MagnifyingGlass size={16} weight="bold" />
+            {cp.noMatchSearch}
+          </button>
+          <button
+            ref={addRef}
+            type="button"
+            onClick={onAdd}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-4 py-2.5 text-sm font-bold text-navy transition-all hover:-translate-y-0.5 hover:bg-gold-2 hover:shadow-lg"
+          >
+            <UserPlus size={16} weight="bold" />
+            {cp.noMatchAdd}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}

@@ -19,6 +19,13 @@ export const es: Dictionary = {
       scanButton: 'Escanear ID',
       scanNoMatch: 'No se encontró un cliente con esa licencia.',
       scanNoNumber: 'El escaneo no devolvió un número de licencia. Intenta de nuevo.',
+      // Ventana cuando una licencia escaneada no coincide con ningún cliente.
+      noMatchTitle: 'Ningún cliente con esta licencia',
+      noMatchBody: 'Agrégalo ahora — el formulario se llena con la licencia — o busca de otra forma (nombre, teléfono).',
+      noMatchName: 'Nombre',
+      noMatchLicense: 'Licencia',
+      noMatchAdd: 'Agregar cliente',
+      noMatchSearch: 'Buscar de otra forma',
       // Encontrado por nombre + fecha de nacimiento: licencia renovada con número nuevo.
       renewedFound: 'Encontrado por nombre y fecha de nacimiento. La licencia registrada es {old}; esta es {new}.',
       renewedUpdate: 'Registrar la licencia nueva',

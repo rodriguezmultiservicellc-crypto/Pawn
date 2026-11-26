@@ -8,6 +8,7 @@ import CustomerPicker, {
   type CustomerPickerHandle,
 } from '@/components/customers/CustomerPicker'
 import QuickCustomerModal from '@/components/customers/QuickCustomerModal'
+import type { CustomerScan } from '@/lib/customers/scan-prefill'
 import { FOCUS, INPUT, LABEL, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import {
   RepairItemsList,
@@ -166,6 +167,8 @@ export default function NewRepairTicketForm({
     useState<PickerCustomerResult | null>(initialDraft?.customer ?? null)
   const customerPickerRef = useRef<CustomerPickerHandle>(null)
   const [showCustomerModal, setShowCustomerModal] = useState(false)
+  // A scanned license with no customer on file: New customer opens filled from it.
+  const [customerScan, setCustomerScan] = useState<CustomerScan | null>(null)
 
   // Ticket-level fields live in state (not in uncontrolled inputs) so they
   // survive a view switch; both views submit them via the hidden inputs below.
@@ -386,7 +389,11 @@ export default function NewRepairTicketForm({
 
       <QuickCustomerModal
         open={showCustomerModal}
-        onClose={() => setShowCustomerModal(false)}
+        onClose={() => {
+          setShowCustomerModal(false)
+          setCustomerScan(null)
+        }}
+        prefill={customerScan}
         onCreated={(c) => {
           customerPickerRef.current?.set(c)
           setSelectedCustomer(c)
@@ -432,6 +439,10 @@ export default function NewRepairTicketForm({
             name="customer_id"
             required
             enableDlScan
+            onAddFromScan={(scan) => {
+              setCustomerScan(scan)
+              setShowCustomerModal(true)
+            }}
             size="lg"
             initialCustomer={selectedCustomer}
             error={state.fieldErrors?.customer_id}
