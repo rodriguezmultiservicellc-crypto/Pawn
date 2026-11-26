@@ -60,7 +60,49 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 72 (2026-11-25, saved ~23:10), items 631-635.
+  Last session:   Session 73 (2026-11-25 -> 11-26, saved ~01:00), items
+                  636-642. Context budget at save: very high (compacted
+                  once; START THE NEXT SESSION FRESH).
+                  ONE MIGRATION, APPLIED TO THE LIVE DB: 0117 (loan_drafts
+                  handoff columns, no policy change). New package: qrcode.
+                  main == feature/sol-pawn-brief. Nothing is half-built.
+                  Built + pushed: an expired OR missing ID expiry blocks a
+                  pawn / buy (636); watch dial + bezel in Unique marks, and
+                  photos of different items flagged instead of written into
+                  a field (637-638); item popup in steps Photos · Item ·
+                  Stones, one fixed size, whole photos (639-640); QR handoff
+                  of a New pawn ticket to another device (641).
+                  New rule: CLAUDE.md 32 (QR handoff); 26 + 27 updated.
+
+                  ACTIVE FILES (last touched):
+                    src/lib/pawn/draft-handoff.ts  upsert / start / claim
+                    src/app/(staff)/pawn/drafts/handoff-actions.ts
+                    src/components/pawn/DraftHandoff.tsx
+                    src/app/(staff)/pawn/new/{page,form}.tsx
+                    src/components/pawn/CollateralItemsList.tsx  steps
+                    src/components/uploads/PhotoStrip.tsx  large mode
+                    src/lib/customers/pledgor-record.ts  id_expiry
+                    src/lib/ai/prompts.ts + src/lib/pawn/photo-describe.ts
+                    src/proxy.ts + src/app/(auth)/login/form.tsx  next=
+                    patches/0117-loan-draft-handoff.sql
+
+                  RESUME POINT: nothing half-built. Have Eddy try on the
+                  LIVE site (only tsc / lint / tests / build ran):
+                  1. QR handoff: New pawn with a customer -> Continue on
+                     another device -> scan with the iPad (signed in, and
+                     once signed OUT to test the sign-in return) -> ticket
+                     opens there, the computer shows "moved". Keep it here
+                     and an expired code too.
+                  2. Item popup: steps keep one size; Item step scrolls
+                     inside; photos whole; Add item with an empty
+                     description jumps to the field.
+                  3. A customer with no ID expiry -> banner + popup asks for
+                     it; 5,095 customers have none (checked 2026-11-25).
+                  4. Describe from photo on a watch: "Green dial, fluted
+                     bezel"; a chain + a watch photo -> red warning.
+                  Then the Session 72 list below, then PENDING IMMEDIATE.
+
+  Session 72 (2026-11-25, saved ~23:10), items 631-635.
                   Context budget at save: high (compacted once; start the
                   next session fresh).
                   ONE MIGRATION, APPLIED TO THE LIVE DB: 0116
@@ -1142,6 +1184,8 @@ sessions are there.)
        Jewelers + RMS gmail addresses forward to his main inbox.
        /progress — Session 72 checkpoint.
 
+--- Session 73 (2026-11-25 -> 11-26) — Expired / missing ID blocks intake, watch dial + bezel, photos that differ, item popup in steps, QR handoff (0117) ---
+
   636. [BUG] AN EXPIRED LICENSE DID NOT STOP A PAWN (Eddy, customer ff884c8e)
        Root cause: missingPledgorFields never looked at id_expiry (the
        comment called expiry "not required"). Now missingPledgorFields(c,
@@ -1193,6 +1237,8 @@ sessions are there.)
        ?handoff= and shows arrived / invalid. [BUG] proxy dropped the query
        from next= on sign-in; now kept, and the login page only follows a
        path on this site. CLAUDE.md rule 32. Not tried on two devices.
+
+  642. /progress — Session 73 checkpoint.
 
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
@@ -2715,6 +2761,11 @@ PENDING — NEXT UP
 
   IMMEDIATE (do this first next session):
     REMEMBER: the shop still runs on xPawn; nothing uploads from Pawn.
+    Session 73 — have Eddy try on the live site (RESUME block list 1-4):
+    the QR handoff on two devices (signed in and signed out), the item
+    popup steps, the ID-expiry block, Describe from photo on a watch.
+    Not built: the handoff is for pawn tickets only (a purchase cannot be
+    a draft); a signature file attached on the computer does not travel.
     Session 72 — have Eddy try on the live site (RESUME block list 1-5):
     new ticket -> /pawn print popup, Buys list + buy print popup, the
     Complete customer record popup, the renewed-license scan, purity on
