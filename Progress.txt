@@ -1170,6 +1170,14 @@ sessions are there.)
        photos in any field. The popup shows a translated red line
        (photoAi.photosDiffer). Not tried with a real photo.
 
+  639. ITEM POPUP IN STEPS: PHOTOS · ITEM · STONES (Eddy asked)
+       CollateralItemsList: Est. value + Metal value on top, a step bar,
+       Description under all. Steps are data-step divs, hidden not unmounted
+       (rule 27, CLAUDE.md updated); Next button; Add item opens the step of
+       the first invalid field; Describe from photo moves to Item. Stones only
+       for jewelry. Prompt: a watch's unique marks = dial + bezel + engraving
+       / damage, never what every watch of the model has. Not tried live.
+
 --- Session 70 (2026-11-25) — Photos: HEIC in the browser, Describe from photo (AI), 6 photos per item on pawn + buy (0114), chain length in inches, password eye, Status column gone (branch feature/sol-pawn-brief == main) ---
 
   608. PAWN LOANS LIST: STATUS COLUMN REMOVED (42c67de)

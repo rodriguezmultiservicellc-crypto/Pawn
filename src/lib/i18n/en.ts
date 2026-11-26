@@ -1709,6 +1709,8 @@ export const en = {
       // Common FS 539.001 fields (patches/0043).
       itemColor: 'Color',
       itemUniqueMarks: 'Unique marks',
+      // The item popup's steps.
+      wizard: { label: 'Item steps', photos: 'Photos', item: 'Item', stones: 'Stones', next: 'Next' },
       itemPhoto: 'Photo',
       photoAi: {
         button: 'Describe from photo',

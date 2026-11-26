@@ -1708,6 +1708,8 @@ export const es: Dictionary = {
       // Campos comunes FS 539.001 (patches/0043).
       itemColor: 'Color',
       itemUniqueMarks: 'Marcas únicas',
+      // Los pasos de la ventana del artículo.
+      wizard: { label: 'Pasos del artículo', photos: 'Fotos', item: 'Artículo', stones: 'Piedras', next: 'Siguiente' },
       itemPhoto: 'Foto',
       photoAi: {
         button: 'Describir con la foto',

@@ -1023,6 +1023,18 @@ function CollateralRow({
   const [aiNote, setAiNote] = useState<AiNote | null>(null)
   // The photos showed different items: the answer describes the main one.
   const [aiPhotosDiffer, setAiPhotosDiffer] = useState(false)
+  // The popup's steps. Stones only for jewelry. Opening the popup starts on
+  // Photos.
+  type Step = 'photos' | 'item' | 'stones'
+  const steps: Step[] =
+    selectedCategory?.slug === 'jewelry' ? ['photos', 'item', 'stones'] : ['photos', 'item']
+  const [stepPicked, setStep] = useState<Step>('photos')
+  const [openSeen, setOpenSeen] = useState(open)
+  if (openSeen !== open) {
+    setOpenSeen(open)
+    if (open) setStep('photos')
+  }
+  const step: Step = steps.includes(stepPicked) ? stepPicked : 'item'
   // The row as it is now, for the answer that comes back seconds later.
   const rowNow = useRef(row)
   useEffect(() => {
@@ -1059,6 +1071,7 @@ function CollateralRow({
       }
       const { item, category } = json.data
       setAiPhotosDiffer(item.photos_differ === true)
+      setStep('item')
       const now = rowNow.current
       const moved =
         category != null &&
@@ -1115,7 +1128,15 @@ function CollateralRow({
       'input:invalid, select:invalid',
     )
     if (bad) {
-      bad.reportValidity()
+      // A wrong field on a step that is not showing: show that step first,
+      // then the browser's message on the field.
+      const on = bad.closest<HTMLElement>('[data-step]')?.dataset.step as Step | undefined
+      if (on && on !== step) {
+        setStep(on)
+        requestAnimationFrame(() => bad.reportValidity())
+      } else {
+        bad.reportValidity()
+      }
       return
     }
     onClose()
@@ -1342,35 +1363,12 @@ function CollateralRow({
       ) : null}
 
       {categoryStepDone ? (
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
-        {/* Photos — uploaded as they are picked; the form carries their
-            paths (components/uploads/PhotoStrip). */}
-        <div className="md:col-span-2">
-          <PhotoStrip
-            tenantId={tenantId}
-            name={`collateral_${index}_photos`}
-            photos={row.photos}
-            onChange={(photos) => {
-              setAiNote(null)
-              onChange({ photos })
-            }}
-            label={t.pawn.new_.itemPhoto}
-          />
-          {row.photos.length > 0 ? (
-            <button
-              type="button"
-              onClick={describeFromPhoto}
-              disabled={aiBusy}
-              className={`mt-2 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-45 ${FOCUS}`}
-            >
-              <Sparkle size={14} weight="fill" className="shrink-0 text-gold" />
-              {aiBusy ? tn.photoAi.working : tn.photoAi.button}
-            </button>
-          ) : null}
-        </div>
-
-        {/* Fields — common base + category-specific block */}
-        <div className="md:col-span-10 grid grid-cols-1 gap-3 md:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+        {/* The two money fields on top; then the steps (Photos · Item ·
+            Stones — Eddy, 2026-11-25: "too much stuff on the screen"); the
+            description under all of them. A step that is not shown is only
+            HIDDEN (display:none), never unmounted: its inputs are what the
+            ticket form submits (rule 27). */}
           {/* Field order is the order the clerk fills them (Eddy, 2026-11-24):
               value, color, then the category's own fields, unique marks,
               and the description LAST — it writes itself from the others
@@ -1440,6 +1438,54 @@ function CollateralRow({
             </div>
           ) : null}
 
+          <nav
+            aria-label={tn.wizard.label}
+            className="md:col-span-6 flex flex-wrap gap-2 border-b border-border pb-2"
+          >
+            {steps.map((st, i) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => setStep(st)}
+                aria-current={step === st ? 'step' : undefined}
+                className={`inline-flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${
+                  step === st
+                    ? 'bg-navy text-white'
+                    : 'text-text-secondary hover:bg-background hover:text-foreground'
+                } ${FOCUS}`}
+              >
+                <span className="font-mono text-xs">{i + 1}</span>
+                {tn.wizard[st]}
+              </button>
+            ))}
+          </nav>
+
+        {/* Photos — uploaded as they are picked; the form carries their
+            paths (components/uploads/PhotoStrip). */}
+        <div data-step="photos" className={step === 'photos' ? 'md:col-span-6 space-y-3' : 'hidden'}>
+          <PhotoStrip
+            tenantId={tenantId}
+            name={`collateral_${index}_photos`}
+            photos={row.photos}
+            onChange={(photos) => {
+              setAiNote(null)
+              onChange({ photos })
+            }}
+            label={t.pawn.new_.itemPhoto}
+          />
+          {row.photos.length > 0 ? (
+            <button
+              type="button"
+              onClick={describeFromPhoto}
+              disabled={aiBusy}
+              className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-45 ${FOCUS}`}
+            >
+              <Sparkle size={14} weight="fill" className="shrink-0 text-gold" />
+              {aiBusy ? tn.photoAi.working : tn.photoAi.button}
+            </button>
+          ) : null}
+        </div>
+
           {/* Inventory category — derived from pawn_subcategory_slug
               by inventoryCategoryFromSlug(). Hidden input so the
               server-side schema (which requires the field) still
@@ -1452,6 +1498,7 @@ function CollateralRow({
             value={row.category}
           />
 
+          <div data-step="item" className={step === 'item' ? 'contents' : 'hidden'}>
           {/* Common FS 539.001(8)(b)(2) fields — visible regardless of
               picked category. Color (e) here; unique marks (i) after the
               category's own fields. */}
@@ -1679,131 +1726,6 @@ function CollateralRow({
                 />
               </label>
 
-              {/* FS 539.001(8)(b)2.g — the stones, one line per kind, with
-                  how many. Submitted as one JSON field; the server writes
-                  the printed line from it (lib/pawn/stones). */}
-              <fieldset className="md:col-span-6 space-y-2">
-                <legend className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                  {t.pawn.new_.itemStones}
-                </legend>
-                <input
-                  type="hidden"
-                  name={`collateral_${index}_stones`}
-                  value={JSON.stringify(stonesInEnglish(row.stones))}
-                />
-                <div
-                  className={`hidden gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted md:grid ${STONE_GRID}`}
-                >
-                  <span>{t.pawn.new_.stoneQty}</span>
-                  <span>{t.pawn.new_.stoneType}</span>
-                  <span>{t.pawn.new_.stoneCarat}</span>
-                  <span>{t.pawn.new_.stoneColor}</span>
-                  <span>{t.pawn.new_.stoneCut}</span>
-                  <span>{t.pawn.new_.stoneClarity}</span>
-                  <span />
-                </div>
-                {row.stones.map((stone, si) => {
-                  const setStone = (patch: Partial<StoneDraft>) =>
-                    onChange({
-                      stones: row.stones.map((x, i) => (i === si ? { ...x, ...patch } : x)),
-                    })
-                  return (
-                    <div key={si} className={`grid grid-cols-2 items-start gap-2 ${STONE_GRID}`}>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={stone.qty}
-                        onChange={(e) => setStone({ qty: e.target.value })}
-                        aria-label={t.pawn.new_.stoneQty}
-                        placeholder={t.pawn.new_.stoneQty}
-                        className={INPUT}
-                      />
-                      <ChoiceOrOther
-                        labelHidden
-                        label={t.pawn.new_.stoneType}
-                        value={stone.type}
-                        onChange={(type) => setStone({ type })}
-                        choices={stoneTypeChoices}
-                        otherLabel={t.pawn.new_.itemChoiceOther}
-                        otherPlaceholder={t.pawn.new_.itemChoiceOtherText}
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={stone.carat}
-                        onChange={(e) => setStone({ carat: e.target.value })}
-                        aria-label={t.pawn.new_.stoneCarat}
-                        placeholder="0.75"
-                        className={INPUT}
-                      />
-                      <input
-                        type="text"
-                        value={stone.color}
-                        onChange={(e) => setStone({ color: e.target.value })}
-                        aria-label={t.pawn.new_.stoneColor}
-                        placeholder={t.pawn.new_.stoneColorPlaceholder}
-                        className={INPUT}
-                      />
-                      <input
-                        type="text"
-                        value={stone.cut}
-                        onChange={(e) => setStone({ cut: e.target.value })}
-                        aria-label={t.pawn.new_.stoneCut}
-                        placeholder={t.pawn.new_.stoneCutPlaceholder}
-                        className={INPUT}
-                      />
-                      <input
-                        type="text"
-                        value={stone.clarity}
-                        onChange={(e) => setStone({ clarity: e.target.value })}
-                        aria-label={t.pawn.new_.stoneClarity}
-                        placeholder="VS1"
-                        className={INPUT}
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onChange({
-                            stones:
-                              row.stones.length > 1
-                                ? row.stones.filter((_, i) => i !== si)
-                                : [blankStone()],
-                          })
-                        }
-                        aria-label={`${t.pawn.new_.stoneRemove} ${si + 1}`}
-                        className={`inline-flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-background hover:text-danger ${FOCUS}`}
-                      >
-                        <X size={14} weight="bold" />
-                      </button>
-                    </div>
-                  )
-                })}
-                <div className="flex flex-wrap items-center gap-2">
-                  {row.stones.length < MAX_STONES ? (
-                    <button
-                      type="button"
-                      onClick={() => onChange({ stones: [...row.stones, blankStone()] })}
-                      className={`inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2 text-sm font-semibold text-blue hover:text-blue-2 hover:underline ${FOCUS}`}
-                    >
-                      <Plus size={14} weight="bold" />
-                      {t.pawn.new_.stoneAdd}
-                    </button>
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <input
-                      type="text"
-                      name={`collateral_${index}_gemstone_notes`}
-                      value={row.gemstone_notes}
-                      onChange={(e) => onChange({ gemstone_notes: e.target.value })}
-                      aria-label={t.pawn.new_.itemGemstoneNotes}
-                      placeholder={t.pawn.new_.itemGemstoneNotes}
-                      className={INPUT}
-                    />
-                  </div>
-                </div>
-              </fieldset>
             </>
           ) : null}
 
@@ -2138,6 +2060,137 @@ function CollateralRow({
               className={INPUT}
             />
           </label>
+          </div>
+
+          {selectedCategory?.slug === 'jewelry' ? (
+            <div data-step="stones" className={step === 'stones' ? 'contents' : 'hidden'}>
+              {/* FS 539.001(8)(b)2.g — the stones, one line per kind, with
+                  how many. Submitted as one JSON field; the server writes
+                  the printed line from it (lib/pawn/stones). */}
+              <fieldset className="md:col-span-6 space-y-2">
+                <legend className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {t.pawn.new_.itemStones}
+                </legend>
+                <input
+                  type="hidden"
+                  name={`collateral_${index}_stones`}
+                  value={JSON.stringify(stonesInEnglish(row.stones))}
+                />
+                <div
+                  className={`hidden gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted md:grid ${STONE_GRID}`}
+                >
+                  <span>{t.pawn.new_.stoneQty}</span>
+                  <span>{t.pawn.new_.stoneType}</span>
+                  <span>{t.pawn.new_.stoneCarat}</span>
+                  <span>{t.pawn.new_.stoneColor}</span>
+                  <span>{t.pawn.new_.stoneCut}</span>
+                  <span>{t.pawn.new_.stoneClarity}</span>
+                  <span />
+                </div>
+                {row.stones.map((stone, si) => {
+                  const setStone = (patch: Partial<StoneDraft>) =>
+                    onChange({
+                      stones: row.stones.map((x, i) => (i === si ? { ...x, ...patch } : x)),
+                    })
+                  return (
+                    <div key={si} className={`grid grid-cols-2 items-start gap-2 ${STONE_GRID}`}>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={stone.qty}
+                        onChange={(e) => setStone({ qty: e.target.value })}
+                        aria-label={t.pawn.new_.stoneQty}
+                        placeholder={t.pawn.new_.stoneQty}
+                        className={INPUT}
+                      />
+                      <ChoiceOrOther
+                        labelHidden
+                        label={t.pawn.new_.stoneType}
+                        value={stone.type}
+                        onChange={(type) => setStone({ type })}
+                        choices={stoneTypeChoices}
+                        otherLabel={t.pawn.new_.itemChoiceOther}
+                        otherPlaceholder={t.pawn.new_.itemChoiceOtherText}
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={stone.carat}
+                        onChange={(e) => setStone({ carat: e.target.value })}
+                        aria-label={t.pawn.new_.stoneCarat}
+                        placeholder="0.75"
+                        className={INPUT}
+                      />
+                      <input
+                        type="text"
+                        value={stone.color}
+                        onChange={(e) => setStone({ color: e.target.value })}
+                        aria-label={t.pawn.new_.stoneColor}
+                        placeholder={t.pawn.new_.stoneColorPlaceholder}
+                        className={INPUT}
+                      />
+                      <input
+                        type="text"
+                        value={stone.cut}
+                        onChange={(e) => setStone({ cut: e.target.value })}
+                        aria-label={t.pawn.new_.stoneCut}
+                        placeholder={t.pawn.new_.stoneCutPlaceholder}
+                        className={INPUT}
+                      />
+                      <input
+                        type="text"
+                        value={stone.clarity}
+                        onChange={(e) => setStone({ clarity: e.target.value })}
+                        aria-label={t.pawn.new_.stoneClarity}
+                        placeholder="VS1"
+                        className={INPUT}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onChange({
+                            stones:
+                              row.stones.length > 1
+                                ? row.stones.filter((_, i) => i !== si)
+                                : [blankStone()],
+                          })
+                        }
+                        aria-label={`${t.pawn.new_.stoneRemove} ${si + 1}`}
+                        className={`inline-flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-background hover:text-danger ${FOCUS}`}
+                      >
+                        <X size={14} weight="bold" />
+                      </button>
+                    </div>
+                  )
+                })}
+                <div className="flex flex-wrap items-center gap-2">
+                  {row.stones.length < MAX_STONES ? (
+                    <button
+                      type="button"
+                      onClick={() => onChange({ stones: [...row.stones, blankStone()] })}
+                      className={`inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2 text-sm font-semibold text-blue hover:text-blue-2 hover:underline ${FOCUS}`}
+                    >
+                      <Plus size={14} weight="bold" />
+                      {t.pawn.new_.stoneAdd}
+                    </button>
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <input
+                      type="text"
+                      name={`collateral_${index}_gemstone_notes`}
+                      value={row.gemstone_notes}
+                      onChange={(e) => onChange({ gemstone_notes: e.target.value })}
+                      aria-label={t.pawn.new_.itemGemstoneNotes}
+                      placeholder={t.pawn.new_.itemGemstoneNotes}
+                      className={INPUT}
+                    />
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+          ) : null}
 
           {/* Last: written from the fields above while the clerk leaves it
               alone; theirs once they type in it (descriptionAfterChange). */}
@@ -2158,7 +2211,6 @@ function CollateralRow({
               {t.pawn.new_.itemDescriptionHint}
             </span>
           </label>
-        </div>
       </div>
       ) : null}
 
@@ -2178,6 +2230,15 @@ function CollateralRow({
                     {adding ? (
                       <button type="button" onClick={dismiss} className={OUTLINE_BTN}>
                         {t.common.cancel}
+                      </button>
+                    ) : null}
+                    {categoryStepDone && steps.indexOf(step) < steps.length - 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setStep(steps[steps.indexOf(step) + 1])}
+                        className={OUTLINE_BTN}
+                      >
+                        {tn.wizard.next}
                       </button>
                     ) : null}
                     <button

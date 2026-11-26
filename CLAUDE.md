@@ -404,7 +404,10 @@ Never kill node processes by image name — always by PID.
       INSIDE the ticket `<form>` — its inputs (photo file input included)
       are what the form submits. Never move it to a portal, never render it
       only while open, never put a display class (flex / block / grid) on
-      the `<dialog>` itself. Its onCancel ignores any target but the dialog
+      the `<dialog>` itself. Its fields are in steps (Photos · Item ·
+      Stones, `data-step`), Est. value / Metal value above and Description
+      below: a step not shown is `hidden`, NEVER unmounted, and "Add item"
+      opens the step of the first invalid field. Its onCancel ignores any target but the dialog
       (a file input's "cancel" bubbles). Enter in a field = Add item / Done,
       never submit the ticket.
 
