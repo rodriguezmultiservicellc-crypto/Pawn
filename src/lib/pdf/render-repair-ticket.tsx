@@ -4,6 +4,7 @@
  */
 
 import { renderToBuffer } from '@react-pdf/renderer'
+import QRCode from 'qrcode'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { en } from '@/lib/i18n/en'
@@ -114,7 +115,8 @@ export async function renderRepairTicketPdf(args: {
       source: st.source as 'customer_supplied' | 'shop_supplied',
     })),
     abandon_days: rules.jurisdiction?.repair_abandon_days ?? null,
-    tracking_url: trackingUrl(t.public_token),
+    // The link prints as a QR code (a phone scans it), never as a long URL.
+    tracking_qr: await trackingQr(trackingUrl(t.public_token)),
     i18n: { en, es },
     printed_on: todayDateString(),
   }
@@ -122,4 +124,10 @@ export async function renderRepairTicketPdf(args: {
   registerPdfFonts()
   const buffer = await renderToBuffer(<RepairTicketPDF data={data} />)
   return { buffer, ticketNumber: data.ticket_number }
+}
+
+/** The tracking link as a PNG data URL for @react-pdf's <Image>; null = no link. */
+async function trackingQr(url: string | null): Promise<string | null> {
+  if (!url) return null
+  return QRCode.toDataURL(url, { margin: 1, width: 240, errorCorrectionLevel: 'M' })
 }

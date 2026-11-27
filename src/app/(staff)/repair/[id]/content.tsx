@@ -37,7 +37,6 @@ import {
   TimelinePanel,
   type RepairEventItem,
 } from '@/components/repair/TimelinePanel'
-import { TimerPanel, type RepairTimeLogItem } from '@/components/repair/TimerPanel'
 import { TrackingPanel } from '@/components/repair/TrackingPanel'
 import { LaserOrderPanel, type LaserPanelData } from '@/components/repair/LaserOrderPanel'
 import type { RepairStageLite } from '@/lib/repair/stages'
@@ -73,9 +72,7 @@ import {
   sendToQaAction,
   setPhotoCaptionAction,
   setQuoteAction,
-  startTimerAction,
   startWorkAction,
-  stopTimerAction,
   voidTicketAction,
   type ActionResult,
 } from './actions'
@@ -197,13 +194,13 @@ export type RepairEventView = {
   occurred_at: string
 }
 
-export type RepairTimeLogView = {
-  id: string
+/** One technician's total time on the ticket (all timer sessions). */
+export type TechTimeView = {
   technician_id: string
-  technician_name: string | null
-  started_at: string
-  stopped_at: string | null
-  notes: string | null
+  name: string | null
+  ms: number
+  /** Their timer is running at page load. */
+  running: boolean
 }
 
 type DialogKind =
@@ -279,12 +276,11 @@ export default function RepairTicketDetail({
   parts,
   photos,
   events,
-  timeLogs,
+  techTime,
   labor,
   canFixClosedParts,
   technicians,
   inventoryOptions,
-  myUserId,
   shopToday,
   trackingLink,
   stages,
@@ -297,14 +293,14 @@ export default function RepairTicketDetail({
   parts: RepairPartView[]
   photos: RepairPhotoView[]
   events: RepairEventView[]
-  timeLogs: RepairTimeLogView[]
+  /** Time each technician spent on the job. */
+  techTime: TechTimeView[]
   /** Timer hours (all sessions) and the shop's labor rate, for the P/L. */
   labor: LaborView
   /** Owner / manager: may remove a part from a closed ticket, with a reason. */
   canFixClosedParts: boolean
   technicians: TechnicianOption[]
   inventoryOptions: InventoryPartChoice[]
-  myUserId: string | null
   /** Today in the shop's timezone (YYYY-MM-DD): Due today / Overdue. */
   shopToday: string
   /** Absolute /t/<token> URL, null when the link is revoked. */
@@ -799,22 +795,7 @@ export default function RepairTicketDetail({
             onCollectDeposit={() => setDialog('collectDeposit')}
           />
 
-          <section className={`${CARD} space-y-4 px-4 py-4`}>
-            <AssignmentSelect
-              ticket={ticket}
-              technicians={technicians}
-              disabled={ticket.is_locked}
-            />
-            <div className="border-t border-border pt-4">
-              <TimerPanel
-                ticketId={ticket.id}
-                logs={timeLogs as RepairTimeLogItem[]}
-                myUserId={myUserId}
-                onStart={(fd) => passThrough(fd, startTimerAction)}
-                onStop={(fd) => passThrough(fd, stopTimerAction)}
-              />
-            </div>
-          </section>
+          <TechniciansCard ticket={ticket} technicians={technicians} techTime={techTime} />
 
           {/* Customer tracking link + customer-facing stage (patches/0061) */}
           <TrackingPanel
@@ -1090,18 +1071,27 @@ function ItemLines({
   )
 }
 
-function AssignmentSelect({
+/**
+ * Who is on the job and how long each one worked on it — display only (the
+ * technician works the timer elsewhere). Every timer session counts, a
+ * running one up to page load. The assignment stays changeable behind a
+ * small "Change" while the ticket is open.
+ */
+function TechniciansCard({
   ticket,
   technicians,
-  disabled,
+  techTime,
 }: {
   ticket: RepairTicketView
   technicians: TechnicianOption[]
-  disabled?: boolean
+  techTime: TechTimeView[]
 }) {
   const { t } = useI18n()
+  const td = t.repair.detail
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [changing, setChanging] = useState(false)
+  const totalMs = techTime.reduce((s, r) => s + r.ms, 0)
 
   function onChange(value: string) {
     setError(null)
@@ -1111,31 +1101,96 @@ function AssignmentSelect({
     startTransition(async () => {
       const res = await assignTechnicianAction(fd)
       if (res.error) setError(res.error)
+      else setChanging(false)
     })
   }
 
   return (
-    <div>
-      <label htmlFor="repair-technician" className={`${LBL} block`}>
-        {t.repair.detail.assignedTechnician}
-      </label>
-      <select
-        id="repair-technician"
-        value={ticket.assigned_to ?? ''}
-        disabled={disabled || pending}
-        onChange={(e) => onChange(e.target.value)}
-        className={`mt-1.5 block h-11 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-blue disabled:opacity-50 ${FOCUS}`}
-      >
-        <option value="">{t.repair.detail.noTechnician}</option>
-        {technicians.map((tech) => (
-          <option key={tech.id} value={tech.id}>
-            {tech.label}
-          </option>
-        ))}
-      </select>
-      {error ? <div className="mt-1 text-xs text-danger">{error}</div> : null}
-    </div>
+    <section className={`${CARD} px-4 py-4`}>
+      <div className={LBL}>{td.techniciansTitle}</div>
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-sm">
+        <span className="text-text-secondary">
+          {td.assignedTo}{' '}
+          <span className="font-semibold text-foreground">
+            {ticket.assigned_to_name ?? td.noTechnician}
+          </span>
+        </span>
+        {!ticket.is_locked && !changing ? (
+          <button
+            type="button"
+            onClick={() => setChanging(true)}
+            className={`rounded-md px-1 text-sm font-semibold text-blue hover:underline ${FOCUS}`}
+          >
+            {td.changeTechnician}
+          </button>
+        ) : null}
+      </div>
+      {changing ? (
+        <div className="mt-2">
+          <label htmlFor="repair-technician" className="sr-only">
+            {td.assignedTechnician}
+          </label>
+          <select
+            id="repair-technician"
+            value={ticket.assigned_to ?? ''}
+            disabled={pending}
+            onChange={(e) => onChange(e.target.value)}
+            className={`block h-11 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-blue disabled:opacity-50 ${FOCUS}`}
+          >
+            <option value="">{td.noTechnician}</option>
+            {technicians.map((tech) => (
+              <option key={tech.id} value={tech.id}>
+                {tech.label}
+              </option>
+            ))}
+          </select>
+          {error ? <div className="mt-1 text-xs text-danger">{error}</div> : null}
+        </div>
+      ) : null}
+
+      <div className="mt-4 border-t border-border pt-3">
+        <div className={LBL}>{td.timeOnJob}</div>
+        {techTime.length === 0 ? (
+          <p className="mt-1.5 text-sm text-text-secondary">{td.noTimeLogged}</p>
+        ) : (
+          <dl className="mt-2 space-y-1.5">
+            {techTime.map((r) => (
+              <div
+                key={r.technician_id}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <dt className="flex min-w-0 items-center gap-2 text-foreground">
+                  <span className="truncate">{r.name ?? td.unknownTechnician}</span>
+                  {r.running ? (
+                    <span className="shrink-0 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[12px] font-semibold text-success">
+                      {td.workingNow}
+                    </span>
+                  ) : null}
+                </dt>
+                <dd className="shrink-0 font-mono tabular-nums text-foreground">
+                  {fmtDuration(r.ms)}
+                </dd>
+              </div>
+            ))}
+            {techTime.length > 1 ? (
+              <div className="flex items-center justify-between gap-3 border-t border-border pt-1.5 text-sm font-bold text-foreground">
+                <dt>{td.totalTime}</dt>
+                <dd className="font-mono tabular-nums">{fmtDuration(totalMs)}</dd>
+              </div>
+            ) : null}
+          </dl>
+        )}
+      </div>
+    </section>
   )
+}
+
+/** 1h 05m / 34m / under a minute = 0m. */
+function fmtDuration(ms: number): string {
+  const mins = Math.floor(ms / 60_000)
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`
 }
 
 function AddNoteForm({ ticketId }: { ticketId: string }) {

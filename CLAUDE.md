@@ -567,7 +567,9 @@ Never kill node processes by image name — always by PID.
     `inventory_item_not_available` otherwise); soft-deleting the part puts
     it back. Nothing else may move an item into or out of `used_in_repair`
     (guard `inventory_used_in_repair_guard`) — never write that status from
-    app code. A part's `inventory_item_id` never changes.
+    app code. A part's `inventory_item_id` never changes. Voiding the
+    ticket soft-deletes its inventory parts, which puts the items back
+    (trigger `repair_void_returns_parts`, patches/0131).
     - Parts of a CLOSED ticket (locked at pickup) are added / removed only
       by owner / chain_admin / manager, with a reason, in the audit log
       (`CLOSED_PARTS_ROLES`, `addPartAction` / `removePartAction`). The

@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { repairProfit } from './billing'
+import { repairProfit, timeByTechnician } from './billing'
+
+describe('timeByTechnician', () => {
+  const now = Date.parse('2026-11-27T18:00:00Z')
+  it('adds each technician\'s sessions, a running one up to now, most time first', () => {
+    const rows = timeByTechnician(
+      [
+        { technician_id: 'a', started_at: '2026-11-27T10:00:00Z', stopped_at: '2026-11-27T10:30:00Z' },
+        { technician_id: 'b', started_at: '2026-11-27T11:00:00Z', stopped_at: '2026-11-27T13:00:00Z' },
+        { technician_id: 'a', started_at: '2026-11-27T17:00:00Z', stopped_at: null },
+      ],
+      now,
+    )
+    expect(rows).toEqual([
+      { technician_id: 'b', ms: 2 * 3_600_000, running: false },
+      { technician_id: 'a', ms: 1.5 * 3_600_000, running: true },
+    ])
+  })
+  it('no sessions = no rows', () => {
+    expect(timeByTechnician([], now)).toEqual([])
+  })
+})
 
 const noLabor = { laborHours: 0, laborRate: null }
 

@@ -908,6 +908,16 @@ export async function voidTicketAction(
     })
   }
 
+  // The void's trigger (patches/0131) puts these back in stock; the audit
+  // row names them.
+  const { data: stockParts } = await supabase
+    .from('repair_ticket_items')
+    .select('id, inventory_item_id, description')
+    .eq('ticket_id', ticket.id)
+    .eq('tenant_id', tenantId)
+    .not('inventory_item_id', 'is', null)
+    .is('deleted_at', null)
+
   const { error } = await supabase
     .from('repair_tickets')
     .update({
@@ -934,7 +944,15 @@ export async function voidTicketAction(
     action: 'void',
     tableName: 'repair_tickets',
     recordId: ticket.id,
-    changes: { reason: v.reason, new_status: 'voided' },
+    changes: {
+      reason: v.reason,
+      new_status: 'voided',
+      parts_returned_to_stock: (stockParts ?? []).map((p) => ({
+        part_id: p.id,
+        inventory_item_id: p.inventory_item_id,
+        description: p.description,
+      })),
+    },
   })
 
   revalidatePath(`/repair/${ticket.id}`)

@@ -12,7 +12,7 @@ import type { LaserOrderView, LaserPanelData } from '@/components/repair/LaserOr
 import { loadTagTemplates } from '@/lib/labels/load'
 import { templateChoices } from '@/lib/labels/templates'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
-import { elapsedHours } from '@/lib/repair/billing'
+import { elapsedHours, timeByTechnician } from '@/lib/repair/billing'
 import RepairTicketDetail, {
   type InventoryPartChoice,
   type LaborView,
@@ -22,7 +22,7 @@ import RepairTicketDetail, {
   type RepairStoneView,
   type RepairEventView,
   type RepairTicketView,
-  type RepairTimeLogView,
+  type TechTimeView,
   type TechnicianOption,
 } from './content'
 import type {
@@ -77,7 +77,6 @@ export default async function RepairTicketDetailPage(props: {
     { data: parts },
     { data: photos },
     { data: events },
-    { data: timeLogs },
     { data: stageRows },
   ] = await Promise.all([
     ctx.supabase
@@ -110,12 +109,6 @@ export default async function RepairTicketDetailPage(props: {
       .eq('ticket_id', id)
       .order('occurred_at', { ascending: false })
       .limit(200),
-    ctx.supabase
-      .from('repair_time_logs')
-      .select('id, technician_id, started_at, stopped_at, notes')
-      .eq('ticket_id', id)
-      .order('started_at', { ascending: false })
-      .limit(50),
     // Customer-facing stages for this service type (patches/0061).
     ctx.supabase
       .from('repair_stages')
@@ -152,11 +145,10 @@ export default async function RepairTicketDetailPage(props: {
       .is('deleted_at', null)
       .order('sent_at', { ascending: false })
       .limit(50),
-    // Every timer session (the list above shows the latest 50): the P/L's
-    // labor hours count all of them.
+    // Every timer session: time per technician and the P/L's labor hours.
     ctx.supabase
       .from('repair_time_logs')
-      .select('started_at, stopped_at')
+      .select('technician_id, started_at, stopped_at')
       .eq('ticket_id', id)
       .eq('tenant_id', ticket.tenant_id),
   ])
@@ -221,7 +213,7 @@ export default async function RepairTicketDetailPage(props: {
   const userIds = new Set<string>()
   if (ticket.assigned_to) userIds.add(ticket.assigned_to)
   for (const e of events ?? []) if (e.performed_by) userIds.add(e.performed_by)
-  for (const l of timeLogs ?? []) if (l.technician_id) userIds.add(l.technician_id)
+  for (const l of allTimeLogs ?? []) if (l.technician_id) userIds.add(l.technician_id)
 
   let userNames: Record<string, string> = {}
   if (userIds.size > 0) {
@@ -386,13 +378,13 @@ export default async function RepairTicketDetailPage(props: {
     occurred_at: e.occurred_at,
   }))
 
-  const timeLogViews: RepairTimeLogView[] = (timeLogs ?? []).map((l) => ({
-    id: l.id,
-    technician_id: l.technician_id,
-    technician_name: userNames[l.technician_id] ?? null,
-    started_at: l.started_at,
-    stopped_at: l.stopped_at,
-    notes: l.notes,
+  // Time per technician, figured here (a running timer counts up to now) so
+  // the server and the browser show the same numbers.
+  const techTime: TechTimeView[] = timeByTechnician(allTimeLogs ?? []).map((r) => ({
+    technician_id: r.technician_id,
+    name: userNames[r.technician_id] ?? null,
+    ms: r.ms,
+    running: r.running,
   }))
 
   return (
@@ -403,12 +395,11 @@ export default async function RepairTicketDetailPage(props: {
       parts={partViews}
       photos={photoViews}
       events={eventViews}
-      timeLogs={timeLogViews}
+      techTime={techTime}
       labor={labor}
       canFixClosedParts={canFixClosedParts}
       technicians={technicianOptions}
       inventoryOptions={inventoryOptions}
-      myUserId={ctx.userId}
       shopToday={shopToday}
       trackingLink={trackingUrl(ticket.public_token)}
       stages={(stageRows ?? []) as RepairStageLite[]}

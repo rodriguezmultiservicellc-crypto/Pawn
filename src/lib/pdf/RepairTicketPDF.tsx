@@ -7,7 +7,7 @@
  * signature lines. Staff-only notes are NOT on it.
  */
 
-import { Document, Page, Text, View } from '@react-pdf/renderer'
+import { Document, Image, Page, Text, View } from '@react-pdf/renderer'
 import type { Dictionary } from '@/lib/i18n/en'
 import { pdfJoin, pdfMoney, pdfStyles as s, type PdfTenant } from './shared'
 
@@ -47,7 +47,8 @@ export type RepairTicketPDFData = {
   stones: ReadonlyArray<RepairTicketPDFStone>
   /** Jurisdiction's repair abandonment window; null hides the notice. */
   abandon_days: number | null
-  tracking_url: string | null
+  /** The tracking link as a QR code (PNG data URL); printed instead of the URL. */
+  tracking_qr: string | null
   i18n: { en: Dictionary; es: Dictionary }
   printed_on: string
 }
@@ -222,15 +223,17 @@ export default function RepairTicketPDF({ data }: { data: RepairTicketPDFData })
           </View>
         </View>
 
-        {data.tracking_url ? (
-          <View style={s.noticeBox}>
-            <Text style={s.noticeTitle}>
-              {en.fields.tracking} / {es.fields.tracking}
-            </Text>
-            {/* Body font on purpose: JetBrains Mono's "//" ligature makes fontkit
-                throw "Offset is outside the bounds of the DataView" on WOFF
-                (see lib/pdf/shared.ts). URLs never go in the mono face. */}
-            <Text style={s.noticeText}>{data.tracking_url}</Text>
+        {data.tracking_qr ? (
+          <View style={[s.noticeBox, { flexDirection: 'row', alignItems: 'center' }]} wrap={false}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf Image has no alt */}
+            <Image src={data.tracking_qr} style={{ width: 64, height: 64 }} />
+            <View style={{ marginLeft: 10, flex: 1 }}>
+              <Text style={s.noticeTitle}>
+                {en.fields.tracking} / {es.fields.tracking}
+              </Text>
+              <Text style={s.noticeText}>{en.fields.trackingScan}</Text>
+              <Text style={s.noticeTextEs}>{es.fields.trackingScan}</Text>
+            </View>
           </View>
         ) : null}
 

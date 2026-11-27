@@ -152,6 +152,29 @@ export function elapsedTimeMs(
   return total
 }
 
+export type TechnicianTime = {
+  technician_id: string
+  /** Every session of this technician on the ticket, a running one to `now`. */
+  ms: number
+  /** A timer of theirs is running right now. */
+  running: boolean
+}
+
+/** Time on one ticket per technician, most time first. */
+export function timeByTechnician(
+  logs: ReadonlyArray<TimeLogRow & { technician_id: string }>,
+  now: number = Date.now(),
+): TechnicianTime[] {
+  const by = new Map<string, TechnicianTime>()
+  for (const l of logs) {
+    const row = by.get(l.technician_id) ?? { technician_id: l.technician_id, ms: 0, running: false }
+    row.ms += elapsedTimeMs([l], now)
+    if (l.stopped_at == null) row.running = true
+    by.set(l.technician_id, row)
+  }
+  return [...by.values()].sort((a, b) => b.ms - a.ms)
+}
+
 /** Convenience: elapsed time as fractional hours (4dp). */
 export function elapsedHours(
   logs: ReadonlyArray<TimeLogRow>,
