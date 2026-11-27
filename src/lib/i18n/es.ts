@@ -2818,6 +2818,8 @@ export const es: Dictionary = {
         body: 'Documenta una pieza usada. Vincúlala al inventario para COGS, o déjalo en blanco si fue compra ad-hoc.',
         inventoryItem: 'Del inventario',
         inventoryItemNone: '— ad-hoc (fuera de inventario) —',
+        category: 'Categoría',
+        allCategories: 'Todas las categorías',
         description: 'Descripción',
         quantity: 'Cantidad',
         unitCost: 'Costo unitario',

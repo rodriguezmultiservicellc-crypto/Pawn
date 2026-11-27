@@ -79,6 +79,7 @@ import {
   type ActionResult,
 } from './actions'
 import type {
+  InventoryCategory,
   RepairEventType,
   RepairPhotoKind,
   RepairStatus,
@@ -94,6 +95,8 @@ export type InventoryPartChoice = {
   id: string
   label: string
   cost_basis: number | null
+  /** Narrows the Add part picker by category. */
+  category: InventoryCategory
 }
 
 export type RepairTicketView = {

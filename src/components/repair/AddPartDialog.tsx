@@ -4,11 +4,14 @@ import { useMemo, useState, useTransition } from 'react'
 import { Plus } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { Modal, Footer } from '@/components/pawn/RecordPaymentDialog'
+import { categoryLabel } from '@/lib/inventory/labels'
+import type { InventoryCategory } from '@/types/database-aliases'
 
 export type InventoryPartOption = {
   id: string
   label: string
   cost_basis: number | null
+  category: InventoryCategory
 }
 
 export function AddPartDialog({
@@ -32,6 +35,23 @@ export function AddPartDialog({
   const [quantity, setQuantity] = useState<string>('1')
   const [unitCost, setUnitCost] = useState<string>('0')
   const [notes, setNotes] = useState<string>('')
+  // Narrows "From inventory" to one category ('' = all). Only categories
+  // that have an available item are offered, by their translated name.
+  const [category, setCategory] = useState<InventoryCategory | ''>('')
+  const categories = useMemo(
+    () =>
+      [...new Set(options.map((o) => o.category))].sort((a, b) =>
+        categoryLabel(a, t).localeCompare(categoryLabel(b, t)),
+      ),
+    [options, t],
+  )
+  const shown = category ? options.filter((o) => o.category === category) : options
+
+  function pickCategory(c: InventoryCategory | '') {
+    setCategory(c)
+    // A picked item outside the new category is let go.
+    if (c && invId && options.find((o) => o.id === invId)?.category !== c) setInvId('')
+  }
 
   const totalCost = useMemo(() => {
     const q = parseFloat(quantity || '0')
@@ -76,6 +96,25 @@ export function AddPartDialog({
       ) : null}
       <p className="mb-3 text-sm text-muted">{t.repair.dialogs.addPart.body}</p>
       <div className="space-y-3">
+        {categories.length > 1 ? (
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-foreground">
+              {t.repair.dialogs.addPart.category}
+            </span>
+            <select
+              value={category}
+              onChange={(e) => pickCategory(e.target.value as InventoryCategory | '')}
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+            >
+              <option value="">{t.repair.dialogs.addPart.allCategories}</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {categoryLabel(c, t)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label className="block space-y-1">
           <span className="text-sm font-medium text-foreground">
             {t.repair.dialogs.addPart.inventoryItem}
@@ -86,7 +125,7 @@ export function AddPartDialog({
             className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           >
             <option value="">{t.repair.dialogs.addPart.inventoryItemNone}</option>
-            {options.map((o) => (
+            {shown.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.label}
               </option>

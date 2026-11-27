@@ -2828,6 +2828,8 @@ export const en = {
         body: 'Document a part used. Link to inventory for COGS, or leave blank for ad-hoc purchases.',
         inventoryItem: 'From inventory',
         inventoryItemNone: '— ad-hoc (not in inventory) —',
+        category: 'Category',
+        allCategories: 'All categories',
         description: 'Description',
         quantity: 'Quantity',
         unitCost: 'Unit cost',

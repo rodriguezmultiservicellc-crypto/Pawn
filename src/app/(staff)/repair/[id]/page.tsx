@@ -239,7 +239,7 @@ export default async function RepairTicketDetailPage(props: {
   // Inventory items for the part picker (cap 200).
   const { data: invItems } = await ctx.supabase
     .from('inventory_items')
-    .select('id, sku, description, cost_basis')
+    .select('id, sku, description, cost_basis, category')
     .eq('tenant_id', ticket.tenant_id)
     .is('deleted_at', null)
     .eq('status', 'available')
@@ -249,6 +249,7 @@ export default async function RepairTicketDetailPage(props: {
     id: i.id,
     label: `${i.sku} — ${i.description}`,
     cost_basis: i.cost_basis == null ? null : Number(i.cost_basis),
+    category: i.category,
   }))
 
   // Sign photo URLs in parallel.
