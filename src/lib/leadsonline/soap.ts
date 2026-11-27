@@ -43,6 +43,7 @@ export type LeadsOnlineMethod =
   | 'SubmitTransaction'
   | 'UpdateTransaction'
   | 'CheckDoNotBuy2'
+  | 'SetNoTransactionDayForStore'
 
 export type LoginInfo = { storeId: number; userName: string; password: string }
 
@@ -424,6 +425,16 @@ export function checkDoNotBuy2Envelope(
     'CheckDoNotBuy2',
     API_VERSION + opt('BirthDate', q.birthDate) + opt('ID', q.id) + opt('Name', q.name) + loginXml(login),
   )
+}
+
+/** "2026-11-26" → "11/26/2026", the TransactionDate format (API doc, p. 16). */
+export function usDateOf(isoDay: string): string {
+  return `${isoDay.slice(5, 7)}/${isoDay.slice(8, 10)}/${isoDay.slice(0, 4)}`
+}
+
+/** A day the store had no transactions. WSDL order: TransactionDate, login. */
+export function setNoTransactionDayEnvelope(login: LoginInfo, isoDay: string): string {
+  return envelope('SetNoTransactionDayForStore', API_VERSION + el('TransactionDate', usDateOf(isoDay)) + loginXml(login))
 }
 
 // ── Responses ───────────────────────────────────────────────────────────────

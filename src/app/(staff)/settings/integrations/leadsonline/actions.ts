@@ -9,6 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { setTenantSecret } from '@/lib/secrets/vault'
 import { logAudit } from '@/lib/audit'
 import { checkDoNotBuy, checkLogin, loadLeadsOnlineConfig } from '@/lib/leadsonline/client'
+import { sendNoTransactionDay } from '@/lib/leadsonline/no-transaction-days'
 import type { DoNotBuyInfo } from '@/lib/leadsonline/soap'
 
 /**
@@ -123,6 +124,28 @@ export async function testLeadsOnlineAction(_prev: LeadsOnlineState, _formData: 
   if (r.kind === 'fault') return { error: 'remote', detail: r.message }
   if (r.errorCode !== 0) return { error: 'code', detail: `${r.errorCode}: ${r.errorResponse}` }
   return { ok: true }
+}
+
+/** Send one finished day with no pawn and no buy as a "No Transactions
+ *  Day" (patches/0124) — e.g. a day the nightly job does not cover. */
+export async function markNoTransactionDayAction(_prev: LeadsOnlineState, formData: FormData): Promise<LeadsOnlineState> {
+  const { tenantId, userId } = await ownerScope()
+  const day = String(formData.get('day') ?? '').trim()
+  const r = await sendNoTransactionDay({ tenantId, userId, day })
+  if (!r.ok) return { error: r.error }
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'leadsonline_no_transaction_days',
+    tableName: 'leadsonline_no_transaction_days',
+    recordId: tenantId,
+    changes: { environment: r.env, days: [{ day, ok: r.result.ok, code: r.result.errorCode }], via: 'manual' },
+  })
+  revalidatePath('/settings/integrations/leadsonline')
+  if (!r.result.ok) {
+    return { error: 'code', detail: `${r.result.errorCode ?? ''} ${r.result.errorResponse}`.trim() }
+  }
+  return { ok: true, detail: day }
 }
 
 export type DoNotBuyState = {

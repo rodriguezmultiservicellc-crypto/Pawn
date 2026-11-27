@@ -23,7 +23,7 @@ export default async function LeadsOnlineSettingsPage() {
   // Service role after the role check: leadsonline_submissions has no
   // staff policy (patches/0123).
   const admin = createAdminClient()
-  const [{ data: settings }, passwordSet, { data: recent }, { data: tenant }] = await Promise.all([
+  const [{ data: settings }, passwordSet, { data: recent }, { data: tenant }, { data: noTx }] = await Promise.all([
     admin
       .from('settings')
       .select('leadsonline_api_store_id, leadsonline_api_username, leadsonline_api_env')
@@ -37,6 +37,12 @@ export default async function LeadsOnlineSettingsPage() {
       .order('created_at', { ascending: false })
       .limit(20),
     admin.from('tenants').select('timezone').eq('id', ctx.tenantId).maybeSingle(),
+    admin
+      .from('leadsonline_no_transaction_days')
+      .select('id, day, environment, ok, error_code, error_response, set_by, created_at')
+      .eq('tenant_id', ctx.tenantId)
+      .order('created_at', { ascending: false })
+      .limit(15),
   ])
   const timeZone = tenant?.timezone || 'America/New_York'
   if (!settings) redirect('/settings/integrations')
@@ -58,6 +64,15 @@ export default async function LeadsOnlineSettingsPage() {
       ok: r.ok,
       code: r.error_code,
       response: r.error_response ?? '',
+    })),
+    noTransactionDays: (noTx ?? []).map((r) => ({
+      id: r.id,
+      day: r.day,
+      env: r.environment === 'production' ? 'production' : 'sandbox',
+      ok: r.ok,
+      byHand: r.set_by != null,
+      response: [r.error_code != null ? `${r.error_code}:` : '', r.error_response ?? ''].join(' ').trim(),
+      at: shopDateTime(r.created_at, timeZone).replace('T', ' ').slice(0, 16),
     })),
   }
   return <LeadsOnlineSettingsContent view={view} />

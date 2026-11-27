@@ -191,6 +191,8 @@ export type AuditAction =
   // list not answering (the ticket went through unchecked)
   | 'do_not_buy_match'
   | 'do_not_buy_unavailable'
+  // Days sent to LeadsOnline as "no transactions" (patches/0124)
+  | 'leadsonline_no_transaction_days'
   // Item tags (patches/0074)
   | 'tag_print'
   | 'tag_template_save'

@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { EnvBadge } from '@/components/leadsonline/EnvBadge'
 import {
   checkDoNotBuyAction,
+  markNoTransactionDayAction,
   saveLeadsOnlineAction,
   testLeadsOnlineAction,
   type DoNotBuyState,
@@ -34,6 +35,17 @@ export type LeadsOnlineSettingsView = {
   env: 'sandbox' | 'production'
   passwordSet: boolean
   recent: LeadsOnlineSubmissionView[]
+  /** Days sent as "no transactions" (patches/0124), newest first. */
+  noTransactionDays: Array<{
+    id: string
+    day: string
+    env: 'sandbox' | 'production'
+    ok: boolean
+    byHand: boolean
+    response: string
+    /** When it was sent, shop time. */
+    at: string
+  }>
 }
 
 const INPUT =
@@ -49,6 +61,7 @@ export default function LeadsOnlineSettingsContent({ view }: { view: LeadsOnline
   const [state, saveAction, saving] = useActionState<LeadsOnlineState, FormData>(saveLeadsOnlineAction, {})
   const [testState, testAction, testing] = useActionState<LeadsOnlineState, FormData>(testLeadsOnlineAction, {})
   const [dnb, dnbAction, checking] = useActionState<DoNotBuyState, FormData>(checkDoNotBuyAction, {})
+  const [noTx, noTxAction, markingDay] = useActionState<LeadsOnlineState, FormData>(markNoTransactionDayAction, {})
   const [env, setEnv] = useState(view.env)
   const [clearPassword, setClearPassword] = useState(false)
   const configured = view.storeId !== '' && view.username !== '' && view.passwordSet
@@ -227,6 +240,66 @@ export default function LeadsOnlineSettingsContent({ view }: { view: LeadsOnline
           </div>
         ) : null}
       </form>
+
+      <section className={CARD}>
+        <div>
+          <h2 className="text-base font-bold text-foreground">{tl.noTx.title}</h2>
+          <p className={HELP}>{tl.noTx.help}</p>
+        </div>
+        <form action={noTxAction} className="flex flex-wrap items-end gap-3">
+          <label className="space-y-1">
+            <span className={LABEL}>{tl.noTx.day}</span>
+            <input name="day" type="date" required className={INPUT} />
+          </label>
+          <button type="submit" disabled={markingDay || !configured} className={`${OUTLINE} h-[46px]`}>
+            {markingDay ? tl.noTx.sending : tl.noTx.send}
+          </button>
+        </form>
+        {noTx.ok ? (
+          <p className="text-sm font-semibold text-success">{tl.noTx.sentOk.replace('{day}', noTx.detail ?? '')}</p>
+        ) : null}
+        {noTx.error ? (
+          <p className="text-sm text-danger">
+            {(tl.noTx.errors as Record<string, string>)[noTx.error] ?? errText(noTx)}
+          </p>
+        ) : null}
+        {view.noTransactionDays.length === 0 ? (
+          <p className="text-sm text-text-secondary">{tl.noTx.empty}</p>
+        ) : (
+          <div className="relative overflow-x-auto">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead className="text-xs uppercase tracking-wide text-text-secondary">
+                <tr>
+                  <th className="py-2 pr-3 font-semibold">{tl.noTx.colDay}</th>
+                  <th className="py-2 pr-3 font-semibold">{tl.colWhere}</th>
+                  <th className="py-2 pr-3 font-semibold">{tl.noTx.colHow}</th>
+                  <th className="py-2 font-semibold">{tl.colResult}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {view.noTransactionDays.map((d) => (
+                  <tr key={d.id} className="border-t border-border align-top">
+                    <td className="py-2 pr-3 font-mono">{d.day}</td>
+                    <td className="py-2 pr-3">
+                      <EnvBadge env={d.env} />
+                    </td>
+                    <td className="py-2 pr-3 text-text-secondary">
+                      {d.byHand ? tl.noTx.byHand : tl.noTx.nightly} · <span className="font-mono text-xs">{d.at}</span>
+                    </td>
+                    <td className="py-2">
+                      {d.ok ? (
+                        <span className="font-semibold text-success">{tl.resultOk}</span>
+                      ) : (
+                        <span className="text-danger">{d.response || tl.resultNoAnswer}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section className={CARD}>
         <div>

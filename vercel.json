@@ -42,6 +42,10 @@
       "schedule": "30 14 * * *"
     },
     {
+      "path": "/api/cron/leadsonline-no-transactions",
+      "schedule": "45 10 * * *"
+    },
+    {
       "path": "/api/cron/ebay-sync",
       "schedule": "0,30 13-21 * * 1-5"
     },

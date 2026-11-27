@@ -6411,6 +6411,24 @@ export const es: Dictionary = {
       matchTitle: 'Está en la lista Do Not Buy de LeadsOnline',
       matchBody: 'Una agencia policial pidió a las tiendas no comprarle a esta persona. No recibas el artículo; llama a la agencia. El boleto será rechazado.',
     },
+    // "No Transactions Day" (patches/0124).
+    noTx: {
+      title: 'Días sin transacciones',
+      help: 'LeadsOnline pide que la tienda reporte cada día sin empeños ni compras. Sol Pawn los envía cada noche, por cada día terminado desde que reportó su primer boleto. Envía aquí un día anterior.',
+      day: 'Día',
+      send: 'Enviar como sin transacciones',
+      sending: 'Enviando…',
+      sentOk: '{day} quedó como día sin transacciones.',
+      empty: 'Aún no se ha enviado ningún día.',
+      colDay: 'Día',
+      colHow: 'Enviado',
+      nightly: 'Cada noche',
+      byHand: 'A mano',
+      errors: {
+        bad_day: 'Elige un día que ya haya terminado.',
+        day_has_tickets: 'Ese día tiene un empeño o una compra en Sol Pawn, así que no es un día sin transacciones.',
+      },
+    },
     send: {
       title: 'Enviar a LeadsOnline',
       helpSandbox: 'Estos van al sistema de prueba de LeadsOnline (Sandbox): nada llega a la policía.',

@@ -6413,6 +6413,24 @@ export const en = {
       matchTitle: 'On the LeadsOnline Do Not Buy list',
       matchBody: 'A police agency asked stores not to buy from this person. Do not take the item; call the agency. The ticket will be refused.',
     },
+    // "No Transactions Day" (patches/0124).
+    noTx: {
+      title: 'Days with no transactions',
+      help: 'LeadsOnline asks the store to report every day it had no pawns and no buys. Sol Pawn sends them every night, for each finished day since it reported its first ticket. Send an earlier day here.',
+      day: 'Day',
+      send: 'Send as no transactions',
+      sending: 'Sending…',
+      sentOk: '{day} was set as a day with no transactions.',
+      empty: 'No days sent yet.',
+      colDay: 'Day',
+      colHow: 'Sent',
+      nightly: 'Nightly',
+      byHand: 'By hand',
+      errors: {
+        bad_day: 'Pick a day that is already over.',
+        day_has_tickets: 'That day has a pawn or a buy in Sol Pawn, so it is not a day with no transactions.',
+      },
+    },
     send: {
       title: 'Send to LeadsOnline',
       helpSandbox: 'These go to the LeadsOnline test system (Sandbox): nothing reaches the police.',

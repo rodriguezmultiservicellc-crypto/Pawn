@@ -3584,6 +3584,57 @@ export type Database = {
           },
         ]
       }
+      leadsonline_no_transaction_days: {
+        Row: {
+          created_at: string
+          day: string
+          environment: string
+          error_code: number | null
+          error_response: string | null
+          id: string
+          ok: boolean
+          set_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          environment: string
+          error_code?: number | null
+          error_response?: string | null
+          id?: string
+          ok: boolean
+          set_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          environment?: string
+          error_code?: number | null
+          error_response?: string | null
+          id?: string
+          ok?: boolean
+          set_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadsonline_no_transaction_days_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadsonline_no_transaction_days_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leadsonline_submissions: {
         Row: {
           compliance_log_id: string
