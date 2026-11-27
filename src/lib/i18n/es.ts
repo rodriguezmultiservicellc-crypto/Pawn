@@ -6419,6 +6419,7 @@ export const es: Dictionary = {
     colResult: 'Respuesta',
     resultOk: 'Aceptado',
     resultNoAnswer: 'LeadsOnline no respondió',
+    ticketTypes: { Pawn: 'Empeño', Buy: 'Compra' },
     voidTag: 'Anulado',
     errors: {
       not_configured: 'Primero configura el acceso de LeadsOnline (número de tienda, usuario y contraseña).',

@@ -60,7 +60,47 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 75 (2026-11-26, saved ~11:30, updated ~12:30),
+  Last session:   Session 76 (2026-11-27, saved ~14:10), items 665-680.
+                  Context budget at save: very high (compacted once; START FRESH).
+                  SIX MIGRATIONS, ALL APPLIED TO THE LIVE DB, no existing
+                  policy touched: 0123 (settings LeadsOnline login +
+                  leadsonline_submissions), 0124 (leadsonline_no_transaction_days),
+                  0125 (compliance_log.redeem_by + write-once guard now also
+                  protects reference_number / clerk / redeem_by), 0126
+                  (message_kind pawn_tracking_link), 0127 (loan_public_links +
+                  pawn_tracking_link templates). New tables have RLS ON and
+                  NO policy (service role after the role check).
+                  main == feature/sol-pawn-brief. Nothing is half-built.
+                  Built + pushed: Sol Pawn app icon; repair drafts list;
+                  repair ticket page redesign; the staff shell fits 390px;
+                  repair items need a work description; LeadsOnline WEB
+                  SERVICE (login in Settings, Send on the police report, Do
+                  Not Buy check at intake, nightly No Transactions Day,
+                  redeem-by date); pawn ticket CUSTOMER PAGE /p/<token>.
+                  LEADSONLINE SANDBOX (store 57434, user eddystest01, Eddy
+                  entered the password in the app): login OK; Do Not Buy
+                  test person FRANK FURTER hits; 6 tickets accepted
+                  (15665-15668, 21668). Transaction Monitor first showed only
+                  the buy; pawn 15667 appeared after "Send again"
+                  (UpdateTransaction). 11/23 set as a no-transactions day.
+                  PT-015668 (Rolex, $10,925.08, OPEN) is Eddy's test pawn with
+                  redeem-by 2026-12-27, sent and accepted.
+                  ACTIVE FILES: src/lib/leadsonline/{soap,client,submit,
+                  do-not-buy,no-transaction-days,no-transaction-plan}.ts,
+                  src/app/(staff)/settings/integrations/leadsonline/*,
+                  src/app/(staff)/reports/police-report/leadsonline-panel.tsx,
+                  src/lib/pawn/{public-ticket,public-link}.ts,
+                  src/app/(public)/p/[token]/*, src/components/pawn/
+                  CustomerLinkPanel.tsx.
+                  RESUME POINT: nothing half-built. Ask Eddy what the
+                  sandbox Transaction Monitor shows for 11/27 (pawn 15668 with
+                  redeem-by 12/27/2026?) and for 11/25 (buy 21668 + pawn
+                  15667). If pawns only show after a second send, tell
+                  LeadsOnline before asking for production credentials.
+                  PT-015668 is a real open ticket: Eddy voids it (then Send
+                  again -> void on the sandbox) when done.
+
+  Session 75 (2026-11-26, saved ~11:30, updated ~12:30),
                   items 645-664. Later the same day (661-664): Pawned
                   before piece can be put back; Scan ID inside the New
                   customer popup; item prices on the printed repair
@@ -2896,12 +2936,97 @@ sessions are there.)
       tsc, 1,026 tests, lint, build green; ticket 15645 re-printed after
       the cleanup: 3 pages, same as before.
 
+
+--- Session 76 (2026-11-27) — App icon, repair drafts + ticket page redesign, 390px shell, LeadsOnline web service (send, Do Not Buy, no-transaction days, redeem-by), pawn customer page (0123-0127) ---
+
+  665. SOL PAWN APP ICON (942b9d0): src/app/{icon,apple-icon}.png,
+       favicon.ico, manifest.ts (navy), public/icon-{192,512}.png; proxy
+       matcher skips manifest.webmanifest.
+  666. REPAIR DRAFTS (74bec7b): Save as draft on New repair ticket +
+       Repair > Drafts list to reopen a QR-handed-off ticket on any device
+       (src/app/(staff)/repair/drafts/*, lib/repair/draft-scope.ts).
+  667. REPAIR TICKET PAGE REDESIGN (7d70784) from Eddy's brief: header with
+       six steps + ONE gold Next step per status, More menu, two columns
+       (item + work / parts table / notes + activity | money, technician +
+       timer, tracking, laser), parts over quote warning, Due today /
+       Overdue by the shop's timezone. Counter page only.
+  668. [BUG] STAFF SHELL OVERFLOWED A 390px PHONE (bf54d20): the content
+       column was flex-1 without min-w-0, so any wide table pushed the page.
+       Compact top bar, menu as a sheet over the page on phones (no
+       hydration warning: useSyncExternalStore), PartsPanel sr-only th kept
+       inside its scroll box (relative).
+  669. REPAIR ITEMS NEED A WORK DESCRIPTION (1c49e55): the item popup refuses
+       Add item / Done with Work needed empty (red field, jumps to Service),
+       Open ticket stays off (railWorkHint, both views), server schema
+       requires it (fieldErrors.line_items = 'work_required').
+  670. LEADSONLINE WEB SERVICE (e195cbf, 0123): SOAP 1.1 to ticketWS.asmx
+       built to the LIVE WSDL (ApiVersion xsi:nil first, strict element
+       order — the PDF says neither). lib/leadsonline/soap.ts (pure, tested)
+       builds the Ticket from compliance_log only; submit.ts sends Submit, or
+       Update when already accepted (a void after report), with item photos,
+       the ID scan and the pawn signature; every answer in
+       leadsonline_submissions (append-only). Settings → Integrations →
+       LeadsOnline: store ID / user / password (Vault
+       leadsonline_api_password) / Sandbox|Production, Test the login.
+       Reports → Police report: Send to LeadsOnline (25 per press). Sending
+       never stamps compliance_log (the file's exported_* stay the file's).
+  671. LEADSONLINE SANDBOX TEST: login accepted, FRANK FURTER Do Not Buy hit,
+       15665/15666 (void), 15667, buy 21668 accepted (code 0). Monitor showed
+       only the buy until 15667 was sent again (UpdateTransaction).
+  672. DO NOT BUY AT INTAKE (6571a69): DoNotBuyBanner under the customer on
+       New pawn (pawn + Purchase) and Buy outright; doNotBuyGate in
+       createLoanAction / createPurchaseAction / buy actions refuses
+       'do_not_buy_match'; LeadsOnline not answering lets the ticket through
+       and writes audit 'do_not_buy_unavailable'. No login = no check.
+  673. NO TRANSACTIONS DAY (f24cdb1, 0124): /api/cron/leadsonline-no-
+       transactions (vercel.json 45 10 * * *) sends each finished shop day
+       with no pawn / buy, from the first day Sol Pawn got a ticket accepted
+       in that environment (never xPawn's days), 14-day catch-up
+       (no-transaction-plan.ts, tested); manual day on Settings. 11/23 sent
+       and accepted on the sandbox.
+  674. REDEEM-BY DATE (5df8ec0, 0125): compliance_log.redeem_by written by
+       createLoanAction (issue + term), sent as redeemByDate and the file's
+       <redeem_date>; pre-0125 pawns stay empty (write-once). The guard now
+       also protects reference_number, clerk, redeem_by (dry run: blocked).
+       PT-015668 sent with 2026-12-27, accepted.
+  675. PAWN CUSTOMER PAGE (5ca9d46, 0126-0127): /p/<token> (proxy '/p' is
+       exact or '/p/…', never /pawn): payoff today (payoffFromLoan +
+       chargeModelOf), due date + days, last day (lastRedemptionDate),
+       items + photos, history; never the customer's identity. Links in
+       loan_public_links (NOT on loans: rule 22 updated_at). Customer link
+       card on the ticket: Send by text (pawn_tracking_link templates),
+       Copy, Open, New link, Revoke. Checked at 390 / 1440, bad token 404.
+  676. [BUG] DEV 404 ON A NEW ROUTE after a production build: stale
+       Turbopack cache; clearing .next fixed it (also a half-written
+       .next/dev/types file broke one build).
+  677. PRE-SAVE GATE: LeadsOnline ticket types translated
+       (leadsonline.ticketTypes), LEADSONLINE_SEND_MAX shared from soap.ts.
+  678. NDA REVIEW for LeadsOnline (notes only): legal name "Eddy's Jewelers
+       Corp.", signer title, Purpose too narrow for Sol Pawn using their spec
+       for other shops (RMS is not a party).
+  679. MEMORY: always push to main while there are no clients (beats any
+       "do not deploy"); LeadsOnline reference updated.
+  680. /progress — Session 76 checkpoint; CLAUDE.md rule 34.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
-    REMEMBER: the shop still runs on xPawn; nothing uploads from Pawn.
+    REMEMBER: the shop still runs on xPawn; production LeadsOnline stays OFF.
+    Session 76 — ask Eddy what Transaction Monitor shows: 11/27 pawn 15668
+    (open it: redeem-by 12/27/2026?), 11/25 buy 21668 + pawn 15667. If a
+    pawn only appears after Send again, write to LeadsOnline (store 57434:
+    pawn tickets returned errorCode 0 but showed only after
+    UpdateTransaction) before asking for production credentials.
+    PT-015668 ($10,925.08) is a real open ticket: Eddy voids it, then Send
+    again on the police report (void reaches the sandbox).
+    Check tomorrow that the nightly no-transactions job ran on Vercel
+    (Settings → LeadsOnline → Days with no transactions).
+    Not tested live: a real Do Not Buy match on New pawn (offer a test
+    customer FRANK FURTER / 66778855 / 1971-01-01); Send by text of a pawn
+    link. Not built: automatic sending of each ticket when written (today
+    staff press Send); online payment on the pawn customer page.
     Session 75 — have Eddy try on the live site (RESUME block list 1-4):
     New repair ticket (items, photos, prices -> quoted, QR), scan -> Add
     customer, phone-digit search, the history cards + Show popup.

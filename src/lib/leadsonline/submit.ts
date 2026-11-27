@@ -27,6 +27,7 @@ import { CUSTOMER_DOCUMENTS_BUCKET, INVENTORY_PHOTOS_BUCKET } from '@/lib/supaba
 import type { ComplianceLogRow } from '@/types/database-aliases'
 import { callLeadsOnline, loadLeadsOnlineConfig } from './client'
 import {
+  LEADSONLINE_SEND_MAX,
   imageTypeOfPath,
   itemPhotoPaths,
   parseResponse,
@@ -48,9 +49,6 @@ export type SendResult = {
   errorCode: number | null
   errorResponse: string
 }
-
-/** Most tickets per press: each one is a slow call to the sandbox. */
-export const LEADSONLINE_SEND_MAX = 25
 
 /** Images per ticket stop here (base64 grows a third on the wire). */
 const IMAGE_BYTES_MAX = 8 * 1024 * 1024

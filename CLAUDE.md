@@ -531,6 +531,35 @@ Never kill node processes by image name — always by PID.
     restores EVERY field of every item (`addDraftRow` / `rowFromDraft`) —
     never only the description.
 
+34. **LeadsOnline goes through its web service, from compliance_log only**
+    (patches/0123-0125; Eddy, 2026-11-27). All of it is in
+    `src/lib/leadsonline/`.
+    - The SOAP messages follow the LIVE WSDL, not the PDF:
+      `<ApiVersion xsi:nil="true"/>` first and each call's strict element
+      order (`soap.ts`, tested). A Ticket is built from a compliance_log row
+      with the same helpers as the XML file — never from loans / sales.
+    - The login is per shop: `settings.leadsonline_api_*` + the Vault
+      secret `leadsonline_api_password`; Sandbox | Production. Production
+      stays OFF while the shop also reports from xPawn (double reporting).
+    - Every call that carries a ticket is a `leadsonline_submissions` row,
+      every no-transactions day a `leadsonline_no_transaction_days` row:
+      append-only, RLS on with NO policy (service role after the role
+      check), never the request body or the password. Sending never stamps
+      compliance_log's exported_* (those are the file's).
+    - A ticket already accepted in that environment goes again as
+      UpdateTransaction (a second Submit of a key is error 13).
+    - Do Not Buy: checked when the customer is picked (banner) and when a
+      pawn / purchase / buy is written (`doNotBuyGate`): a match is
+      refused; LeadsOnline down = the ticket goes through and is audited.
+    - No Transactions Day is sent only from the first day Sol Pawn got a
+      ticket accepted in that environment (never a day xPawn reported).
+    - A pawn's redeem-by date is `compliance_log.redeem_by`, frozen at
+      intake; the write-once guard protects it, reference_number and clerk.
+    - The pawn customer page is `/p/<token>` (patches/0127): links live in
+      `loan_public_links`, never on loans (rule 22: updated_at). It shows
+      the ticket, never the customer; the payoff comes from
+      `payoffFromLoan` with `chargeModelOf(rules)` like the counter.
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

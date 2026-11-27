@@ -7,6 +7,7 @@ import { PaperPlaneTilt } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { EnvBadge } from '@/components/leadsonline/EnvBadge'
 import { sendToLeadsOnlineAction } from './actions'
+import { LEADSONLINE_SEND_MAX } from '@/lib/leadsonline/soap'
 
 export type LeadsOnlineTicketView = {
   /** compliance_log id */
@@ -21,8 +22,7 @@ export type LeadsOnlineTicketView = {
   last: { ok: boolean; text: string; at: string } | null
 }
 
-/** Most tickets per press (= LEADSONLINE_SEND_MAX on the server). */
-const SEND_MAX = 25
+const SEND_MAX = LEADSONLINE_SEND_MAX
 
 export function LeadsOnlinePanel({
   configured,
@@ -122,7 +122,7 @@ export function LeadsOnlinePanel({
               {tickets.map((x) => (
                 <tr key={x.id} className="border-t border-border align-top">
                   <td className="py-2 pr-3 font-mono">
-                    {x.ticketType} {x.ticketNumber}
+                    {t.leadsonline.ticketTypes[x.ticketType]} {x.ticketNumber}
                     {x.voided ? (
                       <span className="ml-1 rounded bg-danger/10 px-1 text-[11px] font-bold text-danger">{t.leadsonline.voidTag}</span>
                     ) : null}

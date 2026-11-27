@@ -32,6 +32,9 @@ export const LEADSONLINE_NS = 'http://www.leadsonline.com/'
 
 export type LeadsOnlineEnv = 'sandbox' | 'production'
 
+/** Most tickets one press sends: each is a slow call to the sandbox. */
+export const LEADSONLINE_SEND_MAX = 25
+
 /** The service address (top of page 18 of the API document, and the WSDL). */
 export const LEADSONLINE_ENDPOINTS: Record<LeadsOnlineEnv, string> = {
   sandbox: 'https://w3apisandbox.leadsonline.com/ticketWS.asmx',

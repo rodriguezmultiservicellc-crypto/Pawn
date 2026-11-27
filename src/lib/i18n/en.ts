@@ -6421,6 +6421,7 @@ export const en = {
     colResult: 'Answer',
     resultOk: 'Accepted',
     resultNoAnswer: 'No answer from LeadsOnline',
+    ticketTypes: { Pawn: 'Pawn', Buy: 'Buy' },
     voidTag: 'Void',
     errors: {
       not_configured: 'Set up the LeadsOnline login first (store ID, user name and password).',

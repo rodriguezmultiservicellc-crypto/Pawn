@@ -325,7 +325,7 @@ export default function LeadsOnlineSettingsContent({ view }: { view: LeadsOnline
                   <tr key={r.id} className="border-t border-border align-top">
                     <td className="py-2 pr-3 font-mono text-xs">{r.at}</td>
                     <td className="py-2 pr-3 font-mono">
-                      {r.ticketType} {r.ticketNumber}
+                      {r.ticketType === 'Buy' || r.ticketType === 'Pawn' ? tl.ticketTypes[r.ticketType] : r.ticketType} {r.ticketNumber}
                       {r.isVoid ? <span className="ml-1 rounded bg-danger/10 px-1 text-[11px] font-bold text-danger">{tl.voidTag}</span> : null}
                     </td>
                     <td className="py-2 pr-3">
