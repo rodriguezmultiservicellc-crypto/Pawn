@@ -35,7 +35,7 @@ export default async function RepairStagesPage() {
       .order('sort_order'),
     admin
       .from('settings')
-      .select('repair_ready_auto_notify')
+      .select('repair_ready_auto_notify, repair_labor_rate')
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
   ])
@@ -58,6 +58,11 @@ export default async function RepairStagesPage() {
     <RepairStagesContent
       stagesByType={byType}
       autoNotify={settingsRes.data?.repair_ready_auto_notify === true}
+      laborRate={
+        settingsRes.data?.repair_labor_rate == null
+          ? null
+          : Number(settingsRes.data.repair_labor_rate)
+      }
     />
   )
 }

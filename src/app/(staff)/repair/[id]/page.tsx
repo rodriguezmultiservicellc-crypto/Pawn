@@ -12,8 +12,10 @@ import type { LaserOrderView, LaserPanelData } from '@/components/repair/LaserOr
 import { loadTagTemplates } from '@/lib/labels/load'
 import { templateChoices } from '@/lib/labels/templates'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
+import { elapsedHours } from '@/lib/repair/billing'
 import RepairTicketDetail, {
   type InventoryPartChoice,
+  type LaborView,
   type RepairLineItemView,
   type RepairPartView,
   type RepairPhotoView,
@@ -128,9 +130,18 @@ export default async function RepairTicketDetailPage(props: {
   // the style names on `settings` (owner-only RLS) → admin client for both;
   // the orders themselves read under RLS.
   const admin = createAdminClient()
-  const [laserConfigured, { data: laserSettings }, { data: laserRows }] = await Promise.all([
+  const [
+    laserConfigured,
+    { data: laserSettings },
+    { data: laserRows },
+    { data: allTimeLogs },
+  ] = await Promise.all([
     isSecretConfigured(ticket.tenant_id, 'orocut_order_token'),
-    admin.from('settings').select('orocut_style_names').eq('tenant_id', ticket.tenant_id).maybeSingle(),
+    admin
+      .from('settings')
+      .select('orocut_style_names, repair_labor_rate')
+      .eq('tenant_id', ticket.tenant_id)
+      .maybeSingle(),
     ctx.supabase
       .from('laser_orders')
       .select(
@@ -141,7 +152,22 @@ export default async function RepairTicketDetailPage(props: {
       .is('deleted_at', null)
       .order('sent_at', { ascending: false })
       .limit(50),
+    // Every timer session (the list above shows the latest 50): the P/L's
+    // labor hours count all of them.
+    ctx.supabase
+      .from('repair_time_logs')
+      .select('started_at, stopped_at')
+      .eq('ticket_id', id)
+      .eq('tenant_id', ticket.tenant_id),
   ])
+  const labor: LaborView = {
+    hours: elapsedHours(allTimeLogs ?? []),
+    rate:
+      laserSettings?.repair_labor_rate == null ? null : Number(laserSettings.repair_labor_rate),
+  }
+  // Owner / manager may correct the parts of a closed ticket (with a reason).
+  const canFixClosedParts =
+    ctx.tenantRole === 'owner' || ctx.tenantRole === 'chain_admin' || ctx.tenantRole === 'manager'
   const laserOrders: LaserOrderView[] = (laserRows ?? []).map((o) => ({
     id: o.id,
     external_id: o.external_id,
@@ -378,6 +404,8 @@ export default async function RepairTicketDetailPage(props: {
       photos={photoViews}
       events={eventViews}
       timeLogs={timeLogViews}
+      labor={labor}
+      canFixClosedParts={canFixClosedParts}
       technicians={technicianOptions}
       inventoryOptions={inventoryOptions}
       myUserId={ctx.userId}

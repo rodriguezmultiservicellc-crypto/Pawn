@@ -137,6 +137,12 @@ export type RepairTicketView = {
   created_at: string
 }
 
+export type LaborView = {
+  hours: number
+  /** settings.repair_labor_rate; null = not set (labor left out). */
+  rate: number | null
+}
+
 export type RepairStoneView = {
   id: string
   stone_index: number
@@ -274,6 +280,8 @@ export default function RepairTicketDetail({
   photos,
   events,
   timeLogs,
+  labor,
+  canFixClosedParts,
   technicians,
   inventoryOptions,
   myUserId,
@@ -290,6 +298,10 @@ export default function RepairTicketDetail({
   photos: RepairPhotoView[]
   events: RepairEventView[]
   timeLogs: RepairTimeLogView[]
+  /** Timer hours (all sessions) and the shop's labor rate, for the P/L. */
+  labor: LaborView
+  /** Owner / manager: may remove a part from a closed ticket, with a reason. */
+  canFixClosedParts: boolean
   technicians: TechnicianOption[]
   inventoryOptions: InventoryPartChoice[]
   myUserId: string | null
@@ -757,8 +769,9 @@ export default function RepairTicketDetail({
             inventoryOptions={inventoryOptions as InventoryPartOption[]}
             quoteAmount={ticket.quote_amount}
             readOnly={ticket.is_locked}
+            closedFix={ticket.is_locked && canFixClosedParts}
             onAdd={(fd) => passThrough(fd, addPartAction)}
-            onRemove={(partId) => removePartAction(partId)}
+            onRemove={(partId, reason) => removePartAction(partId, reason)}
           />
 
           <section className={CARD}>
@@ -779,6 +792,8 @@ export default function RepairTicketDetail({
           <MoneyCard
             ticket={ticket}
             partsCost={partsCogs(parts)}
+            labor={labor}
+            canSetLaborRate={canFixClosedParts}
             canCollectDeposit={canCollectDeposit}
             pending={pending}
             onCollectDeposit={() => setDialog('collectDeposit')}
@@ -879,12 +894,16 @@ export default function RepairTicketDetail({
 function MoneyCard({
   ticket,
   partsCost,
+  labor,
+  canSetLaborRate,
   canCollectDeposit,
   pending,
   onCollectDeposit,
 }: {
   ticket: RepairTicketView
   partsCost: number
+  labor: LaborView
+  canSetLaborRate: boolean
   canCollectDeposit: boolean
   pending: boolean
   onCollectDeposit: () => void
@@ -917,7 +936,12 @@ function MoneyCard({
           <dd className="font-mono text-foreground">{fmtMoney(ticket.paid_amount)}</dd>
         </div>
       </dl>
-      <ProfitBlock ticket={ticket} partsCost={partsCost} />
+      <ProfitBlock
+        ticket={ticket}
+        partsCost={partsCost}
+        labor={labor}
+        canSetLaborRate={canSetLaborRate}
+      />
       {canCollectDeposit ? (
         <button
           type="button"
@@ -1182,9 +1206,19 @@ function fmtDay(ymd: string, locale: string): string {
 
 /**
  * Profit / loss of this job: money in (closed) or the quote (open) less the
- * parts. Labor is not counted (no technician rate yet).
+ * parts and the labor (timer hours x the shop's rate, when one is set).
  */
-function ProfitBlock({ ticket, partsCost }: { ticket: RepairTicketView; partsCost: number }) {
+function ProfitBlock({
+  ticket,
+  partsCost,
+  labor,
+  canSetLaborRate,
+}: {
+  ticket: RepairTicketView
+  partsCost: number
+  labor: LaborView
+  canSetLaborRate: boolean
+}) {
   const { t } = useI18n()
   const td = t.repair.detail
   const p = repairProfit({
@@ -1192,6 +1226,8 @@ function ProfitBlock({ ticket, partsCost }: { ticket: RepairTicketView; partsCos
     deposit: ticket.deposit_amount,
     paid: ticket.paid_amount,
     partsCost,
+    laborHours: labor.hours,
+    laborRate: labor.rate,
     closed: ticket.is_locked,
   })
   const row = 'flex items-center justify-between gap-3 text-sm text-text-secondary'
@@ -1206,8 +1242,18 @@ function ProfitBlock({ ticket, partsCost }: { ticket: RepairTicketView; partsCos
         </div>
         <div className={row}>
           <dt>{td.profitParts}</dt>
-          <dd className="font-mono text-foreground">−{fmtMoney(p.partsCost)}</dd>
+          <dd className="font-mono text-foreground">{fmtCost(p.partsCost)}</dd>
         </div>
+        {p.laborCost != null && labor.rate != null ? (
+          <div className={row}>
+            <dt>
+              {td.profitLabor
+                .replace('{hours}', labor.hours.toFixed(2))
+                .replace('{rate}', fmtMoney(labor.rate))}
+            </dt>
+            <dd className="font-mono text-foreground">{fmtCost(p.laborCost)}</dd>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between gap-3 border-t border-border pt-1.5 text-sm font-bold text-foreground">
           <dt>{p.final ? td.profit : td.profitExpected}</dt>
           <dd className={`font-mono ${tone}`}>
@@ -1222,10 +1268,24 @@ function ProfitBlock({ ticket, partsCost }: { ticket: RepairTicketView; partsCos
         </div>
       </dl>
       <p className="mt-1.5 text-xs text-text-secondary">
-        {p.final ? td.profitNoteClosed : td.profitNoteOpen}
+        {p.final ? td.profitNoteClosed : td.profitNoteOpen}{' '}
+        {p.laborCost == null ? (
+          canSetLaborRate ? (
+            <Link href="/settings/repair-stages" className="text-blue hover:underline">
+              {td.profitNoLaborRateLink}
+            </Link>
+          ) : (
+            td.profitNoLaborRate
+          )
+        ) : null}
       </p>
     </div>
   )
+}
+
+/** A cost taken off: "−$12.50", and plain "$0.00" when there is none. */
+function fmtCost(v: number): string {
+  return v > 0 ? `−${fmtMoney(v)}` : fmtMoney(0)
 }
 
 function fmtMoney(v: number): string {

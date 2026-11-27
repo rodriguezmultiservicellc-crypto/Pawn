@@ -75,6 +75,8 @@ export type RepairProfit = {
   /** Closed: deposit + paid. Open: the quote (what the job should bring). */
   revenue: number
   partsCost: number
+  /** Timer hours x the shop's labor rate; null when no rate is set. */
+  laborCost: number | null
   profit: number
   /** profit / revenue; null when there is no revenue to divide by. */
   margin: number | null
@@ -83,24 +85,29 @@ export type RepairProfit = {
 /**
  * What one repair made or lost. A closed ticket counts the money that came
  * in (deposit + payments); an open one is figured on its quote, falling
- * back to what has come in when it is not quoted yet. Labor is not in it:
- * there is no technician rate yet (see timeBilledEstimate).
+ * back to what has come in when it is not quoted yet. Costs are the parts
+ * plus labor (timer hours x `settings.repair_labor_rate`); with no rate set
+ * labor is left out and `laborCost` is null.
  */
 export function repairProfit(args: {
   quote: number | string | null | undefined
   deposit: number | string | null | undefined
   paid: number | string | null | undefined
   partsCost: number | string | null | undefined
+  laborHours: number
+  laborRate: number | string | null | undefined
   closed: boolean
 }): RepairProfit {
   const collected = r4(toMoney(args.deposit) + toMoney(args.paid))
   const revenue = args.closed || args.quote == null ? collected : toMoney(args.quote)
   const partsCost = toMoney(args.partsCost)
-  const profit = r4(revenue - partsCost)
+  const laborCost = args.laborRate == null ? null : r4(args.laborHours * toMoney(args.laborRate))
+  const profit = r4(revenue - partsCost - (laborCost ?? 0))
   return {
     final: args.closed,
     revenue,
     partsCost,
+    laborCost,
     profit,
     margin: revenue > 0 ? profit / revenue : null,
   }

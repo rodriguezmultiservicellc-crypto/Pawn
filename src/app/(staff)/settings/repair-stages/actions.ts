@@ -258,6 +258,50 @@ export async function resetRepairStagesAction(
   return { ok: true }
 }
 
+export type SaveLaborRateState = { ok?: boolean; error?: string }
+
+/**
+ * settings.repair_labor_rate (patches/0128): the hourly labor cost a repair
+ * ticket's Profit / loss charges for the timer's hours. Empty = not set.
+ */
+export async function saveLaborRateAction(
+  _prev: SaveLaborRateState,
+  formData: FormData,
+): Promise<SaveLaborRateState> {
+  const ctx = await getCtx()
+  if (!ctx) redirect('/login')
+  if (!ctx.tenantId) redirect('/no-tenant')
+  const { userId } = await requireRoleInTenant(ctx.tenantId, [...ROLES])
+
+  const raw = String(formData.get('repair_labor_rate') ?? '').trim()
+  let rate: number | null = null
+  if (raw !== '') {
+    // Money: at most 4 decimals (numeric(18,4)), never negative.
+    if (!/^\d{1,12}(\.\d{1,4})?$/.test(raw)) return { error: 'invalid_rate' }
+    rate = Number(raw)
+  }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('settings')
+    .update({ repair_labor_rate: rate })
+    .eq('tenant_id', ctx.tenantId)
+  if (error) return { error: error.message }
+
+  await logAudit({
+    tenantId: ctx.tenantId,
+    userId,
+    action: 'repair_labor_rate',
+    tableName: 'settings',
+    recordId: ctx.tenantId,
+    changes: { repair_labor_rate: rate },
+  })
+
+  revalidatePath('/settings/repair-stages')
+  revalidatePath('/repair', 'layout')
+  return { ok: true }
+}
+
 export type SaveNotifyState = { ok?: boolean; error?: string }
 
 export async function saveRepairNotifyAction(

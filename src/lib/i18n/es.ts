@@ -2682,8 +2682,11 @@ export const es: Dictionary = {
       profitParts: 'Costo de piezas',
       profit: 'Ganancia',
       profitExpected: 'Ganancia esperada',
-      profitNoteClosed: 'Depósito + pagos menos piezas. Sin mano de obra.',
-      profitNoteOpen: 'Calculada sobre la cotización hasta la entrega. Sin mano de obra.',
+      profitNoteClosed: 'Depósito + pagos menos piezas y mano de obra.',
+      profitNoteOpen: 'Calculada sobre la cotización hasta la entrega.',
+      profitLabor: 'Mano de obra ({hours} h × {rate})',
+      profitNoLaborRate: 'No hay tarifa de mano de obra; no se cuenta.',
+      profitNoLaborRateLink: 'Fije una tarifa para contar la mano de obra.',
       pickupBy: 'Recogido por',
       pickupSignature: 'Firma de entrega',
       pickupSignatureView: 'Ver firma',
@@ -2820,6 +2823,15 @@ export const es: Dictionary = {
       addStone: {
         title: 'Agregar piedra',
         body: 'Documenta una piedra para esta reparación.',
+      },
+      removePart: {
+        title: 'Quitar pieza',
+        body: '¿Quitar {part} ({cost}) de esta orden?',
+        closedBody: 'Esta orden está cerrada. La pieza sale del costo del trabajo; lo que pagó el cliente no cambia. El motivo queda en el registro de auditoría.',
+        reason: 'Motivo',
+        reasonRequired: 'Escriba por qué se quita la pieza.',
+        confirm: 'Quitar pieza',
+        failed: 'No se pudo quitar la pieza. Intente de nuevo.',
       },
       addPart: {
         title: 'Agregar pieza o material',
@@ -5178,7 +5190,7 @@ export const es: Dictionary = {
   settingsRepairStages: {
     hubTitle: 'Etapas de reparación',
     hubDescription:
-      'Los pasos con nombre que el cliente ve en su página de seguimiento, por tipo de servicio, cada uno con un % de avance. También el interruptor "avisar al estar lista".',
+      'Los pasos con nombre que el cliente ve en su página de seguimiento, por tipo de servicio, cada uno con un % de avance. También el interruptor "avisar al estar lista" y la tarifa de mano de obra.',
     hubDetail: 'Administrar etapas',
     title: 'Etapas de reparación',
     subtitle:
@@ -5204,6 +5216,12 @@ export const es: Dictionary = {
     autoNotifyHelp:
       'Cuando una orden llega a "Lista para recoger", envía de inmediato el mensaje "Reparación lista para recoger" (incluye el enlace de seguimiento). Apagado: el recordatorio diario lo envía a la mañana siguiente.',
     autoNotifyLabel: 'Enviar de inmediato cuando una orden quede lista',
+    laborRateTitle: 'Tarifa de mano de obra',
+    laborRateHelp: 'Lo que le cuesta a la tienda una hora de trabajo en el banco. La ganancia / pérdida de una orden de reparación cobra las horas del cronómetro a esta tarifa. Déjela vacía para no contar la mano de obra.',
+    laborRateLabel: 'Tarifa',
+    laborRateNone: 'Sin fijar',
+    laborRatePerHour: 'por hora',
+    laborRateInvalid: 'Escriba un monto como 35 o 35.50.',
     errors: {
       invalid: 'Revisa los campos marcados.',
       min_one: 'Conserva al menos una etapa.',

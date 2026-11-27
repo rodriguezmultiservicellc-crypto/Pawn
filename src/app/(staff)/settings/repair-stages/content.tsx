@@ -15,8 +15,10 @@ import { serviceTypeLabel } from '@/components/repair/ServiceTypeBadge'
 import { MAPPABLE_STATUSES, SERVICE_TYPES } from '@/lib/repair/stages'
 import {
   resetRepairStagesAction,
+  saveLaborRateAction,
   saveRepairNotifyAction,
   saveRepairStagesAction,
+  type SaveLaborRateState,
   type SaveNotifyState,
   type SaveStagesState,
 } from './actions'
@@ -37,9 +39,12 @@ export type StagesByTypeView = Partial<Record<ServiceType, StageEditRow[]>>
 export default function RepairStagesContent({
   stagesByType,
   autoNotify,
+  laborRate,
 }: {
   stagesByType: StagesByTypeView
   autoNotify: boolean
+  /** settings.repair_labor_rate; null = not set. */
+  laborRate: number | null
 }) {
   const { t } = useI18n()
   const ts = t.settingsRepairStages
@@ -63,6 +68,7 @@ export default function RepairStagesContent({
       </header>
 
       <AutoNotifyCard initial={autoNotify} />
+      <LaborRateCard initial={laborRate} />
 
       <section className="rounded-xl border border-border bg-card">
         <div className="flex flex-wrap gap-1 border-b border-border p-2" role="tablist" aria-label={ts.serviceType}>
@@ -90,6 +96,62 @@ export default function RepairStagesContent({
         <StageEditor key={type} serviceType={type} initialRows={stagesByType[type] ?? []} />
       </section>
     </div>
+  )
+}
+
+/** The hourly labor cost a repair ticket's Profit / loss uses (patches/0128). */
+function LaborRateCard({ initial }: { initial: number | null }) {
+  const { t } = useI18n()
+  const ts = t.settingsRepairStages
+  const [state, formAction, pending] = useActionState<SaveLaborRateState, FormData>(
+    saveLaborRateAction,
+    {},
+  )
+  return (
+    <section className="rounded-xl border border-border bg-card p-4">
+      <h2 className="text-sm font-semibold text-foreground">{ts.laborRateTitle}</h2>
+      <p className="mt-1 text-xs text-muted">{ts.laborRateHelp}</p>
+      <form action={formAction} className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <span>{ts.laborRateLabel}</span>
+          <span className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
+              $
+            </span>
+            <input
+              type="number"
+              name="repair_labor_rate"
+              min={0}
+              step="0.01"
+              inputMode="decimal"
+              defaultValue={initial == null ? '' : initial.toFixed(2)}
+              placeholder={ts.laborRateNone}
+              aria-invalid={state.error === 'invalid_rate'}
+              className="w-36 rounded-xl border-2 border-border bg-background py-2 pl-7 pr-3 font-mono text-sm text-foreground outline-none transition-colors focus:border-blue"
+            />
+          </span>
+          <span className="text-text-secondary">{ts.laborRatePerHour}</span>
+        </label>
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-navy hover:bg-gold-2 disabled:opacity-50"
+        >
+          {pending ? t.common.saving : t.common.save}
+        </button>
+        {state.ok ? (
+          <span className="inline-flex items-center gap-1 text-xs text-success">
+            <CheckCircle size={14} weight="fill" />
+            {t.common.save} ✓
+          </span>
+        ) : null}
+        {state.error ? (
+          <span className="text-xs text-danger" role="alert">
+            {state.error === 'invalid_rate' ? ts.laborRateInvalid : state.error}
+          </span>
+        ) : null}
+      </form>
+    </section>
   )
 }
 

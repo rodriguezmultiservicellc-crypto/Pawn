@@ -6462,6 +6462,7 @@ export type Database = {
           product_feed_enabled: boolean
           reader_tip_percentages: number[]
           reader_tips_enabled: boolean
+          repair_labor_rate: number | null
           repair_ready_auto_notify: boolean
           resend_from_email: string | null
           resend_from_name: string | null
@@ -6540,6 +6541,7 @@ export type Database = {
           product_feed_enabled?: boolean
           reader_tip_percentages?: number[]
           reader_tips_enabled?: boolean
+          repair_labor_rate?: number | null
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null
@@ -6618,6 +6620,7 @@ export type Database = {
           product_feed_enabled?: boolean
           reader_tip_percentages?: number[]
           reader_tips_enabled?: boolean
+          repair_labor_rate?: number | null
           repair_ready_auto_notify?: boolean
           resend_from_email?: string | null
           resend_from_name?: string | null

@@ -1502,22 +1502,35 @@ export async function addPartAction(
   return { ok: true }
 }
 
+/** Who may correct the parts of a closed (picked-up) ticket. */
+const CLOSED_PARTS_ROLES: ReadonlyArray<TenantRole> = ['owner', 'chain_admin', 'manager']
+
+/**
+ * Soft-deletes a part. On an open ticket any repair staff may; on a closed
+ * one (locked at pickup) only owner / manager, and only with a reason — the
+ * part is a cost of the job, not the customer's money, so the ticket's
+ * charges never change, but the correction is in the audit log.
+ */
 export async function removePartAction(
   partId: string,
+  reason?: string,
 ): Promise<ActionResult> {
   if (!partId) return { error: 'missing_part_id' }
   const ctx = await getCtx()
   if (!ctx) redirect('/login')
   const { data: part } = await ctx.supabase
     .from('repair_ticket_items')
-    .select('id, tenant_id, ticket_id')
+    .select('id, tenant_id, ticket_id, description, total_cost, inventory_item_id, ticket:repair_tickets(is_locked)')
     .eq('id', partId)
     .is('deleted_at', null)
     .maybeSingle()
   if (!part) return { error: 'not_found' }
+  const closed = part.ticket?.is_locked === true
+  const why = (reason ?? '').trim().slice(0, 500)
+  if (closed && why.length < 3) return { error: 'reason_required' }
   const { supabase, userId } = await requireRoleInTenant(
     part.tenant_id,
-    STAFF_REPAIR_ROLES,
+    closed ? CLOSED_PARTS_ROLES : STAFF_REPAIR_ROLES,
   )
 
   const { error } = await supabase
@@ -1533,7 +1546,14 @@ export async function removePartAction(
     action: 'remove_part',
     tableName: 'repair_ticket_items',
     recordId: partId,
-    changes: { ticket_id: part.ticket_id },
+    changes: {
+      ticket_id: part.ticket_id,
+      description: part.description,
+      total_cost: part.total_cost,
+      inventory_item_id: part.inventory_item_id,
+      ticket_closed: closed,
+      reason: why || null,
+    },
   })
 
   revalidatePath(`/repair/${part.ticket_id}`)

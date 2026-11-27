@@ -2694,8 +2694,11 @@ export const en = {
       profitParts: 'Parts cost',
       profit: 'Profit',
       profitExpected: 'Expected profit',
-      profitNoteClosed: 'Deposit + payments less parts. Labor not counted.',
-      profitNoteOpen: 'Figured on the quote until pickup. Labor not counted.',
+      profitNoteClosed: 'Deposit + payments less parts and labor.',
+      profitNoteOpen: 'Figured on the quote until pickup.',
+      profitLabor: 'Labor ({hours} h × {rate})',
+      profitNoLaborRate: 'No labor rate set, so labor is not counted.',
+      profitNoLaborRateLink: 'Set a labor rate to count labor.',
       pickupBy: 'Picked up by',
       pickupSignature: 'Pickup signature',
       pickupSignatureView: 'View signature',
@@ -2830,6 +2833,15 @@ export const en = {
       addStone: {
         title: 'Add stone',
         body: 'Document a stone for this repair.',
+      },
+      removePart: {
+        title: 'Remove part',
+        body: 'Take {part} ({cost}) off this ticket?',
+        closedBody: 'This ticket is closed. The part comes off the job\'s cost; what the customer paid does not change. The reason is kept in the audit log.',
+        reason: 'Reason',
+        reasonRequired: 'Write why the part comes off.',
+        confirm: 'Remove part',
+        failed: 'The part could not be removed. Try again.',
       },
       addPart: {
         title: 'Add part or material',
@@ -5182,7 +5194,7 @@ export const en = {
   settingsRepairStages: {
     hubTitle: 'Repair stages',
     hubDescription:
-      'The named steps customers see on their tracking page, per service type, with a progress % each. Also the "text when ready" switch.',
+      'The named steps customers see on their tracking page, per service type, with a progress % each. Also the "text when ready" switch and the labor rate.',
     hubDetail: 'Manage stages',
     title: 'Repair stages',
     subtitle:
@@ -5208,6 +5220,12 @@ export const en = {
     autoNotifyHelp:
       'When a ticket reaches "Ready for pickup", send the "Repair ready for pickup" message right away (it includes the tracking link). Off: the daily reminder job still sends it the next morning.',
     autoNotifyLabel: 'Send immediately when a ticket becomes ready',
+    laborRateTitle: 'Labor rate',
+    laborRateHelp: 'What an hour of bench time costs the shop. A repair ticket\'s Profit / loss charges the timer\'s hours at this rate. Leave it empty to leave labor out.',
+    laborRateLabel: 'Rate',
+    laborRateNone: 'Not set',
+    laborRatePerHour: 'per hour',
+    laborRateInvalid: 'Enter an amount like 35 or 35.50.',
     errors: {
       invalid: 'Check the highlighted fields.',
       min_one: 'Keep at least one stage.',
