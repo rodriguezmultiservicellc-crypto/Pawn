@@ -60,7 +60,41 @@ OPERATION IN FLIGHT: none
 │  RESUME HERE — START EVERY NEW SESSION BY READING THIS BLOCK               │
 ────────────────────────────────────────────────────────────────────────────────
 
-  Last session:   Session 76 (2026-11-27, saved ~14:10), items 665-680.
+  Last session:   Session 77 (2026-11-27, saved ~18:40), items 681-693.
+                  Context budget at save: very high (compacted once; START FRESH).
+                  FIVE MIGRATIONS, ALL APPLIED TO THE LIVE DB, no RLS policy
+                  touched: 0128 (settings.repair_labor_rate), 0129 (inventory
+                  status 'used_in_repair'), 0130 (repair part takes the item
+                  out of stock + guard + backfill), 0131 (void returns
+                  inventory parts), 0132 (repair item received_* / final_*
+                  weights). main == feature/sol-pawn-brief. Nothing is
+                  half-built. CLAUDE.md rule 35 (repair parts / stock / P&L /
+                  one timer / approval / weigh-in).
+                  Built + pushed (repair): Add part category filter; Profit /
+                  loss on the money card (+ labor = timer hours x rate);
+                  parts take stock (used_in_repair) and come back on remove or
+                  void; parts of a CLOSED ticket added / removed only by owner /
+                  manager with a reason; Technician card shows each tech's
+                  time; repair ticket PDF prints the tracking link as a QR;
+                  3x5 thermal envelope label; Repair > My jobs (tech bench:
+                  Start / Stop, one timer at a time, parts, weigh-in, Finish
+                  -> QA); New repair "quoted and approved at drop-off".
+                  ACTIVE FILES: src/app/(staff)/repair/my-jobs/{page,content,
+                  actions}.tsx, src/app/(staff)/repair/[id]/{actions,content,
+                  page}.tsx, src/app/(staff)/repair/new/{actions,form,
+                  simple-view}.tsx, src/lib/repair/{billing,quote,item-weights,
+                  technicians,part-options}.ts, src/lib/labels/{layout,
+                  tag-content,templates}.ts, src/components/repair/{PartsPanel,
+                  AddPartDialog}.tsx, patches/0128-0132.
+                  RESUME POINT: nothing half-built. Have Eddy try on the live
+                  site: RT-000012 (his running timer) -> Confirm received ->
+                  Finish (ending weight -> QA); open a New repair with every
+                  item priced and "approved at drop-off" checked (should land
+                  Assigned / In progress); print the envelope label on the 3x5
+                  thermal printer; set a labor rate (Settings > Repair stages).
+                  Session 76's LeadsOnline checks are still open (below).
+
+  Session 76 (2026-11-27, saved ~14:10), items 665-680.
                   Context budget at save: very high (compacted once; START FRESH).
                   SIX MIGRATIONS, ALL APPLIED TO THE LIVE DB, no existing
                   policy touched: 0123 (settings LeadsOnline login +
@@ -3008,12 +3042,78 @@ sessions are there.)
        "do not deploy"); LeadsOnline reference updated.
   680. /progress — Session 76 checkpoint; CLAUDE.md rule 34.
 
+
+--- Session 77 (2026-11-27) — Repair: P&L + labor rate, parts take stock, closed-ticket part fixes, void returns parts, envelope 3x5 label, My jobs (timer, weigh-in, Finish), drop-off approval (0128-0132) ---
+
+  681. ADD PART CATEGORY FILTER (7f1d3e9): Category select over "From
+       inventory" (only categories with available items, hidden when one).
+  682. REPAIR PROFIT / LOSS (aef679a): money card block — closed: deposit +
+       paid, open: quote — less parts; margin %. repairProfit() in
+       lib/repair/billing.ts (tested).
+  683. LABOR RATE + PART REMOVAL (3cc6de4, 0128): settings.repair_labor_rate
+       (Settings > Repair stages); P&L labor = all timer hours x rate.
+       [BUG] "can't remove a part": RT-000011 was picked up 34 s after the part
+       went on, the lock hid Remove, and removal errors were swallowed. Remove
+       now confirms + shows errors; a CLOSED ticket's part comes off only by
+       owner / chain_admin / manager with a reason (server-enforced, audited).
+  684. PARTS TAKE STOCK (f350597, 0129-0130): adding an inventory item as a
+       part moves it to 'used_in_repair' (DB trigger, refuses a non-available
+       item), removing puts it back; guard: nothing else moves an item in/out
+       of that status (form, sale, insert). Backfill: RT-000010 RNG-AU-003016,
+       RT-000011 RNG-WG-003076. Inventory list / detail / form / POS know the
+       status; item page links the ticket. Closed ticket: owner / manager may
+       ADD a part too, with a reason.
+  685. VOID RETURNS PARTS (10b8f7b, 0131): status -> voided soft-deletes the
+       inventory parts (items back to available), void audit lists them.
+       Technician card is display-only: assigned tech (+ Change) and time per
+       technician (timeByTechnician, tested). Repair ticket PDF: tracking QR.
+  686. 3x5 ENVELOPE LABEL (3b75592): built-in "Repair envelope label" is
+       3x5 portrait; layout scales text / margins / bars with label area (tags
+       <= 2 sq in unchanged), wrapped lines; repair field 'customer' (name +
+       phone, envelope only — the back room), items with work, shop name.
+  687. [BUG] A COMMIT WENT OUT BEFORE THE BUILD WAS CONFIRMED: "npm run build |
+       grep" hid a failure from a stale .next/dev/types file (dev server). Clean
+       rebuild passed (exit 0). Builds now check the exit code before pushing.
+  688. MY JOBS /repair/my-jobs (b41b5eb, 9d672fc): a tech's bench — photo,
+       items + work, due, live clock, Start / Stop; owner / manager pick any
+       tech (read only). ONE timer per tech (start or claim stops the other);
+       no timer on a closed ticket. TimerPanel + its keys removed.
+       loadTechnicianOptions shared.
+  689. DROP-OFF APPROVAL (92adc9d): New repair checkbox "quoted and approved at
+       drop-off" (every item priced; server refuses otherwise).
+       approveRepairQuote (lib/repair/quote.ts) is the one approval path:
+       -> 'assigned' with a tech, else 'in_progress' (ticket Approve too).
+  690. MY JOBS WEIGH-IN + PARTS (6da2d8e, 0132): parts panel on every job (stock
+       or free text: solder); Confirm received (weight + karat, differences
+       from intake noted on the ticket, never refused) required before Start /
+       claim; Start on an assigned job claims it; Finish = ending weight ->
+       sendToQaAction. A running timer can always be stopped. Ticket page
+       shows received / ending weights. loadPartPickerOptions shared.
+  691. SMOKE SCRIPT: SMOKE_REPAIR_ID=<uuid>, SMOKE_FULL_PAGE=1, routes "repair
+       my jobs" and "repair new".
+  692. TEST DATA: RT-000010 assigned to Eddy twice for screenshots and set back
+       to unassigned each time; no timer pressed, no weights saved. Eddy removed
+       the Orient watch from RT-000011 himself (back to available).
+  693. /progress — Session 77 checkpoint.
+
 ================================================================================
 PENDING — NEXT UP
 ================================================================================
 
   IMMEDIATE (do this first next session):
     REMEMBER: the shop still runs on xPawn; production LeadsOnline stays OFF.
+    Session 77 — have Eddy try on the live site: RT-000012 (timer started
+    before the weigh-in rule) -> Confirm received -> Finish (ending weight,
+    goes to QA); a New repair with every item priced + "approved at drop-off"
+    (Assigned with a tech, else In progress); the 3x5 envelope label on the
+    thermal printer (ZPL and PDF); set a labor rate and check the P&L.
+    Not verified: the confirm / finish SAVE paths and drop-off ticket creation
+    were not run end to end (only rendered + popup opened); My jobs in Spanish.
+    Known: the repair BOARD page sometimes logs a dnd-kit hydration warning
+    (DndDescribedBy id mismatch) — intermittent, not looked into.
+    Not built (offered): a voided ticket's free-text parts stay on it (only
+    inventory parts return); the part picker loads only the newest 200
+    available items (search-as-you-type would lift that).
     Session 76 — ask Eddy what Transaction Monitor shows: 11/27 pawn 15668
     (open it: redeem-by 12/27/2026?), 11/25 buy 21668 + pawn 15667. If a
     pawn only appears after Send again, write to LeadsOnline (store 57434:
