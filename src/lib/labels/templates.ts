@@ -41,6 +41,8 @@ export const TAG_FIELDS = [
   'cost_code',
   'shop_name',
   'due_date',
+  /** Repair envelope only: the customer's name + phone (see tag-content). */
+  'customer',
 ] as const
 export type TagField = (typeof TAG_FIELDS)[number]
 
@@ -48,7 +50,7 @@ export type TagField = (typeof TAG_FIELDS)[number]
 export const FIELDS_BY_KIND: Record<TagKind, readonly TagField[]> = {
   inventory: ['price', 'metal', 'weight', 'description', 'stones', 'cost_code', 'shop_name'],
   collateral: ['metal', 'weight', 'description', 'due_date'],
-  repair: ['description', 'due_date'],
+  repair: ['customer', 'description', 'due_date', 'shop_name'],
 }
 
 export type TagFields = Partial<Record<TagField, boolean>>
@@ -153,15 +155,16 @@ export const BUILTIN_TEMPLATES: readonly TagTemplate[] = [
   },
   {
     id: null,
+    // A 3×5 thermal label, portrait (Eddy, 2026-11-27).
     name: 'Repair envelope label',
     kind: 'repair',
-    width_in: 2,
-    height_in: 1,
+    width_in: 3,
+    height_in: 5,
     layout: 'single',
     gap_in: 0,
     dpi: 203,
     barcode_payload: 'code',
-    fields: { description: true, due_date: true },
+    fields: { customer: true, description: true, due_date: true, shop_name: true },
     is_default: true,
   },
 ]

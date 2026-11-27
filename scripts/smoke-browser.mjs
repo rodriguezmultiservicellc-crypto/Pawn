@@ -130,7 +130,8 @@ const ids = {
   sale: await pickId('sales'),
   loan: await pickId('loans'),
   item: await pickId('inventory_items'),
-  repair: await pickId('repair_tickets'),
+  // SMOKE_REPAIR_ID=<uuid> checks one ticket (its PDFs and label) instead of any.
+  repair: process.env.SMOKE_REPAIR_ID ?? (await pickId('repair_tickets')),
   consignor: await pickId('consignors'),
   layaway: await pickId('layaways'),
   quote: await pickId('custom_quotes'),

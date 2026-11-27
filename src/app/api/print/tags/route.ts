@@ -91,7 +91,7 @@ export async function GET(req: Request): Promise<Response> {
     } else {
       const ticketId = url.searchParams.get('ticket') ?? ''
       if (!UUID.test(ticketId)) return new Response('missing_ticket', { status: 400 })
-      const r = await loadRepairTags({ supabase, tenantId, ticketId, template })
+      const r = await loadRepairTags({ supabase, tenantId, ticketId, template, shopName: shop.shopName })
       contents = r.contents
       recordId = ticketId
       tableName = 'repair_tickets'

@@ -5,8 +5,12 @@
  * "4.2g", "$1,250") because a 2-inch tag has no room for two languages.
  * The two worded labels (due date, cost) carry both, short.
  *
- * Never on a tag: cost in clear, consignor, anything about a pledgor or a
- * repair customer. Collateral tags carry the ticket number only.
+ * Never on a tag: cost in clear, consignor, anything about a pledgor.
+ * Collateral tags carry the ticket number only. The one exception is the
+ * repair ENVELOPE label (Eddy, 2026-11-27, a 3×5 thermal label): the
+ * envelope holds the customer's own piece in the back room, so it may name
+ * them and their phone (`customer` field, on by default) — it never goes on
+ * a sales-floor tag.
  */
 
 import { encodeCost } from './cost-code'
@@ -23,6 +27,8 @@ export type TagContent = {
   headline: string | null
   /** Small lines, in print order. Empty strings are dropped. */
   lines: string[]
+  /** Long lines wrap (up to 3 rows) instead of being clipped: envelope labels. */
+  wrap?: boolean
 }
 
 const METAL_CODES: Record<string, string> = {
@@ -189,18 +195,41 @@ export type RepairTagSource = {
   ticket_number: string
   title: string
   promised_date: string | null
+  customer_name: string | null
+  customer_phone: string | null
+  /** The ticket's items (title + work needed); empty = print the title. */
+  items: ReadonlyArray<{ title: string; work_needed: string | null }>
 }
 
-export function buildRepairTag(args: { item: RepairTagSource; fields: TagFields }): TagContent {
+/**
+ * The repair envelope: ticket number + barcode, the customer (big), their
+ * phone, the promised date, each item with its work, the shop name.
+ */
+export function buildRepairTag(args: {
+  item: RepairTagSource
+  fields: TagFields
+  shopName?: string | null
+}): TagContent {
   const { item, fields } = args
   const lines: string[] = []
-  if (on(fields, 'description')) lines.push(shortText(item.title))
+  const customer = on(fields, 'customer')
+  if (customer && item.customer_phone) lines.push(item.customer_phone)
   if (on(fields, 'due_date') && item.promised_date) lines.push(`Due/Listo ${tagDate(item.promised_date)}`)
+  if (on(fields, 'description')) {
+    if (item.items.length === 0) lines.push(shortText(item.title, 120))
+    item.items.forEach((li, i) => {
+      const n = item.items.length > 1 ? `${i + 1}. ` : ''
+      const work = li.work_needed?.trim() ? ` — ${li.work_needed.trim()}` : ''
+      lines.push(shortText(`${n}${li.title}${work}`, 160))
+    })
+  }
+  if (on(fields, 'shop_name') && args.shopName) lines.push(shortText(args.shopName, 40))
   return {
     kind: 'repair',
     barcode: item.ticket_number,
     code: item.ticket_number,
-    headline: null,
+    headline: customer && item.customer_name ? shortText(item.customer_name, 40) : null,
     lines: lines.filter(Boolean),
+    wrap: true,
   }
 }

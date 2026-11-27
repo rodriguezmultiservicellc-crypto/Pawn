@@ -42,7 +42,18 @@ function sampleContent(kind: TagKind, t: TagTemplate, costCodeWord: string | nul
       fields: t.fields,
     })
   }
-  return buildRepairTag({ item: { ticket_number: 'RT-000123', title: 'Size ring to 7', promised_date: '2026-12-15' }, fields: t.fields })
+  return buildRepairTag({
+    item: {
+      ticket_number: 'RT-000123',
+      title: 'Size ring to 7',
+      promised_date: '2026-12-15',
+      customer_name: 'Maria Lopez',
+      customer_phone: '(813) 555-0142',
+      items: [{ title: 'Ring · 14K · 3.2g', work_needed: 'Size from 6 to 7' }],
+    },
+    fields: t.fields,
+    shopName: 'Sol Pawn',
+  })
 }
 
 type Draft = { id: string | null; input: TagTemplateInput }

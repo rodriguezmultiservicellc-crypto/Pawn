@@ -6682,6 +6682,7 @@ export const es: Dictionary = {
         cost_code: 'Costo en clave',
         shop_name: 'Nombre de la tienda',
         due_date: 'Fecha de vencimiento',
+        customer: 'Nombre y teléfono del cliente',
       },
       warnings: {
         barcode_narrow: 'Las barras miden un punto de impresora a este tamaño y quizás no se lean. Use una etiqueta más ancha, 300 ppp o el código de solo número.',

@@ -158,22 +158,43 @@ export async function loadRepairTags(args: {
   tenantId: string
   ticketId: string
   template: TagTemplate
+  shopName?: string | null
 }): Promise<{ contents: TagContent[]; ticketNumber: string | null }> {
   const { data: t, error } = await args.supabase
     .from('repair_tickets')
-    .select('id, ticket_number, title, promised_date')
+    .select(
+      'id, ticket_number, title, promised_date, customer:customers(first_name, last_name, phone)',
+    )
     .eq('tenant_id', args.tenantId)
     .eq('id', args.ticketId)
     .is('deleted_at', null)
     .maybeSingle()
   if (error) throw new Error(`repair_lookup_failed: ${error.message}`)
   if (!t?.ticket_number) return { contents: [], ticketNumber: null }
+  const { data: items, error: itemsError } = await args.supabase
+    .from('repair_ticket_line_items')
+    .select('title, work_needed')
+    .eq('tenant_id', args.tenantId)
+    .eq('ticket_id', t.id)
+    .is('deleted_at', null)
+    .order('line_index', { ascending: true })
+  if (itemsError) throw new Error(`repair_items_lookup_failed: ${itemsError.message}`)
+  const c = t.customer
+  const name = c ? [c.first_name, c.last_name].filter(Boolean).join(' ').trim() : ''
   return {
     ticketNumber: t.ticket_number,
     contents: [
       buildRepairTag({
-        item: { ticket_number: t.ticket_number, title: t.title, promised_date: t.promised_date },
+        item: {
+          ticket_number: t.ticket_number,
+          title: t.title,
+          promised_date: t.promised_date,
+          customer_name: name || null,
+          customer_phone: c?.phone ?? null,
+          items: items ?? [],
+        },
         fields: args.template.fields,
+        shopName: args.shopName ?? null,
       }),
     ],
   }

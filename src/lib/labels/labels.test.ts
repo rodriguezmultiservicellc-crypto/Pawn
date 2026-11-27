@@ -13,7 +13,7 @@ import {
   tagDate,
   weightLine,
 } from './tag-content'
-import { fitText, layoutTag } from './layout'
+import { fitText, layoutTag, tagScale, wrapText } from './layout'
 import { renderZplLabel, zplText } from './zpl'
 import { BUILTIN_TEMPLATES, pickTemplate, tagPanels, templateChoices, templateKey, type TagTemplate } from './templates'
 
@@ -138,15 +138,41 @@ describe('tag content', () => {
     expect(coded.lines).toEqual(['HBE'])
     expect(coded.headline).toBeNull()
   })
-  it('collateral and repair tags carry the ticket, no customer', () => {
+  it('collateral tags carry the ticket, no customer', () => {
     const c = buildCollateralTag({
       item: { ticket_number: 'PT-000045', position: 1, description: 'Ring', metal_type: 'gold', karat: 10, weight_grams: 3, due_date: '2026-12-15' },
       fields: { metal: true, weight: true, description: true, due_date: true },
     })
     expect(c.barcode).toBe('PT-000045-2')
     expect(c.lines).toEqual(['10K YG · 3g', 'Ring', 'Due/Vence 12/15/26'])
-    const r = buildRepairTag({ item: { ticket_number: 'RT-000003', title: 'Size ring 7', promised_date: null }, fields: { description: true, due_date: true } })
-    expect(r).toEqual({ kind: 'repair', barcode: 'RT-000003', code: 'RT-000003', headline: null, lines: ['Size ring 7'] })
+  })
+  const repairSource = {
+    ticket_number: 'RT-000003',
+    title: 'Size ring 7',
+    promised_date: '2026-12-15',
+    customer_name: 'Peter C Murphy',
+    customer_phone: '(813) 841-3340',
+    items: [
+      { title: 'Bracelet · 10k · 40.6g', work_needed: 'Solder chain ends' },
+      { title: 'Ring', work_needed: null },
+    ],
+  }
+  it('the repair envelope names the customer only with the customer field', () => {
+    const off = buildRepairTag({ item: repairSource, fields: { description: true, due_date: true } })
+    expect(off.headline).toBeNull()
+    expect(off.lines).toEqual(['Due/Listo 12/15/26', '1. Bracelet · 10k · 40.6g — Solder chain ends', '2. Ring'])
+    const on = buildRepairTag({
+      item: repairSource,
+      fields: { customer: true, description: true, due_date: true, shop_name: true },
+      shopName: 'Sol Pawn',
+    })
+    expect(on).toMatchObject({ barcode: 'RT-000003', code: 'RT-000003', headline: 'Peter C Murphy', wrap: true })
+    expect(on.lines[0]).toBe('(813) 841-3340')
+    expect(on.lines.at(-1)).toBe('Sol Pawn')
+  })
+  it('a ticket without items prints its title', () => {
+    const r = buildRepairTag({ item: { ...repairSource, items: [] }, fields: { description: true } })
+    expect(r.lines).toEqual(['Size ring 7'])
   })
 })
 
@@ -219,5 +245,46 @@ describe('layout + zpl', () => {
     expect(zpl.endsWith('^XZ')).toBe(true)
     expect(zpl).toContain('^PW447') // 2.2in × 203
     expect(zplText('a^b~c…·')).toBe('a b c...-')
+  })
+})
+
+describe('repair envelope 3×5', () => {
+  const envelope = BUILTIN_TEMPLATES.find((t) => t.name === 'Repair envelope label')!
+  const env = buildRepairTag({
+    item: {
+      ticket_number: 'RT-000011',
+      title: 'Bracelet',
+      promised_date: '2026-12-15',
+      customer_name: 'Peter C Murphy',
+      customer_phone: '(813) 841-3340',
+      items: [{ title: 'Bracelet · 10k · 40.6g · 8.5', work_needed: 'Solder chain ends and polish the clasp, check every link for wear' }],
+    },
+    fields: envelope.fields,
+    shopName: "Eddy's Jewelers Corp.",
+  })
+
+  it('is a 3×5 portrait label with larger text than a jewelry tag', () => {
+    expect([envelope.width_in, envelope.height_in]).toEqual([3, 5])
+    expect(tagScale(envelope)).toBeGreaterThan(2.5)
+    expect(tagScale(BUILTIN_TEMPLATES[0])).toBe(1)
+    expect(tagScale(BUILTIN_TEMPLATES.find((t) => t.kind === 'collateral')!)).toBe(1)
+  })
+
+  it('fits everything, wraps the long work line, keeps the barcode readable', () => {
+    const l = layoutTag(envelope, env)
+    expect(l.warnings).toEqual([])
+    expect(l.barcode!.moduleDots).toBeGreaterThanOrEqual(2)
+    const texts = l.texts.map((t) => t.text)
+    expect(texts).toContain('Peter C Murphy')
+    expect(texts.some((t) => t.startsWith('Bracelet'))).toBe(true)
+    // The long item line takes more than one row and nothing passes the edge.
+    expect(texts.filter((t) => !['RT-000011', 'Peter C Murphy'].includes(t)).length).toBeGreaterThan(4)
+    for (const t of l.texts) expect(t.y + t.size).toBeLessThanOrEqual(5)
+    expect(renderZplLabel(envelope, env).zpl).toContain('^PW609') // 3in × 203
+  })
+
+  it('wraps words, clipping only the last row', () => {
+    expect(wrapText('aaa bbb ccc', 1, 0.25 / 0.56, 3)).toEqual(['aaa', 'bbb', 'ccc'])
+    expect(wrapText('aaa bbb ccc ddd', 1, 0.25 / 0.56, 2)).toEqual(['aaa', 'bbb…'])
   })
 })

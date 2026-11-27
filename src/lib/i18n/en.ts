@@ -6684,6 +6684,7 @@ export const en = {
         cost_code: 'Coded cost',
         shop_name: 'Shop name',
         due_date: 'Due date',
+        customer: 'Customer name and phone',
       },
       warnings: {
         barcode_narrow: 'Bars are one printer dot wide at this size — they may not scan. Use a wider tag, 300 dpi, or the number-only barcode.',
