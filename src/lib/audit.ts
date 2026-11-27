@@ -183,6 +183,10 @@ export type AuditAction =
   | 'laser_order_cancel'
   | 'laser_order_status'
   | 'orocut_settings'
+  // LeadsOnline web service login (patches/0123)
+  | 'leadsonline_settings'
+  // Tickets sent to the LeadsOnline web service
+  | 'leadsonline_send'
   // Item tags (patches/0074)
   | 'tag_print'
   | 'tag_template_save'

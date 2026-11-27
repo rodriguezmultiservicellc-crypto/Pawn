@@ -71,7 +71,7 @@ export default async function IntegrationsPage(props: {
     admin
       .from('settings')
       .select(
-        'twilio_account_sid, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_from_email, google_place_id, orocut_style_names, stripe_charge_mode',
+        'twilio_account_sid, twilio_sms_from, twilio_whatsapp_from, twilio_messaging_service_sid, resend_from_email, google_place_id, orocut_style_names, stripe_charge_mode, leadsonline_api_store_id, leadsonline_api_username, leadsonline_api_env',
       )
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -157,6 +157,14 @@ export default async function IntegrationsPage(props: {
       connected: secrets.has('orocut_order_token'),
       styleCount: settings?.orocut_style_names?.length ?? 0,
       openOrders: laserOpenRes.count ?? 0,
+    },
+    leadsonline: {
+      connected:
+        !!settings?.leadsonline_api_store_id &&
+        !!settings.leadsonline_api_username &&
+        secrets.has('leadsonline_api_password'),
+      storeId: settings?.leadsonline_api_store_id != null ? String(settings.leadsonline_api_store_id) : null,
+      env: settings?.leadsonline_api_env === 'production' ? 'production' : 'sandbox',
     },
   }
 

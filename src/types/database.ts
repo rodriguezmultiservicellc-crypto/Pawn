@@ -3584,6 +3584,82 @@ export type Database = {
           },
         ]
       }
+      leadsonline_submissions: {
+        Row: {
+          compliance_log_id: string
+          created_at: string
+          environment: string
+          error_code: number | null
+          error_response: string | null
+          id: string
+          images_sent: number
+          is_void: boolean
+          method: string
+          ok: boolean
+          submitted_by: string | null
+          tenant_id: string
+          ticket_datetime: string
+          ticket_number: string
+          ticket_type: string
+        }
+        Insert: {
+          compliance_log_id: string
+          created_at?: string
+          environment: string
+          error_code?: number | null
+          error_response?: string | null
+          id?: string
+          images_sent?: number
+          is_void?: boolean
+          method: string
+          ok: boolean
+          submitted_by?: string | null
+          tenant_id: string
+          ticket_datetime: string
+          ticket_number: string
+          ticket_type: string
+        }
+        Update: {
+          compliance_log_id?: string
+          created_at?: string
+          environment?: string
+          error_code?: number | null
+          error_response?: string | null
+          id?: string
+          images_sent?: number
+          is_void?: boolean
+          method?: string
+          ok?: boolean
+          submitted_by?: string | null
+          tenant_id?: string
+          ticket_datetime?: string
+          ticket_number?: string
+          ticket_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadsonline_submissions_compliance_log_id_fkey"
+            columns: ["compliance_log_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadsonline_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadsonline_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_collateral_items: {
         Row: {
           category: Database["public"]["Enums"]["inventory_category"]
@@ -6255,6 +6331,9 @@ export type Database = {
           google_reviews_min_star_floor: number
           grace_period_days: number | null
           inventory_target_margin_pct: number
+          leadsonline_api_env: string
+          leadsonline_api_store_id: number | null
+          leadsonline_api_username: string | null
           loan_full_periods: number | null
           loyalty_earn_rate_loan_interest: number
           loyalty_earn_rate_retail: number
@@ -6330,6 +6409,9 @@ export type Database = {
           google_reviews_min_star_floor?: number
           grace_period_days?: number | null
           inventory_target_margin_pct?: number
+          leadsonline_api_env?: string
+          leadsonline_api_store_id?: number | null
+          leadsonline_api_username?: string | null
           loan_full_periods?: number | null
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number
@@ -6405,6 +6487,9 @@ export type Database = {
           google_reviews_min_star_floor?: number
           grace_period_days?: number | null
           inventory_target_margin_pct?: number
+          leadsonline_api_env?: string
+          leadsonline_api_store_id?: number | null
+          leadsonline_api_username?: string | null
           loan_full_periods?: number | null
           loyalty_earn_rate_loan_interest?: number
           loyalty_earn_rate_retail?: number

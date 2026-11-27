@@ -7,6 +7,7 @@ import { DateRangePicker } from '@/components/reports/DateRangePicker'
 import type { PoliceReportFormat } from '@/types/database-aliases'
 import type { LeadsOnlineRow } from '@/lib/compliance/police-report/formats/fl-leadsonline'
 import type { VoidedAfterReport } from '@/lib/reports/police-report'
+import { LeadsOnlinePanel, type LeadsOnlineTicketView } from './leadsonline-panel'
 
 const SUPPORTED_FORMATS: PoliceReportFormat[] = ['fl_leadsonline']
 
@@ -20,6 +21,7 @@ export default function PoliceReportContent({
   flattenedRowCount,
   counts,
   voidedAfterReport,
+  leadsOnline,
 }: {
   from: string
   to: string
@@ -31,6 +33,13 @@ export default function PoliceReportContent({
   counts: { rows: number; pawn_intakes: number; buy_outrights: number }
   /** Tickets voided after a file reported them (patches/0108). */
   voidedAfterReport: VoidedAfterReport[]
+  /** Sending to the LeadsOnline web service (patches/0123). */
+  leadsOnline: {
+    configured: boolean
+    canSend: boolean
+    env: 'sandbox' | 'production'
+    tickets: LeadsOnlineTicketView[]
+  }
 }) {
   const { t } = useI18n()
 
@@ -124,6 +133,8 @@ export default function PoliceReportContent({
       ) : null}
 
       <DateRangePicker from={from} to={to} />
+
+      <LeadsOnlinePanel {...leadsOnline} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-xs text-muted">

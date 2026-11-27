@@ -34,6 +34,9 @@ export type SecretKind =
   // settings.stripe_charge_mode = 'own_key' (patches/0087): the shop's own
   // Stripe secret key — card charges run on the shop's account directly
   | 'stripe_own_secret_key'
+  // LeadsOnline web service password (patches/0123); the store id and user
+  // name are plain columns on settings
+  | 'leadsonline_api_password'
   // tenant_ebay_credentials
   | 'ebay_access_token'
   | 'ebay_refresh_token'

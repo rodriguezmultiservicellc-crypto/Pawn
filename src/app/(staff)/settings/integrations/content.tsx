@@ -16,6 +16,7 @@ import {
   Plug,
   Clock,
   Lightning,
+  ShieldCheck,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import {
@@ -71,6 +72,12 @@ export type IntegrationsView = {
     connected: boolean
     styleCount: number
     openOrders: number
+  }
+  /** LeadsOnline web service login (patches/0123). */
+  leadsonline: {
+    connected: boolean
+    storeId: string | null
+    env: 'sandbox' | 'production'
   }
 }
 
@@ -389,6 +396,32 @@ export default function IntegrationsContent({
             />
           ) : (
             <p className="mt-2 text-xs text-muted">{t.orocut.cardHelp}</p>
+          )}
+        </Card>
+
+        <Card
+          icon={<ShieldCheck size={22} weight="regular" />}
+          title={t.leadsonline.title}
+          tagline={t.leadsonline.cardTagline}
+          status={view.leadsonline.connected ? 'connected' : 'disconnected'}
+          statusLabel={view.leadsonline.connected ? t.leadsonline.statusConnected : t.leadsonline.statusNotConnected}
+          actionHref="/settings/integrations/leadsonline"
+          actionLabel={view.leadsonline.connected ? t.leadsonline.manage : t.leadsonline.configure}
+          actionDisabled={!isOwner}
+          actionDisabledReason={t.leadsonline.ownerOnly}
+        >
+          {view.leadsonline.connected ? (
+            <KvList
+              rows={[
+                { k: t.leadsonline.storeId, v: view.leadsonline.storeId ?? '—' },
+                {
+                  k: t.leadsonline.env,
+                  v: view.leadsonline.env === 'production' ? t.leadsonline.envProduction : t.leadsonline.envSandbox,
+                },
+              ]}
+            />
+          ) : (
+            <p className="mt-2 text-xs text-muted">{t.leadsonline.cardHelp}</p>
           )}
         </Card>
 
