@@ -61,3 +61,59 @@ export async function applyRepairQuote(args: {
   })
   return { ok: true }
 }
+
+/**
+ * The customer accepted the quote — the ONE way it is recorded: "Approve"
+ * on the ticket page (after the call: awaiting_approval), and New repair's
+ * "quoted and approved at drop-off" (the ticket is only quoted: the
+ * customer said yes at the counter, nobody calls). Stamps quote_approved_at,
+ * writes the 'approved' event + audit, and moves the ticket on: to
+ * 'assigned' when a technician is on it (it shows on their My jobs), else
+ * 'in_progress'. The caller has run the guard and checked the ticket is
+ * this shop's.
+ */
+export async function approveRepairQuote(args: {
+  supabase: SupabaseClient<Database>
+  tenantId: string
+  userId: string
+  ticket: { id: string; status: string; assigned_to: string | null; quote_amount: number | string | null }
+  atDropoff: boolean
+  notes: string | null
+}): Promise<{ ok: true; status: RepairStatus } | { error: string }> {
+  const { supabase, tenantId, userId, ticket } = args
+  const from = ticket.status as RepairStatus
+  // After the call the ticket waits for approval; at the counter it was
+  // just quoted. Nothing else can be approved, and never without a quote.
+  if (from !== 'awaiting_approval' && !(args.atDropoff && from === 'quoted')) {
+    return { error: 'illegalTransition' }
+  }
+  if (ticket.quote_amount == null) return { error: 'quote_required' }
+  const next: RepairStatus = ticket.assigned_to ? 'assigned' : 'in_progress'
+
+  const { error } = await supabase
+    .from('repair_tickets')
+    .update({ status: next, quote_approved_at: new Date().toISOString(), updated_by: userId })
+    .eq('id', ticket.id)
+    .eq('tenant_id', tenantId)
+    .eq('status', from)
+  if (error) return { error: error.message }
+
+  await supabase.from('repair_ticket_events').insert({
+    ticket_id: ticket.id,
+    tenant_id: tenantId,
+    event_type: 'approved',
+    new_status: next,
+    notes: args.notes,
+    performed_by: userId,
+  })
+
+  await logAudit({
+    tenantId,
+    userId,
+    action: 'approve_quote',
+    tableName: 'repair_tickets',
+    recordId: ticket.id,
+    changes: { new_status: next, at_dropoff: args.atDropoff },
+  })
+  return { ok: true, status: next }
+}

@@ -204,6 +204,12 @@ export default function NewRepairTicketForm({
   const unpricedCount = builtItems.filter((li) => li.price.trim() === '').length
   const itemsBalance = Math.max(0, itemsTotal - (parseFloat(deposit) || 0))
 
+  // "Quoted and approved at drop-off" (Eddy, 2026-11-27): most repairs are
+  // priced and accepted at the counter, so no call is needed. Only possible
+  // once every item has its price (the prices ARE the quote).
+  const [approvedAtDropoff, setApprovedAtDropoff] = useState(false)
+  const canApproveAtDropoff = builtItems.length > 0 && unpricedCount === 0 && itemsTotal > 0
+
   // Same gate in both views (customer + at least one built item). Simple adds
   // one requirement of its own: every built item needs an explicit service,
   // since it preselects nothing where Classic preselects Repair.
@@ -326,7 +332,11 @@ export default function NewRepairTicketForm({
 
       {state.error ? (
         <div className="mb-6 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {state.error === 'photos_invalid' ? tn.photosInvalid : state.error}
+          {state.error === 'photos_invalid'
+            ? tn.photosInvalid
+            : state.error === 'approval_needs_prices'
+              ? tn.approvedAtDropoffNeedsPrices
+              : state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
         <div className="mb-6 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -380,6 +390,11 @@ export default function NewRepairTicketForm({
       {savedDraftId ? <input type="hidden" name="draft_id" value={savedDraftId} /> : null}
       <input type="hidden" name="assigned_to" value={assignedTo} />
       <input type="hidden" name="notes_internal" value={notesInternal} />
+      <input
+        type="hidden"
+        name="approved_at_dropoff"
+        value={approvedAtDropoff && canApproveAtDropoff ? '1' : ''}
+      />
 
       {/* Stones submit only while a stone-setting / custom item exists —
           exactly when Classic shows the stones editor (unchanged rule). */}
@@ -451,6 +466,9 @@ export default function NewRepairTicketForm({
           unpricedCount={unpricedCount}
           balance={itemsBalance}
           canOpen={canOpen}
+          approvedAtDropoff={approvedAtDropoff}
+          onApprovedAtDropoffChange={setApprovedAtDropoff}
+          canApproveAtDropoff={canApproveAtDropoff}
           needsService={needsService}
           needsWork={needsWork}
           submitLabel={pending ? tn.submitting : tn.submit}
@@ -633,6 +651,11 @@ export default function NewRepairTicketForm({
                 {fmtMoney(itemsBalance)}
               </div>
             </div>
+            <DropoffApproval
+              checked={approvedAtDropoff}
+              onChange={setApprovedAtDropoff}
+              enabled={canApproveAtDropoff}
+            />
             <button
               type="submit"
               disabled={!canOpen}
@@ -656,6 +679,46 @@ export default function NewRepairTicketForm({
       </div>
       )}
     </form>
+  )
+}
+
+/**
+ * "Customer was quoted and approved at drop-off" — both views. Off until
+ * every item has a price; a ticket opened with it on skips the call and goes
+ * to the bench (server: approveRepairQuote).
+ */
+export function DropoffApproval({
+  checked,
+  onChange,
+  enabled,
+  dark = false,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  enabled: boolean
+  /** On Simple's navy bottom bar. */
+  dark?: boolean
+}) {
+  const { t } = useI18n()
+  const tn = t.repair.new_
+  return (
+    <div>
+      <label
+        className={`flex items-start gap-2.5 text-sm font-semibold ${dark ? 'text-white' : 'text-foreground'} ${enabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+      >
+        <input
+          type="checkbox"
+          checked={checked && enabled}
+          disabled={!enabled}
+          onChange={(e) => onChange(e.target.checked)}
+          className="mt-0.5 h-5 w-5 shrink-0 accent-gold"
+        />
+        <span>{tn.approvedAtDropoff}</span>
+      </label>
+      <p className={`mt-1 pl-[30px] text-[12.5px] ${dark ? 'text-white/65' : 'text-muted'}`}>
+        {enabled ? tn.approvedAtDropoffHelp : tn.approvedAtDropoffNeedsPrices}
+      </p>
+    </div>
   )
 }
 

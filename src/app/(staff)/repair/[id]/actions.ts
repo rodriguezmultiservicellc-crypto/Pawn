@@ -47,7 +47,7 @@ import {
 } from '@/lib/repair/workflow'
 import { computeBalanceDue, lineTotalCost, r4 } from '@/lib/repair/billing'
 import { notifyRepairReadyIfEnabled } from '@/lib/repair/notify'
-import { applyRepairQuote } from '@/lib/repair/quote'
+import { applyRepairQuote, approveRepairQuote } from '@/lib/repair/quote'
 import type {
   RepairStatus,
   RepairTicketUpdate,
@@ -303,39 +303,18 @@ export async function approveQuoteAction(
   const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
     v.ticket_id,
   )
-  if (ticket.status !== 'awaiting_approval')
-    return { error: 'illegalTransition' }
-
-  const { error } = await supabase
-    .from('repair_tickets')
-    .update({
-      status: 'in_progress',
-      quote_approved_at: new Date().toISOString(),
-      updated_by: userId,
-    })
-    .eq('id', ticket.id)
-    .eq('tenant_id', tenantId)
-  if (error) return { error: error.message }
-
-  await supabase.from('repair_ticket_events').insert({
-    ticket_id: ticket.id,
-    tenant_id: tenantId,
-    event_type: 'approved',
-    new_status: 'in_progress',
-    notes: v.notes,
-    performed_by: userId,
-  })
-
-  await logAudit({
+  const res = await approveRepairQuote({
+    supabase,
     tenantId,
     userId,
-    action: 'approve_quote',
-    tableName: 'repair_tickets',
-    recordId: ticket.id,
-    changes: { new_status: 'in_progress' },
+    ticket,
+    atDropoff: false,
+    notes: v.notes ?? null,
   })
+  if ('error' in res) return { error: res.error }
 
   revalidatePath(`/repair/${ticket.id}`)
+  revalidatePath('/repair/my-jobs')
   revalidatePath('/repair')
   return { ok: true }
 }

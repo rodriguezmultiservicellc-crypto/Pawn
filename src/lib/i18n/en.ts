@@ -2602,6 +2602,9 @@ export const en = {
       railMissingHint: 'Pick a customer and add at least one item',
       workRequired: 'Describe the work this item needs before adding it.',
       railWorkHint: 'Describe the work needed on every item',
+      approvedAtDropoff: 'Customer was quoted and approved at drop-off',
+      approvedAtDropoffHelp: 'No call needed: the ticket opens approved and goes to the bench.',
+      approvedAtDropoffNeedsPrices: 'Price every item to mark the quote approved at drop-off.',
       photosInvalid: 'A photo of an item could not be found. Remove it and take it again.',
       // Ready-made phrases for Work needed, by service (Eddy, 2026-11-26). A
       // "#" is the spot the clerk fills in (it is selected after insert).

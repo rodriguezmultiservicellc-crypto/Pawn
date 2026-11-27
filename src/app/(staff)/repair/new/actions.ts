@@ -11,7 +11,7 @@ import {
 } from '@/lib/repair/line-items'
 import { confirmIntakePhotos } from '@/lib/uploads/intake-photos-server'
 import { logAudit } from '@/lib/audit'
-import { applyRepairQuote } from '@/lib/repair/quote'
+import { applyRepairQuote, approveRepairQuote } from '@/lib/repair/quote'
 import { r4 } from '@/lib/repair/billing'
 
 export type CreateRepairTicketState = {
@@ -139,6 +139,14 @@ export async function createRepairTicketAction(
   }
 
   const v = parsed.data
+
+  // "Quoted and approved at drop-off": the customer said yes at the counter.
+  // Only a ticket whose every item is priced has a quote to approve.
+  const approvedAtDropoff = formData.get('approved_at_dropoff') === '1'
+  const prices = v.line_items.map((li) => li.price)
+  const allPriced = prices.every((p): p is number => p != null)
+  const quoteTotal = allPriced ? r4(prices.reduce((sum, p) => sum + p, 0)) : 0
+  if (approvedAtDropoff && quoteTotal <= 0) return { error: 'approval_needs_prices' }
 
   // Each item's photos, checked BEFORE anything is written: this shop's
   // intake folder, and really in storage (rule 28). A list that fails is
@@ -268,19 +276,28 @@ export async function createRepairTicketAction(
   // 6b. Every item priced at intake (patches/0122): their sum is the
   //     ticket's quote, set the way "Set quote" sets it. Best-effort like
   //     the rest after the ticket row: the clerk can still set it by hand.
-  const prices = v.line_items.map((li) => li.price)
-  if (prices.every((p): p is number => p != null)) {
-    const total = r4(prices.reduce((sum, p) => sum + p, 0))
-    if (total > 0) {
-      const quoted = await applyRepairQuote({
+  if (quoteTotal > 0) {
+    const quoted = await applyRepairQuote({
+      supabase,
+      tenantId,
+      userId,
+      ticket,
+      amount: quoteTotal,
+      notes: null,
+    })
+    if ('error' in quoted) console.error('[repair.create] quote not set', quoted.error)
+    // 6c. Approved at the counter: no call to make, the job goes to the
+    //     bench (assigned tech → their My jobs). Same path as "Approve".
+    else if (approvedAtDropoff) {
+      const approved = await approveRepairQuote({
         supabase,
         tenantId,
         userId,
-        ticket,
-        amount: total,
+        ticket: { id: ticketId, status: 'quoted', assigned_to: v.assigned_to ?? null, quote_amount: quoteTotal },
+        atDropoff: true,
         notes: null,
       })
-      if ('error' in quoted) console.error('[repair.create] quote not set', quoted.error)
+      if ('error' in approved) console.error('[repair.create] approval not recorded', approved.error)
     }
   }
 
@@ -299,6 +316,7 @@ export async function createRepairTicketAction(
       line_items_count: v.line_items.length,
       stones_count: v.stones?.length ?? 0,
       photos_count: photoCount,
+      approved_at_dropoff: approvedAtDropoff,
     },
   })
 

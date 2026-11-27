@@ -13,6 +13,7 @@
  *   npm run smoke:browser -- --gates  # also flip the feature-4 module gates on
  *                                     # for the run, then restore them
  *   SMOKE_HEADED=1 npm run smoke:browser   # watch it drive
+ *   SMOKE_FULL_PAGE=1 …                    # screenshots of the whole page
  *
  * Env (.env.local): NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
  *                   SUPABASE_SERVICE_ROLE_KEY
@@ -177,6 +178,7 @@ const ROUTES = [
   ['repair detail', ids.repair && `/repair/${ids.repair}`],
   ['repair board', '/repair/board'],
   ['repair my jobs', '/repair/my-jobs'],
+  ['repair new', '/repair/new'],
   // Brief Phase 0 (spot prices: fallback chain, fetch log, stale banner).
   ['P0 spot prices', '/inventory/spot-prices'],
   // Brief Phase 1 (tracking link + stages) and Phase 2 (custom quotes).
@@ -314,7 +316,7 @@ try {
     let shot = ''
     try {
       shot = resolve(OUT_DIR, `${label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`)
-      await page.screenshot({ path: shot, fullPage: false })
+      await page.screenshot({ path: shot, fullPage: process.env.SMOKE_FULL_PAGE === '1' })
     } catch { shot = '' }
 
     await page.close()

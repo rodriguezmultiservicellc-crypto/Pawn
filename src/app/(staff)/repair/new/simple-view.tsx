@@ -33,7 +33,7 @@ import {
   sizeFieldFor,
 } from '@/lib/repair/simple-intake'
 import type { ServiceType } from '@/types/database-aliases'
-import type { LineItem, TechnicianOption } from './form'
+import { DropoffApproval, type LineItem, type TechnicianOption } from './form'
 
 export type SimpleViewProps = {
   technicians: TechnicianOption[]
@@ -60,6 +60,10 @@ export type SimpleViewProps = {
   /** Items total − deposit, never below 0. */
   balance: number
   canOpen: boolean
+  /** "Quoted and approved at drop-off" (form.tsx owns it). */
+  approvedAtDropoff: boolean
+  onApprovedAtDropoffChange: (v: boolean) => void
+  canApproveAtDropoff: boolean
   needsService: boolean
   /** A built item has no work described yet. */
   needsWork: boolean
@@ -113,6 +117,9 @@ export function SimpleRepairTicketView({
   unpricedCount,
   balance,
   canOpen,
+  approvedAtDropoff,
+  onApprovedAtDropoffChange,
+  canApproveAtDropoff,
   needsService,
   needsWork,
   submitLabel,
@@ -283,6 +290,14 @@ export function SimpleRepairTicketView({
                 {tn.railWorkHint}
               </div>
             ) : null}
+            <div className="mt-2">
+              <DropoffApproval
+                checked={approvedAtDropoff}
+                onChange={onApprovedAtDropoffChange}
+                enabled={canApproveAtDropoff}
+                dark
+              />
+            </div>
           </div>
           <button
             type="submit"

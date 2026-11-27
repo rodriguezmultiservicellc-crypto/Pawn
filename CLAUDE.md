@@ -582,6 +582,11 @@ Never kill node processes by image name — always by PID.
       first, so no minute is labor on two tickets; no timer starts on a
       closed ticket. Technicians start / stop on `/repair/my-jobs`; the
       ticket page only shows each technician's time.
+    - A repair quote is approved ONLY through `approveRepairQuote`
+      (`src/lib/repair/quote.ts`): "Approve" on the ticket (after the call)
+      and New repair's "quoted and approved at drop-off" (every item priced;
+      Eddy, 2026-11-27). It goes to `assigned` when a technician is on it,
+      else `in_progress`.
 
 ---
 

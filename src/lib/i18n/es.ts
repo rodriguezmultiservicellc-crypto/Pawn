@@ -2590,6 +2590,9 @@ export const es: Dictionary = {
       railMissingHint: 'Elige un cliente y agrega al menos un artículo',
       workRequired: 'Describe el trabajo que necesita este artículo antes de agregarlo.',
       railWorkHint: 'Describe el trabajo de cada artículo',
+      approvedAtDropoff: 'El cliente recibió la cotización y la aprobó al dejar la pieza',
+      approvedAtDropoffHelp: 'No hace falta llamar: la orden se abre aprobada y pasa al banco.',
+      approvedAtDropoffNeedsPrices: 'Ponga precio a cada artículo para marcar la cotización aprobada al dejarla.',
       photosInvalid: 'No se encontró una foto de un artículo. Quítala y tómala de nuevo.',
       // ── Artículos como en el boleto de empeño: botones, tabla, ventana por artículo ──
       // Frases listas para Trabajo a realizar, por servicio. El "#" es lo
