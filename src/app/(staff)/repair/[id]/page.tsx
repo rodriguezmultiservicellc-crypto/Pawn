@@ -11,6 +11,7 @@ import { parseCutDetails, parseHistory } from '@/lib/orocut/merge'
 import type { LaserOrderView, LaserPanelData } from '@/components/repair/LaserOrderPanel'
 import { loadTagTemplates } from '@/lib/labels/load'
 import { templateChoices } from '@/lib/labels/templates'
+import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import RepairTicketDetail, {
   type InventoryPartChoice,
   type RepairLineItemView,
@@ -62,10 +63,12 @@ export default async function RepairTicketDetailPage(props: {
   // Module gate.
   const { data: tenant } = await ctx.supabase
     .from('tenants')
-    .select('has_repair')
+    .select('has_repair, timezone')
     .eq('id', ticket.tenant_id)
     .maybeSingle()
   if (!tenant?.has_repair) redirect('/dashboard')
+  // "Due today" / "Overdue" count by the SHOP's calendar (rule 18).
+  const shopToday = todayInTimezone(tenant.timezone)
 
   const [
     { data: stones },
@@ -377,6 +380,7 @@ export default async function RepairTicketDetailPage(props: {
       technicians={technicianOptions}
       inventoryOptions={inventoryOptions}
       myUserId={ctx.userId}
+      shopToday={shopToday}
       trackingLink={trackingUrl(ticket.public_token)}
       stages={(stageRows ?? []) as RepairStageLite[]}
       laser={laser}

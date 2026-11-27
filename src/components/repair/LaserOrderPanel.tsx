@@ -11,6 +11,7 @@ import {
   WarningCircle,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { OUTLINE_BTN } from '@/lib/ui/ledger'
 import { isOpenLaserStatus, type LaserOrderStatus } from '@/lib/orocut/status'
 import type { CutDetails, HistoryEntry } from '@/lib/orocut/merge'
 import {
@@ -134,62 +135,72 @@ export function LaserOrderPanel({
 
   const errorText = error ? readable(error, tl) : null
 
+  // Compact (the ticket page's side column): one row until an order is
+  // open or the form is showing. Grids follow the card's width (@container),
+  // not the window's.
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Lightning size={16} weight="bold" />
-          {tl.title}
-        </h2>
-        <p className="text-xs text-muted">{tl.help}</p>
-      </header>
+    <section className="@container rounded-xl border border-border bg-card px-4 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-[1_1_10rem]">
+          <h2 className="flex items-center gap-1.5 font-bold text-foreground">
+            <Lightning size={16} weight="bold" />
+            {tl.title}
+          </h2>
+          <p className="text-[13px] text-text-secondary">{tl.help}</p>
+        </div>
+        {!open && !showForm ? (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            disabled={isTerminal || pending}
+            className={OUTLINE_BTN}
+          >
+            <PaperPlaneTilt size={16} weight="bold" />
+            {tl.send}
+          </button>
+        ) : null}
+      </div>
 
-      <div className="space-y-4 p-4">
+      <div className="mt-3 space-y-4 empty:hidden">
+        {isTerminal && !open && !showForm ? (
+          <p className="text-xs text-text-secondary">{tl.errors.ticket_closed}</p>
+        ) : null}
         {open ? (
-          <OpenOrder
-            order={open}
-            pending={pending}
-            onRefresh={() => {
-              const fd = new FormData()
-              fd.set('order_id', open.id)
-              run(refreshLaserOrderAction, fd)
-            }}
-            onCancel={() => {
-              if (!window.confirm(tl.cancelConfirm)) return
-              const fd = new FormData()
-              fd.set('order_id', open.id)
-              run(cancelLaserOrderAction, fd)
-            }}
-          />
-        ) : showForm ? (
-          <SendForm
-            ticketId={ticketId}
-            customerName={customerName}
-            promisedDate={promisedDate}
-            styleNames={data.styleNames}
-            pending={pending}
-            fieldErrors={fieldErrors}
-            onCancel={() => {
-              setShowForm(false)
-              setFieldErrors({})
-              setError(null)
-            }}
-            onSubmit={(fd) => run(sendToLaserAction, fd, () => setShowForm(false))}
-          />
-        ) : (
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              disabled={isTerminal || pending}
-              className="inline-flex items-center gap-1 rounded-md border border-gold bg-gold px-3 py-1.5 text-xs font-bold text-navy hover:bg-gold-2 disabled:opacity-50"
-            >
-              <PaperPlaneTilt size={14} weight="bold" />
-              {tl.send}
-            </button>
-            {isTerminal ? <span className="text-xs text-muted">{tl.errors.ticket_closed}</span> : null}
+          <div>
+            <OpenOrder
+              order={open}
+              pending={pending}
+              onRefresh={() => {
+                const fd = new FormData()
+                fd.set('order_id', open.id)
+                run(refreshLaserOrderAction, fd)
+              }}
+              onCancel={() => {
+                if (!window.confirm(tl.cancelConfirm)) return
+                const fd = new FormData()
+                fd.set('order_id', open.id)
+                run(cancelLaserOrderAction, fd)
+              }}
+            />
           </div>
-        )}
+        ) : showForm ? (
+          <div>
+            <SendForm
+              ticketId={ticketId}
+              customerName={customerName}
+              promisedDate={promisedDate}
+              styleNames={data.styleNames}
+              pending={pending}
+              fieldErrors={fieldErrors}
+              onCancel={() => {
+                setShowForm(false)
+                setFieldErrors({})
+                setError(null)
+              }}
+              onSubmit={(fd) => run(sendToLaserAction, fd, () => setShowForm(false))}
+            />
+          </div>
+        ) : null}
 
         {errorText ? (
           <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger" role="alert">
@@ -249,7 +260,7 @@ function OpenOrder({
   ].filter(Boolean)
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={order.status} />
@@ -380,7 +391,7 @@ function SendForm({
       }}
       className="space-y-3"
     >
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2">
         <Field label={tl.form.text} help={tl.form.textHelp} error={fe('text')}>
           <input name="text" required maxLength={60} className={`${input} font-semibold`} autoFocus />
         </Field>
@@ -436,7 +447,7 @@ function SendForm({
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex items-center gap-1 rounded-md border border-gold bg-gold px-3 py-1.5 text-xs font-bold text-navy hover:bg-gold-2 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-navy bg-navy px-3 py-1.5 text-xs font-bold text-white hover:bg-navy/90 disabled:opacity-50"
         >
           <PaperPlaneTilt size={14} weight="bold" />
           {pending ? tl.sending : tl.form.submit}

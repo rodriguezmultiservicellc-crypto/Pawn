@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Diamond, Plus, Trash } from '@phosphor-icons/react'
+import { Diamond, Plus } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { AddStoneDialog } from './AddStoneDialog'
 
@@ -43,39 +43,56 @@ export function StonesPanel({
   const nextIndex =
     stones.reduce((max, s) => (s.stone_index > max ? s.stone_index : max), 0) + 1
 
+  // Inside "Item and work"'s chip row: no card of its own. No stones = two
+  // items in that row; with stones, the list takes a row of its own.
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Diamond size={14} weight="regular" />
-          {t.repair.detail.sectionStones}
-        </h2>
-        {!readOnly ? (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:bg-background hover:text-foreground"
-          >
-            <Plus size={12} weight="bold" />
-            {t.repair.actions.addStone}
-          </button>
-        ) : null}
-      </header>
+    <div className={stones.length === 0 ? 'contents' : 'mt-1 basis-full'}>
       {stones.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-muted">
-          {t.repair.detail.noStones}
+        <div className="contents">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-3 py-1 text-[13px] text-text-secondary">
+            <Diamond size={13} weight="regular" />
+            {t.repair.detail.noStonesShort}
+          </span>
+          {!readOnly ? (
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-sm font-bold text-blue hover:underline"
+            >
+              <Plus size={14} weight="bold" />
+              {t.repair.actions.addStone}
+            </button>
+          ) : null}
         </div>
       ) : (
-        <ul className="divide-y divide-border">
-          {stones.map((s) => (
-            <StoneRow
-              key={s.id}
-              stone={s}
-              readOnly={readOnly}
-              onRemove={onRemove}
-            />
-          ))}
-        </ul>
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide text-text-secondary">
+              <Diamond size={13} weight="regular" />
+              {t.repair.detail.sectionStones}
+            </h3>
+            {!readOnly ? (
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-sm font-bold text-blue hover:underline"
+              >
+                <Plus size={14} weight="bold" />
+                {t.repair.actions.addStone}
+              </button>
+            ) : null}
+          </div>
+          <ul className="mt-1 divide-y divide-border rounded-md border border-border">
+            {stones.map((s) => (
+              <StoneRow
+                key={s.id}
+                stone={s}
+                readOnly={readOnly}
+                onRemove={onRemove}
+              />
+            ))}
+          </ul>
+        </>
       )}
       {open ? (
         <AddStoneDialog
@@ -85,7 +102,7 @@ export function StonesPanel({
           onSubmit={onAdd}
         />
       ) : null}
-    </section>
+    </div>
   )
 }
 
@@ -115,7 +132,7 @@ function StoneRow({
       : t.repair.new_.stoneSourceShop
 
   return (
-    <li className="px-4 py-3">
+    <li className="px-3 py-2.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -123,11 +140,11 @@ function StoneRow({
               #{stone.stone_index}
             </span>
             <span className="font-medium text-foreground">{stone.stone_type}</span>
-            <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] text-muted">
+            <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] text-text-secondary">
               {sourceLabel}
             </span>
           </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-secondary">
             {stone.shape ? <span>{stone.shape}</span> : null}
             {stone.size_mm != null ? <span>{stone.size_mm}mm</span> : null}
             {stone.weight_carats != null ? (
@@ -149,9 +166,8 @@ function StoneRow({
             type="button"
             onClick={remove}
             disabled={pending}
-            className="inline-flex items-center gap-1 rounded-md border border-danger/30 bg-danger/5 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
+            className="inline-flex min-h-9 items-center rounded-md px-2 text-sm font-bold text-danger hover:underline disabled:opacity-50"
           >
-            <Trash size={12} weight="bold" />
             {t.repair.actions.removeStone}
           </button>
         ) : null}

@@ -1,6 +1,5 @@
 'use client'
 
-import { ClockCounterClockwise } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import type {
   RepairEventType,
@@ -41,64 +40,42 @@ const TONE: Record<RepairEventType, string> = {
   qa_returned: 'border-warning/30 bg-warning/5 text-warning',
 }
 
+/** The ticket's events, newest first. No card of its own: it sits under
+ *  the note box in "Notes and activity". */
 export function TimelinePanel({ events }: { events: RepairEventItem[] }) {
   const { t } = useI18n()
   if (events.length === 0) {
-    return (
-      <section className="rounded-xl border border-border bg-card">
-        <header className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <ClockCounterClockwise size={14} weight="regular" />
-            {t.repair.detail.sectionEvents}
-          </h2>
-        </header>
-        <div className="px-4 py-6 text-center text-sm text-muted">
-          {t.repair.detail.noEvents}
-        </div>
-      </section>
-    )
+    return <p className="py-3 text-sm text-text-secondary">{t.repair.detail.noEvents}</p>
   }
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <ClockCounterClockwise size={14} weight="regular" />
-          {t.repair.detail.sectionEvents}
-        </h2>
-      </header>
-      <ul className="divide-y divide-border">
-        {events.map((e) => (
-          <li key={e.id} className="px-4 py-3 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${TONE[e.event_type]}`}
-                >
-                  {labelForEvent(e.event_type, t)}
-                </span>
-                {e.amount != null ? (
-                  <span className="font-mono text-xs text-foreground">
-                    {fmtMoney(e.amount)}
-                  </span>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <span>{relative(e.occurred_at, t)}</span>
-                <span className="font-mono">
-                  {new Date(e.occurred_at).toLocaleString()}
-                </span>
-              </div>
+    <ul>
+      {events.map((e) => (
+        <li key={e.id} className="border-t border-border py-2.5 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${TONE[e.event_type]}`}
+              >
+                {labelForEvent(e.event_type, t)}
+              </span>
+              {e.amount != null ? (
+                <span className="font-mono text-xs text-foreground">{fmtMoney(e.amount)}</span>
+              ) : null}
+              <span className="text-xs text-text-secondary">
+                · {e.performed_by_name ?? t.repair.timeline.noActor}
+              </span>
             </div>
-            {e.notes ? (
-              <div className="mt-1 text-xs text-foreground">{e.notes}</div>
-            ) : null}
-            <div className="mt-1 text-[11px] text-muted">
-              {e.performed_by_name ?? t.repair.timeline.noActor}
+            <div className="flex items-center gap-2 text-xs text-text-secondary">
+              <span>{relative(e.occurred_at, t)}</span>
+              <span className="font-mono">{new Date(e.occurred_at).toLocaleString()}</span>
             </div>
-          </li>
-        ))}
-      </ul>
-    </section>
+          </div>
+          {e.notes ? (
+            <div className="mt-1 whitespace-pre-wrap text-sm text-foreground">{e.notes}</div>
+          ) : null}
+        </li>
+      ))}
+    </ul>
   )
 }
 

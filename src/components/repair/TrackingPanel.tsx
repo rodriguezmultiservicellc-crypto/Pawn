@@ -12,6 +12,7 @@ import {
   LinkSimple,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { FOCUS, OUTLINE_BTN } from '@/lib/ui/ledger'
 import {
   progressPercent,
   sortStages,
@@ -91,196 +92,148 @@ export function TrackingPanel({
       ? null
       : (tr.errors as Record<string, string>)[error] ?? error
 
+  const pct = progressPercent(current)
+  const textBtn = `inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-[13px] font-bold hover:underline disabled:opacity-50 ${FOCUS}`
+
+  // Compact, for the ticket page's side column. The help sentence is the
+  // card's tooltip; the URL itself is read by screen readers only (Copy
+  // link puts it on the clipboard).
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <LinkSimple size={16} weight="bold" />
-          {tr.title}
+    <section className="rounded-xl border border-border bg-card px-4 py-4" title={tr.help}>
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-[12px] font-bold uppercase tracking-wide text-text-secondary">
+          {t.repair.detail.customerSees}
         </h2>
-        <p className="text-xs text-muted">{tr.help}</p>
-      </header>
+        <Link href="/settings/repair-stages" className="text-[13px] font-semibold text-blue hover:underline">
+          {tr.manageStages}
+        </Link>
+      </div>
 
-      <div className="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2">
-        {/* Link */}
-        <div className="space-y-2">
-          {currentLink ? (
-            <>
-              <input
-                readOnly
-                value={currentLink}
-                onFocus={(e) => e.currentTarget.select()}
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground"
-                aria-label={tr.title}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <SmallButton onClick={copyLink} icon={<Copy size={14} weight="bold" />}>
-                  {notice === 'copied' ? tr.copied : tr.copy}
-                </SmallButton>
-                <a
-                  href={currentLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-background"
-                >
-                  <ArrowSquareOut size={14} weight="bold" />
-                  {tr.open}
-                </a>
-                <SmallButton
-                  onClick={() => run(sendTrackingLinkAction, {}, () => setNotice('sent'))}
-                  disabled={pending}
-                  icon={<ChatText size={14} weight="bold" />}
-                  primary
-                >
-                  {pending ? tr.sending : notice === 'sent' ? tr.sent : tr.sendSms}
-                </SmallButton>
-                <SmallButton
-                  onClick={() => {
-                    if (window.confirm(tr.regenerateConfirm)) {
-                      run(regenerateTrackingLinkAction, {}, (res) =>
-                        setCurrentLink(res.link ?? null),
-                      )
-                    }
-                  }}
-                  disabled={pending}
-                  icon={<LinkSimple size={14} weight="bold" />}
-                >
-                  {tr.regenerate}
-                </SmallButton>
-                <SmallButton
-                  onClick={() => {
-                    if (window.confirm(tr.revokeConfirm)) {
-                      run(revokeTrackingLinkAction, {}, () => setCurrentLink(null))
-                    }
-                  }}
-                  disabled={pending}
-                  icon={<LinkBreak size={14} weight="bold" />}
-                  tone="danger"
-                >
-                  {tr.revoke}
-                </SmallButton>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-muted">{tr.revoked}</p>
-              <SmallButton
-                onClick={() =>
-                  run(regenerateTrackingLinkAction, {}, (res) =>
-                    setCurrentLink(res.link ?? null),
-                  )
-                }
-                disabled={pending}
-                icon={<LinkSimple size={14} weight="bold" />}
-                primary
-              >
-                {tr.regenerate}
-              </SmallButton>
-            </>
-          )}
-        </div>
-
-        {/* Stage */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs uppercase tracking-wide text-muted">{tr.stageTitle}</div>
-            <Link
-              href="/settings/repair-stages"
-              className="text-xs text-blue hover:underline"
-            >
-              {tr.manageStages}
-            </Link>
+      {ordered.length === 0 ? (
+        <p className="mt-1 text-sm text-text-secondary">{tr.stagesMissing}</p>
+      ) : (
+        <>
+          <div className="mt-1 flex items-baseline justify-between gap-2">
+            <span className="font-bold text-foreground">
+              {current ? stageName(current, lang) : tr.stageNone}
+            </span>
+            <span className="font-mono text-sm text-text-secondary">{pct}%</span>
           </div>
-          {ordered.length === 0 ? (
-            <p className="text-sm text-muted">{tr.stagesMissing}</p>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-base font-semibold text-foreground">
-                  {current ? stageName(current, lang) : tr.stageNone}
-                </div>
-                <div className="font-mono text-xs text-muted">
-                  {progressPercent(current)}%
-                </div>
-              </div>
-              <div
-                className="h-2 w-full overflow-hidden rounded-full bg-background"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={progressPercent(current)}
+          <div
+            className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+            aria-label={t.repair.detail.customerSees}
+          >
+            <div className="h-full rounded-full bg-blue transition-[width]" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <select
+              value={currentStageId ?? ''}
+              onChange={(e) => run(setPublicStageAction, { stage_id: e.target.value })}
+              disabled={pending || isTerminal}
+              aria-label={tr.setStage}
+              className={`h-9 min-w-0 flex-1 rounded-md border border-border bg-card px-2 text-sm text-foreground disabled:opacity-50 ${FOCUS}`}
+            >
+              <option value="" disabled>
+                {tr.setStage}
+              </option>
+              {ordered.map((st) => (
+                <option key={st.id} value={st.id}>
+                  {stageName(st, lang)} · {st.percent}%
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => run(setPublicStageAction, { stage_id: 'next' })}
+              disabled={pending || atLast || isTerminal}
+              title={tr.autoAdvanceNote}
+              className={`${OUTLINE_BTN} h-9 px-3`}
+            >
+              <ArrowRight size={14} weight="bold" />
+              {atLast ? tr.lastStage : tr.nextStage}
+            </button>
+          </div>
+        </>
+      )}
+
+      <div className="mt-4 border-t border-border pt-3">
+        {currentLink ? (
+          <>
+            <span className="sr-only">{currentLink}</span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => run(sendTrackingLinkAction, {}, () => setNotice('sent'))}
+                disabled={pending}
+                className={`${OUTLINE_BTN} flex-1`}
               >
-                <div
-                  className="h-full rounded-full bg-gold transition-[width]"
-                  style={{ width: `${progressPercent(current)}%` }}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <SmallButton
-                  onClick={() => run(setPublicStageAction, { stage_id: 'next' })}
-                  disabled={pending || atLast || isTerminal}
-                  icon={<ArrowRight size={14} weight="bold" />}
-                  primary
-                >
-                  {atLast ? tr.lastStage : tr.nextStage}
-                </SmallButton>
-                <select
-                  value={currentStageId ?? ''}
-                  onChange={(e) => run(setPublicStageAction, { stage_id: e.target.value })}
-                  disabled={pending || isTerminal}
-                  aria-label={tr.setStage}
-                  className="h-8 rounded-md border border-border bg-card px-2 text-xs text-foreground"
-                >
-                  <option value="" disabled>
-                    {tr.setStage}
-                  </option>
-                  {ordered.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {stageName(s, lang)} · {s.percent}%
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <p className="text-[11px] text-muted">{tr.autoAdvanceNote}</p>
-            </>
-          )}
-        </div>
+                <ChatText size={16} weight="bold" />
+                {pending ? tr.sending : notice === 'sent' ? tr.sent : tr.sendSms}
+              </button>
+              <button type="button" onClick={copyLink} title={currentLink} className={`${OUTLINE_BTN} flex-1`}>
+                <Copy size={16} weight="bold" />
+                {notice === 'copied' ? tr.copied : tr.copy}
+              </button>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              <a href={currentLink} target="_blank" rel="noopener noreferrer" className={`${textBtn} text-blue`}>
+                <ArrowSquareOut size={14} weight="bold" />
+                {tr.open}
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(tr.regenerateConfirm)) {
+                    run(regenerateTrackingLinkAction, {}, (res) => setCurrentLink(res.link ?? null))
+                  }
+                }}
+                disabled={pending}
+                className={`${textBtn} text-blue`}
+              >
+                <LinkSimple size={14} weight="bold" />
+                {tr.regenerate}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(tr.revokeConfirm)) {
+                    run(revokeTrackingLinkAction, {}, () => setCurrentLink(null))
+                  }
+                }}
+                disabled={pending}
+                className={`${textBtn} text-danger`}
+              >
+                <LinkBreak size={14} weight="bold" />
+                {tr.revoke}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-text-secondary">{tr.revoked}</p>
+            <button
+              type="button"
+              onClick={() => run(regenerateTrackingLinkAction, {}, (res) => setCurrentLink(res.link ?? null))}
+              disabled={pending}
+              className={OUTLINE_BTN}
+            >
+              <LinkSimple size={16} weight="bold" />
+              {tr.regenerate}
+            </button>
+          </div>
+        )}
       </div>
 
       {errorText ? (
-        <div className="border-t border-border px-4 py-2 text-sm text-danger" role="alert">
+        <p className="mt-2 text-sm text-danger" role="alert">
           {errorText}
-        </div>
+        </p>
       ) : null}
     </section>
-  )
-}
-
-function SmallButton({
-  children,
-  onClick,
-  disabled,
-  icon,
-  primary,
-  tone,
-}: {
-  children: React.ReactNode
-  onClick: () => void
-  disabled?: boolean
-  icon: React.ReactNode
-  primary?: boolean
-  tone?: 'danger'
-}) {
-  let cls =
-    'inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-50'
-  if (primary) cls += ' border-gold bg-gold text-navy hover:bg-gold-2'
-  else if (tone === 'danger') cls += ' border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
-  else cls += ' border-border bg-card text-foreground hover:bg-background'
-  return (
-    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
-      {icon}
-      {children}
-    </button>
   )
 }
 

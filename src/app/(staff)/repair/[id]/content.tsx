@@ -1,17 +1,19 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { PhotoViewer } from '@/components/uploads/PhotoViewer'
-import { FOCUS } from '@/lib/ui/ledger'
+import { FOCUS, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import {
   ArrowLeft,
+  CaretDown,
   CashRegister,
+  ChatText,
   CheckCircle,
+  ClockCounterClockwise,
   Hammer,
   Lock,
-  LockOpen,
   Pause,
   Play,
   Printer,
@@ -22,6 +24,7 @@ import {
   Wrench,
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
+import { daysBetween } from '@/lib/pawn/math'
 import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
 import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
 import { ServiceTypeBadge } from '@/components/repair/ServiceTypeBadge'
@@ -203,6 +206,62 @@ type DialogKind =
   | 'void'
   | null
 
+/** Small uppercase label; text-secondary passes 4.5:1 at 12px, muted does not. */
+const LBL = 'text-[12px] font-bold uppercase tracking-wide text-text-secondary'
+const CARD = 'rounded-xl border border-border bg-card'
+const QUIET_BTN = `inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-sm font-bold hover:underline disabled:opacity-50 ${FOCUS}`
+
+// ── Workflow steps (display only) ────────────────────────────────────────────
+// Six steps grouped from the exact status (Eddy, 2026-11-27). The status pill
+// beside the ticket number still shows the exact status. This is the
+// WORKFLOW status, not the customer-facing stage (TrackingPanel).
+const STEP_KEYS = ['intake', 'quoted', 'approved', 'inWork', 'ready', 'pickedUp'] as const
+const STEP_OF: Record<RepairStatus, number | null> = {
+  intake: 0,
+  quoted: 1,
+  awaiting_approval: 1,
+  assigned: 2,
+  in_progress: 3,
+  needs_parts: 3,
+  tech_qa: 3,
+  ready: 4,
+  picked_up: 5,
+  abandoned: null,
+  voided: null,
+}
+
+// ── Next step: which action is the ONE gold button per status ────────────────
+// Every button still needs its own can* rule below; this only ranks them.
+type ActKey =
+  | 'setQuote'
+  | 'editQuote'
+  | 'requestApproval'
+  | 'approveQuote'
+  | 'collectDeposit'
+  | 'startWork'
+  | 'claim'
+  | 'sendToQa'
+  | 'approveQa'
+  | 'returnFromQa'
+  | 'needsParts'
+  | 'partsReceived'
+  | 'markComplete'
+  | 'recordPickup'
+
+const BAND: Partial<Record<RepairStatus, { gold: ActKey; rest: ActKey[] }>> = {
+  intake: { gold: 'setQuote', rest: [] },
+  quoted: { gold: 'requestApproval', rest: ['editQuote'] },
+  awaiting_approval: {
+    gold: 'approveQuote',
+    rest: ['editQuote', 'collectDeposit', 'startWork'],
+  },
+  assigned: { gold: 'claim', rest: ['editQuote', 'collectDeposit'] },
+  in_progress: { gold: 'sendToQa', rest: ['needsParts', 'markComplete', 'editQuote'] },
+  needs_parts: { gold: 'partsReceived', rest: ['startWork', 'markComplete', 'editQuote'] },
+  tech_qa: { gold: 'approveQa', rest: ['returnFromQa', 'editQuote'] },
+  ready: { gold: 'recordPickup', rest: [] },
+}
+
 export default function RepairTicketDetail({
   ticket,
   lineItems,
@@ -214,6 +273,7 @@ export default function RepairTicketDetail({
   technicians,
   inventoryOptions,
   myUserId,
+  shopToday,
   trackingLink,
   stages,
   laser,
@@ -229,6 +289,8 @@ export default function RepairTicketDetail({
   technicians: TechnicianOption[]
   inventoryOptions: InventoryPartChoice[]
   myUserId: string | null
+  /** Today in the shop's timezone (YYYY-MM-DD): Due today / Overdue. */
+  shopToday: string
   /** Absolute /t/<token> URL, null when the link is revoked. */
   trackingLink: string | null
   /** Active customer-facing stages for this ticket's service type. */
@@ -237,11 +299,14 @@ export default function RepairTicketDetail({
   laser: LaserPanelData
   tagChoices: TemplateChoice[]
 }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const td = t.repair.detail
+  const ta = t.repair.actions
   const [dialog, setDialog] = useState<DialogKind>(null)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [showReminder, setShowReminder] = useState(false)
+  const moreRef = useRef<HTMLDetailsElement>(null)
 
   function runSimple(
     action: (fd: FormData) => Promise<ActionResult>,
@@ -330,24 +395,139 @@ export default function RepairTicketDetail({
     status === 'tech_qa' ||
     status === 'ready'
 
+  // Every workflow action: its label, icon, handler and can* rule.
+  const ACTS: Record<ActKey, { label: string; icon: React.ReactNode; run: () => void; can: boolean }> = {
+    setQuote: {
+      label: ta.setQuote,
+      icon: <Tag size={16} weight="bold" />,
+      run: () => setDialog('setQuote'),
+      can: canSetQuote,
+    },
+    editQuote: {
+      label: ta.editQuote,
+      icon: <Tag size={16} weight="bold" />,
+      run: () => setDialog('editQuote'),
+      can: canEditQuote,
+    },
+    requestApproval: {
+      label: ta.requestApproval,
+      icon: <ChatText size={16} weight="bold" />,
+      run: runRequestApproval,
+      can: canRequestApproval,
+    },
+    approveQuote: {
+      label: ta.approveQuote,
+      icon: <ThumbsUp size={16} weight="bold" />,
+      run: () => runSimple(approveQuoteAction),
+      can: canApproveQuote,
+    },
+    collectDeposit: {
+      label: ta.collectDeposit,
+      icon: <CashRegister size={16} weight="bold" />,
+      run: () => setDialog('collectDeposit'),
+      can: canCollectDeposit,
+    },
+    startWork: {
+      label: ta.startWork,
+      icon: <Play size={16} weight="bold" />,
+      run: () => runSimple(startWorkAction),
+      can: canStart,
+    },
+    claim: {
+      label: ta.claimTicket,
+      icon: <Play size={16} weight="bold" />,
+      run: () => runSimple(claimTicketAction),
+      can: canClaim,
+    },
+    sendToQa: {
+      label: ta.sendToQa,
+      icon: <CheckCircle size={16} weight="bold" />,
+      run: () => runSimple(sendToQaAction),
+      can: canSendToQa,
+    },
+    approveQa: {
+      label: ta.approveQa,
+      icon: <CheckCircle size={16} weight="bold" />,
+      run: () => runSimple(approveQaAction),
+      can: canApproveQa,
+    },
+    returnFromQa: {
+      label: ta.returnFromQa,
+      icon: <Wrench size={16} weight="bold" />,
+      run: () => runSimple(returnFromQaAction),
+      can: canReturnFromQa,
+    },
+    needsParts: {
+      label: ta.markNeedsParts,
+      icon: <Pause size={16} weight="bold" />,
+      run: () => runSimple(markNeedsPartsAction),
+      can: canMarkNeedsParts,
+    },
+    partsReceived: {
+      label: ta.partsReceived,
+      icon: <Hammer size={16} weight="bold" />,
+      run: () => runSimple(partsReceivedAction),
+      can: canPartsReceived,
+    },
+    markComplete: {
+      label: ta.markComplete,
+      icon: <CheckCircle size={16} weight="bold" />,
+      run: () => runSimple(markCompleteAction),
+      can: canMarkComplete,
+    },
+    recordPickup: {
+      label: ta.recordPickup,
+      icon: <CheckCircle size={16} weight="bold" />,
+      run: () => setDialog('recordPickup'),
+      can: canRecordPickup,
+    },
+  }
+
+  const band = isTerminal ? null : BAND[status] ?? null
+  const bandSentence =
+    band && status in td.nextStep
+      ? td.nextStep[status as keyof typeof td.nextStep].replace(
+          '{amount}',
+          fmtMoney(ticket.quote_amount ?? 0),
+        )
+      : null
+
+  // Promised: date + how it stands against the SHOP's today.
+  const locale = lang === 'es' ? 'es-US' : 'en-US'
+  const lateBy = ticket.promised_date ? daysBetween(ticket.promised_date, shopToday) : null
+  const promisedNote =
+    isTerminal || lateBy == null
+      ? null
+      : lateBy === 0
+      ? { text: td.dueToday, tone: 'text-warning' }
+      : lateBy > 0 && status !== 'ready'
+      ? {
+          text: lateBy === 1 ? td.overdueOne : td.overdueDays.replace('{n}', String(lateBy)),
+          tone: 'text-danger',
+        }
+      : null
+
+  const currentStep = STEP_OF[status]
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4">
+      {/* ── Top row ───────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/repair"
-          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-blue hover:underline"
         >
           <ArrowLeft size={14} weight="bold" />
           {t.repair.backToList}
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <a
             href={`/api/print/repair/${ticket.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
+            className={OUTLINE_BTN}
           >
-            <Printer size={12} weight="bold" />
+            <Printer size={16} weight="bold" />
             {t.repair.print.button}
           </a>
           {ticket.ticket_number ? (
@@ -356,29 +536,33 @@ export default function RepairTicketDetail({
               target={{ ticket: ticket.id }}
               choices={tagChoices}
               label={t.tags.printRepair}
-              compact
             />
           ) : null}
-          <button
-            type="button"
-            onClick={() => setShowReminder(true)}
-            className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-background hover:text-foreground"
-          >
+          <button type="button" onClick={() => setShowReminder(true)} className={OUTLINE_BTN}>
             {t.comms.sendReminderButton}
           </button>
-          {ticket.is_locked ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-xs font-medium text-foreground">
-              <Lock size={12} weight="bold" />
-              {t.repair.detail.lockedBadge}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/5 px-2 py-0.5 text-xs font-medium text-success">
-              <LockOpen size={12} weight="bold" />
-              {t.repair.detail.unlockedBadge}
-            </span>
-          )}
-          <ServiceTypeBadge type={ticket.service_type} />
-          <StatusBadge status={status} />
+          {canAbandon ? (
+            <details ref={moreRef} className="relative">
+              <summary className={`${OUTLINE_BTN} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+                {td.moreActions}
+                <CaretDown size={14} weight="bold" />
+              </summary>
+              <div className="absolute right-0 top-full z-30 mt-1 min-w-48 rounded-xl border border-border bg-card p-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (moreRef.current) moreRef.current.open = false
+                    setDialog('markAbandoned')
+                  }}
+                  disabled={pending}
+                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-danger hover:bg-background ${FOCUS}`}
+                >
+                  <Warning size={16} weight="bold" />
+                  {ta.markAbandoned}
+                </button>
+              </div>
+            </details>
+          ) : null}
         </div>
       </div>
       {showReminder ? (
@@ -395,273 +579,248 @@ export default function RepairTicketDetail({
         />
       ) : null}
 
-      {/* Header */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted">
-              {t.repair.detail.ticketLabel}
+      {/* ── Ticket header ─────────────────────────────────────────────── */}
+      <section className={`${CARD} overflow-hidden`}>
+        <div className="flex flex-wrap items-start gap-x-8 gap-y-4 px-5 py-4">
+          <div className="min-w-0 flex-[2_1_300px]">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-mono text-[28px] font-bold leading-tight tracking-tight text-foreground">
+                {ticket.ticket_number}
+              </h1>
+              <StatusBadge status={status} />
+              <ServiceTypeBadge type={ticket.service_type} />
+              {ticket.is_locked ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold text-text-secondary">
+                  <Lock size={12} weight="bold" />
+                  {td.lockedBadge}
+                </span>
+              ) : null}
             </div>
-            <h1 className="font-display font-mono text-2xl font-bold text-foreground">
-              {ticket.ticket_number}
-            </h1>
-            <div className="mt-1 text-base text-foreground">{ticket.title}</div>
+            <div className="mt-1.5 text-[17px] font-semibold text-foreground">{ticket.title}</div>
           </div>
-          <div className="min-w-[200px]">
-            <div className="text-xs uppercase tracking-wide text-muted">
-              {t.repair.detail.customerLabel}
-            </div>
+          <div className="min-w-0 flex-[1_1_220px]">
+            <div className={LBL}>{td.customerLabel}</div>
             <Link
               href={`/customers/${ticket.customer_id}`}
-              className="text-base font-semibold text-foreground hover:underline"
+              className="mt-1 block text-base font-bold text-foreground hover:text-blue hover:underline"
             >
               {ticket.customer_name}
             </Link>
-            <div className="text-xs text-muted">
-              {[ticket.customer_phone, ticket.customer_email]
-                .filter(Boolean)
-                .join(' · ') || '—'}
-            </div>
+            {ticket.customer_phone ? (
+              <a
+                href={`tel:${ticket.customer_phone.replace(/[^\d+]/g, '')}`}
+                className="block text-sm text-blue hover:underline"
+              >
+                {ticket.customer_phone}
+              </a>
+            ) : null}
+            {ticket.customer_email ? (
+              <div className="truncate text-sm text-text-secondary">{ticket.customer_email}</div>
+            ) : null}
           </div>
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted">
-              {t.repair.detail.promisedLabel}
+          <div className="flex-[0_1_170px]">
+            <div className={LBL}>{td.promisedLabel}</div>
+            <div className="mt-1 text-base font-bold text-foreground">
+              {ticket.promised_date ? fmtDay(ticket.promised_date, locale) : '—'}
             </div>
-            <div className="font-mono text-sm text-foreground">
-              {ticket.promised_date ?? '—'}
-            </div>
+            {promisedNote ? (
+              <div className={`text-sm font-bold ${promisedNote.tone}`}>{promisedNote.text}</div>
+            ) : null}
           </div>
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted">
-              {t.repair.detail.createdLabel}
-            </div>
-            <div className="font-mono text-sm text-foreground">
-              {new Date(ticket.created_at).toLocaleDateString()}
+          <div className="flex-[0_1_130px]">
+            <div className={LBL}>{td.createdLabel}</div>
+            <div className="mt-1 text-base text-text-secondary">
+              {new Date(ticket.created_at).toLocaleDateString(locale, {
+                month: 'short',
+                day: 'numeric',
+                year: ticket.created_at.slice(0, 4) === shopToday.slice(0, 4) ? undefined : 'numeric',
+              })}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Action row */}
-      <div className="flex flex-wrap items-center gap-2">
-        <ActionButton
-          label={
-            canSetQuote ? t.repair.actions.setQuote : t.repair.actions.editQuote
-          }
-          icon={<Tag size={14} weight="bold" />}
-          onClick={() => setDialog(canSetQuote ? 'setQuote' : 'editQuote')}
-          disabled={isTerminal || (!canSetQuote && !canEditQuote)}
-          primary={canSetQuote}
-        />
-        {canRequestApproval ? (
-          <ActionButton
-            label={t.repair.actions.requestApproval}
-            icon={<Tag size={14} weight="bold" />}
-            onClick={runRequestApproval}
-            disabled={pending}
-          />
-        ) : null}
-        {canApproveQuote ? (
-          <ActionButton
-            label={t.repair.actions.approveQuote}
-            icon={<ThumbsUp size={14} weight="bold" />}
-            onClick={() => runSimple(approveQuoteAction)}
-            disabled={pending}
-            tone="success"
-          />
-        ) : null}
-        {canCollectDeposit ? (
-          <ActionButton
-            label={t.repair.actions.collectDeposit}
-            icon={<CashRegister size={14} weight="bold" />}
-            onClick={() => setDialog('collectDeposit')}
-            disabled={pending}
-          />
-        ) : null}
-        {canStart ? (
-          <ActionButton
-            label={t.repair.actions.startWork}
-            icon={<Play size={14} weight="bold" />}
-            onClick={() => runSimple(startWorkAction)}
-            disabled={pending}
-            tone="success"
-          />
-        ) : null}
-        {canClaim ? (
-          <ActionButton
-            label={t.repair.actions.claimTicket}
-            icon={<Play size={14} weight="bold" />}
-            onClick={() => runSimple(claimTicketAction)}
-            disabled={pending}
-            tone="success"
-            primary
-          />
-        ) : null}
-        {canSendToQa ? (
-          <ActionButton
-            label={t.repair.actions.sendToQa}
-            icon={<CheckCircle size={14} weight="bold" />}
-            onClick={() => runSimple(sendToQaAction)}
-            disabled={pending}
-            tone="success"
-          />
-        ) : null}
-        {canApproveQa ? (
-          <ActionButton
-            label={t.repair.actions.approveQa}
-            icon={<CheckCircle size={14} weight="bold" />}
-            onClick={() => runSimple(approveQaAction)}
-            disabled={pending}
-            tone="success"
-            primary
-          />
-        ) : null}
-        {canReturnFromQa ? (
-          <ActionButton
-            label={t.repair.actions.returnFromQa}
-            icon={<Wrench size={14} weight="bold" />}
-            onClick={() => runSimple(returnFromQaAction)}
-            disabled={pending}
-            tone="warning"
-          />
-        ) : null}
-        {canMarkNeedsParts ? (
-          <ActionButton
-            label={t.repair.actions.markNeedsParts}
-            icon={<Pause size={14} weight="bold" />}
-            onClick={() => runSimple(markNeedsPartsAction)}
-            disabled={pending}
-            tone="warning"
-          />
-        ) : null}
-        {canPartsReceived ? (
-          <ActionButton
-            label={t.repair.actions.partsReceived}
-            icon={<Hammer size={14} weight="bold" />}
-            onClick={() => runSimple(partsReceivedAction)}
-            disabled={pending}
-            tone="success"
-          />
-        ) : null}
-        {canMarkComplete ? (
-          <ActionButton
-            label={t.repair.actions.markComplete}
-            icon={<CheckCircle size={14} weight="bold" />}
-            onClick={() => runSimple(markCompleteAction)}
-            disabled={pending}
-            tone="success"
-          />
-        ) : null}
-        {canRecordPickup ? (
-          <ActionButton
-            label={t.repair.actions.recordPickup}
-            icon={<CheckCircle size={14} weight="bold" />}
-            onClick={() => setDialog('recordPickup')}
-            disabled={pending}
-            primary
-          />
-        ) : null}
-        {canAbandon ? (
-          <ActionButton
-            label={t.repair.actions.markAbandoned}
-            icon={<Warning size={14} weight="bold" />}
-            onClick={() => setDialog('markAbandoned')}
-            disabled={pending}
-            tone="error"
-          />
-        ) : null}
-        {canVoid ? (
-          <ActionButton
-            label={t.repair.actions.void}
-            icon={<Prohibit size={14} weight="bold" />}
-            onClick={() => setDialog('void')}
-            disabled={pending}
-            tone="error"
-          />
-        ) : null}
-      </div>
+        {/* Workflow steps — display only. */}
+        <ol aria-label={td.stepsLabel} className="grid grid-cols-6 gap-1.5 px-5 pb-4">
+          {STEP_KEYS.map((key, i) => {
+            const done =
+              currentStep != null && (i < currentStep || (status === 'picked_up' && i === currentStep))
+            const current = currentStep === i && status !== 'picked_up'
+            return (
+              <li key={key} aria-current={current ? 'step' : undefined}>
+                <div
+                  className={`h-1.5 rounded-full ${done ? 'bg-blue' : current ? 'bg-gold' : 'bg-border'}`}
+                />
+                <div
+                  className={`mt-1.5 truncate text-[13px] ${
+                    current
+                      ? 'font-bold text-foreground'
+                      : done
+                      ? 'font-semibold text-text-secondary'
+                      : 'text-text-secondary'
+                  }`}
+                >
+                  {td.steps[key]}
+                </div>
+              </li>
+            )
+          })}
+        </ol>
 
-      {error ? (
-        <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {readableError(error, t)}
+        {/* Next step: one sentence + the ONE gold button for this status. */}
+        {band ? (
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gold/30 bg-gold/5 px-5 py-3.5">
+            <div className="min-w-0">
+              <div className="text-[12px] font-bold uppercase tracking-wide text-foreground">
+                {td.nextStepLabel}
+              </div>
+              {bandSentence ? (
+                <div className="mt-0.5 text-base font-semibold text-foreground">{bandSentence}</div>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {band.rest
+                .filter((k) => ACTS[k].can)
+                .map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={ACTS[k].run}
+                    disabled={pending}
+                    className={OUTLINE_BTN}
+                  >
+                    {ACTS[k].icon}
+                    {ACTS[k].label}
+                  </button>
+                ))}
+              {ACTS[band.gold].can ? (
+                <button
+                  type="button"
+                  onClick={ACTS[band.gold].run}
+                  disabled={pending}
+                  className={`${PRIMARY_BTN} h-11 text-sm`}
+                >
+                  {ACTS[band.gold].icon}
+                  {ACTS[band.gold].label}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+        {error ? (
+          <div
+            role="alert"
+            className="border-t border-danger/30 bg-danger/5 px-5 py-2.5 text-sm text-danger"
+          >
+            {readableError(error, t)}
+          </div>
+        ) : null}
+      </section>
+
+      {/* ── Two columns: the work | money, tech, customer link ──────────── */}
+      <div className="flex flex-wrap items-start gap-4">
+        <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
+          <ItemAndWork>
+            <PhotosPanel
+              ticketId={ticket.id}
+              photos={photos as RepairPhotoItem[]}
+              readOnly={ticket.is_locked}
+              onUpload={(fd) => passThrough(fd, addPhotoAction)}
+              onRemove={(photoId) => removePhotoAction(photoId)}
+              onReplace={(fd) => passThrough(fd, replacePhotoAction)}
+              onSetCaption={(fd) => passThrough(fd, setPhotoCaptionAction)}
+              aside={<ItemLines ticket={ticket} lineItems={lineItems} />}
+              extras={
+                <StonesPanel
+                  ticketId={ticket.id}
+                  stones={stones as RepairStoneItem[]}
+                  readOnly={ticket.is_locked}
+                  onAdd={(fd) => passThrough(fd, addStoneAction)}
+                  onRemove={(stoneId) => removeStoneAction(stoneId)}
+                />
+              }
+            />
+          </ItemAndWork>
+
+          <PartsPanel
+            ticketId={ticket.id}
+            parts={parts as RepairPartItem[]}
+            inventoryOptions={inventoryOptions as InventoryPartOption[]}
+            quoteAmount={ticket.quote_amount}
+            readOnly={ticket.is_locked}
+            onAdd={(fd) => passThrough(fd, addPartAction)}
+            onRemove={(partId) => removePartAction(partId)}
+          />
+
+          <section className={CARD}>
+            <header className="border-b border-border px-4 py-3">
+              <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
+                <ClockCounterClockwise size={16} weight="regular" />
+                {td.sectionNotesActivity}
+              </h2>
+            </header>
+            <div className="px-4 pb-1 pt-3">
+              {!ticket.is_locked ? <AddNoteForm ticketId={ticket.id} /> : null}
+              <TimelinePanel events={events as RepairEventItem[]} />
+            </div>
+          </section>
         </div>
-      ) : null}
 
-      {/* Customer tracking link + customer-facing stage (patches/0061) */}
-      <TrackingPanel
-        ticketId={ticket.id}
-        link={trackingLink}
-        stages={stages}
-        currentStageId={ticket.public_stage_id}
-        isTerminal={isTerminal}
-      />
+        <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-4">
+          <MoneyCard
+            ticket={ticket}
+            canCollectDeposit={canCollectDeposit}
+            pending={pending}
+            onCollectDeposit={() => setDialog('collectDeposit')}
+          />
 
-      {/* Send to laser — nameplate orders through orocut.com (patches/0070) */}
-      <LaserOrderPanel
-        ticketId={ticket.id}
-        customerName={ticket.customer_name}
-        promisedDate={ticket.promised_date}
-        isTerminal={isTerminal}
-        data={laser}
-      />
+          <section className={`${CARD} space-y-4 px-4 py-4`}>
+            <AssignmentSelect
+              ticket={ticket}
+              technicians={technicians}
+              disabled={ticket.is_locked}
+            />
+            <div className="border-t border-border pt-4">
+              <TimerPanel
+                ticketId={ticket.id}
+                logs={timeLogs as RepairTimeLogItem[]}
+                myUserId={myUserId}
+                onStart={(fd) => passThrough(fd, startTimerAction)}
+                onStop={(fd) => passThrough(fd, stopTimerAction)}
+              />
+            </div>
+          </section>
 
-      {/* Overview + Customer item */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <OverviewPanel ticket={ticket} />
-        <ItemPanel ticket={ticket} lineItems={lineItems} />
-        <AssignmentPanel
-          ticket={ticket}
-          technicians={technicians}
-          disabled={ticket.is_locked}
-        />
+          {/* Customer tracking link + customer-facing stage (patches/0061) */}
+          <TrackingPanel
+            ticketId={ticket.id}
+            link={trackingLink}
+            stages={stages}
+            currentStageId={ticket.public_stage_id}
+            isTerminal={isTerminal}
+          />
+
+          {/* Send to laser — nameplate orders through orocut.com (patches/0070) */}
+          <LaserOrderPanel
+            ticketId={ticket.id}
+            customerName={ticket.customer_name}
+            promisedDate={ticket.promised_date}
+            isTerminal={isTerminal}
+            data={laser}
+          />
+
+          {canVoid ? (
+            <button
+              type="button"
+              onClick={() => setDialog('void')}
+              disabled={pending}
+              className={`${QUIET_BTN} self-start text-danger`}
+            >
+              <Prohibit size={16} weight="bold" />
+              {td.voidTicket}
+            </button>
+          ) : null}
+        </div>
       </div>
-
-      {/* Stones + Parts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <StonesPanel
-          ticketId={ticket.id}
-          stones={stones as RepairStoneItem[]}
-          readOnly={ticket.is_locked}
-          onAdd={(fd) => passThrough(fd, addStoneAction)}
-          onRemove={(stoneId) => removeStoneAction(stoneId)}
-        />
-        <PartsPanel
-          ticketId={ticket.id}
-          parts={parts as RepairPartItem[]}
-          inventoryOptions={inventoryOptions as InventoryPartOption[]}
-          readOnly={ticket.is_locked}
-          onAdd={(fd) => passThrough(fd, addPartAction)}
-          onRemove={(partId) => removePartAction(partId)}
-        />
-      </div>
-
-      {/* Photos */}
-      <PhotosPanel
-        ticketId={ticket.id}
-        photos={photos as RepairPhotoItem[]}
-        readOnly={ticket.is_locked}
-        onUpload={(fd) => passThrough(fd, addPhotoAction)}
-        onRemove={(photoId) => removePhotoAction(photoId)}
-        onReplace={(fd) => passThrough(fd, replacePhotoAction)}
-        onSetCaption={(fd) => passThrough(fd, setPhotoCaptionAction)}
-      />
-
-      {/* Timer + Timeline */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <TimerPanel
-          ticketId={ticket.id}
-          logs={timeLogs as RepairTimeLogItem[]}
-          myUserId={myUserId}
-          onStart={(fd) => passThrough(fd, startTimerAction)}
-          onStop={(fd) => passThrough(fd, stopTimerAction)}
-        />
-        <TimelinePanel events={events as RepairEventItem[]} />
-      </div>
-
-      {/* Add note */}
-      {!ticket.is_locked ? (
-        <AddNoteForm ticketId={ticket.id} />
-      ) : null}
 
       {/* Dialogs */}
       {dialog === 'setQuote' || dialog === 'editQuote' ? (
@@ -705,104 +864,137 @@ export default function RepairTicketDetail({
   )
 }
 
-function OverviewPanel({ ticket }: { ticket: RepairTicketView }) {
+/** Balance due large, then Quote / Deposit / Paid; pickup record when done. */
+function MoneyCard({
+  ticket,
+  canCollectDeposit,
+  pending,
+  onCollectDeposit,
+}: {
+  ticket: RepairTicketView
+  canCollectDeposit: boolean
+  pending: boolean
+  onCollectDeposit: () => void
+}) {
   // The pickup signature, big, view only: it is the customer's record of
   // taking the piece home, never changed.
   const [viewingSignature, setViewingSignature] = useState(false)
   const { t } = useI18n()
+  const td = t.repair.detail
+  const row = 'flex items-center justify-between gap-3 text-sm text-text-secondary'
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <header className="border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold text-foreground">
-          {t.repair.detail.sectionOverview}
-        </h2>
-      </header>
-      <dl className="grid grid-cols-2 gap-3 p-4 text-sm">
-        <div>
-          <dt className="text-xs text-muted">{t.repair.detail.quote}</dt>
+    <section className={`${CARD} px-4 py-4`}>
+      <div className={LBL}>{td.balance}</div>
+      <div className="font-mono text-[34px] font-bold leading-tight tabular-nums text-foreground">
+        {ticket.balance_due == null ? '—' : fmtMoney(ticket.balance_due)}
+      </div>
+      <dl className="mt-2.5 space-y-1.5">
+        <div className={row}>
+          <dt>{td.quote}</dt>
           <dd className="font-mono text-foreground">
-            {ticket.quote_amount == null
-              ? t.repair.detail.quotePending
-              : fmtMoney(ticket.quote_amount)}
+            {ticket.quote_amount == null ? td.quotePending : fmtMoney(ticket.quote_amount)}
           </dd>
         </div>
-        <div>
-          <dt className="text-xs text-muted">{t.repair.detail.deposit}</dt>
+        <div className={row}>
+          <dt>{td.deposit}</dt>
           <dd className="font-mono text-foreground">{fmtMoney(ticket.deposit_amount)}</dd>
         </div>
-        <div>
-          <dt className="text-xs text-muted">{t.repair.detail.paid}</dt>
+        <div className={row}>
+          <dt>{td.paid}</dt>
           <dd className="font-mono text-foreground">{fmtMoney(ticket.paid_amount)}</dd>
         </div>
-        <div>
-          <dt className="text-xs text-muted">{t.repair.detail.balance}</dt>
-          <dd className="font-mono text-foreground">
-            {ticket.balance_due == null ? '—' : fmtMoney(ticket.balance_due)}
-          </dd>
-        </div>
-        {ticket.pickup_by_name ? (
-          <div className="col-span-2">
-            <dt className="text-xs text-muted">{t.repair.detail.pickupBy}</dt>
-            <dd className="text-foreground">
-              {ticket.pickup_by_name}
-              {ticket.picked_up_at
-                ? ` · ${new Date(ticket.picked_up_at).toLocaleString()}`
-                : null}
-            </dd>
-            {ticket.pickup_id_check ? (
-              <dd className="text-xs text-muted">
-                {t.repair.detail.idCheck}: {ticket.pickup_id_check}
-              </dd>
-            ) : null}
-            {ticket.pickup_signature_signed_url && ticket.pickup_signature_is_image ? (
-              <dd className="mt-1">
-                <button
-                  type="button"
-                  onClick={() => setViewingSignature(true)}
-                  title={t.repair.detail.pickupSignatureView}
-                  aria-label={t.repair.detail.pickupSignatureView}
-                  className={`relative block h-16 w-40 cursor-zoom-in overflow-hidden rounded-md border border-border bg-white ${FOCUS}`}
-                >
-                  <Image
-                    src={ticket.pickup_signature_signed_url}
-                    alt=""
-                    fill
-                    sizes="160px"
-                    unoptimized
-                    className="object-contain"
-                  />
-                </button>
-                <PhotoViewer
-                  photos={[
-                    {
-                      path: ticket.pickup_signature_signed_url,
-                      url: ticket.pickup_signature_signed_url,
-                      name: t.repair.detail.pickupSignatureView,
-                    },
-                  ]}
-                  index={viewingSignature ? 0 : null}
-                  onIndex={(i) => setViewingSignature(i != null)}
-                  noMain
-                />
-              </dd>
-            ) : ticket.pickup_signature_signed_url ? (
-              <a
-                href={ticket.pickup_signature_signed_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-block text-xs text-gold hover:underline"
-              >
-                {t.repair.detail.pickupSignatureView}
-              </a>
-            ) : null}
-          </div>
-        ) : null}
       </dl>
+      {canCollectDeposit ? (
+        <button
+          type="button"
+          onClick={onCollectDeposit}
+          disabled={pending}
+          className={`${OUTLINE_BTN} mt-3.5 w-full`}
+        >
+          <CashRegister size={16} weight="bold" />
+          {t.repair.actions.collectDeposit}
+        </button>
+      ) : null}
+      {ticket.pickup_by_name ? (
+        <div className="mt-4 border-t border-border pt-3 text-sm">
+          <div className={LBL}>{td.pickupBy}</div>
+          <div className="mt-0.5 text-foreground">
+            {ticket.pickup_by_name}
+            {ticket.picked_up_at
+              ? ` · ${new Date(ticket.picked_up_at).toLocaleString()}`
+              : null}
+          </div>
+          {ticket.pickup_id_check ? (
+            <div className="text-xs text-text-secondary">
+              {td.idCheck}: {ticket.pickup_id_check}
+            </div>
+          ) : null}
+          {ticket.pickup_signature_signed_url && ticket.pickup_signature_is_image ? (
+            <div className="mt-1">
+              <button
+                type="button"
+                onClick={() => setViewingSignature(true)}
+                title={td.pickupSignatureView}
+                aria-label={td.pickupSignatureView}
+                className={`relative block h-16 w-40 cursor-zoom-in overflow-hidden rounded-md border border-border bg-white ${FOCUS}`}
+              >
+                <Image
+                  src={ticket.pickup_signature_signed_url}
+                  alt=""
+                  fill
+                  sizes="160px"
+                  unoptimized
+                  className="object-contain"
+                />
+              </button>
+              <PhotoViewer
+                photos={[
+                  {
+                    path: ticket.pickup_signature_signed_url,
+                    url: ticket.pickup_signature_signed_url,
+                    name: td.pickupSignatureView,
+                  },
+                ]}
+                index={viewingSignature ? 0 : null}
+                onIndex={(i) => setViewingSignature(i != null)}
+                noMain
+              />
+            </div>
+          ) : ticket.pickup_signature_signed_url ? (
+            <a
+              href={ticket.pickup_signature_signed_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block text-xs text-blue hover:underline"
+            >
+              {td.pickupSignatureView}
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   )
 }
 
-function ItemPanel({
+/** The "Item and work" card. Its body is the photo block, which lays the
+ *  item lines beside the thumbnails (PhotosPanel `aside`). */
+function ItemAndWork({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n()
+  return (
+    <section className={CARD}>
+      <header className="border-b border-border px-4 py-3">
+        <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <Wrench size={16} weight="regular" />
+          {t.repair.detail.sectionItemAndWork}
+        </h2>
+      </header>
+      <div className="px-4 py-4">{children}</div>
+    </section>
+  )
+}
+
+/** The item line(s): title, work, service type, price; internal notes. */
+function ItemLines({
   ticket,
   lineItems,
 }: {
@@ -810,71 +1002,57 @@ function ItemPanel({
   lineItems: RepairLineItemView[]
 }) {
   const { t } = useI18n()
+  const td = t.repair.detail
+  // The header already shows the title: one item whose title IS the ticket
+  // title prints only its work, price and service.
+  const single = lineItems.length === 1 && lineItems[0].title.trim() === ticket.title.trim()
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <header className="border-b border-border px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Wrench size={14} weight="regular" />
-          {t.repair.detail.sectionItem}
-        </h2>
-      </header>
-      <div className="space-y-3 p-4 text-sm">
-        {lineItems.length > 0 ? (
-          <ul className="space-y-2">
-            {lineItems.map((li) => (
-              <li
-                key={li.id}
-                className="rounded-md border border-border bg-background/40 p-2.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-semibold text-foreground">
-                    {li.title}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    {li.price != null ? (
-                      <span className="font-mono font-semibold tabular-nums text-foreground">
-                        {li.price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                      </span>
-                    ) : null}
-                    <ServiceTypeBadge type={li.service_type} />
-                  </span>
+    <div className="space-y-3">
+      {lineItems.length > 0 ? (
+        <ul className="space-y-3">
+          {lineItems.map((li) => (
+            <li key={li.id} className="border-b border-border pb-3 last:border-b-0 last:pb-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  {!single ? (
+                    <div className="text-base font-bold text-foreground">{li.title}</div>
+                  ) : null}
+                  {li.work_needed ? (
+                    <div className="whitespace-pre-wrap text-base text-foreground">
+                      {li.work_needed}
+                    </div>
+                  ) : null}
                 </div>
-                {li.work_needed ? (
-                  <div className="mt-1 text-foreground/90 whitespace-pre-wrap">
-                    {li.work_needed}
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          // Legacy tickets (no line items backfilled): fall back to the
-          // free-text snapshot.
-          <div>
-            <div className="text-xs text-muted">
-              {t.repair.detail.itemDescription}
-            </div>
-            <div className="text-foreground whitespace-pre-wrap">
-              {ticket.item_description}
-            </div>
-          </div>
-        )}
-        {ticket.notes_internal ? (
-          <div className="rounded-md border border-warning/20 bg-warning/5 p-2">
-            <div className="text-xs text-warning">
-              {t.repair.detail.notesInternalLabel}
-            </div>
-            <div className="text-foreground whitespace-pre-wrap">
-              {ticket.notes_internal}
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </section>
+                <div className="flex shrink-0 items-center gap-2">
+                  <ServiceTypeBadge type={li.service_type} />
+                  {li.price != null ? (
+                    <span className="font-mono text-base font-bold tabular-nums text-foreground">
+                      {fmtMoney(li.price)}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        // Legacy tickets (no line items backfilled): the free-text snapshot.
+        <div>
+          <div className={LBL}>{td.itemDescription}</div>
+          <div className="whitespace-pre-wrap text-foreground">{ticket.item_description}</div>
+        </div>
+      )}
+      {ticket.notes_internal ? (
+        <div className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-sm">
+          <div className="text-xs font-bold text-warning">{td.notesInternalLabel}</div>
+          <div className="whitespace-pre-wrap text-foreground">{ticket.notes_internal}</div>
+        </div>
+      ) : null}
+    </div>
   )
 }
 
-function AssignmentPanel({
+function AssignmentSelect({
   ticket,
   technicians,
   disabled,
@@ -899,29 +1077,26 @@ function AssignmentPanel({
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <header className="border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold text-foreground">
-          {t.repair.detail.assignedTechnician}
-        </h2>
-      </header>
-      <div className="space-y-2 p-4 text-sm">
-        <select
-          value={ticket.assigned_to ?? ''}
-          disabled={disabled || pending}
-          onChange={(e) => onChange(e.target.value)}
-          className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue disabled:opacity-50"
-        >
-          <option value="">{t.repair.detail.noTechnician}</option>
-          {technicians.map((tech) => (
-            <option key={tech.id} value={tech.id}>
-              {tech.label}
-            </option>
-          ))}
-        </select>
-        {error ? <div className="text-xs text-danger">{error}</div> : null}
-      </div>
-    </section>
+    <div>
+      <label htmlFor="repair-technician" className={`${LBL} block`}>
+        {t.repair.detail.assignedTechnician}
+      </label>
+      <select
+        id="repair-technician"
+        value={ticket.assigned_to ?? ''}
+        disabled={disabled || pending}
+        onChange={(e) => onChange(e.target.value)}
+        className={`mt-1.5 block h-11 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-blue disabled:opacity-50 ${FOCUS}`}
+      >
+        <option value="">{t.repair.detail.noTechnician}</option>
+        {technicians.map((tech) => (
+          <option key={tech.id} value={tech.id}>
+            {tech.label}
+          </option>
+        ))}
+      </select>
+      {error ? <div className="mt-1 text-xs text-danger">{error}</div> : null}
+    </div>
   )
 }
 
@@ -945,73 +1120,50 @@ function AddNoteForm({ ticketId }: { ticketId: string }) {
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <header className="border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold text-foreground">
+    <div className="pb-3">
+      <div className="flex flex-wrap gap-2">
+        <label htmlFor="repair-add-note" className="sr-only">
           {t.repair.actions.addNote}
-        </h2>
-      </header>
-      <div className="space-y-2 p-4">
-        <textarea
-          rows={2}
+        </label>
+        <input
+          id="repair-add-note"
+          type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder={t.repair.dialogs.addNote.notes}
-          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              submit()
+            }
+          }}
+          placeholder={t.repair.detail.notePlaceholder}
+          className={`h-11 min-w-0 flex-[1_1_260px] rounded-md border border-border bg-card px-3 text-[15px] text-foreground outline-none focus:border-blue ${FOCUS}`}
         />
-        <div className="flex items-center justify-end gap-2">
-          {error ? (
-            <span className="text-xs text-danger">{error}</span>
-          ) : null}
-          <button
-            type="button"
-            onClick={submit}
-            disabled={pending || !notes.trim()}
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
-          >
-            {pending ? t.common.saving : t.repair.actions.addNote}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={pending || !notes.trim()}
+          className={OUTLINE_BTN}
+        >
+          {pending ? t.common.saving : t.repair.actions.addNote}
+        </button>
       </div>
-    </section>
+      {error ? <div className="mt-1 text-xs text-danger">{error}</div> : null}
+    </div>
   )
 }
 
-function ActionButton({
-  label,
-  icon,
-  onClick,
-  disabled,
-  primary,
-  tone,
-}: {
-  label: string
-  icon: React.ReactNode
-  onClick: () => void
-  disabled?: boolean
-  primary?: boolean
-  tone?: 'success' | 'warning' | 'error'
-}) {
-  let cls =
-    'inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50'
-  if (primary) {
-    cls +=
-      ' border-gold bg-gold text-navy hover:bg-gold-2 disabled:hover:bg-gold'
-  } else if (tone === 'success') {
-    cls += ' border-success/30 bg-success/5 text-success hover:bg-success/10'
-  } else if (tone === 'warning') {
-    cls += ' border-warning/30 bg-warning/5 text-warning hover:bg-warning/10'
-  } else if (tone === 'error') {
-    cls += ' border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
-  } else {
-    cls += ' border-border bg-card text-foreground hover:bg-background hover:text-foreground'
-  }
-  return (
-    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
-      {icon}
-      {label}
-    </button>
-  )
+/** A promised date (YYYY-MM-DD) as "Fri, Nov 27" — the calendar day itself,
+ *  never shifted by the browser's timezone. */
+function fmtDay(ymd: string, locale: string): string {
+  const d = new Date(`${ymd}T12:00:00Z`)
+  if (isNaN(d.getTime())) return ymd
+  return d.toLocaleDateString(locale, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
 }
 
 function fmtMoney(v: number): string {

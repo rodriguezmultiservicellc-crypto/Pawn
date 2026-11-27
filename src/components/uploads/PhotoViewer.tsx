@@ -41,6 +41,7 @@ export function PhotoViewer({
   onIndex,
   edit,
   noMain = false,
+  below,
 }: {
   photos: ViewerPhoto[]
   /** The photo showing (its place in `photos`), or null = closed. */
@@ -49,6 +50,9 @@ export function PhotoViewer({
   edit?: ViewerEdit
   /** The first photo is not a "main" one (repair tickets): no badge. */
   noMain?: boolean
+  /** Shown under the photo, above the edit buttons (a repair photo's
+   *  caption field). Key it by the photo so it resets when the arrows move. */
+  below?: React.ReactNode
 }) {
   const { t } = useI18n()
   const tp = t.common.photoStrip
@@ -170,6 +174,8 @@ export function PhotoViewer({
                 </>
               ) : null}
             </div>
+
+            {below ? <div className="border-t border-border px-4 py-3">{below}</div> : null}
 
             {edit ? (
               <>
