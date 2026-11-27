@@ -97,6 +97,19 @@ describe('ticketFromComplianceRow', () => {
     expect(t.extra).toEqual([{ name: 'TICKET_LOAN_AMOUNT', value: '300' }])
   })
 
+  it("sends a pawn's redeem-by date before the customer (patches/0125)", () => {
+    const t = ticketFromComplianceRow({ row: row({ redeem_by: '2026-12-25' }), voided: false, timeZone: 'America/New_York' })
+    expect(t.redeemByDate).toBe('2026-12-25')
+    const x = submitTransactionEnvelope(login, t)
+    expect(x).toContain('</key><redeemByDate>2026-12-25</redeemByDate><customer>')
+    const buy = ticketFromComplianceRow({
+      row: row({ event_type: 'buy_outright', redeem_by: '2026-12-25' }),
+      voided: false,
+      timeZone: 'America/New_York',
+    })
+    expect(buy.redeemByDate).toBe('')
+  })
+
   it('marks a voided ticket and every item void', () => {
     const t = ticketFromComplianceRow({ row: row(), voided: true, timeZone: 'America/New_York' })
     expect(t.isVoid).toBe(true)

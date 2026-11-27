@@ -8,6 +8,8 @@
  *   - <LeadsOnlineUpload> → software → store_info → tickets/ticket → customer
  *     → property/item, every element in that order, empty ones written
  *     <x></x> (redeem_date, ticket_number_orig, enter_date_orig self-closed).
+ *     Since patches/0125 a pawn's redeem_date carries its maturity date
+ *     (xPawn left it empty); a buy's stays self-closed.
  *     Tab indentation, CRLF line ends.
  *   - ticket_type 2 = pawn, 1 = buy. void Y/N: a voided ticket is SENT with
  *     Y (never held back); one voided after it went out is sent again with Y.
@@ -247,7 +249,11 @@ export function buildLeadsOnlineXml(args: {
     o.el('enter_date', shopDateTime(row.occurred_at, timeZone), 3)
     o.el('clerk', s(row.clerk), 3)
     o.el('void', voided ? 'Y' : 'N', 3)
-    o.empty('redeem_date', 3)
+    // The pawn's maturity date (patches/0125), in the file's date format.
+    // Empty as xPawn sent it when there is none (a buy, a pre-0125 pawn).
+    const redeemBy = buy ? '' : s(row.redeem_by).slice(0, 10)
+    if (redeemBy) o.el('redeem_date', `${redeemBy}T00:00:00`, 3)
+    else o.empty('redeem_date', 3)
     o.empty('ticket_number_orig', 3)
     o.empty('enter_date_orig', 3)
 

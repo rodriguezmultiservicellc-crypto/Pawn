@@ -302,7 +302,9 @@ export function ticketFromComplianceRow(args: {
 
   return {
     key: ticketKeyOf(row, timeZone),
-    redeemByDate: '',
+    // The maturity date on the pawn ticket (patches/0125); YYYY-MM-DD is a
+    // format the API document lists. None for a buy or a pre-0125 pawn.
+    redeemByDate: buy ? '' : s(row.redeem_by).slice(0, 10),
     customer,
     items: soapItems,
     isVoid: voided,

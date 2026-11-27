@@ -724,6 +724,7 @@ export type Database = {
           id: string
           items_snapshot: Json
           occurred_at: string
+          redeem_by: string | null
           reference_number: string | null
           source_id: string
           source_table: string
@@ -744,6 +745,7 @@ export type Database = {
           id?: string
           items_snapshot: Json
           occurred_at?: string
+          redeem_by?: string | null
           reference_number?: string | null
           source_id: string
           source_table: string
@@ -764,6 +766,7 @@ export type Database = {
           id?: string
           items_snapshot?: Json
           occurred_at?: string
+          redeem_by?: string | null
           reference_number?: string | null
           source_id?: string
           source_table?: string

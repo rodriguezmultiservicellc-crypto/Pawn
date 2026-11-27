@@ -80,6 +80,14 @@ describe('LeadsOnline XML', () => {
     expect(xml).not.toMatch(/[^\r]\n/)
   })
 
+  it("sends a pawn's redeem-by date (patches/0125), never a buy's", () => {
+    const withDate = build([{ row: { ...pawn, redeem_by: '2026-12-25' } as typeof pawn, voided: false }])
+    expect(withDate).toContain('\t\t\t<redeem_date>2026-12-25T00:00:00</redeem_date>\r\n')
+    expect(tagsOf(withDate)).toEqual(XPAWN_ORDER)
+    const buy = build([{ row: { ...pawn, event_type: 'buy_outright', redeem_by: '2026-12-25' } as typeof pawn, voided: false }])
+    expect(buy).toContain('\t\t\t<redeem_date/>\r\n')
+  })
+
   it('writes the values the way the accepted files did', () => {
     expect(val(xml, 'store_number')).toBe('103110000228401')
     expect(val(xml, 'store_phone')).toBe('(813) 876-3119')

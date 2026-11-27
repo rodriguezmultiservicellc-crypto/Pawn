@@ -516,6 +516,9 @@ export async function createLoanAction(
     amount: v.principal,
     // The police upload's <ticket_number> and <clerk> (patches/0111).
     reference_number: loanRow.ticket_number,
+    // The maturity date on the ticket, frozen for the police record
+    // (patches/0125): same derivation as the loan's due_date above.
+    redeem_by: addDaysIso(v.issue_date, v.term_days),
     clerk: await loadClerkInitials(supabase, userId),
   })
 
