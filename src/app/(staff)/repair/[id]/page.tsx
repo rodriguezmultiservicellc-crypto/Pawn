@@ -13,6 +13,7 @@ import { loadTagTemplates } from '@/lib/labels/load'
 import { templateChoices } from '@/lib/labels/templates'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import { elapsedHours, timeByTechnician } from '@/lib/repair/billing'
+import { loadTechnicianOptions } from '@/lib/repair/technicians'
 import RepairTicketDetail, {
   type InventoryPartChoice,
   type LaborView,
@@ -23,7 +24,6 @@ import RepairTicketDetail, {
   type RepairEventView,
   type RepairTicketView,
   type TechTimeView,
-  type TechnicianOption,
 } from './content'
 import type {
   RepairEventType,
@@ -229,30 +229,8 @@ export default async function RepairTicketDetailPage(props: {
     )
   }
 
-  // Pick technicians for the assignment dropdown.
-  const { data: utRows } = await ctx.supabase
-    .from('user_tenants')
-    .select('user_id, role')
-    .eq('tenant_id', ticket.tenant_id)
-    .eq('is_active', true)
-  const techIds = (utRows ?? [])
-    .filter((u) =>
-      ['owner', 'manager', 'pawn_clerk', 'repair_tech', 'chain_admin'].includes(
-        u.role,
-      ),
-    )
-    .map((u) => u.user_id)
-  let technicianOptions: TechnicianOption[] = []
-  if (techIds.length > 0) {
-    const { data: techProfiles } = await ctx.supabase
-      .from('profiles')
-      .select('id, full_name, email')
-      .in('id', techIds)
-    technicianOptions = (techProfiles ?? []).map((p) => ({
-      id: p.id,
-      label: p.full_name?.trim() || p.email || p.id.slice(0, 8),
-    }))
-  }
+  // Who the ticket can be assigned to.
+  const technicianOptions = await loadTechnicianOptions(ctx.supabase, ticket.tenant_id)
 
   // Inventory items for the part picker (cap 200).
   const { data: invItems } = await ctx.supabase

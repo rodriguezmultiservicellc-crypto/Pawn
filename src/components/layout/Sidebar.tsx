@@ -9,6 +9,7 @@ import {
   Package,
   Coins,
   Scales,
+  Timer,
   Wrench,
   Sparkle,
   CashRegister,
@@ -89,6 +90,8 @@ const COUNT_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin', 'paw
 const SETTINGS_ROLES = new Set<TenantRole>(['owner', 'manager', 'chain_admin'])
 const BILLING_ROLES = new Set<TenantRole>(['owner', 'chain_admin'])
 const LOYALTY_ROLES = new Set<TenantRole>(['owner', 'chain_admin'])
+/** Who works the bench (repair timer roles). */
+const MY_JOBS_ROLES = new Set<TenantRole>(['owner', 'manager', 'repair_tech', 'chain_admin'])
 
 const MOBILE_QUERY = '(max-width: 800px)'
 const STORAGE_KEY = 'pawn.sidebar.collapsed'
@@ -219,6 +222,7 @@ export function Sidebar({
   const canSeeBilling = !!tenantRole && BILLING_ROLES.has(tenantRole)
   const canSeeLoyalty = !!tenantRole && LOYALTY_ROLES.has(tenantRole)
   const canSeeCounts = !!tenantRole && COUNT_ROLES.has(tenantRole)
+  const canSeeMyJobs = !!tenantRole && MY_JOBS_ROLES.has(tenantRole)
   // Same roles as lib/imports/access resolveImportRole.
   const canSeeImport = !!tenantRole && AUDIT_ROLES.has(tenantRole)
   const canSeeTransfers =
@@ -437,6 +441,16 @@ export function Sidebar({
       label: t.nav.repairs,
       icon: <Wrench size={16} weight="regular" />,
       visible: modules.has_repair,
+      child: true,
+    },
+    // The technician's bench: their jobs + Start / Stop timer.
+    {
+      kind: 'item',
+      href: '/repair/my-jobs',
+      group: 'repair',
+      label: t.nav.myJobs,
+      icon: <Timer size={16} weight="regular" />,
+      visible: modules.has_repair && canSeeMyJobs,
       child: true,
     },
     {

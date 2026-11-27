@@ -176,6 +176,7 @@ const ROUTES = [
   ['repair', '/repair'],
   ['repair detail', ids.repair && `/repair/${ids.repair}`],
   ['repair board', '/repair/board'],
+  ['repair my jobs', '/repair/my-jobs'],
   // Brief Phase 0 (spot prices: fallback chain, fetch log, stale banner).
   ['P0 spot prices', '/inventory/spot-prices'],
   // Brief Phase 1 (tracking link + stages) and Phase 2 (custom quotes).

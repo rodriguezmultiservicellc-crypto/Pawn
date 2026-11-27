@@ -72,6 +72,9 @@ const TECH_ROLES: ReadonlyArray<TenantRole> = [
   'chain_admin',
 ]
 
+/** A timer never starts on these. */
+const TIMER_CLOSED_STATUSES: ReadonlySet<RepairStatus> = new Set(['picked_up', 'abandoned', 'voided'])
+
 function newUuid(): string {
   return crypto.randomUUID()
 }
@@ -122,6 +125,14 @@ async function openTimerForTech(args: {
     .is('stopped_at', null)
     .maybeSingle()
   if (existing) return
+  // One job at a time (as startTimerAction): stop their timer elsewhere.
+  await args.supabase
+    .from('repair_time_logs')
+    .update({ stopped_at: new Date().toISOString() })
+    .eq('tenant_id', args.tenantId)
+    .eq('technician_id', args.techUserId)
+    .neq('ticket_id', args.ticketId)
+    .is('stopped_at', null)
   await args.supabase.from('repair_time_logs').insert({
     ticket_id: args.ticketId,
     tenant_id: args.tenantId,
@@ -1888,16 +1899,45 @@ export async function startTimerAction(
     v.ticket_id,
     TECH_ROLES,
   )
+  // No time on a closed ticket (picked up, abandoned, voided).
+  if (ticket.is_locked || TIMER_CLOSED_STATUSES.has(ticket.status as RepairStatus)) {
+    return { error: 'ticket_closed' }
+  }
 
-  // Check no other open timer for this user on this ticket.
-  const { data: existing } = await supabase
+  // One job at a time: a technician's running timers.
+  const { data: running } = await supabase
     .from('repair_time_logs')
-    .select('id')
-    .eq('ticket_id', ticket.id)
+    .select('id, ticket_id')
+    .eq('tenant_id', tenantId)
     .eq('technician_id', userId)
     .is('stopped_at', null)
-    .maybeSingle()
-  if (existing) return { error: 'timerAlreadyRunning' }
+  if ((running ?? []).some((r) => r.ticket_id === ticket.id)) {
+    return { error: 'timerAlreadyRunning' }
+  }
+  // Starting this job stops the one they were on, so the same minutes are
+  // never counted as labor on two tickets.
+  const elsewhere = running ?? []
+  if (elsewhere.length > 0) {
+    const stoppedAt = new Date().toISOString()
+    const { error: stopError } = await supabase
+      .from('repair_time_logs')
+      .update({ stopped_at: stoppedAt })
+      .eq('tenant_id', tenantId)
+      .in('id', elsewhere.map((r) => r.id))
+      .is('stopped_at', null)
+    if (stopError) return { error: stopError.message }
+    for (const r of elsewhere) {
+      await logAudit({
+        tenantId,
+        userId,
+        action: 'timer_stop',
+        tableName: 'repair_time_logs',
+        recordId: r.id,
+        changes: { ticket_id: r.ticket_id, reason: 'switched_job', to_ticket_id: ticket.id },
+      })
+      revalidatePath(`/repair/${r.ticket_id}`)
+    }
+  }
 
   const { data: inserted, error } = await supabase
     .from('repair_time_logs')
@@ -1922,6 +1962,7 @@ export async function startTimerAction(
   })
 
   revalidatePath(`/repair/${ticket.id}`)
+  revalidatePath('/repair/my-jobs')
   return { ok: true }
 }
 
@@ -1969,5 +2010,6 @@ export async function stopTimerAction(
   })
 
   revalidatePath(`/repair/${log.ticket_id}`)
+  revalidatePath('/repair/my-jobs')
   return { ok: true }
 }

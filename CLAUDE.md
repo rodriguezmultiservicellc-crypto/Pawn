@@ -577,6 +577,11 @@ Never kill node processes by image name — always by PID.
     - A ticket's Profit / loss is `repairProfit()` (`src/lib/repair/billing.ts`):
       money in (closed) or quote (open) less parts and labor = all timer
       hours × `settings.repair_labor_rate` (patches/0128, NULL = labor left out).
+    - A technician runs ONE timer at a time: `startTimerAction` and the
+      automatic `openTimerForTech` stop their timer on any other ticket
+      first, so no minute is labor on two tickets; no timer starts on a
+      closed ticket. Technicians start / stop on `/repair/my-jobs`; the
+      ticket page only shows each technician's time.
 
 ---
 

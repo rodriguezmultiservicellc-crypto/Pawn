@@ -26,6 +26,7 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import { daysBetween } from '@/lib/pawn/math'
 import { partsCogs, repairProfit } from '@/lib/repair/billing'
+import type { TechnicianOption } from '@/lib/repair/technicians'
 import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
 import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
 import { ServiceTypeBadge } from '@/components/repair/ServiceTypeBadge'
@@ -84,10 +85,7 @@ import type {
   ServiceType,
 } from '@/types/database-aliases'
 
-export type TechnicianOption = {
-  id: string
-  label: string
-}
+export type { TechnicianOption } from '@/lib/repair/technicians'
 
 export type InventoryPartChoice = {
   id: string
