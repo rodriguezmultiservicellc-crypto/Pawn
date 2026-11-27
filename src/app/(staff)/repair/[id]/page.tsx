@@ -14,6 +14,7 @@ import { templateChoices } from '@/lib/labels/templates'
 import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import { elapsedHours, timeByTechnician } from '@/lib/repair/billing'
 import { loadTechnicianOptions } from '@/lib/repair/technicians'
+import { loadPartPickerOptions } from '@/lib/repair/part-options'
 import RepairTicketDetail, {
   type InventoryPartChoice,
   type LaborView,
@@ -196,7 +197,9 @@ export default async function RepairTicketDetailPage(props: {
   // Line items (one row per customer item).
   const { data: lineItemRows } = await ctx.supabase
     .from('repair_ticket_line_items')
-    .select('id, line_index, title, service_type, work_needed, price')
+    .select(
+      'id, line_index, title, service_type, work_needed, price, karat, weight_grams, received_weight_grams, received_karat, received_at, final_weight_grams',
+    )
     .eq('ticket_id', id)
     .is('deleted_at', null)
     .order('line_index', { ascending: true })
@@ -207,6 +210,12 @@ export default async function RepairTicketDetailPage(props: {
     service_type: li.service_type as ServiceType,
     work_needed: li.work_needed,
     price: li.price == null ? null : Number(li.price),
+    karat: li.karat,
+    weight_grams: li.weight_grams == null ? null : Number(li.weight_grams),
+    received_weight_grams: li.received_weight_grams == null ? null : Number(li.received_weight_grams),
+    received_karat: li.received_karat,
+    received_at: li.received_at,
+    final_weight_grams: li.final_weight_grams == null ? null : Number(li.final_weight_grams),
   }))
 
   // Resolve user names for assigned_to + technicians + event performers.
@@ -232,21 +241,8 @@ export default async function RepairTicketDetailPage(props: {
   // Who the ticket can be assigned to.
   const technicianOptions = await loadTechnicianOptions(ctx.supabase, ticket.tenant_id)
 
-  // Inventory items for the part picker (cap 200).
-  const { data: invItems } = await ctx.supabase
-    .from('inventory_items')
-    .select('id, sku, description, cost_basis, category')
-    .eq('tenant_id', ticket.tenant_id)
-    .is('deleted_at', null)
-    .eq('status', 'available')
-    .order('sku', { ascending: false })
-    .limit(200)
-  const inventoryOptions: InventoryPartChoice[] = (invItems ?? []).map((i) => ({
-    id: i.id,
-    label: `${i.sku} — ${i.description}`,
-    cost_basis: i.cost_basis == null ? null : Number(i.cost_basis),
-    category: i.category,
-  }))
+  // Inventory items for the part picker.
+  const inventoryOptions: InventoryPartChoice[] = await loadPartPickerOptions(ctx.supabase, ticket.tenant_id)
 
   // Sign photo URLs in parallel.
   const photoViews: RepairPhotoView[] = await Promise.all(

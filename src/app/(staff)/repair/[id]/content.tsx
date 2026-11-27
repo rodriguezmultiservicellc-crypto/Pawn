@@ -26,6 +26,7 @@ import {
 import { useI18n } from '@/lib/i18n/context'
 import { daysBetween } from '@/lib/pawn/math'
 import { partsCogs, repairProfit } from '@/lib/repair/billing'
+import { fmtGramsChange, gramsChange, sameKarat } from '@/lib/repair/item-weights'
 import type { TechnicianOption } from '@/lib/repair/technicians'
 import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
 import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
@@ -171,6 +172,13 @@ export type RepairLineItemView = {
   work_needed: string | null
   /** The item's price, set at intake (patches/0122); null = not priced. */
   price: number | null
+  /** Intake weight / karat, then the technician's readings (patches/0132). */
+  karat: string | null
+  weight_grams: number | null
+  received_weight_grams: number | null
+  received_karat: string | null
+  received_at: string | null
+  final_weight_grams: number | null
 }
 
 export type RepairPhotoView = {
@@ -1039,6 +1047,7 @@ function ItemLines({
                       {li.work_needed}
                     </div>
                   ) : null}
+                  <ItemWeights item={li} />
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <ServiceTypeBadge type={li.service_type} />
@@ -1064,6 +1073,39 @@ function ItemLines({
           <div className="text-xs font-bold text-warning">{td.notesInternalLabel}</div>
           <div className="whitespace-pre-wrap text-foreground">{ticket.notes_internal}</div>
         </div>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * The bench readings of one item, once the technician took them: received
+ * weight / karat (warning tone when they differ from intake) and the ending
+ * weight. Nothing before the tech weighs it in.
+ */
+function ItemWeights({ item }: { item: RepairLineItemView }) {
+  const { t } = useI18n()
+  const tm = t.repair.myJobs
+  if (item.received_at == null && item.final_weight_grams == null) return null
+  const recvDiff = gramsChange(item.weight_grams, item.received_weight_grams)
+  const karatDiff = item.received_at != null && !sameKarat(item.karat, item.received_karat)
+  const finalDiff = gramsChange(item.received_weight_grams, item.final_weight_grams)
+  return (
+    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13px] text-text-secondary">
+      {item.received_at != null ? (
+        <span className={recvDiff != null || karatDiff ? 'font-semibold text-warning' : ''}>
+          {tm.received}:{' '}
+          {[item.received_weight_grams != null ? `${item.received_weight_grams} g` : null, item.received_karat]
+            .filter(Boolean)
+            .join(' · ')}
+          {recvDiff != null ? ` (${tm.differsFromIntake} ${fmtGramsChange(recvDiff)})` : ''}
+          {karatDiff ? ` · ${tm.karatDiffers}` : ''}
+        </span>
+      ) : null}
+      {item.final_weight_grams != null ? (
+        <span>
+          {tm.finished}: {item.final_weight_grams} g{finalDiff != null ? ` (${fmtGramsChange(finalDiff)})` : ''}
+        </span>
       ) : null}
     </div>
   )

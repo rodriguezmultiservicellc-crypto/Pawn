@@ -72,6 +72,21 @@ const TECH_ROLES: ReadonlyArray<TenantRole> = [
   'chain_admin',
 ]
 
+/**
+ * Every item on the ticket was weighed in by the technician (patches/0132):
+ * no time goes on a piece nobody checked. A ticket without items passes.
+ */
+async function itemsReceived(supabase: AdminLikeClient, tenantId: string, ticketId: string): Promise<boolean> {
+  const { count } = await supabase
+    .from('repair_ticket_line_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .eq('ticket_id', ticketId)
+    .is('deleted_at', null)
+    .is('received_at', null)
+  return (count ?? 0) === 0
+}
+
 /** A timer never starts on these. */
 const TIMER_CLOSED_STATUSES: ReadonlySet<RepairStatus> = new Set(['picked_up', 'abandoned', 'voided'])
 
@@ -1059,6 +1074,7 @@ export async function claimTicketAction(
   )
 
   if (ticket.status !== 'assigned') return { error: 'illegalTransition' }
+  if (!(await itemsReceived(supabase, tenantId, ticket.id))) return { error: 'receipt_required' }
 
   // Authorization: must be the assigned tech, or a manager-level role.
   // Manager override lets owners reassign-and-claim in one step if a
@@ -1125,6 +1141,7 @@ export async function claimTicketAction(
 
   revalidatePath(`/repair/${ticket.id}`)
   revalidatePath('/repair')
+  revalidatePath('/repair/my-jobs')
   return { ok: true }
 }
 
@@ -1184,6 +1201,7 @@ export async function sendToQaAction(
 
   revalidatePath(`/repair/${ticket.id}`)
   revalidatePath('/repair')
+  revalidatePath('/repair/my-jobs')
   return { ok: true }
 }
 
@@ -1521,6 +1539,7 @@ export async function addPartAction(
   })
 
   revalidatePath(`/repair/${ticket.id}`)
+  revalidatePath('/repair/my-jobs')
   return { ok: true }
 }
 
@@ -1579,6 +1598,7 @@ export async function removePartAction(
   })
 
   revalidatePath(`/repair/${part.ticket_id}`)
+  revalidatePath('/repair/my-jobs')
   return { ok: true }
 }
 
@@ -1882,6 +1902,7 @@ export async function startTimerAction(
   if (ticket.is_locked || TIMER_CLOSED_STATUSES.has(ticket.status as RepairStatus)) {
     return { error: 'ticket_closed' }
   }
+  if (!(await itemsReceived(supabase, tenantId, ticket.id))) return { error: 'receipt_required' }
 
   // One job at a time: a technician's running timers.
   const { data: running } = await supabase

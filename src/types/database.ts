@@ -5483,11 +5483,18 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           dimension: string | null
+          final_weighed_at: string | null
+          final_weighed_by: string | null
+          final_weight_grams: number | null
           id: string
           item_type: string
           karat: string | null
           line_index: number
           price: number | null
+          received_at: string | null
+          received_by: string | null
+          received_karat: string | null
+          received_weight_grams: number | null
           service_type: Database["public"]["Enums"]["service_type"]
           tenant_id: string
           ticket_id: string
@@ -5499,11 +5506,18 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           dimension?: string | null
+          final_weighed_at?: string | null
+          final_weighed_by?: string | null
+          final_weight_grams?: number | null
           id?: string
           item_type: string
           karat?: string | null
           line_index: number
           price?: number | null
+          received_at?: string | null
+          received_by?: string | null
+          received_karat?: string | null
+          received_weight_grams?: number | null
           service_type: Database["public"]["Enums"]["service_type"]
           tenant_id: string
           ticket_id: string
@@ -5515,11 +5529,18 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           dimension?: string | null
+          final_weighed_at?: string | null
+          final_weighed_by?: string | null
+          final_weight_grams?: number | null
           id?: string
           item_type?: string
           karat?: string | null
           line_index?: number
           price?: number | null
+          received_at?: string | null
+          received_by?: string | null
+          received_karat?: string | null
+          received_weight_grams?: number | null
           service_type?: Database["public"]["Enums"]["service_type"]
           tenant_id?: string
           ticket_id?: string

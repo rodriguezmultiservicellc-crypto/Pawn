@@ -5,6 +5,7 @@ import { todayInTimezone } from '@/lib/jurisdictions/rules'
 import { daysBetween } from '@/lib/pawn/math'
 import { elapsedTimeMs } from '@/lib/repair/billing'
 import { loadTechnicianOptions } from '@/lib/repair/technicians'
+import { loadPartPickerOptions } from '@/lib/repair/part-options'
 import type { RepairStatus, TenantRole } from '@/types/database-aliases'
 import MyJobsContent, { type MyJobView } from './content'
 
@@ -85,11 +86,13 @@ export default async function MyJobsPage(props: {
   const tickets = [...byId.values()]
   const ids = tickets.map((t) => t.id)
 
-  const [{ data: lineItems }, { data: photos }, { data: logs }] = ids.length
+  const [{ data: lineItems }, { data: photos }, { data: logs }, { data: parts }] = ids.length
     ? await Promise.all([
         ctx.supabase
           .from('repair_ticket_line_items')
-          .select('id, ticket_id, line_index, title, work_needed')
+          .select(
+            'id, ticket_id, line_index, title, work_needed, karat, weight_grams, received_weight_grams, received_karat, received_at, final_weight_grams',
+          )
           .eq('tenant_id', tenantId)
           .in('ticket_id', ids)
           .is('deleted_at', null)
@@ -108,8 +111,19 @@ export default async function MyJobsPage(props: {
           .eq('tenant_id', tenantId)
           .eq('technician_id', techId)
           .in('ticket_id', ids),
+        ctx.supabase
+          .from('repair_ticket_items')
+          .select('id, ticket_id, inventory_item_id, description, quantity, unit_cost, total_cost, notes')
+          .eq('tenant_id', tenantId)
+          .in('ticket_id', ids)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: true }),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }]
+    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }]
+  // Parts can be added from here (in stock or not, like solder).
+  const partOptions = tickets.some((t) => !t.is_locked && !CLOSED.has(t.status))
+    ? await loadPartPickerOptions(ctx.supabase, tenantId)
+    : []
 
   // One photo per ticket: the first intake photo.
   const firstPhoto = new Map<string, string>()
@@ -134,7 +148,28 @@ export default async function MyJobsPage(props: {
       late_by: t.promised_date ? daysBetween(t.promised_date, shopToday) : null,
       items: (lineItems ?? [])
         .filter((li) => li.ticket_id === t.id)
-        .map((li) => ({ id: li.id, title: li.title, work_needed: li.work_needed })),
+        .map((li) => ({
+          id: li.id,
+          title: li.title,
+          work_needed: li.work_needed,
+          karat: li.karat,
+          weight_grams: num(li.weight_grams),
+          received_weight_grams: num(li.received_weight_grams),
+          received_karat: li.received_karat,
+          received_at: li.received_at,
+          final_weight_grams: num(li.final_weight_grams),
+        })),
+      parts: (parts ?? [])
+        .filter((pt) => pt.ticket_id === t.id)
+        .map((pt) => ({
+          id: pt.id,
+          inventory_item_id: pt.inventory_item_id,
+          description: pt.description,
+          quantity: Number(pt.quantity ?? 0),
+          unit_cost: Number(pt.unit_cost ?? 0),
+          total_cost: Number(pt.total_cost ?? 0),
+          notes: pt.notes,
+        })),
       photo_url: path ? (signed.get(path) ?? null) : null,
       done_ms: doneMs,
       running: run ? { id: run.id, started_at: run.started_at } : null,
@@ -157,7 +192,10 @@ export default async function MyJobsPage(props: {
       isMe={isMe}
       techId={techId}
       technicians={technicians}
+      partOptions={partOptions}
       serverNow={now}
     />
   )
 }
+
+const num = (v: number | string | null): number | null => (v == null ? null : Number(v))

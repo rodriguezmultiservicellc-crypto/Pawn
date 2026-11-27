@@ -164,6 +164,8 @@ export type AuditAction =
   | 'repair_stages_reset'
   | 'repair_notify_setting'
   | 'repair_labor_rate'
+  | 'repair_item_received'
+  | 'repair_item_finished'
   | 'repair_ticket_print'
   // Custom-piece quotes (patches/0063)
   | 'custom_quote_create'

@@ -4,13 +4,53 @@ import { useEffect, useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowSquareOut, Image as ImageIcon, Play, Stop } from '@phosphor-icons/react'
+import {
+  ArrowSquareOut,
+  CheckCircle,
+  FlagCheckered,
+  Image as ImageIcon,
+  Play,
+  Scales,
+  Stop,
+  Warning,
+} from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
-import { FOCUS, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
+import { FOCUS, INPUT, OUTLINE_BTN, PRIMARY_BTN } from '@/lib/ui/ledger'
 import { StatusBadge } from '@/components/repair/StatusBadge'
-import { startTimerAction, stopTimerAction } from '../[id]/actions'
+import { PartsPanel, type RepairPartItem } from '@/components/repair/PartsPanel'
+import type { InventoryPartOption } from '@/components/repair/AddPartDialog'
+import { Footer, Modal } from '@/components/pawn/RecordPaymentDialog'
+import {
+  addPartAction,
+  claimTicketAction,
+  removePartAction,
+  startTimerAction,
+  stopTimerAction,
+} from '../[id]/actions'
+import { confirmReceiptAction, finishJobAction } from './actions'
+import {
+  fmtGramsChange,
+  gramsChange,
+  parseGrams,
+  sameKarat,
+} from '@/lib/repair/item-weights'
 import type { TechnicianOption } from '@/lib/repair/technicians'
 import type { RepairStatus } from '@/types/database-aliases'
+
+export type MyJobItem = {
+  id: string
+  title: string
+  work_needed: string | null
+  /** What the clerk wrote at intake. */
+  karat: string | null
+  weight_grams: number | null
+  /** What the tech weighed and read at the bench (patches/0132). */
+  received_weight_grams: number | null
+  received_karat: string | null
+  received_at: string | null
+  /** Weight when the work was done. */
+  final_weight_grams: number | null
+}
 
 export type MyJobView = {
   id: string
@@ -22,7 +62,8 @@ export type MyJobView = {
   promised_date: string | null
   /** Days past the promised date by the shop's calendar (0 = due today). */
   late_by: number | null
-  items: Array<{ id: string; title: string; work_needed: string | null }>
+  items: MyJobItem[]
+  parts: RepairPartItem[]
   photo_url: string | null
   /** This technician's finished sessions on the job. */
   done_ms: number
@@ -37,6 +78,7 @@ export default function MyJobsContent({
   isMe,
   techId,
   technicians,
+  partOptions,
   serverNow,
 }: {
   jobs: MyJobView[]
@@ -45,6 +87,8 @@ export default function MyJobsContent({
   techId: string
   /** Owner / manager only: whose list to look at. Empty for a technician. */
   technicians: TechnicianOption[]
+  /** Inventory a part can be taken from (a free-text part needs none). */
+  partOptions: InventoryPartOption[]
   /** The time the server rendered at, so the first paint matches. */
   serverNow: number
 }) {
@@ -91,7 +135,7 @@ export default function MyJobsContent({
 
       {!isMe && viewing ? (
         <p className="rounded-md border border-info/30 bg-info/5 px-3 py-2 text-sm text-foreground">
-          {tm.viewingOther.replace('{name}', viewing.label)}
+          {tm.viewingOther.replaceAll('{name}', viewing.label)}
         </p>
       ) : null}
 
@@ -102,7 +146,7 @@ export default function MyJobsContent({
       ) : (
         <ul className="space-y-3">
           {jobs.map((job) => (
-            <JobCard key={job.id} job={job} now={now} canRun={isMe} />
+            <JobCard key={job.id} job={job} now={now} canRun={isMe} partOptions={partOptions} />
           ))}
         </ul>
       )}
@@ -110,27 +154,41 @@ export default function MyJobsContent({
   )
 }
 
-function JobCard({ job, now, canRun }: { job: MyJobView; now: number; canRun: boolean }) {
+function JobCard({
+  job,
+  now,
+  canRun,
+  partOptions,
+}: {
+  job: MyJobView
+  now: number
+  canRun: boolean
+  partOptions: InventoryPartOption[]
+}) {
   const { t, lang } = useI18n()
   const tm = t.repair.myJobs
   const td = t.repair.detail
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [dialog, setDialog] = useState<'receive' | 'finish' | null>(null)
 
   const runMs = job.running ? Math.max(0, now - new Date(job.running.started_at).getTime()) : 0
   const totalMs = job.done_ms + runMs
+  // Every item weighed in by the tech before any time goes on it.
+  const needsReceipt = job.items.some((i) => i.received_at == null)
+  const canFinish = job.status === 'in_progress' && !needsReceipt
 
   const due =
     job.late_by == null || job.closed
       ? null
       : job.late_by === 0
-      ? { text: td.dueToday, tone: 'text-warning' }
-      : job.late_by > 0
-      ? {
-          text: job.late_by === 1 ? td.overdueOne : td.overdueDays.replace('{n}', String(job.late_by)),
-          tone: 'text-danger',
-        }
-      : null
+        ? { text: td.dueToday, tone: 'text-warning' }
+        : job.late_by > 0
+          ? {
+              text: job.late_by === 1 ? td.overdueOne : td.overdueDays.replace('{n}', String(job.late_by)),
+              tone: 'text-danger',
+            }
+          : null
 
   function run(kind: 'start' | 'stop') {
     setError(null)
@@ -139,26 +197,22 @@ function JobCard({ job, now, canRun }: { job: MyJobView; now: number; canRun: bo
     else if (job.running) fd.set('time_log_id', job.running.id)
     startTransition(async () => {
       try {
-        const res = await (kind === 'start' ? startTimerAction(fd) : stopTimerAction(fd))
-        if (res.error) setError(errorText(res.error))
+        // An assigned job is claimed (In progress + timer); otherwise the timer starts.
+        const res =
+          kind === 'stop'
+            ? await stopTimerAction(fd)
+            : job.status === 'assigned'
+              ? await claimTicketAction(fd)
+              : await startTimerAction(fd)
+        if (res.error) setError(jobErrorText(res.error, t))
       } catch {
         setError(tm.failed)
       }
     })
   }
 
-  function errorText(code: string): string {
-    if (code === 'ticket_closed') return tm.ticketClosed
-    if (code === 'timerAlreadyRunning') return t.repair.errors.timerAlreadyRunning
-    if (code === 'timerNotFound') return t.repair.errors.timerNotFound
-    if (code === 'notAuthorized') return t.repair.errors.notAuthorized
-    return tm.failed
-  }
-
   return (
-    <li
-      className={`rounded-xl border bg-card ${job.running ? 'border-success/50' : 'border-border'}`}
-    >
+    <li className={`rounded-xl border bg-card ${job.running ? 'border-success/50' : 'border-border'}`}>
       <div className="flex flex-wrap items-start gap-4 p-4">
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-border bg-background">
           {job.photo_url ? (
@@ -170,7 +224,7 @@ function JobCard({ job, now, canRun }: { job: MyJobView; now: number; canRun: bo
           )}
         </div>
 
-        <div className="min-w-0 flex-[1_1_260px]">
+        <div className="min-w-0 flex-[1_1_300px]">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-lg font-bold text-foreground">{job.ticket_number}</span>
             <StatusBadge status={job.status} />
@@ -181,19 +235,16 @@ function JobCard({ job, now, canRun }: { job: MyJobView; now: number; canRun: bo
               .filter(Boolean)
               .join(' · ')}
           </div>
-          <ul className="mt-2 space-y-1.5">
-            {(job.items.length > 0 ? job.items : [{ id: 'title', title: job.title, work_needed: null }]).map((li) => (
-              <li key={li.id} className="text-sm">
-                <span className="font-semibold text-foreground">{li.title}</span>
-                {li.work_needed ? (
-                  <span className="block text-foreground">{li.work_needed}</span>
-                ) : null}
-              </li>
-            ))}
+          <ul className="mt-2 space-y-2.5">
+            {job.items.length > 0 ? (
+              job.items.map((li) => <ItemRow key={li.id} item={li} />)
+            ) : (
+              <li className="text-sm font-semibold text-foreground">{job.title}</li>
+            )}
           </ul>
         </div>
 
-        <div className="flex w-full flex-col items-stretch gap-2 sm:w-52">
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-56">
           <div className="text-right">
             <div className="text-[12px] font-bold uppercase tracking-wide text-text-secondary">
               {job.running ? tm.running : tm.myTime}
@@ -204,23 +255,55 @@ function JobCard({ job, now, canRun }: { job: MyJobView; now: number; canRun: bo
               {fmtClock(totalMs)}
             </div>
           </div>
-          {canRun ? (
-            job.running ? (
-              <button type="button" onClick={() => run('stop')} disabled={pending} className={`${OUTLINE_BTN} h-12 text-base text-danger`}>
-                <Stop size={18} weight="fill" />
-                {tm.stop}
-              </button>
-            ) : (
+          {/* A running timer can always be stopped, even one started before
+              the items were weighed in. */}
+          {canRun && job.running ? (
+            <button
+              type="button"
+              onClick={() => run('stop')}
+              disabled={pending}
+              className={`${OUTLINE_BTN} h-12 text-base text-danger`}
+            >
+              <Stop size={18} weight="fill" />
+              {tm.stop}
+            </button>
+          ) : null}
+          {canRun && !job.closed ? (
+            needsReceipt ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setDialog('receive')}
+                  disabled={pending}
+                  className={job.running ? `${OUTLINE_BTN} h-11` : `${PRIMARY_BTN} h-12 text-base`}
+                >
+                  <Scales size={18} weight="bold" />
+                  {tm.confirmReceived}
+                </button>
+                <p className="text-center text-[12.5px] text-text-secondary">{tm.confirmFirst}</p>
+              </>
+            ) : job.running ? null : (
               <button
                 type="button"
                 onClick={() => run('start')}
-                disabled={pending || job.closed}
+                disabled={pending}
                 className={`${PRIMARY_BTN} h-12 text-base`}
               >
                 <Play size={18} weight="fill" />
                 {tm.start}
               </button>
             )
+          ) : null}
+          {canRun && canFinish ? (
+            <button
+              type="button"
+              onClick={() => setDialog('finish')}
+              disabled={pending}
+              className={`${OUTLINE_BTN} h-11`}
+            >
+              <FlagCheckered size={16} weight="bold" />
+              {tm.finish}
+            </button>
           ) : null}
           <Link href={`/repair/${job.id}`} className={`${OUTLINE_BTN} h-10`}>
             <ArrowSquareOut size={16} weight="bold" />
@@ -233,8 +316,232 @@ function JobCard({ job, now, canRun }: { job: MyJobView; now: number; canRun: bo
           ) : null}
         </div>
       </div>
+
+      {/* Parts and materials: from stock or typed (solder, wire…). */}
+      <div className="border-t border-border px-4 pb-4 pt-3">
+        <PartsPanel
+          ticketId={job.id}
+          parts={job.parts}
+          inventoryOptions={partOptions}
+          quoteAmount={null}
+          readOnly={!canRun || job.closed}
+          onAdd={(fd) => addPartAction(fd)}
+          onRemove={(partId, reason) => removePartAction(partId, reason)}
+        />
+      </div>
+
+      {dialog === 'receive' ? (
+        <WeighDialog mode="receive" job={job} onClose={() => setDialog(null)} />
+      ) : dialog === 'finish' ? (
+        <WeighDialog mode="finish" job={job} onClose={() => setDialog(null)} />
+      ) : null}
     </li>
   )
+}
+
+/** One item: its work, then intake → received → finished weights. */
+function ItemRow({ item }: { item: MyJobItem }) {
+  const { t } = useI18n()
+  const tm = t.repair.myJobs
+  const recvDiff = gramsChange(item.weight_grams, item.received_weight_grams)
+  const karatDiff = item.received_at != null && !sameKarat(item.karat, item.received_karat)
+  const finalDiff = gramsChange(item.received_weight_grams, item.final_weight_grams)
+  return (
+    <li className="text-sm">
+      <span className="font-semibold text-foreground">{item.title}</span>
+      {item.work_needed ? <span className="block text-foreground">{item.work_needed}</span> : null}
+      <span className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[13px] text-text-secondary">
+        <span>
+          {tm.intake}: {fmtWeightKarat(item.weight_grams, item.karat)}
+        </span>
+        {item.received_at ? (
+          <span className={recvDiff != null || karatDiff ? 'font-semibold text-warning' : ''}>
+            {recvDiff != null || karatDiff ? (
+              <Warning size={13} weight="bold" className="mr-0.5 inline" />
+            ) : (
+              <CheckCircle size={13} weight="bold" className="mr-0.5 inline text-success" />
+            )}
+            {tm.received}: {fmtWeightKarat(item.received_weight_grams, item.received_karat)}
+            {recvDiff != null ? ` (${fmtGramsChange(recvDiff)})` : ''}
+          </span>
+        ) : (
+          <span className="font-semibold text-warning">{tm.notReceived}</span>
+        )}
+        {item.final_weight_grams != null ? (
+          <span>
+            {tm.finished}: {item.final_weight_grams} g{finalDiff != null ? ` (${fmtGramsChange(finalDiff)})` : ''}
+          </span>
+        ) : null}
+      </span>
+    </li>
+  )
+}
+
+/**
+ * The tech's scale readings for every item of the job: weight + karat when
+ * receiving it, the ending weight when finishing (which sends it to QA).
+ */
+function WeighDialog({
+  mode,
+  job,
+  onClose,
+}: {
+  mode: 'receive' | 'finish'
+  job: MyJobView
+  onClose: () => void
+}) {
+  const { t } = useI18n()
+  const tm = t.repair.myJobs
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const [weights, setWeights] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      job.items.map((i) => [
+        i.id,
+        mode === 'receive'
+          ? (i.received_weight_grams ?? i.weight_grams)?.toString() ?? ''
+          : (i.final_weight_grams ?? i.received_weight_grams)?.toString() ?? '',
+      ]),
+    ),
+  )
+  const [karats, setKarats] = useState<Record<string, string>>(() =>
+    Object.fromEntries(job.items.map((i) => [i.id, i.received_karat ?? i.karat ?? ''])),
+  )
+  const allValid = job.items.every((i) => parseGrams(weights[i.id]) != null)
+
+  function submit() {
+    if (!allValid) {
+      setError(tm.weightRequired)
+      return
+    }
+    setError(null)
+    const fd = new FormData()
+    fd.set('ticket_id', job.id)
+    fd.set('item_count', String(job.items.length))
+    job.items.forEach((i, n) => {
+      fd.set(`item_${n}_id`, i.id)
+      if (mode === 'receive') {
+        fd.set(`item_${n}_weight`, weights[i.id] ?? '')
+        fd.set(`item_${n}_karat`, karats[i.id] ?? '')
+      } else {
+        fd.set(`item_${n}_final_weight`, weights[i.id] ?? '')
+      }
+    })
+    startTransition(async () => {
+      try {
+        const res = await (mode === 'receive' ? confirmReceiptAction(fd) : finishJobAction(fd))
+        if (res.error) setError(jobErrorText(res.error, t))
+        else onClose()
+      } catch {
+        setError(tm.failed)
+      }
+    })
+  }
+
+  return (
+    <Modal title={mode === 'receive' ? tm.receiveTitle : tm.finishTitle} onClose={onClose}>
+      <p className="mb-3 text-sm text-text-secondary">
+        {mode === 'receive' ? tm.receiveBody : tm.finishBody}
+      </p>
+      <div className="space-y-4">
+        {job.items.map((i) => {
+          const typed = parseGrams(weights[i.id])
+          const before = mode === 'receive' ? i.weight_grams : i.received_weight_grams
+          const d = gramsChange(before, typed)
+          const karatOff = mode === 'receive' && !sameKarat(i.karat, karats[i.id])
+          return (
+            <fieldset key={i.id} className="rounded-lg border border-border p-3">
+              <legend className="px-1 text-sm font-bold text-foreground">{i.title}</legend>
+              <div className="text-[13px] text-text-secondary">
+                {mode === 'receive'
+                  ? `${tm.intake}: ${fmtWeightKarat(i.weight_grams, i.karat)}`
+                  : `${tm.received}: ${fmtWeightKarat(i.received_weight_grams, i.received_karat)}`}
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <label className="block space-y-1">
+                  <span className="text-sm font-semibold text-foreground">
+                    {mode === 'receive' ? tm.weightNow : tm.endingWeight} *
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={weights[i.id] ?? ''}
+                      onChange={(e) => setWeights((w) => ({ ...w, [i.id]: e.target.value }))}
+                      aria-invalid={typed == null}
+                      className={`${INPUT} pr-8 font-mono`}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">
+                      g
+                    </span>
+                  </div>
+                </label>
+                {mode === 'receive' ? (
+                  <label className="block space-y-1">
+                    <span className="text-sm font-semibold text-foreground">{tm.karat}</span>
+                    <input
+                      type="text"
+                      value={karats[i.id] ?? ''}
+                      onChange={(e) => setKarats((k) => ({ ...k, [i.id]: e.target.value }))}
+                      maxLength={12}
+                      className={`${INPUT} font-mono`}
+                    />
+                  </label>
+                ) : null}
+              </div>
+              {d != null || karatOff ? (
+                <p className="mt-1.5 text-[13px] font-semibold text-warning">
+                  {d != null ? `${mode === 'receive' ? tm.differsFromIntake : tm.changed} ${fmtGramsChange(d)}` : ''}
+                  {d != null && karatOff ? ' · ' : ''}
+                  {karatOff ? tm.karatDiffers : ''}
+                </p>
+              ) : null}
+            </fieldset>
+          )
+        })}
+      </div>
+      {error ? (
+        <div role="alert" className="mt-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+          {error}
+        </div>
+      ) : null}
+      <Footer>
+        <button type="button" onClick={onClose} className={OUTLINE_BTN}>
+          {t.common.cancel}
+        </button>
+        <button type="button" onClick={submit} disabled={pending} className={`${PRIMARY_BTN} h-11`}>
+          {mode === 'receive' ? <Scales size={16} weight="bold" /> : <FlagCheckered size={16} weight="bold" />}
+          {pending ? t.common.saving : mode === 'receive' ? tm.confirmReceived : tm.finishSend}
+        </button>
+      </Footer>
+    </Modal>
+  )
+}
+
+function jobErrorText(code: string, t: ReturnType<typeof useI18n>['t']): string {
+  const tm = t.repair.myJobs
+  switch (code) {
+    case 'ticket_closed':
+      return tm.ticketClosed
+    case 'receipt_required':
+      return tm.confirmFirst
+    case 'weight_required':
+      return tm.weightRequired
+    case 'timerAlreadyRunning':
+      return t.repair.errors.timerAlreadyRunning
+    case 'timerNotFound':
+      return t.repair.errors.timerNotFound
+    case 'notAuthorized':
+      return t.repair.errors.notAuthorized
+    case 'illegalTransition':
+      return t.repair.errors.illegalTransition
+    default:
+      return tm.failed
+  }
+}
+
+function fmtWeightKarat(grams: number | null, karat: string | null): string {
+  return [grams != null ? `${grams} g` : null, karat].filter(Boolean).join(' · ') || '—'
 }
 
 /** 1:05:09 / 0:04:12. */

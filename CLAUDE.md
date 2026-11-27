@@ -587,6 +587,12 @@ Never kill node processes by image name — always by PID.
       and New repair's "quoted and approved at drop-off" (every item priced;
       Eddy, 2026-11-27). It goes to `assigned` when a technician is on it,
       else `in_progress`.
+    - The technician weighs every item in before any time goes on it
+      (`received_*` on `repair_ticket_line_items`, patches/0132;
+      `startTimerAction` / `claimTicketAction` refuse `receipt_required`) and
+      enters the ending weight with Finish, which sends the job to QA through
+      `sendToQaAction`. Differences from intake are noted, never refused
+      (`src/lib/repair/item-weights.ts`).
 
 ---
 
