@@ -5983,6 +5983,8 @@ export const en = {
         "Possible OFAC sanctions-list match. A manager must review it on the customer's record before this transaction can proceed.",
       ofac_confirmed_match:
         'This customer is a confirmed OFAC sanctions-list match. The transaction cannot proceed.',
+      do_not_buy_match:
+        'This customer is on the LeadsOnline Do Not Buy list. The transaction cannot proceed: do not take the item and call the agency.',
       compliance_log_failed:
         "The transaction couldn't be written to the police-report log, so it was not saved. Try again or contact support.",
     },
@@ -6401,6 +6403,15 @@ export const en = {
     fieldErrors: {
       invalid_store_id: 'Numbers only.',
       invalid_username: 'Too long.',
+    },
+    // The Do Not Buy check on New pawn / Purchase / Buy outright.
+    intake: {
+      checking: 'Checking the LeadsOnline Do Not Buy list…',
+      clear: 'Not on the LeadsOnline Do Not Buy list.',
+      unavailable: 'Could not check the LeadsOnline Do Not Buy list right now. The ticket can still be written; it is noted in the audit log.',
+      notEnough: 'Could not check the Do Not Buy list: the customer needs an ID number, or a name and birth date.',
+      matchTitle: 'On the LeadsOnline Do Not Buy list',
+      matchBody: 'A police agency asked stores not to buy from this person. Do not take the item; call the agency. The ticket will be refused.',
     },
     send: {
       title: 'Send to LeadsOnline',

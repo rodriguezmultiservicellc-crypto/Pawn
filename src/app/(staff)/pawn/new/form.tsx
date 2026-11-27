@@ -46,6 +46,7 @@ import VoicePawnButton, {
   type PawnVoiceData,
 } from '@/components/pawn/VoicePawnButton'
 import { PledgorRecordBanner } from '@/components/customers/PledgorRecordBanner'
+import { DoNotBuyBanner } from '@/components/customers/DoNotBuyBanner'
 import CustomerPicker, {
   type CustomerPickerHandle,
 } from '@/components/customers/CustomerPicker'
@@ -546,6 +547,7 @@ export default function NewPawnLoanForm({
         />
         {selectedCustomerId ? null : <p className={HINT}>{tn.pickCustomerHelp}</p>}
         <PledgorRecordBanner customerId={selectedCustomerId} />
+        <DoNotBuyBanner customerId={selectedCustomerId} />
       </section>
 
       <QuickCustomerModal

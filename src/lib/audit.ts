@@ -187,6 +187,10 @@ export type AuditAction =
   | 'leadsonline_settings'
   // Tickets sent to the LeadsOnline web service
   | 'leadsonline_send'
+  // LeadsOnline Do Not Buy check at a pawn / buy: a refused match, or the
+  // list not answering (the ticket went through unchecked)
+  | 'do_not_buy_match'
+  | 'do_not_buy_unavailable'
   // Item tags (patches/0074)
   | 'tag_print'
   | 'tag_template_save'

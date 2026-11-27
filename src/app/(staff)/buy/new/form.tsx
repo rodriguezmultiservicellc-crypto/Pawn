@@ -51,6 +51,7 @@ import {
 import { ruleErrorText } from '@/lib/jurisdictions/messages'
 import CustomerPicker from '@/components/customers/CustomerPicker'
 import { PledgorRecordBanner } from '@/components/customers/PledgorRecordBanner'
+import { DoNotBuyBanner } from '@/components/customers/DoNotBuyBanner'
 import {
   createBuyOutrightAction,
   type CreateBuyState,
@@ -341,6 +342,9 @@ export default function BuyForm({
           <p className="mt-2 text-[11px] text-muted">{f.customerHelp}</p>
           <div className="mt-2">
             <PledgorRecordBanner customerId={sellerId} />
+          </div>
+          <div className="mt-2">
+            <DoNotBuyBanner customerId={sellerId} />
           </div>
         </fieldset>
 

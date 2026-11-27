@@ -6,6 +6,7 @@ const INTAKE_BLOCK_CODES = [
   'customer_banned',
   'ofac_review_required',
   'ofac_confirmed_match',
+  'do_not_buy_match',
   'compliance_log_failed',
 ] as const
 

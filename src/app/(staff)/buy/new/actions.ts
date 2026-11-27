@@ -10,6 +10,7 @@ import { buyOutrightSchema } from '@/lib/validations/buy-outright'
 import { intakePhotoMime } from '@/lib/uploads/intake-photos'
 import { confirmIntakePhotos } from '@/lib/uploads/intake-photos-server'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
+import { doNotBuyGate } from '@/lib/leadsonline/do-not-buy'
 import { isStoreCreditEnabled } from '@/lib/store-credit/events'
 import { meltValueAtBuy, recordBuy } from '@/lib/buy/record'
 import { PLEDGOR_SNAPSHOT_COLUMNS } from '@/lib/compliance/pledgor-snapshot'
@@ -211,6 +212,10 @@ export async function createBuyOutrightAction(
     userId,
   })
   if (!gate.ok) return { error: gate.code, values: echo }
+
+  // LeadsOnline Do Not Buy list (lib/leadsonline/do-not-buy): a match is refused.
+  const dnb = await doNotBuyGate({ tenantId, customerId: v.customer_id, userId, context: 'buy_intake' })
+  if (!dnb.ok) return { error: dnb.code, values: echo }
 
   // Hold period = GREATEST(tenant setting, statutory hold) — patches/0048.
   // Dates are the shop's local calendar day.

@@ -20,6 +20,7 @@ import { prepareUpload } from '@/lib/uploads/convert'
 import { logAudit } from '@/lib/audit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
+import { doNotBuyGate } from '@/lib/leadsonline/do-not-buy'
 import {
   hasUnconfirmedItems,
   ITEMS_UNCONFIRMED,
@@ -320,6 +321,10 @@ export async function createLoanAction(
     userId,
   })
   if (!gate.ok) return { error: gate.code }
+
+  // LeadsOnline Do Not Buy list (lib/leadsonline/do-not-buy): a match is refused.
+  const dnb = await doNotBuyGate({ tenantId, customerId: v.customer_id, userId, context: 'pawn_intake' })
+  if (!dnb.ok) return { error: dnb.code }
 
   // Phase 1 of intake: insert the loan first to obtain the id (for storage paths).
   // Trigger assigns ticket_number.

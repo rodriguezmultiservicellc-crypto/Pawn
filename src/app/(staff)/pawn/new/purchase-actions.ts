@@ -9,6 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { missingPledgorFields, pledgorIncompleteError } from '@/lib/customers/pledgor-record'
 import { PLEDGOR_SNAPSHOT_COLUMNS } from '@/lib/compliance/pledgor-snapshot'
 import { intakeGate } from '@/lib/compliance/ofac/screen'
+import { doNotBuyGate } from '@/lib/leadsonline/do-not-buy'
 import { meltValueAtBuy, recordBuy } from '@/lib/buy/record'
 import { purchaseOnFormSchema } from '@/lib/validations/buy-outright'
 import {
@@ -151,6 +152,10 @@ export async function createPurchaseAction(
     userId,
   })
   if (!gate.ok) return { error: gate.code }
+
+  // LeadsOnline Do Not Buy list (lib/leadsonline/do-not-buy): a match is refused.
+  const dnb = await doNotBuyGate({ tenantId, customerId: v.customer_id, userId, context: 'buy_intake' })
+  if (!dnb.ok) return { error: dnb.code }
 
   // The buy hold: GREATEST(tenant setting, statutory hold), shop-local days.
   const rules = await loadTenantRules(createAdminClient(), tenantId)

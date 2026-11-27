@@ -5978,6 +5978,8 @@ export const es: Dictionary = {
         'Posible coincidencia en la lista de sanciones OFAC. Un gerente debe revisarla en el expediente del cliente antes de continuar con esta transacción.',
       ofac_confirmed_match:
         'Este cliente es una coincidencia confirmada en la lista de sanciones OFAC. La transacción no puede continuar.',
+      do_not_buy_match:
+        'Este cliente está en la lista Do Not Buy de LeadsOnline. La transacción no puede continuar: no recibas el artículo y llama a la agencia.',
       compliance_log_failed:
         'La transacción no se pudo registrar en el reporte policial, así que no se guardó. Intenta de nuevo o contacta a soporte.',
     },
@@ -6399,6 +6401,15 @@ export const es: Dictionary = {
     fieldErrors: {
       invalid_store_id: 'Solo números.',
       invalid_username: 'Demasiado largo.',
+    },
+    // La revisión Do Not Buy en Nuevo empeño / Compra / Compra directa.
+    intake: {
+      checking: 'Revisando la lista Do Not Buy de LeadsOnline…',
+      clear: 'No está en la lista Do Not Buy de LeadsOnline.',
+      unavailable: 'No se pudo revisar la lista Do Not Buy de LeadsOnline en este momento. El boleto se puede escribir igual; queda anotado en el registro de auditoría.',
+      notEnough: 'No se pudo revisar la lista Do Not Buy: el cliente necesita un número de identificación, o nombre y fecha de nacimiento.',
+      matchTitle: 'Está en la lista Do Not Buy de LeadsOnline',
+      matchBody: 'Una agencia policial pidió a las tiendas no comprarle a esta persona. No recibas el artículo; llama a la agencia. El boleto será rechazado.',
     },
     send: {
       title: 'Enviar a LeadsOnline',
