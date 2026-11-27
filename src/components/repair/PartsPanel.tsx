@@ -39,9 +39,9 @@ export function PartsPanel({
   inventoryOptions: InventoryPartOption[]
   /** The ticket's quote: parts costing more than it are pointed out. */
   quoteAmount: number | null
-  /** Closed ticket: no adding, and removing only when closedFix. */
+  /** Closed ticket: adding / removing only when closedFix. */
   readOnly?: boolean
-  /** Closed ticket + owner / manager: may remove a part, with a reason. */
+  /** Closed ticket + owner / manager: may add or remove a part, with a reason. */
   closedFix?: boolean
   onAdd: (
     formData: FormData,
@@ -65,7 +65,7 @@ export function PartsPanel({
           <Hammer size={16} weight="regular" />
           {t.repair.detail.sectionParts}
         </h2>
-        {!readOnly ? (
+        {!readOnly || closedFix ? (
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -123,6 +123,7 @@ export function PartsPanel({
         <AddPartDialog
           ticketId={ticketId}
           options={inventoryOptions}
+          closed={!!readOnly}
           onClose={() => setOpen(false)}
           onSubmit={onAdd}
         />

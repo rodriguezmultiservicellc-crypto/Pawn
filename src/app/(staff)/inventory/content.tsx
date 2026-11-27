@@ -62,6 +62,7 @@ const STATUS_BADGE: Record<InventoryStatus, { bg: string; text: string }> = {
   // related transfer rather than the item detail.
   transferred: { bg: 'bg-warning/10 border-warning/30', text: 'text-warning' },
   returned: { bg: 'bg-warning/10 border-warning/30', text: 'text-warning' },
+  used_in_repair: { bg: 'bg-background border-border', text: 'text-muted' },
 }
 
 export default function InventoryContent({
@@ -227,6 +228,7 @@ export default function InventoryContent({
           <option value="scrapped">{t.inventory.statusScrapped}</option>
           <option value="transferred">{t.inventory.statusTransferred}</option>
           <option value="returned">{t.inventory.statusReturned}</option>
+          <option value="used_in_repair">{t.inventory.statusUsedInRepair}</option>
         </select>
 
         <select
@@ -599,5 +601,6 @@ function labelForStatus(
     // could mean the lifecycle had already completed in v0 schemas.
     case 'transferred': return t.inventory.transferringBadge
     case 'returned': return t.inventory.statusReturned
+    case 'used_in_repair': return t.inventory.statusUsedInRepair
   }
 }

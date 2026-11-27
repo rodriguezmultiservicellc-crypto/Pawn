@@ -130,6 +130,11 @@ export async function updateInventoryItemAction(
   if (lockCheck?.status === 'transferred') {
     return { error: 'item_locked_in_transfer', values: echo }
   }
+  // 'used_in_repair' is moved only by adding / removing the repair part
+  // (patches/0130 guard); the form can neither set it nor clear it.
+  if ((lockCheck?.status === 'used_in_repair') !== (v.status === 'used_in_repair')) {
+    return { error: 'item_used_in_repair', values: echo }
+  }
 
   const { error } = await supabase
     .from('inventory_items')
@@ -242,7 +247,12 @@ export async function deleteInventoryItemAction(
     .is('deleted_at', null)
     .maybeSingle()
 
-  if (item?.status === 'sold' || item?.status === 'transferred') return
+  if (
+    item?.status === 'sold' ||
+    item?.status === 'transferred' ||
+    item?.status === 'used_in_repair'
+  )
+    return
 
   await supabase
     .from('inventory_items')

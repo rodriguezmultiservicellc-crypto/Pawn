@@ -550,6 +550,11 @@ export function InventoryFormFields({
               { value: 'scrapped', label: t.inventory.statusScrapped },
               { value: 'transferred', label: t.inventory.statusTransferred },
               { value: 'returned', label: t.inventory.statusReturned },
+              // Only shown on an item a repair part took: the status is
+              // the part's to change (add / remove the part), never here.
+              ...(v.status === 'used_in_repair'
+                ? [{ value: 'used_in_repair', label: t.inventory.statusUsedInRepair }]
+                : []),
             ]}
           />
         </div>

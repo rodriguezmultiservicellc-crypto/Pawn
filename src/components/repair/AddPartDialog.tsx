@@ -17,11 +17,14 @@ export type InventoryPartOption = {
 export function AddPartDialog({
   ticketId,
   options,
+  closed = false,
   onClose,
   onSubmit,
 }: {
   ticketId: string
   options: InventoryPartOption[]
+  /** The ticket is closed: owner / manager only, and a reason is required. */
+  closed?: boolean
   onClose: () => void
   onSubmit: (
     formData: FormData,
@@ -35,6 +38,8 @@ export function AddPartDialog({
   const [quantity, setQuantity] = useState<string>('1')
   const [unitCost, setUnitCost] = useState<string>('0')
   const [notes, setNotes] = useState<string>('')
+  const [reason, setReason] = useState<string>('')
+  const tp = t.repair.dialogs.addPart
   // Narrows "From inventory" to one category ('' = all). Only categories
   // that have an available item are offered, by their translated name.
   const [category, setCategory] = useState<InventoryCategory | ''>('')
@@ -78,14 +83,26 @@ export function AddPartDialog({
     fd.set('quantity', quantity || '1')
     fd.set('unit_cost', unitCost || '0')
     if (notes) fd.set('notes', notes)
+    if (closed) fd.set('reason', reason.trim())
     startTransition(async () => {
-      const res = await onSubmit(fd)
-      if (res.error) setError(res.error)
-      else onClose()
+      try {
+        const res = await onSubmit(fd)
+        if (res.error) setError(readable(res.error))
+        else onClose()
+      } catch {
+        setError(tp.failed)
+      }
     })
   }
 
-  const canSubmit = description.trim().length >= 2
+  function readable(code: string): string {
+    if (code === 'reason_required') return t.repair.dialogs.removePart.reasonRequired
+    if (code === 'inventory_item_not_available') return tp.notAvailable
+    return code
+  }
+
+  const canSubmit =
+    description.trim().length >= 2 && (!closed || reason.trim().length >= 3)
 
   return (
     <Modal title={t.repair.dialogs.addPart.title} onClose={onClose}>
@@ -94,7 +111,8 @@ export function AddPartDialog({
           {error}
         </div>
       ) : null}
-      <p className="mb-3 text-sm text-muted">{t.repair.dialogs.addPart.body}</p>
+      <p className="mb-3 text-sm text-muted">{tp.body}</p>
+      {closed ? <p className="mb-3 text-sm text-text-secondary">{tp.closedBody}</p> : null}
       <div className="space-y-3">
         {categories.length > 1 ? (
           <label className="block space-y-1">
@@ -190,6 +208,21 @@ export function AddPartDialog({
             className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
           />
         </label>
+        {closed ? (
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-foreground">
+              {t.repair.dialogs.removePart.reason} *
+            </span>
+            <textarea
+              rows={2}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              aria-required="true"
+              maxLength={500}
+              className="block w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-blue"
+            />
+          </label>
+        ) : null}
       </div>
       <Footer>
         <button

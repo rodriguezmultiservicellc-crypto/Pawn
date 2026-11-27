@@ -197,9 +197,26 @@ export default async function InventoryItemPage(props: {
       }
     : null
 
+  // Used as a part on a repair ticket (patches/0130): name the ticket.
+  let usedOnRepair: { id: string; ticket_number: string } | null = null
+  if (item.status === 'used_in_repair') {
+    const { data: part } = await ctx.supabase
+      .from('repair_ticket_items')
+      .select('ticket:repair_tickets(id, ticket_number)')
+      .eq('inventory_item_id', item.id)
+      .eq('tenant_id', item.tenant_id)
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle()
+    usedOnRepair = part?.ticket
+      ? { id: part.ticket.id, ticket_number: part.ticket.ticket_number ?? '' }
+      : null
+  }
+
   return (
     <InventoryDetail
       item={item}
+      usedOnRepair={usedOnRepair}
       photos={photos}
       stones={stones}
       melt={melt}

@@ -1460,10 +1460,14 @@ export async function addPartAction(
   if (!parsed.success) return { error: 'validation_failed' }
   const v = parsed.data
 
-  const { ticket, supabase, userId, tenantId } = await resolveTicketScope(
-    v.ticket_id,
-  )
-  if (ticket.is_locked) return { error: 'customer_locked' }
+  // A closed ticket (locked at pickup) takes a part only from owner /
+  // manager, with a reason — the same rule as removing one.
+  const why = String(formData.get('reason') ?? '').trim().slice(0, 500)
+  const { ticket, supabase, userId, tenantId } = await resolveTicketScope(v.ticket_id)
+  if (ticket.is_locked) {
+    if (why.length < 3) return { error: 'reason_required' }
+    await requireRoleInTenant(tenantId, CLOSED_PARTS_ROLES)
+  }
 
   const total = lineTotalCost({ quantity: v.quantity, unit_cost: v.unit_cost })
 
@@ -1481,7 +1485,14 @@ export async function addPartAction(
     })
     .select('id')
     .single()
-  if (error) return { error: error.message }
+  if (error) {
+    // The item went out of stock (sold, used on another ticket) between
+    // opening the popup and saving: patches/0130's trigger refuses it.
+    if (error.message.includes('inventory_item_not_available')) {
+      return { error: 'inventory_item_not_available' }
+    }
+    return { error: error.message }
+  }
 
   await logAudit({
     tenantId,
@@ -1490,11 +1501,14 @@ export async function addPartAction(
     tableName: 'repair_ticket_items',
     recordId: inserted?.id ?? ticket.id,
     changes: {
+      ticket_id: ticket.id,
       description: v.description,
       quantity: v.quantity,
       unit_cost: v.unit_cost,
       total_cost: total,
       inventory_item_id: v.inventory_item_id ?? null,
+      ticket_closed: ticket.is_locked,
+      reason: why || null,
     },
   })
 

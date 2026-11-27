@@ -8768,6 +8768,7 @@ export type Database = {
         | "scrapped"
         | "transferred"
         | "returned"
+        | "used_in_repair"
       laser_order_status:
         | "new"
         | "received"
@@ -9198,6 +9199,7 @@ export const Constants = {
         "scrapped",
         "transferred",
         "returned",
+        "used_in_repair",
       ],
       laser_order_status: [
         "new",

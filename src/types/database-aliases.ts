@@ -86,6 +86,8 @@ export type InventoryStatus =
   | 'scrapped'
   | 'transferred'
   | 'returned'
+  /** On a repair ticket as a part (patches/0129-0130): not stock. */
+  | 'used_in_repair'
 
 export type MetalType =
   | 'gold'

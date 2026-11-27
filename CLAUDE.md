@@ -560,6 +560,22 @@ Never kill node processes by image name — always by PID.
       the ticket, never the customer; the payoff comes from
       `payoffFromLoan` with `chargeModelOf(rules)` like the counter.
 
+35. **A repair part taken from inventory leaves stock — in the database**
+    (patches/0129-0130; Eddy, 2026-11-27). Inserting a `repair_ticket_items`
+    row with `inventory_item_id` moves that item `available` →
+    `used_in_repair` (trigger `repair_part_take_stock`, refuses with
+    `inventory_item_not_available` otherwise); soft-deleting the part puts
+    it back. Nothing else may move an item into or out of `used_in_repair`
+    (guard `inventory_used_in_repair_guard`) — never write that status from
+    app code. A part's `inventory_item_id` never changes.
+    - Parts of a CLOSED ticket (locked at pickup) are added / removed only
+      by owner / chain_admin / manager, with a reason, in the audit log
+      (`CLOSED_PARTS_ROLES`, `addPartAction` / `removePartAction`). The
+      customer's money on the ticket never changes.
+    - A ticket's Profit / loss is `repairProfit()` (`src/lib/repair/billing.ts`):
+      money in (closed) or quote (open) less parts and labor = all timer
+      hours × `settings.repair_labor_rate` (patches/0128, NULL = labor left out).
+
 ---
 
 ## MULTI-STORE MODEL — DAY 1 BAKED IN

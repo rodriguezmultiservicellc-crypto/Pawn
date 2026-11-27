@@ -245,7 +245,10 @@ export default function InventoryDetail({
   imported = null,
   tagChoices,
   justSaved = false,
+  usedOnRepair = null,
 }: {
+  /** The repair ticket this item went into as a part (status used_in_repair). */
+  usedOnRepair?: { id: string; ticket_number: string } | null
   /** Set when the piece came from an import (source + shop-day date). */
   imported?: { source: string; date: string } | null
   item: ItemRecord
@@ -397,6 +400,20 @@ export default function InventoryDetail({
         ) : null}
       </div>
 
+      {item.status === 'used_in_repair' ? (
+        <p className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
+          {t.inventory.usedInRepairNote}{' '}
+          {usedOnRepair ? (
+            <Link
+              href={`/repair/${usedOnRepair.id}`}
+              className="font-mono font-bold text-blue hover:underline"
+            >
+              {usedOnRepair.ticket_number}
+            </Link>
+          ) : null}
+        </p>
+      ) : null}
+
       <PhotosPanel itemId={item.id} photos={photos} />
 
       {melt ? <MeltPanel melt={melt} /> : null}
@@ -409,7 +426,7 @@ export default function InventoryDetail({
 
       {state.error ? (
         <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {state.error}
+          {state.error === 'item_used_in_repair' ? t.inventory.usedInRepairLocked : state.error}
         </div>
       ) : state.fieldErrors && Object.keys(state.fieldErrors).length > 0 ? (
         <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -902,11 +919,13 @@ function DeleteItemButton({
   const { t } = useI18n()
   const [pending, startTransition] = useTransition()
 
-  if (status === 'sold') {
+  if (status === 'sold' || status === 'used_in_repair') {
     return (
       <span
         className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-muted"
-        title={t.inventory.deleteBlockedSold}
+        title={
+          status === 'sold' ? t.inventory.deleteBlockedSold : t.inventory.usedInRepairLocked
+        }
       >
         <Trash size={14} weight="bold" />
         {t.common.delete}

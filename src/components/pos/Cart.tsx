@@ -404,6 +404,7 @@ export function Cart({
       case 'scrapped': return t.inventory.statusScrapped
       case 'transferred': return t.inventory.transferringBadge
       case 'returned': return t.inventory.statusReturned
+      case 'used_in_repair': return t.inventory.statusUsedInRepair
       default: return t.inventory.statusAvailable
     }
   }

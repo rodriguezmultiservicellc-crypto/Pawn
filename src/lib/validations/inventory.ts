@@ -80,6 +80,9 @@ export const inventoryStatusSchema = z.enum([
   'scrapped',
   'transferred',
   'returned',
+  // Only a repair part moves an item here (DB guard, patches/0130); the
+  // edit form may send it back unchanged.
+  'used_in_repair',
 ])
 
 export const metalTypeSchema = z.enum([
