@@ -95,23 +95,25 @@ export default async function StaffLayout({
           tenant={sidebarTenant}
           consignmentEnabled={tenantSettings?.consignment_enabled === true}
         />
-        <div className="flex flex-1 flex-col">
+        {/* min-w-0: a wide page (a table) scrolls inside <main>, it never
+            pushes the whole shell past the screen on a phone. */}
+        <div className="flex min-w-0 flex-1 flex-col">
           <header className="h-16 border-b border-border bg-card">
-            <div className="flex h-full items-center justify-between px-6">
-              <div className="flex items-center gap-3">
+            <div className="flex h-full items-center justify-between gap-2 px-3 sm:px-6">
+              <div className="flex min-w-0 items-center gap-3">
                 <Link
                   href="/dashboard"
-                  className="font-display text-xl font-bold text-navy"
+                  className="hidden shrink-0 font-display text-xl font-bold text-navy sm:inline"
                 >
                   Sol Pawn
                 </Link>
-                <span className="text-muted">·</span>
+                <span className="hidden text-muted sm:inline">·</span>
                 <TenantSwitcher
                   tenants={switcherTenants}
                   activeTenantId={ctx.tenantId}
                 />
               </div>
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex shrink-0 items-center gap-2 text-sm sm:gap-4">
                 {ctx.globalRole === 'superadmin' ? (
                   <Link
                     href="/admin/tenants"
@@ -120,7 +122,7 @@ export default async function StaffLayout({
                     <span className="rounded-full bg-navy px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                       Admin
                     </span>
-                    <span>Console</span>
+                    <span className="hidden sm:inline">Console</span>
                   </Link>
                 ) : null}
                 <StaffTopBarActions
@@ -129,7 +131,7 @@ export default async function StaffLayout({
               </div>
             </div>
           </header>
-          <main className="flex-1 overflow-x-auto px-6 py-6">{children}</main>
+          <main className="min-w-0 flex-1 overflow-x-auto px-3 py-4 sm:px-6 sm:py-6">{children}</main>
         </div>
       </div>
     </I18nProvider>

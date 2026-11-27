@@ -68,7 +68,7 @@ export function TenantSwitcher({
   // Single-tenant: render as a static chip.
   if (single) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground">
+      <span className="inline-block min-w-0 max-w-[10rem] truncate rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground sm:max-w-none">
         {activeLabel}
       </span>
     )
@@ -104,22 +104,22 @@ export function TenantSwitcher({
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative min-w-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-background"
+        className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-background"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span>{activeLabel}</span>
+        <span className="max-w-[8rem] truncate sm:max-w-none">{activeLabel}</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className={`h-4 w-4 text-muted transition-transform ${
+          className={`h-4 w-4 shrink-0 text-muted transition-transform ${
             open ? 'rotate-180' : ''
           }`}
         >
@@ -130,7 +130,7 @@ export function TenantSwitcher({
       {open ? (
         <div
           role="listbox"
-          className="absolute right-0 z-20 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+          className="absolute left-0 z-20 mt-2 w-72 max-w-[calc(100vw-5rem)] overflow-hidden sm:left-auto sm:right-0 rounded-xl border border-border bg-card shadow-lg"
         >
           <ul className="max-h-80 overflow-y-auto py-1">
             {tenants.map((t) => {

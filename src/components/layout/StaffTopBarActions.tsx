@@ -25,21 +25,21 @@ export function StaffTopBarActions({ userName }: { userName: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
       {/* Language toggle */}
       <button
         type="button"
         onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
         aria-label={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
         title={lang === 'en' ? 'Español' : 'English'}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-bold text-text-secondary transition-colors hover:bg-background hover:text-foreground"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-2 py-1.5 text-xs font-bold text-text-secondary sm:px-3 transition-colors hover:bg-background hover:text-foreground"
       >
         <Globe size={16} weight="regular" />
         <span className="uppercase">{lang}</span>
       </button>
 
       {/* User name */}
-      <span className="inline-flex items-center gap-1.5 px-1.5 text-sm font-medium text-text-secondary">
+      <span className="hidden items-center gap-1.5 px-1.5 text-sm font-medium text-text-secondary md:inline-flex">
         <User size={16} weight="regular" className="text-muted" />
         <span className="max-w-[16ch] truncate">{userName}</span>
       </span>
@@ -49,10 +49,12 @@ export function StaffTopBarActions({ userName }: { userName: string }) {
         type="button"
         onClick={handleSignOut}
         disabled={signingOut}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-sm font-semibold text-text-secondary transition-colors hover:border-danger/40 hover:bg-danger/5 hover:text-danger disabled:opacity-60"
+        aria-label={t.nav.logOut}
+        title={t.nav.logOut}
+        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-2 py-1.5 sm:px-3 text-sm font-semibold text-text-secondary transition-colors hover:border-danger/40 hover:bg-danger/5 hover:text-danger disabled:opacity-60"
       >
         <SignOut size={16} weight="bold" />
-        <span>{t.nav.logOut}</span>
+        <span className="hidden sm:inline">{t.nav.logOut}</span>
       </button>
     </div>
   )

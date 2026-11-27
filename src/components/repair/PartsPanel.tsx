@@ -72,7 +72,8 @@ export function PartsPanel({
         <div className="px-4 py-5 text-sm text-text-secondary">{t.repair.detail.noParts}</div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          {/* relative: the sr-only header stays inside the scroll box. */}
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="text-left">

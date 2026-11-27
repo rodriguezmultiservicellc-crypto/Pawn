@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -49,9 +49,13 @@ import type { TenantRole, TenantType } from '@/types/database-aliases'
  * Collapse behavior:
  *   - User-toggled via the caret button at the top; choice persists in
  *     localStorage under `pawn.sidebar.collapsed`.
- *   - Phone-size viewport (≤800px) auto-collapses regardless of the
- *     persisted preference, restoring the user's choice when crossing
- *     back to desktop.
+ *   - Phone-size viewport (≤800px) always shows the icon rail. The caret
+ *     opens the full menu OVER the page (not beside it, which would push
+ *     the page past the screen); a tap outside or a link closes it. The
+ *     saved preference is the desktop one and is not touched on a phone.
+ *   - Both values are read with useSyncExternalStore: the server snapshot
+ *     (expanded, desktop) matches the server HTML, so there is no
+ *     hydration mismatch; React switches to the real values right after.
  *
  * Group open / close:
  *   - Inventory, POS, Pawns, Repair and System tools each fold their
@@ -89,14 +93,20 @@ const LOYALTY_ROLES = new Set<TenantRole>(['owner', 'chain_admin'])
 const MOBILE_QUERY = '(max-width: 800px)'
 const STORAGE_KEY = 'pawn.sidebar.collapsed'
 
-function readPersistedCollapsed(): boolean {
-  if (typeof window === 'undefined') return false
-  try {
-    if (window.matchMedia(MOBILE_QUERY).matches) return true
-    return localStorage.getItem(STORAGE_KEY) === '1'
-  } catch {
-    return false
-  }
+const COLLAPSED_EVENT = 'pawn:sidebar-collapsed'
+
+function readIsMobile(): boolean {
+  return window.matchMedia(MOBILE_QUERY).matches
+}
+
+function subscribeIsMobile(onChange: () => void): () => void {
+  const mql = window.matchMedia(MOBILE_QUERY)
+  mql.addEventListener('change', onChange)
+  return () => mql.removeEventListener('change', onChange)
+}
+
+function serverFalse(): boolean {
+  return false
 }
 
 type GroupId = 'inventory' | 'pos' | 'pawns' | 'repair' | 'tools'
@@ -130,11 +140,19 @@ function subscribeClosedGroups(onChange: () => void): () => void {
 }
 
 function readUserPreference(): boolean {
-  if (typeof window === 'undefined') return false
   try {
     return localStorage.getItem(STORAGE_KEY) === '1'
   } catch {
     return false
+  }
+}
+
+function subscribeUserPreference(onChange: () => void): () => void {
+  window.addEventListener('storage', onChange)
+  window.addEventListener(COLLAPSED_EVENT, onChange)
+  return () => {
+    window.removeEventListener('storage', onChange)
+    window.removeEventListener(COLLAPSED_EVENT, onChange)
   }
 }
 
@@ -152,30 +170,27 @@ export function Sidebar({
 }) {
   const { t } = useI18n()
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState<boolean>(() =>
-    readPersistedCollapsed(),
+  const isMobile = useSyncExternalStore(subscribeIsMobile, readIsMobile, serverFalse)
+  const preferCollapsed = useSyncExternalStore(
+    subscribeUserPreference,
+    readUserPreference,
+    serverFalse,
   )
-
-  // Auto-collapse on phone viewports; restore user preference on resize-up.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const mql = window.matchMedia(MOBILE_QUERY)
-    const onChange = (e: MediaQueryListEvent) => {
-      if (e.matches) setCollapsed(true)
-      else setCollapsed(readUserPreference())
-    }
-    mql.addEventListener('change', onChange)
-    return () => mql.removeEventListener('change', onChange)
-  }, [])
+  // On a phone the full menu is a sheet over the page, open until a link is
+  // followed (the path changes) or the page behind it is tapped.
+  const [sheetOpenAt, setSheetOpenAt] = useState<string | null>(null)
+  const sheetOpen = isMobile && sheetOpenAt === pathname
+  const collapsed = isMobile ? !sheetOpen : preferCollapsed
 
   const toggle = () => {
-    setCollapsed((prev) => {
-      const next = !prev
-      try {
-        localStorage.setItem(STORAGE_KEY, next ? '1' : '0')
-      } catch {}
-      return next
-    })
+    if (isMobile) {
+      setSheetOpenAt(sheetOpen ? null : pathname)
+      return
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, preferCollapsed ? '0' : '1')
+    } catch {}
+    window.dispatchEvent(new Event(COLLAPSED_EVENT))
   }
 
   const closedGroups = new Set(
@@ -607,8 +622,21 @@ export function Sidebar({
     // The menu and the page scroll on their own (Eddy, 2026-11-26): the menu
     // is pinned to the window's height and scrolls inside itself; reaching its
     // end never scrolls the page (overscroll-contain).
+    <>
+    {sheetOpen ? (
+      <>
+        {/* Keeps the rail's room in the row while the sheet covers it. */}
+        <div className="w-16 shrink-0" aria-hidden />
+        <button
+          type="button"
+          onClick={() => setSheetOpenAt(null)}
+          aria-label={t.common.collapseSidebar}
+          className="fixed inset-0 z-40 bg-navy/40"
+        />
+      </>
+    ) : null}
     <nav
-      className={`sticky top-0 flex h-dvh ${widthClass} shrink-0 flex-col gap-0.5 self-start overflow-y-auto overscroll-contain bg-navy [&>*]:shrink-0 px-2 py-4 transition-[width] duration-150 [scrollbar-color:rgb(255_255_255/0.2)_transparent] [scrollbar-width:thin]`}
+      className={`${sheetOpen ? 'fixed left-0 top-0 z-50 shadow-lg' : 'sticky top-0'} flex h-dvh ${widthClass} shrink-0 flex-col gap-0.5 self-start overflow-y-auto overscroll-contain bg-navy [&>*]:shrink-0 px-2 py-4 transition-[width] duration-150 [scrollbar-color:rgb(255_255_255/0.2)_transparent] [scrollbar-width:thin]`}
       aria-label="Primary"
     >
       <button
@@ -760,5 +788,6 @@ export function Sidebar({
           )
         })}
     </nav>
+    </>
   )
 }

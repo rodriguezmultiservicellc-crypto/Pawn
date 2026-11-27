@@ -651,7 +651,7 @@ export default function RepairTicketDetail({
                   className={`h-1.5 rounded-full ${done ? 'bg-blue' : current ? 'bg-gold' : 'bg-border'}`}
                 />
                 <div
-                  className={`mt-1.5 truncate text-[13px] ${
+                  className={`mt-1.5 hidden truncate text-[13px] sm:block ${
                     current
                       ? 'font-bold text-foreground'
                       : done
@@ -665,6 +665,12 @@ export default function RepairTicketDetail({
             )
           })}
         </ol>
+        {/* A phone has no room for six names: the current one only. */}
+        {currentStep != null && status !== 'picked_up' ? (
+          <p className="-mt-2 px-5 pb-4 text-[13px] font-bold text-foreground sm:hidden">
+            {td.steps[STEP_KEYS[currentStep]]}
+          </p>
+        ) : null}
 
         {/* Next step: one sentence + the ONE gold button for this status. */}
         {band ? (
