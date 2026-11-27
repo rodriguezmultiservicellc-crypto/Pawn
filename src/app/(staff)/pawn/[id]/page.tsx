@@ -18,6 +18,8 @@ import PawnLoanDetail, {
 } from './content'
 import type { LoanEventType, LoanStatus } from '@/types/database-aliases'
 import { allPhotoPaths } from '@/lib/uploads/intake-photos'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { pawnTrackingUrl } from '@/lib/pawn/public-link'
 
 type Params = Promise<{ id: string }>
 
@@ -229,8 +231,19 @@ export default async function PawnLoanDetailPage(props: {
     ? planPaymentVoid({ loan: voidLoan, events: eventRows ?? [], eventId: voidId })
     : null
 
+  // The customer page link (patches/0127). Its table has no staff policy:
+  // read with the service role for this shop's own loan only.
+  const { data: liveLink } = await createAdminClient()
+    .from('loan_public_links')
+    .select('token')
+    .eq('tenant_id', ctx.tenantId)
+    .eq('loan_id', loan.id)
+    .is('revoked_at', null)
+    .maybeSingle()
+
   return (
     <PawnLoanDetail
+      customerLink={pawnTrackingUrl(liveLink?.token)}
       loan={view}
       collateral={collateral}
       events={events}

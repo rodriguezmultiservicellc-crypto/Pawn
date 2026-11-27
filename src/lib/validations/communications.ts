@@ -49,6 +49,7 @@ export const messageKindSchema = z.enum([
   'forfeiture_winback',
   'redemption_thankyou',
   'repair_tracking_link',
+  'pawn_tracking_link',
   'custom_quote_link',
 ])
 

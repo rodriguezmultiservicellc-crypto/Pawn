@@ -46,6 +46,7 @@ import { mergePaymentMoves } from '@/lib/pawn/event-log'
 import { PaymentHistoryPanel } from '@/components/pawn/PaymentHistoryPanel'
 import { PhotoViewer } from '@/components/uploads/PhotoViewer'
 import { FOCUS } from '@/lib/ui/ledger'
+import { CustomerLinkPanel } from '@/components/pawn/CustomerLinkPanel'
 import type {
   InventoryCategory,
   LoanEventType,
@@ -165,6 +166,7 @@ export default function PawnLoanDetail({
   voidablePayment,
   forfeit,
   tagChoices,
+  customerLink,
 }: {
   loan: LoanView
   collateral: LoanCollateralView[]
@@ -180,6 +182,8 @@ export default function PawnLoanDetail({
   voidablePayment: { eventId: string; restoreDueDate: string | null; reopens: boolean } | null
   forfeit: { eligible: boolean; eligibleOn: string; lastRedemptionDate: string }
   tagChoices: TemplateChoice[]
+  /** The customer page link (/p/<token>, patches/0127); null = none yet. */
+  customerLink: string | null
 }) {
   const { t } = useI18n()
   const [dialog, setDialog] = useState<DialogKind>(null)
@@ -405,6 +409,8 @@ export default function PawnLoanDetail({
               {t.pawn.detail.signatureView}
             </a>
           ) : null}
+
+          <CustomerLinkPanel loanId={loan.id} initialLink={customerLink} />
         </div>
 
         <div className="lg:col-span-2">

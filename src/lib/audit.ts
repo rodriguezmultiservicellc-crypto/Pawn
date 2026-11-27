@@ -193,6 +193,10 @@ export type AuditAction =
   | 'do_not_buy_unavailable'
   // Days sent to LeadsOnline as "no transactions" (patches/0124)
   | 'leadsonline_no_transaction_days'
+  // The customer page link of a pawn ticket (patches/0127)
+  | 'pawn_link_create'
+  | 'pawn_link_revoke'
+  | 'pawn_link_send'
   // Item tags (patches/0074)
   | 'tag_print'
   | 'tag_template_save'

@@ -4057,6 +4057,61 @@ export type Database = {
           },
         ]
       }
+      loan_public_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          loan_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          tenant_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          loan_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          tenant_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          loan_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          tenant_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_public_links_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_public_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_public_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loans: {
         Row: {
           created_at: string
@@ -8529,6 +8584,10 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: undefined
       }
+      seed_pawn_tracking_templates: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
       seed_repair_tracking_templates: {
         Args: { p_tenant_id: string }
         Returns: undefined
@@ -8757,6 +8816,7 @@ export type Database = {
         | "online_order_confirmed"
         | "online_order_ready"
         | "online_order_shipped"
+        | "pawn_tracking_link"
       message_status: "queued" | "sent" | "delivered" | "failed" | "opted_out"
       metal_purity:
         | "pure_24k"
@@ -9190,6 +9250,7 @@ export const Constants = {
         "online_order_confirmed",
         "online_order_ready",
         "online_order_shipped",
+        "pawn_tracking_link",
       ],
       message_status: ["queued", "sent", "delivered", "failed", "opted_out"],
       metal_purity: [
