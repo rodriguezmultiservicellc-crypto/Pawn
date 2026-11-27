@@ -67,6 +67,45 @@ export function partsCogs(
   return r4(total)
 }
 
+// ── Profit / loss of one ticket ────────────────────────────────────────────
+
+export type RepairProfit = {
+  /** True once the ticket is closed: the figures are what really came in. */
+  final: boolean
+  /** Closed: deposit + paid. Open: the quote (what the job should bring). */
+  revenue: number
+  partsCost: number
+  profit: number
+  /** profit / revenue; null when there is no revenue to divide by. */
+  margin: number | null
+}
+
+/**
+ * What one repair made or lost. A closed ticket counts the money that came
+ * in (deposit + payments); an open one is figured on its quote, falling
+ * back to what has come in when it is not quoted yet. Labor is not in it:
+ * there is no technician rate yet (see timeBilledEstimate).
+ */
+export function repairProfit(args: {
+  quote: number | string | null | undefined
+  deposit: number | string | null | undefined
+  paid: number | string | null | undefined
+  partsCost: number | string | null | undefined
+  closed: boolean
+}): RepairProfit {
+  const collected = r4(toMoney(args.deposit) + toMoney(args.paid))
+  const revenue = args.closed || args.quote == null ? collected : toMoney(args.quote)
+  const partsCost = toMoney(args.partsCost)
+  const profit = r4(revenue - partsCost)
+  return {
+    final: args.closed,
+    revenue,
+    partsCost,
+    profit,
+    margin: revenue > 0 ? profit / revenue : null,
+  }
+}
+
 /** Compute total_cost = quantity * unit_cost, rounded to 4dp. */
 export function lineTotalCost(args: {
   quantity: number | string | null | undefined

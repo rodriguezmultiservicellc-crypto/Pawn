@@ -25,6 +25,7 @@ import {
 } from '@phosphor-icons/react'
 import { useI18n } from '@/lib/i18n/context'
 import { daysBetween } from '@/lib/pawn/math'
+import { partsCogs, repairProfit } from '@/lib/repair/billing'
 import { SendReminderDialog } from '@/components/comms/SendReminderDialog'
 import { manualSendAction } from '@/app/(staff)/settings/communications/actions'
 import { ServiceTypeBadge } from '@/components/repair/ServiceTypeBadge'
@@ -777,6 +778,7 @@ export default function RepairTicketDetail({
         <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-4">
           <MoneyCard
             ticket={ticket}
+            partsCost={partsCogs(parts)}
             canCollectDeposit={canCollectDeposit}
             pending={pending}
             onCollectDeposit={() => setDialog('collectDeposit')}
@@ -876,11 +878,13 @@ export default function RepairTicketDetail({
 /** Balance due large, then Quote / Deposit / Paid; pickup record when done. */
 function MoneyCard({
   ticket,
+  partsCost,
   canCollectDeposit,
   pending,
   onCollectDeposit,
 }: {
   ticket: RepairTicketView
+  partsCost: number
   canCollectDeposit: boolean
   pending: boolean
   onCollectDeposit: () => void
@@ -913,6 +917,7 @@ function MoneyCard({
           <dd className="font-mono text-foreground">{fmtMoney(ticket.paid_amount)}</dd>
         </div>
       </dl>
+      <ProfitBlock ticket={ticket} partsCost={partsCost} />
       {canCollectDeposit ? (
         <button
           type="button"
@@ -1173,6 +1178,54 @@ function fmtDay(ymd: string, locale: string): string {
     day: 'numeric',
     timeZone: 'UTC',
   })
+}
+
+/**
+ * Profit / loss of this job: money in (closed) or the quote (open) less the
+ * parts. Labor is not counted (no technician rate yet).
+ */
+function ProfitBlock({ ticket, partsCost }: { ticket: RepairTicketView; partsCost: number }) {
+  const { t } = useI18n()
+  const td = t.repair.detail
+  const p = repairProfit({
+    quote: ticket.quote_amount,
+    deposit: ticket.deposit_amount,
+    paid: ticket.paid_amount,
+    partsCost,
+    closed: ticket.is_locked,
+  })
+  const row = 'flex items-center justify-between gap-3 text-sm text-text-secondary'
+  const tone = p.profit < 0 ? 'text-danger' : 'text-success'
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <div className={LBL}>{td.profitTitle}</div>
+      <dl className="mt-2 space-y-1.5">
+        <div className={row}>
+          <dt>{p.final || ticket.quote_amount == null ? td.profitMoneyIn : td.profitQuote}</dt>
+          <dd className="font-mono text-foreground">{fmtMoney(p.revenue)}</dd>
+        </div>
+        <div className={row}>
+          <dt>{td.profitParts}</dt>
+          <dd className="font-mono text-foreground">−{fmtMoney(p.partsCost)}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-1.5 text-sm font-bold text-foreground">
+          <dt>{p.final ? td.profit : td.profitExpected}</dt>
+          <dd className={`font-mono ${tone}`}>
+            {p.profit < 0 ? '−' : ''}
+            {fmtMoney(Math.abs(p.profit))}
+            {p.margin != null ? (
+              <span className="ml-1.5 text-xs font-semibold">
+                ({Math.round(p.margin * 100)}%)
+              </span>
+            ) : null}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-1.5 text-xs text-text-secondary">
+        {p.final ? td.profitNoteClosed : td.profitNoteOpen}
+      </p>
+    </div>
+  )
 }
 
 function fmtMoney(v: number): string {
