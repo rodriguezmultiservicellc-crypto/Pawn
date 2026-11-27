@@ -2540,6 +2540,8 @@ export const es: Dictionary = {
       depositLabel: 'Depósito',
       balanceDue: 'Saldo al recoger',
       railMissingHint: 'Elige un cliente y agrega al menos un artículo',
+      workRequired: 'Describe el trabajo que necesita este artículo antes de agregarlo.',
+      railWorkHint: 'Describe el trabajo de cada artículo',
       photosInvalid: 'No se encontró una foto de un artículo. Quítala y tómala de nuevo.',
       // ── Artículos como en el boleto de empeño: botones, tabla, ventana por artículo ──
       // Frases listas para Trabajo a realizar, por servicio. El "#" es lo

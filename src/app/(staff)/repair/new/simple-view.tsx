@@ -61,6 +61,8 @@ export type SimpleViewProps = {
   balance: number
   canOpen: boolean
   needsService: boolean
+  /** A built item has no work described yet. */
+  needsWork: boolean
   submitLabel: string
   fmtMoney: (v: number) => string
 }
@@ -112,6 +114,7 @@ export function SimpleRepairTicketView({
   balance,
   canOpen,
   needsService,
+  needsWork,
   submitLabel,
   fmtMoney,
 }: SimpleViewProps) {
@@ -213,7 +216,9 @@ export function SimpleRepairTicketView({
 
         {/* ── Card 2: one card per item ─────────────────────────────────── */}
         {itemsError ? (
-          <p className="text-xs text-danger">{tn.atLeastOneItem}</p>
+          <p className="text-xs text-danger">
+            {itemsError === 'work_required' ? tn.railWorkHint : tn.atLeastOneItem}
+          </p>
         ) : null}
         {items.map((li, idx) => (
           <SimpleItemCard
@@ -272,6 +277,10 @@ export function SimpleRepairTicketView({
             {needsService ? (
               <div className="text-[11.5px] font-semibold text-gold">
                 {ts.pickService}
+              </div>
+            ) : needsWork ? (
+              <div className="text-[11.5px] font-semibold text-gold">
+                {tn.railWorkHint}
               </div>
             ) : null}
           </div>

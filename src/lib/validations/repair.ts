@@ -152,7 +152,8 @@ export const repairLineItemSchema = z.object({
   dimension: optionalShortString,
   title: z.string().trim().min(1, 'required').max(200),
   service_type: serviceTypeSchema,
-  work_needed: optionalTrimmedString,
+  // Required: the tech works from it (Eddy, 2026-11-27).
+  work_needed: z.string().trim().min(1, 'work_required').max(2000),
   // What the shop charges for this item (patches/0122); empty = not priced yet.
   price: optionalDecimal,
 })

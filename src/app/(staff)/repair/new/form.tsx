@@ -209,11 +209,15 @@ export default function NewRepairTicketForm({
   // since it preselects nothing where Classic preselects Repair.
   const needsService =
     view === 'simple' && builtItems.some((it) => !it.service_touched)
+  // Every item says what work it needs (Eddy, 2026-11-27); the server
+  // refuses one without it too.
+  const needsWork = builtItems.some((li) => li.work_needed.trim() === '')
   const canOpen =
     !pending &&
     selectedCustomer != null &&
     builtItems.length > 0 &&
-    !needsService
+    !needsService &&
+    !needsWork
 
   /** Adds an item (of this type, from a pill) and returns its uid. */
   function addItem(itemType = ''): string {
@@ -448,6 +452,7 @@ export default function NewRepairTicketForm({
           balance={itemsBalance}
           canOpen={canOpen}
           needsService={needsService}
+          needsWork={needsWork}
           submitLabel={pending ? tn.submitting : tn.submit}
           fmtMoney={fmtMoney}
         />
@@ -495,7 +500,13 @@ export default function NewRepairTicketForm({
             title={`2 · ${tn.sectionItem}`}
             items={items}
             tenantId={tenantId}
-            error={state.fieldErrors?.line_items ? tn.atLeastOneItem : null}
+            error={
+              state.fieldErrors?.line_items === 'work_required'
+                ? tn.railWorkHint
+                : state.fieldErrors?.line_items
+                  ? tn.atLeastOneItem
+                  : null
+            }
             onAdd={addItem}
             onPatch={patchItem}
             onRemove={removeItem}
@@ -634,7 +645,11 @@ export default function NewRepairTicketForm({
               {t.common.cancel}
             </Link>
             {!canOpen && !pending ? (
-              <p className={`${HINT} text-center`}>{tn.railMissingHint}</p>
+              <p className={`${HINT} text-center`}>
+                {selectedCustomer != null && builtItems.length > 0 && needsWork
+                  ? tn.railWorkHint
+                  : tn.railMissingHint}
+              </p>
             ) : null}
           </div>
         </section>

@@ -2552,6 +2552,8 @@ export const en = {
       depositLabel: 'Deposit',
       balanceDue: 'Balance due at pickup',
       railMissingHint: 'Pick a customer and add at least one item',
+      workRequired: 'Describe the work this item needs before adding it.',
+      railWorkHint: 'Describe the work needed on every item',
       photosInvalid: 'A photo of an item could not be found. Remove it and take it again.',
       // Ready-made phrases for Work needed, by service (Eddy, 2026-11-26). A
       // "#" is the spot the clerk fills in (it is selected after insert).

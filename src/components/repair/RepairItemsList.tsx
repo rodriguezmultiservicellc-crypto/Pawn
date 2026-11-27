@@ -218,6 +218,10 @@ function ItemRow({
   // A new item starts on its photos; an item already on the ticket on Item.
   const [step, setStep] = useState<Step>('photos')
   const workRef = useRef<HTMLTextAreaElement>(null)
+  // Add item / Done was pressed with no work described (Eddy, 2026-11-27):
+  // the field turns red until something is typed.
+  const [workMissing, setWorkMissing] = useState(false)
+  const showWorkMissing = workMissing && item.work_needed.trim() === ''
 
   /** A ready-made phrase goes on its own line; its "#" is selected so the
    *  clerk types the number right over it. */
@@ -254,6 +258,14 @@ function ItemRow({
       requestAnimationFrame(() => bad.reportValidity())
       return
     }
+    // Every item says what work it needs: the tech works from it.
+    if (item.work_needed.trim() === '') {
+      setWorkMissing(true)
+      setStep('service')
+      requestAnimationFrame(() => workRef.current?.focus())
+      return
+    }
+    setWorkMissing(false)
     onClose()
   }
 
@@ -499,8 +511,18 @@ function ItemRow({
                           value={item.work_needed}
                           onChange={(e) => onChange({ work_needed: e.target.value })}
                           placeholder={tn.workNeededPlaceholder}
-                          className={`block min-h-56 w-full flex-1 rounded-md border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-blue ${FOCUS}`}
+                          aria-required
+                          aria-invalid={showWorkMissing || undefined}
+                          aria-describedby={showWorkMissing ? `${fieldId}-work-error` : undefined}
+                          className={`block min-h-56 w-full flex-1 rounded-md border bg-card px-3 py-2.5 text-sm text-foreground outline-none ${
+                            showWorkMissing ? 'border-2 border-danger' : 'border-border focus:border-blue'
+                          } ${FOCUS}`}
                         />
+                        {showWorkMissing ? (
+                          <p id={`${fieldId}-work-error`} role="alert" className="text-[13px] font-semibold text-danger">
+                            {tn.workRequired}
+                          </p>
+                        ) : null}
                         {/* The price of this item's work (patches/0122). */}
                         <label htmlFor={`${fieldId}-price`} className={`block pt-2 ${LABEL}`}>{tl.price}</label>
                         <div className="relative max-w-xs">

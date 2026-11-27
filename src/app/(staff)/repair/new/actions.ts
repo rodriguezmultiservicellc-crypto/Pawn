@@ -128,6 +128,13 @@ export async function createRepairTicketAction(
     if (!fieldErrors.line_items && lineItemRows.length === 0) {
       fieldErrors.line_items = 'at_least_one_item'
     }
+    // An item with no work described: shown at the items list.
+    if (
+      !fieldErrors.line_items &&
+      parsed.error.issues.some((i) => i.path[0] === 'line_items' && i.path[2] === 'work_needed')
+    ) {
+      fieldErrors.line_items = 'work_required'
+    }
     return { fieldErrors }
   }
 
